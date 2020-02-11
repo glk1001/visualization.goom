@@ -125,7 +125,7 @@ void CVisualizationGoom::Stop()
 
   m_started = false;
 
-   kodi::Log(ADDON_LOG_DEBUG, "Stop: Stopping processed buffers thread...");
+  kodi::Log(ADDON_LOG_DEBUG, "Stop: Stopping processed buffers thread...");
   {
     std::unique_lock<std::mutex> lock(m_mutex);
     m_threadExit = true;
@@ -170,7 +170,7 @@ void CVisualizationGoom::AudioData(const float* pAudioData, int iAudioDataLength
 
   std::unique_lock<std::mutex> lock(m_mutex);
 
-  if (m_buffer.data_available() >= 16384)
+  if (m_buffer.data_available() >= g_circular_buffer_size)
     return;
 
   m_buffer.write(pAudioData, iAudioDataLength);
@@ -247,7 +247,7 @@ void CVisualizationGoom::Render()
 
       // Bind to next PBO and update data directly on the mapped buffer.
       glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pboIds[nextPboIndex]);
-      memcpy(m_pboGoomBuffer[nextPboIndex], pixels.get(), sizeof(uint32_t) * m_tex_width * m_tex_height);
+      std::memcpy(m_pboGoomBuffer[nextPboIndex], pixels.get(), sizeof(uint32_t) * m_tex_width * m_tex_height);
 
       glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);  // release pointer to mapping buffer
       glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
@@ -278,27 +278,27 @@ void CVisualizationGoom::Render()
 static inline int16_t FloatToInt16(float f)
 {
   if (f >= 1.0f)
-    return 32767;
+    return INT16_MAX;
   else if (f < -1.0f)
-    return -32768;
+    return -INT16_MAX;
   else
-    return (int16_t)(f * 32768.0f);
+    return (int16_t)(f * float(INT16_MAX));
 }
 
 bool CVisualizationGoom::FillBuffer(int16_t* data)
 {
-  if (m_buffer.data_available() < 512 * m_channels)
+  if (m_buffer.data_available() < AUDIO_SAMPLE_LEN * m_channels)
     return false;
 
-  float floatData[512*2];
-  unsigned read = m_buffer.read(floatData, 512 * m_channels);
+  float floatData[NUM_AUDIO_SAMPLES*AUDIO_SAMPLE_LEN];
+  unsigned read = m_buffer.read(floatData, AUDIO_SAMPLE_LEN * m_channels);
 
   int ipos = 0;
   int fpos = 0;
-  while (ipos < 512)
+  while (ipos < AUDIO_SAMPLE_LEN)
   {
     data[ipos] = FloatToInt16(floatData[fpos++]);
-    data[512 + ipos] = m_channels == 1 ? data[ipos] : FloatToInt16(floatData[fpos++]);
+    data[AUDIO_SAMPLE_LEN + ipos] = m_channels == 1 ? data[ipos] : FloatToInt16(floatData[fpos++]);
     ipos++;
   }
 
@@ -307,7 +307,7 @@ bool CVisualizationGoom::FillBuffer(int16_t* data)
 
 void CVisualizationGoom::Process()
 {
-  int16_t audioData[2][512];
+  int16_t audioData[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN];
   const char* title = nullptr;
 
   m_goom = goom_init(m_tex_width, m_tex_height);
@@ -441,11 +441,11 @@ bool CVisualizationGoom::InitGLObjects()
 #ifdef HAS_GL
   if (!g_usePixelBufferObjects)
   {
-    kodi::Log(ADDON_LOG_DEBUG, "InitGLObjects: Not using pixel buffer objects.");
+    kodi::Log(ADDON_LOG_NOTICE, "InitGLObjects: Not using pixel buffer objects.");
   }
   else
   {
-    kodi::Log(ADDON_LOG_DEBUG, "InitGLObjects: Using pixel buffer objects.");
+    kodi::Log(ADDON_LOG_NOTICE, "InitGLObjects: Using pixel buffer objects.");
     m_currentPboIndex = 0;
 
     glGenBuffers(g_numPbos, m_pboIds);
