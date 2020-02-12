@@ -26,9 +26,11 @@ include_directories(${includes}
                     ${PROJECT_SOURCE_DIR}/lib
                     ${PROJECT_SOURCE_DIR}/lib/goom/src)
 
-set(GOOM_SOURCES src/Main.cpp)
+set(GOOM_SOURCES src/Main.cpp src/workers.cpp)
 
-set(GOOM_HEADERS src/CircularBuffer.h
+set(GOOM_HEADERS src/workers.hpp
+                 src/buffer_savers.hpp
+            	 src/tsqueue.hpp
                  src/Main.h)
 
 list(APPEND DEPLIBS goom)

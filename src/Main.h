@@ -21,7 +21,8 @@
 
 #define __STDC_LIMIT_MACROS
 
-#include "CircularBuffer.h"
+#include "workers.hpp"
+#include "buffer_savers.hpp"
 
 extern "C" {
 #include "goom.h"
@@ -66,23 +67,22 @@ public:
   bool OnEnabled() override;
 
 private:
-  void Process();
-  bool FillBuffer(int16_t* data);
   bool InitGLObjects();
   void InitQuadData();
 
-  int m_tex_width = GOOM_TEXTURE_WIDTH;
-  int m_tex_height = GOOM_TEXTURE_HEIGHT;
-  int m_goomBufferSize = GOOM_TEXTURE_WIDTH * GOOM_TEXTURE_HEIGHT * sizeof(uint32_t);
-
+  const static int g_tex_width = GOOM_TEXTURE_WIDTH;
+  const static int g_tex_height = GOOM_TEXTURE_HEIGHT;
+  const static int g_numGoomBufferElements = 4 * g_tex_width * g_tex_height;
+  const static int g_goomBufferSize = g_numGoomBufferElements * sizeof(unsigned char);
+  
   int m_window_width;
   int m_window_height;
   int m_window_xpos;
   int m_window_ypos;
 
   int m_channels;
-  std::string m_currentSongName;
-  std::string m_lastSongName;
+  std::string m_currentSongName = "";
+  std::string m_lastSongName = "";
   bool m_titleChange = false;
   bool m_showTitleAlways = false;
 
@@ -111,21 +111,32 @@ private:
   PluginInfo* m_goom = nullptr;
 
   // Audio buffer storage
-  const static size_t g_circular_buffer_size = 16384;
-  circular_buffer<float> m_buffer = g_circular_buffer_size;
+  const static int g_audioDataBufferLen = NUM_AUDIO_SAMPLES * AUDIO_SAMPLE_LEN;
+  const static int g_audioDataBufferSize = g_audioDataBufferLen * sizeof(short);
+  short m_audioData[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN];
+  bool m_audioStarted = false;
+  unsigned long m_numTimesAudioSampled = 0;
 
   // Goom process thread handles
-  bool m_threadExit = false;
   std::thread m_workerThread;
-  std::mutex m_mutex;
-  std::condition_variable m_wait;
+  Worker m_worker;
 
-  // Screen frames storage, m_activeQueue for next view and m_storedQueue to
-  // use on next goom round become active again.
-  std::queue<std::shared_ptr<uint32_t>> m_activeQueue;
-  std::queue<std::shared_ptr<uint32_t>> m_storedQueue;
+  // Screen frames storage
+  unsigned long m_frameNum = 0;
+  const static int g_maxNumSkippedFramesInARow = 0;
+  int m_numSkippedFramesInARow = 0;
+  unsigned long m_numBufferWaits = 0;
+  void UpdateGoomBuffer(const void* audioData, unsigned long audioTag, void* goomBuffer);
+  void Logger(int severity, const std::string& msg);
+
+  BufferSaver<short> m_audioBufferSaver;
+  const static int g_maxNumSavedAudioBuffers = 10000;
+  const static bool g_saveAudioBuffers = false;
+
+  BufferSaver<unsigned char> m_goomBufferSaver;
+  const static int g_maxNumSavedGoomBuffers = 10000;
+  const static bool g_saveGoomBuffers = false;
 
   // Start flag to know init was OK
   bool m_started = false;
 };
-
