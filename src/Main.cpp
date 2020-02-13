@@ -292,6 +292,8 @@ void CVisualizationGoom::Render()
 #endif
 
   // Setup texture.
+  glDisable(GL_BLEND);
+  glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, m_textureId);
   if (dataPackagePtr != nullptr) {
 #ifdef HAS_GL
@@ -322,17 +324,12 @@ void CVisualizationGoom::Render()
   
   delete dataPackagePtr;
 
-  glEnable(GL_TEXTURE_2D);
-  glDisable(GL_BLEND);
-  glActiveTexture(GL_TEXTURE0);
-
   EnableShader();
-  glUniformMatrix4fv(m_uProjModelMatLoc, 1, GL_FALSE, glm::value_ptr(m_projModelMatrix));
   glDrawArrays(GL_TRIANGLE_FAN, 0, 6);
   DisableShader();
 
   glEnable(GL_BLEND);
-  glDisable(GL_TEXTURE_2D);
+
 #ifdef HAS_GL
   glBindVertexArray(0);
 #else
@@ -428,14 +425,12 @@ bool CVisualizationGoom::InitGLObjects()
     return false;
   }
   glClear(GL_COLOR_BUFFER_BIT);
-  glColor4f(1.0, 1.0, 1.0, 1.0);
-  glEnable(GL_TEXTURE_2D);
+
   glBindTexture(GL_TEXTURE_2D, m_textureId);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 #ifdef HAS_GL
   glGenerateMipmap(GL_TEXTURE_2D);
 #endif
