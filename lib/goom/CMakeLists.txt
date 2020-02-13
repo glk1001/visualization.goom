@@ -1,4 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
+
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O0")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O0")
+
 project(goom)
 
 if(WIN32)
