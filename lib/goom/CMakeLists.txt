@@ -11,6 +11,7 @@ set(GOOM_SOURCES src/goomsl_yacc.c
                  src/goomsl.c
                  src/goomsl_hash.c
                  src/goomsl_heap.c
+                 src/goom_testing.c
                  src/goom_tools.c
                  src/config_param.c
                  src/convolve_fx.c
@@ -19,6 +20,7 @@ set(GOOM_SOURCES src/goomsl_yacc.c
                  src/gfontlib.c
                  src/gfontrle.c
                  src/goom_core.c
+                 src/goom_logging.c
                  src/graphic.c
                  src/ifs.c
                  src/lines.c
@@ -40,6 +42,8 @@ set(GOOM_HEADERS src/goom.h
                  src/goom_config_param.h
                  src/goom_visual_fx.h
                  src/goom_filters.h
+                 src/goom_logging.h
+                 src/goom_testing.h
                  src/goom_tools.h
                  src/goomsl.h
                  src/goomsl_hash.h
@@ -52,4 +56,4 @@ set(GOOM_HEADERS src/goom.h
 
 add_library(goom STATIC ${GOOM_SOURCES} ${GOOM_HEADERS})
 set_property(TARGET goom PROPERTY POSITION_INDEPENDENT_CODE ON)
-set_property(TARGET goom PROPERTY C_STANDARD 11)
+#set_property(TARGET goom PROPERTY C_STANDARD 11)

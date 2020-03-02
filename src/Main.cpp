@@ -306,7 +306,7 @@ inline void CVisualizationGoom::PushUsedPixels(std::shared_ptr<uint32_t> pixels)
 
 void CVisualizationGoom::Process()
 {
-  m_goom = goom_init(m_tex_width, m_tex_height);
+  m_goom = goom_init(m_tex_width, m_tex_height, 1);
   if (!m_goom)
   {
     kodi::Log(ADDON_LOG_FATAL, "CVisualizationGoom: Goom could not be initialized!");
@@ -330,8 +330,8 @@ void CVisualizationGoom::Process()
     unsigned read = m_buffer.read(floatAudioData, m_audioBufferLen);
     if (read != m_audioBufferLen)
     {
-      kodi::Log(ADDON_LOG_WARNING, "Process: Read audio data %u != %d = expected audio data length - skipping this.", read, m_audioBufferLen);
-      SkippedAudioData();
+      kodi::Log(ADDON_LOG_WARNING, "Process: Num read audio length %u != %d = expected audio data length - skipping this.", read, m_audioBufferLen);
+      AudioDataIncorrectReadLength();
       continue;
     }
     lk.unlock();
@@ -502,4 +502,11 @@ bool CVisualizationGoom::InitGLObjects()
   return true;
 }
 
-ADDONCREATOR(CVisualizationGoom) // Don't touch this!
+
+#ifndef DO_TESTING
+  ADDONCREATOR(CVisualizationGoom) // Don't touch this!
+#else
+  #include "../testing/apps/main_append_test.hpp"
+
+  ADDONCREATOR(CVisualizationGoom_Tester) // Don't touch this!
+#endif
