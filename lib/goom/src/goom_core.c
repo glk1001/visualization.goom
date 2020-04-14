@@ -66,6 +66,14 @@ PluginInfo* goom_init(guint32 resx, guint32 resy, int seed)
     plugin_info_init(goomInfo,4);
     
     goomInfo->star_fx = flying_star_create();
+   init_buffers(goomInfo, goomInfo->screen.size);
+   if (seed == 0) {
+      seed = goomInfo->pixel;
+    } else if (seed > 0) {
+      pcg32_init(seed);
+    }
+    goomInfo->gRandom = goom_random_init();
+
     goomInfo->star_fx.init(&goomInfo->star_fx, goomInfo);
     
     goomInfo->zoomFilter_fx = zoomFilterVisualFXWrapper_create ();
@@ -390,7 +398,7 @@ guint32 *goom_update (PluginInfo *goomInfo,
                     goomInfo->update.lockvar = 50;
                     newvit = STOP_SPEED + 1 - ((float)3.5f * log10(goomInfo->sound.speedvar * 60 + 1));
                     /* retablir le zoom avant.. */
-                    if ((goomInfo->update.zoomFilterData.reverse) && (!(goomInfo->cycle % 13)) && (rand () % 5 == 0)) {
+                    if ((goomInfo->update.zoomFilterData.reverse) && (!(goomInfo->cycle % 13)) && (pcg32() % 5 == 0)) {
                         goomInfo->update.zoomFilterData.reverse = 0;
                         goomInfo->update.zoomFilterData.vitesse = STOP_SPEED - 2;
                         goomInfo->update.lockvar = 75;
