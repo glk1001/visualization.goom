@@ -27,4 +27,7 @@ class CommonTestOptions {
     static const constexpr char *DEFAULT_END_BUFFER_NUM = "-1";
 };
 
+void SaveGoomPluginInfo(std::ostream& f, const PluginInfo*);
+PluginInfo* LoadGoomPluginInfo(const std::string& filename, const PluginInfo* existingGoomInfo);
+
 #endif

@@ -311,6 +311,8 @@ VisualFX flying_star_create(void) {
   vfx.init = fs_init;
   vfx.free = fs_free;
   vfx.apply = fs_apply;
+  vfx.save = NULL;
+  vfx.restore = NULL;
   vfx.fx_data = 0;
   return vfx;
 }

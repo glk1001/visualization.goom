@@ -1,6 +1,7 @@
 .PHONY: all clean-compile compile gen mk clean
 
-cmake_args = -DCMAKE_BUILD_TYPE=Debug
+#cmake_args = -DCMAKE_BUILD_TYPE=Debug
+cmake_args = -DCMAKE_BUILD_TYPE=Release
 
 all: compile
 
