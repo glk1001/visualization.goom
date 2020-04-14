@@ -55,7 +55,7 @@ static void init_buffers(PluginInfo *goomInfo, int buffsize)
 /**************************
 *         INIT           *
 **************************/
-PluginInfo *goom_init (guint32 resx, guint32 resy)
+PluginInfo* goom_init(guint32 resx, guint32 resy, int seed)
 {
     PluginInfo *goomInfo = (PluginInfo*)malloc(sizeof(PluginInfo));
     
