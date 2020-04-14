@@ -21,17 +21,14 @@ add_library(${PROJECT_NAME} STATIC
                  src/ifs.c
                  src/lines.c
                  src/mathtools.c
-                 src/mmx.c
                  src/sound_tester.c
                  src/surf3d.c
                  src/tentacle3d.c
                  src/plugin_info.c
                  src/v3d.c
                  src/drawmethods.c
-                 src/cpu_info.c
-                 src/xmmx.c
 )
-		 
+
 add_library(libs::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 target_include_directories(${PROJECT_NAME}

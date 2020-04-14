@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.13)
 project(goom)
 
 if(WIN32)
@@ -32,8 +32,7 @@ set(GOOM_SOURCES src/goomsl_yacc.c
                  src/plugin_info.c
                  src/v3d.c
                  src/drawmethods.c
-                 src/cpu_info.c
-                 src/xmmx.c)
+)
 
 set(GOOM_HEADERS src/goom.h
                  src/goom_plugin_info.h
@@ -51,9 +50,7 @@ set(GOOM_HEADERS src/goom.h
                  src/goom_tools.h
                  src/goom_config.h
                  src/tentacle3d.h
-                 src/mmx.h
-                 src/xmmx.h)
+)		 
 
 add_library(goom STATIC ${GOOM_SOURCES} ${GOOM_HEADERS})
 set_property(TARGET goom PROPERTY POSITION_INDEPENDENT_CODE ON)
-#set_property(TARGET goom PROPERTY C_STANDARD 11)

@@ -12,11 +12,10 @@ struct _ZOOM_FILTER_DATA
 {
 	int     vitesse;           /* 128 = vitesse nule... * * 256 = en arriere 
 	                            * hyper vite.. * * 0 = en avant hype vite. */
-	unsigned char pertedec;
-	unsigned char sqrtperte;
+	char    pertedec;
 	int     middleX, middleY;  /* milieu de l'effet */
 	char    reverse;           /* inverse la vitesse */
-	char    mode;              /* type d'effet à appliquer (cf les #define) */
+	char    mode;              /* type d'effet ? appliquer (cf les #define) */
 	/** @since June 2001 */
 	int     hPlaneEffect;      /* deviation horitontale */
 	int     vPlaneEffect;      /* deviation verticale */
