@@ -14,14 +14,17 @@
 #define D 256.0f
 
 #define nbgrid 5
-#define y_increment 10
-#define y_inc_mod 10
 #define num_x 15
-#define num_z 45
-#define tentacle_offset_x 85
-#define tentacle_mod_x 10
-#define tentacle_offset_z 35
-#define tentacle_mod_z 20
+
+static const int y_step = 10;
+static const int y_step_mod = 10;
+static const float y_start = -0.5 * (nbgrid * y_step);
+static const int x_width = 85;
+static const int x_width_mod = 10;
+static const int num_z = 45;
+static const int z_depth = 35;
+static const int z_depth_mod = 20;
+
 
 typedef struct _TENTACLE_FX_DATA {
   PluginParam enabled_bp;
@@ -149,18 +152,18 @@ static void tentacle_new(TentacleFXData* data)
   data->vals = (float*)malloc((num_x + 20) * sizeof(float));
 
   /* Start at bottom of grid, going up by 'y_increment' */
-  float y = -0.5 * (nbgrid * y_increment);
-  for (int tmp = 0; tmp < nbgrid; tmp++) {
-    const int x = tentacle_offset_x + get_rand_in_range(-tentacle_mod_x / 2, tentacle_mod_x / 2);
-    const int z = tentacle_offset_z + get_rand_in_range(-tentacle_mod_z / 2, tentacle_mod_z / 2);
+  float y = y_start;
+  for (int i = 0; i < nbgrid; i++) {
+    const int xsize = x_width + get_rand_in_range(-x_width_mod / 2, x_width_mod / 2);
+    const int zsize = z_depth + get_rand_in_range(-z_depth_mod / 2, z_depth_mod / 2);
 
-    center.y = y + get_rand_in_range(-y_inc_mod / 2, y_inc_mod / 2);
-    center.z = z;
+    center.y = y + get_rand_in_range(-y_step_mod / 2, y_step_mod / 2);
+    center.z = zsize;
 
-    data->grille[tmp] = grid3d_new(x, num_x + get_rand_in_range(-4, 4), z,
-                                   num_z + get_rand_in_range(-6, 6), center);
+    data->grille[i] = grid3d_new(xsize, num_x + get_rand_in_range(-4, 4),
+                                 zsize, num_z + get_rand_in_range(-6, 6), center);
 
-    y += y_increment;
+    y += y_step;
   }
 }
 
