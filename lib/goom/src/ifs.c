@@ -493,7 +493,7 @@ static void ifs_update(PluginInfo* goomInfo, Pixel* data, Pixel* back, int incre
     }
   }
 
-  int nbpt;
+  int nbpt = 0;
   IFSPoint* points = draw_ifs(goomInfo, &nbpt, fx_data);
   nbpt--;
   GOOM_LOG_DEBUG("nbpt = %d", nbpt);
