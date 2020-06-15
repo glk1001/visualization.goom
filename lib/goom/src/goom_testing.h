@@ -4,10 +4,10 @@
 #include <stdio.h>
 
 #define GOOM_VER_NAME "Goom Library"
-#define GOOM_VER_DESCRIPTION "Tentacle Refactor"
+#define GOOM_VER_DESCRIPTION "Tentacle Mods"
 #define GOOM_VER_MAJOR 1
 #define GOOM_VER_MINOR 0
-#define GOOM_VER_REVISION 20
+#define GOOM_VER_REVISION 21
 
 #define GOOM_FULL_VERSION_STR                                                                      \
   GOOMVER_NAME " " GOOM_VER_MAJOR "." GOOM_VER_MINOR "." GOOM_VER_REVISION ","                     \

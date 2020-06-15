@@ -13,17 +13,31 @@
 
 #define D 256.0f
 
-#define nbgrid 5
-#define num_x 15
 
-static const int y_step = 10;
+inline int get_rand_in_range(int n1, int n2)
+{
+  const uint32_t range_len = (uint32_t)(n2 - n1 + 1);
+  return n1 + (int)(pcg32_rand() % range_len);
+}
+
+static const int yticks_per_100 = 1;
+static const int y_height = 700;
+static const int nbgrid = yticks_per_100 * y_height / 100;
 static const int y_step_mod = 10;
-static const float y_start = -0.5 * (nbgrid * y_step);
-static const int x_width = 85;
-static const int x_width_mod = 10;
-static const int num_z = 45;
-static const int z_depth = 35;
-static const int z_depth_mod = 20;
+static const float y_step = y_height / (float) (nbgrid - 1) + get_rand_in_range(-y_step_mod / 2, y_step_mod / 2);
+static const float y_start = -0.5 * y_height;
+
+static const int xticks_per_100 = 1;
+static const int x_width = 1000;
+static const int x_width_mod = 50;
+static const size_t num_x = xticks_per_100 * x_width / 100;
+static const int num_x_mod = 0;
+
+static const int zticks_per_100 = 20;
+static const int z_depth = 50;
+static const int z_depth_mod = 5;
+static const size_t num_z = zticks_per_100 * z_depth / 100;
+static const int num_z_mod = 0;
 
 
 typedef struct _TENTACLE_FX_DATA {
@@ -140,28 +154,38 @@ static void tentacle_free(TentacleFXData* data)
   free(data->vals);
 }
 
-static inline int get_rand_in_range(int n1, int n2)
-{
-  const uint32_t range_len = (uint32_t)(n2 - n1 + 1);
-  return n1 + (int)(pcg32_rand() % range_len);
-}
-
 static void tentacle_new(TentacleFXData* data)
 {
+  // Start at bottom of grid, going up by 'y_step'.
   v3d center = {0, 0, 0};
   data->vals = (float*)malloc((num_x + 20) * sizeof(float));
-
-  /* Start at bottom of grid, going up by 'y_increment' */
+  
   float y = y_start;
   for (int i = 0; i < nbgrid; i++) {
+    const size_t nx  = num_x + (size_t)get_rand_in_range(-num_x_mod, 0);
     const int xsize = x_width + get_rand_in_range(-x_width_mod / 2, x_width_mod / 2);
+
+    const size_t nz = num_z + (size_t)get_rand_in_range(-num_z_mod, 0);
     const int zsize = z_depth + get_rand_in_range(-z_depth_mod / 2, z_depth_mod / 2);
+    const float radius_min = 3.1;
+    const float radius_max = zsize - radius_min;
+    float angle = 0.0;
+    const float angle_step = M_PI/(nx-1);
+    float zdepth_mins[nx];
+    float zdepth_maxs[nx];
+    for (size_t i=0; i < nx; i++) {
+      const float sin_angle = sin(angle);
+//      zdepth_mins[i] = radius_min * (1 - sin_angle);
+//      zdepth_maxs[i] = radius_min + radius_max * sin_angle;
+      zdepth_mins[i] = radius_min;
+      zdepth_maxs[i] = radius_min + radius_max;
+      angle += angle_step;
+    }
 
     center.y = y + get_rand_in_range(-y_step_mod / 2, y_step_mod / 2);
-    center.z = zsize;
+    center.z = zdepth_maxs[nbgrid-1];
 
-    data->grille[i] = grid3d_new(xsize, num_x + get_rand_in_range(-4, 4),
-                                 zsize, num_z + get_rand_in_range(-6, 6), center);
+    data->grille[i] = grid3d_new(center, xsize, xsize, nx, zdepth_mins, zdepth_maxs, nz);
 
     y += y_step;
   }

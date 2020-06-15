@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <tuple>
 
 /*
  * projete le vertex 3D sur le plan d'affichage
@@ -50,7 +51,24 @@ static inline void TRANSLATE_V3D(const v3d* vsrc, v3d* vdest)
   vdest->z += vsrc->z;
 }
 
-grid3d* grid3d_new(const int x_width, const int num_x, const int z_depth, const int num_z, const v3d center)
+class VertNum {
+public:
+  explicit VertNum(const int xw): xwidth(xw) {}
+  int operator()(const int x, const int z) const { return z * xwidth + x; }
+  std::tuple<int, int> getXZ(int vertNum) const
+  {
+    const int z = vertNum/xwidth;
+    const int x = vertNum % xwidth;
+    return std::make_tuple(x, z);
+  }
+private:
+  const int xwidth;
+};
+
+grid3d* grid3d_new(
+    const v3d center,
+    const int x_width_0, const int x_width_n, const size_t num_x,
+    const float zdepth_mins[], const float zdepth_maxs[], const size_t num_z)
 {
   grid3d* g = (grid3d*)malloc(sizeof(grid3d));
   surf3d* s = &(g->surf);
@@ -63,38 +81,67 @@ grid3d* grid3d_new(const int x_width, const int num_x, const int z_depth, const 
   g->defz = num_z;
   g->mode = 0;
 
-  const float x_step = x_width / (float)(num_x-1);
-  const float z_step = z_depth / (float)(num_z-1);
-  const float x_start = x_width / 2.0;
-  const float z_start = z_depth / 2.0;
+  const float x_width_step = (x_width_n - x_width_0)/(float)(num_z-1);
 
-  float z = z_start;
+  // For each z, get the x values
+  float xval[num_x][num_z];
+  float x_width = x_width_n;
   for (int nz=num_z-1; nz >= 0; nz--) {
-    const int nx_start = num_x * nz;
+    const float x_start = x_width / 2.0;
+    const float x_step = x_width / (float)(num_x-1);
     float x = x_start;
     for (int nx=num_x-1; nx >= 0; nx--) {
-      const int nv = nx + nx_start;
-      s->vertex[nv].x = x;
-      s->vertex[nv].y = 0.0;
-      s->vertex[nv].z = z;
+      xval[nx][nz] = x;
       x -= x_step;
     }
-    z -= z_step;
+    x_width -= x_width_step;
   }
+
+  // For each x, get the z values
+  float zval[num_x][num_z];
+  for (int nx=num_x-1; nx >= 0; nx--) {
+    const float z_depth = zdepth_maxs[nx] - zdepth_mins[nx];
+    const float z_start = z_depth + zdepth_mins[nx];
+    const float z_step = z_depth / (float)(num_z-1);
+    float z = z_start;
+    for (int nz=num_z-1; nz >= 0; nz--) {
+      zval[nx][nz] = z;
+      z -= z_step;
+    }
+  }
+
+  const VertNum vnum(num_x);
+  for (int nz=num_z-1; nz >= 0; nz--) {
+    for (int nx=num_x-1; nx >= 0; nx--) {
+      const int nv = vnum(nx, nz);
+      s->vertex[nv].x = xval[nx][nz];
+      s->vertex[nv].y = 0.0;
+      s->vertex[nv].z = zval[nx][nz];
+    }
+  }
+
   return g;
 }
 
-void grid3d_draw(PluginInfo* plug, grid3d* g, int color, int colorlow, int dist, Pixel* buf,
+
+void grid3d_draw(PluginInfo* plug, const grid3d* g, int color, int colorlow, int dist, Pixel* buf,
                  Pixel* back, int W, int H)
 {
   v2d* v2_array = (v2d*)malloc((size_t)g->surf.nbvertex * sizeof(v2d));
   v3d_to_v2d(g->surf.svertex, g->surf.nbvertex, W, H, dist, v2_array);
 
+  const VertNum vnum(g->defx);
+
   for (int x = 0; x < g->defx; x++) {
     v2d v2x = v2_array[x];
 
     for (int z = 1; z < g->defz; z++) {
-      const v2d v2 = v2_array[z * g->defx + x];
+      const int i = vnum(x, z);
+      const v2d v2 = v2_array[i];
+      if ((v2x.x == v2.x) && (v2x.y == v2.y)) {
+        v2x = v2;
+        continue;
+      }
       if (((v2.x != -666) || (v2.y != -666)) && ((v2x.x != -666) || (v2x.y != -666))) {
         plug->methods.draw_line(buf, v2x.x, v2x.y, v2.x, v2.y, (uint32_t)colorlow, W, H);
         plug->methods.draw_line(back, v2x.x, v2x.y, v2.x, v2.y, (uint32_t)color, W, H);
