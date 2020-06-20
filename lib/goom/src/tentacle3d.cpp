@@ -7,38 +7,34 @@
 #include "surf3d.h"
 #include "v3d.h"
 
+#include <vivid/vivid.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
 
-#define D 256.0f
+constexpr float D = 256.0f;
+
+constexpr int yticks_per_100 = 20;
+constexpr int y_height = 50;
+constexpr int nbgrid = yticks_per_100 * y_height / 100;
+constexpr int y_step_mod = 10;
+constexpr float y_start = -0.5 * y_height;
+
+constexpr int xticks_per_100 = 30;
+constexpr int x_width = 25;
+constexpr int x_width_mod = 10;
+constexpr size_t num_x = xticks_per_100 * x_width / 100;
+constexpr int num_x_mod = 0;
+
+constexpr int zticks_per_100 = 400;
+constexpr int z_depth = 25;
+constexpr int z_depth_mod = 10;
+constexpr size_t num_z = zticks_per_100 * z_depth / 100;
+constexpr int num_z_mod = 0;
 
 
-inline int get_rand_in_range(int n1, int n2)
-{
-  const uint32_t range_len = (uint32_t)(n2 - n1 + 1);
-  return n1 + (int)(pcg32_rand() % range_len);
-}
-
-static const int yticks_per_100 = 1;
-static const int y_height = 700;
-static const int nbgrid = yticks_per_100 * y_height / 100;
-static const int y_step_mod = 10;
-static const float y_step = y_height / (float) (nbgrid - 1) + get_rand_in_range(-y_step_mod / 2, y_step_mod / 2);
-static const float y_start = -0.5 * y_height;
-
-static const int xticks_per_100 = 1;
-static const int x_width = 1000;
-static const int x_width_mod = 50;
-static const size_t num_x = xticks_per_100 * x_width / 100;
-static const int num_x_mod = 0;
-
-static const int zticks_per_100 = 20;
-static const int z_depth = 50;
-static const int z_depth_mod = 5;
-static const size_t num_z = zticks_per_100 * z_depth / 100;
-static const int num_z_mod = 0;
-
+constexpr int NB_TENTACLE_COLORS = 100;
+constexpr int NUM_COLORS_IN_GROUP = NB_TENTACLE_COLORS / 3;
 
 typedef struct _TENTACLE_FX_DATA {
   PluginParam enabled_bp;
@@ -48,8 +44,6 @@ typedef struct _TENTACLE_FX_DATA {
   grid3d* grille[nbgrid];
   float* vals;
 
-#define NB_TENTACLE_COLORS 100
-#define NUM_COLORS_IN_GROUP (NB_TENTACLE_COLORS / 5)
   uint32_t colors[NB_TENTACLE_COLORS];
 
   int col;
@@ -154,9 +148,16 @@ static void tentacle_free(TentacleFXData* data)
   free(data->vals);
 }
 
+inline int get_rand_in_range(int n1, int n2)
+{
+  const uint32_t range_len = (uint32_t)(n2 - n1 + 1);
+  return n1 + (int)(pcg32_rand() % range_len);
+}
+
 static void tentacle_new(TentacleFXData* data)
 {
   // Start at bottom of grid, going up by 'y_step'.
+  const float y_step = y_height / (float) (nbgrid - 1) + get_rand_in_range(-y_step_mod / 2, y_step_mod / 2);
   v3d center = {0, 0, 0};
   data->vals = (float*)malloc((num_x + 20) * sizeof(float));
   
@@ -366,7 +367,7 @@ static void tentacle_update(PluginInfo* goomInfo, Pixel* buf, Pixel* back, int W
     pretty_move(goomInfo, fx_data->cycle, &dist, &dist2, &rotangle, fx_data);
 
     for (int tmp = 0; tmp < nbgrid; tmp++) {
-      for (int tmp2 = 0; tmp2 < num_x; tmp2++) {
+      for (size_t tmp2 = 0; tmp2 < num_x; tmp2++) {
         const float val =
             (float)(ShiftRight(data[0][goom_irand(goomInfo->gRandom, AUDIO_SAMPLE_LEN - 1)], 10)) *
             rapport;
@@ -381,9 +382,9 @@ static void tentacle_update(PluginInfo* goomInfo, Pixel* buf, Pixel* back, int W
 
     uint32_t tentacle_color = (uint32_t)fx_data->colors[0] * color;
     uint32_t tentacle_colorlow = (uint32_t)fx_data->colors[0] * colorlow;
-    int color_num = 0;
+    int color_num = (int)goom_irand(goomInfo->gRandom, NB_TENTACLE_COLORS);
     int num_colors_in_row = 0;
-    for (int tmp = 0; tmp < nbgrid; tmp++) {
+    for (int i = 0; i < nbgrid; i++) {
       if (num_colors_in_row >= NUM_COLORS_IN_GROUP) {
         tentacle_color = color_multiply(fx_data->colors[color_num], color);
         tentacle_colorlow = color_multiply(fx_data->colors[color_num], colorlow);
@@ -393,7 +394,7 @@ static void tentacle_update(PluginInfo* goomInfo, Pixel* buf, Pixel* back, int W
         num_colors_in_row = 0;
       }
       num_colors_in_row++;
-      grid3d_draw(goomInfo, fx_data->grille[tmp], (int)tentacle_color, (int)tentacle_colorlow, dist,
+      grid3d_draw(goomInfo, fx_data->grille[i], (int)tentacle_color, (int)tentacle_colorlow, dist,
                   buf, back, W, H);
     }
   } else {
