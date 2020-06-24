@@ -25,6 +25,11 @@ endif()
 
 add_subdirectory(lib/goom)
 
+
+# Better way to do this??
+set(VIVID_LIB "/home/greg/Prj/github/vivid/build/libvivid.a")
+
+
 include_directories(${includes}
                     ${GLM_INCLUDE_DIR}
                     ${KODI_INCLUDE_DIR}/.. # Hack way with "/..", need bigger Kodi cmake rework to match right include ways (becomes done in future)
@@ -40,7 +45,7 @@ set(GOOM_HEADERS src/CircularBuffer.h
 set (TESTING ON)
 include(../visualization.goom.testing/goom_testing)
 
-list(APPEND DEPLIBS goom)
+list(APPEND DEPLIBS goom ${VIVID_LIB})
 
 build_addon(visualization.goom GOOM DEPLIBS)
 

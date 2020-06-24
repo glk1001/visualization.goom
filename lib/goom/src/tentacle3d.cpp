@@ -8,6 +8,7 @@
 #include "v3d.h"
 
 #include <vivid/vivid.h>
+#include <vector>
 #include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -35,6 +36,42 @@ constexpr int num_z_mod = 0;
 
 constexpr int NB_TENTACLE_COLORS = 100;
 constexpr int NUM_COLORS_IN_GROUP = NB_TENTACLE_COLORS / 3;
+
+class ColorGroup {
+public:
+  explicit ColorGroup(vivid::ColorMap::Preset preset);
+  ColorGroup(const ColorGroup& other);
+  ColorGroup& operator=(const ColorGroup& other) { colors = other.colors; return *this; }
+  size_t numColors() const { return colors.size(); }
+  uint32_t getColor(size_t i) const { return colors[i]; }
+private:
+  ColorGroup();
+  static constexpr size_t NumColors = num_z;
+  std::vector<uint32_t> colors;
+};
+
+inline ColorGroup::ColorGroup()
+: colors()
+{
+}
+
+inline ColorGroup::ColorGroup(vivid::ColorMap::Preset preset)
+: colors(NumColors)
+{
+  const vivid::ColorMap cmap(preset);
+  for (size_t i=0 ; i < NumColors; i++) {
+    const float t = 0.5*(1.0f + i / (NumColors - 1.0f));
+    const vivid::Color rgbcol{ cmap.at(t) };
+    colors[i] = rgbcol.rgb32();
+  }
+}
+
+inline ColorGroup::ColorGroup(const ColorGroup& other)
+: colors(other.colors)
+{
+}
+
+static std::vector<ColorGroup> colorGroups;
 
 typedef struct _TENTACLE_FX_DATA {
   PluginParam enabled_bp;
@@ -66,6 +103,7 @@ static void tentacle_update(PluginInfo* goomInfo, Pixel* buf, Pixel* back, int W
                             TentacleFXData* fx_data);
 static void tentacle_free(TentacleFXData* data);
 static void init_colors(uint32_t* colors);
+static void init_color_groups(std::vector<ColorGroup>& colorGroups);
 
 /* 
  * VisualFX wrapper for the tentacles
@@ -76,7 +114,6 @@ static void init_colors(uint32_t* colors);
 
 static void tentacle_fx_init(VisualFX* _this, PluginInfo* info)
 {
-
   TentacleFXData* data = (TentacleFXData*)malloc(sizeof(TentacleFXData));
 
   data->enabled_bp = secure_b_param("Enabled", 1);
@@ -97,6 +134,7 @@ static void tentacle_fx_init(VisualFX* _this, PluginInfo* info)
   data->rotation = 0;
   data->lock = 0;
   init_colors(data->colors);
+  init_color_groups(colorGroups);
   tentacle_new(data);
 
   _this->params = &data->params;
@@ -206,6 +244,27 @@ static inline unsigned char lighten(unsigned char value, float power)
     return val;
   } else {
     return 0;
+  }
+}
+
+static void init_color_groups(std::vector<ColorGroup>& colGroups)
+{
+  static const std::vector<vivid::ColorMap::Preset> cmaps = {
+    vivid::ColorMap::Preset::BlueYellow,
+    vivid::ColorMap::Preset::CoolWarm,
+    vivid::ColorMap::Preset::Hsl,
+    vivid::ColorMap::Preset::HslPastel,
+    vivid::ColorMap::Preset::Inferno,
+    vivid::ColorMap::Preset::Magma,
+    vivid::ColorMap::Preset::Plasma,
+    vivid::ColorMap::Preset::Rainbow,
+    vivid::ColorMap::Preset::Turbo,
+    vivid::ColorMap::Preset::Viridis,
+    vivid::ColorMap::Preset::Vivid
+  };
+  colGroups.clear();
+  for (auto cm : cmaps) {
+    colGroups.push_back(ColorGroup(cm));
   }
 }
 
@@ -327,6 +386,93 @@ static inline uint32_t color_multiply(uint32_t col1, uint32_t col2)
   return col;
 }
 
+class TentacleDraw {
+public:
+  explicit TentacleDraw(PluginInfo* info, Pixel* front, Pixel* back, int w, int h, float d);
+  void drawToBuffs(grid3d* grid, uint32_t colorMod, uint32_t colorLowMod);
+private:
+  PluginInfo* const goomInfo;
+  Pixel* const frontBuff;
+  Pixel* const backBuff;
+  const int width;
+  const int height;
+  const float dist;
+};
+
+inline TentacleDraw::TentacleDraw(PluginInfo* info, Pixel* front, Pixel* back, int w, int h, float d)
+  : goomInfo(info)
+  , frontBuff(front)
+  , backBuff(back)
+  , width(w)
+  , height(h)
+  , dist(d)
+{
+}
+
+/*
+ * projete le vertex 3D sur le plan d'affichage
+ * retourne (0,0) si le point ne doit pas etre affiche.
+ *
+ * bonne valeur pour distance : 256
+ */
+
+static void v3d_to_v2d(const v3d* v3, int nbvertex, int width, int height, float distance, v2d* v2)
+{
+  for (int i = 0; i < nbvertex; ++i) {
+    if (v3[i].z > 2) {
+      const int Xp = (int)(distance * v3[i].x / v3[i].z);
+      const int Yp = (int)(distance * v3[i].y / v3[i].z);
+      v2[i].x = Xp + (width >> 1);
+      v2[i].y = -Yp + (height >> 1);
+    } else {
+      v2[i].x = v2[i].y = -666;
+    }
+  }
+}
+
+class VertNum {
+public:
+  explicit VertNum(const int xw): xwidth(xw) {}
+  int operator()(const int x, const int z) const { return z * xwidth + x; }
+  std::tuple<int, int> getXZ(int vertNum) const
+  {
+    const int z = vertNum/xwidth;
+    const int x = vertNum % xwidth;
+    return std::make_tuple(x, z);
+  }
+private:
+  const int xwidth;
+};
+
+inline void TentacleDraw::drawToBuffs(grid3d* grid, uint32_t colorMod, uint32_t colorLowMod)
+{
+  v2d v2_array[(size_t)grid->surf.nbvertex];
+  v3d_to_v2d(grid->surf.svertex, grid->surf.nbvertex, width, height, dist, v2_array);
+
+  const VertNum vnum(grid->defx);
+
+  for (size_t x = 0; x < grid->defx; x++) {
+    v2d v2x = v2_array[x];
+    const ColorGroup colorGroup { colorGroups[goom_irand(goomInfo->gRandom, colorGroups.size())] };
+
+    for (size_t z = 1; z < grid->defz; z++) {
+      const int i = vnum(x, z);
+      const v2d v2 = v2_array[i];
+      if ((v2x.x == v2.x) && (v2x.y == v2.y)) {
+        v2x = v2;
+        continue;
+      }
+      if (((v2.x != -666) || (v2.y != -666)) && ((v2x.x != -666) || (v2x.y != -666))) {
+        const uint32_t color = color_multiply(colorGroup.getColor(z), colorMod);
+        const uint32_t colorlow = color_multiply(colorGroup.getColor(z), colorLowMod);
+        goomInfo->methods.draw_line(frontBuff, v2x.x, v2x.y, v2.x, v2.y, colorlow, width, height);
+        goomInfo->methods.draw_line(backBuff, v2x.x, v2x.y, v2.x, v2.y, color, width, height);
+      }
+      v2x = v2;
+    }
+  }
+}
+
 static void tentacle_update(PluginInfo* goomInfo, Pixel* buf, Pixel* back, int W, int H,
                             gint16 data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], float rapport,
                             int drawit, TentacleFXData* fx_data)
@@ -339,11 +485,13 @@ static void tentacle_update(PluginInfo* goomInfo, Pixel* buf, Pixel* back, int W
   fx_data->lig += fx_data->ligs;
 
   if (fx_data->lig > 1.01f) {
-    if ((fx_data->lig > 10.0f) || (fx_data->lig < 1.1f))
+    if ((fx_data->lig > 10.0f) || (fx_data->lig < 1.1f)) {
       fx_data->ligs = -fx_data->ligs;
+    }
 
-    if ((fx_data->lig < 6.3f) && (goom_irand(goomInfo->gRandom, 30) == 0))
+    if ((fx_data->lig < 6.3f) && (goom_irand(goomInfo->gRandom, 30) == 0)) {
       fx_data->dstcol = (int)goom_irand(goomInfo->gRandom, NB_TENTACLE_COLORS);
+    }
 
     fx_data->col =
         evolvecolor((uint32_t)fx_data->col, (uint32_t)fx_data->colors[fx_data->dstcol], 0xff, 0x01);
@@ -380,22 +528,19 @@ static void tentacle_update(PluginInfo* goomInfo, Pixel* buf, Pixel* back, int W
     }
     fx_data->cycle += 0.01f;
 
-    uint32_t tentacle_color = (uint32_t)fx_data->colors[0] * color;
-    uint32_t tentacle_colorlow = (uint32_t)fx_data->colors[0] * colorlow;
-    int color_num = (int)goom_irand(goomInfo->gRandom, NB_TENTACLE_COLORS);
-    int num_colors_in_row = 0;
+    TentacleDraw tentacle(goomInfo, buf, back, W, H, dist);
+//    const ColorGroup colorGroup { colorGroups[goom_irand(goomInfo->gRandom, colorGroups.size())] };
+//    size_t color_num = goom_irand(goomInfo->gRandom, colorGroup.numColors());
     for (int i = 0; i < nbgrid; i++) {
-      if (num_colors_in_row >= NUM_COLORS_IN_GROUP) {
-        tentacle_color = color_multiply(fx_data->colors[color_num], color);
-        tentacle_colorlow = color_multiply(fx_data->colors[color_num], colorlow);
-        color_num++;
-        if (color_num >= NB_TENTACLE_COLORS)
-          color_num = 0;
-        num_colors_in_row = 0;
-      }
-      num_colors_in_row++;
-      grid3d_draw(goomInfo, fx_data->grille[i], (int)tentacle_color, (int)tentacle_colorlow, dist,
-                  buf, back, W, H);
+      const ColorGroup colorGroup { colorGroups[goom_irand(goomInfo->gRandom, colorGroups.size())] };
+      const size_t color_num = goom_irand(goomInfo->gRandom, colorGroup.numColors());
+      const uint32_t tentacle_color = color_multiply(colorGroup.getColor(color_num), color);
+      const uint32_t tentacle_colorlow = color_multiply(colorGroup.getColor(color_num), colorlow);
+//      color_num++;
+//      if (color_num >= colorGroup.numColors()) {
+//        color_num = 0;
+//      }
+      tentacle.drawToBuffs(fx_data->grille[i], tentacle_color, tentacle_colorlow);
     }
   } else {
     fx_data->lig = 1.05f;

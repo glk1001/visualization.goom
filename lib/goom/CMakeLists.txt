@@ -33,25 +33,28 @@ add_library(${PROJECT_NAME} STATIC
 
 add_library(libs::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
+# How to include this?????
+set(VIVID_INCLUDE_DIR "/home/greg/Prj/github/vivid/include")
+
 target_include_directories(${PROJECT_NAME}
-	PUBLIC
-		$<INSTALL_INTERFACE:include>
-		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-	PRIVATE
-                /home/greg/Prj/github/vivid/include
-		${CMAKE_CURRENT_SOURCE_DIR}
+    PUBLIC
+        $<INSTALL_INTERFACE:include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    PRIVATE
+        ${VIVID_INCLUDE_DIR}      
+        ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 message(STATUS "Goom compile features = \"${COMMON_C_COMPILE_FEATURES}\".")
 target_compile_features(${PROJECT_NAME}
-	PRIVATE
-		${COMMON_C_COMPILE_FEATURES} 
+    PRIVATE
+        ${COMMON_C_COMPILE_FEATURES} 
 )
 
 message(STATUS "Goom C warnings = \"${COMMON_C_WARNINGS}\".")
 target_compile_options(${PROJECT_NAME}
     PRIVATE 
-		  ${COMMON_C_WARNINGS}
+        ${COMMON_C_WARNINGS}
 )
 
 set_property(TARGET goom PROPERTY POSITION_INDEPENDENT_CODE ON)
