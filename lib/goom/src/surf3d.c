@@ -132,10 +132,10 @@ void grid3d_draw(PluginInfo* plug, const grid3d* g, int color, int colorlow, int
 
   const VertNum vnum(g->defx);
 
-  for (int x = 0; x < g->defx; x++) {
+  for (size_t x = 0; x < g->defx; x++) {
     v2d v2x = v2_array[x];
 
-    for (int z = 1; z < g->defz; z++) {
+    for (size_t z = 1; z < g->defz; z++) {
       const int i = vnum(x, z);
       const v2d v2 = v2_array[i];
       if ((v2x.x == v2.x) && (v2x.y == v2.y)) {
@@ -159,11 +159,11 @@ void grid3d_update(grid3d* g, float angle, float* vals, float dist)
 
   if (g->mode == 0) {
     if (vals)
-      for (int i = 0; i < g->defx; i++) {
+      for (size_t i = 0; i < g->defx; i++) {
         s->vertex[i].y = s->vertex[i].y * 0.2 + vals[i] * 0.8;
       }
 
-    for (int i = g->defx; i < s->nbvertex; i++) {
+    for (size_t i = g->defx; i < s->nbvertex; i++) {
       s->vertex[i].y *= 0.255f;
       s->vertex[i].y += (s->vertex[i - g->defx].y * 0.777f);
     }
@@ -177,7 +177,7 @@ void grid3d_update(grid3d* g, float angle, float* vals, float dist)
 
   const float cosa = cos(angle);
   const float sina = sin(angle);
-  for (int i = 0; i < s->nbvertex; i++) {
+  for (size_t i = 0; i < s->nbvertex; i++) {
     Y_ROTATE_V3D(&s->vertex[i], &s->svertex[i], sina, cosa);
     TRANSLATE_V3D(&cam, &s->svertex[i]);
   }

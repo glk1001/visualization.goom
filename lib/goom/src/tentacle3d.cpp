@@ -34,19 +34,24 @@ constexpr size_t num_z = zticks_per_100 * z_depth / 100;
 constexpr int num_z_mod = 0;
 
 
-constexpr int NB_TENTACLE_COLORS = 100;
-constexpr int NUM_COLORS_IN_GROUP = NB_TENTACLE_COLORS / 3;
+constexpr vivid::ColorMap::Preset baseColorMaps[] = {
+  vivid::ColorMap::Preset::BlueYellow,
+  vivid::ColorMap::Preset::Plasma,
+  vivid::ColorMap::Preset::Viridis
+};
+constexpr size_t NUM_COLOR_GROUPS = std::size(baseColorMaps);
+constexpr size_t NUM_COLORS_IN_GROUP = 33;
+constexpr size_t NUM_TENTACLE_COLORS = NUM_COLOR_GROUPS * NUM_COLORS_IN_GROUP;
 
 class ColorGroup {
 public:
-  explicit ColorGroup(vivid::ColorMap::Preset preset);
+  explicit ColorGroup(vivid::ColorMap::Preset preset, size_t n = num_z);
   ColorGroup(const ColorGroup& other);
   ColorGroup& operator=(const ColorGroup& other) { colors = other.colors; return *this; }
   size_t numColors() const { return colors.size(); }
   uint32_t getColor(size_t i) const { return colors[i]; }
 private:
   ColorGroup();
-  static constexpr size_t NumColors = num_z;
   std::vector<uint32_t> colors;
 };
 
@@ -55,14 +60,15 @@ inline ColorGroup::ColorGroup()
 {
 }
 
-inline ColorGroup::ColorGroup(vivid::ColorMap::Preset preset)
-: colors(NumColors)
+inline ColorGroup::ColorGroup(vivid::ColorMap::Preset preset, size_t n)
+: colors(n)
 {
   const vivid::ColorMap cmap(preset);
-  for (size_t i=0 ; i < NumColors; i++) {
-    const float t = 0.5*(1.0f + i / (NumColors - 1.0f));
-    const vivid::Color rgbcol{ cmap.at(t) };
-    colors[i] = rgbcol.rgb32();
+  for (size_t i=0; i < n; i++) {
+    const float t = (1.0/1.25)*(0.25f + i / (n - 1.0f));
+    const vivid::rgb_t col{ cmap.at(t) };
+    const vivid::rgb_t brightCol { 1.0f*col[0], 1.0f*col[1], 1.0f*col[2] };
+    colors[i] = vivid::Color(brightCol).rgb32();
   }
 }
 
@@ -73,6 +79,39 @@ inline ColorGroup::ColorGroup(const ColorGroup& other)
 
 static std::vector<ColorGroup> colorGroups;
 
+static void init_color_groups(std::vector<ColorGroup>& colGroups)
+{
+  static const std::vector<vivid::ColorMap::Preset> cmaps = {
+    vivid::ColorMap::Preset::BlueYellow,
+    vivid::ColorMap::Preset::CoolWarm,
+    /**
+    vivid::ColorMap::Preset::Hsl,
+    vivid::ColorMap::Preset::HslPastel,
+    vivid::ColorMap::Preset::Inferno,
+    vivid::ColorMap::Preset::Magma,
+    vivid::ColorMap::Preset::Plasma,
+    **/
+    vivid::ColorMap::Preset::Rainbow,
+    vivid::ColorMap::Preset::Turbo,
+    vivid::ColorMap::Preset::Viridis,
+    vivid::ColorMap::Preset::Vivid
+  };
+  colGroups.clear();
+  for (auto cm : cmaps) {
+    colGroups.push_back(ColorGroup(cm));
+  }
+}
+
+static void init_colors(uint32_t* colors)
+{
+  for (size_t i = 0; i < NUM_COLOR_GROUPS; i++) {
+    const ColorGroup group { baseColorMaps[i], NUM_COLORS_IN_GROUP };
+    for (size_t j = 0; j < group.numColors(); j++) {
+      colors[j] = group.getColor(j);
+    }
+  }
+}
+
 typedef struct _TENTACLE_FX_DATA {
   PluginParam enabled_bp;
   PluginParameters params;
@@ -81,7 +120,7 @@ typedef struct _TENTACLE_FX_DATA {
   grid3d* grille[nbgrid];
   float* vals;
 
-  uint32_t colors[NB_TENTACLE_COLORS];
+  uint32_t colors[NUM_TENTACLE_COLORS];
 
   int col;
   int dstcol;
@@ -244,37 +283,6 @@ static inline unsigned char lighten(unsigned char value, float power)
     return val;
   } else {
     return 0;
-  }
-}
-
-static void init_color_groups(std::vector<ColorGroup>& colGroups)
-{
-  static const std::vector<vivid::ColorMap::Preset> cmaps = {
-    vivid::ColorMap::Preset::BlueYellow,
-    vivid::ColorMap::Preset::CoolWarm,
-    vivid::ColorMap::Preset::Hsl,
-    vivid::ColorMap::Preset::HslPastel,
-    vivid::ColorMap::Preset::Inferno,
-    vivid::ColorMap::Preset::Magma,
-    vivid::ColorMap::Preset::Plasma,
-    vivid::ColorMap::Preset::Rainbow,
-    vivid::ColorMap::Preset::Turbo,
-    vivid::ColorMap::Preset::Viridis,
-    vivid::ColorMap::Preset::Vivid
-  };
-  colGroups.clear();
-  for (auto cm : cmaps) {
-    colGroups.push_back(ColorGroup(cm));
-  }
-}
-
-static void init_colors(uint32_t* colors)
-{
-  for (int i = 0; i < NB_TENTACLE_COLORS; i++) {
-    const uint8_t red = get_rand_in_range(20, 90);
-    const uint8_t green = get_rand_in_range(20, 90);
-    const uint8_t blue = get_rand_in_range(20, 90);
-    colors[i] = (uint32_t)((red << (ROUGE * 8)) | (green << (VERT * 8)) | (blue << (BLEU * 8)));
   }
 }
 
@@ -444,6 +452,15 @@ private:
   const int xwidth;
 };
 
+inline uint32_t color_mix(const uint32_t col1, const uint32_t col2, const float t)
+{
+  const uint8_t* c1 = (uint8_t*)&col1;
+  const uint8_t* c2 = (uint8_t*)&col2;
+  const vivid::Color color1{ c1[1], c1[2], c1[3] };
+  const vivid::Color color2{ c2[1], c2[2], c2[3] };
+  return vivid::lerpHsl(color1, color2, t).rgb32();
+}
+
 inline void TentacleDraw::drawToBuffs(grid3d* grid, uint32_t colorMod, uint32_t colorLowMod)
 {
   v2d v2_array[(size_t)grid->surf.nbvertex];
@@ -455,6 +472,8 @@ inline void TentacleDraw::drawToBuffs(grid3d* grid, uint32_t colorMod, uint32_t 
     v2d v2x = v2_array[x];
     const ColorGroup colorGroup { colorGroups[goom_irand(goomInfo->gRandom, colorGroups.size())] };
 
+    size_t colNum = 0;
+
     for (size_t z = 1; z < grid->defz; z++) {
       const int i = vnum(x, z);
       const v2d v2 = v2_array[i];
@@ -463,10 +482,16 @@ inline void TentacleDraw::drawToBuffs(grid3d* grid, uint32_t colorMod, uint32_t 
         continue;
       }
       if (((v2.x != -666) || (v2.y != -666)) && ((v2x.x != -666) || (v2x.y != -666))) {
-        const uint32_t color = color_multiply(colorGroup.getColor(z), colorMod);
-        const uint32_t colorlow = color_multiply(colorGroup.getColor(z), colorLowMod);
+        const float t = float(z+1)/float(grid->defz);
+//        const float t = float(goom_irand(goomInfo->gRandom, 100))/100.0;
+        const uint32_t segmentColor = colorGroup.getColor(colNum);
+        const uint32_t color = color_mix(colorMod, segmentColor, t);
+        const uint32_t colorlow = color_mix(colorLowMod, segmentColor, t);
+//        const uint32_t color = color_multiply(segmentColor, colorMod);
+//        const uint32_t colorlow = color_multiply(segmentColor, colorLowMod);
         goomInfo->methods.draw_line(frontBuff, v2x.x, v2x.y, v2.x, v2.y, colorlow, width, height);
         goomInfo->methods.draw_line(backBuff, v2x.x, v2x.y, v2.x, v2.y, color, width, height);
+        colNum++;
       }
       v2x = v2;
     }
@@ -479,8 +504,9 @@ static void tentacle_update(PluginInfo* goomInfo, Pixel* buf, Pixel* back, int W
 {
   float dist, dist2, rotangle;
 
-  if ((!drawit) && (fx_data->ligs > 0.0f))
+  if ((!drawit) && (fx_data->ligs > 0.0f)) {
     fx_data->ligs = -fx_data->ligs;
+  }
 
   fx_data->lig += fx_data->ligs;
 
@@ -490,7 +516,7 @@ static void tentacle_update(PluginInfo* goomInfo, Pixel* buf, Pixel* back, int W
     }
 
     if ((fx_data->lig < 6.3f) && (goom_irand(goomInfo->gRandom, 30) == 0)) {
-      fx_data->dstcol = (int)goom_irand(goomInfo->gRandom, NB_TENTACLE_COLORS);
+      fx_data->dstcol = (int)goom_irand(goomInfo->gRandom, NUM_TENTACLE_COLORS);
     }
 
     fx_data->col =
@@ -532,15 +558,15 @@ static void tentacle_update(PluginInfo* goomInfo, Pixel* buf, Pixel* back, int W
 //    const ColorGroup colorGroup { colorGroups[goom_irand(goomInfo->gRandom, colorGroups.size())] };
 //    size_t color_num = goom_irand(goomInfo->gRandom, colorGroup.numColors());
     for (int i = 0; i < nbgrid; i++) {
-      const ColorGroup colorGroup { colorGroups[goom_irand(goomInfo->gRandom, colorGroups.size())] };
-      const size_t color_num = goom_irand(goomInfo->gRandom, colorGroup.numColors());
-      const uint32_t tentacle_color = color_multiply(colorGroup.getColor(color_num), color);
-      const uint32_t tentacle_colorlow = color_multiply(colorGroup.getColor(color_num), colorlow);
+//      const ColorGroup colorGroup { colorGroups[goom_irand(goomInfo->gRandom, colorGroups.size())] };
+//      const size_t color_num = goom_irand(goomInfo->gRandom, colorGroup.numColors());
+//      const uint32_t tentacle_color = color_multiply(colorGroup.getColor(color_num), color);
+//      const uint32_t tentacle_colorlow = color_multiply(colorGroup.getColor(color_num), colorlow);
 //      color_num++;
 //      if (color_num >= colorGroup.numColors()) {
 //        color_num = 0;
 //      }
-      tentacle.drawToBuffs(fx_data->grille[i], tentacle_color, tentacle_colorlow);
+      tentacle.drawToBuffs(fx_data->grille[i], color, colorlow);
     }
   } else {
     fx_data->lig = 1.05f;

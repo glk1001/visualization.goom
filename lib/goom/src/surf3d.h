@@ -10,15 +10,15 @@
 typedef struct {
   v3d* vertex;
   v3d* svertex;
-  int nbvertex;
+  size_t nbvertex;
 
   v3d center;
 } surf3d;
 
 typedef struct {
   surf3d surf;
-  int defx;
-  int defz;
+  size_t defx;
+  size_t defz;
   int mode;
 } grid3d;
 
