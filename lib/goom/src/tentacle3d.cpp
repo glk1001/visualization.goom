@@ -22,13 +22,13 @@ constexpr int y_step_mod = 10;
 constexpr float y_start = -0.5 * y_height;
 
 constexpr int xticks_per_100 = 30;
-constexpr int x_width = 25;
+constexpr int x_width = 40;
 constexpr int x_width_mod = 10;
 constexpr size_t num_x = xticks_per_100 * x_width / 100;
 constexpr int num_x_mod = 0;
 
-constexpr int zticks_per_100 = 400;
-constexpr int z_depth = 25;
+constexpr int zticks_per_100 = 350;
+constexpr int z_depth = 20;
 constexpr int z_depth_mod = 10;
 constexpr size_t num_z = zticks_per_100 * z_depth / 100;
 constexpr int num_z_mod = 0;
@@ -65,7 +65,7 @@ inline ColorGroup::ColorGroup(vivid::ColorMap::Preset preset, size_t n)
 {
   const vivid::ColorMap cmap(preset);
   for (size_t i=0; i < n; i++) {
-    const float t = (1.0/1.25)*(0.25f + i / (n - 1.0f));
+    const float t = float(i) / (n - 1.0f);
     const vivid::rgb_t col{ cmap.at(t) };
     const vivid::rgb_t brightCol { 1.0f*col[0], 1.0f*col[1], 1.0f*col[2] };
     colors[i] = vivid::Color(brightCol).rgb32();
@@ -241,10 +241,10 @@ static void tentacle_new(TentacleFXData* data)
   float y = y_start;
   for (int i = 0; i < nbgrid; i++) {
     const size_t nx  = num_x + (size_t)get_rand_in_range(-num_x_mod, 0);
-    const int xsize = x_width + get_rand_in_range(-x_width_mod / 2, x_width_mod / 2);
+    const int xsize = x_width + get_rand_in_range(0, x_width_mod);
 
     const size_t nz = num_z + (size_t)get_rand_in_range(-num_z_mod, 0);
-    const int zsize = z_depth + get_rand_in_range(-z_depth_mod / 2, z_depth_mod / 2);
+    const int zsize = z_depth + get_rand_in_range(-z_depth_mod/2, z_depth_mod/2);
     const float radius_min = 3.1;
     const float radius_max = zsize - radius_min;
     float angle = 0.0;

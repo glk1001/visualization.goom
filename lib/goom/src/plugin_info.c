@@ -64,11 +64,11 @@ void plugin_info_init(PluginInfo* pp, int nbVisuals)
 
   pp->statesNumber = STATES_MAX_NB;
   pp->statesRangeMax = 510;
-  GoomState states[STATES_MAX_NB] = {{1, 0, 1, 1, 4,   0, 100},
-                                     {1, 0, 1, 0, 1, 101, 140},
-                                     {1, 0, 1, 1, 2, 141, 200},
-                                     {0, 1, 1, 1, 2, 201, 260},
-                                     {0, 1, 1, 1, 0, 261, 330},
+  GoomState states[STATES_MAX_NB] = {{1, 0, 0, 1, 4,   0, 100},
+                                     {1, 0, 0, 0, 1, 101, 140},
+                                     {1, 0, 0, 1, 2, 141, 200},
+                                     {0, 1, 0, 1, 2, 201, 260},
+                                     {0, 1, 0, 1, 0, 261, 330},
                                      {0, 1, 1, 1, 4, 331, 400},
                                      {0, 0, 1, 0, 5, 401, 450},
                                      {0, 0, 1, 1, 1, 451, 510}
