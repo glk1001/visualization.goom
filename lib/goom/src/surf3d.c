@@ -158,10 +158,11 @@ void grid3d_update(grid3d* g, float angle, float* vals, float dist)
   surf3d* s = &(g->surf);
 
   if (g->mode == 0) {
-    if (vals)
+    if (vals) {
       for (size_t i = 0; i < g->defx; i++) {
         s->vertex[i].y = s->vertex[i].y * 0.2 + vals[i] * 0.8;
       }
+    }
 
     for (size_t i = g->defx; i < s->nbvertex; i++) {
       s->vertex[i].y *= 0.255f;

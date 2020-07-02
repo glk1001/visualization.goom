@@ -24,7 +24,7 @@ set (SRCE_FILES
                  src/surf3d.c
                  src/tentacle3d.cpp
                  src/plugin_info.c
-                 src/drawmethods.c
+                 src/drawmethods.cpp
 )
 
 add_library(${PROJECT_NAME} STATIC
