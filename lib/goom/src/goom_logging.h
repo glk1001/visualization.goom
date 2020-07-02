@@ -4,7 +4,15 @@
 
 extern void (*goom_logger)(int lvl, int line_num, const char* func_name, const char* msg);
 
-#ifdef NO_GOOM_LOGGING
+#ifndef DO_GOOM_LOGGING
+  #define GOOM_LOG_LVL_DEBUG
+  #define GOOM_LOG_LVL_INFO
+  #define GOOM_LOG_LVL_WARN
+  #define GOOM_LOG_LVL_ERROR
+  #define GOOM_LOG_DEBUG(...)
+  #define GOOM_LOG_INFO(...)
+  #define GOOM_LOG_WARN(...)
+  #define GOOM_LOG_ERROR(...)
   #define goom_log_get_level()
   #define goom_log_set_level(lvl)
   #define goom_log(...)
