@@ -1,10 +1,11 @@
 #include "drawmethods.h"
 
-static inline void draw_pixel(Pixel* out, Pixel* backbuf, uint32_t col)
+
+static inline void draw_pixel(Pixel* frontBuff, Pixel* backBuff, uint32_t col)
 {
   int tra = 0;
-  unsigned char* bra = (unsigned char*)backbuf;
-  unsigned char* dra = (unsigned char*)out;
+  unsigned char* bra = (unsigned char*)backBuff;
+  unsigned char* dra = (unsigned char*)frontBuff;
   unsigned char* cra = (unsigned char*)&col;
   for (int i=0; i < 4; i++) {
     tra = *cra;
@@ -21,9 +22,21 @@ static inline void draw_pixel(Pixel* out, Pixel* backbuf, uint32_t col)
 
 void draw_line(Pixel* data, int x1, int y1, int x2, int y2, uint32_t col, int screenx, int screeny)
 {
-  int x, y, dx, dy, yy, xx;
-  Pixel* p;
+  Pixel* buffs[] = { data };
+  uint32_t cols[] = { col };
+  draw_line(1, buffs, cols, x1, y1, x2, y2, screenx, screeny);
+}
 
+static inline void draw_pixels(size_t n, Pixel* buffs[], const uint32_t cols[], const int pos)
+{
+  for (size_t i = 0; i < n ; i++) {
+    Pixel* const p = &(buffs[i][pos]);
+    draw_pixel(p, p, cols[i]);
+  }
+}
+
+void draw_line(size_t n, Pixel* buffs[], const uint32_t cols[], int x1, int y1, int x2, int y2, int screenx, int screeny)
+{
   if ((y1 < 0) || (y2 < 0) || (x1 < 0) || (x2 < 0) || (y1 >= screeny) || (y2 >= screeny) ||
       (x1 >= screenx) || (x2 >= screenx)) {
     return;
@@ -77,8 +90,8 @@ void draw_line(Pixel* data, int x1, int y1, int x2, int y2, uint32_t col, int sc
      }
   */
 
-  dx = x2 - x1;
-  dy = y2 - y1;
+  int dx = x2 - x1;
+  int dy = y2 - y1;
   if (x1 > x2) {
     int tmp = x1;
     x1 = x2;
@@ -93,16 +106,16 @@ void draw_line(Pixel* data, int x1, int y1, int x2, int y2, uint32_t col, int sc
   /* vertical line */
   if (dx == 0) {
     if (y1 < y2) {
-      p = &(data[(screenx * y1) + x1]);
-      for (y = y1; y <= y2; y++) {
-        draw_pixel(p, p, col);
-        p += screenx;
+      int i = (screenx * y1) + x1;
+      for (int y = y1; y <= y2; y++) {
+        draw_pixels(n, buffs, cols, i);
+        i += screenx;
       }
     } else {
-      p = &(data[(screenx * y2) + x1]);
-      for (y = y2; y <= y1; y++) {
-        draw_pixel(p, p, col);
-        p += screenx;
+      int i = (screenx * y2) + x1;
+      for (int y = y2; y <= y1; y++) {
+        draw_pixels(n, buffs, cols, i);
+        i += screenx;
       }
     }
     return;
@@ -110,17 +123,17 @@ void draw_line(Pixel* data, int x1, int y1, int x2, int y2, uint32_t col, int sc
   /* horizontal line */
   if (dy == 0) {
     if (x1 < x2) {
-      p = &(data[(screenx * y1) + x1]);
-      for (x = x1; x <= x2; x++) {
-        draw_pixel(p, p, col);
-        p++;
+      int i = (screenx * y1) + x1;
+      for (int x = x1; x <= x2; x++) {
+        draw_pixels(n, buffs, cols, i);
+        i++;
       }
       return;
     } else {
-      p = &(data[(screenx * y1) + x2]);
-      for (x = x2; x <= x1; x++) {
-        draw_pixel(p, p, col);
-        p++;
+      int i = (screenx * y1) + x2;
+      for (int x = x2; x <= x1; x++) {
+        draw_pixels(n, buffs, cols, i);
+        i++;
       }
       return;
     }
@@ -133,13 +146,13 @@ void draw_line(Pixel* data, int x1, int y1, int x2, int y2, uint32_t col, int sc
     /* steep */
     if (dy > dx) {
       dx = ((dx << 16) / dy);
-      x = x1 << 16;
-      for (y = y1; y <= y2; y++) {
-        xx = x >> 16;
-        p = &(data[(screenx * y) + xx]);
-        draw_pixel(p, p, col);
+      int x = x1 << 16;
+      for (int y = y1; y <= y2; y++) {
+        const int xx = x >> 16;
+        int i = (screenx * y) + xx;
+        draw_pixels(n, buffs, cols, i);
         if (xx < (screenx - 1)) {
-          p++;
+          i++;
           /* DRAWMETHOD; */
         }
         x += dx;
@@ -149,13 +162,13 @@ void draw_line(Pixel* data, int x1, int y1, int x2, int y2, uint32_t col, int sc
     /* shallow */
     else {
       dy = ((dy << 16) / dx);
-      y = y1 << 16;
-      for (x = x1; x <= x2; x++) {
-        yy = y >> 16;
-        p = &(data[(screenx * yy) + x]);
-        draw_pixel(p, p, col);
+      int y = y1 << 16;
+      for (int x = x1; x <= x2; x++) {
+        const int yy = y >> 16;
+        int i = (screenx * yy) + x;
+        draw_pixels(n, buffs, cols, i);
         if (yy < (screeny - 1)) {
-          p += screeny;
+          i += screeny;
           /* DRAWMETHOD; */
         }
         y += dy;
@@ -170,13 +183,13 @@ void draw_line(Pixel* data, int x1, int y1, int x2, int y2, uint32_t col, int sc
     /* steep */
     if (-dy > dx) {
       dx = ((dx << 16) / -dy);
-      x = (x1 + 1) << 16;
-      for (y = y1; y >= y2; y--) {
-        xx = x >> 16;
-        p = &(data[(screenx * y) + xx]);
-        draw_pixel(p, p, col);
+      int x = (x1 + 1) << 16;
+      for (int y = y1; y >= y2; y--) {
+        const int xx = x >> 16;
+        int i = (screenx * y) + xx;
+        draw_pixels(n, buffs, cols, i);
         if (xx < (screenx - 1)) {
-          p--;
+          i--;
           /* DRAWMETHOD; */
         }
         x += dx;
@@ -186,13 +199,13 @@ void draw_line(Pixel* data, int x1, int y1, int x2, int y2, uint32_t col, int sc
     /* shallow */
     else {
       dy = ((dy << 16) / dx);
-      y = y1 << 16;
-      for (x = x1; x <= x2; x++) {
-        yy = y >> 16;
-        p = &(data[(screenx * yy) + x]);
-        draw_pixel(p, p, col);
+      int y = y1 << 16;
+      for (int x = x1; x <= x2; x++) {
+        const int yy = y >> 16;
+        int i = (screenx * yy) + x;
+        draw_pixels(n, buffs, cols, i);
         if (yy < (screeny - 1)) {
-          p += screeny;
+          i += screeny;
           /* DRAWMETHOD; */
         }
         y += dy;
