@@ -1,5 +1,6 @@
 #include "tentacle3d.h"
 
+#include "drawmethods.h"
 #include "goom.h"
 #include "goom_config.h"
 #include "goom_plugin_info.h"
@@ -12,6 +13,7 @@
 #include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <tuple>
 
 constexpr float D = 256.0f;
 
@@ -28,8 +30,8 @@ constexpr size_t num_x = xticks_per_100 * x_width / 100;
 constexpr int num_x_mod = 0;
 
 constexpr int zticks_per_100 = 350;
-constexpr int z_depth = 20;
-constexpr int z_depth_mod = 10;
+constexpr int z_depth = 15;
+constexpr int z_depth_mod = 5;
 constexpr size_t num_z = zticks_per_100 * z_depth / 100;
 constexpr int num_z_mod = 0;
 
@@ -400,21 +402,28 @@ public:
   void drawToBuffs(grid3d* grid, uint32_t colorMod, uint32_t colorLowMod);
 private:
   PluginInfo* const goomInfo;
-  Pixel* const frontBuff;
-  Pixel* const backBuff;
+  Pixel* buffs[2];
   const int width;
   const int height;
   const float dist;
+  void drawLineToBuffs(uint32_t color, uint32_t colorLow, int x1, int y1, int x2, int y2);
+  bool reverseMixMode = false;
+  uint32_t colorMix(const uint32_t col1, const uint32_t col2, const float t);
 };
 
 inline TentacleDraw::TentacleDraw(PluginInfo* info, Pixel* front, Pixel* back, int w, int h, float d)
   : goomInfo(info)
-  , frontBuff(front)
-  , backBuff(back)
+  , buffs{ front, back }
   , width(w)
   , height(h)
   , dist(d)
 {
+}
+
+inline void TentacleDraw::drawLineToBuffs(uint32_t color, uint32_t colorLow, int x1, int y1, int x2, int y2)
+{
+  const uint32_t colors[2] = { colorLow, color };
+  draw_line(std::size(buffs), buffs, colors, x1, y1, x2, y2, width, height);
 }
 
 /*
@@ -452,13 +461,18 @@ private:
   const int xwidth;
 };
 
-inline uint32_t color_mix(const uint32_t col1, const uint32_t col2, const float t)
+inline uint32_t TentacleDraw::colorMix(const uint32_t col1, const uint32_t col2, const float t)
 {
+  // return color_multiply(col1, col2);
   const uint8_t* c1 = (uint8_t*)&col1;
   const uint8_t* c2 = (uint8_t*)&col2;
   const vivid::Color color1{ c1[1], c1[2], c1[3] };
   const vivid::Color color2{ c2[1], c2[2], c2[3] };
-  return vivid::lerpHsl(color1, color2, t).rgb32();
+  if (reverseMixMode) {
+    return vivid::lerpHsl(color2, color1, t).rgb32();
+  } else {
+    return vivid::lerpHsl(color1, color2, t).rgb32();
+  }
 }
 
 inline void TentacleDraw::drawToBuffs(grid3d* grid, uint32_t colorMod, uint32_t colorLowMod)
@@ -471,6 +485,7 @@ inline void TentacleDraw::drawToBuffs(grid3d* grid, uint32_t colorMod, uint32_t 
   for (size_t x = 0; x < grid->defx; x++) {
     v2d v2x = v2_array[x];
     const ColorGroup colorGroup { colorGroups[goom_irand(goomInfo->gRandom, colorGroups.size())] };
+    reverseMixMode = goom_irand(goomInfo->gRandom, 1) == 1;
 
     size_t colNum = 0;
 
@@ -485,12 +500,9 @@ inline void TentacleDraw::drawToBuffs(grid3d* grid, uint32_t colorMod, uint32_t 
         const float t = float(z+1)/float(grid->defz);
 //        const float t = float(goom_irand(goomInfo->gRandom, 100))/100.0;
         const uint32_t segmentColor = colorGroup.getColor(colNum);
-        const uint32_t color = color_mix(colorMod, segmentColor, t);
-        const uint32_t colorlow = color_mix(colorLowMod, segmentColor, t);
-//        const uint32_t color = color_multiply(segmentColor, colorMod);
-//        const uint32_t colorlow = color_multiply(segmentColor, colorLowMod);
-        goomInfo->methods.draw_line(frontBuff, v2x.x, v2x.y, v2.x, v2.y, colorlow, width, height);
-        goomInfo->methods.draw_line(backBuff, v2x.x, v2x.y, v2.x, v2.y, color, width, height);
+        const uint32_t color = colorMix(colorMod, segmentColor, t);
+        const uint32_t colorLow = colorMix(colorLowMod, segmentColor, t);
+        drawLineToBuffs(color, colorLow, v2x.x, v2x.y, v2.x, v2.y);
         colNum++;
       }
       v2x = v2;
@@ -498,83 +510,95 @@ inline void TentacleDraw::drawToBuffs(grid3d* grid, uint32_t colorMod, uint32_t 
   }
 }
 
+inline std::tuple<uint32_t, uint32_t> getModColors(PluginInfo* goomInfo,
+                                                   TentacleFXData* fx_data, const ColorGroup& colorGroup)
+{
+  if ((fx_data->lig > 10.0f) || (fx_data->lig < 1.1f)) {
+    fx_data->ligs = -fx_data->ligs;
+  }
+
+  if ((fx_data->lig < 6.3f) && (goom_irand(goomInfo->gRandom, 30) == 0)) {
+//    fx_data->dstcol = (int)goom_irand(goomInfo->gRandom, NUM_TENTACLE_COLORS);
+    fx_data->dstcol = (int)goom_irand(goomInfo->gRandom, colorGroup.numColors()); // TODO Make numColors a constexpr
+  }
+
+  /**
+  fx_data->col = evolvecolor((uint32_t)fx_data->col, (uint32_t)fx_data->colors[fx_data->dstcol], 0xff, 0x01);
+  fx_data->col = evolvecolor((uint32_t)fx_data->col, (uint32_t)fx_data->colors[fx_data->dstcol], 0xff00, 0x0100);
+  fx_data->col = evolvecolor((uint32_t)fx_data->col, (uint32_t)fx_data->colors[fx_data->dstcol], 0xff0000, 0x010000);
+  fx_data->col = evolvecolor((uint32_t)fx_data->col, (uint32_t)fx_data->colors[fx_data->dstcol], 0xff000000, 0x01000000);
+  **/
+  const uint32_t baseColor = colorGroup.getColor(size_t(fx_data->dstcol));
+  fx_data->col = evolvecolor((uint32_t)fx_data->col, baseColor, 0xff, 0x01);
+  fx_data->col = evolvecolor((uint32_t)fx_data->col, baseColor, 0xff00, 0x0100);
+  fx_data->col = evolvecolor((uint32_t)fx_data->col, baseColor, 0xff0000, 0x010000);
+  fx_data->col = evolvecolor((uint32_t)fx_data->col, baseColor, 0xff000000, 0x01000000);
+  uint32_t color = uint32_t(fx_data->col);
+  uint32_t colorLow = color;
+
+  lightencolor(&color, fx_data->lig * 2.0f + 2.0f);
+  lightencolor(&colorLow, (fx_data->lig / 3.0f) + 0.67f);
+
+  return std::make_tuple(color, colorLow);
+}
+
+inline void updateRapport(float& rapport)
+{
+  rapport = 1.0f + 2.0f * (rapport - 1.0f);
+  rapport *= 1.2f;
+  if (rapport > 1.12f)
+    rapport = 1.12f;
+}
+
 static void tentacle_update(PluginInfo* goomInfo, Pixel* buf, Pixel* back, int W, int H,
                             gint16 data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], float rapport,
                             int drawit, TentacleFXData* fx_data)
 {
-  float dist, dist2, rotangle;
-
   if ((!drawit) && (fx_data->ligs > 0.0f)) {
     fx_data->ligs = -fx_data->ligs;
   }
-
   fx_data->lig += fx_data->ligs;
 
   if (fx_data->lig > 1.01f) {
-    if ((fx_data->lig > 10.0f) || (fx_data->lig < 1.1f)) {
-      fx_data->ligs = -fx_data->ligs;
-    }
+    const ColorGroup colorGroup { colorGroups[goom_irand(goomInfo->gRandom, colorGroups.size())] };
+    const auto colors = getModColors(goomInfo, fx_data, colorGroup);
+    const uint32_t color = std::get<0>(colors);
+    const uint32_t colorLow = std::get<1>(colors);
 
-    if ((fx_data->lig < 6.3f) && (goom_irand(goomInfo->gRandom, 30) == 0)) {
-      fx_data->dstcol = (int)goom_irand(goomInfo->gRandom, NUM_TENTACLE_COLORS);
-    }
-
-    fx_data->col =
-        evolvecolor((uint32_t)fx_data->col, (uint32_t)fx_data->colors[fx_data->dstcol], 0xff, 0x01);
-    fx_data->col = evolvecolor((uint32_t)fx_data->col, (uint32_t)fx_data->colors[fx_data->dstcol],
-                               0xff00, 0x0100);
-    fx_data->col = evolvecolor((uint32_t)fx_data->col, (uint32_t)fx_data->colors[fx_data->dstcol],
-                               0xff0000, 0x010000);
-    fx_data->col = evolvecolor((uint32_t)fx_data->col, (uint32_t)fx_data->colors[fx_data->dstcol],
-                               0xff000000, 0x01000000);
-    uint32_t color = (uint32_t)fx_data->col;
-    uint32_t colorlow = (uint32_t)fx_data->col;
-
-    lightencolor(&color, fx_data->lig * 2.0f + 2.0f);
-    lightencolor(&colorlow, (fx_data->lig / 3.0f) + 0.67f);
-
-    rapport = 1.0f + 2.0f * (rapport - 1.0f);
-    rapport *= 1.2f;
-    if (rapport > 1.12f)
-      rapport = 1.12f;
-
+    float dist, dist2, rotangle;
     pretty_move(goomInfo, fx_data->cycle, &dist, &dist2, &rotangle, fx_data);
 
-    for (int tmp = 0; tmp < nbgrid; tmp++) {
-      for (size_t tmp2 = 0; tmp2 < num_x; tmp2++) {
+    updateRapport(rapport);
+    for (int i = 0; i < nbgrid; i++) {
+      for (size_t x = 0; x < num_x; x++) {
         const float val =
-            (float)(ShiftRight(data[0][goom_irand(goomInfo->gRandom, AUDIO_SAMPLE_LEN - 1)], 10)) *
-            rapport;
-        fx_data->vals[tmp2] = val;
+            (float)(ShiftRight(data[0][goom_irand(goomInfo->gRandom, AUDIO_SAMPLE_LEN - 1)], 10)) * rapport;
+        fx_data->vals[x] = val;
       }
 
       // Note: Following did not originally have '0.5*M_PI -' but with 'grid3d_update'
       //   bug-fix this is the counter-fix.
-      grid3d_update(fx_data->grille[tmp], 0.5*M_PI - rotangle, fx_data->vals, dist2);
+      grid3d_update(fx_data->grille[i], 0.5*M_PI - rotangle, fx_data->vals, dist2);
     }
     fx_data->cycle += 0.01f;
 
     TentacleDraw tentacle(goomInfo, buf, back, W, H, dist);
-//    const ColorGroup colorGroup { colorGroups[goom_irand(goomInfo->gRandom, colorGroups.size())] };
-//    size_t color_num = goom_irand(goomInfo->gRandom, colorGroup.numColors());
     for (int i = 0; i < nbgrid; i++) {
-//      const ColorGroup colorGroup { colorGroups[goom_irand(goomInfo->gRandom, colorGroups.size())] };
-//      const size_t color_num = goom_irand(goomInfo->gRandom, colorGroup.numColors());
-//      const uint32_t tentacle_color = color_multiply(colorGroup.getColor(color_num), color);
-//      const uint32_t tentacle_colorlow = color_multiply(colorGroup.getColor(color_num), colorlow);
-//      color_num++;
-//      if (color_num >= colorGroup.numColors()) {
-//        color_num = 0;
-//      }
-      tentacle.drawToBuffs(fx_data->grille[i], color, colorlow);
+//      const auto colors = getModColors(goomInfo, fx_data, colorGroup);
+//      const uint32_t color = std::get<0>(colors);
+//      const uint32_t colorLow = std::get<1>(colors);
+      tentacle.drawToBuffs(fx_data->grille[i], color, colorLow);
     }
   } else {
     fx_data->lig = 1.05f;
-    if (fx_data->ligs < 0.0f)
+    if (fx_data->ligs < 0.0f) {
       fx_data->ligs = -fx_data->ligs;
+    }
+    float dist, dist2, rotangle;
     pretty_move(goomInfo, fx_data->cycle, &dist, &dist2, &rotangle, fx_data);
     fx_data->cycle += 0.1f;
-    if (fx_data->cycle > 1000)
+    if (fx_data->cycle > 1000) {
       fx_data->cycle = 0;
+    }
   }
 }
