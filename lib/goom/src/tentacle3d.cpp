@@ -9,11 +9,11 @@
 #include "v3d.h"
 
 #include <vivid/vivid.h>
-#include <vector>
 #include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <tuple>
+#include <vector>
 
 constexpr float D = 256.0f;
 
@@ -422,7 +422,7 @@ inline TentacleDraw::TentacleDraw(PluginInfo* info, Pixel* front, Pixel* back, i
 
 inline void TentacleDraw::drawLineToBuffs(uint32_t color, uint32_t colorLow, int x1, int y1, int x2, int y2)
 {
-  const uint32_t colors[2] = { colorLow, color };
+  const std::vector<uint32_t> colors{ colorLow, color };
   draw_line(std::size(buffs), buffs, colors, x1, y1, x2, y2, width, height);
 }
 
@@ -464,14 +464,14 @@ private:
 inline uint32_t TentacleDraw::colorMix(const uint32_t col1, const uint32_t col2, const float t)
 {
   // return color_multiply(col1, col2);
-  const uint8_t* c1 = (uint8_t*)&col1;
-  const uint8_t* c2 = (uint8_t*)&col2;
-  const vivid::Color color1{ c1[1], c1[2], c1[3] };
-  const vivid::Color color2{ c2[1], c2[2], c2[3] };
+  const vivid::rgb_t c1 = vivid::rgb::fromRgb32(col1);
+  const vivid::rgb_t c2 = vivid::rgb::fromRgb32(col2);
+//  const vivid::Color color1{ c1[1], c1[2], c1[3] };
+//  const vivid::Color color2{ c2[1], c2[2], c2[3] };
   if (reverseMixMode) {
-    return vivid::lerpHsl(color2, color1, t).rgb32();
+    return vivid::lerpHsl(c2, c1, t).rgb32();
   } else {
-    return vivid::lerpHsl(color1, color2, t).rgb32();
+    return vivid::lerpHsl(c1, c2, t).rgb32();
   }
 }
 
@@ -485,7 +485,7 @@ inline void TentacleDraw::drawToBuffs(grid3d* grid, uint32_t colorMod, uint32_t 
   for (size_t x = 0; x < grid->defx; x++) {
     v2d v2x = v2_array[x];
     const ColorGroup colorGroup { colorGroups[goom_irand(goomInfo->gRandom, colorGroups.size())] };
-    reverseMixMode = goom_irand(goomInfo->gRandom, 1) == 1;
+//    reverseMixMode = goom_irand(goomInfo->gRandom, 2) == 1;
 
     size_t colNum = 0;
 
