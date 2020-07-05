@@ -27,9 +27,9 @@ static void WuDrawLine(float x0, float y0, float x1, float y1,
     std::swap(y0,y1);
   }
 
-  const float dx = x1 - x0;
+  const float dx = x1 - x0; // because of above swap, must be >= 0
   const float dy = y1 - y0;
-  const float gradient = (dx == 0) ? 1 : dy/dx;
+  const float gradient = (dx < 0.001) ? 1 : dy/dx;
 
   int xpx11;
   float intery;
@@ -80,65 +80,51 @@ static void WuDrawLine(float x0, float y0, float x1, float y1,
   }
 }
 
-static inline void draw_pixel(Pixel* frontBuff, Pixel* backBuff, uint32_t col)
+inline unsigned char brighten(const uint32_t br, unsigned char c)
 {
-  int tra = 0;
-  unsigned char* bra = (unsigned char*)backBuff;
-  unsigned char* dra = (unsigned char*)frontBuff;
-  unsigned char* cra = (unsigned char*)&col;
-  for (int i=0; i < 4; i++) {
-    tra = *cra;
-    tra += *bra;
-    if (tra > 255) {
-      tra = 255;
-    }
-    *dra = tra;
-    ++dra;
-    ++cra;
-    ++bra;
-  }                                                                                              \
+  return (unsigned char)((br * uint32_t(c)) >> 8);
 }
 
-inline uint32_t getColor(const float brightness, uint32_t color)
+inline Pixel getColor(const float brightness, const Pixel& color)
 {
   assert(brightness >= 0.0 && brightness <= 1.0);
-  if (brightness >= 0.999) {
-    return color;
-  }
-  std::array<unsigned char, 4> arrayOfBytes;
-  for (int i=0; i < 4; i++) {
-//    arrayOfBytes[3-i] = color >> (i*8);
-    arrayOfBytes[i] = color >> (i*8);
-  }
   const uint32_t br = uint32_t(brightness*255);
-  arrayOfBytes[ALPHA] = (unsigned char)((br * uint32_t(arrayOfBytes[ALPHA])) >> 8);
-  arrayOfBytes[BLEU] = (unsigned char)((br * uint32_t(arrayOfBytes[BLEU])) >> 8);
-  arrayOfBytes[VERT] = (unsigned char)((br * uint32_t(arrayOfBytes[VERT])) >> 8);
-  arrayOfBytes[ROUGE] = (unsigned char)((br * uint32_t(arrayOfBytes[ROUGE])) >> 8);
-  return uint32_t(
-           (unsigned char)(arrayOfBytes[0]) << 24 |
-           (unsigned char)(arrayOfBytes[1]) << 16 |
-           (unsigned char)(arrayOfBytes[2]) <<  8 |
-           (unsigned char)(arrayOfBytes[3])
-         );
+  Pixel c;
+  c.channels.r = brighten(br, color.channels.r);
+  c.channels.g = brighten(br, color.channels.g);
+  c.channels.b = brighten(br, color.channels.b);
+  c.channels.a = brighten(br, color.channels.a);
+  return c;
 }
 
-inline void modColors(const float brightness, const size_t n, std::vector<uint32_t>& colors)
+inline unsigned char colorAdd(const unsigned char c1, const unsigned char c2)
 {
-  for (size_t i = 0; i < n; i++) {
-    colors[i] = getColor(brightness, colors[i]);
+  uint32_t cadd = uint32_t(c1) + (uint32_t(c2) >> 1);
+  if (cadd > 255) {
+    cadd = 255;
   }
+  return (unsigned char)(cadd);
 }
 
-inline void draw_pixels(size_t n, Pixel* buffs[], const std::vector<uint32_t>& cols, const int pos)
+inline Pixel getColorAdd(const Pixel& color1, const Pixel& color2)
+{
+  Pixel c;
+  c.channels.r = colorAdd(color1.channels.r, color2.channels.r);
+  c.channels.g = colorAdd(color1.channels.g, color2.channels.g);
+  c.channels.b = colorAdd(color1.channels.b, color2.channels.b);
+  c.channels.a = colorAdd(color1.channels.a, color2.channels.a);
+  return c;
+}
+
+inline void draw_pixels(size_t n, Pixel* buffs[], const std::vector<Pixel>& cols, const int pos)
 {
   for (size_t i = 0; i < n ; i++) {
     Pixel* const p = &(buffs[i][pos]);
-    draw_pixel(p, p, cols[i]);
+    *p = getColorAdd(*p, cols[i]);
   }
 }
 
-static void draw_wuline(size_t n, Pixel* buffs[], const std::vector<uint32_t>& cols,
+static void draw_wuline(size_t n, Pixel* buffs[], const std::vector<Pixel>& cols,
                         int x1, int y1, int x2, int y2, int screenx, int screeny)
 {
   if ((y1 < 0) || (y2 < 0) || (x1 < 0) || (x2 < 0) || (y1 >= screeny) || (y2 >= screeny) ||
@@ -147,9 +133,12 @@ static void draw_wuline(size_t n, Pixel* buffs[], const std::vector<uint32_t>& c
   }
 
   assert(n == cols.size());
-  std::vector<uint32_t> colors = cols;
+  std::vector<Pixel> colors = cols;
   auto plot = [&](int x, int y, float brightness) -> void {
     if (x >= screenx || y >= screeny) {
+      return;
+    }
+    if (brightness < 0.001) {
       return;
     }
     const int pos = y*screenx + x;
@@ -167,11 +156,12 @@ static void draw_wuline(size_t n, Pixel* buffs[], const std::vector<uint32_t>& c
 void draw_line(Pixel* data, int x1, int y1, int x2, int y2, uint32_t col, int screenx, int screeny)
 {
   Pixel* buffs[] = { data };
-  const std::vector<uint32_t> colors = { col };
+  std::vector<Pixel> colors(1);
+  colors[0].val = col;
   draw_line(1, buffs, colors, x1, y1, x2, y2, screenx, screeny);
 }
 
-void draw_line(size_t n, Pixel* buffs[], const std::vector<uint32_t>& cols,
+void draw_line(size_t n, Pixel* buffs[], const std::vector<Pixel>& cols,
                int x1, int y1, int x2, int y2, int screenx, int screeny)
 {
   draw_wuline(n, buffs, cols, x1, y1, x2, y2, screenx, screeny);
