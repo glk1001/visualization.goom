@@ -20,6 +20,7 @@ set (SRCE_FILES
                  src/ifs.c
                  src/lines.c
                  src/mathtools.c
+                 src/SimplexNoise.cpp
                  src/sound_tester.c
                  src/surf3d.c
                  src/tentacle3d.cpp

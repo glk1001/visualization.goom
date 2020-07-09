@@ -2,12 +2,20 @@
 
 #include "goom_plugin_info.h"
 #include "mathtools.h"
+#include "SimplexNoise.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <algorithm>
 #include <tuple>
+
+inline float getRandInRange(const float n1, const float n2)
+{
+  constexpr int intRange = 10000;
+  return n1 + (n2 - n1)*float(pcg32_rand() % (intRange+1))/intRange;
+}
 
 /*
  * projete le vertex 3D sur le plan d'affichage
@@ -50,20 +58,6 @@ static inline void TRANSLATE_V3D(const v3d* vsrc, v3d* vdest)
   vdest->y += vsrc->y;
   vdest->z += vsrc->z;
 }
-
-class VertNum {
-public:
-  explicit VertNum(const int xw): xwidth(xw) {}
-  int operator()(const int x, const int z) const { return z * xwidth + x; }
-  std::tuple<int, int> getXZ(int vertNum) const
-  {
-    const int z = vertNum/xwidth;
-    const int x = vertNum % xwidth;
-    return std::make_tuple(x, z);
-  }
-private:
-  const int xwidth;
-};
 
 grid3d* grid3d_new(
     const v3d center,
@@ -153,20 +147,34 @@ void grid3d_draw(PluginInfo* plug, const grid3d* g, int color, int colorlow, int
   free(v2_array);
 }
 
-void grid3d_update(grid3d* g, float angle, float* vals, float dist)
+void grid3d_update(PluginInfo* plug, grid3d* g, float angle, float* vals, float dist)
 {
   surf3d* s = &(g->surf);
 
   if (g->mode == 0) {
     if (vals) {
       for (size_t x = 0; x < g->defx; x++) {
-        s->vertex[x].y = s->vertex[x].y * 0.2 + vals[x] * 0.8;
+        s->vertex[x].y = 0.2*s->vertex[x].y + 0.8*vals[x];
       }
     }
 
-    for (size_t i = g->defx; i < s->nbvertex; i++) {
-      s->vertex[i].y *= 0.255f;
-      s->vertex[i].y += (s->vertex[i - g->defx].y * 0.777f);
+    const float noiseFreq = getRandInRange(0.5, 0.7);
+    const VertNum vnum(g->defx);
+    for (size_t x = 0; x < g->defx; x++) {
+      const float lastY = 20*getRandInRange(0.8, 1.2);
+//      const float lastY = 20;
+      for (size_t y = 1; y < g->defz; y++) {
+        const int nv = vnum(x, y);
+        const int prevRow_nv = vnum.getPrevRowVertNum(nv);
+//        const float perlinNoise = SimplexNoise::noise(x*noiseFreq, y*noiseFreq);
+//        const float noiseFactor = 0.9 + 0.2*perlinNoise;
+//        s->vertex[nv].y *= 0.23 * noiseFactor;
+        s->vertex[nv].y *= 0.255;
+        s->vertex[nv].y += s->vertex[prevRow_nv].y * 0.84f;
+//        const float ymax = lastY*(0.8 + 0.2*perlinNoise);
+//        s->vertex[nv].y = std::min(float(s->vertex[nv].y), ymax);
+        s->vertex[nv].y = std::min(float(s->vertex[nv].y), lastY);
+      }
     }
   }
 
