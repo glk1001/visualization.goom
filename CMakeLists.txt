@@ -42,8 +42,10 @@ set(GOOM_HEADERS src/CircularBuffer.h
                  src/AudioData.h
                  src/Main.h)
 
-set (TESTING ON)
-include(../visualization.goom.testing/goom_testing)
+if ($ENV{DO_TESTING})
+  set (TESTING ON)
+  include(../visualization.goom.testing/goom_testing)
+endif()
 
 list(APPEND DEPLIBS goom ${VIVID_LIB})
 

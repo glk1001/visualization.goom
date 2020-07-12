@@ -4,6 +4,10 @@ project(goom)
 if(WIN32)
  add_definitions(-D_WIN32PC)
 endif()
+if ($ENV{DO_GOOM_LOGGING})
+  ADD_DEFINITIONS(-DDO_GOOM_LOGGING)
+  MESSAGE("Added 'DO_GOOM_LOGGING' #define.")
+endif()
 
 set (SRCE_FILES
                  src/goom_testing.c
