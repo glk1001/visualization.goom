@@ -9,6 +9,8 @@
 #include "v3d.h"
 #include "SimplexNoise.h"
 
+#include <algorithm>
+
 #include <vivid/vivid.h>
 #include <math.h>
 #include <stdint.h>
@@ -18,34 +20,6 @@
 #include <vector>
 
 constexpr float D = 256.0f;
-
-constexpr int yticks_per_100 = 20;
-constexpr int y_height = 50;
-constexpr int nbgrid = yticks_per_100 * y_height / 100;
-constexpr int y_step_mod = 20;
-constexpr float y_start = -0.5 * y_height;
-
-constexpr int xticks_per_100 = 30;
-constexpr int x_width = 40;
-constexpr int x_width_mod = 10;
-constexpr size_t num_x = xticks_per_100 * x_width / 100;
-constexpr int num_x_mod = 0;
-
-constexpr int zticks_per_100 = 350;
-constexpr int z_depth = 15;
-constexpr int z_depth_mod = 5;
-constexpr size_t num_z = zticks_per_100 * z_depth / 100;
-constexpr int num_z_mod = 0;
-
-
-constexpr vivid::ColorMap::Preset baseColorMaps[] = {
-  vivid::ColorMap::Preset::BlueYellow,
-  vivid::ColorMap::Preset::Plasma,
-  vivid::ColorMap::Preset::Viridis
-};
-constexpr size_t NUM_COLOR_GROUPS = std::size(baseColorMaps);
-constexpr size_t NUM_COLORS_IN_GROUP = 33;
-constexpr size_t NUM_TENTACLE_COLORS = NUM_COLOR_GROUPS * NUM_COLORS_IN_GROUP;
 
 class ColorGroup {
 public:
@@ -106,48 +80,6 @@ static void init_color_groups(std::vector<ColorGroup>& colGroups)
   }
 }
 
-static void init_colors(uint32_t* colors)
-{
-  for (size_t i = 0; i < NUM_COLOR_GROUPS; i++) {
-    const ColorGroup group { baseColorMaps[i], NUM_COLORS_IN_GROUP };
-    for (size_t j = 0; j < group.numColors(); j++) {
-      colors[j] = group.getColor(j);
-    }
-  }
-}
-
-typedef struct _TENTACLE_FX_DATA {
-  PluginParam enabled_bp;
-  PluginParameters params;
-
-  float cycle;
-  grid3d* grille[nbgrid];
-  float* vals;
-
-  uint32_t colors[NUM_TENTACLE_COLORS];
-
-  int col;
-  int dstcol;
-  float lig;
-  float ligs;
-
-  /* statics from pretty_move */
-  float distt;
-  float distt2;
-  float rot; /* entre 0 et 2 * M_PI */
-  int happens;
-  int rotation;
-  int lock;
-} TentacleFXData;
-
-static void tentacle_new(TentacleFXData* data);
-static void tentacle_update(PluginInfo* goomInfo, Pixel* buf, Pixel* back, int W, int H,
-                            gint16 data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], float, int drawit,
-                            TentacleFXData* fx_data);
-static void tentacle_free(TentacleFXData* data);
-static void init_colors(uint32_t* colors);
-static void init_color_groups(std::vector<ColorGroup>& colorGroups);
-
 /* 
  * VisualFX wrapper for the tentacles
  */
@@ -155,7 +87,7 @@ static void init_color_groups(std::vector<ColorGroup>& colorGroups);
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
-static void tentacle_fx_init(VisualFX* _this, PluginInfo* info)
+void tentacle_fx_init(VisualFX* _this, PluginInfo* info)
 {
   TentacleFXData* data = (TentacleFXData*)malloc(sizeof(TentacleFXData));
 
@@ -176,7 +108,7 @@ static void tentacle_fx_init(VisualFX* _this, PluginInfo* info)
 
   data->rotation = 0;
   data->lock = 0;
-  init_colors(data->colors);
+  // data->colors;
   init_color_groups(colorGroups);
   tentacle_new(data);
 
@@ -186,7 +118,7 @@ static void tentacle_fx_init(VisualFX* _this, PluginInfo* info)
 
 #pragma GCC diagnostic pop
 
-static void tentacle_fx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* goomInfo)
+void tentacle_fx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* goomInfo)
 {
   TentacleFXData* data = (TentacleFXData*)_this->fx_data;
   if (BVAL(data->enabled_bp)) {
@@ -196,7 +128,7 @@ static void tentacle_fx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginIn
   }
 }
 
-static void tentacle_fx_free(VisualFX* _this)
+void tentacle_fx_free(VisualFX* _this)
 {
   TentacleFXData* data = (TentacleFXData*)_this->fx_data;
   free(data->params.params);
@@ -217,7 +149,7 @@ VisualFX tentacle_fx_create(void)
 
 /* ----- */
 
-static void tentacle_free(TentacleFXData* data)
+void tentacle_free(TentacleFXData* data)
 {
   /* TODO : un vrai FREE GRID!! */
   for (int i = 0; i < nbgrid; i++) {
@@ -235,7 +167,7 @@ inline int get_rand_in_range(int n1, int n2)
   return n1 + (int)(pcg32_rand() % range_len);
 }
 
-static void tentacle_new(TentacleFXData* data)
+void tentacle_new(TentacleFXData* data)
 {
   // Start at bottom of grid, going up by 'y_step'.
   const float y_step = y_height / (float) (nbgrid - 1) + get_rand_in_range(-y_step_mod / 2, y_step_mod / 2);
@@ -269,7 +201,7 @@ static void tentacle_new(TentacleFXData* data)
   }
 }
 
-static inline unsigned char lighten(unsigned char value, float power)
+inline unsigned char lighten(unsigned char value, float power)
 {
   int val = value;
   float t = (float)val * log10(power) / 2.0;
@@ -476,6 +408,8 @@ inline void TentacleDraw::drawToBuffs(
         const uint32_t segmentColor = colorGroup.getColor(colNum);
         const uint32_t color = colorMix(colorMod, segmentColor, t);
         const uint32_t colorLow = colorMix(colorLowMod, segmentColor, t);
+//        GOOM_LOG_INFO("Drawing line: color = %x, colorLow = %x, v2x.x = %d, v2x.y = %d, v2.x = %d, v2.y = %d.",
+//            color, colorLow, v2x.x, v2x.y, v2.x, v2.y);
         drawLineToBuffs(front, back, color, colorLow, v2x.x, v2x.y, v2.x, v2.y);
         colNum++;
       }
@@ -516,12 +450,55 @@ inline std::tuple<uint32_t, uint32_t> getModColors(PluginInfo* goomInfo,
   return std::make_tuple(color, colorLow);
 }
 
-inline void updateRapport(float& rapport)
+class ChangeTracker {
+public:
+  explicit ChangeTracker(size_t sigInRow=10);
+  void nextVal(float val);
+  bool significantIncreaseInARow();
+  bool significantDecreaseInARow();
+private:
+  static constexpr float sigDiff = 0.01;
+  const size_t significantInRow;
+  size_t numInRowIncreasing;
+  size_t numInRowDecreasing;
+  float currentVal;
+};
+
+ChangeTracker::ChangeTracker(size_t sigInRow)
+  : significantInRow { sigInRow }
+  , numInRowIncreasing { 0 }
+  , numInRowDecreasing { 0 }
+  , currentVal { 0 }
 {
-  rapport = 1.0f + 2.0f * (rapport - 1.0f);
-  rapport *= 1.2f;
-  if (rapport > 1.12f)
-    rapport = 1.12f;
+}
+
+void ChangeTracker::nextVal(float val)
+{
+  if (val > (currentVal+sigDiff)) {
+    numInRowIncreasing++;
+    numInRowDecreasing = 0;
+  } else if (val < (currentVal-sigDiff)) {
+    numInRowDecreasing++;
+    numInRowIncreasing = 0;
+  }
+}
+
+bool ChangeTracker::significantIncreaseInARow()
+{
+  if (numInRowIncreasing >= significantInRow) {
+    numInRowIncreasing = 0;
+    return true;
+  }
+  return false;
+}
+
+bool ChangeTracker::significantDecreaseInARow()
+{
+  if (numInRowDecreasing >= significantInRow) {
+    numInRowDecreasing = 0;
+    return true;
+  }
+  return false;
 }
 
 inline float randFactor(PluginInfo* goomInfo, const float min)
@@ -529,10 +506,52 @@ inline float randFactor(PluginInfo* goomInfo, const float min)
   return min + (1.0 - min)*float(goom_irand(goomInfo->gRandom, 101))/100.0;
 }
 
-static void tentacle_update(PluginInfo* goomInfo, Pixel* buf, Pixel* back, int W, int H,
-                            gint16 data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], float rapport,
-                            int drawit, TentacleFXData* fx_data)
+class SineWave {
+public:
+  explicit SineWave(const float sinFreq);
+  float getNext();
+  float getSinFrequency() const { return sinFrequency; }
+  void setSinFrequency(const float val) { sinFrequency = val; }
+  void setAmplitude(const float val) { amplitude = val; }
+  void setPiStepFrac(const float val) { piStepFrac = val; }
+private:
+  float sinFrequency;
+  float amplitude;
+  float piStepFrac;
+  float x;
+};
+
+SineWave::SineWave(const float sinFreq)
+  : sinFrequency(sinFreq)
+  , amplitude(1)
+  , piStepFrac(1.0/16.0)
+  , x(0)
 {
+}
+
+float SineWave::getNext()
+{
+  const float modAccelVar = amplitude*0.5*(1.0 + sin(sinFrequency*x));
+  x += piStepFrac*M_PI;
+  return modAccelVar;
+}
+
+void tentacle_update(PluginInfo* goomInfo, Pixel* buf, Pixel* back, int width, int height,
+                     gint16 data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], float accelvar,
+                     int drawit, TentacleFXData* fx_data)
+{
+  static SineWave sineWave{ 5.0 };
+  const float modAccelvar = sineWave.getNext();
+//  const float modAccelvar = accelvar;
+
+  static ChangeTracker accelVarTracker{ 10 };
+  accelVarTracker.nextVal(accelvar);
+  if (accelVarTracker.significantIncreaseInARow()) {
+    sineWave.setSinFrequency(std::min(10.0f, sineWave.getSinFrequency() + 1.0f));
+  } else if (accelVarTracker.significantDecreaseInARow()) {
+    sineWave.setSinFrequency(std::max(0.5f, sineWave.getSinFrequency() - 1.0f));
+  }
+
   if ((!drawit) && (fx_data->ligs > 0.0f)) {
     fx_data->ligs = -fx_data->ligs;
   }
@@ -551,7 +570,8 @@ static void tentacle_update(PluginInfo* goomInfo, Pixel* buf, Pixel* back, int W
     const uint32_t modColor = std::get<0>(modColors);
     const uint32_t modColorLow = std::get<1>(modColors);
 
-    updateRapport(rapport);
+    const float rapport = getRapport(modAccelvar);
+
     const float nx_div2 = 0.5 * float(num_x);
     for (int i = 0; i < nbgrid; i++) {
       const float val = 1.7*(goom_irand(goomInfo->gRandom, 101)/100.0) * rapport;
@@ -560,8 +580,9 @@ static void tentacle_update(PluginInfo* goomInfo, Pixel* buf, Pixel* back, int W
       for (size_t x = 0; x < num_x; x++) {
 //        const float val =
 //            (float)(ShiftRight(data[0][goom_irand(goomInfo->gRandom, AUDIO_SAMPLE_LEN - 1)], 10)) * rapport;
-        const float factor = 0.9  + 0.1*(std::abs(nx_div2 - float(x))/nx_div2);
-        fx_data->vals[x] = val * factor * randFactor(goomInfo, 0.97);
+//        const float factor = 0.9  + 0.1*(std::abs(nx_div2 - float(x))/nx_div2);
+//        fx_data->vals[x] = val * factor * randFactor(goomInfo, 0.97);
+        fx_data->vals[x] = val * randFactor(goomInfo, 0.97);
       }
 
       // Note: Following did not originally have '0.5*M_PI -' but with 'grid3d_update'
@@ -570,7 +591,7 @@ static void tentacle_update(PluginInfo* goomInfo, Pixel* buf, Pixel* back, int W
     }
     fx_data->cycle += 0.01f;
 
-    static TentacleDraw tentacle(W, H); // dodge static!
+    static TentacleDraw tentacle(width, height); // dodge static!
     if (!fx_data->happens) {
       if (goom_irand(goomInfo->gRandom, 20) == 0) {
         tentacle.changeColors(goomInfo);

@@ -44,8 +44,10 @@ static void v3d_to_v2d(const v3d* v3, int nbvertex, int width, int height, float
  */
 static inline void Y_ROTATE_V3D(const v3d* vi, v3d* vf, const float sina, const float cosa)                                                           \
 {
-  vf->x = vi->x * cosa - vi->z * sina;
-  vf->z = vi->x * sina + vi->z * cosa;
+  const float vi_x = vi->x;
+  const float vi_z = vi->z;
+  vf->x = vi_x * cosa - vi_z * sina;
+  vf->z = vi_x * sina + vi_z * cosa;
   vf->y = vi->y;
 }
 
