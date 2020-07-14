@@ -26,7 +26,7 @@ set (SRCE_FILES
                  src/mathtools.c
                  src/SimplexNoise.cpp
                  src/sound_tester.c
-                 src/surf3d.c
+                 src/surf3d.cpp
                  src/tentacle3d.cpp
                  src/plugin_info.c
                  src/drawmethods.cpp
