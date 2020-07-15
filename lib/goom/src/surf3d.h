@@ -4,7 +4,6 @@
 #include "goom_graphic.h"
 #include "v3d.h"
 
-#include <cstdlib>
 #include <cstdint>
 #include <tuple>
 #include <vector>
@@ -27,8 +26,8 @@ private:
 class LineColorer {
 public:
   virtual void resetColorNum()=0;
-  virtual void setNumZ(size_t numz)=0;
-  virtual std::tuple<uint32_t, uint32_t> getColorMix(size_t nx, size_t nz,
+  virtual void setNumZ(const size_t numz)=0;
+  virtual std::tuple<uint32_t, uint32_t> getColorMix(const size_t nx, const size_t nz,
                                                      const uint32_t color, const uint32_t colorLow)=0;
   virtual ~LineColorer() {}                                                      
 };
@@ -48,6 +47,9 @@ public:
   void drawToBuffs(Pixel* front, Pixel* back, int width, int height,
                    LineColorer&, float dist, uint32_t colorMod, uint32_t colorLowMod);
 private:
+    static const float gridZeroLerpFactor;
+    static const float gridYMultiplier;
+    static const float gridPrevYMultiplier;
   Surface surf;
   const size_t num_x;
   const size_t num_z;

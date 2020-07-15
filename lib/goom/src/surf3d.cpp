@@ -10,6 +10,12 @@
 #include <tuple>
 #include <vector>
 
+const float Grid::gridZeroLerpFactor = 0.8;
+const float Grid::gridYMultiplier = 0.255;
+const float Grid::gridPrevYMultiplier = 0.85;
+
+constexpr int coordIgnoreVal = -666;
+
 /*
  * rotation selon Y du v3d vi d'angle a (cosa=cos(a), sina=sin(a))
  * centerz = centre de rotation en z
@@ -108,7 +114,7 @@ static void project_v3d_to_v2d(const std::vector<v3d>& v3, int width, int height
       v2[i].x = Xp + (width >> 1);
       v2[i].y = -Yp + (height >> 1);
     } else {
-      v2[i].x = v2[i].y = -666;
+      v2[i].x = v2[i].y = coordIgnoreVal;
     }
   }
 }
@@ -133,7 +139,8 @@ void Grid::drawToBuffs(Pixel* front, Pixel* back, int width, int height,
         v2x = v2;
         continue;
       }
-      if (((v2.x != -666) || (v2.y != -666)) && ((v2x.x != -666) || (v2x.y != -666))) {
+      if (((v2.x != coordIgnoreVal) || (v2.y != coordIgnoreVal))
+          && ((v2x.x != coordIgnoreVal) || (v2x.y != coordIgnoreVal))) {
         const auto colors = lineColorer.getColorMix(x, z, colorMod, colorLowMod);
         const uint32_t color = std::get<0>(colors);
         const uint32_t colorLow = std::get<1>(colors);;
@@ -161,7 +168,7 @@ void Grid::update(const float angle, const std::vector<float>& vals, const float
   if (mode == 0) {
     if (!vals.empty()) {
       for (size_t x = 0; x < num_x; x++) {
-        surf.vertex[x].y = 0.2*surf.vertex[x].y + 0.8*vals[x];
+        surf.vertex[x].y = std::lerp(surf.vertex[x].y, vals[x], gridZeroLerpFactor);
       }
     }
 
@@ -171,8 +178,7 @@ void Grid::update(const float angle, const std::vector<float>& vals, const float
       for (size_t y = 1; y < num_z; y++) {
         const size_t nv = size_t(vnum(x, y));
         const size_t prevRow_nv = size_t(vnum.getPrevRowVertNum(nv));
-        surf.vertex[nv].y *= 0.255;
-        surf.vertex[nv].y += surf.vertex[prevRow_nv].y * 0.84f;
+        surf.vertex[nv].y = gridYMultiplier*surf.vertex[nv].y + gridPrevYMultiplier*surf.vertex[prevRow_nv].y;
         surf.vertex[nv].y = std::min(float(surf.vertex[nv].y), lastY);
       }
     }
