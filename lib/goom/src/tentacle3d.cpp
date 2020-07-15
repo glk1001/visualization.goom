@@ -1,25 +1,110 @@
 #include "tentacle3d.h"
 
-#include "drawmethods.h"
 #include "goom.h"
 #include "goom_config.h"
 #include "goom_plugin_info.h"
 #include "goom_tools.h"
 #include "surf3d.h"
 #include "v3d.h"
-#include "SimplexNoise.h"
-
-#include <algorithm>
+//#include "SimplexNoise.h"
 
 #include <vivid/vivid.h>
-#include <math.h>
-#include <stdint.h>
-#include <stdlib.h>
+#include <algorithm>
+#include <cstdint>
 #include <cmath>
 #include <tuple>
 #include <vector>
 
 constexpr float D = 256.0f;
+
+inline int get_rand_in_range(int n1, int n2)
+{
+  const uint32_t range_len = (uint32_t)(n2 - n1 + 1);
+  return n1 + (int)(pcg32_rand() % range_len);
+}
+
+class SineWave {
+public:
+  explicit SineWave(const float sinFreq);
+  float getNext();
+  float getSinFrequency() const { return sinFrequency; }
+  void setSinFrequency(const float val) { sinFrequency = val; }
+  void setAmplitude(const float val) { amplitude = val; }
+  void setPiStepFrac(const float val) { piStepFrac = val; }
+private:
+  float sinFrequency;
+  float amplitude;
+  float piStepFrac;
+  float x;
+};
+
+SineWave::SineWave(const float sinFreq)
+  : sinFrequency(sinFreq)
+  , amplitude(1)
+  , piStepFrac(1.0/16.0)
+  , x(0)
+{
+}
+
+float SineWave::getNext()
+{
+  const float modAccelVar = amplitude*0.5*(1.0 + sin(sinFrequency*x));
+  x += piStepFrac*M_PI;
+  return modAccelVar;
+}
+
+
+class ChangeTracker {
+public:
+  explicit ChangeTracker(size_t sigInRow=10);
+  void nextVal(float val);
+  bool significantIncreaseInARow();
+  bool significantDecreaseInARow();
+private:
+  static constexpr float sigDiff = 0.01;
+  const size_t significantInRow;
+  size_t numInRowIncreasing;
+  size_t numInRowDecreasing;
+  float currentVal;
+};
+
+ChangeTracker::ChangeTracker(size_t sigInRow)
+  : significantInRow { sigInRow }
+  , numInRowIncreasing { 0 }
+  , numInRowDecreasing { 0 }
+  , currentVal { 0 }
+{
+}
+
+void ChangeTracker::nextVal(float val)
+{
+  if (val > (currentVal+sigDiff)) {
+    numInRowIncreasing++;
+    numInRowDecreasing = 0;
+  } else if (val < (currentVal-sigDiff)) {
+    numInRowDecreasing++;
+    numInRowIncreasing = 0;
+  }
+}
+
+bool ChangeTracker::significantIncreaseInARow()
+{
+  if (numInRowIncreasing >= significantInRow) {
+    numInRowIncreasing = 0;
+    return true;
+  }
+  return false;
+}
+
+bool ChangeTracker::significantDecreaseInARow()
+{
+  if (numInRowDecreasing >= significantInRow) {
+    numInRowDecreasing = 0;
+    return true;
+  }
+  return false;
+}
+
 
 class ColorGroup {
 public:
@@ -58,6 +143,59 @@ inline ColorGroup::ColorGroup(const ColorGroup& other)
 // TODO Have contrasting color groups - one for segment color, one for mod color.
 
 static std::vector<ColorGroup> colorGroups;
+
+
+class TentacleLineColorer: public LineColorer {
+public:
+  virtual void resetColorNum() { colNum = 0; }
+  std::tuple<uint32_t, uint32_t> getColorMix(size_t nx, size_t nz, const uint32_t color, const uint32_t colorLow);
+  void changeReverseMix() { reverseMixMode = not reverseMixMode; };
+  void setNumZ(size_t numz) { num_z = numz; }
+  static void changeColorGroup(PluginInfo* goomInfo);
+private:
+  static ColorGroup colorGroup;
+  size_t colNum = 0;
+  bool reverseMixMode = false;
+  size_t num_z = 0;
+  uint32_t colorMix(const uint32_t col1, const uint32_t col2, const float t);
+};
+
+ColorGroup TentacleLineColorer::colorGroup { vivid::ColorMap::Preset::BlueYellow, 2 };
+
+inline void TentacleLineColorer::changeColorGroup(PluginInfo* goomInfo)
+{
+  colorGroup = colorGroups[goom_irand(goomInfo->gRandom, colorGroups.size())];
+}
+
+std::tuple<uint32_t, uint32_t> TentacleLineColorer::getColorMix(size_t nx, size_t nz,
+                                                                const uint32_t color, const uint32_t colorLow)
+{
+  auto tFac = [this](size_t nz) -> float {
+    return float(nz+1)/float(num_z);
+  };
+  
+  const float t = tFac(nz);
+  const uint32_t segmentColor = colorGroup.getColor(colNum);
+  const uint32_t col = colorMix(color, segmentColor, t);
+  const uint32_t colLow = colorMix(colorLow, segmentColor, t);
+  colNum++;
+
+  return std::make_tuple(col, colLow);
+}
+
+inline uint32_t TentacleLineColorer::colorMix(const uint32_t col1, const uint32_t col2, const float t)
+{
+  const vivid::rgb_t c1 = vivid::rgb::fromRgb32(col1);
+  const vivid::rgb_t c2 = vivid::rgb::fromRgb32(col2);
+  if (reverseMixMode) {
+    return vivid::lerpHsl(c2, c1, t).rgb32();
+  } else {
+    return vivid::lerpHsl(c1, c2, t).rgb32();
+  }
+}
+
+static TentacleLineColorer lineColorer;
+
 
 static void init_color_groups(std::vector<ColorGroup>& colGroups)
 {
@@ -147,24 +285,13 @@ VisualFX tentacle_fx_create(void)
   return fx;
 }
 
-/* ----- */
-
 void tentacle_free(TentacleFXData* data)
 {
   /* TODO : un vrai FREE GRID!! */
   for (int i = 0; i < nbgrid; i++) {
-    grid3d* g = data->grille[i];
-    free(g->surf.vertex);
-    free(g->surf.svertex);
-    free(g);
+    delete data->grids[i];
   }
   free(data->vals);
-}
-
-inline int get_rand_in_range(int n1, int n2)
-{
-  const uint32_t range_len = (uint32_t)(n2 - n1 + 1);
-  return n1 + (int)(pcg32_rand() % range_len);
 }
 
 void tentacle_new(TentacleFXData* data)
@@ -195,7 +322,8 @@ void tentacle_new(TentacleFXData* data)
     center.y = y + get_rand_in_range(-y_step_mod / 2, y_step_mod / 2);
     center.z = zdepth_maxs[nbgrid-1];
 
-    data->grille[i] = grid3d_new(center, xsize, xsize, nx, zdepth_mins, zdepth_maxs, nz);
+    GOOM_LOG_INFO("Creating grid %d.", i);
+    data->grids[i] = new Grid(center, xsize, xsize, nx, zdepth_mins, zdepth_maxs, nz);
 
     y += y_step;
   }
@@ -302,122 +430,6 @@ static void pretty_move(PluginInfo* goomInfo, float cycle, float* dist, float* d
   }
 }
 
-class TentacleDraw {
-public:
-  explicit TentacleDraw(int w, int h);
-  void drawToBuffs(PluginInfo* goomInfo, Pixel* front, Pixel* back,
-                   grid3d* grid, float dist, uint32_t colorMod, uint32_t colorLowMod);
-  void changeColors(PluginInfo* goomInfo);
-  void changeReverseMix();
-private:
-  const int width;
-  const int height;
-  ColorGroup colorGroup;
-  void drawLineToBuffs(Pixel* front, Pixel* back,
-                       uint32_t color, uint32_t colorLow, int x1, int y1, int x2, int y2) const;
-  bool reverseMixMode = false;
-  uint32_t colorMix(const uint32_t col1, const uint32_t col2, const float t);
-};
-
-inline TentacleDraw::TentacleDraw(int w, int h)
-  : width(w)
-  , height(h)
-  , colorGroup { colorGroups[0] }
-{
-}
-
-inline void TentacleDraw::drawLineToBuffs(Pixel* front, Pixel* back, uint32_t color, uint32_t colorLow,
-                                          int x1, int y1, int x2, int y2) const
-{
-  Pixel* buffs[2] = { front, back };
-  std::vector<Pixel> colors(2);
-  colors[0].val = colorLow;
-  colors[1].val = color;
-  draw_line(std::size(buffs), buffs, colors, x1, y1, x2, y2, width, height);
-}
-
-/*
- * projete le vertex 3D sur le plan d'affichage
- * retourne (0,0) si le point ne doit pas etre affiche.
- *
- * bonne valeur pour distance : 256
- */
-
-static void v3d_to_v2d(const v3d* v3, int nbvertex, int width, int height, float distance, v2d* v2)
-{
-  for (int i = 0; i < nbvertex; ++i) {
-    if (v3[i].z > 2) {
-      const int Xp = (int)(distance * v3[i].x / v3[i].z);
-      const int Yp = (int)(distance * v3[i].y / v3[i].z);
-      v2[i].x = Xp + (width >> 1);
-      v2[i].y = -Yp + (height >> 1);
-    } else {
-      v2[i].x = v2[i].y = -666;
-    }
-  }
-}
-
-inline uint32_t TentacleDraw::colorMix(const uint32_t col1, const uint32_t col2, const float t)
-{
-  const vivid::rgb_t c1 = vivid::rgb::fromRgb32(col1);
-  const vivid::rgb_t c2 = vivid::rgb::fromRgb32(col2);
-  if (reverseMixMode) {
-    return vivid::lerpHsl(c2, c1, t).rgb32();
-  } else {
-    return vivid::lerpHsl(c1, c2, t).rgb32();
-  }
-}
-
-inline void TentacleDraw::changeColors(PluginInfo* goomInfo)
-{
-  colorGroup = colorGroups[goom_irand(goomInfo->gRandom, colorGroups.size())];
-}
-
-inline void TentacleDraw::changeReverseMix()
-{
-  reverseMixMode = not reverseMixMode;
-}
-
-inline void TentacleDraw::drawToBuffs(
-  PluginInfo* goomInfo, Pixel* front, Pixel* back,
-  grid3d* grid, float dist, uint32_t colorMod, uint32_t colorLowMod)
-{
-  v2d v2_array[(size_t)grid->surf.nbvertex];
-  v3d_to_v2d(grid->surf.svertex, grid->surf.nbvertex, width, height, dist, v2_array);
-
-  auto tFac = [=](size_t z) -> float {
-    return float(z+1)/float(grid->defz);
-//    return (float(z+1)/float(grid->defz))*(0.5 + float(goom_irand(goomInfo->gRandom, 5))/8.0);
-  };
-
-  const VertNum vnum(grid->defx);
-
-  for (size_t x = 0; x < grid->defx; x++) {
-    v2d v2x = v2_array[x];
-
-    size_t colNum = 0;
-    for (size_t z = 1; z < grid->defz; z++) {
-      const int i = vnum(x, z);
-      const v2d v2 = v2_array[i];
-      if ((v2x.x == v2.x) && (v2x.y == v2.y)) {
-        v2x = v2;
-        continue;
-      }
-      if (((v2.x != -666) || (v2.y != -666)) && ((v2x.x != -666) || (v2x.y != -666))) {
-        const float t = tFac(z);
-        const uint32_t segmentColor = colorGroup.getColor(colNum);
-        const uint32_t color = colorMix(colorMod, segmentColor, t);
-        const uint32_t colorLow = colorMix(colorLowMod, segmentColor, t);
-//        GOOM_LOG_INFO("Drawing line: color = %x, colorLow = %x, v2x.x = %d, v2x.y = %d, v2.x = %d, v2.y = %d.",
-//            color, colorLow, v2x.x, v2x.y, v2.x, v2.y);
-        drawLineToBuffs(front, back, color, colorLow, v2x.x, v2x.y, v2.x, v2.y);
-        colNum++;
-      }
-      v2x = v2;
-    }
-  }
-}
-
 inline std::tuple<uint32_t, uint32_t> getModColors(PluginInfo* goomInfo,
                                                    TentacleFXData* fx_data, const ColorGroup& colorGroup)
 {
@@ -450,96 +462,22 @@ inline std::tuple<uint32_t, uint32_t> getModColors(PluginInfo* goomInfo,
   return std::make_tuple(color, colorLow);
 }
 
-class ChangeTracker {
-public:
-  explicit ChangeTracker(size_t sigInRow=10);
-  void nextVal(float val);
-  bool significantIncreaseInARow();
-  bool significantDecreaseInARow();
-private:
-  static constexpr float sigDiff = 0.01;
-  const size_t significantInRow;
-  size_t numInRowIncreasing;
-  size_t numInRowDecreasing;
-  float currentVal;
-};
-
-ChangeTracker::ChangeTracker(size_t sigInRow)
-  : significantInRow { sigInRow }
-  , numInRowIncreasing { 0 }
-  , numInRowDecreasing { 0 }
-  , currentVal { 0 }
-{
-}
-
-void ChangeTracker::nextVal(float val)
-{
-  if (val > (currentVal+sigDiff)) {
-    numInRowIncreasing++;
-    numInRowDecreasing = 0;
-  } else if (val < (currentVal-sigDiff)) {
-    numInRowDecreasing++;
-    numInRowIncreasing = 0;
-  }
-}
-
-bool ChangeTracker::significantIncreaseInARow()
-{
-  if (numInRowIncreasing >= significantInRow) {
-    numInRowIncreasing = 0;
-    return true;
-  }
-  return false;
-}
-
-bool ChangeTracker::significantDecreaseInARow()
-{
-  if (numInRowDecreasing >= significantInRow) {
-    numInRowDecreasing = 0;
-    return true;
-  }
-  return false;
-}
-
 inline float randFactor(PluginInfo* goomInfo, const float min)
 {
   return min + (1.0 - min)*float(goom_irand(goomInfo->gRandom, 101))/100.0;
-}
-
-class SineWave {
-public:
-  explicit SineWave(const float sinFreq);
-  float getNext();
-  float getSinFrequency() const { return sinFrequency; }
-  void setSinFrequency(const float val) { sinFrequency = val; }
-  void setAmplitude(const float val) { amplitude = val; }
-  void setPiStepFrac(const float val) { piStepFrac = val; }
-private:
-  float sinFrequency;
-  float amplitude;
-  float piStepFrac;
-  float x;
-};
-
-SineWave::SineWave(const float sinFreq)
-  : sinFrequency(sinFreq)
-  , amplitude(1)
-  , piStepFrac(1.0/16.0)
-  , x(0)
-{
-}
-
-float SineWave::getNext()
-{
-  const float modAccelVar = amplitude*0.5*(1.0 + sin(sinFrequency*x));
-  x += piStepFrac*M_PI;
-  return modAccelVar;
 }
 
 void tentacle_update(PluginInfo* goomInfo, Pixel* buf, Pixel* back, int width, int height,
                      gint16 data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], float accelvar,
                      int drawit, TentacleFXData* fx_data)
 {
+  // HACK
+  static bool firstCall = true;
+  if (firstCall) {
+    TentacleLineColorer::changeColorGroup(goomInfo);
+    firstCall = false;
+  }
+
   static SineWave sineWave{ 5.0 };
   const float modAccelvar = sineWave.getNext();
 //  const float modAccelvar = accelvar;
@@ -585,26 +523,28 @@ void tentacle_update(PluginInfo* goomInfo, Pixel* buf, Pixel* back, int width, i
         fx_data->vals[x] = val * randFactor(goomInfo, 0.97);
       }
 
+      std::vector<float> vals(num_x);
+      for (size_t j=0; j < num_x; j++) vals[j] = fx_data->vals[j];
+
       // Note: Following did not originally have '0.5*M_PI -' but with 'grid3d_update'
       //   bug-fix this is the counter-fix.
-      grid3d_update(goomInfo, fx_data->grille[i], 0.5*M_PI - rotangle, fx_data->vals, dist2);
+      fx_data->grids[i]->update(0.5*M_PI - rotangle, vals, dist2);
     }
     fx_data->cycle += 0.01f;
 
-    static TentacleDraw tentacle(width, height); // dodge static!
     if (!fx_data->happens) {
       if (goom_irand(goomInfo->gRandom, 20) == 0) {
-        tentacle.changeColors(goomInfo);
+        TentacleLineColorer::changeColorGroup(goomInfo);
       }
     } else {
-      tentacle.changeColors(goomInfo);
+      TentacleLineColorer::changeColorGroup(goomInfo);
       if (goom_irand(goomInfo->gRandom, 50) == 0) {
-        tentacle.changeReverseMix();
+        lineColorer.changeReverseMix();
       }
     }
 
     for (int i = 0; i < nbgrid; i++) {
-      tentacle.drawToBuffs(goomInfo, buf, back, fx_data->grille[i], dist, modColor, modColorLow);
+      fx_data->grids[i]->drawToBuffs(buf, back, width, height, lineColorer, dist, modColor, modColorLow);
     }
   } else {
     fx_data->lig = 1.05f;

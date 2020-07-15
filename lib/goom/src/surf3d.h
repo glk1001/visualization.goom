@@ -2,11 +2,12 @@
 #define _SURF3D_H
 
 #include "goom_graphic.h"
-#include "goom_typedefs.h"
 #include "v3d.h"
 
 #include <cstdlib>
+#include <cstdint>
 #include <tuple>
+#include <vector>
 
 class VertNum {
 public:
@@ -23,32 +24,36 @@ private:
   const int xwidth;
 };
 
-typedef struct {
-  v3d* vertex;
-  v3d* svertex;
-  size_t nbvertex;
+class LineColorer {
+public:
+  virtual void resetColorNum()=0;
+  virtual void setNumZ(size_t numz)=0;
+  virtual std::tuple<uint32_t, uint32_t> getColorMix(size_t nx, size_t nz,
+                                                     const uint32_t color, const uint32_t colorLow)=0;
+  virtual ~LineColorer() {}                                                      
+};
 
+struct Surface {
+  std::vector<v3d> vertex;
+  std::vector<v3d> svertex;
   v3d center;
-} surf3d;
+};
 
-typedef struct {
-  surf3d surf;
-  size_t defx;
-  size_t defz;
+class Grid {
+public:
+  Grid(const v3d& center,
+       const int x_width_min, const int x_width_max, const size_t num_x,
+       const float zdepth_mins[], const float zdepth_maxs[], const size_t num_z);
+  void update(const float angle, const std::vector<float>& vals, const float dist);
+  void drawToBuffs(Pixel* front, Pixel* back, int width, int height,
+                   LineColorer&, float dist, uint32_t colorMod, uint32_t colorLowMod);
+private:
+  Surface surf;
+  const size_t num_x;
+  const size_t num_z;
   int mode;
-} grid3d;
-
-/* hi-level */
-
-/* works on grid3d */
-grid3d* grid3d_new(
-    const v3d center,
-    const int x_width_0, const int x_width_n, const size_t num_x,
-    const float zdepth_mins[], const float zdepth_maxs[], const size_t num_z);
-void grid3d_update(PluginInfo* plug, grid3d* g, float angle, float* vals, float dist);
-
-/* low level */
-void grid3d_draw(PluginInfo* plug, const grid3d* g, int color, int colorlow, int dist, Pixel* buf,
-                 Pixel* back, int W, int H);
+  void drawLineToBuffs(Pixel* front, Pixel* back, uint32_t color, uint32_t colorLow,
+                       int width, int height, int x1, int y1, int x2, int y2) const;
+};
 
 #endif

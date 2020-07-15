@@ -31,7 +31,7 @@ typedef struct _TENTACLE_FX_DATA {
   PluginParameters params;
 
   float cycle;
-  grid3d* grille[nbgrid];
+  Grid* grids[nbgrid];
   float* vals;
 
   uint32_t colors[5]; // TODO not used
