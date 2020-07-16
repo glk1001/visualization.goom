@@ -49,7 +49,7 @@ private:
 
 class SineWave {
 public:
-  explicit SineWave(const float sinFreq);
+  explicit SineWave(const float initialSinFreq);
   float getNext();
   float getSinFrequency() const { return sinFrequency; }
   void setSinFrequency(const float val) { sinFrequency = val; }
@@ -277,14 +277,14 @@ void Tentacles::updateSineWaveParams(float accelvar)
 {
   accelVarTracker->nextVal(accelvar);
   if (accelVarTracker->significantIncreaseInARow()) {
-    sineWave->setSinFrequency(std::min(10.0f, sineWave->getSinFrequency() + 1.0f));
+    sineWave->setSinFrequency(std::min(maxSinFrequency, sineWave->getSinFrequency() + 1.0f));
   } else if (accelVarTracker->significantDecreaseInARow()) {
-    sineWave->setSinFrequency(std::max(0.5f, sineWave->getSinFrequency() - 1.0f));
+    sineWave->setSinFrequency(std::max(minSinFrequency, sineWave->getSinFrequency() - 1.0f));
   }
 }
 
-SineWave::SineWave(const float sinFreq)
-  : sinFrequency(sinFreq)
+SineWave::SineWave(const float initialSinFrequency)
+  : sinFrequency(initialSinFrequency)
   , amplitude(1)
   , piStepFrac(1.0/16.0)
   , x(0)

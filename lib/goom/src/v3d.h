@@ -3,6 +3,7 @@
 
 typedef struct {
   float x, y, z;
+  bool ignore = false;
 } v3d;
 
 typedef struct {

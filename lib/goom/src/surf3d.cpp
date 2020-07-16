@@ -108,7 +108,7 @@ Grid::Grid(const v3d& center,
 static void project_v3d_to_v2d(const std::vector<v3d>& v3, int width, int height, float distance, std::vector<v2d>& v2)
 {
   for (size_t i = 0; i < v3.size(); ++i) {
-    if (v3[i].z > 2) {
+    if (!v3[i].ignore && (v3[i].z > 2)) {
       const int Xp = (int)(distance * v3[i].x / v3[i].z);
       const int Yp = (int)(distance * v3[i].y / v3[i].z);
       v2[i].x = Xp + (width >> 1);
@@ -170,25 +170,34 @@ void Grid::update(const float angle, const std::vector<float>& vals, const float
     static long iterNum = 0;
     iterNum++;
     if (!vals.empty()) {
-      GOOM_LOG_INFO("Init floor.");
+      GOOM_LOG_INFO("Iter %d: Init floor.", iterNum);
+      const VertNum vnum(num_x);
       for (size_t x = 0; x < num_x; x++) {
-        GOOM_LOG_INFO("Iter %d: surf.vertex[%d].y = %f, vals[%d] = %f.", iterNum, x, surf.vertex[x].y, x, vals[x]);
-        surf.vertex[x].y = std::lerp(surf.vertex[x].y, vals[x], gridZeroLerpFactor);
+        const size_t nv = size_t(vnum.getRowZeroVertNum(x));
+        GOOM_LOG_INFO("Iter %d: surf.vertex[%d].y = %f, vals[%d] = %f.", iterNum, x, surf.vertex[nv].y, x, vals[x]);
+        surf.vertex[nv].y = std::lerp(surf.vertex[nv].y, vals[x], gridZeroLerpFactor);
+        surf.vertex[nv].ignore = false;
       }
     }
 
-    const VertNum vnum(num_x);
     GOOM_LOG_INFO("Iter %d: Rest of tentacles.", iterNum);
+    const VertNum vnum(num_x);
     for (size_t x = 0; x < num_x; x++) {
-//      const float lastY = 20*getRandInRange(0.8, 1.2);
+      const float lastY = 50*getRandInRange(0.8, 1.2);
+      float prevRowVertex_y = surf.vertex[vnum.getRowZeroVertNum(x)].y;
       for (size_t y = 1; y < num_z; y++) {
         const size_t nv = size_t(vnum(x, y));
-        const size_t prevRow_nv = size_t(vnum.getPrevRowVertNum(nv));
-        GOOM_LOG_INFO("Iter %d: prevRow surf.vertex[%d,%d].y = %f.", iterNum, x, y-1, surf.vertex[prevRow_nv].y);
+        GOOM_LOG_INFO("Iter %d: prevRow surf.vertex[%d,%d].y = %f.", iterNum, x, y-1, prevRowVertex_y);
         GOOM_LOG_INFO("Iter %d: prior   surf.vertex[%d,%d].y = %f.", iterNum, x, y, surf.vertex[nv].y);
-        surf.vertex[nv].y = gridYMultiplier*surf.vertex[nv].y + gridPrevYMultiplier*surf.vertex[prevRow_nv].y;
+
+        surf.vertex[nv].y = gridYMultiplier*surf.vertex[nv].y + gridPrevYMultiplier*prevRowVertex_y;
+        prevRowVertex_y = surf.vertex[nv].y;
         GOOM_LOG_INFO("Iter %d: after   surf.vertex[%d,%d].y = %f.", iterNum, x, y, surf.vertex[nv].y);
-//        surf.vertex[nv].y = std::min(float(surf.vertex[nv].y), lastY);
+
+        surf.vertex[nv].ignore = std::fabs(surf.vertex[nv].y) > lastY;
+        if (surf.vertex[nv].ignore) {
+          GOOM_LOG_INFO("Iter %d: ignoring vertex surf.vertex[%d,%d].y = %f.", iterNum, x, y, surf.vertex[nv].y);
+        }
       }
     }
   }
@@ -203,8 +212,13 @@ void Grid::update(const float angle, const std::vector<float>& vals, const float
   const float cosa = cos(angle);
   const float sina = sin(angle);
   for (size_t i = 0; i < surf.vertex.size(); i++) {
-    y_rotate_v3d(surf.vertex[i], surf.svertex[i], sina, cosa);
-    translate_v3d(cam, surf.svertex[i]);
-    GOOM_LOG_INFO("surf.svertex[%d].y = %f.", i, surf.svertex[i].y);
+    if (surf.vertex[i].ignore) {
+      surf.svertex[i].ignore = true;
+    } else {
+      surf.svertex[i].ignore = false;
+      y_rotate_v3d(surf.vertex[i], surf.svertex[i], sina, cosa);
+      translate_v3d(cam, surf.svertex[i]);
+      GOOM_LOG_INFO("surf.svertex[%d].y = %f.", i, surf.svertex[i].y);
+    }
   }
 }

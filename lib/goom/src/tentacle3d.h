@@ -74,6 +74,8 @@ private:
   std::tuple<uint32_t, uint32_t> getModColors(PluginInfo* goomInfo, TentacleFXData* fx_data);
   void updateColors(PluginInfo* goomInfo, const TentacleFXData* fx_data);
   std::vector<float> getGridZeroAdditiveValues(PluginInfo* goomInfo, float rapport);
+  static constexpr float maxSinFrequency = 10.0;
+  static constexpr float minSinFrequency = 0.5;
   void updateSineWaveParams(float accelvar);
 };
 

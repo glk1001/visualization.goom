@@ -11,8 +11,9 @@
 class VertNum {
 public:
   explicit VertNum(const int xw): xwidth(xw) {}
+  int getRowZeroVertNum(const int x) const { return x; }
   int operator()(const int x, const int z) const { return z * xwidth + x; }
-  int getPrevRowVertNum(const int vertNum) const { return vertNum - xwidth; }
+//  int getPrevRowVertNum(const int vertNum) const { return vertNum - xwidth; }
   std::tuple<int, int> getXZ(const int vertNum) const
   {
     const int z = vertNum/xwidth;
