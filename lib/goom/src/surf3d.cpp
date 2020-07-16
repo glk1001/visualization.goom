@@ -47,11 +47,11 @@ inline float getRandInRange(const float n1, const float n2)
 
 
 Grid::Grid(const v3d& center,
-  const int x_width_min, const int x_width_max, const size_t nx,
-  const float zdepth_mins[], const float zdepth_maxs[], const size_t nz)
+  const int x_width_min, const int x_width_max, const size_t numx,
+  const float zdepth_mins[], const float zdepth_maxs[], const size_t numz)
   : surf()
-  , num_x{ nx }
-  , num_z{ nz }
+  , num_x{ numx }
+  , num_z{ numz }
   , mode{ 0 }
 {
   surf.center = center;
@@ -129,6 +129,7 @@ void Grid::drawToBuffs(Pixel* front, Pixel* back, int width, int height,
 
   for (size_t x = 0; x < num_x; x++) {
     v2d v2x = v2_array[x];
+
     lineColorer.resetColorNum();
     lineColorer.setNumZ(num_z);
 
@@ -146,15 +147,15 @@ void Grid::drawToBuffs(Pixel* front, Pixel* back, int width, int height,
         const uint32_t colorLow = std::get<1>(colors);;
 //        GOOM_LOG_INFO("Drawing line: color = %x, colorLow = %x, v2x.x = %d, v2x.y = %d, v2.x = %d, v2.y = %d.",
 //            color, colorLow, v2x.x, v2x.y, v2.x, v2.y);
-        drawLineToBuffs(front, back, color, colorLow, width, height, v2x.x, v2x.y, v2.x, v2.y);
+        draw2DLineToBuffs(front, back, color, colorLow, width, height, v2x.x, v2x.y, v2.x, v2.y);
       }
       v2x = v2;
     }
   }
 }
 
-inline void Grid::drawLineToBuffs(Pixel* front, Pixel* back, uint32_t color, uint32_t colorLow,
-                                  int width, int height, int x1, int y1, int x2, int y2) const
+inline void Grid::draw2DLineToBuffs(Pixel* front, Pixel* back, uint32_t color, uint32_t colorLow,
+                                    int width, int height, int x1, int y1, int x2, int y2) const
 {
   Pixel* buffs[2] = { front, back };
   std::vector<Pixel> colors(2);
@@ -166,20 +167,28 @@ inline void Grid::drawLineToBuffs(Pixel* front, Pixel* back, uint32_t color, uin
 void Grid::update(const float angle, const std::vector<float>& vals, const float dist)
 {
   if (mode == 0) {
+    static long iterNum = 0;
+    iterNum++;
     if (!vals.empty()) {
+      GOOM_LOG_INFO("Init floor.");
       for (size_t x = 0; x < num_x; x++) {
+        GOOM_LOG_INFO("Iter %d: surf.vertex[%d].y = %f, vals[%d] = %f.", iterNum, x, surf.vertex[x].y, x, vals[x]);
         surf.vertex[x].y = std::lerp(surf.vertex[x].y, vals[x], gridZeroLerpFactor);
       }
     }
 
     const VertNum vnum(num_x);
+    GOOM_LOG_INFO("Iter %d: Rest of tentacles.", iterNum);
     for (size_t x = 0; x < num_x; x++) {
-      const float lastY = 20*getRandInRange(0.8, 1.2);
+//      const float lastY = 20*getRandInRange(0.8, 1.2);
       for (size_t y = 1; y < num_z; y++) {
         const size_t nv = size_t(vnum(x, y));
         const size_t prevRow_nv = size_t(vnum.getPrevRowVertNum(nv));
+        GOOM_LOG_INFO("Iter %d: prevRow surf.vertex[%d,%d].y = %f.", iterNum, x, y-1, surf.vertex[prevRow_nv].y);
+        GOOM_LOG_INFO("Iter %d: prior   surf.vertex[%d,%d].y = %f.", iterNum, x, y, surf.vertex[nv].y);
         surf.vertex[nv].y = gridYMultiplier*surf.vertex[nv].y + gridPrevYMultiplier*surf.vertex[prevRow_nv].y;
-        surf.vertex[nv].y = std::min(float(surf.vertex[nv].y), lastY);
+        GOOM_LOG_INFO("Iter %d: after   surf.vertex[%d,%d].y = %f.", iterNum, x, y, surf.vertex[nv].y);
+//        surf.vertex[nv].y = std::min(float(surf.vertex[nv].y), lastY);
       }
     }
   }
@@ -190,10 +199,12 @@ void Grid::update(const float angle, const std::vector<float>& vals, const float
   // '0.5*M_PI - angle' gets passed in as workaround but we need 'angle'.
   cam.y += 2.0 * sin(-(angle - 0.5*M_PI) / 4.3f);
 
+  GOOM_LOG_INFO("Rotation angle = %f deg.", angle*360.0);
   const float cosa = cos(angle);
   const float sina = sin(angle);
   for (size_t i = 0; i < surf.vertex.size(); i++) {
     y_rotate_v3d(surf.vertex[i], surf.svertex[i], sina, cosa);
     translate_v3d(cam, surf.svertex[i]);
+    GOOM_LOG_INFO("surf.svertex[%d].y = %f.", i, surf.svertex[i].y);
   }
 }

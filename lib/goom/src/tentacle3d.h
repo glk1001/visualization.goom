@@ -4,8 +4,10 @@
 #include "goom_visual_fx.h"
 #include "surf3d.h"
 
-#include <stdint.h>
 #include <algorithm>
+#include <memory>
+#include <tuple>
+#include <vector>
 
 constexpr int yticks_per_100 = 20;
 constexpr int y_height = 50;
@@ -25,16 +27,15 @@ constexpr int z_depth_mod = 5;
 constexpr size_t num_z = zticks_per_100 * z_depth / 100;
 constexpr int num_z_mod = 0;
 
+class Tentacles;
 
 typedef struct _TENTACLE_FX_DATA {
   PluginParam enabled_bp;
   PluginParameters params;
 
-  float cycle;
-  Grid* grids[nbgrid];
-  float* vals;
+  Tentacles* tentacles;
 
-  uint32_t colors[5]; // TODO not used
+  float cycle;
 
   int col;
   int dstcol;
@@ -50,15 +51,35 @@ typedef struct _TENTACLE_FX_DATA {
   int lock;
 } TentacleFXData;
 
+class SineWave;
+class ColorGroup;
+class TentacleLineColorer;
+class ChangeTracker;
+
+class Tentacles {
+public:
+  explicit Tentacles(PluginInfo* goomInfo);
+  void init();
+  void update(PluginInfo* goomInfo, Pixel* buf, Pixel* back,
+              gint16 data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], float accelvar,
+              int drawit, TentacleFXData* fx_data);
+private:
+  const int width;
+  const int height;
+  std::vector<std::unique_ptr<Grid>> grids;
+  std::unique_ptr<SineWave> sineWave;
+  std::unique_ptr<ColorGroup> modColorGroup;
+  std::unique_ptr<TentacleLineColorer> lineColorer;
+  std::unique_ptr<ChangeTracker> accelVarTracker;
+  std::tuple<uint32_t, uint32_t> getModColors(PluginInfo* goomInfo, TentacleFXData* fx_data);
+  void updateColors(PluginInfo* goomInfo, const TentacleFXData* fx_data);
+  std::vector<float> getGridZeroAdditiveValues(PluginInfo* goomInfo, float rapport);
+  void updateSineWaveParams(float accelvar);
+};
+
 VisualFX tentacle_fx_create(void);
-
-void tentacle_fx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* goomInfo);
-
-void tentacle_new(TentacleFXData* data);
 void tentacle_free(TentacleFXData* data);
-void tentacle_update(PluginInfo* goomInfo, Pixel* buf, Pixel* back, int width, int height,
-                     gint16 data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], float accelvar,
-                     int drawit, TentacleFXData* fx_data);
+void tentacle_fx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* goomInfo);
 
 inline float getRapport(const float accelvar)
 {

@@ -32,17 +32,11 @@ public:
   virtual ~LineColorer() {}                                                      
 };
 
-struct Surface {
-  std::vector<v3d> vertex;
-  std::vector<v3d> svertex;
-  v3d center;
-};
-
 class Grid {
 public:
   Grid(const v3d& center,
-       const int x_width_min, const int x_width_max, const size_t num_x,
-       const float zdepth_mins[], const float zdepth_maxs[], const size_t num_z);
+       const int x_width_min, const int x_width_max, const size_t numx,
+       const float zdepth_mins[], const float zdepth_maxs[], const size_t numz);
   void update(const float angle, const std::vector<float>& vals, const float dist);
   void drawToBuffs(Pixel* front, Pixel* back, int width, int height,
                    LineColorer&, float dist, uint32_t colorMod, uint32_t colorLowMod);
@@ -50,12 +44,17 @@ private:
     static const float gridZeroLerpFactor;
     static const float gridYMultiplier;
     static const float gridPrevYMultiplier;
+  struct Surface {
+    std::vector<v3d> vertex;
+    std::vector<v3d> svertex;
+    v3d center;
+  };
   Surface surf;
   const size_t num_x;
   const size_t num_z;
   int mode;
-  void drawLineToBuffs(Pixel* front, Pixel* back, uint32_t color, uint32_t colorLow,
-                       int width, int height, int x1, int y1, int x2, int y2) const;
+  void draw2DLineToBuffs(Pixel* front, Pixel* back, uint32_t color, uint32_t colorLow,
+                         int width, int height, int x1, int y1, int x2, int y2) const;
 };
 
 #endif
