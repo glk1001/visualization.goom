@@ -10,10 +10,6 @@
 #include <tuple>
 #include <vector>
 
-const float Grid::gridZeroLerpFactor = 0.8;
-const float Grid::gridYMultiplier = 0.255;
-const float Grid::gridPrevYMultiplier = 0.85;
-
 constexpr int coordIgnoreVal = -666;
 
 /*
@@ -52,7 +48,6 @@ Grid::Grid(const v3d& center,
   : surf()
   , num_x{ numx }
   , num_z{ numz }
-  , mode{ 0 }
 {
   surf.center = center;
   surf.vertex.resize(num_x * num_z);
@@ -166,6 +161,8 @@ inline void Grid::draw2DLineToBuffs(Pixel* front, Pixel* back, uint32_t color, u
 
 void Grid::update(const float angle, const std::vector<float>& vals, const float dist)
 {
+  std::vector<bool> invert(num_x);
+
   if (mode == 0) {
     static long iterNum = 0;
     iterNum++;
@@ -173,9 +170,15 @@ void Grid::update(const float angle, const std::vector<float>& vals, const float
       GOOM_LOG_INFO("Iter %d: Init floor.", iterNum);
       const VertNum vnum(num_x);
       for (size_t x = 0; x < num_x; x++) {
+        const float zeroLerpFactor = getRandInRange(0.8*gridZeroLerpFactor, 1.2*gridZeroLerpFactor);
+        GOOM_LOG_INFO("Iter %d: x = %d, zeroLerpFactor = %f.", iterNum, x, zeroLerpFactor);
         const size_t nv = size_t(vnum.getRowZeroVertNum(x));
         GOOM_LOG_INFO("Iter %d: surf.vertex[%d].y = %f, vals[%d] = %f.", iterNum, x, surf.vertex[nv].y, x, vals[x]);
-        surf.vertex[nv].y = std::lerp(surf.vertex[nv].y, vals[x], gridZeroLerpFactor);
+//        const float val = std::fabs(vals[x]);
+//        invert[x] = vals[x] < 0.0;
+const float val = vals[x];
+invert[x] = false;
+        surf.vertex[nv].y = std::lerp(surf.vertex[nv].y, val, zeroLerpFactor);
         surf.vertex[nv].ignore = false;
       }
     }
@@ -183,14 +186,19 @@ void Grid::update(const float angle, const std::vector<float>& vals, const float
     GOOM_LOG_INFO("Iter %d: Rest of tentacles.", iterNum);
     const VertNum vnum(num_x);
     for (size_t x = 0; x < num_x; x++) {
-      const float lastY = 50*getRandInRange(0.8, 1.2);
+      const float mainLerpFactor = gridMainLerpFactor*getRandInRange(0.9, 1.1);
+      GOOM_LOG_INFO("Iter %d: x = %d, mainLerpFactor = %f.", iterNum, x, mainLerpFactor);
+      const float mainErrorFactor = gridMainErrorFactor*getRandInRange(0.9, 1.1);
+      GOOM_LOG_INFO("Iter %d: x = %d, mainErrorFactor = %f.", iterNum, x, mainErrorFactor);
+      const float lastY = 600*getRandInRange(0.8, 1.2);
       float prevRowVertex_y = surf.vertex[vnum.getRowZeroVertNum(x)].y;
       for (size_t y = 1; y < num_z; y++) {
         const size_t nv = size_t(vnum(x, y));
         GOOM_LOG_INFO("Iter %d: prevRow surf.vertex[%d,%d].y = %f.", iterNum, x, y-1, prevRowVertex_y);
         GOOM_LOG_INFO("Iter %d: prior   surf.vertex[%d,%d].y = %f.", iterNum, x, y, surf.vertex[nv].y);
 
-        surf.vertex[nv].y = gridYMultiplier*surf.vertex[nv].y + gridPrevYMultiplier*prevRowVertex_y;
+        surf.vertex[nv].y = std::lerp(surf.vertex[nv].y, prevRowVertex_y, mainLerpFactor)
+                            + mainErrorFactor*prevRowVertex_y;
         prevRowVertex_y = surf.vertex[nv].y;
         GOOM_LOG_INFO("Iter %d: after   surf.vertex[%d,%d].y = %f.", iterNum, x, y, surf.vertex[nv].y);
 
@@ -211,14 +219,22 @@ void Grid::update(const float angle, const std::vector<float>& vals, const float
   GOOM_LOG_INFO("Rotation angle = %f deg.", angle*360.0);
   const float cosa = cos(angle);
   const float sina = sin(angle);
-  for (size_t i = 0; i < surf.vertex.size(); i++) {
-    if (surf.vertex[i].ignore) {
-      surf.svertex[i].ignore = true;
-    } else {
-      surf.svertex[i].ignore = false;
-      y_rotate_v3d(surf.vertex[i], surf.svertex[i], sina, cosa);
-      translate_v3d(cam, surf.svertex[i]);
-      GOOM_LOG_INFO("surf.svertex[%d].y = %f.", i, surf.svertex[i].y);
+  const VertNum vnum(num_x);
+  for (size_t x = 0; x < num_x; x++) {
+    for (size_t y = 0; y < num_z; y++) {
+      const size_t nv = size_t(vnum(x, y));
+      if (surf.vertex[nv].ignore) {
+        surf.svertex[nv].ignore = true;
+      } else {
+        surf.svertex[nv].ignore = false;
+        v3d vert = surf.vertex[nv];
+        if (invert[x]) {
+          vert.y = -vert.y;
+        }
+        y_rotate_v3d(vert, surf.svertex[nv], sina, cosa);
+        translate_v3d(cam, surf.svertex[nv]);
+        GOOM_LOG_INFO("surf.svertex[%d].y = %f.", nv, surf.svertex[nv].y);
+      }
     }
   }
 }

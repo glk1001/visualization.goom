@@ -2,7 +2,9 @@
 #define _V3D_H
 
 typedef struct {
-  float x, y, z;
+  float x = 0;
+  float y = 0;
+  float z = 0;
   bool ignore = false;
 } v3d;
 

@@ -42,9 +42,6 @@ public:
   void drawToBuffs(Pixel* front, Pixel* back, int width, int height,
                    LineColorer&, float dist, uint32_t colorMod, uint32_t colorLowMod);
 private:
-    static const float gridZeroLerpFactor;
-    static const float gridYMultiplier;
-    static const float gridPrevYMultiplier;
   struct Surface {
     std::vector<v3d> vertex;
     std::vector<v3d> svertex;
@@ -53,7 +50,10 @@ private:
   Surface surf;
   const size_t num_x;
   const size_t num_z;
-  int mode;
+  int mode = 0;
+  float gridZeroLerpFactor = 0.8;
+  float gridMainLerpFactor = 0.770;
+  float gridMainErrorFactor = 0.07;
   void draw2DLineToBuffs(Pixel* front, Pixel* back, uint32_t color, uint32_t colorLow,
                          int width, int height, int x1, int y1, int x2, int y2) const;
 };
