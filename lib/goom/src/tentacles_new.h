@@ -1,8 +1,8 @@
 #ifndef LIBS_GOOM_INCLUDE_GOOM_TENTACLES_NEW_H_
 #define LIBS_GOOM_INCLUDE_GOOM_TENTACLES_NEW_H_
 
-#include <fmt/format.h>
-#include <utils/goom_loggers.hpp>
+//#include <fmt/format.h>
+//#include <utils/goom_loggers.hpp>
 #include <vivid/vivid.h>
 
 #include <algorithm>
@@ -343,10 +343,10 @@ inline float Tentacle2D::getNextY(const size_t nodeNum)
   }
 
   const float prevYWgt = doPrevYWeightAdjust ? tweaker->getNextPrevYWeight() : basePrevYWeight;
-  logInfo(fmt::format("node {}: prevYWgt = {:.2}, prevYWeight = {:.2}", nodeNum, prevYWgt, basePrevYWeight));
+//  logInfo(fmt::format("node {}: prevYWgt = {:.2}, prevYWeight = {:.2}", nodeNum, prevYWgt, basePrevYWeight));
 
   const float currentYWgt = doCurrentYWeightAdjust ? tweaker->getNextCurrentYWeight() : baseCurrentYWeight;
-  logInfo(fmt::format("node {}: currentYWgt = {:.2}, currentYWeight = {:.2}", nodeNum, currentYWgt, baseCurrentYWeight));
+//  logInfo(fmt::format("node {}: currentYWgt = {:.2}, currentYWeight = {:.2}", nodeNum, currentYWgt, baseCurrentYWeight));
 
   return prevYWgt*prevY + currentYWgt*currentY;
 }

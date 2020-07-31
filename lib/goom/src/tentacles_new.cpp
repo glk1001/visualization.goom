@@ -1,8 +1,9 @@
 #include "tentacles_new.h"
 #include "math_utils.h"
-
 #include <fmt/format.h>
-#include <utils/goom_loggers.hpp>
+
+//#include <fmt/format.h>
+//#include <utils/goom_loggers.hpp>
 #include <assert.h>
 #include <cmath>
 #include <functional>
@@ -97,7 +98,7 @@ void Tentacle2D::iterateNTimes(const size_t n)
 {
   startIterating();
   for (size_t i=0; i < n; i++) {
-    logInfo(fmt::format("Iteration: {}", i+1));
+//    logInfo(fmt::format("Iteration: {}", i+1));
     iterate();
   }
   finishIterating();
@@ -140,14 +141,14 @@ void Tentacle2D::iterate()
   yvec[0] = getFirstY();
 
   for(size_t i=1; i < numNodes; i++) {
-    logInfo("");
-    logInfo(fmt::format("iter {}, node {}, {:.2}: Before       - yvec[{}] = {:.2}, yvec[{}] = {:.2}", iterNum, i, xvec[i], i-1, yvec[i-1], i, yvec[i]));
+//    logInfo("");
+//    logInfo(fmt::format("iter {}, node {}, {:.2}: Before       - yvec[{}] = {:.2}, yvec[{}] = {:.2}", iterNum, i, xvec[i], i-1, yvec[i-1], i, yvec[i]));
 
     yvec[i] = getNextY(i);
-    logInfo(fmt::format("iter {}, node {}, {:.2}: After        - yvec[{}] = {:.2}, yvec[{}] = {:.2}", iterNum, i, xvec[i], i-1, yvec[i-1], i, yvec[i]));
+//    logInfo(fmt::format("iter {}, node {}, {:.2}: After        - yvec[{}] = {:.2}, yvec[{}] = {:.2}", iterNum, i, xvec[i], i-1, yvec[i-1], i, yvec[i]));
 
     dampedYVec[i] = getDampedY(i);
-    logInfo(fmt::format("iter {}, node {}, {:.2}: After damp   - dvec[{}] = {:.2}, dvec[{}] = {:.2}", iterNum, i, xvec[i], i-1, dampedYVec[i-1], i, dampedYVec[i]));
+//    logInfo(fmt::format("iter {}, node {}, {:.2}: After damp   - dvec[{}] = {:.2}, dvec[{}] = {:.2}", iterNum, i, xvec[i], i-1, dampedYVec[i-1], i, dampedYVec[i]));
   }
 }
 
@@ -221,8 +222,7 @@ double getMin(const std::vector<double>& vec)
 
 std::vector<V3d> Tentacle3D::getVertices() const
 {
-  const std::vector<double>& xvec2d = std::get<0>(tentacle->getDampedXandYVectors());
-  const std::vector<double>& yvec2d = std::get<1>(tentacle->getDampedXandYVectors());
+  const auto [xvec2d, yvec2d] = tentacle->getDampedXandYVectors();
   const size_t n = xvec2d.size();
 
 //  logInfo(fmt::format("Tentacle: {}, head.x = {}, head.y = {}, head.z = {}", "x", head.x, head.y, head.z));

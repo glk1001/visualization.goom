@@ -28,6 +28,7 @@ add_subdirectory(lib/goom)
 
 # Better way to do this??
 set(VIVID_LIB "/home/greg/Prj/github/vivid/build/libvivid.a")
+set(UTILS_LIB "/home/greg/Prj/github/xbmc/visualization.goom.testing/build/libs/utils/libutils.a")
 
 
 include_directories(${includes}
@@ -47,7 +48,7 @@ if ($ENV{DO_TESTING})
   include(../visualization.goom.testing/goom_testing)
 endif()
 
-list(APPEND DEPLIBS goom ${VIVID_LIB})
+list(APPEND DEPLIBS ${UTILS_LIB} goom ${UTILS_LIB} ${VIVID_LIB})
 
 build_addon(visualization.goom GOOM DEPLIBS)
 

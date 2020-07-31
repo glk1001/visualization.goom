@@ -1,12 +1,11 @@
 #include "tentacle_driver.h"
 
-#include "drawmethods.h"
 #include "goom.h"
+#include "drawmethods.h"
 #include "tentacles_new.h"
 #include "v3d.h"
 
-#include "fmt/format.h"
-#include "utils/goom_loggers.hpp"
+#include <fmt/format.h>
 #include <vivid/vivid.h>
 
 #include <cstdint>
@@ -100,128 +99,6 @@ void RandWeightHandler::weightsAdjust(
 
 static constexpr int coordIgnoreVal = -666;
 
-inline void y_rotate_v3d(const V3d& vi, V3d& vf, const float sina, const float cosa)                                                           \
-{
-  const float vi_x = vi.x;
-  const float vi_z = vi.z;
-  vf.x = vi_x * cosa - vi_z * sina;
-  vf.z = vi_x * sina + vi_z * cosa;
-  vf.y = vi.y;
-}
-
-/*
- * translation
- */
-inline void translate_v3d(const V3d& vsrc, V3d& vdest)
-{
-  vdest.x += vsrc.x;
-  vdest.y += vsrc.y;
-  vdest.z += vsrc.z;
-}
-
-static void project_v3d_to_v2d(const std::vector<V3d>& v3, std::vector<v2d>& v2, const float distance)
-{
-  constexpr int width = 1280;
-  constexpr int height = 720;
-
-  for (size_t i = 0; i < v3.size(); ++i) {
-    logInfo(fmt::format("project_v3d_to_v2d {}: v3[i].x = {}, v3[i].y = {}, v2[i].z = {}.",
-        i, v3[i].x, v3[i].y, v3[i].z));
-    if (!v3[i].ignore && (v3[i].z > 2)) {
-      const int Xp = (int)(distance * v3[i].x / v3[i].z);
-      const int Yp = (int)(distance * v3[i].y / v3[i].z);
-      v2[i].x = Xp + (width >> 1);
-      v2[i].y = -Yp + (height >> 1);
-      logInfo(fmt::format("project_v3d_to_v2d {}: Xp = {}, Yp = {}, v2[i].x = {}, v2[i].y = {}.",
-          i, Xp, Yp, v2[i].x, v2[i].y));
-    } else {
-      v2[i].x = v2[i].y = coordIgnoreVal;
-      logInfo(fmt::format("project_v3d_to_v2d {}: v2[i].x = {}, v2[i].y = {}.", i, v2[i].x, v2[i].y));
-    }
-  }
-}
-
-inline uint32_t colorMix(const uint32_t col1, const uint32_t col2, const float t)
-{
-  const vivid::rgb_t c1 = vivid::rgb::fromRgb32(col1);
-  const vivid::rgb_t c2 = vivid::rgb::fromRgb32(col2);
-  return vivid::lerpHsl(c1, c2, t).rgb32();
-}
-
-uint32_t getColorMix(const size_t nodeNum, const size_t numNodes,
-    const uint32_t segmentColor, const uint32_t dominantColor)
-{
-  const auto tFac = [&](const size_t nodeNum) -> float {
-    return float(nodeNum+1)/float(numNodes);
-  };
-
-  const float t = tFac(nodeNum);
-  const uint32_t col = colorMix(dominantColor, segmentColor, t);
-
-  return col;
-}
-
-static void plot3D(const Tentacle3D& tentacle,
-    const uint32_t dominantColor, const uint32_t dominantColorLow,
-    const float angle, const float distance, const float distance2, Pixel* frontBuff, Pixel* backBuff)
-{
-  const std::vector<V3d> vertices = tentacle.getVertices();
-  const size_t n = vertices.size();
-
-  V3d cam = { 0, 0, 3 };
-  cam.z += distance2;
-//  cam.y += 2.0 * std::sin(-(-0.5*M_PI) / 4.3f);
-  cam.y += 2.0 * sin(-(angle - 0.5*M_PI) / 4.3f);
-
-  const float sina = sin(M_PI - angle);
-  const float cosa = cos(M_PI - angle);
-  std::vector<V3d> v3{ vertices };
-  for (size_t i = 0; i < n; i++) {
-    y_rotate_v3d(v3[i], v3[i], sina, cosa);
-    translate_v3d(cam, v3[i]);
-  }
-
-  std::vector<v2d> v2(n);
-  project_v3d_to_v2d(v3, v2, distance);
-
-  for (size_t i=0; i < v2.size()-1; i++) {
-    const int ix0 = int(v2[i].x);
-    const int ix1 = int(v2[i+1].x);
-    const int iy0 = int(v2[i].y);
-    const int iy1 = int(v2[i+1].y);
-    const uint32_t color = getColorMix(i, tentacle.get2DTentacle().getNumNodes(), tentacle.getColor(i), dominantColor);
-
-    if ((ix0 == ix1) && (iy0 == iy1)) {
-      logInfo(fmt::format("Skipping draw {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}, color = {}.",
-          i, ix0, iy0, ix1, iy1, color));
-    } else {
-      logInfo(fmt::format("draw_line {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}, color = {}.",
-          i, ix0, iy0, ix1, iy1, color));
-      draw_line(frontBuff, ix0, iy0, ix1, iy1, color, 1280, 720);
-    }
-  }
-}
-
-static void init_color_groups(std::vector<ColorGroup>& colorGroups)
-{
-  static const std::vector<vivid::ColorMap::Preset> cmaps = {
-    vivid::ColorMap::Preset::BlueYellow,
-    vivid::ColorMap::Preset::CoolWarm,
-    vivid::ColorMap::Preset::Hsl,
-    vivid::ColorMap::Preset::HslPastel,
-    vivid::ColorMap::Preset::Inferno,
-    vivid::ColorMap::Preset::Magma,
-    vivid::ColorMap::Preset::Plasma,
-    vivid::ColorMap::Preset::Rainbow,
-    vivid::ColorMap::Preset::Turbo,
-    vivid::ColorMap::Preset::Viridis,
-    vivid::ColorMap::Preset::Vivid
-  };
-  for (const auto& cm : cmaps) {
-    colorGroups.push_back(ColorGroup(cm));
-  }
-}
-
 GridTentacleLayout::GridTentacleLayout(
     const float x0, const float x1, const size_t xn,
     const float y0, const float y1, const size_t yn,
@@ -282,56 +159,54 @@ TentacleDriver::TentacleDriver()
   , dampingFunc{ nullptr }
   , tentacles{}
   , tweaker{ nullptr }
-//  , dominantColorTimer{ doDominantColorEveryNUpdates }
-  , dominantColorGroup{ nullptr }
   , glitchTimer{ glitchIterLength }
   , glitchColorGroup{ vivid::ColorMap::Preset::Magma }
   , iterTimers{ &glitchTimer }
 {
   const IterParamsGroup iter1 = {
-    { 200, 0.300, 0.700, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
-    { 200, 0.350, 0.650, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
-    { 200, 0.400, 0.600, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
-    { 200, 0.450, 0.550, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
-    { 200, 0.500, 0.500, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
-    { 200, 0.550, 0.450, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
-    { 200, 0.600, 0.400, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
-    { 200, 0.650, 0.350, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
-    { 200, 0.700, 0.300, { 1.0, -10.0, +10.0, M_PI }, 60.0 },
-    { 200, 0.750, 0.250, { 1.5, -10.0, +10.0,  0.0 }, 40.0 },
-    { 200, 0.800, 0.200, { 1.0, -10.0, +10.0, M_PI }, 60.0 },
-    { 200, 0.850, 0.150, { 1.5, -10.0, +10.0,  0.0 }, 40.0 },
-    { 200, 0.900, 0.100, { 1.0, -10.0, +10.0, M_PI }, 60.0 },
+    { 200, 0.300, 0.700, 1.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
+    { 200, 0.350, 0.650, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
+    { 200, 0.400, 0.600, 1.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
+    { 200, 0.450, 0.550, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
+    { 200, 0.500, 0.500, 1.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
+    { 200, 0.550, 0.450, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
+    { 200, 0.600, 0.400, 1.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
+    { 200, 0.650, 0.350, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
+    { 200, 0.700, 0.300, 1.0, { 1.0, -10.0, +10.0, M_PI }, 60.0 },
+    { 200, 0.750, 0.250, 1.5, { 1.5, -10.0, +10.0,  0.0 }, 40.0 },
+    { 200, 0.800, 0.200, 1.0, { 1.0, -10.0, +10.0, M_PI }, 60.0 },
+    { 200, 0.850, 0.150, 1.5, { 1.5, -10.0, +10.0,  0.0 }, 40.0 },
+    { 200, 0.900, 0.100, 1.0, { 1.0, -10.0, +10.0, M_PI }, 60.0 },
   };
   const IterParamsGroup iter2 = {
-    { 100, 0.300, 0.700, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
-    { 100, 0.350, 0.650, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
-    { 100, 0.400, 0.600, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
-    { 100, 0.450, 0.550, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
-    { 100, 0.500, 0.500, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
-    { 100, 0.550, 0.450, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
-    { 100, 0.600, 0.400, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
-    { 100, 0.650, 0.350, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
-    { 100, 0.700, 0.300, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
-    { 100, 0.750, 0.250, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
-    { 100, 0.800, 0.200, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
-    { 100, 0.850, 0.150, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
-    { 100, 0.900, 0.100, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
+    { 100, 0.300, 0.700, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
+    { 100, 0.350, 0.650, 1.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
+    { 100, 0.400, 0.600, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
+    { 100, 0.450, 0.550, 1.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
+    { 100, 0.500, 0.500, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
+    { 100, 0.550, 0.450, 1.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
+    { 100, 0.600, 0.400, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
+    { 100, 0.650, 0.350, 1.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
+    { 100, 0.700, 0.300, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
+    { 100, 0.750, 0.250, 1.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
+    { 100, 0.800, 0.200, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
+    { 100, 0.850, 0.150, 1.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
+    { 100, 0.900, 0.100, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
   };
   const IterParamsGroup iter3 = {
-    { 150, 0.300, 0.700, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
-    { 150, 0.350, 0.650, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
-    { 150, 0.400, 0.600, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
-    { 150, 0.450, 0.550, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
-    { 150, 0.500, 0.500, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
-    { 150, 0.550, 0.450, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
-    { 150, 0.600, 0.400, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
-    { 150, 0.650, 0.350, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
-    { 150, 0.700, 0.300, { 1.0, -10.0, +10.0, M_PI }, 60.0 },
-    { 150, 0.750, 0.250, { 1.5, -10.0, +10.0,  0.0 }, 40.0 },
-    { 150, 0.800, 0.200, { 1.0, -10.0, +10.0, M_PI }, 60.0 },
-    { 150, 0.850, 0.150, { 1.5, -10.0, +10.0,  0.0 }, 40.0 },
-    { 150, 0.900, 0.100, { 1.0, -10.0, +10.0, M_PI }, 60.0 },
+    { 150, 0.300, 0.700, 1.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
+    { 150, 0.350, 0.650, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
+    { 150, 0.400, 0.600, 1.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
+    { 150, 0.450, 0.550, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
+    { 150, 0.500, 0.500, 1.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
+    { 150, 0.550, 0.450, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
+    { 150, 0.600, 0.400, 1.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
+    { 150, 0.650, 0.350, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
+    { 150, 0.700, 0.300, 1.0, { 1.0, -10.0, +10.0, M_PI }, 60.0 },
+    { 150, 0.750, 0.250, 1.5, { 1.5, -10.0, +10.0,  0.0 }, 40.0 },
+    { 150, 0.800, 0.200, 1.0, { 1.0, -10.0, +10.0, M_PI }, 60.0 },
+    { 150, 0.850, 0.150, 1.5, { 1.5, -10.0, +10.0,  0.0 }, 40.0 },
+    { 150, 0.900, 0.100, 1.0, { 1.0, -10.0, +10.0, M_PI }, 60.0 },
   };
 
   iterParamsGroups = {
@@ -339,63 +214,6 @@ TentacleDriver::TentacleDriver()
     iter2,
     iter3,
   };
-}
-
-const ColorGroup& TentacleDriver::getRandomColorGroup() const
-{
-  return colorGroups[getRandInRange(0, colorGroups.size()-1)];
-}
-
-uint32_t TentacleDriver::getRandomColor(const ColorGroup& cg) const
-{
-  return cg.getColor(getRandInRange(0, cg.numColors()-1));
-}
-
-void TentacleDriver::startIterating()
-{
-  for (auto& t : tentacles) {
-    t.get2DTentacle().startIterating();
-  }
-}
-
-void TentacleDriver::stopIterating()
-{
-  for (auto& t : tentacles) {
-    t.get2DTentacle().finishIterating();
-  }
-}
-
-void TentacleDriver::updateIterTimers()
-{
-  for (auto t : iterTimers) {
-    t->next();
-  }
-}
-
-void TentacleDriver::resetYVec(
-    const size_t ID, const size_t iterNum, const std::vector<double>& xvec, std::vector<double>& yvec)
-{
-  if (iterNum == 1) {
-    for (size_t i=0; i < xvec.size(); i++) {
-      yvec[i] = (*dampingFunc)(xvec[i]);
-    }
-  }
-  if (glitchTimer.getCurrentCount() > 0) {
-    logInfo(fmt::format("iter = {} and tentacle {} and resetGlitchTimer.getCurrentCount() = {}.",
-        iterNum, ID, glitchTimer.getCurrentCount()));
-    if (glitchTimer.atStart()) {
-      constexpr float lower = -1.5;
-      constexpr float upper = +1.5;
-      for (double& y : yvec) {
-        y += getRandInRange(lower, upper);
-      }
-      logInfo(fmt::format("Pushing color for iter = {} and tentacle {}.", iterNum, ID));
-      colorizers[ID]->pushColor(glitchColorGroup);
-    } else if (glitchTimer.getCurrentCount() == 1) {
-      logInfo(fmt::format("Popping color for iter = {} and tentacle {}.", iterNum, ID));
-      colorizers[ID]->popColor();
-    }
-  }
 }
 
 void TentacleDriver::init()
@@ -408,8 +226,6 @@ void TentacleDriver::init()
   using namespace std::placeholders;
 
   init_color_groups(colorGroups);
-  dominantColorGroup = &getRandomColorGroup();
-  dominantColor = getRandomColor(*dominantColorGroup);
 
   TentacleTweaker::WeightFunctionsResetter weightsReset =
       std::bind(&SimpleWeightHandler::weightsReset, &weightsHandler, _1, _2, _3, _4);
@@ -441,8 +257,8 @@ void TentacleDriver::init()
   for (size_t i=0; i < numTentacles; i++) {
     std::unique_ptr<Tentacle2D> tentacle{ new Tentacle2D{ i, tweaker.get() } };
 
-    const IterParamsGroup paramsGrp = iterParamsGroups[getRandInRange(0, iterParamsGroups.size()-1)];
-    const IterationParams param = paramsGrp[getRandInRange(0, paramsGrp.size()-1)];
+    const IterParamsGroup paramsGrp = iterParamsGroups[getRandInRange(0, iterParamsGroups.size())];
+    const IterationParams param = paramsGrp[getRandInRange(0, paramsGrp.size())];
 
     const double xmin = tent2d_xmax - param.length;
     const double xmax = tent2d_xmax;
@@ -472,70 +288,96 @@ void TentacleDriver::init()
   updateNum = 0;
 }
 
-inline unsigned char lighten(unsigned char value, float power)
+void TentacleDriver::init_color_groups(std::vector<ColorGroup>& colorGroups)
 {
-  int val = value;
-  float t = (float)val * std::log10(power) / 2.0;
-
-  if (t > 0) {
-    val = (int)t; /* (32.0f * log (t)); */
-    if (val > 255)
-      val = 255;
-    if (val < 0)
-      val = 0;
-    return val;
-  } else {
-    return 0;
+  static const std::vector<vivid::ColorMap::Preset> cmaps = {
+    vivid::ColorMap::Preset::BlueYellow,
+    vivid::ColorMap::Preset::CoolWarm,
+    vivid::ColorMap::Preset::Hsl,
+    vivid::ColorMap::Preset::HslPastel,
+    vivid::ColorMap::Preset::Inferno,
+    vivid::ColorMap::Preset::Magma,
+    vivid::ColorMap::Preset::Plasma,
+    vivid::ColorMap::Preset::Rainbow,
+    vivid::ColorMap::Preset::Turbo,
+    vivid::ColorMap::Preset::Viridis,
+    vivid::ColorMap::Preset::Vivid
+  };
+  for (const auto& cm : cmaps) {
+    colorGroups.push_back(ColorGroup(cm));
   }
 }
 
-static void lightencolor(uint32_t* col, float power)
+const ColorGroup& TentacleDriver::getRandomColorGroup() const
 {
-  uint8_t* color = (uint8_t*)col;
-
-  *color = lighten(*color, power);
-  color++;
-  *color = lighten(*color, power);
-  color++;
-  *color = lighten(*color, power);
-  color++;
-  *color = lighten(*color, power);
+  return colorGroups[getRandInRange(0, colorGroups.size())];
 }
 
-static uint32_t evolvecolor(uint32_t src, uint32_t dest, unsigned int mask, unsigned int incr)
+uint32_t TentacleDriver::getRandomColor(const ColorGroup& cg) const
 {
-  const uint32_t color = src & (~mask);
-  src &= mask;
-  dest &= mask;
-
-  if ((src != mask) && (src < dest)) {
-    src += incr;
-  }
-
-  if (src > dest) {
-    src -= incr;
-  }
-  return uint32_t((src & mask) | color);
+  return cg.getColor(getRandInRange(0, cg.numColors()));
 }
 
-static uint32_t getEvolvedColor(const uint32_t baseColor)
+void TentacleDriver::startIterating()
 {
-  uint32_t newColor = baseColor;
-  newColor = evolvecolor(newColor, baseColor, 0xff, 0x01);
-  newColor = evolvecolor(newColor, baseColor, 0xff00, 0x0100);
-  newColor = evolvecolor(newColor, baseColor, 0xff0000, 0x010000);
-  newColor = evolvecolor(newColor, baseColor, 0xff000000, 0x01000000);
+  for (auto& t : tentacles) {
+    t.get2DTentacle().startIterating();
+  }
+}
 
-  lightencolor(&newColor, 10.0 * 2.0f + 2.0f);
+void TentacleDriver::stopIterating()
+{
+  for (auto& t : tentacles) {
+    t.get2DTentacle().finishIterating();
+  }
+}
 
-  return newColor;
+void TentacleDriver::multiplyIterZeroYValWaveFreq(const float val)
+{
+  for (size_t i=0; i < numTentacles; i++) {
+    const float newFreq = val*tentacleParams[i].iterZeroYValWaveFreq;
+    tentacleParams[i].iterZeroYValWave.setFrequency(newFreq);
+  }
+}
+
+void TentacleDriver::updateIterTimers()
+{
+  for (auto t : iterTimers) {
+    t->next();
+  }
+}
+
+void TentacleDriver::resetYVec(
+    const size_t ID, const size_t iterNum, const std::vector<double>& xvec, std::vector<double>& yvec)
+{
+  if (iterNum == 1) {
+    for (size_t i=0; i < xvec.size(); i++) {
+      yvec[i] = (*dampingFunc)(xvec[i]);
+    }
+  }
+  if (glitchTimer.getCurrentCount() > 0) {
+//    logInfo(fmt::format("iter = {} and tentacle {} and resetGlitchTimer.getCurrentCount() = {}.",
+//        iterNum, ID, glitchTimer.getCurrentCount()));
+    if (glitchTimer.atStart()) {
+      constexpr float lower = -1.5;
+      constexpr float upper = +1.5;
+      for (double& y : yvec) {
+        y += getRandInRange(lower, upper);
+      }
+//      logInfo(fmt::format("Pushing color for iter = {} and tentacle {}.", iterNum, ID));
+      colorizers[ID]->pushColor(glitchColorGroup);
+    } else if (glitchTimer.getCurrentCount() == 1) {
+//      logInfo(fmt::format("Popping color for iter = {} and tentacle {}.", iterNum, ID));
+      colorizers[ID]->popColor();
+    }
+  }
 }
 
 void TentacleDriver::checkForTimerEvents()
 {
-  logInfo(fmt::format("Update num = {}: checkForTimerEvents", updateNum));
+//  logInfo(fmt::format("Update num = {}: checkForTimerEvents", updateNum));
   if (updateNum % doGlitchEveryNUpdates == 0) {
-    logInfo(fmt::format("Update num = {}: starting glitchTimer.", updateNum));
+//    logInfo(fmt::format("Update num = {}: starting glitchTimer.", updateNum));
     glitchTimer.start();
   }
   /**
@@ -557,7 +399,7 @@ void TentacleDriver::update(const float angle,
     const uint32_t color, const uint32_t colorLow, Pixel* frontBuff, Pixel* backBuff)
 {
   updateNum++;
-  logInfo(fmt::format("Doing update {}.", updateNum));
+//  logInfo(fmt::format("Doing update {}.", updateNum));
 
   updateIterTimers();
   checkForTimerEvents();
@@ -572,12 +414,120 @@ void TentacleDriver::update(const float angle,
     tentacle2D.setIterZeroLerpFactor(iterZeroLerpFactor);
     tentacle2D.setIterZeroYVal(iterZeroYVal);
 
-    logInfo(fmt::format("Starting iterate {} for tentacle {}.", tentacle2D.getIterNum()+1, tentacle2D.getID()));
+//    logInfo(fmt::format("Starting iterate {} for tentacle {}.", tentacle2D.getIterNum()+1, tentacle2D.getID()));
     tentacle2D.iterate();
 
-    logInfo(fmt::format("Update num = {}, tentacle = {}, doing plot with angle = {}, "
-        "distance = {}, distance2 = {}, color = {} and colorLow = {}.",
-        updateNum, tentacle2D.getID(), angle, distance, distance2, color, colorLow));
+//    logInfo(fmt::format("Update num = {}, tentacle = {}, doing plot with angle = {}, "
+//        "distance = {}, distance2 = {}, color = {} and colorLow = {}.",
+//        updateNum, tentacle2D.getID(), angle, distance, distance2, color, colorLow));
     plot3D(tentacle, color, colorLow, angle, distance, distance2, frontBuff, backBuff);
   }
+}
+
+void TentacleDriver::plot3D(const Tentacle3D& tentacle,
+                            const uint32_t dominantColor, const uint32_t dominantColorLow,
+                            const float angle, const float distance, const float distance2,
+                            Pixel* frontBuff, Pixel* backBuff)
+{
+  const std::vector<V3d> vertices = tentacle.getVertices();
+  const size_t n = vertices.size();
+
+  V3d cam = { 0, 0, 3 }; // TODO ????????????????????????????????
+  cam.z += distance2;
+  cam.y += 2.0 * sin(-(angle - 0.5*M_PI) / 4.3f);
+
+  const float sina = sin(M_PI - angle);
+  const float cosa = cos(M_PI - angle);
+  std::vector<V3d> v3{ vertices };
+  for (size_t i = 0; i < n; i++) {
+    y_rotate_v3d(v3[i], v3[i], sina, cosa);
+    translate_v3d(cam, v3[i]);
+  }
+
+  std::vector<v2d> v2(n);
+  project_v3d_to_v2d(v3, v2, distance);
+
+  for (size_t i=0; i < v2.size()-1; i++) {
+    const int ix0 = int(v2[i].x);
+    const int ix1 = int(v2[i+1].x);
+    const int iy0 = int(v2[i].y);
+    const int iy1 = int(v2[i+1].y);
+
+    if ((ix0 == ix1) && (iy0 == iy1)) {
+//      logInfo(fmt::format("Skipping draw {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}, color = {}.",
+//          i, ix0, iy0, ix1, iy1, color));
+    } else {
+//      logInfo(fmt::format("draw_line {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}, color = {}.",
+//          i, ix0, iy0, ix1, iy1, color));
+      const size_t numNodes = tentacle.get2DTentacle().getNumNodes();
+      const uint32_t tentacleColor = tentacle.getColor(i);
+      const uint32_t color = getColorMix(i, numNodes, tentacleColor, dominantColor);
+      const uint32_t colorLow = getColorMix(i, numNodes, tentacleColor, dominantColorLow);
+      const std::vector<_PIXEL> colors = { { .val = color }, { .val = colorLow } };
+
+      Pixel* buffs[2] = { frontBuff, backBuff };
+      // TODO - Control brightness because of back buff??
+      // One buff may be better????? Make lighten more agressive over whole tentacle??
+//      draw_line(frontBuff, ix0, iy0, ix1, iy1, color, 1280, 720);
+      draw_line(std::size(buffs), buffs, colors, ix0, iy0, ix1, iy1, 1280, 720);
+    }
+  }
+}
+
+inline void TentacleDriver::y_rotate_v3d(const V3d& vi, V3d& vf, const float sina, const float cosa)                                                           \
+{
+  const float vi_x = vi.x;
+  const float vi_z = vi.z;
+  vf.x = vi_x * cosa - vi_z * sina;
+  vf.z = vi_x * sina + vi_z * cosa;
+  vf.y = vi.y;
+}
+
+inline void TentacleDriver::translate_v3d(const V3d& vsrc, V3d& vdest)
+{
+  vdest.x += vsrc.x;
+  vdest.y += vsrc.y;
+  vdest.z += vsrc.z;
+}
+
+void TentacleDriver::project_v3d_to_v2d(const std::vector<V3d>& v3, std::vector<v2d>& v2, const float distance)
+{
+  constexpr int width = 1280;
+  constexpr int height = 720;
+
+  for (size_t i = 0; i < v3.size(); ++i) {
+//    logInfo(fmt::format("project_v3d_to_v2d {}: v3[i].x = {}, v3[i].y = {}, v2[i].z = {}.",
+//        i, v3[i].x, v3[i].y, v3[i].z));
+    if (!v3[i].ignore && (v3[i].z > 2)) {
+      const int Xp = (int)(distance * v3[i].x / v3[i].z);
+      const int Yp = (int)(distance * v3[i].y / v3[i].z);
+      v2[i].x = Xp + (width >> 1);
+      v2[i].y = -Yp + (height >> 1);
+//      logInfo(fmt::format("project_v3d_to_v2d {}: Xp = {}, Yp = {}, v2[i].x = {}, v2[i].y = {}.",
+//          i, Xp, Yp, v2[i].x, v2[i].y));
+    } else {
+      v2[i].x = v2[i].y = coordIgnoreVal;
+//      logInfo(fmt::format("project_v3d_to_v2d {}: v2[i].x = {}, v2[i].y = {}.", i, v2[i].x, v2[i].y));
+    }
+  }
+}
+
+inline uint32_t TentacleDriver::getColorMix(const size_t nodeNum, const size_t numNodes,
+                                            const uint32_t segmentColor, const uint32_t dominantColor)
+{
+  const auto tFac = [&](const size_t nodeNum) -> float {
+    return float(nodeNum+1)/float(numNodes);
+  };
+
+  const float t = tFac(nodeNum);
+  const uint32_t col = colorMix(dominantColor, segmentColor, t);
+
+  return col;
+}
+
+inline uint32_t TentacleDriver::colorMix(const uint32_t col1, const uint32_t col2, const float t)
+{
+  const vivid::rgb_t c1 = vivid::rgb::fromRgb32(col1);
+  const vivid::rgb_t c2 = vivid::rgb::fromRgb32(col2);
+  return vivid::lerpHsl(c1, c2, t).rgb32();
 }

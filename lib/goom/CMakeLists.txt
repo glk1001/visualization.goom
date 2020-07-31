@@ -24,10 +24,13 @@ set (SRCE_FILES
                  src/ifs.c
                  src/lines.c
                  src/mathtools.c
+                 src/math_utils.cpp
                  src/SimplexNoise.cpp
                  src/sound_tester.c
                  src/surf3d.cpp
+                 src/tentacle_driver.cpp
                  src/tentacle3d.cpp
+                 src/tentacles_new.cpp
                  src/plugin_info.c
                  src/drawmethods.cpp
 )
@@ -39,6 +42,7 @@ add_library(${PROJECT_NAME} STATIC
 add_library(libs::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 # How to include this?????
+set(UTILS_INCLUDE_DIR "/home/greg/Prj/github/xbmc/visualization.goom.testing/libs/utils/include")
 set(VIVID_INCLUDE_DIR "/home/greg/Prj/github/vivid/include")
 
 target_include_directories(${PROJECT_NAME}
@@ -46,6 +50,7 @@ target_include_directories(${PROJECT_NAME}
         $<INSTALL_INTERFACE:include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     PRIVATE
+        ${UTILS_INCLUDE_DIR}
         ${VIVID_INCLUDE_DIR}      
         ${CMAKE_CURRENT_SOURCE_DIR}
 )

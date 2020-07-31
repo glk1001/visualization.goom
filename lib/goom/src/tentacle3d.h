@@ -27,18 +27,17 @@ constexpr int z_depth_mod = 5;
 constexpr size_t num_z = zticks_per_100 * z_depth / 100;
 constexpr int num_z_mod = 0;
 
-class Tentacles;
+class TentaclesWrapper;
 
 typedef struct _TENTACLE_FX_DATA {
   PluginParam enabled_bp;
   PluginParameters params;
 
-  Tentacles* tentacles;
+  TentaclesWrapper* tentacles;
 
   float cycle;
 
-  int col;
-  int dstcol;
+  unsigned int col;
   float lig;
   float ligs;
 

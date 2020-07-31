@@ -174,14 +174,16 @@ inline float getRandNeg1toPos1()
   return 2.0*(float(std::rand())/float(RAND_MAX) - 0.5);
 }
 
+// Return random float in the range x0 <= n <= x1.
 inline float getRandInRange(const float x0, const float x1)
 {
   return std::lerp(x0, x1, float(std::rand())/float(RAND_MAX));
 }
 
+// Return random int in the range x0 <= n < x1.
 inline size_t getRandInRange(const size_t x0, const size_t x1)
 {
-  return x0 + size_t(std::rand()) % (x1 - x0 + 1);
+  return x0 + size_t(std::rand()) % (x1 - x0);
 }
 
 #endif

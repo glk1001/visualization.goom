@@ -3,9 +3,8 @@
 
 #include "tentacles_new.h"
 #include "goom.h"
+#include "v3d.h"
 
-#include "fmt/format.h"
-#include "utils/goom_loggers.hpp"
 #include <vivid/vivid.h>
 
 #include <cstdint>
@@ -42,7 +41,7 @@ private:
 inline ColorGroup::ColorGroup(vivid::ColorMap::Preset preset)
 : colors(NumColors)
 {
-  logInfo(fmt::format("preset = {}", preset));
+//  logInfo(fmt::format("preset = {}", preset));
   const vivid::ColorMap cmap(preset);
   for (size_t i=0 ; i < NumColors; i++) {
     const float t = i / (NumColors - 1.0f);
@@ -163,6 +162,8 @@ public:
       const float distance, const float distance2,
       const uint32_t color, const uint32_t colorLow, Pixel* frontBuff, Pixel* backBuff);
 
+  void multiplyIterZeroYValWaveFreq(const float val);
+
   const ColorGroup& getRandomColorGroup() const;
   uint32_t getRandomColor(const ColorGroup& cg) const;
 private:
@@ -170,6 +171,7 @@ private:
     size_t numNodes = 200;
     float prevYWeight = 0.770;
     float currentYWeight = 0.230;
+    float iterZeroYValWaveFreq = 1.0;
     SineWaveMultiplier iterZeroYValWave{};
     float length = 30;
   };
@@ -204,10 +206,6 @@ private:
   static constexpr size_t mult = 6;
   static constexpr size_t numTentacles = xRowLen*mult;
   std::vector<IterationParams> tentacleParams{ numTentacles };
-  static constexpr size_t doDominantColorEveryNUpdates = 10;
-//  IterTimer dominantColorTimer;
-  const ColorGroup* dominantColorGroup;
-  uint32_t dominantColor = 0;
   IterTimer glitchTimer;
   static constexpr size_t doGlitchEveryNUpdates = 30;
   static constexpr size_t glitchIterLength = 10;
@@ -216,7 +214,16 @@ private:
   std::vector<IterTimer*> iterTimers;
   void updateIterTimers();
   void checkForTimerEvents();
+  static void init_color_groups(std::vector<ColorGroup>& colorGroups);
+  static void plot3D(const Tentacle3D& tentacle,
+                     const uint32_t dominantColor, const uint32_t dominantColorLow,
+                     const float angle, const float distance, const float distance2, Pixel* frontBuff, Pixel* backBuff);
+  static void project_v3d_to_v2d(const std::vector<V3d>& v3, std::vector<v2d>& v2, const float distance);
+  static void y_rotate_v3d(const V3d& vi, V3d& vf, const float sina, const float cosa);
+  static void translate_v3d(const V3d& vsrc, V3d& vdest);
+  static uint32_t getColorMix(const size_t nodeNum, const size_t numNodes,
+                              const uint32_t segmentColor, const uint32_t dominantColor);
+  static uint32_t colorMix(const uint32_t col1, const uint32_t col2, const float t);
 };
 
 #endif
-
