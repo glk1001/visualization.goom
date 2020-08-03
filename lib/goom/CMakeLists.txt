@@ -12,6 +12,8 @@ endif()
 set (SRCE_FILES
                  src/goom_testing.c
                  src/goom_tools.c
+                 src/all_maps.cpp
+                 src/colormap.cpp
                  src/config_param.c
                  src/convolve_fx.c
                  src/filters.c
@@ -41,9 +43,9 @@ add_library(${PROJECT_NAME} STATIC
 
 add_library(libs::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
-# How to include this?????
-set(UTILS_INCLUDE_DIR "/home/greg/Prj/github/xbmc/visualization.goom.testing/libs/utils/include")
+# How to include this????? Duplicated as well.
 set(VIVID_INCLUDE_DIR "/home/greg/Prj/github/vivid/include")
+set(UTILS_INCLUDE_DIR "/home/greg/Prj/github/xbmc/visualization.goom.testing/libs/utils/include")
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC

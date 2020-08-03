@@ -1,73 +1,47 @@
 #ifndef LIBS_GOOM_INCLUDE_GOOM_TENTACLE_DRIVER_H_
 #define LIBS_GOOM_INCLUDE_GOOM_TENTACLE_DRIVER_H_
 
-#include "tentacles_new.h"
+#include "colormap.h"
 #include "goom.h"
+#include "tentacles_new.h"
 #include "v3d.h"
 
-#include <vivid/vivid.h>
-
-#include <cstdint>
 #include <cmath>
+#include <cstdint>
 #include <memory>
 #include <stack>
+#include <string>
 #include <vector>
 
 
 class IterTimer {
-public:
-  explicit IterTimer(const size_t startCnt): startCount{ startCnt }{}
-  void start() { count = startCount; }
-  void next() { if (count > 0) count--; }
-  bool atStart() const { return count == startCount; }
-  size_t getCurrentCount() const { return count; }
-private:
-  const size_t startCount;
-  size_t count = 0;
+  public:
+    explicit IterTimer(const size_t startCnt): startCount { startCnt } {}
+
+    void start() { count = startCount; }
+    void next() { if (count > 0) count--; }
+    bool atStart() const { return count == startCount; }
+    size_t getCurrentCount() const { return count; }
+  private:
+    const size_t startCount;
+    size_t count = 0;
 };
 
-class ColorGroup {
+class TentacleColorMapColorizer: public TentacleColorizer {
 public:
-  explicit ColorGroup(vivid::ColorMap::Preset preset);
-  ColorGroup(const ColorGroup& other);
-  ColorGroup& operator=(const ColorGroup& other) { colors = other.colors; return *this; }
-  size_t numColors() const { return colors.size(); }
-  uint32_t getColor(size_t i) const { return colors[i]; }
-private:
-  static constexpr size_t NumColors = 720;
-  std::vector<uint32_t> colors;
-};
+  explicit TentacleColorMapColorizer(const ColorMap& colorMap, const size_t numNodes);
+  TentacleColorMapColorizer(const TentacleColorMapColorizer&)=delete;
+  TentacleColorMapColorizer& operator=(const TentacleColorMapColorizer&)=delete;
 
-inline ColorGroup::ColorGroup(vivid::ColorMap::Preset preset)
-: colors(NumColors)
-{
-//  logInfo(fmt::format("preset = {}", preset));
-  const vivid::ColorMap cmap(preset);
-  for (size_t i=0 ; i < NumColors; i++) {
-    const float t = i / (NumColors - 1.0f);
-    const vivid::Color rgbcol{ cmap.at(t) };
-    colors[i] = rgbcol.rgb32();
-  }
-}
-
-inline ColorGroup::ColorGroup(const ColorGroup& other)
-: colors(other.colors)
-{
-}
-
-class TentacleColorGroup: public TentacleColorizer {
-public:
-  explicit TentacleColorGroup(const ColorGroup& colorGroup, const size_t numNodes);
-  TentacleColorGroup(const TentacleColorGroup&)=delete;
-  TentacleColorGroup& operator=(const TentacleColorGroup&)=delete;
-
-  void pushColor(const ColorGroup& colorGroup);
-  void popColor();
+  void resetColorMap(const ColorMap& colorMap);
+  void pushColorMap(const ColorMap& colorMap);
+  void popColorMap();
 
   uint32_t getColor(size_t nodeNum) const override;
 private:
-  const ColorGroup* colorGroup;
-  std::stack<const ColorGroup*> colorStack;
+  const ColorMap* origColorMap;
+  const ColorMap* colorMap;
+  std::stack<const ColorMap*> colorStack;
   const size_t numNodes;
 };
 
@@ -76,8 +50,8 @@ public:
   explicit SimpleWeightHandler(
       ConstantSequenceFunction& prevYWeightFunc,
       ConstantSequenceFunction& currentYWeightFunc);
-  ConstantSequenceFunction& getPrevYWeightFunc() { return *prevYWeightFunc; }
-  ConstantSequenceFunction& getCurrentYWeightFunc() { return *currentYWeightFunc; }
+  ConstantSequenceFunction& getPrevYWeightFunc() const { return *prevYWeightFunc; }
+  ConstantSequenceFunction& getCurrentYWeightFunc() const { return *currentYWeightFunc; }
   void weightsReset(
       const size_t ID, const size_t numNodes,
       const float basePrevYWeight, const float baseCurrentYWeight);
@@ -98,8 +72,8 @@ public:
       RandSequenceFunction& prevYWeightFunc,
       RandSequenceFunction& currentYWeightFunc,
       const float r0, const float r1);
-  RandSequenceFunction& getPrevYWeightFunc() { return *prevYWeightFunc; }
-  RandSequenceFunction& getCurrentYWeightFunc() { return *currentYWeightFunc; }
+  RandSequenceFunction& getPrevYWeightFunc() const { return *prevYWeightFunc; }
+  RandSequenceFunction& getCurrentYWeightFunc() const { return *currentYWeightFunc; }
   void weightsReset(
       const size_t ID,
       const size_t numIters, const size_t numNodes,
@@ -150,7 +124,7 @@ private:
 
 class TentacleDriver {
 public:
-  TentacleDriver();
+  explicit TentacleDriver(const ColorMaps&);
   TentacleDriver(const TentacleDriver&)=delete;
   TentacleDriver& operator=(const TentacleDriver&)=delete;
 
@@ -162,68 +136,62 @@ public:
       const float distance, const float distance2,
       const uint32_t color, const uint32_t colorLow, Pixel* frontBuff, Pixel* backBuff);
 
+  void setGlitchValues(const float lower, const float upper);
+  void setReverseColorMix(const bool val);
   void multiplyIterZeroYValWaveFreq(const float val);
-
-  const ColorGroup& getRandomColorGroup() const;
-  uint32_t getRandomColor(const ColorGroup& cg) const;
 private:
   struct IterationParams {
     size_t numNodes = 200;
     float prevYWeight = 0.770;
-    float currentYWeight = 0.230;
     float iterZeroYValWaveFreq = 1.0;
     SineWaveMultiplier iterZeroYValWave{};
-    float length = 30;
+    float length = 40;
   };
-  using IterParamsGroup = std::vector<IterationParams>;
+  struct IterParamsGroup {
+    IterationParams first;
+    IterationParams last;
+    IterationParams getNext(const float t) const;
+  };
   std::vector<IterParamsGroup> iterParamsGroups;
 
-  std::vector<ColorGroup> colorGroups;
-  std::vector<std::unique_ptr<TentacleColorGroup>> colorizers;
+  const ColorMaps* colorMaps;
+  const std::vector<std::string>* currentColorMapGroup;
+  std::vector<std::unique_ptr<TentacleColorMapColorizer>> colorizers;
   ConstantSequenceFunction constPrevYWeightFunc;
   ConstantSequenceFunction constCurrentYWeightFunc;
   SimpleWeightHandler weightsHandler;
+  // RandWeightHandler weightsHandler;
   TentacleTweaker::WeightFunctionsResetter weightsReset;
   TentacleTweaker::WeightFunctionsAdjuster weightsAdjust;
 
-//  RandSequenceFunction randPrevYWeightFunc;
-//  RandSequenceFunction randCurrentYWeightFunc;
-//  RandWeightHandler weightsHandler { randPrevYWeightFunc, randCurrentYWeightFunc, 0.9, 1.1 };
-//  TentacleTweaker::WeightFunctionsResetter weightsReset =
-//      std::bind(&RandWeightHandler::weightsReset, &weightsHandler, _1, _2, _3, _4);
-//  TentacleTweaker::WeightFunctionsAdjuster weightsAdjust =
-//      std::bind(&RandWeightHandler::weightsAdjust, &weightsHandler, _1, _2, _3, _4);
-
-  //  LogDampingFunction dampingFunc{ 0.1, xmin };
-  std::unique_ptr<ExpDampingFunction> dampingFunc;
-  //  NoDampingFunction dampingFunc;
-
   size_t updateNum = 0;
   Tentacles3D tentacles;
-  std::unique_ptr<TentacleTweaker> tweaker;
   const float iterZeroYVal = 10.0;
-  static constexpr size_t xRowLen = 13;
-  static constexpr size_t mult = 6;
-  static constexpr size_t numTentacles = xRowLen*mult;
+  static constexpr size_t xRowLen = 14;
+  static_assert(xRowLen % 2 == 0); // Perspective looks bad with odd because of x=0 tentacle.
+  static constexpr size_t numXRows = 6;
+  static constexpr size_t numTentacles = xRowLen*numXRows;
   std::vector<IterationParams> tentacleParams{ numTentacles };
+  static constexpr size_t changeCurrentColorMapGroupEveryNUpdates = 500;
+  static constexpr size_t changeTentacleColorMapEveryNUpdates = 100;
   IterTimer glitchTimer;
   static constexpr size_t doGlitchEveryNUpdates = 30;
   static constexpr size_t glitchIterLength = 10;
-  const ColorGroup glitchColorGroup;
-  void resetYVec(const size_t ID, const size_t iterNum, const std::vector<double>& xvec, std::vector<double>& yvec);
+  const ColorMap glitchColorGroup;
+  float glitchLower = -1.5;
+  float glitchUpper = +1.5;
+  std::unique_ptr<Tentacle2D> createNewTentacle2D(const size_t ID, const IterationParams&);
+  std::unique_ptr<TentacleTweaker> createNewTweaker(const size_t tentacleLen);
+  void beforeIter(const size_t ID, const size_t iterNum, const std::vector<double>& xvec, std::vector<double>& yvec);
   std::vector<IterTimer*> iterTimers;
   void updateIterTimers();
   void checkForTimerEvents();
-  static void init_color_groups(std::vector<ColorGroup>& colorGroups);
   static void plot3D(const Tentacle3D& tentacle,
                      const uint32_t dominantColor, const uint32_t dominantColorLow,
                      const float angle, const float distance, const float distance2, Pixel* frontBuff, Pixel* backBuff);
   static void project_v3d_to_v2d(const std::vector<V3d>& v3, std::vector<v2d>& v2, const float distance);
   static void y_rotate_v3d(const V3d& vi, V3d& vf, const float sina, const float cosa);
   static void translate_v3d(const V3d& vsrc, V3d& vdest);
-  static uint32_t getColorMix(const size_t nodeNum, const size_t numNodes,
-                              const uint32_t segmentColor, const uint32_t dominantColor);
-  static uint32_t colorMix(const uint32_t col1, const uint32_t col2, const float t);
 };
 
 #endif

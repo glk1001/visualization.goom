@@ -1,19 +1,16 @@
 #ifndef LIBS_GOOM_INCLUDE_GOOM_TENTACLES_NEW_H_
 #define LIBS_GOOM_INCLUDE_GOOM_TENTACLES_NEW_H_
 
-//#include <fmt/format.h>
-//#include <utils/goom_loggers.hpp>
+#include "colormap.h"
+#include "math_utils.h"
+
 #include <vivid/vivid.h>
 
-#include <algorithm>
-#include <assert.h>
-#include <cmath>
 #include <functional>
 #include <memory>
 #include <stdexcept>
 #include <tuple>
 #include <vector>
-#include "math_utils.h"
 
 
 class TentacleColorizer {
@@ -24,7 +21,7 @@ public:
 
 class TentacleTweaker {
 public:
-  using YVecResetterFunction = std::function<void(
+  using BeforeIterFunction = std::function<void(
       const size_t ID, const size_t iterNum, const std::vector<double>&, std::vector<double>&)>;
   using WeightFunctionsResetter = std::function<void(
       const size_t ID, const size_t numNodes,
@@ -35,8 +32,8 @@ public:
       const float prevY, const float currentY)>;
 public:
   explicit TentacleTweaker(
-      DampingFunction* dampingFunc,
-      YVecResetterFunction yVecResetterFunc,
+      std::unique_ptr<DampingFunction> dampingFunc,
+      BeforeIterFunction beforeIterFunc,
       SequenceFunction* prevYWeightFunc,
       SequenceFunction* currentYWeightFunc,
       WeightFunctionsResetter weightFuncsReset,
@@ -44,7 +41,7 @@ public:
   TentacleTweaker(const TentacleTweaker&)=delete;
   TentacleTweaker& operator=(const TentacleTweaker&)=delete;
 
-  void resetYVector(const size_t ID, const size_t iterNum,
+  void beforeIter(const size_t ID, const size_t iterNum,
       const std::vector<double>& xvec, std::vector<double>& yvec);
 
   double getDamping(const double x);
@@ -62,8 +59,8 @@ public:
   void setCurrentYWeightFunc(SequenceFunction& weightFunc);
   void setCurrentYWeightFuncAdjuster(WeightFunctionsAdjuster& weightFuncAdjuster);
 private:
-  DampingFunction* dampingFunc;
-  YVecResetterFunction yVecResetterFunc;
+  std::unique_ptr<DampingFunction> dampingFunc;
+  BeforeIterFunction beforeIterFunc;
   SequenceFunction* prevYWeightFunc;
   SequenceFunction* currentYWeightFunc;
   WeightFunctionsResetter weightFuncsReset;
@@ -71,58 +68,41 @@ private:
   static constexpr auto emptyErrorAdjuster = [](const size_t, const size_t) {};
 };
 
-inline double TentacleTweaker::getDamping(const double x)
-{
-  return (*dampingFunc)(x);
-}
-
-inline void TentacleTweaker::resetYVector(
-    const size_t ID, const size_t iterNum, const std::vector<double>& xvec, std::vector<double>& yvec)
-{
-  yVecResetterFunc(ID, iterNum, xvec, yvec);
-}
-
-inline double TentacleTweaker::getNextPrevYWeight()
-{
-  return prevYWeightFunc->getNext();
-}
-
-inline double TentacleTweaker::getNextCurrentYWeight()
-{
-  return currentYWeightFunc->getNext();
-}
-
-inline void TentacleTweaker::resetWeightsFunction(
-    const size_t ID, const size_t numNodes,
-    const float basePrevYWeight, const float baseCurrentYWeight)
-{
-  weightFuncsReset(ID, numNodes, basePrevYWeight, baseCurrentYWeight);
-}
-
-inline void TentacleTweaker::adjustWeightsFunction(
-    const size_t ID,
-    const size_t iterNum, const size_t nodeNum,
-    const float prevY, const float currentY)
-{
-  weightFuncsAdjuster(ID, iterNum, nodeNum, prevY, currentY);
-}
+class SpecialNodes {
+public:
+  explicit SpecialNodes(const size_t minVal, const size_t maxVal, const std::vector<size_t>& nodes);
+  void setMinVal(const size_t val) { maxVal = val; }
+  void setMaxVal(const size_t val) { maxVal = val; }
+  void setIncAmount(const size_t val) { incAmount = val; }
+  void incNodes();
+  void clear();
+  bool isSpecialNode(const size_t) const;
+private:
+  size_t minVal;
+  size_t maxVal;
+  size_t incAmount;
+  long incDirection;
+  std::vector<size_t> nodes;
+};
 
 class Tentacle2D {
 private:
   using XandYVectors = std::tuple<std::vector<double>&, std::vector<double>&>;
 
 public:
-  explicit Tentacle2D(const size_t ID, TentacleTweaker* tweaker);
+  static constexpr size_t minNumNodes = 10;
+
+  explicit Tentacle2D(const size_t ID, std::unique_ptr<TentacleTweaker> tweaker);
   Tentacle2D(const Tentacle2D&)=delete;
   Tentacle2D& operator=(const Tentacle2D&)=delete;
 
   size_t getID() const;
 
   void startIterating();
-  void resetYVector();
   void finishIterating();
   size_t getIterNum() const;
 
+  void beforeIter();
   void iterate();
   void iterateNTimes(const size_t n);
 
@@ -164,6 +144,9 @@ public:
   bool getDoCurrentYWeightAdjust() const;
   void setDoCurrentYWeightAdjust(const bool val);
 
+  bool getPostProcessing() const;
+  void setPostProcessing(const bool val);
+
   bool getDoErrorAdjust() const;
   void setDoErrorAdjust(const bool val);
 
@@ -171,7 +154,7 @@ public:
   void turnOnAllAdjusts();
 private:
   const size_t ID;
-  TentacleTweaker* tweaker;
+  std::unique_ptr<TentacleTweaker> tweaker;
   size_t iterNum = 0;
   size_t numNodes = 0;
   bool startedIterating = false;
@@ -191,12 +174,16 @@ private:
   double iterZeroYVal = 0.9;
   double iterZeroLerpFactor = 0.8;
   bool doDamping = true;
+  bool doPostProcessing = false;
   bool doPrevYWeightAdjust = false;
   bool doCurrentYWeightAdjust = false;
   float getFirstY();
   float getNextY(const size_t nodeNum);
-  float getDampedY(const size_t nodeNum);
-  double damp(const size_t nodeNum);
+  float getDampedVal(const size_t nodeNum, const float val) const;
+  std::vector<double> postProcessYVals(const std::vector<double>& yvec) const;
+  SpecialNodes specialPostProcessingNodes;
+  void updateDampedVals(const std::vector<double>& yvals);
+  double damp(const size_t nodeNum) const;
   void validateSettings() const;
   void validateXDimensions() const;
   void validateYDimensions() const;
@@ -206,14 +193,118 @@ private:
   void validateCurrentYWeight() const;
 };
 
+struct V3d {
+  float x = 0;
+  float y = 0;
+  float z = 0;
+  bool ignore = false;
+};
+
+class Tentacle3D {
+public:
+  explicit Tentacle3D(std::unique_ptr<Tentacle2D> t,
+      const uint32_t headColor, const uint32_t headColorLow, const V3d& head);
+  explicit Tentacle3D(std::unique_ptr<Tentacle2D> t, const TentacleColorizer& colorizer,
+      const uint32_t headColor, const uint32_t headColorLow, const V3d& head);
+  Tentacle3D(Tentacle3D&&);
+  Tentacle3D(const Tentacle3D&)=delete;
+  Tentacle3D& operator=(const Tentacle3D&)=delete;
+
+  void setSpecialColorNodes(const ColorMap& cm, const std::vector<size_t>& nodes);
+  void incSpecialColorNodes() { specialColorNodes.incNodes(); }
+
+  Tentacle2D& get2DTentacle() { return *tentacle; }
+  const Tentacle2D& get2DTentacle() const { return *tentacle; }
+
+  size_t getID() const { return tentacle->getID(); }
+
+  uint32_t getColor(const size_t nodeNum) const;
+  std::tuple<uint32_t, uint32_t> getMixedColors(
+      const size_t nodeNum, const uint32_t color, const uint32_t colorLow) const;
+
+  bool getReverseColorMix() const { return reverseColorMix; }
+  void setReverseColorMix(const bool val) { reverseColorMix = val; }
+
+  const V3d& getHead() const { return head; }
+  void setHead(const V3d& val) { head = val; }
+
+  std::vector<V3d> getVertices() const;
+private:
+  std::unique_ptr<Tentacle2D> tentacle;
+  const TentacleColorizer* const colorizer;
+  SpecialNodes specialColorNodes;
+  const ColorMap* specialNodesColorMap;
+  const uint32_t headColor;
+  const uint32_t headColorLow;
+  V3d head;
+  bool reverseColorMix = false;
+};
+
+class Tentacles3D {
+  class Iter {
+  public:
+    Iter(Tentacles3D* const tents, const size_t p): pos(p), tentacles(tents){}
+    bool operator!=(const Iter& other) const { return pos != other.pos; }
+    Tentacle3D& operator*() const;
+    const Iter& operator++(){ ++pos; return *this; }
+  private:
+    size_t pos;
+    Tentacles3D* tentacles;
+  };
+
+public:
+  Tentacles3D();
+
+  void addTentacle(Tentacle3D&&);
+
+  Iter begin() { return Iter(this, 0); }
+  Iter end() { return Iter(this, tentacles.size()); }
+
+  const Tentacle3D& operator[](const size_t i) const { return tentacles[i]; }
+  Tentacle3D& operator[](const size_t i) { return tentacles[i]; }
+private:
+  std::vector<Tentacle3D> tentacles;
+};
+
+inline double TentacleTweaker::getDamping(const double x)
+{
+  return (*dampingFunc)(x);
+}
+
+inline void TentacleTweaker::beforeIter(
+    const size_t ID, const size_t iterNum, const std::vector<double>& xvec, std::vector<double>& yvec)
+{
+  beforeIterFunc(ID, iterNum, xvec, yvec);
+}
+
+inline double TentacleTweaker::getNextPrevYWeight()
+{
+  return prevYWeightFunc->getNext();
+}
+
+inline double TentacleTweaker::getNextCurrentYWeight()
+{
+  return currentYWeightFunc->getNext();
+}
+
+inline void TentacleTweaker::resetWeightsFunction(
+    const size_t ID, const size_t numNodes,
+    const float basePrevYWeight, const float baseCurrentYWeight)
+{
+  weightFuncsReset(ID, numNodes, basePrevYWeight, baseCurrentYWeight);
+}
+
+inline void TentacleTweaker::adjustWeightsFunction(
+    const size_t ID,
+    const size_t iterNum, const size_t nodeNum,
+    const float prevY, const float currentY)
+{
+  weightFuncsAdjuster(ID, iterNum, nodeNum, prevY, currentY);
+}
+
 inline size_t Tentacle2D::getID() const
 {
   return ID;
-}
-
-inline double Tentacle2D::damp(const size_t nodeNum)
-{
-  return dampingCache[nodeNum];
 }
 
 inline double Tentacle2D::getYScale() const { return yScale; }
@@ -247,6 +338,8 @@ inline void Tentacle2D::setNumNodes(const size_t val)
 
   numNodes = val; 
   validateNumNodes();
+
+  specialPostProcessingNodes = SpecialNodes{ 0, numNodes, { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 } };
 }
 
 inline double Tentacle2D::getPrevYWeight() const { return basePrevYWeight; }
@@ -304,9 +397,20 @@ inline void Tentacle2D::setDoPrevYWeightAdjust(const bool val) { doPrevYWeightAd
 inline bool Tentacle2D::getDoCurrentYWeightAdjust() const { return doCurrentYWeightAdjust; }
 inline void Tentacle2D::setDoCurrentYWeightAdjust(const bool val) { doCurrentYWeightAdjust = val; }
 
+inline bool Tentacle2D::getPostProcessing() const
+{
+  return doPostProcessing;
+}
+
+inline void Tentacle2D::setPostProcessing(const bool val)
+{
+  doPostProcessing = val;
+}
+
 inline void Tentacle2D::turnOffAllAdjusts()
 {
   setDoDamping(false);
+  setPostProcessing(false);
   setDoPrevYWeightAdjust(false);
   setDoCurrentYWeightAdjust(false);
 }
@@ -314,107 +418,20 @@ inline void Tentacle2D::turnOffAllAdjusts()
 inline void Tentacle2D::turnOnAllAdjusts()
 {
   setDoDamping(true);
+  setPostProcessing(true);
   setDoPrevYWeightAdjust(true);
   setDoCurrentYWeightAdjust(true);
 }
 
-inline void Tentacle2D::resetYVector()
+inline void Tentacle2D::beforeIter()
 {
-  tweaker->resetYVector(ID, iterNum, xvec, yvec);
+  tweaker->beforeIter(ID, iterNum, xvec, yvec);
 }
 
 inline void Tentacle2D::finishIterating()
 {
   startedIterating = false;
 }
-
-inline float Tentacle2D::getFirstY()
-{
-  return std::lerp(yvec[0], iterZeroYVal, iterZeroLerpFactor);
-}
-
-inline float Tentacle2D::getNextY(const size_t nodeNum)
-{
-  const double prevY = yvec[nodeNum-1];
-  const double currentY = yvec[nodeNum];
-
-  if (doCurrentYWeightAdjust) {
-    tweaker->adjustWeightsFunction(ID, iterNum, nodeNum, prevY, currentY);
-  }
-
-  const float prevYWgt = doPrevYWeightAdjust ? tweaker->getNextPrevYWeight() : basePrevYWeight;
-//  logInfo(fmt::format("node {}: prevYWgt = {:.2}, prevYWeight = {:.2}", nodeNum, prevYWgt, basePrevYWeight));
-
-  const float currentYWgt = doCurrentYWeightAdjust ? tweaker->getNextCurrentYWeight() : baseCurrentYWeight;
-//  logInfo(fmt::format("node {}: currentYWgt = {:.2}, currentYWeight = {:.2}", nodeNum, currentYWgt, baseCurrentYWeight));
-
-  return prevYWgt*prevY + currentYWgt*currentY;
-}
-
-inline float Tentacle2D::getDampedY(const size_t nodeNum)
-{
-  if (!doDamping) {
-    return yScale*yvec[nodeNum];
-  }
-  // TODO Should be able to cache damp call ???????????????????????????????????????????????????????????????????????????
-  return yScale*damp(nodeNum)*yvec[nodeNum];
-}
-
-struct V3d {
-  float x = 0;
-  float y = 0;
-  float z = 0;
-  bool ignore = false;
-};
-
-class Tentacle3D {
-public:
-  explicit Tentacle3D(std::unique_ptr<Tentacle2D> t, const V3d& head);
-  explicit Tentacle3D(std::unique_ptr<Tentacle2D> t, const TentacleColorizer& colorizer, const V3d& head);
-  Tentacle3D(Tentacle3D&&);
-  Tentacle3D(const Tentacle3D&)=delete;
-  Tentacle3D& operator=(const Tentacle3D&)=delete;
-
-  Tentacle2D& get2DTentacle() { return *tentacle; }
-  const Tentacle2D& get2DTentacle() const { return *tentacle; }
-  size_t getID() const { return tentacle->getID(); }
-  uint32_t getColor(const size_t nodeNum) const;
-  const V3d& getHead() const { return head; }
-  void setHead(const V3d& val) { head = val; }
-
-  std::vector<V3d> getVertices() const;
-private:
-  std::unique_ptr<Tentacle2D> tentacle;
-  const TentacleColorizer* const colorizer;
-  V3d head;
-};
-
-class Tentacles3D {
-  class Iter {
-  public:
-    Iter(Tentacles3D* const tents, const size_t p): pos(p), tentacles(tents){}
-    bool operator!=(const Iter& other) const { return pos != other.pos; }
-    Tentacle3D& operator*() const;
-    const Iter& operator++(){ ++pos; return *this; }
-  private:
-    size_t pos;
-    Tentacles3D* tentacles;
-  };
-
-public:
-  Tentacles3D();
-
-  void addTentacle(std::unique_ptr<Tentacle2D> t, const V3d& h);
-  void addTentacle(std::unique_ptr<Tentacle2D> t, const TentacleColorizer& colorizer, const V3d& h);
-
-  Iter begin() { return Iter(this, 0); }
-  Iter end() { return Iter(this, tentacles.size()); }
-
-  const Tentacle3D& operator[](const size_t i) const { return tentacles[i]; }
-  Tentacle3D& operator[](const size_t i) { return tentacles[i]; }
-private:
-  std::vector<Tentacle3D> tentacles;
-};
 
 inline Tentacle3D& Tentacles3D::Iter::operator*() const
 {

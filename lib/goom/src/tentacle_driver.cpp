@@ -1,15 +1,15 @@
 #include "tentacle_driver.h"
 
-#include "goom.h"
+#include "colormap.h"
 #include "drawmethods.h"
+#include "goom.h"
 #include "tentacles_new.h"
 #include "v3d.h"
 
 #include <fmt/format.h>
-#include <vivid/vivid.h>
 
-#include <cstdint>
 #include <cmath>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <stack>
@@ -18,29 +18,40 @@
 #include <vector>
 
 
-TentacleColorGroup::TentacleColorGroup(const ColorGroup& colorGrp, const size_t nNodes)
-  : colorGroup{ &colorGrp }
+TentacleColorMapColorizer::TentacleColorMapColorizer(const ColorMap& cm, const size_t nNodes)
+  : origColorMap{ &cm }
+  , colorMap{ &cm }
   , colorStack()
   , numNodes{ nNodes }
 {
 }
 
-void TentacleColorGroup::pushColor(const ColorGroup& col)
+void TentacleColorMapColorizer::resetColorMap(const ColorMap& cm)
 {
-  colorStack.push(colorGroup);
-  colorGroup = &col;
+  origColorMap = &cm;
+  colorMap = &cm;
+  colorStack = std::stack<const ColorMap*>{ };
 }
 
-void TentacleColorGroup::TentacleColorGroup::popColor()
+void TentacleColorMapColorizer::pushColorMap(const ColorMap& cm)
 {
-  colorGroup = colorStack.top();
+  colorStack.push(colorMap);
+  colorMap = &cm;
+}
+
+void TentacleColorMapColorizer::TentacleColorMapColorizer::popColorMap()
+{
+  if (colorStack.empty()) {
+    return;
+  }
+  colorMap = colorStack.top();
   colorStack.pop();
 }
 
-uint32_t TentacleColorGroup::getColor(size_t nodeNum) const
+uint32_t TentacleColorMapColorizer::getColor(size_t nodeNum) const
 {
-  const size_t colorNum = colorGroup->numColors()*nodeNum/numNodes;
-  return colorGroup->getColor(colorNum);
+  const size_t colorNum = colorMap->numColors()*nodeNum/numNodes;
+  return colorMap->getColor(colorNum);
 }
 
 SimpleWeightHandler::SimpleWeightHandler(
@@ -66,6 +77,8 @@ void SimpleWeightHandler::weightsAdjust(
     [[ maybe_unused ]]const size_t iterNum, [[ maybe_unused ]]const size_t nodeNum,
     [[ maybe_unused ]]const float prevY, [[ maybe_unused ]]const float currentY)
 {
+  prevYWeightFunc->setConstVal(basePrevYWeight * getRandInRange(0.8f, 1.2f));
+  currentYWeightFunc->setConstVal(1.0 - prevYWeightFunc->getConstVal());
 }
 
 RandWeightHandler::RandWeightHandler(
@@ -147,66 +160,32 @@ V3d GridTentacleLayout::getNextPosition()
   return pos;
 }
 
-TentacleDriver::TentacleDriver()
+TentacleDriver::TentacleDriver(const ColorMaps& cm)
   : iterParamsGroups{}
-  , colorGroups{}
+  , colorMaps{ &cm }
+  , currentColorMapGroup{ &ColorMaps::getRandomGroup() }
   , colorizers{}
   , constPrevYWeightFunc()
   , constCurrentYWeightFunc()
   , weightsHandler{ constPrevYWeightFunc, constCurrentYWeightFunc }
   , weightsReset{ nullptr }
   , weightsAdjust{ nullptr }
-  , dampingFunc{ nullptr }
   , tentacles{}
-  , tweaker{ nullptr }
   , glitchTimer{ glitchIterLength }
   , glitchColorGroup{ vivid::ColorMap::Preset::Magma }
   , iterTimers{ &glitchTimer }
 {
   const IterParamsGroup iter1 = {
-    { 200, 0.300, 0.700, 1.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
-    { 200, 0.350, 0.650, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
-    { 200, 0.400, 0.600, 1.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
-    { 200, 0.450, 0.550, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
-    { 200, 0.500, 0.500, 1.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
-    { 200, 0.550, 0.450, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
-    { 200, 0.600, 0.400, 1.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
-    { 200, 0.650, 0.350, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
-    { 200, 0.700, 0.300, 1.0, { 1.0, -10.0, +10.0, M_PI }, 60.0 },
-    { 200, 0.750, 0.250, 1.5, { 1.5, -10.0, +10.0,  0.0 }, 40.0 },
-    { 200, 0.800, 0.200, 1.0, { 1.0, -10.0, +10.0, M_PI }, 60.0 },
-    { 200, 0.850, 0.150, 1.5, { 1.5, -10.0, +10.0,  0.0 }, 40.0 },
-    { 200, 0.900, 0.100, 1.0, { 1.0, -10.0, +10.0, M_PI }, 60.0 },
+    { 100, 0.500, 1.0, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
+    { 125, 0.600, 2.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
   };
   const IterParamsGroup iter2 = {
-    { 100, 0.300, 0.700, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
-    { 100, 0.350, 0.650, 1.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
-    { 100, 0.400, 0.600, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
-    { 100, 0.450, 0.550, 1.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
-    { 100, 0.500, 0.500, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
-    { 100, 0.550, 0.450, 1.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
-    { 100, 0.600, 0.400, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
-    { 100, 0.650, 0.350, 1.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
-    { 100, 0.700, 0.300, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
-    { 100, 0.750, 0.250, 1.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
-    { 100, 0.800, 0.200, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
-    { 100, 0.850, 0.150, 1.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
-    { 100, 0.900, 0.100, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
+    { 125, 0.600, 0.5, { 1.0, -10.0, +10.0,  0.0 }, 40.0 },
+    { 150, 0.700, 1.5, { 1.5, -10.0, +10.0, M_PI }, 60.0 },
   };
   const IterParamsGroup iter3 = {
-    { 150, 0.300, 0.700, 1.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
-    { 150, 0.350, 0.650, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
-    { 150, 0.400, 0.600, 1.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
-    { 150, 0.450, 0.550, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
-    { 150, 0.500, 0.500, 1.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
-    { 150, 0.550, 0.450, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
-    { 150, 0.600, 0.400, 1.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
-    { 150, 0.650, 0.350, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
-    { 150, 0.700, 0.300, 1.0, { 1.0, -10.0, +10.0, M_PI }, 60.0 },
-    { 150, 0.750, 0.250, 1.5, { 1.5, -10.0, +10.0,  0.0 }, 40.0 },
-    { 150, 0.800, 0.200, 1.0, { 1.0, -10.0, +10.0, M_PI }, 60.0 },
-    { 150, 0.850, 0.150, 1.5, { 1.5, -10.0, +10.0,  0.0 }, 40.0 },
-    { 150, 0.900, 0.100, 1.0, { 1.0, -10.0, +10.0, M_PI }, 60.0 },
+    { 150, 0.700, 1.5, { 1.5, -10.0, +10.0, M_PI }, 40.0 },
+    { 200, 0.900, 2.5, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
   };
 
   iterParamsGroups = {
@@ -216,106 +195,124 @@ TentacleDriver::TentacleDriver()
   };
 }
 
+constexpr double tent2d_xmin = -30.0;
+constexpr double tent2d_xmax = +30.0;
+constexpr double tent2d_ymin = 0.065736;
+constexpr double tent2d_ymax = 10000;
+
 void TentacleDriver::init()
 {
-  constexpr double tent2d_xmin = -30.0;
-  constexpr double tent2d_xmax = +30.0;
-  constexpr double tent2d_ymin = 0.065736;
-  constexpr double tent2d_ymax = 10000;
+  GridTentacleLayout layout{ -100, 100, xRowLen, -100, 100, numXRows, 0 };
+  assert(layout.getNumPoints() == numTentacles);
+  const ColorMap* specialColorMap = &colorMaps->getRandomColorMap(ColorMaps::getQualitativeMaps());
+  const std::vector<size_t> specialColorNodes = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+  const ColorMap* headColorMap = &colorMaps->getColorMap("red_black_sky");
 
+  const size_t numInTentacleGroup = numTentacles/iterParamsGroups.size();
+  const float tStep = 1.0/float(numInTentacleGroup - 1);
+  size_t paramsIndex = 0;
+  float t = 0;
+  for (size_t i=0; i < numTentacles; i++) {
+    const IterParamsGroup paramsGrp = iterParamsGroups.at(paramsIndex);
+    if (i % numInTentacleGroup == 0) {
+      if (paramsIndex < iterParamsGroups.size()-1) {
+        paramsIndex++;
+      }
+      t = 0;
+    }
+    const IterationParams params = paramsGrp.getNext(t);
+    t += tStep;
+
+    tentacleParams[i] = params;
+
+    std::unique_ptr<TentacleColorMapColorizer> colorizer{
+      new TentacleColorMapColorizer{ colorMaps->getRandomColorMap(*currentColorMapGroup), params.numNodes } };
+    colorizers.push_back(std::move(colorizer));
+
+    std::unique_ptr<Tentacle2D> tentacle2D{ createNewTentacle2D(i, params) };
+
+    const uint32_t headColor = ColorMap::getRandomColor(*headColorMap);
+    const uint32_t headColorLow = ColorMap::getLighterColor(headColor, 50);
+    const V3d headPos = layout.getNextPosition();
+
+    Tentacle3D tentacle{ std::move(tentacle2D), *colorizers[colorizers.size()-1], headColor, headColorLow, headPos };
+
+    tentacle.setSpecialColorNodes(*specialColorMap, specialColorNodes);
+
+    tentacles.addTentacle(std::move(tentacle));
+  }
+
+  updateNum = 0;
+}
+
+TentacleDriver::IterationParams TentacleDriver::IterParamsGroup::getNext(const float t) const
+{
+  const float prevYWeight = getRandInRange(0.9f, 1.1f)*std::lerp(float(first.prevYWeight), float(last.prevYWeight), t);
+  IterationParams params{};
+  params.length = size_t(getRandInRange(0.9f, 1.1f)*std::lerp(float(first.length), float(last.length), t));
+  params.numNodes = size_t(getRandInRange(0.9f, 1.1f)*std::lerp(float(first.numNodes), float(last.numNodes), t));
+  params.prevYWeight = prevYWeight;
+  params.iterZeroYValWave = first.iterZeroYValWave;
+  params.iterZeroYValWaveFreq = getRandInRange(0.9f, 1.1f)*std::lerp(
+                                     float(first.iterZeroYValWaveFreq), float(last.iterZeroYValWaveFreq), t);
+  return params;
+}
+
+std::unique_ptr<Tentacle2D> TentacleDriver::createNewTentacle2D(const size_t ID, const IterationParams& params)
+{
+  const size_t tentacleLen = size_t(getRandInRange(0.9f, 1.1f)*float(params.length));
+  const double xmin = tent2d_xmax - tentacleLen;
+
+  std::unique_ptr<Tentacle2D> tentacle{ new Tentacle2D{ ID, std::move(createNewTweaker(tentacleLen)) } };
+
+  tentacle->setXDimensions(xmin, tent2d_xmax);
+  tentacle->setYDimensions(tent2d_ymin, tent2d_ymax);
+  tentacle->setYScale(0.5);
+
+  tentacle->setPrevYWeight(params.prevYWeight);
+  tentacle->setCurrentYWeight(1.0 - params.prevYWeight);
+  tentacle->setNumNodes(size_t(float(params.numNodes)*getRandInRange(0.9f, 1.1f)));
+
+  tentacle->setDoDamping(true);
+  tentacle->setPostProcessing(false);
+  tentacle->setDoPrevYWeightAdjust(false);
+  tentacle->setDoCurrentYWeightAdjust(false);
+//    tentacle->turnOffAllAdjusts();
+
+  return tentacle;
+}
+
+std::unique_ptr<TentacleTweaker> TentacleDriver::createNewTweaker(const size_t tentacleLen)
+{
   using namespace std::placeholders;
 
-  init_color_groups(colorGroups);
+  const double xmin = tent2d_xmax - tentacleLen;
+  const double xRiseStart = xmin + 0.25*tentacleLen;
+  constexpr double dampStart = 5;
+  constexpr double dampMax = 30;
+
+  std::unique_ptr<ExpDampingFunction> dampingFunc{
+    new ExpDampingFunction{ 1.0, xRiseStart, dampStart, tent2d_xmax, dampMax }
+  };
+
+  //  TentacleTweaker::WeightFunctionsResetter weightsReset =
+  //      std::bind(&RandWeightHandler::weightsReset, &weightsHandler, _1, _2, _3, _4);
+  //  TentacleTweaker::WeightFunctionsAdjuster weightsAdjust =
+  //      std::bind(&RandWeightHandler::weightsAdjust, &weightsHandler, _1, _2, _3, _4);
 
   TentacleTweaker::WeightFunctionsResetter weightsReset =
       std::bind(&SimpleWeightHandler::weightsReset, &weightsHandler, _1, _2, _3, _4);
   TentacleTweaker::WeightFunctionsAdjuster weightsAdjust =
       std::bind(&SimpleWeightHandler::weightsAdjust, &weightsHandler, _1, _2, _3, _4, _5);
 
-//  RandSequenceFunction randPrevYWeightFunc;
-//  RandSequenceFunction randCurrentYWeightFunc;
-//  RandWeightHandler weightsHandler { randPrevYWeightFunc, randCurrentYWeightFunc, 0.9, 1.1 };
-//  TentacleTweaker::WeightFunctionsResetter weightsReset =
-//      std::bind(&RandWeightHandler::weightsReset, &weightsHandler, _1, _2, _3, _4);
-//  TentacleTweaker::WeightFunctionsAdjuster weightsAdjust =
-//      std::bind(&RandWeightHandler::weightsAdjust, &weightsHandler, _1, _2, _3, _4);
-
-  dampingFunc.reset(new ExpDampingFunction{ 1.0, -10.0, 1.5, tent2d_xmax, 20 });
-
-  tweaker.reset(new TentacleTweaker{
-    dampingFunc.get(),
-    std::bind(&TentacleDriver::resetYVec, this, _1, _2, _3, _4),
+  return std::unique_ptr<TentacleTweaker>{ new TentacleTweaker {
+    std::move(dampingFunc),
+    std::bind(&TentacleDriver::beforeIter, this, _1, _2, _3, _4),
     &(weightsHandler.getPrevYWeightFunc()),
     &(weightsHandler.getCurrentYWeightFunc()),
     weightsReset,
     weightsAdjust
-  });
-
-  GridTentacleLayout layout{ -100, 100, xRowLen, -100, 100, mult, 0 };
-  assert(layout.getNumPoints() == numTentacles);
-
-  for (size_t i=0; i < numTentacles; i++) {
-    std::unique_ptr<Tentacle2D> tentacle{ new Tentacle2D{ i, tweaker.get() } };
-
-    const IterParamsGroup paramsGrp = iterParamsGroups[getRandInRange(0, iterParamsGroups.size())];
-    const IterationParams param = paramsGrp[getRandInRange(0, paramsGrp.size())];
-
-    const double xmin = tent2d_xmax - param.length;
-    const double xmax = tent2d_xmax;
-    tentacle->setXDimensions(xmin, xmax);
-    tentacle->setYDimensions(tent2d_ymin, tent2d_ymax);
-    tentacle->setYScale(0.5);
-
-    tentacle->setPrevYWeight(param.prevYWeight);
-    tentacle->setCurrentYWeight(param.currentYWeight);
-    tentacle->setNumNodes(param.numNodes);
-
-    tentacleParams[i] = param;
-
-    tentacle->setDoDamping(true);
-    tentacle->setDoPrevYWeightAdjust(false);
-    tentacle->setDoCurrentYWeightAdjust(false);
-//    tentacle->turnOffAllAdjusts();
-
-    std::unique_ptr<TentacleColorGroup> colorizer{
-      new TentacleColorGroup(colorGroups[i % colorGroups.size()], param.numNodes) };
-    colorizers.push_back(std::move(colorizer));
-
-    const V3d pos = layout.getNextPosition();
-    tentacles.addTentacle(std::move(tentacle), *colorizers[colorizers.size()-1], pos);
-  }
-
-  updateNum = 0;
-}
-
-void TentacleDriver::init_color_groups(std::vector<ColorGroup>& colorGroups)
-{
-  static const std::vector<vivid::ColorMap::Preset> cmaps = {
-    vivid::ColorMap::Preset::BlueYellow,
-    vivid::ColorMap::Preset::CoolWarm,
-    vivid::ColorMap::Preset::Hsl,
-    vivid::ColorMap::Preset::HslPastel,
-    vivid::ColorMap::Preset::Inferno,
-    vivid::ColorMap::Preset::Magma,
-    vivid::ColorMap::Preset::Plasma,
-    vivid::ColorMap::Preset::Rainbow,
-    vivid::ColorMap::Preset::Turbo,
-    vivid::ColorMap::Preset::Viridis,
-    vivid::ColorMap::Preset::Vivid
-  };
-  for (const auto& cm : cmaps) {
-    colorGroups.push_back(ColorGroup(cm));
-  }
-}
-
-const ColorGroup& TentacleDriver::getRandomColorGroup() const
-{
-  return colorGroups[getRandInRange(0, colorGroups.size())];
-}
-
-uint32_t TentacleDriver::getRandomColor(const ColorGroup& cg) const
-{
-  return cg.getColor(getRandInRange(0, cg.numColors()));
+  }};
 }
 
 void TentacleDriver::startIterating()
@@ -340,6 +337,19 @@ void TentacleDriver::multiplyIterZeroYValWaveFreq(const float val)
   }
 }
 
+void TentacleDriver::setGlitchValues(const float lower, const float upper)
+{
+  glitchLower = lower;
+  glitchUpper = upper;
+}
+
+void TentacleDriver::setReverseColorMix(const bool val)
+{
+  for (auto& t : tentacles) {
+    t.setReverseColorMix(val);
+  }
+}
+
 void TentacleDriver::updateIterTimers()
 {
   for (auto t : iterTimers) {
@@ -347,39 +357,16 @@ void TentacleDriver::updateIterTimers()
   }
 }
 
-void TentacleDriver::resetYVec(
-    const size_t ID, const size_t iterNum, const std::vector<double>& xvec, std::vector<double>& yvec)
-{
-  if (iterNum == 1) {
-    for (size_t i=0; i < xvec.size(); i++) {
-      yvec[i] = (*dampingFunc)(xvec[i]);
-    }
-  }
-  if (glitchTimer.getCurrentCount() > 0) {
-//    logInfo(fmt::format("iter = {} and tentacle {} and resetGlitchTimer.getCurrentCount() = {}.",
-//        iterNum, ID, glitchTimer.getCurrentCount()));
-    if (glitchTimer.atStart()) {
-      constexpr float lower = -1.5;
-      constexpr float upper = +1.5;
-      for (double& y : yvec) {
-        y += getRandInRange(lower, upper);
-      }
-//      logInfo(fmt::format("Pushing color for iter = {} and tentacle {}.", iterNum, ID));
-      colorizers[ID]->pushColor(glitchColorGroup);
-    } else if (glitchTimer.getCurrentCount() == 1) {
-//      logInfo(fmt::format("Popping color for iter = {} and tentacle {}.", iterNum, ID));
-      colorizers[ID]->popColor();
-    }
-  }
-}
-
 void TentacleDriver::checkForTimerEvents()
 {
 //  logInfo(fmt::format("Update num = {}: checkForTimerEvents", updateNum));
+
+  /**
   if (updateNum % doGlitchEveryNUpdates == 0) {
 //    logInfo(fmt::format("Update num = {}: starting glitchTimer.", updateNum));
     glitchTimer.start();
   }
+  **/
   /**
   if (updateNum % doDominantColorEveryNUpdates == 0) {
     if (updateNum % (2*doDominantColorEveryNUpdates) == 0) {
@@ -394,12 +381,51 @@ void TentacleDriver::checkForTimerEvents()
   **/
 }
 
+void TentacleDriver::beforeIter(
+    const size_t ID, const size_t iterNum, const std::vector<double>& xvec, std::vector<double>& yvec)
+{
+  if (iterNum == 1) {
+    for (size_t i=0; i < xvec.size(); i++) {
+//      yvec[i] = (*dampingFunc)(xvec[i]);
+      yvec[i] = getRandInRange(-10.0f, +10.0f);
+    }
+  }
+
+  if ((std::fabs(glitchUpper - glitchLower) > 0.001) && (glitchTimer.getCurrentCount() > 0)) {
+    for (double& y : yvec) {
+      y += getRandInRange(glitchLower, glitchUpper);
+    }
+    /**
+//    logInfo(fmt::format("iter = {} and tentacle {} and resetGlitchTimer.getCurrentCount() = {}.",
+//        iterNum, ID, glitchTimer.getCurrentCount()));
+    if (glitchTimer.atStart()) {
+      for (double& y : yvec) {
+        y += getRandInRange(glitchLower, glitchUpper);
+      }
+//      logInfo(fmt::format("Pushing color for iter = {} and tentacle {}.", iterNum, ID));
+      colorizers[ID]->pushColorMap(glitchColorGroup);
+    } else if (glitchTimer.getCurrentCount() == 1) {
+//      logInfo(fmt::format("Popping color for iter = {} and tentacle {}.", iterNum, ID));
+      colorizers[ID]->popColorMap();
+    }
+    **/
+  }
+
+  if (iterNum % changeTentacleColorMapEveryNUpdates == 0) {
+    colorizers[ID]->resetColorMap(colorMaps->getRandomColorMap(*currentColorMapGroup));
+  }
+}
+
 void TentacleDriver::update(const float angle,
     const float distance, const float distance2,
     const uint32_t color, const uint32_t colorLow, Pixel* frontBuff, Pixel* backBuff)
 {
   updateNum++;
 //  logInfo(fmt::format("Doing update {}.", updateNum));
+
+  if (updateNum % changeCurrentColorMapGroupEveryNUpdates == 0) {
+    currentColorMapGroup = &ColorMaps::getRandomGroup();
+  }
 
   updateIterTimers();
   checkForTimerEvents();
@@ -459,15 +485,12 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
     } else {
 //      logInfo(fmt::format("draw_line {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}, color = {}.",
 //          i, ix0, iy0, ix1, iy1, color));
-      const size_t numNodes = tentacle.get2DTentacle().getNumNodes();
-      const uint32_t tentacleColor = tentacle.getColor(i);
-      const uint32_t color = getColorMix(i, numNodes, tentacleColor, dominantColor);
-      const uint32_t colorLow = getColorMix(i, numNodes, tentacleColor, dominantColorLow);
+      const auto [color, colorLow] = tentacle.getMixedColors(i, dominantColor, dominantColorLow);
       const std::vector<_PIXEL> colors = { { .val = color }, { .val = colorLow } };
 
       Pixel* buffs[2] = { frontBuff, backBuff };
       // TODO - Control brightness because of back buff??
-      // One buff may be better????? Make lighten more agressive over whole tentacle??
+      // One buff may be better????? Make lighten more aggressive over whole tentacle??
 //      draw_line(frontBuff, ix0, iy0, ix1, iy1, color, 1280, 720);
       draw_line(std::size(buffs), buffs, colors, ix0, iy0, ix1, iy1, 1280, 720);
     }
@@ -510,24 +533,4 @@ void TentacleDriver::project_v3d_to_v2d(const std::vector<V3d>& v3, std::vector<
 //      logInfo(fmt::format("project_v3d_to_v2d {}: v2[i].x = {}, v2[i].y = {}.", i, v2[i].x, v2[i].y));
     }
   }
-}
-
-inline uint32_t TentacleDriver::getColorMix(const size_t nodeNum, const size_t numNodes,
-                                            const uint32_t segmentColor, const uint32_t dominantColor)
-{
-  const auto tFac = [&](const size_t nodeNum) -> float {
-    return float(nodeNum+1)/float(numNodes);
-  };
-
-  const float t = tFac(nodeNum);
-  const uint32_t col = colorMix(dominantColor, segmentColor, t);
-
-  return col;
-}
-
-inline uint32_t TentacleDriver::colorMix(const uint32_t col1, const uint32_t col2, const float t)
-{
-  const vivid::rgb_t c1 = vivid::rgb::fromRgb32(col1);
-  const vivid::rgb_t c2 = vivid::rgb::fromRgb32(col2);
-  return vivid::lerpHsl(c1, c2, t).rgb32();
 }

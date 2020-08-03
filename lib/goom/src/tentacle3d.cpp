@@ -1,32 +1,31 @@
 #include "tentacle3d.h"
 
+#include "colormap.h"
 #include "goom.h"
 #include "goom_config.h"
 #include "goom_plugin_info.h"
 #include "goom_tools.h"
 #include "surf3d.h"
-#include "v3d.h"
-#include "tentacles_new.h"
 #include "tentacle_driver.h"
+#include "tentacles_new.h"
+#include "v3d.h"
 //#include "SimplexNoise.h"
 
-#include <vivid/vivid.h>
-#include <algorithm>
 #include <cstdint>
 #include <cmath>
-#include <memory>
 #include <tuple>
 #include <vector>
 
 class TentaclesWrapper {
 public:
-  TentaclesWrapper();
+  explicit TentaclesWrapper(const ColorMaps& cm);
   void update(PluginInfo* goomInfo, Pixel* buf, Pixel* back,
               gint16 data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
               float accelvar, int drawit, TentacleFXData* fx_data);
 private:
+  const ColorMaps* colorMaps;
+  const ColorMap *dominantColorGroup;
   TentacleDriver driver;
-  const ColorGroup *dominantColorGroup;
   void pretty_move(PluginInfo* goomInfo, float cycle, float* dist, float* dist2,
                    float* rotangle, TentacleFXData* fx_data);
   std::tuple<uint32_t, uint32_t> getModColors(PluginInfo* goomInfo, TentacleFXData* fx_data);
@@ -37,11 +36,12 @@ private:
   std::vector<float> getGridZeroAdditiveValues(PluginInfo* goomInfo, const float rapport);
 };
 
-TentaclesWrapper::TentaclesWrapper()
-  : driver{}
+TentaclesWrapper::TentaclesWrapper(const ColorMaps& cm)
+  : colorMaps{ &cm }
+  , dominantColorGroup{ &colorMaps->getRandomColorMap() }
+  , driver{ *colorMaps }
 {
   driver.init();
-  dominantColorGroup = &driver.getRandomColorGroup();
   driver.startIterating();
 }
 
@@ -95,12 +95,22 @@ void TentaclesWrapper::update(PluginInfo* goomInfo, Pixel* buf, Pixel* back,
 
     const auto [modColor, modColorLow] = getModColors(goomInfo, fx_data);
 
+    if (modAccelvar < 0.7) {
+      driver.setGlitchValues(0.0, 0.0);
+      driver.setReverseColorMix(false);
+    } else {
+      const float glitchLength = modAccelvar*getRandInRange(0.3f, 2.0f);
+      driver.setGlitchValues(-0.5*glitchLength, +0.5*glitchLength);
+// Reversing seems too jarring
+//      driver.setReverseColorMix(true);
+    }
+
     const float rapport = getRapport(modAccelvar);
     //const float nx_div2 = 0.5 * float(num_x);
     // NOTE: Putting vals outside loop gives same variation per grid.
-    const std::vector<float> vals = getGridZeroAdditiveValues(goomInfo, rapport);
+//    const std::vector<float> vals = getGridZeroAdditiveValues(goomInfo, rapport);
 
-    driver.multiplyIterZeroYValWaveFreq(0.5 + modAccelvar);
+    driver.multiplyIterZeroYValWaveFreq(1.0/(1.20 - modAccelvar));
 
     fx_data->cycle += 0.01f;
 //    updateColors(goomInfo, fx_data);
@@ -176,6 +186,7 @@ void TentaclesWrapper::pretty_move(PluginInfo* goomInfo, float cycle, float* dis
   }
 }
 
+/**
 std::vector<float> TentaclesWrapper::getGridZeroAdditiveValues(PluginInfo* goomInfo, const float rapport)
 {
   const float val = 1.7*(goom_irand(goomInfo->gRandom, 101)/100.0) * rapport;
@@ -191,11 +202,12 @@ std::vector<float> TentaclesWrapper::getGridZeroAdditiveValues(PluginInfo* goomI
   }
   return vals;
 }
+***/
 
 inline std::tuple<uint32_t, uint32_t> TentaclesWrapper::getModColors(PluginInfo* goomInfo, TentacleFXData* fx_data)
 {
   if (fx_data->happens) {
-    dominantColorGroup = &driver.getRandomColorGroup();
+    dominantColorGroup = &colorMaps->getRandomColorMap();
   }
 
   if ((fx_data->lig > 10.0f) || (fx_data->lig < 1.1f)) {
@@ -205,7 +217,7 @@ inline std::tuple<uint32_t, uint32_t> TentaclesWrapper::getModColors(PluginInfo*
   if ((fx_data->lig < 6.3f) && (goom_irand(goomInfo->gRandom, 30) == 0)) {
 //    fx_data->dstcol = (int)goom_irand(goomInfo->gRandom, NUM_TENTACLE_COLORS);
 //    fx_data->dstcol = (int)goom_irand(goomInfo->gRandom, modColorGroup->numColors()); // TODO Make numColors a constexpr
-    fx_data->col = driver.getRandomColor(*dominantColorGroup);
+    fx_data->col = ColorMap::getRandomColor(*dominantColorGroup);
   }
 
   fx_data->col = getEvolvedColor(fx_data->col);
@@ -288,7 +300,7 @@ void tentacle_fx_init(VisualFX* _this, PluginInfo* info)
 {
   TentacleFXData* data = (TentacleFXData*)malloc(sizeof(TentacleFXData));
 
-  data->tentacles = new TentaclesWrapper{};
+  data->tentacles = new TentaclesWrapper{ *info->colorMaps };
 
   data->enabled_bp = secure_b_param("Enabled", 1);
   data->params = plugin_parameters("3D Tentacles", 1);

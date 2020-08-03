@@ -27,12 +27,14 @@ add_subdirectory(lib/goom)
 
 
 # Better way to do this??
+set(VIVID_INCLUDE_DIR "/home/greg/Prj/github/vivid/include")
 set(VIVID_LIB "/home/greg/Prj/github/vivid/build/libvivid.a")
 set(UTILS_LIB "/home/greg/Prj/github/xbmc/visualization.goom.testing/build/libs/utils/libutils.a")
 
 
 include_directories(${includes}
                     ${GLM_INCLUDE_DIR}
+                    ${VIVID_INCLUDE_DIR}
                     ${KODI_INCLUDE_DIR}/.. # Hack way with "/..", need bigger Kodi cmake rework to match right include ways (becomes done in future)
                     ${PROJECT_SOURCE_DIR}/lib
                     ${PROJECT_SOURCE_DIR}/lib/goom/src)

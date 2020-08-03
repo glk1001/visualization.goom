@@ -1,6 +1,7 @@
 #ifndef _GOOM_PLUGIN_INFO_H
 #define _GOOM_PLUGIN_INFO_H
 
+#include "colormap.h"
 #include "filters.h"
 #include "goom_config.h"
 #include "goom_config_param.h"
@@ -80,6 +81,7 @@ struct _PLUGIN_INFO {
     int size; /* == screen.height * screen.width. */
   } screen;
 
+  ColorMaps* colorMaps;
   SoundInfo sound;
 
   int nbVisuals;

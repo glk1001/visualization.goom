@@ -192,7 +192,7 @@ void goom_lines_free(GMLine** l)
 
 static inline float getNormalizedData(PluginInfo* goomInfo, short data)
 {
-  return (float)((MAX_NORMALIZED_PEAK * data) / goomInfo->sound.allTimesMax);
+  return float((MAX_NORMALIZED_PEAK * data) / goomInfo->sound.allTimesMax);
 }
 
 void goom_lines_draw(PluginInfo* goomInfo, GMLine* line, const gint16 data[AUDIO_SAMPLE_LEN],
@@ -206,6 +206,8 @@ void goom_lines_draw(PluginInfo* goomInfo, GMLine* line, const gint16 data[AUDIO
     const float sina = sin(pt->angle) / 1000.0f;
 
     lightencolor(&color, line->power);
+
+    const uint32_t randColor = ColorMap::getRandomColor(goomInfo->colorMaps->getRandomColorMap());
 
     const float fdata = getNormalizedData(goomInfo, data[0]);
     int x1 = (int)(pt->x + cosa * line->amplitude * fdata);
@@ -221,7 +223,10 @@ void goom_lines_draw(PluginInfo* goomInfo, GMLine* line, const gint16 data[AUDIO
       const int x2 = (int)(pt->x + cosa * line->amplitude * fdata);
       const int y2 = (int)(pt->y + sina * line->amplitude * fdata);
 
-      goomInfo->methods.draw_line(p, x1, y1, x2, y2, color, line->screenX, line->screenY);
+      const float t = fdata/MAX_NORMALIZED_PEAK;
+      const uint32_t modColor = ColorMap::colorMix(color, randColor, t);
+
+      goomInfo->methods.draw_line(p, x1, y1, x2, y2, modColor, line->screenX, line->screenY);
 
       x1 = x2;
       y1 = y2;

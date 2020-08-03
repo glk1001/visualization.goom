@@ -7,6 +7,7 @@
  * (c)2000-2003, by iOS-software.
  */
 
+#include "colormap.h"
 #include "filters.h"
 #include "gfontlib.h"
 #include "goom.h"
@@ -63,6 +64,8 @@ PluginInfo* goom_init(guint32 resx, guint32 resy, int seed)
   PluginInfo* goomInfo = (PluginInfo*)malloc(sizeof(PluginInfo));
 
   plugin_info_init(goomInfo, 5);
+
+  goomInfo->colorMaps = new ColorMaps{ };
 
   goomInfo->star_fx = flying_star_create();
   goomInfo->zoomFilter_fx = zoomFilterVisualFXWrapper_create();
@@ -295,6 +298,9 @@ void goom_close(PluginInfo* goomInfo)
   if (goomInfo->conv != NULL) {
     free(goomInfo->conv);
   }
+
+  delete goomInfo->colorMaps;
+  goomInfo->colorMaps = nullptr;
 
   goomInfo->pixel = goomInfo->back = NULL;
   goomInfo->conv = NULL;
