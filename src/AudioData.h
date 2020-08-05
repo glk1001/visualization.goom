@@ -8,10 +8,8 @@ extern "C" {
   #include "goom_config.h"
 }
 #else
-extern "C" {
   #include "goom/goom.h"
   #include "goom/goom_config.h"
-}
 #endif
 
 static inline int16_t FloatToInt16(float f)
