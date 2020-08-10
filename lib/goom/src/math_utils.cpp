@@ -1,6 +1,6 @@
 #include "math_utils.h"
 
-#include <fmt/format.h>
+#include <format>
 
 #include <cmath>
 #include <stdexcept>
@@ -53,13 +53,13 @@ ExpDampingFunction::ExpDampingFunction(
 {
   constexpr double minAmp = 0.00001;
   if (std::fabs(amplitude) < minAmp) {
-    throw std::runtime_error(fmt::format("abs(amplitude) should be >= {}, not {}.", minAmp, amplitude));
+    throw std::runtime_error(stdnew::format("abs(amplitude) should be >= {}, not {}.", minAmp, amplitude));
   }
   if (yAtStartToRise <= amplitude) {
-    throw std::runtime_error(fmt::format("yAtStartToRise should be > {} = amplitude, not {}.", amplitude, yAtStartToRise));
+    throw std::runtime_error(stdnew::format("yAtStartToRise should be > {} = amplitude, not {}.", amplitude, yAtStartToRise));
   }
   if (yAtXMax <= amplitude) {
-    throw std::runtime_error(fmt::format("yAtXMax should be > {} = amplitude, not {}.", amplitude, yAtXMax));
+    throw std::runtime_error(stdnew::format("yAtXMax should be > {} = amplitude, not {}.", amplitude, yAtXMax));
   }
   const double y0 = yAtStartToRise/amplitude - 1.0;
   const double y1 = yAtXMax/amplitude - 1.0;
@@ -106,7 +106,7 @@ SineWaveMultiplier::SineWaveMultiplier(const float freq, const float lwr, const 
 float SineWaveMultiplier::getNext()
 {
   const float val = rangeMapper(lower, upper, sin(frequency*x));
-  //logInfo(fmt::format("lower = {}, upper = {}, sin({}) = {}.", lower, upper, x, val));
+  //logInfo(stdnew::format("lower = {}, upper = {}, sin({}) = {}.", lower, upper, x, val));
   x += piStepFrac*M_PI;
   return val;
 }

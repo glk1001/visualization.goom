@@ -108,7 +108,7 @@ const std::vector<std::string>& ColorMaps::getUngroupedMaps()
 ColorMap::ColorMap(const vivid::ColorMap::Preset preset)
   : colors(NumColors)
 {
-//  logInfo(fmt::format("preset = {}", preset));
+//  logInfo(stdnew::format("preset = {}", preset));
   const vivid::ColorMap cmap(preset);
   for (size_t i=0 ; i < NumColors; i++) {
     const float t = i / (NumColors - 1.0f);

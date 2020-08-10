@@ -24,20 +24,15 @@ else()
 endif()
 
 add_subdirectory(lib/goom)
-
-
-# Better way to do this??
-set(VIVID_INCLUDE_DIR "/home/greg/Prj/github/vivid/include")
-set(VIVID_LIB "/home/greg/Prj/github/vivid/build/libvivid.a")
-set(UTILS_LIB "/home/greg/Prj/github/xbmc/visualization.goom.testing/build/libs/utils/libutils.a")
-
+add_subdirectory(lib/vivid)
 
 include_directories(${includes}
                     ${GLM_INCLUDE_DIR}
-                    ${VIVID_INCLUDE_DIR}
                     ${KODI_INCLUDE_DIR}/.. # Hack way with "/..", need bigger Kodi cmake rework to match right include ways (becomes done in future)
                     ${PROJECT_SOURCE_DIR}/lib
-                    ${PROJECT_SOURCE_DIR}/lib/goom/src)
+                    ${PROJECT_SOURCE_DIR}/lib/goom/src
+                    ${PROJECT_SOURCE_DIR}/lib/vivid/include
+                    ${PROJECT_SOURCE_DIR}/lib/fmt/include)
 
 set(GOOM_SOURCES src/Main.cpp)
 
@@ -50,7 +45,7 @@ if ($ENV{DO_TESTING})
   include(../visualization.goom.testing/goom_testing)
 endif()
 
-list(APPEND DEPLIBS ${UTILS_LIB} goom ${UTILS_LIB} ${VIVID_LIB})
+list(APPEND DEPLIBS goom vivid)
 
 build_addon(visualization.goom GOOM DEPLIBS)
 

@@ -6,10 +6,9 @@
 #include "tentacles_new.h"
 #include "v3d.h"
 
-#include <fmt/format.h>
-
 #include <cmath>
 #include <cstdint>
+#include <format>
 #include <functional>
 #include <memory>
 #include <stack>
@@ -149,7 +148,7 @@ bool GridTentacleLayout::finished() const
 V3d GridTentacleLayout::getNextPosition()
 {
   if (y > ymax) {
-    throw std::runtime_error(fmt::format("y out of bounds: {} > {}.", y, ymax));
+    throw std::runtime_error(stdnew::format("y out of bounds: {} > {}.", y, ymax));
   }
   const V3d pos = { x, y, zConst };
   x += xStep;
@@ -359,22 +358,22 @@ void TentacleDriver::updateIterTimers()
 
 void TentacleDriver::checkForTimerEvents()
 {
-//  logInfo(fmt::format("Update num = {}: checkForTimerEvents", updateNum));
+//  logInfo(stdnew::format("Update num = {}: checkForTimerEvents", updateNum));
 
   /**
   if (updateNum % doGlitchEveryNUpdates == 0) {
-//    logInfo(fmt::format("Update num = {}: starting glitchTimer.", updateNum));
+//    logInfo(stdnew::format("Update num = {}: starting glitchTimer.", updateNum));
     glitchTimer.start();
   }
   **/
   /**
   if (updateNum % doDominantColorEveryNUpdates == 0) {
     if (updateNum % (2*doDominantColorEveryNUpdates) == 0) {
-      logInfo(fmt::format("Update num = {}: get new dominantColor", updateNum));
+      logInfo(stdnew::format("Update num = {}: get new dominantColor", updateNum));
       dominantColorGroup = &getRandomColorGroup();
-      logInfo(fmt::format("Update num = {}: got new dominantColorGroup", updateNum));
+      logInfo(stdnew::format("Update num = {}: got new dominantColorGroup", updateNum));
       dominantColor = getRandomColor(*dominantColorGroup);
-      logInfo(fmt::format("Update num = {}: new dominantColor = {}", updateNum, dominantColor));
+      logInfo(stdnew::format("Update num = {}: new dominantColor = {}", updateNum, dominantColor));
     }
     dominantColor = getEvolvedColor(dominantColor);
   }
@@ -396,16 +395,16 @@ void TentacleDriver::beforeIter(
       y += getRandInRange(glitchLower, glitchUpper);
     }
     /**
-//    logInfo(fmt::format("iter = {} and tentacle {} and resetGlitchTimer.getCurrentCount() = {}.",
+//    logInfo(stdnew::format("iter = {} and tentacle {} and resetGlitchTimer.getCurrentCount() = {}.",
 //        iterNum, ID, glitchTimer.getCurrentCount()));
     if (glitchTimer.atStart()) {
       for (double& y : yvec) {
         y += getRandInRange(glitchLower, glitchUpper);
       }
-//      logInfo(fmt::format("Pushing color for iter = {} and tentacle {}.", iterNum, ID));
+//      logInfo(stdnew::format("Pushing color for iter = {} and tentacle {}.", iterNum, ID));
       colorizers[ID]->pushColorMap(glitchColorGroup);
     } else if (glitchTimer.getCurrentCount() == 1) {
-//      logInfo(fmt::format("Popping color for iter = {} and tentacle {}.", iterNum, ID));
+//      logInfo(stdnew::format("Popping color for iter = {} and tentacle {}.", iterNum, ID));
       colorizers[ID]->popColorMap();
     }
     **/
@@ -421,7 +420,7 @@ void TentacleDriver::update(const float angle,
     const uint32_t color, const uint32_t colorLow, Pixel* frontBuff, Pixel* backBuff)
 {
   updateNum++;
-//  logInfo(fmt::format("Doing update {}.", updateNum));
+//  logInfo(stdnew::format("Doing update {}.", updateNum));
 
   if (updateNum % changeCurrentColorMapGroupEveryNUpdates == 0) {
     currentColorMapGroup = &ColorMaps::getRandomGroup();
@@ -440,10 +439,10 @@ void TentacleDriver::update(const float angle,
     tentacle2D.setIterZeroLerpFactor(iterZeroLerpFactor);
     tentacle2D.setIterZeroYVal(iterZeroYVal);
 
-//    logInfo(fmt::format("Starting iterate {} for tentacle {}.", tentacle2D.getIterNum()+1, tentacle2D.getID()));
+//    logInfo(stdnew::format("Starting iterate {} for tentacle {}.", tentacle2D.getIterNum()+1, tentacle2D.getID()));
     tentacle2D.iterate();
 
-//    logInfo(fmt::format("Update num = {}, tentacle = {}, doing plot with angle = {}, "
+//    logInfo(stdnew::format("Update num = {}, tentacle = {}, doing plot with angle = {}, "
 //        "distance = {}, distance2 = {}, color = {} and colorLow = {}.",
 //        updateNum, tentacle2D.getID(), angle, distance, distance2, color, colorLow));
     plot3D(tentacle, color, colorLow, angle, distance, distance2, frontBuff, backBuff);
@@ -480,10 +479,10 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
     const int iy1 = int(v2[i+1].y);
 
     if ((ix0 == ix1) && (iy0 == iy1)) {
-//      logInfo(fmt::format("Skipping draw {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}, color = {}.",
+//      logInfo(stdnew::format("Skipping draw {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}, color = {}.",
 //          i, ix0, iy0, ix1, iy1, color));
     } else {
-//      logInfo(fmt::format("draw_line {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}, color = {}.",
+//      logInfo(stdnew::format("draw_line {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}, color = {}.",
 //          i, ix0, iy0, ix1, iy1, color));
       const auto [color, colorLow] = tentacle.getMixedColors(i, dominantColor, dominantColorLow);
       const std::vector<_PIXEL> colors = { { .val = color }, { .val = colorLow } };
@@ -519,18 +518,18 @@ void TentacleDriver::project_v3d_to_v2d(const std::vector<V3d>& v3, std::vector<
   constexpr int height = 720;
 
   for (size_t i = 0; i < v3.size(); ++i) {
-//    logInfo(fmt::format("project_v3d_to_v2d {}: v3[i].x = {}, v3[i].y = {}, v2[i].z = {}.",
+//    logInfo(stdnew::format("project_v3d_to_v2d {}: v3[i].x = {}, v3[i].y = {}, v2[i].z = {}.",
 //        i, v3[i].x, v3[i].y, v3[i].z));
     if (!v3[i].ignore && (v3[i].z > 2)) {
       const int Xp = (int)(distance * v3[i].x / v3[i].z);
       const int Yp = (int)(distance * v3[i].y / v3[i].z);
       v2[i].x = Xp + (width >> 1);
       v2[i].y = -Yp + (height >> 1);
-//      logInfo(fmt::format("project_v3d_to_v2d {}: Xp = {}, Yp = {}, v2[i].x = {}, v2[i].y = {}.",
+//      logInfo(stdnew::format("project_v3d_to_v2d {}: Xp = {}, Yp = {}, v2[i].x = {}, v2[i].y = {}.",
 //          i, Xp, Yp, v2[i].x, v2[i].y));
     } else {
       v2[i].x = v2[i].y = coordIgnoreVal;
-//      logInfo(fmt::format("project_v3d_to_v2d {}: v2[i].x = {}, v2[i].y = {}.", i, v2[i].x, v2[i].y));
+//      logInfo(stdnew::format("project_v3d_to_v2d {}: v2[i].x = {}, v2[i].y = {}.", i, v2[i].x, v2[i].y));
     }
   }
 }

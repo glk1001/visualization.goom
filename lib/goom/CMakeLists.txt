@@ -43,18 +43,14 @@ add_library(${PROJECT_NAME} STATIC
 
 add_library(libs::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
-# How to include this????? Duplicated as well.
-set(VIVID_INCLUDE_DIR "/home/greg/Prj/github/vivid/include")
-set(UTILS_INCLUDE_DIR "/home/greg/Prj/github/xbmc/visualization.goom.testing/libs/utils/include")
-
 target_include_directories(${PROJECT_NAME}
     PUBLIC
         $<INSTALL_INTERFACE:include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     PRIVATE
-        ${UTILS_INCLUDE_DIR}
-        ${VIVID_INCLUDE_DIR}      
         ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/lib/vivid/include
+        ${CMAKE_SOURCE_DIR}/lib/fmt/include
 )
 
 message(STATUS "Goom compile features = \"${COMMON_C_COMPILE_FEATURES}\".")
@@ -70,7 +66,5 @@ target_compile_options(${PROJECT_NAME}
 )
 
 set_property(TARGET goom PROPERTY POSITION_INDEPENDENT_CODE ON)
-#set_property(TARGET goom PROPERTY C_STANDARD 11)
 set_property(TARGET goom PROPERTY CXX_STANDARD 20)
-#set_property(TARGET goom PROPERTY LANGUAGE CXX)
 set_source_files_properties(${SRCE_FILES} PROPERTIES LANGUAGE CXX )

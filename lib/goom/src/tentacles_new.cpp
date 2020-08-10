@@ -3,13 +3,11 @@
 #include "colormap.h"
 #include "math_utils.h"
 
-#include <algorithm>
-#include <fmt/format.h>
-
-//#include <fmt/format.h>
 //#include <utils/goom_loggers.hpp>
+#include <algorithm>
 #include <assert.h>
 #include <cmath>
+#include <format>
 #include <functional>
 #include <limits>
 #include <memory>
@@ -62,42 +60,42 @@ void Tentacle2D::validateSettings() const
 void Tentacle2D::validateXDimensions() const
 {
   if (xmax <= xmin) {
-    throw std::runtime_error(fmt::format("xmax must be > xmin, not ({}, {}).", xmin, xmax));
+    throw std::runtime_error(stdnew::format("xmax must be > xmin, not ({}, {}).", xmin, xmax));
   }
 }
 
 void Tentacle2D::validateYDimensions() const
 {
   if (ymax <= ymin) {
-    throw std::runtime_error(fmt::format("ymax must be > ymin, not ({}, {}).", ymin, ymax));
+    throw std::runtime_error(stdnew::format("ymax must be > ymin, not ({}, {}).", ymin, ymax));
   }
 }
 
 void Tentacle2D::validateNumNodes() const
 {
   if (numNodes < minNumNodes) {
-    throw std::runtime_error(fmt::format("numNodes must be >= {}, not {}.", minNumNodes, numNodes));
+    throw std::runtime_error(stdnew::format("numNodes must be >= {}, not {}.", minNumNodes, numNodes));
   }
 }
 
 void Tentacle2D::validateYScale() const
 {
   if (yScale < 0.00001) {
-    throw std::runtime_error(fmt::format("yScale must be >= 0.00001, not {}.", yScale));
+    throw std::runtime_error(stdnew::format("yScale must be >= 0.00001, not {}.", yScale));
   }
 }
 
 void Tentacle2D::validatePrevYWeight() const
 {
   if (basePrevYWeight < 0.001) {
-    throw std::runtime_error(fmt::format("prevYWeight must be >= 0.001, not {}.", basePrevYWeight));
+    throw std::runtime_error(stdnew::format("prevYWeight must be >= 0.001, not {}.", basePrevYWeight));
   }
 }
 
 void Tentacle2D::validateCurrentYWeight() const
 {
   if (baseCurrentYWeight < 0.001) {
-    throw std::runtime_error(fmt::format("currentYWeight must be >= 0.001, not {}.", baseCurrentYWeight));
+    throw std::runtime_error(stdnew::format("currentYWeight must be >= 0.001, not {}.", baseCurrentYWeight));
   }
 }
 
@@ -110,7 +108,7 @@ void Tentacle2D::iterateNTimes(const size_t n)
 {
   startIterating();
   for (size_t i=0; i < n; i++) {
-//    logInfo(fmt::format("Iteration: {}", i+1));
+//    logInfo(stdnew::format("Iteration: {}", i+1));
     iterate();
   }
   finishIterating();
@@ -206,13 +204,13 @@ void Tentacle2D::updateDampedVals(const std::vector<double>& yvals)
 const Tentacle2D::XandYVectors& Tentacle2D::getXandYVectors() const
 {
   if (std::get<0>(vecs).size() < 2) {
-    throw std::runtime_error(fmt::format("getXandYVectors: xvec.size() must be >= 2, not {}.", std::get<0>(vecs).size()));
+    throw std::runtime_error(stdnew::format("getXandYVectors: xvec.size() must be >= 2, not {}.", std::get<0>(vecs).size()));
   }
   if (xvec.size() < 2) {
-    throw std::runtime_error(fmt::format("getXandYVectors: xvec.size() must be >= 2, not {}.", xvec.size()));
+    throw std::runtime_error(stdnew::format("getXandYVectors: xvec.size() must be >= 2, not {}.", xvec.size()));
   }
   if (yvec.size() < 2) {
-    throw std::runtime_error(fmt::format("getXandYVectors: yvec.size() must be >= 2, not {}.", yvec.size()));
+    throw std::runtime_error(stdnew::format("getXandYVectors: yvec.size() must be >= 2, not {}.", yvec.size()));
   }
 
   return vecs;
@@ -233,10 +231,10 @@ inline float Tentacle2D::getNextY(const size_t nodeNum)
   }
 
   const float prevYWgt = doPrevYWeightAdjust ? tweaker->getNextPrevYWeight() : basePrevYWeight;
-//  logInfo(fmt::format("node {}: prevYWgt = {:.2}, prevYWeight = {:.2}", nodeNum, prevYWgt, basePrevYWeight));
+//  logInfo(stdnew::format("node {}: prevYWgt = {:.2}, prevYWeight = {:.2}", nodeNum, prevYWgt, basePrevYWeight));
 
   const float currentYWgt = doCurrentYWeightAdjust ? tweaker->getNextCurrentYWeight() : baseCurrentYWeight;
-//  logInfo(fmt::format("node {}: currentYWgt = {:.2}, currentYWeight = {:.2}", nodeNum, currentYWgt, baseCurrentYWeight));
+//  logInfo(stdnew::format("node {}: currentYWgt = {:.2}, currentYWeight = {:.2}", nodeNum, currentYWgt, baseCurrentYWeight));
 
   return prevYWgt*prevY + currentYWgt*currentY;
 }
@@ -252,13 +250,13 @@ inline float Tentacle2D::getDampedVal(const size_t nodeNum, const float val) con
 const Tentacle2D::XandYVectors& Tentacle2D::getDampedXandYVectors() const
 {
   if (xvec.size() < 2) {
-    throw std::runtime_error(fmt::format("getDampedXandYVectors: xvec.size() must be >= 2, not {}.", xvec.size()));
+    throw std::runtime_error(stdnew::format("getDampedXandYVectors: xvec.size() must be >= 2, not {}.", xvec.size()));
   }
   if (dampedYVec.size() < 2) {
-    throw std::runtime_error(fmt::format("getDampedXandYVectors: yvec.size() must be >= 2, not {}.", dampedYVec.size()));
+    throw std::runtime_error(stdnew::format("getDampedXandYVectors: yvec.size() must be >= 2, not {}.", dampedYVec.size()));
   }
   if (std::get<0>(vecs).size() < 2) {
-    throw std::runtime_error(fmt::format("getDampedXandYVectors: std::get<0>(vecs).size() must be >= 2, not {}.",
+    throw std::runtime_error(stdnew::format("getDampedXandYVectors: std::get<0>(vecs).size() must be >= 2, not {}.",
         std::get<0>(vecs).size()));
   }
 
@@ -355,7 +353,7 @@ std::vector<V3d> Tentacle3D::getVertices() const
   const auto [xvec2d, yvec2d] = tentacle->getDampedXandYVectors();
   const size_t n = xvec2d.size();
 
-//  logInfo(fmt::format("Tentacle: {}, head.x = {}, head.y = {}, head.z = {}", "x", head.x, head.y, head.z));
+//  logInfo(stdnew::format("Tentacle: {}, head.x = {}, head.y = {}, head.z = {}", "x", head.x, head.y, head.z));
 
   std::vector<V3d> vec3d(n);
   const float x0 = head.x;

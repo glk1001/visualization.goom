@@ -100,8 +100,8 @@ public:
 
   void startIterating();
   void finishIterating();
-  size_t getIterNum() const;
 
+  size_t getIterNum() const;
   void beforeIter();
   void iterate();
   void iterateNTimes(const size_t n);
@@ -202,15 +202,16 @@ struct V3d {
 
 class Tentacle3D {
 public:
-  explicit Tentacle3D(std::unique_ptr<Tentacle2D> t,
+  explicit Tentacle3D(std::unique_ptr<Tentacle2D>,
       const uint32_t headColor, const uint32_t headColorLow, const V3d& head);
-  explicit Tentacle3D(std::unique_ptr<Tentacle2D> t, const TentacleColorizer& colorizer,
+  explicit Tentacle3D(std::unique_ptr<Tentacle2D>,
+      const TentacleColorizer& colorizer,
       const uint32_t headColor, const uint32_t headColorLow, const V3d& head);
   Tentacle3D(Tentacle3D&&);
   Tentacle3D(const Tentacle3D&)=delete;
   Tentacle3D& operator=(const Tentacle3D&)=delete;
 
-  void setSpecialColorNodes(const ColorMap& cm, const std::vector<size_t>& nodes);
+  void setSpecialColorNodes(const ColorMap&, const std::vector<size_t>& nodes);
   void incSpecialColorNodes() { specialColorNodes.incNodes(); }
 
   Tentacle2D& get2DTentacle() { return *tentacle; }
