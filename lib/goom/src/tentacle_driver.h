@@ -1,12 +1,12 @@
 #ifndef LIBS_GOOM_INCLUDE_GOOM_TENTACLE_DRIVER_H_
 #define LIBS_GOOM_INCLUDE_GOOM_TENTACLE_DRIVER_H_
 
-#include "colormap.h"
 #include "goom.h"
 #include "tentacles_new.h"
 #include "v3d.h"
 
-#include <cmath>
+#include "goomutils/colormap.h"
+
 #include <cstdint>
 #include <memory>
 #include <stack>
@@ -25,24 +25,6 @@ class IterTimer {
   private:
     const size_t startCount;
     size_t count = 0;
-};
-
-class TentacleColorMapColorizer: public TentacleColorizer {
-public:
-  explicit TentacleColorMapColorizer(const ColorMap& colorMap, const size_t numNodes);
-  TentacleColorMapColorizer(const TentacleColorMapColorizer&)=delete;
-  TentacleColorMapColorizer& operator=(const TentacleColorMapColorizer&)=delete;
-
-  void resetColorMap(const ColorMap& colorMap);
-  void pushColorMap(const ColorMap& colorMap);
-  void popColorMap();
-
-  uint32_t getColor(size_t nodeNum) const override;
-private:
-  const ColorMap* origColorMap;
-  const ColorMap* colorMap;
-  std::stack<const ColorMap*> colorStack;
-  const size_t numNodes;
 };
 
 class SimpleWeightHandler {
@@ -93,42 +75,17 @@ class TentacleLayout {
 public:
   virtual ~TentacleLayout() {}
   virtual size_t getNumPoints() const=0;
-  virtual V3d getNextPosition()=0;
-  virtual bool finished() const=0;
-  virtual void reset()=0;
-};
-
-class GridTentacleLayout: public TentacleLayout {
-public:
-  GridTentacleLayout(
-      const float xmin, const float xmax, const size_t xNum,
-      const float ymin, const float ymax, const size_t yNum,
-      const float zConst);
-  size_t getNumPoints() const override;
-  V3d getNextPosition() override;
-  bool finished() const override;
-  void reset() override;
-private:
-  const float xmin;
-  const float xmax;
-  const size_t xNum;
-  const float ymin;
-  const float ymax;
-  const size_t yNum;
-  const float zConst;
-  const float xStep;
-  const float yStep;
-  float x;
-  float y;
+  virtual V3d getPosition(size_t elementNum) const=0;
 };
 
 class TentacleDriver {
 public:
-  explicit TentacleDriver(const ColorMaps&);
+  explicit TentacleDriver(const ColorMaps&, const int screenWidth, const int screenHeight);
   TentacleDriver(const TentacleDriver&)=delete;
   TentacleDriver& operator=(const TentacleDriver&)=delete;
 
   void init();
+  void updateLayout(const TentacleLayout&);
 
   void startIterating();
   void stopIterating();
@@ -154,9 +111,11 @@ private:
   };
   std::vector<IterParamsGroup> iterParamsGroups;
 
+  const int screenWidth;
+  const int screenHeight;
   const ColorMaps* colorMaps;
   const std::vector<std::string>* currentColorMapGroup;
-  std::vector<std::unique_ptr<TentacleColorMapColorizer>> colorizers;
+  std::vector<std::unique_ptr<TentacleColorizer>> colorizers;
   ConstantSequenceFunction constPrevYWeightFunc;
   ConstantSequenceFunction constCurrentYWeightFunc;
   SimpleWeightHandler weightsHandler;
@@ -186,12 +145,62 @@ private:
   std::vector<IterTimer*> iterTimers;
   void updateIterTimers();
   void checkForTimerEvents();
-  static void plot3D(const Tentacle3D& tentacle,
-                     const uint32_t dominantColor, const uint32_t dominantColorLow,
-                     const float angle, const float distance, const float distance2, Pixel* frontBuff, Pixel* backBuff);
-  static void project_v3d_to_v2d(const std::vector<V3d>& v3, std::vector<v2d>& v2, const float distance);
+  void plot3D(const Tentacle3D& tentacle,
+              const uint32_t dominantColor, const uint32_t dominantColorLow,
+              const float angle, const float distance, const float distance2, Pixel* frontBuff, Pixel* backBuff);
+  void project_v3d_to_v2d(const std::vector<V3d>& v3, std::vector<v2d>& v2, const float distance);
   static void y_rotate_v3d(const V3d& vi, V3d& vf, const float sina, const float cosa);
   static void translate_v3d(const V3d& vsrc, V3d& vdest);
+};
+
+class TentacleColorMapColorizer: public TentacleColorizer {
+public:
+  explicit TentacleColorMapColorizer(const ColorMap& colorMap, const size_t numNodes);
+  TentacleColorMapColorizer(const TentacleColorMapColorizer&)=delete;
+  TentacleColorMapColorizer& operator=(const TentacleColorMapColorizer&)=delete;
+
+  void resetColorMap(const ColorMap& colorMap) override;
+  void pushColorMap(const ColorMap& colorMap);
+  void popColorMap();
+
+  uint32_t getColor(size_t nodeNum) const override;
+private:
+  const ColorMap* origColorMap;
+  const ColorMap* colorMap;
+  std::stack<const ColorMap*> colorStack;
+  const size_t numNodes;
+};
+
+class GridTentacleLayout: public TentacleLayout {
+public:
+  GridTentacleLayout(
+      const float xmin, const float xmax, const size_t xNum,
+      const float ymin, const float ymax, const size_t yNum,
+      const float zConst);
+  size_t getNumPoints() const override;
+  V3d getPosition(size_t elementNum) const override;
+private:
+  const float xmin;
+  const float xmax;
+  const size_t xNum;
+  const float ymin;
+  const float ymax;
+  const size_t yNum;
+  const float zConst;
+  const float xStep;
+  const float yStep;
+};
+
+class CirclesTentacleLayout: public TentacleLayout {
+public:
+  CirclesTentacleLayout(const float radius, const std::vector<size_t>& numCircleSamples, const float zConst);
+  size_t getNumPoints() const override;
+  V3d getPosition(size_t elementNum) const override;
+private:
+  const float radius;
+  const std::vector<size_t> numCircleSamples;
+  const float zConst;
+  std::vector<V3d> points;
 };
 
 #endif

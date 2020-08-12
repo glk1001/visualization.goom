@@ -1,6 +1,5 @@
 #include "tentacle3d.h"
 
-#include "colormap.h"
 #include "goom.h"
 #include "goom_config.h"
 #include "goom_plugin_info.h"
@@ -11,6 +10,8 @@
 #include "v3d.h"
 //#include "SimplexNoise.h"
 
+#include "goomutils/colormap.h"
+
 #include <cstdint>
 #include <cmath>
 #include <tuple>
@@ -18,7 +19,7 @@
 
 class TentaclesWrapper {
 public:
-  explicit TentaclesWrapper(const ColorMaps& cm);
+  explicit TentaclesWrapper(const ColorMaps& cm, const int screenWidth, const int screenHeight);
   void update(PluginInfo* goomInfo, Pixel* buf, Pixel* back,
               gint16 data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
               float accelvar, int drawit, TentacleFXData* fx_data);
@@ -36,10 +37,10 @@ private:
   std::vector<float> getGridZeroAdditiveValues(PluginInfo* goomInfo, const float rapport);
 };
 
-TentaclesWrapper::TentaclesWrapper(const ColorMaps& cm)
+TentaclesWrapper::TentaclesWrapper(const ColorMaps& cm, const int screenWidth, const int screenHeight)
   : colorMaps{ &cm }
   , dominantColorGroup{ &colorMaps->getRandomColorMap() }
-  , driver{ *colorMaps }
+  , driver{ *colorMaps, screenWidth, screenHeight }
 {
   driver.init();
   driver.startIterating();
@@ -300,7 +301,7 @@ void tentacle_fx_init(VisualFX* _this, PluginInfo* info)
 {
   TentacleFXData* data = (TentacleFXData*)malloc(sizeof(TentacleFXData));
 
-  data->tentacles = new TentaclesWrapper{ *info->colorMaps };
+  data->tentacles = new TentaclesWrapper{ *info->colorMaps, info->screen.width, info->screen.height };
 
   data->enabled_bp = secure_b_param("Enabled", 1);
   data->params = plugin_parameters("3D Tentacles", 1);

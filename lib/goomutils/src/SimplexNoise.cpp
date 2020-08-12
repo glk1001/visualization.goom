@@ -24,7 +24,7 @@
  * or copy at http://opensource.org/licenses/MIT)
  */
 
-#include "SimplexNoise.h"
+#include "goomutils/SimplexNoise.h"
 
 #include <cstdint>  // int32_t/uint8_t
 
@@ -215,8 +215,8 @@ float SimplexNoise::noise(float x, float y) {
     float n0, n1, n2;   // Noise contributions from the three corners
 
     // Skewing/Unskewing factors for 2D
-    static const float F2 = 0.366025403f;  // F2 = (sqrt(3) - 1) / 2
-    static const float G2 = 0.211324865f;  // G2 = (3 - sqrt(3)) / 6   = F2 / (1 + 2 * K)
+  static const float F2 = 0.366025403f;// F2 = (sqrt(3) - 1) / 2
+  static const float G2 = 0.211324865f;// G2 = (3 - sqrt(3)) / 6   = F2 / (1 + 2 * K)
 
     // Skew the input space to determine which simplex cell we're in
     const float s = (x + y) * F2;  // Hairy factor for 2D
@@ -303,8 +303,8 @@ float SimplexNoise::noise(float x, float y, float z) {
     float n0, n1, n2, n3; // Noise contributions from the four corners
 
     // Skewing/Unskewing factors for 3D
-    static const float F3 = 1.0f / 3.0f;
-    static const float G3 = 1.0f / 6.0f;
+  static const float F3 = 1.0f / 3.0f;
+  static const float G3 = 1.0f / 6.0f;
 
     // Skew the input space to determine which simplex cell we're in
     float s = (x + y + z) * F3; // Very nice and simple skew factor for 3D

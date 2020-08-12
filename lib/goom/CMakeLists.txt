@@ -12,8 +12,6 @@ endif()
 set (SRCE_FILES
                  src/goom_testing.c
                  src/goom_tools.c
-                 src/all_maps.cpp
-                 src/colormap.cpp
                  src/config_param.c
                  src/convolve_fx.c
                  src/filters.c
@@ -25,9 +23,6 @@ set (SRCE_FILES
                  src/graphic.c
                  src/ifs.c
                  src/lines.c
-                 src/mathtools.c
-                 src/math_utils.cpp
-                 src/SimplexNoise.cpp
                  src/sound_tester.c
                  src/surf3d.cpp
                  src/tentacle_driver.cpp
@@ -49,6 +44,7 @@ target_include_directories(${PROJECT_NAME}
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/lib/goomutils/include
         ${CMAKE_SOURCE_DIR}/lib/vivid/include
         ${CMAKE_SOURCE_DIR}/lib/fmt/include
 )

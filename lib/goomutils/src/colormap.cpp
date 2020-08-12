@@ -1,12 +1,11 @@
-#include "colormap.h"
-
-#include "all_maps.h"
-#include "math_utils.h"
-
-#include <stdexcept>
+#include "goomutils/colormap.h"
+#include "goomutils/math_utils.h"
+#include "goomutils/all_maps.h"
 
 #include <vivid/vivid.h>
+
 #include <string>
+#include <stdexcept>
 #include <vector>
 
 std::vector<const std::vector<std::string>*> ColorMaps::groups{};

@@ -1,9 +1,8 @@
 #include "tentacles_new.h"
 
-#include "colormap.h"
-#include "math_utils.h"
+#include "goomutils/colormap.h"
+#include "goomutils/math_utils.h"
 
-//#include <utils/goom_loggers.hpp>
 #include <algorithm>
 #include <assert.h>
 #include <cmath>

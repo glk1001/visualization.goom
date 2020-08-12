@@ -1,7 +1,6 @@
 #ifndef _GOOM_PLUGIN_INFO_H
 #define _GOOM_PLUGIN_INFO_H
 
-#include "colormap.h"
 #include "filters.h"
 #include "goom_config.h"
 #include "goom_config_param.h"
@@ -9,6 +8,8 @@
 #include "goom_tools.h"
 #include "goom_typedefs.h"
 #include "goom_visual_fx.h"
+
+#include "goomutils/colormap.h"
 
 typedef struct {
   char drawIFS;

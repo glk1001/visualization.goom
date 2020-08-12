@@ -7,7 +7,6 @@
  * (c)2000-2003, by iOS-software.
  */
 
-#include "colormap.h"
 #include "filters.h"
 #include "gfontlib.h"
 #include "goom.h"
@@ -20,6 +19,8 @@
 #include "lines.h"
 #include "sound_tester.h"
 #include "tentacle3d.h"
+
+#include "goomutils/colormap.h"
 
 #include <inttypes.h>
 #include <math.h>

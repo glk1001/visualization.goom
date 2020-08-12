@@ -1,7 +1,8 @@
 #include "goom_fx.h"
 #include "goom_plugin_info.h"
 #include "goom_tools.h"
-#include "mathtools.h"
+
+#include "goomutils/mathtools.h"
 
 /* TODO:-- FAIRE PROPREMENT... BOAH... */
 #define NCOL 15
@@ -26,7 +27,7 @@
 };
 */
 
-static const int colval[] = {0x1416181a, 0x1419181a, 0x141f181a, 0x1426181a, 0x142a181a,
+static const int colval[] = { 0x1416181a, 0x1419181a, 0x141f181a, 0x1426181a, 0x142a181a,
                              0x142f181a, 0x1436181a, 0x142f1819, 0x14261615, 0x13201411,
                              0x111a100a, 0x0c180508, 0x08100304, 0x00050101, 0x0};
 

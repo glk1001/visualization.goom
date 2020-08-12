@@ -40,7 +40,8 @@
 #include "goom_graphic.h"
 #include "goom_testing.h"
 #include "goom_tools.h"
-#include "mathtools.h"
+
+#include "goomutils/mathtools.h"
 
 #include <math.h>
 #include <stdio.h>

@@ -5,7 +5,9 @@
 #include "goom_config.h"
 #include "goom_plugin_info.h"
 #include "goom_tools.h"
-#include "mathtools.h"
+
+#include "goomutils/colormap.h"
+#include "goomutils/mathtools.h"
 
 #include <math.h>
 #include <stdio.h>

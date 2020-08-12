@@ -24,6 +24,7 @@ else()
 endif()
 
 add_subdirectory(lib/goom)
+add_subdirectory(lib/goomutils)
 add_subdirectory(lib/vivid)
 
 include_directories(${includes}
@@ -31,6 +32,7 @@ include_directories(${includes}
                     ${KODI_INCLUDE_DIR}/.. # Hack way with "/..", need bigger Kodi cmake rework to match right include ways (becomes done in future)
                     ${PROJECT_SOURCE_DIR}/lib
                     ${PROJECT_SOURCE_DIR}/lib/goom/src
+                    ${PROJECT_SOURCE_DIR}/lib/goom/goomutils/include
                     ${PROJECT_SOURCE_DIR}/lib/vivid/include
                     ${PROJECT_SOURCE_DIR}/lib/fmt/include)
 
@@ -45,7 +47,7 @@ if ($ENV{DO_TESTING})
   include(../visualization.goom.testing/goom_testing)
 endif()
 
-list(APPEND DEPLIBS goom vivid)
+list(APPEND DEPLIBS goom goomutils vivid)
 
 build_addon(visualization.goom GOOM DEPLIBS)
 

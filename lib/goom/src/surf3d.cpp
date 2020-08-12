@@ -2,11 +2,10 @@
 
 #include "drawmethods.h"
 #include "goom_tools.h"
-#include "mathtools.h"
-//#include "SimplexNoise.h"
+
+#include "goomutils/mathtools.h"
 
 #include <cmath>
-#include <algorithm>
 #include <tuple>
 #include <vector>
 

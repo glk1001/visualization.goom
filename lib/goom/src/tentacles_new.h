@@ -1,8 +1,8 @@
 #ifndef LIBS_GOOM_INCLUDE_GOOM_TENTACLES_NEW_H_
 #define LIBS_GOOM_INCLUDE_GOOM_TENTACLES_NEW_H_
 
-#include "colormap.h"
-#include "math_utils.h"
+#include "goomutils/colormap.h"
+#include "goomutils/math_utils.h"
 
 #include <vivid/vivid.h>
 
@@ -16,6 +16,7 @@
 class TentacleColorizer {
 public:
   virtual ~TentacleColorizer() {}
+  virtual void resetColorMap(const ColorMap& colorMap)=0;
   virtual uint32_t getColor(size_t nodeNum) const=0;
 };
 

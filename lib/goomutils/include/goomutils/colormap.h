@@ -1,5 +1,5 @@
-#ifndef LIBS_GOOM_INCLUDE_GOOM_COLORMAP_H_
-#define LIBS_GOOM_INCLUDE_GOOM_COLORMAP_H_
+#ifndef LIB_GOOMUTILS_INCLUDE_GOOMUTILS_COLORMAP_H_
+#define LIB_GOOMUTILS_INCLUDE_GOOMUTILS_COLORMAP_H_
 
 #include <vivid/vivid.h>
 #include <map>
@@ -45,4 +45,4 @@ private:
   static std::vector<const std::vector<std::string>*> groups;
 };
 
-#endif /* LIBS_GOOM_INCLUDE_GOOM_COLORMAP_H_ */
+#endif /* LIBS_GOOMUTILS_INCLUDE_GOOMUTILS_COLORMAP_H_ */
