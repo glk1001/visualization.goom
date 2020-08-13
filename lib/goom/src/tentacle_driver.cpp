@@ -100,7 +100,7 @@ void TentacleDriver::init()
     tentacles.addTentacle(std::move(tentacle));
   }
 
-  const CirclesTentacleLayout layout{  80, { 34, 24, 16, 6, 4 }, 0 };
+  const CirclesTentacleLayout layout{  10, 80, { 34, 24, 16, 6, 4 }, 0 };
 //  const GridTentacleLayout layout{ -100, 100, xRowLen, -100, 100, numXRows, 0 };
   updateLayout(layout);
 
@@ -477,42 +477,64 @@ V3d GridTentacleLayout::getPosition(size_t elementNum) const
   return pos;
 }
 
+std::vector<size_t> CirclesTentacleLayout::getCircleSamples(const size_t numCircles, const size_t totalPoints)
+{
+  std::vector<size_t> circleSamples(numCircles);
+
+  return circleSamples;
+}
+
 CirclesTentacleLayout::CirclesTentacleLayout(
-    const float rad, const std::vector<size_t>& numSamples, const float zVal)
-  : radius{ rad }
-  , numCircleSamples{ numSamples }
-  , zConst{ zVal }
-  , points{}
+    const float radiusMin, const float radiusMax, const std::vector<size_t>& numCircleSamples, const float zConst)
+  : points{}
 {
   const size_t numCircles = numCircleSamples.size();
-  const float radiusStep = radius/float(numCircles);
-  float adjustDirection = +1.0;
-  float r = radius;
+  if (numCircles < 2) {
+    std::runtime_error(stdnew::format("There must be >= 2 circle sample numbers not {}.", numCircles));
+  }
   for (const auto numSample : numCircleSamples) {
-    const float angleStep = 2.0*M_PI/float(numSample);
-    float angle = 0;
-    for (size_t i=0; i < numSample; i++) {
-      float x = float(r*cos(angle));
-      if (std::fabs(x < 0.01)) {
-        // avoid x = 0 perspective problems
-        x = adjustDirection*float(r*cos(angle + getRandInRange(0.1f, 0.3f)));
-        adjustDirection = -adjustDirection;
-      }
-      const float y = float(r*sin(angle));
-      const V3d point = { x, y, zConst };
-      points.push_back(point);
-      angle += angleStep;
-    };
-    r -= radiusStep;
+    if (numSample % 2 != 0) {
+      std::runtime_error(stdnew::format("Circle sample num must be even not {}.", numSample));
+    }
   }
 
-  size_t el = 0;
+  const auto logLastPoint = [&](size_t i, const float r, const float angle)
+  {
+    const size_t el = points.size() - 1;
+    logInfo("  sample {:3}: angle = {:+6.2f}, cos(angle) = {:+6.2f}, r = {:+6.2f},"\
+            " pt[{:3}] = ({:+6.2f}, {:+6.2f}, {:+6.2f})",
+            i, angle, cos(angle), r, el, points.at(el).x, points.at(el).y, points.at(el).z);
+  };
+  const auto getSamplePoints = [&](
+      const float radius, const size_t numSample,
+      const float angleStart, const float angleFinish)
+  {
+    const float angleStep = (angleFinish - angleStart)/float(numSample - 1);
+    float angle = angleStart;
+    for (size_t i=0; i < numSample; i++) {
+      const float x = float(radius*cos(angle));
+      const float y = float(radius*sin(angle));
+      const V3d point = { x, y, zConst };
+      points.push_back(point);
+      logLastPoint(i, radius, angle);
+      angle += angleStep;
+    };
+  };
+
+  const float angleLeftStart = +0.5*M_PI + 0.4;
+  const float angleLeftFinish = +1.5*M_PI - 0.4;
+  const float angleRightStart = -0.5*M_PI + 0.4;
+  const float angleRightFinish = +0.5*M_PI - 0.4;
+
+  const float radiusStep = (radiusMax - radiusMin)/float(numCircles - 1);
+  float r = radiusMax;
   for (const auto numSample : numCircleSamples) {
     logInfo("Circle with {} samples:", numSample);
-    for (size_t i=0; i < numSample; i++) {
-      logInfo("  sample {}: ({:.2}, {:.2}, {:.2})", i, points.at(el).x, points.at(el).y, points.at(el).z);
-      el++;
-    }
+
+    getSamplePoints(r, numSample/2, angleLeftStart, angleLeftFinish);
+    getSamplePoints(r, numSample/2, angleRightStart, angleRightFinish);
+
+    r -= radiusStep;
   }
 }
 

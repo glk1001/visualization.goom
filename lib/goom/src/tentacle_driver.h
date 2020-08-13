@@ -193,13 +193,12 @@ private:
 
 class CirclesTentacleLayout: public TentacleLayout {
 public:
-  CirclesTentacleLayout(const float radius, const std::vector<size_t>& numCircleSamples, const float zConst);
+  CirclesTentacleLayout(const float radiusMin, const float radiusMax,
+                        const std::vector<size_t>& numCircleSamples, const float zConst);
   size_t getNumPoints() const override;
   V3d getPosition(size_t elementNum) const override;
+  static std::vector<size_t> getCircleSamples(const size_t numCircles, const size_t totalPoints);
 private:
-  const float radius;
-  const std::vector<size_t> numCircleSamples;
-  const float zConst;
   std::vector<V3d> points;
 };
 
