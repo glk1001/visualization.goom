@@ -243,6 +243,7 @@ private:
 };
 
 class Tentacles3D {
+private:
   class Iter {
   public:
     Iter(Tentacles3D* const tents, const size_t p): pos(p), tentacles(tents){}
@@ -253,7 +254,6 @@ class Tentacles3D {
     size_t pos;
     Tentacles3D* tentacles;
   };
-
 public:
   Tentacles3D();
 
@@ -262,8 +262,8 @@ public:
   Iter begin() { return Iter(this, 0); }
   Iter end() { return Iter(this, tentacles.size()); }
 
-  const Tentacle3D& operator[](const size_t i) const { return tentacles[i]; }
-  Tentacle3D& operator[](const size_t i) { return tentacles[i]; }
+  const Tentacle3D& operator[](const size_t i) const { return tentacles.at(i); }
+  Tentacle3D& operator[](const size_t i) { return tentacles.at(i); }
 private:
   std::vector<Tentacle3D> tentacles;
 };

@@ -129,6 +129,7 @@ inline void Logging::vlog(
 }
 
 #ifdef NO_LOGGING
+  #pragma message ("Compiling " __FILE__ " with 'NO_LOGGING' ON.")
   #define setLogFile(logF)
   #define addLogHandler(h)
   #define logStart()
@@ -139,11 +140,12 @@ inline void Logging::vlog(
   #define isLogging()
   #define getLogLevel()
   #define setLogLevel(lvl)
-  #define logDebug(msg)
-  #define logInfo(msg)
-  #define logWarn(msg)
-  #define logError(msg)
+  #define logDebug(...)
+  #define logInfo(...)
+  #define logWarn(...)
+  #define logError(...)
 #else
+  #pragma message ("Compiling " __FILE__ " with 'NO_LOGGING' OFF.")
   #define setLogFile(logF) Logging::getLogger().setLogFile(logF)
   #define addLogHandler(h) Logging::getLogger().addHandler(h);
   #define logStart() Logging::getLogger().start()

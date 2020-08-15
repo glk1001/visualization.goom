@@ -1,21 +1,21 @@
 #include "goomutils/colormap.h"
+
+#include "goomutils/colormap_enums.h"
 #include "goomutils/math_utils.h"
-#include "goomutils/all_maps.h"
+#include "goomutils/colordata/all_maps.h"
 
 #include <vivid/vivid.h>
 
 #include <string>
-#include <stdexcept>
 #include <vector>
 
-std::vector<const std::vector<std::string>*> ColorMaps::groups{};
+std::vector<const std::vector<ColorMapName>*> ColorMaps::groups{};
 
 ColorMaps::ColorMaps()
-  : colorMaps{}
+: colorMaps{}
 {
-  for(const auto& [key, vividMap] : colordata::allMaps) {
-    colorMaps.emplace(key, ColorMap{ vividMap });
-    colorMapKeys.push_back(key);
+  for(const auto& [name, vividMap] : colordata::allMaps) {
+    colorMaps.push_back(ColorMap{ name, vividMap });
   }
 }
 
@@ -28,80 +28,92 @@ const ColorMap& ColorMaps::at(const size_t i) const
 
 const ColorMap& ColorMaps::getRandomColorMap() const
 {
-  const std::string& key = colorMapKeys[getRandInRange(0, colorMapKeys.size())];
-  return colorMaps.at(key);
+  return colorMaps[getRandInRange(0, colorMaps.size())];
 }
 
-const ColorMap& ColorMaps::getRandomColorMap(const std::vector<std::string>& group) const
+const ColorMap& ColorMaps::getRandomColorMap(const std::vector<ColorMapName>& group) const
 {
-  const std::string& key = group[getRandInRange(0, group.size())];
-  const auto iter = colorMaps.find(key);
-  if (iter == colorMaps.end()) {
-    throw std::runtime_error(std::string("Could not find color map key \"") + key + "\".");
-  }
-  return iter->second;
+  return getColorMap(group[getRandInRange(0, group.size())]);
 }
 
-const ColorMap& ColorMaps::getColorMap(const std::string& name) const
+const ColorMap& ColorMaps::getColorMap(const ColorMapName name) const
 {
-  const auto iter = colorMaps.find(name);
-  if (iter == colorMaps.end()) {
-    throw std::runtime_error(std::string("Could not find color map key \"") + name + "\".");
-  }
-  return iter->second;
+  return colorMaps[static_cast<size_t>(name)];
 }
 
-const std::vector<std::string>& ColorMaps::getRandomGroup()
+size_t ColorMaps::getNumColorMaps() const
 {
-  if (groups.size() == 0) {
-    groups = {
-      &colordata::sequentialsMaps,
-      &colordata::sequentials2Maps,
-      &colordata::divergingMaps,
-      &colordata::diverging_blackMaps,
-      &colordata::qualitativeMaps,
-      &colordata::miscMaps,
-      &colordata::ungroupedMaps,
-    };
-  }
+  return colordata::allMaps.size();
+}
+
+size_t ColorMaps::getNumGroups()
+{
+  initGroups();
+  return groups.size();
+}
+
+const std::vector<ColorMapName>& ColorMaps::getRandomGroup()
+{
+  initGroups();
   return *groups[getRandInRange(0, groups.size())];
 }
 
-const std::vector<std::string>& ColorMaps::getSequentialsMaps()
+void ColorMaps::initGroups()
 {
-  return colordata::sequentialsMaps;
+  if (groups.size() != 0) {
+    return;
+  }
+  groups = {
+    &colordata::perc_unif_sequentialMaps,
+    &colordata::sequentialMaps,
+    &colordata::sequential2Maps,
+    &colordata::cyclicMaps,
+    &colordata::divergingMaps,
+    &colordata::diverging_blackMaps,
+    &colordata::qualitativeMaps,
+    &colordata::miscMaps,
+  };
 }
 
-const std::vector<std::string>& ColorMaps::getSequentials2Maps()
+const std::vector<ColorMapName>& ColorMaps::getPerceptuallyUniformSequentialMaps()
 {
-  return colordata::sequentials2Maps;
+  return colordata::perc_unif_sequentialMaps;
 }
 
-const std::vector<std::string>& ColorMaps::getDivergingMaps()
+const std::vector<ColorMapName>& ColorMaps::getSequentialMaps()
+{
+  return colordata::sequentialMaps;
+}
+
+const std::vector<ColorMapName>& ColorMaps::getSequential2Maps()
+{
+  return colordata::sequential2Maps;
+}
+
+const std::vector<ColorMapName>& ColorMaps::getCyclicMaps()
+{
+  return colordata::cyclicMaps;
+}
+
+const std::vector<ColorMapName>& ColorMaps::getDivergingMaps()
 {
   return colordata::divergingMaps;
 }
 
-const std::vector<std::string>& ColorMaps::getDiverging_blackMaps()
+const std::vector<ColorMapName>& ColorMaps::getDiverging_blackMaps()
 {
   return colordata::diverging_blackMaps;
 }
 
-const std::vector<std::string>& ColorMaps::getQualitativeMaps()
+const std::vector<ColorMapName>& ColorMaps::getQualitativeMaps()
 {
   return colordata::qualitativeMaps;
 }
 
-const std::vector<std::string>& ColorMaps::getMiscMaps()
+const std::vector<ColorMapName>& ColorMaps::getMiscMaps()
 {
   return colordata::miscMaps;
 }
-
-const std::vector<std::string>& ColorMaps::getUngroupedMaps()
-{
-  return colordata::ungroupedMaps;
-}
-
 
 /**
 ColorMap::ColorMap(const vivid::ColorMap::Preset preset)
@@ -117,24 +129,28 @@ ColorMap::ColorMap(const vivid::ColorMap::Preset preset)
 }
 **/
 
-ColorMap::ColorMap(const vivid::ColorMap& cmap)
-  : colors(NumColors)
+ColorMap::ColorMap(const std::string& mapNm, const vivid::ColorMap& cm)
+  : mapName{ mapNm }
+  , cmap{ cm }
 {
-  for (size_t i=0 ; i < NumColors; i++) {
-    const float t = i / (NumColors - 1.0f);
-    const vivid::Color rgbcol{ cmap.at(t) };
-    colors[i] = rgbcol.rgb32();
-  }
 }
 
 ColorMap::ColorMap(const ColorMap& other)
-: colors(other.colors)
+  : mapName(other.mapName)
+  , cmap(other.cmap)
 {
+}
+
+ColorMap& ColorMap::operator=(const ColorMap& other)
+{
+  mapName = other.mapName;
+  cmap = other.cmap;
+  return *this;
 }
 
 uint32_t ColorMap::getRandomColor(const ColorMap& cg)
 {
-  return cg.getColor(getRandInRange(0, cg.numColors()));
+  return cg.getColor(getRandInRange(0.0f, 1.0f));
 }
 
 uint32_t ColorMap::colorMix(const uint32_t col1, const uint32_t col2, const float t)

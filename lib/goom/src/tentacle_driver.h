@@ -5,12 +5,12 @@
 #include "tentacles_new.h"
 #include "v3d.h"
 
+#include "goomutils/colormap_enums.h"
 #include "goomutils/colormap.h"
 
 #include <cstdint>
 #include <memory>
 #include <stack>
-#include <string>
 #include <vector>
 
 
@@ -85,7 +85,7 @@ public:
   TentacleDriver& operator=(const TentacleDriver&)=delete;
 
   void init();
-  void updateLayout(const TentacleLayout&);
+  void updateTentaclesLayout(const TentacleLayout&);
 
   void startIterating();
   void stopIterating();
@@ -114,7 +114,7 @@ private:
   const int screenWidth;
   const int screenHeight;
   const ColorMaps* colorMaps;
-  const std::vector<std::string>* currentColorMapGroup;
+  const std::vector<ColorMapName>* currentColorMapGroup;
   std::vector<std::unique_ptr<TentacleColorizer>> colorizers;
   ConstantSequenceFunction constPrevYWeightFunc;
   ConstantSequenceFunction constCurrentYWeightFunc;
@@ -126,11 +126,8 @@ private:
   size_t updateNum = 0;
   Tentacles3D tentacles;
   const float iterZeroYVal = 10.0;
-  static constexpr size_t xRowLen = 14;
-  static_assert(xRowLen % 2 == 0); // Perspective looks bad with odd because of x=0 tentacle.
-  static constexpr size_t numXRows = 6;
-  static constexpr size_t numTentacles = xRowLen*numXRows;
-  std::vector<IterationParams> tentacleParams{ numTentacles };
+  size_t numTentacles = 0;
+  std::vector<IterationParams> tentacleParams;
   static constexpr size_t changeCurrentColorMapGroupEveryNUpdates = 500;
   static constexpr size_t changeTentacleColorMapEveryNUpdates = 100;
   IterTimer glitchTimer;
