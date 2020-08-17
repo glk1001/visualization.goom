@@ -499,16 +499,11 @@ static void drawPoints(PluginInfo* goomInfo, const guint32 pointWidth,
     const float white_t4 = 74.0f;
     const Uint white_cycle = (Uint)goomInfo->update.loopvar + i * 500;
 
-    pointFilter(goomInfo, goomInfo->p1, YELLOW, yellow_t1, yellow_t2, yellow_t3, yellow_t4,
-                yellow_cycle);
-    pointFilter(goomInfo, goomInfo->p1, ORANGE, orange_t1, orange_t2, orange_t3, orange_t4,
-                orange_cycle);
-    pointFilter(goomInfo, goomInfo->p1, VIOLET, violet_t1, violet_t2, violet_t3, violet_t4,
-                violet_cycle);
-    pointFilter(goomInfo, goomInfo->p1, BLACK, black_t1, black_t2, black_t3, black_t4,
-                black_cycle);
-    pointFilter(goomInfo, goomInfo->p1, WHITE, white_t1, white_t2, white_t3, white_t4,
-                white_cycle);
+    pointFilter(goomInfo, goomInfo->p1, YELLOW, yellow_t1, yellow_t2, yellow_t3, yellow_t4, yellow_cycle);
+    pointFilter(goomInfo, goomInfo->p1, ORANGE, orange_t1, orange_t2, orange_t3, orange_t4, orange_cycle);
+    pointFilter(goomInfo, goomInfo->p1, VIOLET, violet_t1, violet_t2, violet_t3, violet_t4, violet_cycle);
+    pointFilter(goomInfo, goomInfo->p1, BLACK, black_t1, black_t2, black_t3, black_t4, black_cycle);
+    pointFilter(goomInfo, goomInfo->p1, WHITE, white_t1, white_t2, white_t3, white_t4, white_cycle);
   }
 }
 
@@ -630,16 +625,15 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
 
     /* SELECTION OF THE GOOM STATE */
     if ((!goomInfo->update.stateSelectionBlocker) && (goom_irand(goomInfo->gRandom, 3))) {
-      goomInfo->update.stateSelectionRnd =
-          (int)goom_irand(goomInfo->gRandom, (Uint)goomInfo->statesRangeMax);
+      goomInfo->update.stateSelectionRand = int(goom_irand(goomInfo->gRandom, uint32_t(goomInfo->statesRangeMax)));
       goomInfo->update.stateSelectionBlocker = 3;
     } else if (goomInfo->update.stateSelectionBlocker) {
       goomInfo->update.stateSelectionBlocker--;
     }
 
     for (int i = 0; i < goomInfo->statesNumber; i++) {
-      if ((goomInfo->update.stateSelectionRnd >= goomInfo->states[i].rangemin) &&
-          (goomInfo->update.stateSelectionRnd <= goomInfo->states[i].rangemax)) {
+      if ((goomInfo->update.stateSelectionRand >= goomInfo->states[i].minSelect) &&
+          (goomInfo->update.stateSelectionRand <= goomInfo->states[i].maxSelect)) {
         goomInfo->curGState = &(goomInfo->states[i]);
         goomInfo->curGStateIndex = i;
         break;
@@ -650,8 +644,7 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
       goomInfo->update.recay_ifs = 5;
       goomInfo->update.ifs_incr = 11;
     }
-    if ((!goomInfo->curGState->drawIFS) && (goomInfo->update.ifs_incr > 0) &&
-        (goomInfo->update.decay_ifs <= 0)) {
+    if ((!goomInfo->curGState->drawIFS) && (goomInfo->update.ifs_incr > 0) && (goomInfo->update.decay_ifs <= 0)) {
       goomInfo->update.decay_ifs = 100;
     }
 
@@ -804,8 +797,7 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
                                                     (int)goom_irand(goomInfo->gRandom, 2);
           goomInfo->update.zoomFilterData.reverse = !goomInfo->update.zoomFilterData.reverse;
         } else {
-          goomInfo->update.zoomFilterData.vitesse =
-              ((int)newvit + goomInfo->update.zoomFilterData.vitesse * 7) / 8;
+          goomInfo->update.zoomFilterData.vitesse = ((int)newvit + goomInfo->update.zoomFilterData.vitesse * 7) / 8;
         }
         goomInfo->update.lockvar += 50;
       }
@@ -949,11 +941,10 @@ static void stopRandomLineChangeMode(PluginInfo* goomInfo)
     goomInfo->update.lineMode--;
   }
 
-  if ((goomInfo->cycle % 120 == 0) && (goom_irand(goomInfo->gRandom, 4) == 0) &&
-      (goomInfo->curGState->drawScope)) {
-    if (goomInfo->update.lineMode == 0)
+  if ((goomInfo->cycle % 120 == 0) && (goom_irand(goomInfo->gRandom, 4) == 0) && (goomInfo->curGState->drawScope)) {
+    if (goomInfo->update.lineMode == 0) {
       goomInfo->update.lineMode = goomInfo->update.drawLinesDuration;
-    else if (goomInfo->update.lineMode == goomInfo->update.drawLinesDuration) {
+    } else if (goomInfo->update.lineMode == goomInfo->update.drawLinesDuration) {
       goomInfo->update.lineMode--;
 
       float param1 = 0;

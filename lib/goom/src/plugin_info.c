@@ -64,16 +64,21 @@ void plugin_info_init(PluginInfo* pp, int nbVisuals)
 
   pp->statesNumber = STATES_MAX_NB;
   pp->statesRangeMax = 510;
-  GoomState states[STATES_MAX_NB] = {{1, 0, 1, 1, 4,   0, 100},
-                                     {1, 0, 1, 0, 1, 101, 140},
-                                     {1, 0, 1, 1, 2, 141, 200},
-                                     {0, 1, 1, 1, 2, 201, 260},
-                                     {0, 1, 1, 1, 0, 261, 330},
-                                     {0, 1, 1, 1, 4, 331, 400},
-                                     {0, 0, 1, 0, 5, 401, 450},
-                                     {0, 0, 1, 1, 1, 451, 510}
-                                    };
-  for (int i = 0; i < STATES_MAX_NB; ++i) {
+  GoomState states[STATES_MAX_NB] = {
+    {.drawIFS = 1, .drawPoints = 0, .drawTentacle = 1, .drawScope = 1, .farScope = 1, .minSelect =   0},
+    {.drawIFS = 1, .drawPoints = 0, .drawTentacle = 1, .drawScope = 0, .farScope = 1, .minSelect = 101},
+    {.drawIFS = 1, .drawPoints = 0, .drawTentacle = 1, .drawScope = 1, .farScope = 1, .minSelect = 141},
+    {.drawIFS = 0, .drawPoints = 1, .drawTentacle = 1, .drawScope = 1, .farScope = 1, .minSelect = 201},
+    {.drawIFS = 0, .drawPoints = 1, .drawTentacle = 1, .drawScope = 1, .farScope = 0, .minSelect = 261},
+    {.drawIFS = 0, .drawPoints = 1, .drawTentacle = 1, .drawScope = 1, .farScope = 1, .minSelect = 331},
+    {.drawIFS = 0, .drawPoints = 0, .drawTentacle = 1, .drawScope = 0, .farScope = 1, .minSelect = 401},
+    {.drawIFS = 0, .drawPoints = 0, .drawTentacle = 1, .drawScope = 1, .farScope = 1, .minSelect = 451},
+  };
+  states[STATES_MAX_NB-1].maxSelect = pp->statesRangeMax;
+  for (size_t i = 0; i < STATES_MAX_NB - 1; i++) {
+    states[i].maxSelect = states[i+1].minSelect - 1;
+  }
+  for (size_t i = 0; i < STATES_MAX_NB; ++i) {
     pp->states[i] = states[i];
   }
   pp->curGStateIndex = 6;
@@ -96,7 +101,7 @@ void plugin_info_init(PluginInfo* pp, int nbVisuals)
   pp->update.switchMult = 1.0f;
   pp->update.switchIncr = pp->update.switchIncrAmount;
 
-  pp->update.stateSelectionRnd = 0;
+  pp->update.stateSelectionRand = 0;
   pp->update.stateSelectionBlocker = 0;
   pp->update.previousZoomSpeed = 128;
   pp->update.timeOfTitleDisplay = 0;

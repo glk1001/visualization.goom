@@ -11,19 +11,19 @@
 
 #include "goomutils/colormap.h"
 
-typedef struct {
-  char drawIFS;
-  char drawPoints;
-  char drawTentacle;
+struct GoomState {
+  bool drawIFS;
+  bool drawPoints;
+  bool drawTentacle;
 
-  char drawScope;
-  int farScope;
+  bool drawScope;
+  bool farScope;
 
-  int rangemin;
-  int rangemax;
-} GoomState;
+  int minSelect;
+  int maxSelect = 0;
+};
 
-#define STATES_MAX_NB 8
+constexpr size_t STATES_MAX_NB = 8;
 
 /**
  * Gives informations about the sound.
@@ -138,7 +138,7 @@ struct _PLUGIN_INFO {
     int switchIncrAmount;      /* 0x7f */
     float switchMult;          /* 1.0f */
     int switchIncr;            /*  = SWITCHINCR; */
-    int stateSelectionRnd;
+    int stateSelectionRand;
     int stateSelectionBlocker;
     int previousZoomSpeed;
     int timeOfTitleDisplay;
