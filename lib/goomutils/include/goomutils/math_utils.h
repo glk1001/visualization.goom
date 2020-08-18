@@ -3,6 +3,9 @@
 
 #include <cmath>
 #include <cstdlib>
+#include <memory>
+#include <tuple>
+#include <vector>
 
 inline float getRandNeg1toPos1();
 
@@ -64,6 +67,34 @@ private:
   const double amplitude;
   double k;
   double b;
+};
+
+class FlatDampingFunction: public DampingFunction {
+public:
+  explicit FlatDampingFunction(const double y);
+  double operator()(const double x) override;
+private:
+  const double y;
+};
+
+class LinearDampingFunction: public DampingFunction {
+public:
+  explicit LinearDampingFunction(const double x0, const double y0, const double x1, const double y1);
+  double operator()(const double x) override;
+private:
+  const double m;
+  const double x1;
+  const double y1;
+};
+
+class PiecewiseDampingFunction: public DampingFunction {
+public:
+  explicit PiecewiseDampingFunction(
+      const std::vector<std::pair<double, double>>& ranges, std::vector<std::unique_ptr<DampingFunction>>& funcs);
+  double operator()(const double x) override;
+private:
+  const std::vector<std::pair<double, double>> ranges;
+  std::vector<std::unique_ptr<DampingFunction>> funcs;
 };
 
 class SequenceFunction {

@@ -2,7 +2,10 @@
 
 #include <cmath>
 #include <format>
+#include <memory>
 #include <stdexcept>
+#include <tuple>
+#include <vector>
 
 
 ExpIncreasingFunction::ExpIncreasingFunction(const double x0, const double x1, const double _k)
@@ -71,6 +74,45 @@ ExpDampingFunction::ExpDampingFunction(
 double ExpDampingFunction::operator()(const double x)
 {
   return amplitude*(1.0 + std::exp(k*(x - b)));
+}
+
+FlatDampingFunction::FlatDampingFunction(const double y_)
+  : y{ y_ }
+{
+}
+
+double FlatDampingFunction::operator()([[ maybe_unused ]]const double x)
+{
+  return y;
+}
+
+LinearDampingFunction::LinearDampingFunction(const double x0_, const double y0_, const double x1_, const double y1_)
+  : m { (y1_ - y0_) / (x1_ - x0_) }
+  , x1 { x1_ }
+  , y1 { y1_ }
+{
+}
+
+double LinearDampingFunction::operator()(const double x)
+{
+  return m*(x - x1) + y1;
+}
+
+PiecewiseDampingFunction::PiecewiseDampingFunction(
+    const std::vector<std::pair<double, double>>& r, std::vector<std::unique_ptr<DampingFunction>>& f)
+  : ranges{ r }
+  , funcs{ std::move(f) }
+{
+}
+
+double PiecewiseDampingFunction::operator()(const double x)
+{
+  for (size_t i=0; i < ranges.size(); i++) {
+    if ((ranges[i].first <= x) && (x < ranges[i].second)) {
+      return (*funcs[i])(x);
+    }
+  }
+  return 0.0;
 }
 
 HermitePolynomial::HermitePolynomial(const int d, const float xStart)
