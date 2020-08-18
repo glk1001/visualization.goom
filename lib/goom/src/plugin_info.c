@@ -66,13 +66,13 @@ void plugin_info_init(PluginInfo* pp, int nbVisuals)
   pp->statesRangeMax = 510;
   GoomState states[STATES_MAX_NB] = {
     {.drawIFS = 1, .drawPoints = 0, .drawTentacle = 1, .drawScope = 1, .farScope = 1, .minSelect =   0},
-    {.drawIFS = 1, .drawPoints = 0, .drawTentacle = 1, .drawScope = 0, .farScope = 1, .minSelect = 101},
-    {.drawIFS = 1, .drawPoints = 0, .drawTentacle = 1, .drawScope = 1, .farScope = 1, .minSelect = 141},
+    {.drawIFS = 1, .drawPoints = 0, .drawTentacle = 0, .drawScope = 0, .farScope = 1, .minSelect = 101},
+    {.drawIFS = 1, .drawPoints = 0, .drawTentacle = 0, .drawScope = 1, .farScope = 1, .minSelect = 141},
     {.drawIFS = 0, .drawPoints = 1, .drawTentacle = 1, .drawScope = 1, .farScope = 1, .minSelect = 201},
     {.drawIFS = 0, .drawPoints = 1, .drawTentacle = 1, .drawScope = 1, .farScope = 0, .minSelect = 261},
     {.drawIFS = 0, .drawPoints = 1, .drawTentacle = 1, .drawScope = 1, .farScope = 1, .minSelect = 331},
     {.drawIFS = 0, .drawPoints = 0, .drawTentacle = 1, .drawScope = 0, .farScope = 1, .minSelect = 401},
-    {.drawIFS = 0, .drawPoints = 0, .drawTentacle = 1, .drawScope = 1, .farScope = 1, .minSelect = 451},
+    {.drawIFS = 0, .drawPoints = 0, .drawTentacle = 0, .drawScope = 1, .farScope = 1, .minSelect = 451},
   };
   states[STATES_MAX_NB-1].maxSelect = pp->statesRangeMax;
   for (size_t i = 0; i < STATES_MAX_NB - 1; i++) {

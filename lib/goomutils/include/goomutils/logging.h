@@ -1,6 +1,8 @@
 #ifndef LIB_GOOMUTILS_INCLUDE_GOOMUTILS_LOGGING_H_
 #define LIB_GOOMUTILS_INCLUDE_GOOMUTILS_LOGGING_H_
 
+//#define NO_LOGGING
+
 #include <format>
 #include <fstream>
 #include <functional>
