@@ -99,17 +99,16 @@ double LinearDampingFunction::operator()(const double x)
 }
 
 PiecewiseDampingFunction::PiecewiseDampingFunction(
-    const std::vector<std::pair<double, double>>& r, std::vector<std::unique_ptr<DampingFunction>>& f)
-  : ranges{ r }
-  , funcs{ std::move(f) }
+    std::vector<std::tuple<double, double, std::unique_ptr<DampingFunction>>>& p)
+  : pieces{ std::move(p) }
 {
 }
 
 double PiecewiseDampingFunction::operator()(const double x)
 {
-  for (size_t i=0; i < ranges.size(); i++) {
-    if ((ranges[i].first <= x) && (x < ranges[i].second)) {
-      return (*funcs[i])(x);
+  for (auto& [x0, x1, func] : pieces) {
+    if ((x0 <= x) && (x < x1)) {
+      return (*func)(x);
     }
   }
   return 0.0;

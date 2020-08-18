@@ -51,7 +51,6 @@ void Tentacle2D::validateSettings() const
   validateXDimensions();
   validateYDimensions();
   validateNumNodes();
-  validateYScale();
   validatePrevYWeight();
   validateCurrentYWeight();
 }
@@ -74,13 +73,6 @@ void Tentacle2D::validateNumNodes() const
 {
   if (numNodes < minNumNodes) {
     throw std::runtime_error(stdnew::format("numNodes must be >= {}, not {}.", minNumNodes, numNodes));
-  }
-}
-
-void Tentacle2D::validateYScale() const
-{
-  if (yScale < 0.00001) {
-    throw std::runtime_error(stdnew::format("yScale must be >= 0.00001, not {}.", yScale));
   }
 }
 
@@ -241,9 +233,9 @@ inline float Tentacle2D::getNextY(const size_t nodeNum)
 inline float Tentacle2D::getDampedVal(const size_t nodeNum, const float val) const
 {
   if (!doDamping) {
-    return yScale*val;
+    return val;
   }
-  return yScale*damp(nodeNum)*val;
+  return damp(nodeNum)*val;
 }
 
 const Tentacle2D::XandYVectors& Tentacle2D::getDampedXandYVectors() const

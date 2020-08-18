@@ -90,11 +90,10 @@ private:
 class PiecewiseDampingFunction: public DampingFunction {
 public:
   explicit PiecewiseDampingFunction(
-      const std::vector<std::pair<double, double>>& ranges, std::vector<std::unique_ptr<DampingFunction>>& funcs);
+      std::vector<std::tuple<double, double, std::unique_ptr<DampingFunction>>>& pieces);
   double operator()(const double x) override;
 private:
-  const std::vector<std::pair<double, double>> ranges;
-  std::vector<std::unique_ptr<DampingFunction>> funcs;
+  std::vector<std::tuple<double, double, std::unique_ptr<DampingFunction>>> pieces;
 };
 
 class SequenceFunction {

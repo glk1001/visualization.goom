@@ -75,7 +75,7 @@ class TentacleLayout {
 public:
   virtual ~TentacleLayout() {}
   virtual size_t getNumPoints() const=0;
-  virtual V3d getPosition(size_t elementNum) const=0;
+  const virtual std::vector<V3d>& getPoints() const=0;
 };
 
 class TentacleDriver {
@@ -102,7 +102,7 @@ private:
     float prevYWeight = 0.770;
     float iterZeroYValWaveFreq = 1.0;
     SineWaveMultiplier iterZeroYValWave{};
-    float length = 40;
+    float length = 50;
   };
   struct IterParamsGroup {
     IterationParams first;
@@ -137,7 +137,12 @@ private:
   float glitchLower = -1.5;
   float glitchUpper = +1.5;
   std::unique_ptr<Tentacle2D> createNewTentacle2D(const size_t ID, const IterationParams&);
-  std::unique_ptr<TentacleTweaker> createNewTweaker(const size_t tentacleLen);
+  std::unique_ptr<TentacleTweaker> createNewTweaker(
+      const IterationParams& params, std::unique_ptr<DampingFunction> dampingFunc);
+  std::unique_ptr<DampingFunction> createNewDampingFunction(const IterationParams&, const size_t tentacleLen) const;
+  std::unique_ptr<DampingFunction> createNewExpDampingFunction(const IterationParams&, const size_t tentacleLen) const;
+  std::unique_ptr<DampingFunction> createNewLinearDampingFunction(
+      const IterationParams&, const size_t tentacleLen) const;
   void beforeIter(const size_t ID, const size_t iterNum, const std::vector<double>& xvec, std::vector<double>& yvec);
   std::vector<IterTimer*> iterTimers;
   void updateIterTimers();
@@ -175,25 +180,18 @@ public:
       const float ymin, const float ymax, const size_t yNum,
       const float zConst);
   size_t getNumPoints() const override;
-  V3d getPosition(size_t elementNum) const override;
+  const std::vector<V3d>& getPoints() const override;
 private:
-  const float xmin;
-  const float xmax;
-  const size_t xNum;
-  const float ymin;
-  const float ymax;
-  const size_t yNum;
-  const float zConst;
-  const float xStep;
-  const float yStep;
+  std::vector<V3d> points;
 };
 
 class CirclesTentacleLayout: public TentacleLayout {
 public:
   CirclesTentacleLayout(const float radiusMin, const float radiusMax,
                         const std::vector<size_t>& numCircleSamples, const float zConst);
+  // Order of points is outer circle to inner.
   size_t getNumPoints() const override;
-  V3d getPosition(size_t elementNum) const override;
+  const std::vector<V3d>& getPoints() const override;
   static std::vector<size_t> getCircleSamples(const size_t numCircles, const size_t totalPoints);
 private:
   std::vector<V3d> points;

@@ -40,16 +40,16 @@ TentacleDriver::TentacleDriver(const ColorMaps& cm, const int screenW, const int
   , iterTimers{ &glitchTimer }
 {
   const IterParamsGroup iter1 = {
-    { 100, 0.500, 1.0, { 1.5, -10.0, +10.0, M_PI }, 50.0 },
-    { 125, 0.600, 2.0, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
+    { 100, 0.500, 1.0, { 1.5, -10.0, +10.0, M_PI }, 65.0 },
+    { 125, 0.600, 2.0, { 1.0, -10.0, +10.0,  0.0 }, 70.0 },
   };
   const IterParamsGroup iter2 = {
-    { 125, 0.600, 0.5, { 1.0, -10.0, +10.0,  0.0 }, 50.0 },
-    { 150, 0.700, 1.5, { 1.5, -10.0, +10.0, M_PI }, 60.0 },
+    { 125, 0.600, 0.5, { 1.0, -10.0, +10.0,  0.0 }, 65.0 },
+    { 150, 0.700, 1.5, { 1.5, -10.0, +10.0, M_PI }, 70.0 },
   };
   const IterParamsGroup iter3 = {
-    { 150, 0.700, 1.5, { 1.5, -10.0, +10.0, M_PI }, 50.0 },
-    { 200, 0.900, 2.5, { 1.0, -10.0, +10.0,  0.0 }, 60.0 },
+    { 150, 0.700, 1.5, { 1.5, -10.0, +10.0, M_PI }, 65.0 },
+    { 200, 0.900, 2.5, { 1.0, -10.0, +10.0,  0.0 }, 70.0 },
   };
 
   iterParamsGroups = {
@@ -61,7 +61,7 @@ TentacleDriver::TentacleDriver(const ColorMaps& cm, const int screenW, const int
   logInfo("Constructed TentacleDriver.");
 }
 
-constexpr double tent2d_xmax = +30.0;
+constexpr double tent2d_xmin = 0.0;
 constexpr double tent2d_ymin = 0.065736;
 constexpr double tent2d_ymax = 10000;
 
@@ -77,20 +77,20 @@ void TentacleDriver::init()
   tentacleParams.resize(numTentacles);
 
   constexpr V3d initialHeadPos = { 0, 0, 0 };
-  const ColorMap* specialColorMap = &colorMaps->getRandomColorMap(ColorMaps::getQualitativeMaps());
+  const ColorMap* specialColorMap = &colorMaps->getRandomColorMap(ColorMaps::getGroup(ColorMapGroup::qualitative));
   const std::vector<size_t> specialColorNodes = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
   const ColorMap* headColorMap = &colorMaps->getColorMap(ColorMapName::red_black_sky);
   logInfo("Got color maps.");
 
-  const size_t numInTentacleGroup = numTentacles/iterParamsGroups.size();
-  const float tStep = 1.0/float(numInTentacleGroup - 1);
-  logInfo("numInTentacleGroup = {}, tStep = {:.2f}.", numInTentacleGroup, tStep);
+  const size_t numInParamGroup = numTentacles/iterParamsGroups.size();
+  const float tStep = 1.0/float(numInParamGroup - 1);
+  logInfo("numInTentacleGroup = {}, tStep = {:.2f}.", numInParamGroup, tStep);
 
   size_t paramsIndex = 0;
   float t = 0;
   for (size_t i=0; i < numTentacles; i++) {
     const IterParamsGroup paramsGrp = iterParamsGroups.at(paramsIndex);
-    if (i % numInTentacleGroup == 0) {
+    if (i % numInParamGroup == 0) {
       if (paramsIndex < iterParamsGroups.size()-1) {
         paramsIndex++;
       }
@@ -141,23 +141,23 @@ std::unique_ptr<Tentacle2D> TentacleDriver::createNewTentacle2D(const size_t ID,
 {
   logInfo("Creating new tentacle2D {}...", ID);
 
-  const size_t tentacleLen = size_t(getRandInRange(0.9f, 1.1f)*float(params.length));
-  const double xmin = tent2d_xmax - tentacleLen;
+  const size_t tentacleLen = size_t(getRandInRange(0.99f, 1.01f)*float(params.length));
+  const double tent2d_xmax = tent2d_xmin + tentacleLen;
 
-  std::unique_ptr<Tentacle2D> tentacle{ new Tentacle2D{ ID, std::move(createNewTweaker(tentacleLen)) } };
+  std::unique_ptr<Tentacle2D> tentacle{ new Tentacle2D{ ID,
+    std::move(createNewTweaker(params, std::move(createNewDampingFunction(params, tentacleLen)))) }};
   logInfo("Created new tentacle2D {}.", ID);
 
-  tentacle->setXDimensions(xmin, tent2d_xmax);
+  tentacle->setXDimensions(tent2d_xmin, tent2d_xmax);
   tentacle->setYDimensions(tent2d_ymin, tent2d_ymax);
-  tentacle->setYScale(0.5);
 
   tentacle->setPrevYWeight(params.prevYWeight);
   tentacle->setCurrentYWeight(1.0 - params.prevYWeight);
   tentacle->setNumNodes(size_t(float(params.numNodes)*getRandInRange(0.9f, 1.1f)));
   logInfo("tentacle {:3}:"
-          " tentacleLen = {:4}, xmin = {:7.2f}, tent2d_xmax = {:5.2f},"
+          " tentacleLen = {:4}, tent2d_xmin = {:7.2f}, tent2d_xmax = {:5.2f},"
           " prevYWeight = {:5.2f}, curYWeight = {:5.2f}, numNodes = {:5}",
-          ID, tentacleLen, xmin, tent2d_xmax,
+          ID, tentacleLen, tent2d_xmin, tent2d_xmax,
           tentacle->getPrevYWeight(), tentacle->getCurrentYWeight(), tentacle->getNumNodes());
 
   tentacle->setDoDamping(true);
@@ -169,18 +169,47 @@ std::unique_ptr<Tentacle2D> TentacleDriver::createNewTentacle2D(const size_t ID,
   return tentacle;
 }
 
-std::unique_ptr<TentacleTweaker> TentacleDriver::createNewTweaker(const size_t tentacleLen)
+std::unique_ptr<DampingFunction> TentacleDriver::createNewDampingFunction(
+    const IterationParams& params, const size_t tentacleLen) const
 {
-  using namespace std::placeholders;
+  if (params.prevYWeight < 0.6) {
+    return createNewLinearDampingFunction(params, tentacleLen);
+  }
+  return createNewExpDampingFunction(params, tentacleLen);
+}
 
-  const double xmin = tent2d_xmax - tentacleLen;
-  const double xRiseStart = xmin + 0.25*tentacleLen;
+std::unique_ptr<DampingFunction> TentacleDriver::createNewExpDampingFunction(
+    const IterationParams& params, const size_t tentacleLen) const
+{
+  const double tent2d_xmax = tent2d_xmin + tentacleLen;
+
+  const double xRiseStart = tent2d_xmin + 0.25*tent2d_xmax;
   constexpr double dampStart = 5;
   constexpr double dampMax = 30;
 
-  std::unique_ptr<ExpDampingFunction> dampingFunc{
-    new ExpDampingFunction{ 1.0, xRiseStart, dampStart, tent2d_xmax, dampMax }
-  };
+  return std::unique_ptr<DampingFunction>{ new ExpDampingFunction{ 0.1, xRiseStart, dampStart, tent2d_xmax, dampMax } };
+}
+
+std::unique_ptr<DampingFunction> TentacleDriver::createNewLinearDampingFunction(
+    const IterationParams& params, const size_t tentacleLen) const
+{
+  const double tent2d_xmax = tent2d_xmin + tentacleLen;
+
+  constexpr float yScale = 30;
+
+  std::vector<std::tuple<double, double, std::unique_ptr<DampingFunction>>> pieces{};
+  pieces.emplace_back(std::make_tuple(tent2d_xmin, 0.1*tent2d_xmax,
+      std::unique_ptr<DampingFunction>{ new FlatDampingFunction{ 0.1 } }));
+  pieces.emplace_back(std::make_tuple(0.1*tent2d_xmax, 10*tent2d_xmax,
+      std::unique_ptr<DampingFunction>{ new LinearDampingFunction{ 0.1*tent2d_xmax, 0.1, tent2d_xmax, yScale } }));
+
+  return std::unique_ptr<DampingFunction>{ new PiecewiseDampingFunction{ pieces } };
+}
+
+std::unique_ptr<TentacleTweaker> TentacleDriver::createNewTweaker(
+    const IterationParams& params, std::unique_ptr<DampingFunction> dampingFunc)
+{
+  using namespace std::placeholders;
 
   //  TentacleTweaker::WeightFunctionsResetter weightsReset =
   //      std::bind(&RandWeightHandler::weightsReset, &weightsHandler, _1, _2, _3, _4);
@@ -221,13 +250,24 @@ void TentacleDriver::updateTentaclesLayout(const TentacleLayout& layout)
   logInfo("Updating tentacles layout. numTentacles = {}.", numTentacles);
   assert(layout.getNumPoints() == numTentacles);
 
-  std::vector<size_t> shuffledIDs(numTentacles);
-  std::iota(shuffledIDs.begin(), shuffledIDs.end(), 0);
-  std::random_shuffle(shuffledIDs.begin(), shuffledIDs.end());
-  logInfo("Shuffled tentacle IDs.");
+  std::vector<size_t> sortedLongestFirst(numTentacles);
+  std::iota(sortedLongestFirst.begin(), sortedLongestFirst.end(), 0);
+  const auto compareByLength = [this](const size_t id1, const size_t id2) -> bool {
+    const double len1 = tentacles[id1].get2DTentacle().getLength();
+    const double len2 = tentacles[id2].get2DTentacle().getLength();
+    // Sort by longest first.
+    return len1 > len2;
+  };
+  std::sort(sortedLongestFirst.begin(), sortedLongestFirst.end(), compareByLength);
 
   for (size_t i=0; i < numTentacles; i++) {
-    tentacles[i].setHead(layout.getPosition(shuffledIDs.at(i)));
+    logInfo("{} {} tentacle[{}].len = {:.2}.",
+    i, sortedLongestFirst.at(i),
+    sortedLongestFirst.at(i), tentacles[sortedLongestFirst.at(i)].get2DTentacle().getLength());
+  }
+
+  for (size_t i=0; i < numTentacles; i++) {
+    tentacles[sortedLongestFirst.at(i)].setHead(layout.getPoints().at(i));
   }
 }
 
@@ -478,39 +518,33 @@ uint32_t TentacleColorMapColorizer::getColor(size_t nodeNum) const
 }
 
 GridTentacleLayout::GridTentacleLayout(
-    const float x0, const float x1, const size_t xn,
-    const float y0, const float y1, const size_t yn,
-    const float z)
-  : xmin{ x0 }
-  , xmax{ x1 }
-  , xNum{ xn }
-  , ymin{ y0 }
-  , ymax{ y1 }
-  , yNum{ yn }
-  , zConst{ z }
-  , xStep{ (x1 - x0)/float(xn - 1) }
-  , yStep{ (y1 - y0)/float(yn - 1) }
+    const float xmin, const float xmax, const size_t xNum,
+    const float ymin, const float ymax, const size_t yNum,
+    const float zConst)
+  : points{}
 {
+  const float xStep = (xmax - xmin)/float(xNum - 1);
+  const float yStep = (ymax - ymin)/float(yNum - 1);
+
+  float y = ymin;
+  for (size_t i=0; i < yNum; i++) {
+    float x = xmin;
+    for (size_t j=0; j < xNum; j++) {
+      points.emplace_back(V3d{ x, y, zConst });
+      x += xStep;
+    }
+    y += yStep;
+  }
 }
 
 size_t GridTentacleLayout::getNumPoints() const
 {
-  return xNum*yNum;
+  return points.size();
 }
 
-V3d GridTentacleLayout::getPosition(size_t elementNum) const
+const std::vector<V3d>& GridTentacleLayout::getPoints() const
 {
-  const size_t row = elementNum/xNum;
-  if (row > yNum) {
-    throw std::runtime_error(stdnew::format("row out of bounds: {} > {}, {} elementNum = {}.", row, yNum, elementNum));
-  }
-  const size_t col = elementNum % xNum;
-
-  const float x = xmin + float(col)*xStep;
-  const float y = ymin + float(row)*yStep;
-  const V3d pos = { x, y, zConst };
-
-  return pos;
+  return points;
 }
 
 std::vector<size_t> CirclesTentacleLayout::getCircleSamples(const size_t numCircles, const size_t totalPoints)
@@ -593,9 +627,9 @@ size_t CirclesTentacleLayout::getNumPoints() const
   return points.size();
 }
 
-V3d CirclesTentacleLayout::getPosition(size_t elementNum) const
+const std::vector<V3d>& CirclesTentacleLayout::getPoints() const
 {
-  return points.at(elementNum);
+  return points;
 }
 
 SimpleWeightHandler::SimpleWeightHandler(

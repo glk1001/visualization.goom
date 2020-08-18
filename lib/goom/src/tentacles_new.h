@@ -110,6 +110,8 @@ public:
   const XandYVectors& getXandYVectors() const;
   const XandYVectors& getDampedXandYVectors() const;
 
+  double getLength() const;
+
   double getXMin() const;
   double getXMax() const;
   void setXDimensions(const double x0, const double y0);
@@ -132,9 +134,6 @@ public:
 
   double getIterZeroLerpFactor() const;
   void setIterZeroLerpFactor(const double val);
-
-  double getYScale() const;
-  void setYScale(const double val);
 
   bool getDoDamping() const;
   void setDoDamping(const bool val);
@@ -169,7 +168,6 @@ private:
   double xmax = 0;
   double ymin = 0;
   double ymax = 0;
-  double yScale = 1.0;
   double basePrevYWeight = 0.770;
   double baseCurrentYWeight = 0.230;
   double iterZeroYVal = 0.9;
@@ -189,7 +187,6 @@ private:
   void validateXDimensions() const;
   void validateYDimensions() const;
   void validateNumNodes() const;
-  void validateYScale() const;
   void validatePrevYWeight() const;
   void validateCurrentYWeight() const;
 };
@@ -309,14 +306,6 @@ inline size_t Tentacle2D::getID() const
   return ID;
 }
 
-inline double Tentacle2D::getYScale() const { return yScale; }
-
-inline void Tentacle2D::setYScale(const double val)
-{
-  yScale = val;
-  validateYScale();
-}
-
 inline double Tentacle2D::getIterZeroYVal() const { return iterZeroYVal; }
 inline double Tentacle2D::getIterZeroLerpFactor() const { return iterZeroLerpFactor; }
 
@@ -361,6 +350,8 @@ inline void Tentacle2D::setCurrentYWeight(const double val)
 }
 
 inline size_t Tentacle2D::getIterNum() const { return iterNum; }
+
+inline double Tentacle2D::getLength() const { return xmax - xmin; }
 
 inline double Tentacle2D::getXMin() const { return xmin; }
 inline double Tentacle2D::getXMax() const { return xmax; }
