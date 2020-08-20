@@ -2,9 +2,11 @@
 #define LIB_GOOMUTILS_INCLUDE_GOOMUTILS_COLORMAP_H_
 
 #include "goomutils/colormap_enums.h"
+#include "goomutils/math_utils.h"
 
 #include <vivid/vivid.h>
 
+#include <array>
 #include <memory>
 #include <string>
 #include <utility>
@@ -37,6 +39,7 @@ private:
 };
 
 enum class ColorMapGroup: int {
+  _null=-1,
   perceptuallyUniformSequential=0,
   sequential,
   sequential2,
@@ -45,33 +48,67 @@ enum class ColorMapGroup: int {
   diverging_black,
   qualitative,
   misc,
-  size = misc+1
+  _size  // unused and marks last enum + 1
 };
-inline size_t to_int(const ColorMapGroup i) { return static_cast<size_t>(i); }
+
+//constexpr size_t to_int(const ColorMapGroup i) { return static_cast<size_t>(i); }
+template <class T>
+  constexpr T& at(std::array<T, static_cast<size_t>(ColorMapGroup::_size)>& arr, const ColorMapGroup idx) {
+    return arr[static_cast<size_t>(idx)];
+  }
 
 class ColorMaps {
 public:
+  using ColorMapNames = std::vector<ColorMapName>;
+
   ColorMaps();
+  ColorMaps(const ColorMaps&)=delete;
+  virtual ~ColorMaps() noexcept = default;
 
-  static size_t getNumColorMaps();
-  static size_t getNumGroups();
+  ColorMaps& operator=(const ColorMaps&)=delete;
 
-    static const ColorMap& getRandomColorMap();
-    static const ColorMap& getRandomColorMap(const std::vector<ColorMapName> &group);
-    static const ColorMap& getColorMap(const ColorMapName name);
+  size_t getNumColorMaps() const;
+  const ColorMap& getColorMap(const ColorMapName) const;
+  const ColorMapNames& getColorMapNames(const ColorMapGroup) const;
 
-  void setRandomGroupWeights(const std::vector<size_t>& weights);
-  const std::vector<ColorMapName>& getRandomWeightedGroup() const;
+  void setOverrideColorMap(const ColorMap&);
+  const ColorMap& getRandomColorMap() const;
+  const ColorMap& getRandomColorMap(const ColorMapGroup) const;
 
-    static const std::vector<ColorMapName>& getRandomGroup();
-    static const std::vector<ColorMapName>& getGroup(const ColorMapGroup);
-private:
-  std::vector<size_t> weights;
-  size_t sumOfWeights;
-  static std::vector<ColorMap, ColorMap::ColorMapAllocator> colorMaps;
-  static std::vector<const std::vector<ColorMapName>*> groups;
-  static void initColorMaps();
+  size_t getNumGroups() const;
+  void setOverrideColorGroup(const ColorMapGroup);
+  virtual ColorMapGroup getRandomGroup() const;
+protected:
+  using GroupColorNames =
+      std::array<const ColorMapNames*, static_cast<size_t>(ColorMapGroup::_size)>;
+  const ColorMap* getOverrideColorMap() const { return overrideColorMap; }
+  ColorMapGroup getOverrideColorGroup() const { return overrideColorGroup; }
+  const GroupColorNames& getGroups() const { return groups; }
   static void initGroups();
+private:
+  const ColorMap* overrideColorMap;
+  ColorMapGroup overrideColorGroup;
+  static std::vector<ColorMap, ColorMap::ColorMapAllocator> colorMaps;
+  static GroupColorNames groups;
+  static void initColorMaps();
+};
+
+class WeightedColorMaps: public ColorMaps {
+public:
+  WeightedColorMaps();
+  explicit WeightedColorMaps(const Weights<ColorMapGroup>&);
+  virtual ~WeightedColorMaps() noexcept override = default;
+
+  const Weights<ColorMapGroup>& getWeights() const;
+  void setWeights(const Weights<ColorMapGroup>&);
+
+  bool areWeightsActive() const;
+  void setWeightsActive(const bool value);
+
+  ColorMapGroup getRandomGroup() const override;
+private:
+  Weights<ColorMapGroup> weights;
+  bool weightsActive;
 };
 
 #endif /* LIBS_GOOMUTILS_INCLUDE_GOOMUTILS_COLORMAP_H_ */

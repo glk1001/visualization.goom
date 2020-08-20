@@ -13,113 +13,150 @@
 #include <vector>
 
 std::vector<ColorMap, ColorMap::ColorMapAllocator> ColorMaps::colorMaps{};
-std::vector<const std::vector<ColorMapName>*> ColorMaps::groups{};
+ColorMaps::GroupColorNames ColorMaps::groups{ nullptr };
 
 ColorMaps::ColorMaps()
-  : weights{}
-  , sumOfWeights{ 0 }
+  : overrideColorMap{ nullptr }
+  , overrideColorGroup{ ColorMapGroup::_null }
 {
-  std::vector<size_t> wts(to_int(ColorMapGroup::size));
-  std::fill(wts.begin(), wts.end(), 1);
-  setRandomGroupWeights(wts);
 }
 
-void ColorMaps::setRandomGroupWeights(const std::vector<size_t>& wts)
+void ColorMaps::setOverrideColorMap(const ColorMap& cm)
 {
-  initGroups();
-
-  if (wts.size() > groups.size()) {
-    throw std::runtime_error(stdnew::format("Weights vector size {} too big. (Should be <= {}.)",
-        wts.size(), groups.size()));
-  }
-
-  weights = wts;
-  sumOfWeights = 0;
-  for (const size_t n : weights) {
-    sumOfWeights += n;
-  }
+  overrideColorMap = &cm;
 }
 
-const std::vector<ColorMapName>& ColorMaps::getRandomWeightedGroup() const
+void ColorMaps::setOverrideColorGroup(const ColorMapGroup grp)
 {
-  initGroups();
-
-  size_t randVal = getRandInRange(0, sumOfWeights);
-  for (size_t i=0; i < weights.size(); i++) {
-    if (randVal < weights[i]) {
-      return *groups.at(i);
-    }
-    randVal -= weights[i];
-  }
-  throw std::logic_error(stdnew::format("Should not get here. randVal = {}.", randVal));
+  overrideColorGroup = grp;
 }
 
-const ColorMap& ColorMaps::getRandomColorMap()
+const ColorMap& ColorMaps::getRandomColorMap() const
 {
+  if (overrideColorMap != nullptr) {
+    return *overrideColorMap;
+  }
+
   initColorMaps();
+
   return colorMaps[getRandInRange(0, colorMaps.size())];
 }
 
-const ColorMap& ColorMaps::getRandomColorMap(const std::vector<ColorMapName>& group)
+const ColorMap& ColorMaps::getRandomColorMap(const ColorMapGroup groupName) const
 {
+  if (overrideColorMap != nullptr) {
+    return *overrideColorMap;
+  }
+
+  initGroups();
   initColorMaps();
-  return getColorMap(group[getRandInRange(0, group.size())]);
+
+  const std::vector<ColorMapName>* group = at(groups, groupName);
+  return getColorMap(group->at(getRandInRange(0, group->size())));
 }
 
-const ColorMap& ColorMaps::getColorMap(const ColorMapName name)
+const ColorMap& ColorMaps::getColorMap(const ColorMapName name) const
 {
   initColorMaps();
   return colorMaps[static_cast<size_t>(name)];
 }
 
-size_t ColorMaps::getNumColorMaps()
+const ColorMaps::ColorMapNames& ColorMaps::getColorMapNames(const ColorMapGroup groupName) const
+{
+  return *at(groups, groupName);
+}
+
+size_t ColorMaps::getNumColorMaps() const
 {
   return colordata::allMaps.size();
 }
 
-inline void ColorMaps::initColorMaps()
+void ColorMaps::initColorMaps()
 {
   if (colorMaps.size() != 0) {
     return;
   }
+  colorMaps.reserve(colordata::allMaps.size());
   for(const auto& [name, vividMap] : colordata::allMaps) {
     colorMaps.emplace_back(name, vividMap);
   }
 }
 
-size_t ColorMaps::getNumGroups()
+size_t ColorMaps::getNumGroups() const
 {
   initGroups();
   return groups.size();
 }
 
-const std::vector<ColorMapName>& ColorMaps::getRandomGroup()
+ColorMapGroup ColorMaps::getRandomGroup() const
 {
+  if (overrideColorGroup != ColorMapGroup::_null) {
+    return overrideColorGroup;
+  }
+
   initGroups();
-  return *groups[getRandInRange(0, groups.size())];
+  return static_cast<ColorMapGroup>(getRandInRange(0u, static_cast<size_t>(ColorMapGroup::_size)));
 }
 
-const std::vector<ColorMapName>& ColorMaps::getGroup(const ColorMapGroup grp)
+void ColorMaps::initGroups()
 {
-  initGroups();
-  return *groups.at(static_cast<size_t>(grp));
-}
-
-inline void ColorMaps::initGroups()
-{
-  if (groups.size() != 0) {
+  if (groups[0] != nullptr) {
     return;
   }
-  groups = {
-    &colordata::perc_unif_sequentialMaps,
-    &colordata::sequentialMaps,
-    &colordata::sequential2Maps,
-    &colordata::cyclicMaps,
-    &colordata::divergingMaps,
-    &colordata::diverging_blackMaps,
-    &colordata::qualitativeMaps,
-    &colordata::miscMaps,
-  };
+  at(groups, ColorMapGroup::perceptuallyUniformSequential) = &colordata::perc_unif_sequentialMaps;
+  at(groups, ColorMapGroup::sequential) = &colordata::sequentialMaps;
+  at(groups, ColorMapGroup::sequential2) = &colordata::sequential2Maps;
+  at(groups, ColorMapGroup::cyclic) = &colordata::cyclicMaps;
+  at(groups, ColorMapGroup::diverging) = &colordata::divergingMaps;
+  at(groups, ColorMapGroup::diverging_black) = &colordata::diverging_blackMaps;
+  at(groups, ColorMapGroup::qualitative) = &colordata::qualitativeMaps;
+  at(groups, ColorMapGroup::misc) = &colordata::miscMaps;
+}
+
+WeightedColorMaps::WeightedColorMaps()
+  : ColorMaps{}
+  , weights{}
+  , weightsActive{ true }
+{
+}
+
+WeightedColorMaps::WeightedColorMaps(const Weights<ColorMapGroup>& w)
+  : ColorMaps{}
+  , weights{ w }
+  , weightsActive{ true }
+{
+}
+
+const Weights<ColorMapGroup>& WeightedColorMaps::getWeights() const
+{
+  return weights;
+}
+
+void WeightedColorMaps::setWeights(const Weights<ColorMapGroup>& w)
+{
+  weights = w;
+}
+
+bool WeightedColorMaps::areWeightsActive() const
+{
+  return weightsActive;
+}
+
+void WeightedColorMaps::setWeightsActive(const bool value)
+{
+  weightsActive = value;
+}
+
+ColorMapGroup WeightedColorMaps::getRandomGroup() const
+{
+  if (getOverrideColorGroup() != ColorMapGroup::_null) {
+    return getOverrideColorGroup();
+  }
+  if (!weightsActive) {
+    return ColorMaps::getRandomGroup();
+  }
+
+  return weights.getRandomWeighted();
 }
 
 ColorMap::ColorMap(const std::string& mapNm, const vivid::ColorMap& cm)

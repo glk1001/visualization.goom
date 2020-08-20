@@ -7,7 +7,6 @@
 #include <tuple>
 #include <vector>
 
-
 ExpIncreasingFunction::ExpIncreasingFunction(const double x0, const double x1, const double _k)
   : IncreasingFunction(x1, x0)
   , k(_k)

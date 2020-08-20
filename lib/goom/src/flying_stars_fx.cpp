@@ -53,7 +53,7 @@ struct FSData {
   PluginParam enabled_bp;
 
   ColorMaps colorMaps;
-  const std::vector<ColorMapName>* currentColorGroup;
+  ColorMapGroup currentColorGroup;
   const ColorMap* currentColorMap;
 
   int maxAge = 15;
@@ -83,8 +83,8 @@ static void fs_init(VisualFX* _this, PluginInfo* info)
 {
   FSData* data = new FSData;
 
-  data->currentColorGroup = &data->colorMaps.getRandomWeightedGroup();
-  data->currentColorMap = &data->colorMaps.getRandomColorMap(*data->currentColorGroup);
+  data->currentColorGroup = data->colorMaps.getRandomGroup();
+  data->currentColorMap = &data->colorMaps.getRandomColorMap(data->currentColorGroup);
 
   data->fx_mode = FIREWORKS_FX;
   data->maxStars = 4096;
@@ -193,8 +193,8 @@ static void fs_sound_event_occured(VisualFX* _this, PluginInfo* info)
 {
   FSData* data = (FSData*)_this->fx_data;
 
-  data->currentColorGroup = &data->colorMaps.getRandomWeightedGroup();
-  data->currentColorMap = &data->colorMaps.getRandomColorMap(*data->currentColorGroup);
+  data->currentColorGroup = data->colorMaps.getRandomGroup();
+  data->currentColorMap = &data->colorMaps.getRandomColorMap(data->currentColorGroup);
 
   data->maxAge = 10 + int(goom_irand(info->gRandom, 10));
 //  data->maxAge = NCOL;

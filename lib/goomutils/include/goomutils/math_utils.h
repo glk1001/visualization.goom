@@ -3,8 +3,11 @@
 
 #include <cmath>
 #include <cstdlib>
+#include <format>
 #include <memory>
+#include <stdexcept>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 inline float getRandNeg1toPos1();
@@ -18,6 +21,24 @@ inline float getRandSignFlt();
 inline size_t getRandInRange(const size_t x0, const size_t x1);
 // Return random float in the range x0 <= n <= x1.
 inline float getRandInRange(const float x0, const float x1);
+
+template <class E>
+class Weights {
+public:
+  Weights() noexcept;
+  explicit Weights(const std::vector<std::pair<E, size_t>>&);
+
+  void setWeight(const E, size_t value);
+  size_t getWeight(const E) const;
+  void clearWeights(const size_t value);
+  size_t getSumOfWeights() const { return sumOfWeights; }
+
+  E getRandomWeighted() const;
+private:
+  std::vector<std::pair<E, size_t>> weights;
+  size_t sumOfWeights;
+  static size_t getSumOfWeights(const std::vector<std::pair<E, size_t>>&);
+};
 
 class RangeMapper {
 public:
@@ -230,6 +251,81 @@ inline float getRandInRange(const float x0, const float x1)
 inline size_t getRandInRange(const size_t x0, const size_t x1)
 {
   return x0 + size_t(std::rand()) % (x1 - x0);
+}
+
+template <class E>
+Weights<E>::Weights() noexcept
+  : weights{}
+  , sumOfWeights{ 0 }
+{
+}
+
+template <class E>
+Weights<E>::Weights(const std::vector<std::pair<E, size_t>>& w)
+  : weights{ w }
+  , sumOfWeights{ getSumOfWeights(w) }
+{
+}
+
+template <class E>
+size_t Weights<E>::getSumOfWeights(const std::vector<std::pair<E, size_t>>& weights)
+{
+  size_t sumOfWeights = 0;
+  for (const auto& [e, w] : weights) {
+    sumOfWeights += w;
+  }
+  return sumOfWeights;
+}
+
+template <class E>
+void Weights<E>::setWeight(const E enumClass, size_t value)
+{
+  for (auto& [e, w] : weights) {
+    if (e == enumClass) {
+      w = value;
+      sumOfWeights = getSumOfWeights(weights);
+      return;
+    }
+  }
+  weights.emplace_back(std::make_pair(enumClass, value));
+  sumOfWeights = getSumOfWeights(weights);
+}
+
+template <class E>
+size_t Weights<E>::getWeight(const E enumClass) const
+{
+  for (const auto& [e, w] : weights) {
+    if (e == enumClass) {
+      return w;
+    }
+  }
+  return 0;
+}
+
+template <class E>
+void Weights<E>::clearWeights(const size_t value)
+{
+  for (auto& [e, w] : weights) {
+    w = value;
+  }
+  sumOfWeights = getSumOfWeights(weights);
+}
+
+template <class E>
+E Weights<E>::getRandomWeighted() const
+{
+  if (weights.empty()) {
+    throw std::logic_error("The are no weights set.");
+  }
+
+  size_t randVal = getRandInRange(0, sumOfWeights);
+  for (const auto& [e, w] : weights) {
+    if (randVal < w) {
+      return e;
+    }
+    randVal -= w;
+  }
+  throw std::logic_error(stdnew::format("Should not get here. randVal = {}.", randVal));
 }
 
 #endif

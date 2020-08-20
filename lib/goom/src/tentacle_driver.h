@@ -80,7 +80,7 @@ public:
 
 class TentacleDriver {
 public:
-  explicit TentacleDriver(const ColorMaps&, const int screenWidth, const int screenHeight);
+  explicit TentacleDriver(const ColorMaps*, const int screenWidth, const int screenHeight);
   TentacleDriver(const TentacleDriver&)=delete;
   TentacleDriver& operator=(const TentacleDriver&)=delete;
 
@@ -114,7 +114,7 @@ private:
   const int screenWidth;
   const int screenHeight;
   const ColorMaps* colorMaps;
-  const std::vector<ColorMapName>* currentColorMapGroup;
+  ColorMapGroup currentColorMapGroup;
   std::vector<std::unique_ptr<TentacleColorizer>> colorizers;
   ConstantSequenceFunction constPrevYWeightFunc;
   ConstantSequenceFunction constCurrentYWeightFunc;

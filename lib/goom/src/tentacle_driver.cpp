@@ -21,12 +21,12 @@
 #include <vector>
 
 
-TentacleDriver::TentacleDriver(const ColorMaps& cm, const int screenW, const int screenH)
+TentacleDriver::TentacleDriver(const ColorMaps* cm, const int screenW, const int screenH)
   : iterParamsGroups{}
   , screenWidth{ screenW }
   , screenHeight{ screenH }
-  , colorMaps{ &cm }
-  , currentColorMapGroup{ &ColorMaps::getRandomGroup() }
+  , colorMaps{ cm }
+  , currentColorMapGroup{ colorMaps->getRandomGroup() }
   , colorizers{}
   , constPrevYWeightFunc()
   , constCurrentYWeightFunc()
@@ -77,7 +77,7 @@ void TentacleDriver::init()
   tentacleParams.resize(numTentacles);
 
   constexpr V3d initialHeadPos = { 0, 0, 0 };
-  const ColorMap* specialColorMap = &colorMaps->getRandomColorMap(ColorMaps::getGroup(ColorMapGroup::qualitative));
+  const ColorMap* specialColorMap = &colorMaps->getRandomColorMap(ColorMapGroup::qualitative);
   const std::vector<size_t> specialColorNodes = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
   const ColorMap* headColorMap = &colorMaps->getColorMap(ColorMapName::red_black_sky);
   logInfo("Got color maps.");
@@ -101,14 +101,16 @@ void TentacleDriver::init()
     tentacleParams[i] = params;
 
     std::unique_ptr<TentacleColorMapColorizer> colorizer{
-      new TentacleColorMapColorizer{ colorMaps->getRandomColorMap(*currentColorMapGroup), params.numNodes } };
+      new TentacleColorMapColorizer{ colorMaps->getRandomColorMap(currentColorMapGroup), params.numNodes } };
     colorizers.push_back(std::move(colorizer));
 
     std::unique_ptr<Tentacle2D> tentacle2D{ createNewTentacle2D(i, params) };
     logInfo("Created tentacle2D {}.", i);
 
-    const uint32_t headColor = ColorMap::getRandomColor(*headColorMap);
-    const uint32_t headColorLow = ColorMap::getLighterColor(headColor, 50);
+//    const uint32_t headColor = ColorMap::getRandomColor(*headColorMap);
+//    const uint32_t headColorLow = ColorMap::getLighterColor(headColor, 50);
+const uint32_t headColor = 0xff0000ff;
+const uint32_t headColorLow = 0xff0000ff;
     Tentacle3D tentacle{ std::move(tentacle2D),
       *colorizers[colorizers.size()-1], headColor, headColorLow, initialHeadPos };
 
@@ -179,7 +181,7 @@ std::unique_ptr<DampingFunction> TentacleDriver::createNewDampingFunction(
 }
 
 std::unique_ptr<DampingFunction> TentacleDriver::createNewExpDampingFunction(
-    const IterationParams& params, const size_t tentacleLen) const
+    const IterationParams&, const size_t tentacleLen) const
 {
   const double tent2d_xmax = tent2d_xmin + tentacleLen;
 
@@ -191,7 +193,7 @@ std::unique_ptr<DampingFunction> TentacleDriver::createNewExpDampingFunction(
 }
 
 std::unique_ptr<DampingFunction> TentacleDriver::createNewLinearDampingFunction(
-    const IterationParams& params, const size_t tentacleLen) const
+    const IterationParams&, const size_t tentacleLen) const
 {
   const double tent2d_xmax = tent2d_xmin + tentacleLen;
 
@@ -207,7 +209,7 @@ std::unique_ptr<DampingFunction> TentacleDriver::createNewLinearDampingFunction(
 }
 
 std::unique_ptr<TentacleTweaker> TentacleDriver::createNewTweaker(
-    const IterationParams& params, std::unique_ptr<DampingFunction> dampingFunc)
+    const IterationParams&, std::unique_ptr<DampingFunction> dampingFunc)
 {
   using namespace std::placeholders;
 
@@ -354,7 +356,7 @@ void TentacleDriver::beforeIter(
   }
 
   if (iterNum % changeTentacleColorMapEveryNUpdates == 0) {
-    colorizers[ID]->resetColorMap(colorMaps->getRandomColorMap(*currentColorMapGroup));
+    colorizers[ID]->resetColorMap(colorMaps->getRandomColorMap(currentColorMapGroup));
   }
 }
 
@@ -366,7 +368,7 @@ void TentacleDriver::update(const float angle,
 //  logInfo(stdnew::format("Doing update {}.", updateNum));
 
   if (updateNum % changeCurrentColorMapGroupEveryNUpdates == 0) {
-    currentColorMapGroup = &ColorMaps::getRandomGroup();
+    currentColorMapGroup = colorMaps->getRandomGroup();
   }
 
   updateIterTimers();
@@ -402,8 +404,6 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
   const std::vector<V3d> vertices = tentacle.getVertices();
   const size_t n = vertices.size();
 
-  logInfo("angle = {:.2f}, distance = {:.2f}, distance2 = {:.2f}.", angle, distance, distance2);
-
   V3d cam = { 0, 0, 3 }; // TODO ????????????????????????????????
   cam.z += distance2;
   cam.y += 2.0 * sin(-(angle - 0.5*M_PI) / 4.3f);
@@ -411,6 +411,9 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
 
   const float sina = sin(M_PI - angle);
   const float cosa = cos(M_PI - angle);
+  logInfo("angle = {:.2f}, sina = {:.2}, cosa = {:.2},"
+          " distance = {:.2f}, distance2 = {:.2f}.", angle, sina, cosa, distance, distance2);
+
   std::vector<V3d> v3{ vertices };
   for (size_t i = 0; i < n; i++) {
     logInfo("v3[{}]  = ({:.2f}, {:.2f}, {:.2f}).", i, v3[i].x, v3[i].y, v3[i].z);

@@ -11,10 +11,12 @@
 //#include "SimplexNoise.h"
 
 #include "goomutils/colormap.h"
+#include "goomutils/math_utils.h"
 
 #include <cstdint>
 #include <cmath>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 class TentaclesWrapper {
@@ -24,7 +26,7 @@ public:
               gint16 data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
               float accelvar, int drawit, TentacleFXData* fx_data);
 private:
-  ColorMaps colorMaps;
+  WeightedColorMaps colorMaps;
   const ColorMap *dominantColorGroup;
   TentacleDriver driver;
   void pretty_move(PluginInfo* goomInfo, float cycle, float* dist, float* dist2,
@@ -38,22 +40,28 @@ private:
 };
 
 TentaclesWrapper::TentaclesWrapper(const int screenWidth, const int screenHeight)
-  : colorMaps{}
+  : colorMaps{
+      Weights<ColorMapGroup>{ {
+        { ColorMapGroup::perceptuallyUniformSequential, 10 },
+        { ColorMapGroup::sequential, 5 },
+        { ColorMapGroup::sequential2, 5 },
+        { ColorMapGroup::cyclic, 10 },
+        { ColorMapGroup::diverging, 20 },
+        { ColorMapGroup::diverging_black, 20 },
+        { ColorMapGroup::qualitative, 10 },
+        { ColorMapGroup::misc, 20 },
+      } }
+    }
   , dominantColorGroup{ &colorMaps.getRandomColorMap() }
-  , driver{ colorMaps, screenWidth, screenHeight }
+  , driver{ &colorMaps, screenWidth, screenHeight }
 {
-  std::vector<size_t> colorGroupWeights(to_int(ColorMapGroup::size));
-
-  colorGroupWeights[to_int(ColorMapGroup::perceptuallyUniformSequential)] = 10;
-  colorGroupWeights[to_int(ColorMapGroup::sequential)] = 5;
-  colorGroupWeights[to_int(ColorMapGroup::sequential2)] = 5;
-  colorGroupWeights[to_int(ColorMapGroup::cyclic)] = 10;
-  colorGroupWeights[to_int(ColorMapGroup::diverging)] = 20;
-  colorGroupWeights[to_int(ColorMapGroup::diverging_black)] = 20;
-  colorGroupWeights[to_int(ColorMapGroup::qualitative)] = 10;
-  colorGroupWeights[to_int(ColorMapGroup::misc)] = 30;
-
-  colorMaps.setRandomGroupWeights(colorGroupWeights);
+/**
+// Temp hack of weights
+Weights<ColorMapGroup> colorGroupWeights = colorMaps.getWeights();
+colorGroupWeights.clearWeights(1);
+colorGroupWeights.setWeight(ColorMapGroup::misc, 30000);
+colorMaps.setWeights(colorGroupWeights);
+***/
 
   driver.init();
   driver.startIterating();
