@@ -9,8 +9,6 @@
 #include "goom_typedefs.h"
 #include "goom_visual_fx.h"
 
-#include "goomutils/colormap.h"
-
 struct GoomState {
   bool drawIFS;
   bool drawPoints;
@@ -82,7 +80,6 @@ struct _PLUGIN_INFO {
     int size; /* == screen.height * screen.width. */
   } screen;
 
-  ColorMaps* colorMaps;
   SoundInfo sound;
 
   int nbVisuals;

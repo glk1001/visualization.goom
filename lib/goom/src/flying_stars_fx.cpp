@@ -2,7 +2,11 @@
 #include "goom_plugin_info.h"
 #include "goom_tools.h"
 
+#include "goomutils/colormap_enums.h"
+#include "goomutils/colormap.h"
 #include "goomutils/mathtools.h"
+
+#include <vector>
 
 /* TODO:-- FAIRE PROPREMENT... BOAH... */
 #define NCOL 15
@@ -38,15 +42,21 @@ static const int colval[] = { 0x1416181a, 0x1419181a, 0x141f181a, 0x1426181a, 0x
 #define FOUNTAIN_FX 2
 #define LAST_FX 3
 
-typedef struct _FS_STAR {
+struct Star {
   float x, y;
   float vx, vy;
   float ax, ay;
   float age, vage;
-} Star;
+};
 
-typedef struct _FS_DATA {
+struct FSData {
   PluginParam enabled_bp;
+
+  ColorMaps colorMaps;
+  const std::vector<ColorMapName>* currentColorGroup;
+  const ColorMap* currentColorMap;
+
+  int maxAge = 15;
 
   int fx_mode;
   unsigned int nbStars;
@@ -64,19 +74,21 @@ typedef struct _FS_DATA {
   PluginParam fx_mode_p;
 
   PluginParameters params;
-} FSData;
+};
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
 static void fs_init(VisualFX* _this, PluginInfo* info)
 {
-  FSData* data;
-  data = (FSData*)malloc(sizeof(FSData));
+  FSData* data = new FSData;
+
+  data->currentColorGroup = &data->colorMaps.getRandomWeightedGroup();
+  data->currentColorMap = &data->colorMaps.getRandomColorMap(*data->currentColorGroup);
 
   data->fx_mode = FIREWORKS_FX;
   data->maxStars = 4096;
-  data->stars = (Star*)malloc(data->maxStars * sizeof(Star));
+  data->stars = new Star[data->maxStars];
   data->nbStars = 0;
 
   data->max_age_p = secure_i_param("Fireworks Smallest Bombs");
@@ -126,42 +138,40 @@ static void fs_init(VisualFX* _this, PluginInfo* info)
 static void fs_free(VisualFX* _this)
 {
   FSData* data = (FSData*)_this->fx_data;
-  free(data->stars);
+  delete[] data->stars;
   free(data->params.params);
-  free(data);
+  delete data;
 }
 
 /**
  * Cree une nouvelle 'bombe', c'est a dire une particule appartenant a une fusee d'artifice.
  */
-static void addABomb(FSData* fs, int mx, int my, float radius, float vage, float gravity,
-                     PluginInfo* info)
+static void addABomb(FSData* data, int mx, int my, float radius, float vage, float gravity, PluginInfo* info)
 {
-  const unsigned int i = fs->nbStars;
-
-  if (fs->nbStars >= fs->maxStars) {
+  if (data->nbStars >= data->maxStars) {
     return;
   }
-  fs->nbStars++;
+  data->nbStars++;
 
-  fs->stars[i].x = mx;
-  fs->stars[i].y = my;
+  const unsigned int i = data->nbStars;
+  data->stars[i].x = mx;
+  data->stars[i].y = my;
 
   float ro = radius * (float)goom_irand(info->gRandom, 100) / 100.0f;
   ro *= (float)goom_irand(info->gRandom, 100) / 100.0f + 1.0f;
   const unsigned int theta = goom_irand(info->gRandom, 256);
 
-  fs->stars[i].vx = ro * cos256[theta];
-  fs->stars[i].vy = -0.2f + ro * sin256[theta];
+  data->stars[i].vx = ro * cos256[theta];
+  data->stars[i].vy = -0.2f + ro * sin256[theta];
 
-  fs->stars[i].ax = 0;
-  fs->stars[i].ay = gravity;
+  data->stars[i].ax = 0;
+  data->stars[i].ay = gravity;
 
-  fs->stars[i].age = 0;
-  if (vage < fs->min_age) {
-    vage = fs->min_age;
+  data->stars[i].age = 0;
+  if (vage < data->min_age) {
+    vage = data->min_age;
   }
-  fs->stars[i].vage = vage;
+  data->stars[i].vage = vage;
 }
 
 /**
@@ -183,9 +193,14 @@ static void fs_sound_event_occured(VisualFX* _this, PluginInfo* info)
 {
   FSData* data = (FSData*)_this->fx_data;
 
+  data->currentColorGroup = &data->colorMaps.getRandomWeightedGroup();
+  data->currentColorMap = &data->colorMaps.getRandomColorMap(*data->currentColorGroup);
+
+  data->maxAge = 10 + int(goom_irand(info->gRandom, 10));
+//  data->maxAge = NCOL;
+
   int max = (int)((1.0f + info->sound.goomPower) * goom_irand(info->gRandom, 150)) + 100;
-  float radius =
-      (1.0f + info->sound.goomPower) * (float)(goom_irand(info->gRandom, 150) + 50) / 300;
+  float radius = (1.0f + info->sound.goomPower) * (float)(goom_irand(info->gRandom, 150) + 50) / 300;
   float vage;
   float gravity = 0.02f;
   unsigned int mx;
@@ -275,12 +290,14 @@ static void fs_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* info)
     updateStar(&data->stars[i]);
 
     /* dead particule */
-    if (data->stars[i].age >= NCOL) {
+    if (data->stars[i].age >= data->maxAge) {
+//    if (data->stars[i].age >= NCOL) {
       continue;
     }
 
     /* choose the color of the particule */
-    const uint32_t col = (uint32_t)colval[(int)data->stars[i].age];
+    const uint32_t col = data->currentColorMap->getColor(float(data->stars[i].age)/float(data->maxAge));
+//    const uint32_t col = (uint32_t)colval[(int)data->stars[i].age];
 
     /* draws the particule */
     info->methods.draw_line(dest, (int)data->stars[i].x, (int)data->stars[i].y,
@@ -298,7 +315,8 @@ static void fs_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* info)
     if ((data->stars[i].x > info->screen.width + 64) ||
         ((data->stars[i].vy >= 0) &&
          (data->stars[i].y - 16 * data->stars[i].vy > info->screen.height)) ||
-        (data->stars[i].x < -64) || (data->stars[i].age >= NCOL)) {
+//        (data->stars[i].x < -64) || (data->stars[i].age >= NCOL)) {
+        (data->stars[i].x < -64) || (data->stars[i].age >= data->maxAge)) {
       data->stars[i] = data->stars[data->nbStars - 1];
       data->nbStars--;
     } else {

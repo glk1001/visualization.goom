@@ -19,12 +19,12 @@
 
 class TentaclesWrapper {
 public:
-  explicit TentaclesWrapper(const ColorMaps& cm, const int screenWidth, const int screenHeight);
+  explicit TentaclesWrapper(const int screenWidth, const int screenHeight);
   void update(PluginInfo* goomInfo, Pixel* buf, Pixel* back,
               gint16 data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
               float accelvar, int drawit, TentacleFXData* fx_data);
 private:
-  const ColorMaps* colorMaps;
+  ColorMaps colorMaps;
   const ColorMap *dominantColorGroup;
   TentacleDriver driver;
   void pretty_move(PluginInfo* goomInfo, float cycle, float* dist, float* dist2,
@@ -37,11 +37,24 @@ private:
   std::vector<float> getGridZeroAdditiveValues(PluginInfo* goomInfo, const float rapport);
 };
 
-TentaclesWrapper::TentaclesWrapper(const ColorMaps& cm, const int screenWidth, const int screenHeight)
-  : colorMaps{ &cm }
-  , dominantColorGroup{ &colorMaps->getRandomColorMap() }
-  , driver{ *colorMaps, screenWidth, screenHeight }
+TentaclesWrapper::TentaclesWrapper(const int screenWidth, const int screenHeight)
+  : colorMaps{}
+  , dominantColorGroup{ &colorMaps.getRandomColorMap() }
+  , driver{ colorMaps, screenWidth, screenHeight }
 {
+  std::vector<size_t> colorGroupWeights(to_int(ColorMapGroup::size));
+
+  colorGroupWeights[to_int(ColorMapGroup::perceptuallyUniformSequential)] = 10;
+  colorGroupWeights[to_int(ColorMapGroup::sequential)] = 5;
+  colorGroupWeights[to_int(ColorMapGroup::sequential2)] = 5;
+  colorGroupWeights[to_int(ColorMapGroup::cyclic)] = 10;
+  colorGroupWeights[to_int(ColorMapGroup::diverging)] = 20;
+  colorGroupWeights[to_int(ColorMapGroup::diverging_black)] = 20;
+  colorGroupWeights[to_int(ColorMapGroup::qualitative)] = 10;
+  colorGroupWeights[to_int(ColorMapGroup::misc)] = 30;
+
+  colorMaps.setRandomGroupWeights(colorGroupWeights);
+
   driver.init();
   driver.startIterating();
 }
@@ -208,7 +221,7 @@ std::vector<float> TentaclesWrapper::getGridZeroAdditiveValues(PluginInfo* goomI
 inline std::tuple<uint32_t, uint32_t> TentaclesWrapper::getModColors(PluginInfo* goomInfo, TentacleFXData* fx_data)
 {
   if (fx_data->happens) {
-    dominantColorGroup = &colorMaps->getRandomColorMap();
+    dominantColorGroup = &colorMaps.getRandomColorMap();
   }
 
   if ((fx_data->lig > 10.0f) || (fx_data->lig < 1.1f)) {
@@ -301,7 +314,7 @@ void tentacle_fx_init(VisualFX* _this, PluginInfo* info)
 {
   TentacleFXData* data = (TentacleFXData*)malloc(sizeof(TentacleFXData));
 
-  data->tentacles = new TentaclesWrapper{ *info->colorMaps, info->screen.width, info->screen.height };
+  data->tentacles = new TentaclesWrapper{ info->screen.width, info->screen.height };
 
   data->enabled_bp = secure_b_param("Enabled", 1);
   data->params = plugin_parameters("3D Tentacles", 1);

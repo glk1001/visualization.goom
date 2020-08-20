@@ -133,7 +133,7 @@ private:
   IterTimer glitchTimer;
   static constexpr size_t doGlitchEveryNUpdates = 30;
   static constexpr size_t glitchIterLength = 10;
-  const ColorMap glitchColorGroup;
+  const ColorMap* glitchColorGroup;
   float glitchLower = -1.5;
   float glitchUpper = +1.5;
   std::unique_ptr<Tentacle2D> createNewTentacle2D(const size_t ID, const IterationParams&);

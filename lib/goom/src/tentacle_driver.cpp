@@ -36,7 +36,7 @@ TentacleDriver::TentacleDriver(const ColorMaps& cm, const int screenW, const int
   , tentacles{}
   , tentacleParams{}
   , glitchTimer{ glitchIterLength }
-  , glitchColorGroup{ colorMaps->getColorMap(ColorMapName::magma) }
+  , glitchColorGroup{ &colorMaps->getColorMap(ColorMapName::magma) }
   , iterTimers{ &glitchTimer }
 {
   const IterParamsGroup iter1 = {

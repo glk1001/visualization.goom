@@ -12,53 +12,16 @@
 #include <string>
 #include <vector>
 
+std::vector<ColorMap, ColorMap::ColorMapAllocator> ColorMaps::colorMaps{};
 std::vector<const std::vector<ColorMapName>*> ColorMaps::groups{};
 
 ColorMaps::ColorMaps()
-  : colorMaps{}
-  , weights{}
+  : weights{}
   , sumOfWeights{ 0 }
 {
-  for(const auto& [name, vividMap] : colordata::allMaps) {
-    colorMaps.push_back(ColorMap{ name, vividMap });
-  }
-
   std::vector<size_t> wts(to_int(ColorMapGroup::size));
   std::fill(wts.begin(), wts.end(), 1);
   setRandomGroupWeights(wts);
-}
-
-/**
-const ColorMap& ColorMaps::at(const size_t i) const
-{
-  return colorMaps[i];
-}
-**/
-
-const ColorMap& ColorMaps::getRandomColorMap() const
-{
-  return colorMaps[getRandInRange(0, colorMaps.size())];
-}
-
-const ColorMap& ColorMaps::getRandomColorMap(const std::vector<ColorMapName>& group) const
-{
-  return getColorMap(group[getRandInRange(0, group.size())]);
-}
-
-const ColorMap& ColorMaps::getColorMap(const ColorMapName name) const
-{
-  return colorMaps[static_cast<size_t>(name)];
-}
-
-size_t ColorMaps::getNumColorMaps() const
-{
-  return colordata::allMaps.size();
-}
-
-size_t ColorMaps::getNumGroups()
-{
-  initGroups();
-  return groups.size();
 }
 
 void ColorMaps::setRandomGroupWeights(const std::vector<size_t>& wts)
@@ -79,6 +42,8 @@ void ColorMaps::setRandomGroupWeights(const std::vector<size_t>& wts)
 
 const std::vector<ColorMapName>& ColorMaps::getRandomWeightedGroup() const
 {
+  initGroups();
+
   size_t randVal = getRandInRange(0, sumOfWeights);
   for (size_t i=0; i < weights.size(); i++) {
     if (randVal < weights[i]) {
@@ -87,6 +52,45 @@ const std::vector<ColorMapName>& ColorMaps::getRandomWeightedGroup() const
     randVal -= weights[i];
   }
   throw std::logic_error(stdnew::format("Should not get here. randVal = {}.", randVal));
+}
+
+const ColorMap& ColorMaps::getRandomColorMap()
+{
+  initColorMaps();
+  return colorMaps[getRandInRange(0, colorMaps.size())];
+}
+
+const ColorMap& ColorMaps::getRandomColorMap(const std::vector<ColorMapName>& group)
+{
+  initColorMaps();
+  return getColorMap(group[getRandInRange(0, group.size())]);
+}
+
+const ColorMap& ColorMaps::getColorMap(const ColorMapName name)
+{
+  initColorMaps();
+  return colorMaps[static_cast<size_t>(name)];
+}
+
+size_t ColorMaps::getNumColorMaps()
+{
+  return colordata::allMaps.size();
+}
+
+inline void ColorMaps::initColorMaps()
+{
+  if (colorMaps.size() != 0) {
+    return;
+  }
+  for(const auto& [name, vividMap] : colordata::allMaps) {
+    colorMaps.emplace_back(name, vividMap);
+  }
+}
+
+size_t ColorMaps::getNumGroups()
+{
+  initGroups();
+  return groups.size();
 }
 
 const std::vector<ColorMapName>& ColorMaps::getRandomGroup()
@@ -101,7 +105,7 @@ const std::vector<ColorMapName>& ColorMaps::getGroup(const ColorMapGroup grp)
   return *groups.at(static_cast<size_t>(grp));
 }
 
-void ColorMaps::initGroups()
+inline void ColorMaps::initGroups()
 {
   if (groups.size() != 0) {
     return;
@@ -118,20 +122,6 @@ void ColorMaps::initGroups()
   };
 }
 
-/**
-ColorMap::ColorMap(const vivid::ColorMap::Preset preset)
-  : colors(NumColors)
-{
-//  logInfo(stdnew::format("preset = {}", preset));
-  const vivid::ColorMap cmap(preset);
-  for (size_t i=0 ; i < NumColors; i++) {
-    const float t = i / (NumColors - 1.0f);
-    const vivid::Color rgbcol{ cmap.at(t) };
-    colors[i] = rgbcol.rgb32();
-  }
-}
-**/
-
 ColorMap::ColorMap(const std::string& mapNm, const vivid::ColorMap& cm)
   : mapName{ mapNm }
   , cmap{ cm }
@@ -142,13 +132,6 @@ ColorMap::ColorMap(const ColorMap& other)
   : mapName(other.mapName)
   , cmap(other.cmap)
 {
-}
-
-ColorMap& ColorMap::operator=(const ColorMap& other)
-{
-  mapName = other.mapName;
-  cmap = other.cmap;
-  return *this;
 }
 
 uint32_t ColorMap::getRandomColor(const ColorMap& cg)

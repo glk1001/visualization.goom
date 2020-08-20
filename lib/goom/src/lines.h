@@ -12,6 +12,8 @@
 #include "goom_graphic.h"
 #include "goom_typedefs.h"
 
+#include "goomutils/colormap.h"
+
 struct _GMUNITPOINTER {
   float x;
   float y;
@@ -20,6 +22,8 @@ struct _GMUNITPOINTER {
 
 /* tableau de points */
 struct _GMLINE {
+  ColorMaps* colorMaps;
+
   GMUnitPointer* points;
   GMUnitPointer* points2;
   int IDdest;

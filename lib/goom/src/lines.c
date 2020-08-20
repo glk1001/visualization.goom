@@ -155,6 +155,8 @@ GMLine* goom_lines_init(PluginInfo* goomInfo, int rx, int ry, int IDsrc, float p
 
   l->goomInfo = goomInfo;
 
+  l->colorMaps = new ColorMaps{};
+
   l->points = (GMUnitPointer*)malloc(AUDIO_SAMPLE_LEN * sizeof(GMUnitPointer));
   l->points2 = (GMUnitPointer*)malloc(AUDIO_SAMPLE_LEN * sizeof(GMUnitPointer));
   l->nbPoints = AUDIO_SAMPLE_LEN;
@@ -183,6 +185,8 @@ GMLine* goom_lines_init(PluginInfo* goomInfo, int rx, int ry, int IDsrc, float p
 
 void goom_lines_free(GMLine** l)
 {
+  delete (*l)->colorMaps;
+
   free((*l)->points);
   free((*l)->points2);
   free(*l);
@@ -209,7 +213,7 @@ void goom_lines_draw(PluginInfo* goomInfo, GMLine* line, const gint16 data[AUDIO
 
     lightencolor(&color, line->power);
 
-    const uint32_t randColor = ColorMap::getRandomColor(goomInfo->colorMaps->getRandomColorMap());
+    const uint32_t randColor = ColorMap::getRandomColor(line->colorMaps->getRandomColorMap());
 
     const float fdata = getNormalizedData(goomInfo, data[0]);
     int x1 = (int)(pt->x + cosa * line->amplitude * fdata);
