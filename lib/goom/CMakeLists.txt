@@ -15,7 +15,7 @@ set (SRCE_FILES
                  src/config_param.c
                  src/convolve_fx.c
                  src/filters.c
-                 src/flying_stars_fx.c
+                 src/flying_stars_fx.cpp
                  src/gfontlib.c
                  src/gfontrle.c
                  src/goom_core.c
