@@ -6,17 +6,26 @@
 
 #include <vivid/vivid.h>
 
+#include <algorithm>
+#include <format>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
 std::vector<const std::vector<ColorMapName>*> ColorMaps::groups{};
 
 ColorMaps::ColorMaps()
-: colorMaps{}
+  : colorMaps{}
+  , weights{}
+  , sumOfWeights{ 0 }
 {
   for(const auto& [name, vividMap] : colordata::allMaps) {
     colorMaps.push_back(ColorMap{ name, vividMap });
   }
+
+  std::vector<size_t> wts(to_int(ColorMapGroup::size));
+  std::fill(wts.begin(), wts.end(), 1);
+  setRandomGroupWeights(wts);
 }
 
 /**
@@ -52,10 +61,44 @@ size_t ColorMaps::getNumGroups()
   return groups.size();
 }
 
+void ColorMaps::setRandomGroupWeights(const std::vector<size_t>& wts)
+{
+  initGroups();
+
+  if (wts.size() > groups.size()) {
+    throw std::runtime_error(stdnew::format("Weights vector size {} too big. (Should be <= {}.)",
+        wts.size(), groups.size()));
+  }
+
+  weights = wts;
+  sumOfWeights = 0;
+  for (const size_t n : weights) {
+    sumOfWeights += n;
+  }
+}
+
+const std::vector<ColorMapName>& ColorMaps::getRandomWeightedGroup() const
+{
+  size_t randVal = getRandInRange(0, sumOfWeights);
+  for (size_t i=0; i < weights.size(); i++) {
+    if (randVal < weights[i]) {
+      return *groups.at(i);
+    }
+    randVal -= weights[i];
+  }
+  throw std::logic_error(stdnew::format("Should not get here. randVal = {}.", randVal));
+}
+
 const std::vector<ColorMapName>& ColorMaps::getRandomGroup()
 {
   initGroups();
   return *groups[getRandInRange(0, groups.size())];
+}
+
+const std::vector<ColorMapName>& ColorMaps::getGroup(const ColorMapGroup grp)
+{
+  initGroups();
+  return *groups.at(static_cast<size_t>(grp));
 }
 
 void ColorMaps::initGroups()
@@ -73,46 +116,6 @@ void ColorMaps::initGroups()
     &colordata::qualitativeMaps,
     &colordata::miscMaps,
   };
-}
-
-const std::vector<ColorMapName>& ColorMaps::getPerceptuallyUniformSequentialMaps()
-{
-  return colordata::perc_unif_sequentialMaps;
-}
-
-const std::vector<ColorMapName>& ColorMaps::getSequentialMaps()
-{
-  return colordata::sequentialMaps;
-}
-
-const std::vector<ColorMapName>& ColorMaps::getSequential2Maps()
-{
-  return colordata::sequential2Maps;
-}
-
-const std::vector<ColorMapName>& ColorMaps::getCyclicMaps()
-{
-  return colordata::cyclicMaps;
-}
-
-const std::vector<ColorMapName>& ColorMaps::getDivergingMaps()
-{
-  return colordata::divergingMaps;
-}
-
-const std::vector<ColorMapName>& ColorMaps::getDiverging_blackMaps()
-{
-  return colordata::diverging_blackMaps;
-}
-
-const std::vector<ColorMapName>& ColorMaps::getQualitativeMaps()
-{
-  return colordata::qualitativeMaps;
-}
-
-const std::vector<ColorMapName>& ColorMaps::getMiscMaps()
-{
-  return colordata::miscMaps;
 }
 
 /**

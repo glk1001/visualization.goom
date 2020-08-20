@@ -20,6 +20,7 @@
 #include "sound_tester.h"
 #include "tentacle3d.h"
 
+#include "goomutils/colormap_enums.h"
 #include "goomutils/colormap.h"
 
 #include <inttypes.h>
@@ -28,6 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <vector>
 
 #define STOP_SPEED 128
 /* TODO: put that as variable in PluginInfo */
@@ -55,6 +57,26 @@ static void swapBuffers(PluginInfo* goomInfo)
   goomInfo->p2 = tmp;
 }
 
+static ColorMaps* createNewColorMaps()
+{
+  ColorMaps* colorMaps = new ColorMaps{};
+
+  std::vector<size_t> colorGroupWeights(to_int(ColorMapGroup::size));
+
+  colorGroupWeights[to_int(ColorMapGroup::perceptuallyUniformSequential)] = 10;
+  colorGroupWeights[to_int(ColorMapGroup::sequential)] = 5;
+  colorGroupWeights[to_int(ColorMapGroup::sequential2)] = 5;
+  colorGroupWeights[to_int(ColorMapGroup::cyclic)] = 10;
+  colorGroupWeights[to_int(ColorMapGroup::diverging)] = 20;
+  colorGroupWeights[to_int(ColorMapGroup::diverging_black)] = 20;
+  colorGroupWeights[to_int(ColorMapGroup::qualitative)] = 10;
+  colorGroupWeights[to_int(ColorMapGroup::misc)] = 30;
+
+  colorMaps->setRandomGroupWeights(colorGroupWeights);
+
+  return colorMaps;
+}
+
 /**************************
 *         INIT           *
 **************************/
@@ -66,7 +88,7 @@ PluginInfo* goom_init(guint32 resx, guint32 resy, int seed)
 
   plugin_info_init(goomInfo, 5);
 
-  goomInfo->colorMaps = new ColorMaps{ };
+  goomInfo->colorMaps = createNewColorMaps();
 
   goomInfo->star_fx = flying_star_create();
   goomInfo->zoomFilter_fx = zoomFilterVisualFXWrapper_create();

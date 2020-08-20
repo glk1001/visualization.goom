@@ -27,6 +27,19 @@ private:
   vivid::ColorMap cmap;
 };
 
+enum class ColorMapGroup: int {
+  perceptuallyUniformSequential=0,
+  sequential,
+  sequential2,
+  cyclic,
+  diverging,
+  diverging_black,
+  qualitative,
+  misc,
+  size = misc+1
+};
+inline size_t to_int(const ColorMapGroup i) { return static_cast<size_t>(i); }
+
 class ColorMaps {
 public:
   ColorMaps();
@@ -38,17 +51,15 @@ public:
   const ColorMap& getRandomColorMap(const std::vector<ColorMapName>& group) const;
   const ColorMap& getColorMap(const ColorMapName name) const;
 
+  void setRandomGroupWeights(const std::vector<size_t>& weights);
+  const std::vector<ColorMapName>& getRandomWeightedGroup() const;
+
     static const std::vector<ColorMapName>& getRandomGroup();
-    static const std::vector<ColorMapName>& getPerceptuallyUniformSequentialMaps();
-    static const std::vector<ColorMapName>& getSequentialMaps();
-    static const std::vector<ColorMapName>& getSequential2Maps();
-    static const std::vector<ColorMapName>& getCyclicMaps();
-    static const std::vector<ColorMapName>& getDivergingMaps();
-    static const std::vector<ColorMapName>& getDiverging_blackMaps();
-    static const std::vector<ColorMapName>& getQualitativeMaps();
-    static const std::vector<ColorMapName>& getMiscMaps();
+    static const std::vector<ColorMapName>& getGroup(const ColorMapGroup);
 private:
   std::vector<ColorMap> colorMaps;
+  std::vector<size_t> weights;
+  size_t sumOfWeights;
   static std::vector<const std::vector<ColorMapName>*> groups;
   static void initGroups();
 };
