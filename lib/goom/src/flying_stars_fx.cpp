@@ -1,3 +1,4 @@
+#include "drawmethods.h"
 #include "goom_fx.h"
 #include "goom_plugin_info.h"
 #include "goom_tools.h"
@@ -10,30 +11,9 @@
 
 /* TODO:-- FAIRE PROPREMENT... BOAH... */
 #define NCOL 15
-
-/*static const int colval[] = {
-  0xfdf6f5,
-  0xfae4e4,
-  0xf7d1d1,
-  0xf3b6b5,
-  0xefa2a2,
-  0xec9190,
-  0xea8282,
-  0xe87575,
-  0xe46060,
-  0xe14b4c,
-  0xde3b3b,
-  0xdc2d2f,
-  0xd92726,
-  0xd81619,
-  0xd50c09,
-  0
-};
-*/
-
-static const int colval[] = { 0x1416181a, 0x1419181a, 0x141f181a, 0x1426181a, 0x142a181a,
-                             0x142f181a, 0x1436181a, 0x142f1819, 0x14261615, 0x13201411,
-                             0x111a100a, 0x0c180508, 0x08100304, 0x00050101, 0x0};
+static const uint32_t colval[] = { 0x1416181a, 0x1419181a, 0x141f181a, 0x1426181a, 0x142a181a,
+                                   0x142f181a, 0x1436181a, 0x142f1819, 0x14261615, 0x13201411,
+                                   0x111a100a, 0x0c180508, 0x08100304, 0x00050101, 0x0};
 
 /* The different modes of the visual FX.
  * Put this values on fx_mode */
@@ -47,6 +27,7 @@ struct Star {
   float vx, vy;
   float ax, ay;
   float age, vage;
+  const ColorMap* currentColorMap = nullptr;
 };
 
 struct FSData {
@@ -54,7 +35,6 @@ struct FSData {
 
   ColorMaps colorMaps;
   ColorMapGroup currentColorGroup;
-  const ColorMap* currentColorMap;
 
   int maxAge = 15;
 
@@ -84,7 +64,6 @@ static void fs_init(VisualFX* _this, PluginInfo* info)
   FSData* data = new FSData;
 
   data->currentColorGroup = data->colorMaps.getRandomGroup();
-  data->currentColorMap = &data->colorMaps.getRandomColorMap(data->currentColorGroup);
 
   data->fx_mode = FIREWORKS_FX;
   data->maxStars = 4096;
@@ -153,9 +132,12 @@ static void addABomb(FSData* data, int mx, int my, float radius, float vage, flo
   }
   data->nbStars++;
 
-  const unsigned int i = data->nbStars;
+  const unsigned int i = data->nbStars - 1;
   data->stars[i].x = mx;
   data->stars[i].y = my;
+
+  // TODO Get colormap based on current mode.
+  data->stars[i].currentColorMap = &data->colorMaps.getRandomColorMap(data->currentColorGroup);
 
   float ro = radius * (float)goom_irand(info->gRandom, 100) / 100.0f;
   ro *= (float)goom_irand(info->gRandom, 100) / 100.0f + 1.0f;
@@ -194,10 +176,8 @@ static void fs_sound_event_occured(VisualFX* _this, PluginInfo* info)
   FSData* data = (FSData*)_this->fx_data;
 
   data->currentColorGroup = data->colorMaps.getRandomGroup();
-  data->currentColorMap = &data->colorMaps.getRandomColorMap(data->currentColorGroup);
 
   data->maxAge = 10 + int(goom_irand(info->gRandom, 10));
-//  data->maxAge = NCOL;
 
   int max = (int)((1.0f + info->sound.goomPower) * goom_irand(info->gRandom, 150)) + 100;
   float radius = (1.0f + info->sound.goomPower) * (float)(goom_irand(info->gRandom, 150) + 50) / 300;
@@ -291,23 +271,23 @@ static void fs_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* info)
 
     /* dead particule */
     if (data->stars[i].age >= data->maxAge) {
-//    if (data->stars[i].age >= NCOL) {
       continue;
     }
 
     /* choose the color of the particule */
-    const uint32_t col = data->currentColorMap->getColor(float(data->stars[i].age)/float(data->maxAge));
-//    const uint32_t col = (uint32_t)colval[(int)data->stars[i].age];
+    const float t = data->stars[i].age/float(data->maxAge);
+    const uint32_t color = data->stars[i].currentColorMap->getColor(t);
+    const uint32_t colorLow = ColorMap::colorMix(color, colval[size_t(t*float(NCOL-1))], t);
 
     /* draws the particule */
-    info->methods.draw_line(dest, (int)data->stars[i].x, (int)data->stars[i].y,
-                            (int)(data->stars[i].x - data->stars[i].vx * 6),
-                            (int)(data->stars[i].y - data->stars[i].vy * 6), col,
-                            (int)info->screen.width, (int)info->screen.height);
-    info->methods.draw_line(dest, (int)data->stars[i].x, (int)data->stars[i].y,
-                            (int)(data->stars[i].x - data->stars[i].vx * 2),
-                            (int)(data->stars[i].y - data->stars[i].vy * 2), col,
-                            (int)info->screen.width, (int)info->screen.height);
+    draw_line(dest, (int)data->stars[i].x, (int)data->stars[i].y,
+                    (int)(data->stars[i].x - data->stars[i].vx * 6),
+                    (int)(data->stars[i].y - data->stars[i].vy * 6), color,
+                    (int)info->screen.width, (int)info->screen.height);
+    draw_line(dest, (int)data->stars[i].x, (int)data->stars[i].y,
+                    (int)(data->stars[i].x - data->stars[i].vx * 2),
+                    (int)(data->stars[i].y - data->stars[i].vy * 2), colorLow,
+                    (int)info->screen.width, (int)info->screen.height);
   }
 
   /* look for dead particules */
@@ -315,7 +295,6 @@ static void fs_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* info)
     if ((data->stars[i].x > info->screen.width + 64) ||
         ((data->stars[i].vy >= 0) &&
          (data->stars[i].y - 16 * data->stars[i].vy > info->screen.height)) ||
-//        (data->stars[i].x < -64) || (data->stars[i].age >= NCOL)) {
         (data->stars[i].x < -64) || (data->stars[i].age >= data->maxAge)) {
       data->stars[i] = data->stars[data->nbStars - 1];
       data->nbStars--;
