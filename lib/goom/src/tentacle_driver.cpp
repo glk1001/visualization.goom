@@ -40,16 +40,16 @@ TentacleDriver::TentacleDriver(const ColorMaps* cm, const int screenW, const int
   , iterTimers{ &glitchTimer }
 {
   const IterParamsGroup iter1 = {
-    { 100, 0.500, 1.0, { 1.5, -10.0, +10.0, M_PI }, 65.0 },
-    { 125, 0.600, 2.0, { 1.0, -10.0, +10.0,  0.0 }, 70.0 },
+    { 100, 0.500, 1.0, { 1.5, -10.0, +10.0, M_PI }, 70.0 },
+    { 125, 0.600, 2.0, { 1.0, -10.0, +10.0,  0.0 }, 75.0 },
   };
   const IterParamsGroup iter2 = {
-    { 125, 0.600, 0.5, { 1.0, -10.0, +10.0,  0.0 }, 65.0 },
-    { 150, 0.700, 1.5, { 1.5, -10.0, +10.0, M_PI }, 70.0 },
+    { 125, 0.600, 0.5, { 1.0, -10.0, +10.0,  0.0 }, 70.0 },
+    { 150, 0.700, 1.5, { 1.5, -10.0, +10.0, M_PI }, 75.0 },
   };
   const IterParamsGroup iter3 = {
-    { 150, 0.700, 1.5, { 1.5, -10.0, +10.0, M_PI }, 65.0 },
-    { 200, 0.900, 2.5, { 1.0, -10.0, +10.0,  0.0 }, 70.0 },
+    { 150, 0.700, 1.5, { 1.5, -10.0, +10.0, M_PI }, 70.0 },
+    { 200, 0.900, 2.5, { 1.0, -10.0, +10.0,  0.0 }, 75.0 },
   };
 
   iterParamsGroups = {
@@ -69,7 +69,7 @@ void TentacleDriver::init()
 {
   logInfo("Starting driver init.");
 
-  const CirclesTentacleLayout layout{  10, 80, { 34, 24, 16, 6, 4 }, 0 };
+  const CirclesTentacleLayout layout{  10, 80, { 30, 20, 14, 6, 4 }, 0 };
 //  const GridTentacleLayout layout{ -100, 100, xRowLen, -100, 100, numXRows, 0 };
   numTentacles = layout.getNumPoints();
   logInfo("numTentacles = {}.", numTentacles);
@@ -107,10 +107,10 @@ void TentacleDriver::init()
     std::unique_ptr<Tentacle2D> tentacle2D{ createNewTentacle2D(i, params) };
     logInfo("Created tentacle2D {}.", i);
 
-//    const uint32_t headColor = ColorMap::getRandomColor(*headColorMap);
-//    const uint32_t headColorLow = ColorMap::getLighterColor(headColor, 50);
-const uint32_t headColor = 0xff0000ff;
-const uint32_t headColorLow = 0xff0000ff;
+    const uint32_t headColor = ColorMap::getRandomColor(*headColorMap);
+    const uint32_t headColorLow = ColorMap::getLighterColor(headColor, 50);
+//const uint32_t headColor = 0xff0000ff;
+//const uint32_t headColorLow = 0xff0000ff;
     Tentacle3D tentacle{ std::move(tentacle2D),
       *colorizers[colorizers.size()-1], headColor, headColorLow, initialHeadPos };
 
@@ -130,7 +130,7 @@ TentacleDriver::IterationParams TentacleDriver::IterParamsGroup::getNext(const f
 {
   const float prevYWeight = getRandInRange(0.9f, 1.1f)*std::lerp(float(first.prevYWeight), float(last.prevYWeight), t);
   IterationParams params{};
-  params.length = size_t(getRandInRange(0.9f, 1.1f)*std::lerp(float(first.length), float(last.length), t));
+  params.length = size_t(getRandInRange(1.0f, 1.1f)*std::lerp(float(first.length), float(last.length), t));
   params.numNodes = size_t(getRandInRange(0.9f, 1.1f)*std::lerp(float(first.numNodes), float(last.numNodes), t));
   params.prevYWeight = prevYWeight;
   params.iterZeroYValWave = first.iterZeroYValWave;
