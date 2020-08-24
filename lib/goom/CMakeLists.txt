@@ -10,26 +10,26 @@ if ($ENV{DO_GOOM_LOGGING})
 endif()
 
 set (SRCE_FILES
-                 src/goom_testing.c
-                 src/goom_tools.c
-                 src/config_param.c
-                 src/convolve_fx.c
-                 src/filters.c
+                 src/config_param.cpp
+                 src/convolve_fx.cpp
+                 src/drawmethods.cpp
+                 src/filters.cpp
                  src/flying_stars_fx.cpp
-                 src/gfontlib.c
-                 src/gfontrle.c
-                 src/goom_core.c
-                 src/goom_logging.c
-                 src/graphic.c
-                 src/ifs.c
-                 src/lines.c
-                 src/sound_tester.c
+                 src/gfontlib.cpp
+                 src/gfontrle.cpp
+                 src/goom_core.cpp
+                 src/goom_testing.cpp
+                 src/goom_logging.cpp
+                 src/goom_tools.cpp
+                 src/graphic.cpp
+                 src/ifs.cpp
+                 src/lines.cpp
+                 src/plugin_info.cpp
+                 src/sound_tester.cpp
                  src/surf3d.cpp
                  src/tentacle_driver.cpp
                  src/tentacle3d.cpp
                  src/tentacles_new.cpp
-                 src/plugin_info.c
-                 src/drawmethods.cpp
 )
 
 add_library(${PROJECT_NAME} STATIC
@@ -63,4 +63,3 @@ target_compile_options(${PROJECT_NAME}
 
 set_property(TARGET goom PROPERTY POSITION_INDEPENDENT_CODE ON)
 set_property(TARGET goom PROPERTY CXX_STANDARD 20)
-set_source_files_properties(${SRCE_FILES} PROPERTIES LANGUAGE CXX )
