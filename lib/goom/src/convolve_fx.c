@@ -30,7 +30,7 @@ static void convolve_init(VisualFX* _this, PluginInfo* info)
   data->factor_adj_p = secure_f_param("Flash Intensity");
   data->factor_adj_p.param.fval.max = 200.0f;
   data->factor_adj_p.param.fval.step = 1.0f;
-  data->factor_adj_p.param.fval.value = 70.0f;
+  data->factor_adj_p.param.fval.value = 30.0f;
 
   data->factor_p = secure_f_feedback("Factor");
 
