@@ -11,12 +11,12 @@
 //#include "SimplexNoise.h"
 
 #include "goomutils/colormap.h"
+#include "goomutils/logging.h"
 #include "goomutils/math_utils.h"
 
 #include <cstdint>
 #include <cmath>
 #include <tuple>
-#include <utility>
 #include <vector>
 
 class TentaclesWrapper {
@@ -101,7 +101,7 @@ void TentaclesWrapper::update(PluginInfo* goomInfo, Pixel* buf, Pixel* back,
                               gint16 data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
                               float accelvar, int drawit, TentacleFXData* fx_data)
 {
-  GOOM_LOG_INFO("Starting update.");
+  logDebug("Starting update.");
 
   const float modAccelvar = accelvar;
 
@@ -111,7 +111,7 @@ void TentaclesWrapper::update(PluginInfo* goomInfo, Pixel* buf, Pixel* back,
   fx_data->lig += fx_data->ligs;
 
   if (fx_data->lig > 1.01f) {
-    GOOM_LOG_INFO("Starting pretty_move 1.");
+    logDebug("Starting pretty_move 1.");
     float dist, dist2, rotangle;
     pretty_move(goomInfo, fx_data->cycle, &dist, &dist2, &rotangle, fx_data);
 
@@ -145,7 +145,7 @@ void TentaclesWrapper::update(PluginInfo* goomInfo, Pixel* buf, Pixel* back,
       fx_data->ligs = -fx_data->ligs;
     }
 
-    GOOM_LOG_INFO("Starting pretty_move 2.");
+    logDebug("Starting pretty_move 2.");
     float dist, dist2, rotangle;
     pretty_move(goomInfo, fx_data->cycle, &dist, &dist2, &rotangle, fx_data);
 

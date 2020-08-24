@@ -1,6 +1,6 @@
 #ifndef _GOOMTOOLS_H
 #define _GOOMTOOLS_H
-#include "goom_logging.h"
+#include "goomutils/logging.h"
 
 #include <inttypes.h>
 
@@ -38,14 +38,14 @@ inline static uint32_t goom_random(GoomRandom* grandom)
 {
   grandom->pos++; /* works because pos is an unsigned short */
   const uint32_t val = grandom->array[grandom->pos];
-  GOOM_LOG_DEBUG("%u, %d", grandom->pos, val);
+  logDebug("{}, {}", grandom->pos, val);
   return val;
 }
 
 inline static uint32_t goom_irand(GoomRandom* grandom, uint32_t i)
 {
   grandom->pos++;
-  GOOM_LOG_DEBUG("%u, %d", grandom->pos, grandom->array[grandom->pos]);
+  logDebug("{}, {}", grandom->pos, grandom->array[grandom->pos]);
   return grandom->array[grandom->pos] % i;
 }
 

@@ -41,6 +41,7 @@
 #include "goom_testing.h"
 #include "goom_tools.h"
 
+#include "goomutils/logging.h"
 #include "goomutils/mathtools.h"
 
 #include <math.h>
@@ -279,8 +280,8 @@ static void init_ifs(PluginInfo* goomInfo, IfsData* data)
 
   for (int i = 0; i < 5 * MAX_SIMI; i++) {
     SIMI cur = Fractal->Components[i];
-    GOOM_LOG_DEBUG("simi[%d]: c_x = %f, c_y = %f, r = %f, r2 = %f, A = %f, A2 = %f.", i, cur.c_x,
-                   cur.c_y, cur.r, cur.r2, cur.A, cur.A2);
+    logDebug("simi[{}]: c_x = {:.2}, c_y = {:.2}, r = {:.2}, r2 = {:.2}, A = {:.2}, A2 = {:.2}.",
+             i, cur.c_x, cur.c_y, cur.r, cur.r2, cur.A, cur.A2);
   }
 }
 
@@ -307,7 +308,7 @@ static inline void Transform(SIMI* Simi, F_PT xo, F_PT yo, F_PT* x, F_PT* y)
 static void Trace(FRACTAL* F, F_PT xo, F_PT yo, IfsData* data)
 {
   SIMI* Cur = data->Cur_F->Components;
-  //	GOOM_LOG_DEBUG("data->Cur_F->Nb_Simi = %d, xo = %d, yo = %d", data->Cur_F->Nb_Simi, xo, yo);
+  //	logDebug("data->Cur_F->Nb_Simi = {}, xo = {}, yo = {}", data->Cur_F->Nb_Simi, xo, yo);
   for (int i = data->Cur_F->Nb_Simi; i; --i, Cur++) {
     F_PT x, y;
     Transform(Cur, xo, yo, &x, &y);
@@ -351,7 +352,7 @@ static void Draw_Fractal(IfsData* data)
   for (Cur = F->Components, i = F->Nb_Simi; i; --i, Cur++) {
     const F_PT xo = Cur->Cx;
     const F_PT yo = Cur->Cy;
-    GOOM_LOG_DEBUG("F->Nb_Simi = %d, xo = %d, yo = %d", F->Nb_Simi, xo, yo);
+    logDebug("F->Nb_Simi = {}, xo = {}, yo = {}", F->Nb_Simi, xo, yo);
     SIMI* Simi;
     for (Simi = F->Components, j = F->Nb_Simi; j; --j, Simi++) {
       if (Simi == Cur) {
@@ -467,7 +468,7 @@ static struct {
 static void ifs_update(PluginInfo* goomInfo, Pixel* data, Pixel* back, int increment,
                        IfsData* fx_data)
 {
-  GOOM_LOG_DEBUG("increment = %d", increment);
+  logDebug("increment = {}", increment);
 
   const int couleursl = ifs_update_data.couleur;
   const int width = goomInfo->screen.width;
@@ -497,7 +498,7 @@ static void ifs_update(PluginInfo* goomInfo, Pixel* data, Pixel* back, int incre
   int nbpt = 0;
   IFSPoint* points = draw_ifs(goomInfo, &nbpt, fx_data);
   nbpt--;
-  GOOM_LOG_DEBUG("nbpt = %d", nbpt);
+  logDebug("nbpt = {}", nbpt);
 
   for (int i = 0; i < nbpt; i += increment) {
     const int x = (int)points[i].x & 0x7fffffff;
@@ -524,43 +525,43 @@ static void ifs_update(PluginInfo* goomInfo, Pixel* data, Pixel* back, int incre
   }
 
   ifs_update_data.justChanged--;
-  GOOM_LOG_DEBUG("ifs_update_data.justChanged = %d", ifs_update_data.justChanged);
+  logDebug("ifs_update_data.justChanged = {}", ifs_update_data.justChanged);
 
   ifs_update_data.col[ALPHA] = ifs_update_data.couleur >> (ALPHA * 8) & 0xff;
   ifs_update_data.col[BLEU] = ifs_update_data.couleur >> (BLEU * 8) & 0xff;
   ifs_update_data.col[VERT] = ifs_update_data.couleur >> (VERT * 8) & 0xff;
   ifs_update_data.col[ROUGE] = ifs_update_data.couleur >> (ROUGE * 8) & 0xff;
 
-  GOOM_LOG_DEBUG("ifs_update_data.col[ALPHA] = %d", ifs_update_data.col[ALPHA]);
-  GOOM_LOG_DEBUG("ifs_update_data.col[BLEU] = %d", ifs_update_data.col[BLEU]);
-  GOOM_LOG_DEBUG("ifs_update_data.col[VERT] = %d", ifs_update_data.col[VERT]);
-  GOOM_LOG_DEBUG("ifs_update_data.col[ROUGE] = %d", ifs_update_data.col[ROUGE]);
+  logDebug("ifs_update_data.col[ALPHA] = {}", ifs_update_data.col[ALPHA]);
+  logDebug("ifs_update_data.col[BLEU] = {}", ifs_update_data.col[BLEU]);
+  logDebug("ifs_update_data.col[VERT] = {}", ifs_update_data.col[VERT]);
+  logDebug("ifs_update_data.col[ROUGE] = {}", ifs_update_data.col[ROUGE]);
 
-  GOOM_LOG_DEBUG("ifs_update_data.v[ALPHA] = %d", ifs_update_data.v[ALPHA]);
-  GOOM_LOG_DEBUG("ifs_update_data.v[BLEU] = %d", ifs_update_data.v[BLEU]);
-  GOOM_LOG_DEBUG("ifs_update_data.v[VERT] = %d", ifs_update_data.v[VERT]);
-  GOOM_LOG_DEBUG("ifs_update_data.v[ROUGE] = %d", ifs_update_data.v[ROUGE]);
+  logDebug("ifs_update_data.v[ALPHA] = {}", ifs_update_data.v[ALPHA]);
+  logDebug("ifs_update_data.v[BLEU] = {}", ifs_update_data.v[BLEU]);
+  logDebug("ifs_update_data.v[VERT] = {}", ifs_update_data.v[VERT]);
+  logDebug("ifs_update_data.v[ROUGE] = {}", ifs_update_data.v[ROUGE]);
 
-  GOOM_LOG_DEBUG("ifs_update_data.mode = %d", ifs_update_data.mode);
+  logDebug("ifs_update_data.mode = {}", ifs_update_data.mode);
 
   if (ifs_update_data.mode == MOD_MER) {
     ifs_update_data.col[BLEU] += ifs_update_data.v[BLEU];
     if (ifs_update_data.col[BLEU] > 255) {
       ifs_update_data.col[BLEU] = 255;
       ifs_update_data.v[BLEU] = -(RAND() % 4) - 1;
-      GOOM_LOG_DEBUG("ifs_update_data.v[BLEU] = %d", ifs_update_data.v[BLEU]);
+      logDebug("ifs_update_data.v[BLEU] = {}", ifs_update_data.v[BLEU]);
     }
     if (ifs_update_data.col[BLEU] < 32) {
       ifs_update_data.col[BLEU] = 32;
       ifs_update_data.v[BLEU] = (RAND() % 4) + 1;
-      GOOM_LOG_DEBUG("ifs_update_data.v[BLEU] = %d", ifs_update_data.v[BLEU]);
+      logDebug("ifs_update_data.v[BLEU] = {}", ifs_update_data.v[BLEU]);
     }
 
     ifs_update_data.col[VERT] += ifs_update_data.v[VERT];
     if (ifs_update_data.col[VERT] > 200) {
       ifs_update_data.col[VERT] = 200;
       ifs_update_data.v[VERT] = -(RAND() % 3) - 2;
-      GOOM_LOG_DEBUG("ifs_update_data.v[VERT] = %d", ifs_update_data.v[VERT]);
+      logDebug("ifs_update_data.v[VERT] = {}", ifs_update_data.v[VERT]);
     }
     if (ifs_update_data.col[VERT] > ifs_update_data.col[BLEU]) {
       ifs_update_data.col[VERT] = ifs_update_data.col[BLEU];
@@ -569,31 +570,31 @@ static void ifs_update(PluginInfo* goomInfo, Pixel* data, Pixel* back, int incre
     if (ifs_update_data.col[VERT] < 32) {
       ifs_update_data.col[VERT] = 32;
       ifs_update_data.v[VERT] = (RAND() % 3) + 2;
-      GOOM_LOG_DEBUG("ifs_update_data.v[VERT] = %d", ifs_update_data.v[VERT]);
+      logDebug("ifs_update_data.v[VERT] = {}", ifs_update_data.v[VERT]);
     }
 
     ifs_update_data.col[ROUGE] += ifs_update_data.v[ROUGE];
     if (ifs_update_data.col[ROUGE] > 64) {
       ifs_update_data.col[ROUGE] = 64;
       ifs_update_data.v[ROUGE] = -(RAND() % 4) - 1;
-      GOOM_LOG_DEBUG("ifs_update_data.v[ROUGE] = %d", ifs_update_data.v[ROUGE]);
+      logDebug("ifs_update_data.v[ROUGE] = {}", ifs_update_data.v[ROUGE]);
     }
     if (ifs_update_data.col[ROUGE] < 0) {
       ifs_update_data.col[ROUGE] = 0;
       ifs_update_data.v[ROUGE] = (RAND() % 4) + 1;
-      GOOM_LOG_DEBUG("ifs_update_data.v[ROUGE] = %d", ifs_update_data.v[ROUGE]);
+      logDebug("ifs_update_data.v[ROUGE] = {}", ifs_update_data.v[ROUGE]);
     }
 
     ifs_update_data.col[ALPHA] += ifs_update_data.v[ALPHA];
     if (ifs_update_data.col[ALPHA] > 0) {
       ifs_update_data.col[ALPHA] = 0;
       ifs_update_data.v[ALPHA] = -(RAND() % 4) - 1;
-      GOOM_LOG_DEBUG("ifs_update_data.v[ALPHA] = %d", ifs_update_data.v[ALPHA]);
+      logDebug("ifs_update_data.v[ALPHA] = {}", ifs_update_data.v[ALPHA]);
     }
     if (ifs_update_data.col[ALPHA] < 0) {
       ifs_update_data.col[ALPHA] = 0;
       ifs_update_data.v[ALPHA] = (RAND() % 4) + 1;
-      GOOM_LOG_DEBUG("ifs_update_data.v[ALPHA] = %d", ifs_update_data.v[ALPHA]);
+      logDebug("ifs_update_data.v[ALPHA] = {}", ifs_update_data.v[ALPHA]);
     }
 
     if (((ifs_update_data.col[VERT] > 32) &&
@@ -602,7 +603,7 @@ static void ifs_update(PluginInfo* goomInfo, Pixel* data, Pixel* back, int incre
          (ifs_update_data.col[BLEU] < 64) && (RAND() % 20 == 0)) &&
         (ifs_update_data.justChanged < 0)) {
       ifs_update_data.mode = RAND() % 3 ? MOD_FEU : MOD_MERVER;
-      GOOM_LOG_DEBUG("ifs_update_data.mode = %d", ifs_update_data.mode);
+      logDebug("ifs_update_data.mode = {}", ifs_update_data.mode);
       ifs_update_data.justChanged = 250;
     }
   } else if (ifs_update_data.mode == MOD_MERVER) {
@@ -610,19 +611,19 @@ static void ifs_update(PluginInfo* goomInfo, Pixel* data, Pixel* back, int incre
     if (ifs_update_data.col[BLEU] > 128) {
       ifs_update_data.col[BLEU] = 128;
       ifs_update_data.v[BLEU] = -(RAND() % 4) - 1;
-      GOOM_LOG_DEBUG("ifs_update_data.v[BLEU] = %d", ifs_update_data.v[BLEU]);
+      logDebug("ifs_update_data.v[BLEU] = {}", ifs_update_data.v[BLEU]);
     }
     if (ifs_update_data.col[BLEU] < 16) {
       ifs_update_data.col[BLEU] = 16;
       ifs_update_data.v[BLEU] = (RAND() % 4) + 1;
-      GOOM_LOG_DEBUG("ifs_update_data.v[BLEU] = %d", ifs_update_data.v[BLEU]);
+      logDebug("ifs_update_data.v[BLEU] = {}", ifs_update_data.v[BLEU]);
     }
 
     ifs_update_data.col[VERT] += ifs_update_data.v[VERT];
     if (ifs_update_data.col[VERT] > 200) {
       ifs_update_data.col[VERT] = 200;
       ifs_update_data.v[VERT] = -(RAND() % 3) - 2;
-      GOOM_LOG_DEBUG("ifs_update_data.v[VERT] = %d", ifs_update_data.v[VERT]);
+      logDebug("ifs_update_data.v[VERT] = {}", ifs_update_data.v[VERT]);
     }
     if (ifs_update_data.col[VERT] > ifs_update_data.col[ALPHA]) {
       ifs_update_data.col[VERT] = ifs_update_data.col[ALPHA];
@@ -631,31 +632,31 @@ static void ifs_update(PluginInfo* goomInfo, Pixel* data, Pixel* back, int incre
     if (ifs_update_data.col[VERT] < 32) {
       ifs_update_data.col[VERT] = 32;
       ifs_update_data.v[VERT] = (RAND() % 3) + 2;
-      GOOM_LOG_DEBUG("ifs_update_data.v[VERT] = %d", ifs_update_data.v[VERT]);
+      logDebug("ifs_update_data.v[VERT] = {}", ifs_update_data.v[VERT]);
     }
 
     ifs_update_data.col[ROUGE] += ifs_update_data.v[ROUGE];
     if (ifs_update_data.col[ROUGE] > 128) {
       ifs_update_data.col[ROUGE] = 128;
       ifs_update_data.v[ROUGE] = -(RAND() % 4) - 1;
-      GOOM_LOG_DEBUG("ifs_update_data.v[ROUGE] = %d", ifs_update_data.v[ROUGE]);
+      logDebug("ifs_update_data.v[ROUGE] = {}", ifs_update_data.v[ROUGE]);
     }
     if (ifs_update_data.col[ROUGE] < 0) {
       ifs_update_data.col[ROUGE] = 0;
       ifs_update_data.v[ROUGE] = (RAND() % 4) + 1;
-      GOOM_LOG_DEBUG("ifs_update_data.v[ROUGE] = %d", ifs_update_data.v[ROUGE]);
+      logDebug("ifs_update_data.v[ROUGE] = {}", ifs_update_data.v[ROUGE]);
     }
 
     ifs_update_data.col[ALPHA] += ifs_update_data.v[ALPHA];
     if (ifs_update_data.col[ALPHA] > 255) {
       ifs_update_data.col[ALPHA] = 255;
       ifs_update_data.v[ALPHA] = -(RAND() % 4) - 1;
-      GOOM_LOG_DEBUG("ifs_update_data.v[ALPHA] = %d", ifs_update_data.v[ALPHA]);
+      logDebug("ifs_update_data.v[ALPHA] = {}", ifs_update_data.v[ALPHA]);
     }
     if (ifs_update_data.col[ALPHA] < 0) {
       ifs_update_data.col[ALPHA] = 0;
       ifs_update_data.v[ALPHA] = (RAND() % 4) + 1;
-      GOOM_LOG_DEBUG("ifs_update_data.v[ALPHA] = %d", ifs_update_data.v[ALPHA]);
+      logDebug("ifs_update_data.v[ALPHA] = {}", ifs_update_data.v[ALPHA]);
     }
 
     if (((ifs_update_data.col[VERT] > 32) &&
@@ -664,7 +665,7 @@ static void ifs_update(PluginInfo* goomInfo, Pixel* data, Pixel* back, int incre
          (ifs_update_data.col[BLEU] < 64) && (RAND() % 20 == 0)) &&
         (ifs_update_data.justChanged < 0)) {
       ifs_update_data.mode = RAND() % 3 ? MOD_FEU : MOD_MER;
-      GOOM_LOG_DEBUG("ifs_update_data.mode = %d", ifs_update_data.mode);
+      logDebug("ifs_update_data.mode = {}", ifs_update_data.mode);
       ifs_update_data.justChanged = 250;
     }
   } else if (ifs_update_data.mode == MOD_FEU) {
@@ -672,60 +673,60 @@ static void ifs_update(PluginInfo* goomInfo, Pixel* data, Pixel* back, int incre
     if (ifs_update_data.col[BLEU] > 64) {
       ifs_update_data.col[BLEU] = 64;
       ifs_update_data.v[BLEU] = -(RAND() % 4) - 1;
-      GOOM_LOG_DEBUG("ifs_update_data.v[BLEU] = %d", ifs_update_data.v[BLEU]);
+      logDebug("ifs_update_data.v[BLEU] = {}", ifs_update_data.v[BLEU]);
     }
     if (ifs_update_data.col[BLEU] < 0) {
       ifs_update_data.col[BLEU] = 0;
       ifs_update_data.v[BLEU] = (RAND() % 4) + 1;
-      GOOM_LOG_DEBUG("ifs_update_data.v[BLEU] = %d", ifs_update_data.v[BLEU]);
+      logDebug("ifs_update_data.v[BLEU] = {}", ifs_update_data.v[BLEU]);
     }
 
     ifs_update_data.col[VERT] += ifs_update_data.v[VERT];
     if (ifs_update_data.col[VERT] > 200) {
       ifs_update_data.col[VERT] = 200;
       ifs_update_data.v[VERT] = -(RAND() % 3) - 2;
-      GOOM_LOG_DEBUG("ifs_update_data.v[VERT] = %d", ifs_update_data.v[VERT]);
+      logDebug("ifs_update_data.v[VERT] = {}", ifs_update_data.v[VERT]);
     }
     if (ifs_update_data.col[VERT] > ifs_update_data.col[ROUGE] + 20) {
       ifs_update_data.col[VERT] = ifs_update_data.col[ROUGE] + 20;
       ifs_update_data.v[VERT] = -(RAND() % 3) - 2;
       ifs_update_data.v[ROUGE] = (RAND() % 4) + 1;
       ifs_update_data.v[BLEU] = (RAND() % 4) + 1;
-      GOOM_LOG_DEBUG("ifs_update_data.v[VERT] = %d", ifs_update_data.v[VERT]);
+      logDebug("ifs_update_data.v[VERT] = {}", ifs_update_data.v[VERT]);
     }
     if (ifs_update_data.col[VERT] < 0) {
       ifs_update_data.col[VERT] = 0;
       ifs_update_data.v[VERT] = (RAND() % 3) + 2;
-      GOOM_LOG_DEBUG("ifs_update_data.v[VERT] = %d", ifs_update_data.v[VERT]);
+      logDebug("ifs_update_data.v[VERT] = {}", ifs_update_data.v[VERT]);
     }
 
     ifs_update_data.col[ROUGE] += ifs_update_data.v[ROUGE];
     if (ifs_update_data.col[ROUGE] > 255) {
       ifs_update_data.col[ROUGE] = 255;
       ifs_update_data.v[ROUGE] = -(RAND() % 4) - 1;
-      GOOM_LOG_DEBUG("ifs_update_data.v[ROUGE] = %d", ifs_update_data.v[ROUGE]);
+      logDebug("ifs_update_data.v[ROUGE] = {}", ifs_update_data.v[ROUGE]);
     }
     if (ifs_update_data.col[ROUGE] > ifs_update_data.col[VERT] + 40) {
       ifs_update_data.col[ROUGE] = ifs_update_data.col[VERT] + 40;
       ifs_update_data.v[ROUGE] = -(RAND() % 4) - 1;
-      GOOM_LOG_DEBUG("ifs_update_data.v[ROUGE] = %d", ifs_update_data.v[ROUGE]);
+      logDebug("ifs_update_data.v[ROUGE] = {}", ifs_update_data.v[ROUGE]);
     }
     if (ifs_update_data.col[ROUGE] < 0) {
       ifs_update_data.col[ROUGE] = 0;
       ifs_update_data.v[ROUGE] = (RAND() % 4) + 1;
-      GOOM_LOG_DEBUG("ifs_update_data.v[ROUGE] = %d", ifs_update_data.v[ROUGE]);
+      logDebug("ifs_update_data.v[ROUGE] = {}", ifs_update_data.v[ROUGE]);
     }
 
     ifs_update_data.col[ALPHA] += ifs_update_data.v[ALPHA];
     if (ifs_update_data.col[ALPHA] > 0) {
       ifs_update_data.col[ALPHA] = 0;
       ifs_update_data.v[ALPHA] = -(RAND() % 4) - 1;
-      GOOM_LOG_DEBUG("ifs_update_data.v[ALPHA] = %d", ifs_update_data.v[ALPHA]);
+      logDebug("ifs_update_data.v[ALPHA] = {}", ifs_update_data.v[ALPHA]);
     }
     if (ifs_update_data.col[ALPHA] < 0) {
       ifs_update_data.col[ALPHA] = 0;
       ifs_update_data.v[ALPHA] = (RAND() % 4) + 1;
-      GOOM_LOG_DEBUG("ifs_update_data.v[ALPHA] = %d", ifs_update_data.v[ALPHA]);
+      logDebug("ifs_update_data.v[ALPHA] = {}", ifs_update_data.v[ALPHA]);
     }
 
     if (((ifs_update_data.col[ROUGE] < 64) && (ifs_update_data.col[VERT] > 32) &&
@@ -733,7 +734,7 @@ static void ifs_update(PluginInfo* goomInfo, Pixel* data, Pixel* back, int incre
          (ifs_update_data.col[BLEU] > 32) && (RAND() % 20 == 0)) &&
         (ifs_update_data.justChanged < 0)) {
       ifs_update_data.mode = RAND() % 2 ? MOD_MER : MOD_MERVER;
-      GOOM_LOG_DEBUG("ifs_update_data.mode = %d", ifs_update_data.mode);
+      logDebug("ifs_update_data.mode = {}", ifs_update_data.mode);
       ifs_update_data.justChanged = 250;
     }
   }
@@ -742,17 +743,17 @@ static void ifs_update(PluginInfo* goomInfo, Pixel* data, Pixel* back, int incre
       (ifs_update_data.col[ALPHA] << (ALPHA * 8)) | (ifs_update_data.col[BLEU] << (BLEU * 8)) |
       (ifs_update_data.col[VERT] << (VERT * 8)) | (ifs_update_data.col[ROUGE] << (ROUGE * 8));
 
-  GOOM_LOG_DEBUG("ifs_update_data.col[ALPHA] = %d", ifs_update_data.col[ALPHA]);
-  GOOM_LOG_DEBUG("ifs_update_data.col[BLEU] = %d", ifs_update_data.col[BLEU]);
-  GOOM_LOG_DEBUG("ifs_update_data.col[VERT] = %d", ifs_update_data.col[VERT]);
-  GOOM_LOG_DEBUG("ifs_update_data.col[ROUGE] = %d", ifs_update_data.col[ROUGE]);
+  logDebug("ifs_update_data.col[ALPHA] = {}", ifs_update_data.col[ALPHA]);
+  logDebug("ifs_update_data.col[BLEU] = {}", ifs_update_data.col[BLEU]);
+  logDebug("ifs_update_data.col[VERT] = {}", ifs_update_data.col[VERT]);
+  logDebug("ifs_update_data.col[ROUGE] = {}", ifs_update_data.col[ROUGE]);
 
-  GOOM_LOG_DEBUG("ifs_update_data.v[ALPHA] = %d", ifs_update_data.v[ALPHA]);
-  GOOM_LOG_DEBUG("ifs_update_data.v[BLEU] = %d", ifs_update_data.v[BLEU]);
-  GOOM_LOG_DEBUG("ifs_update_data.v[VERT] = %d", ifs_update_data.v[VERT]);
-  GOOM_LOG_DEBUG("ifs_update_data.v[ROUGE] = %d", ifs_update_data.v[ROUGE]);
+  logDebug("ifs_update_data.v[ALPHA] = {}", ifs_update_data.v[ALPHA]);
+  logDebug("ifs_update_data.v[BLEU] = {}", ifs_update_data.v[BLEU]);
+  logDebug("ifs_update_data.v[VERT] = {}", ifs_update_data.v[VERT]);
+  logDebug("ifs_update_data.v[ROUGE] = {}", ifs_update_data.v[ROUGE]);
 
-  GOOM_LOG_DEBUG("ifs_update_data.mode = %d", ifs_update_data.mode);
+  logDebug("ifs_update_data.mode = {}", ifs_update_data.mode);
 }
 
 /** VISUAL_FX WRAPPER FOR IFS */

@@ -23,6 +23,8 @@
 #include "goom_tools.h"
 #include "v3d.h"
 
+#include "goomutils/logging.h"
+
 #include <inttypes.h>
 #include <math.h>
 #include <stdio.h>
@@ -568,7 +570,7 @@ static void InitBuffers(PluginInfo* goomInfo, Uint resx, Uint resy)
 void zoomFilterFastRGB(PluginInfo* goomInfo, Pixel* pix1, Pixel* pix2, ZoomFilterData* zf,
                        Uint resx, Uint resy, int switchIncr, float switchMult)
 {
-  GOOM_LOG_DEBUG("resx = %d, resy = %d, switchIncr = %d, switchMult = %f", resx, resy, switchIncr,
+  logDebug("resx = {}, resy = {}, switchIncr = {}, switchMult = {:.2}", resx, resy, switchIncr,
                  switchMult);
 
   ZoomFilterFXWrapperData* data = (ZoomFilterFXWrapperData*)goomInfo->zoomFilter_fx.fx_data;
@@ -578,9 +580,9 @@ void zoomFilterFastRGB(PluginInfo* goomInfo, Pixel* pix1, Pixel* pix2, ZoomFilte
   }
 
   /** changement de taille **/
-  GOOM_LOG_DEBUG("data->prevX = %d, data->prevY = %d", data->prevX, data->prevY);
+  logDebug("data->prevX = {}, data->prevY = {}", data->prevX, data->prevY);
   if (data->mustInitBuffers) {
-    GOOM_LOG_DEBUG("Calling InitBuffers");
+    logDebug("Calling InitBuffers");
     InitBuffers(goomInfo, resx, resy);
   }
 
@@ -607,7 +609,7 @@ void zoomFilterFastRGB(PluginInfo* goomInfo, Pixel* pix1, Pixel* pix2, ZoomFilte
   }
 
   /* generation du buffer de trans */
-  GOOM_LOG_DEBUG("data->interlace_start = %d", data->interlace_start);
+  logDebug("data->interlace_start = {}", data->interlace_start);
   if (data->interlace_start == -1) {
     /* sauvegarde de l'etat actuel dans la nouvelle source
      * TODO: write that in MMX (has been done in previous version, but did not follow
@@ -626,7 +628,7 @@ void zoomFilterFastRGB(PluginInfo* goomInfo, Pixel* pix1, Pixel* pix2, ZoomFilte
     data->buffratio = 0;
   }
 
-  GOOM_LOG_DEBUG("data->interlace_start = %d", data->interlace_start);
+  logDebug("data->interlace_start = {}", data->interlace_start);
   if (data->interlace_start == -1) {
     signed int* tmp = data->brutD;
     data->brutD = data->brutT;
@@ -637,7 +639,7 @@ void zoomFilterFastRGB(PluginInfo* goomInfo, Pixel* pix1, Pixel* pix2, ZoomFilte
     data->interlace_start = -2;
   }
 
-  GOOM_LOG_DEBUG("data->interlace_start = %d", data->interlace_start);
+  logDebug("data->interlace_start = {}", data->interlace_start);
   if (data->interlace_start >= 0) {
     /* creation de la nouvelle destination */
     makeZoomBufferStripe(data, resy / 16);
@@ -704,7 +706,7 @@ static void generatePrecalCoef(int precalCoef[16][16])
 }
 
 /* VisualFX Wrapper */
-static const char* const vfxname = "ZoomFilter";
+static const char *const vfxname = "ZoomFilter";
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"

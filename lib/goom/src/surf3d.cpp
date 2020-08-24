@@ -3,6 +3,7 @@
 #include "drawmethods.h"
 #include "goom_tools.h"
 
+#include "goomutils/logging.h"
 #include "goomutils/mathtools.h"
 
 #include <cmath>
@@ -139,7 +140,7 @@ void Grid::drawToBuffs(Pixel* front, Pixel* back, int width, int height,
         const auto colors = lineColorer.getColorMix(x, z, colorMod, colorLowMod);
         const uint32_t color = std::get<0>(colors);
         const uint32_t colorLow = std::get<1>(colors);;
-//        GOOM_LOG_INFO("Drawing line: color = %x, colorLow = %x, v2x.x = %d, v2x.y = %d, v2.x = %d, v2.y = %d.",
+//        logInfo("Drawing line: color = {}, colorLow = {}, v2x.x = {}, v2x.y = {}, v2.x = {}, v2.y = {}.",
 //            color, colorLow, v2x.x, v2x.y, v2.x, v2.y);
         draw2DLineToBuffs(front, back, color, colorLow, width, height, v2x.x, v2x.y, v2.x, v2.y);
       }
@@ -166,13 +167,13 @@ void Grid::update(const float angle, const std::vector<float>& vals, const float
     static long iterNum = 0;
     iterNum++;
     if (!vals.empty()) {
-      GOOM_LOG_INFO("Iter %d: Init floor.", iterNum);
+      logDebug("Iter {}: Init floor.", iterNum);
       const VertNum vnum(num_x);
       for (size_t x = 0; x < num_x; x++) {
         const float zeroLerpFactor = getRandInRange(0.8*gridZeroLerpFactor, 1.2*gridZeroLerpFactor);
-        GOOM_LOG_INFO("Iter %d: x = %d, zeroLerpFactor = %f.", iterNum, x, zeroLerpFactor);
+        logDebug("Iter {}: x = {}, zeroLerpFactor = {:.2}.", iterNum, x, zeroLerpFactor);
         const size_t nv = size_t(vnum.getRowZeroVertNum(x));
-        GOOM_LOG_INFO("Iter %d: surf.vertex[%d].y = %f, vals[%d] = %f.", iterNum, x, surf.vertex[nv].y, x, vals[x]);
+        logDebug("Iter {}: surf.vertex[{}].y = {:.2}, vals[{}] = {.2}.", iterNum, x, surf.vertex[nv].y, x, vals[x]);
 //        const float val = std::fabs(vals[x]);
 //        invert[x] = vals[x] < 0.0;
 const float val = vals[x];
@@ -182,28 +183,28 @@ invert[x] = false;
       }
     }
 
-    GOOM_LOG_INFO("Iter %d: Rest of tentacles.", iterNum);
+    logDebug("Iter {}: Rest of tentacles.", iterNum);
     const VertNum vnum(num_x);
     for (size_t x = 0; x < num_x; x++) {
       const float mainLerpFactor = gridMainLerpFactor*getRandInRange(0.9, 1.1);
-      GOOM_LOG_INFO("Iter %d: x = %d, mainLerpFactor = %f.", iterNum, x, mainLerpFactor);
+      logDebug("Iter {}: x = {}, mainLerpFactor = {:.2}.", iterNum, x, mainLerpFactor);
       const float mainErrorFactor = gridMainErrorFactor*getRandInRange(0.9, 1.1);
-      GOOM_LOG_INFO("Iter %d: x = %d, mainErrorFactor = %f.", iterNum, x, mainErrorFactor);
+      logDebug("Iter {}: x = {}, mainErrorFactor = {:.2}.", iterNum, x, mainErrorFactor);
       const float lastY = 600*getRandInRange(0.8, 1.2);
       float prevRowVertex_y = surf.vertex[vnum.getRowZeroVertNum(x)].y;
       for (size_t y = 1; y < num_z; y++) {
         const size_t nv = size_t(vnum(x, y));
-        GOOM_LOG_INFO("Iter %d: prevRow surf.vertex[%d,%d].y = %f.", iterNum, x, y-1, prevRowVertex_y);
-        GOOM_LOG_INFO("Iter %d: prior   surf.vertex[%d,%d].y = %f.", iterNum, x, y, surf.vertex[nv].y);
+        logDebug("Iter {}: prevRow surf.vertex[{},{}].y = {:.2}.", iterNum, x, y-1, prevRowVertex_y);
+        logDebug("Iter {}: prior   surf.vertex[{},{}].y = {:.2}.", iterNum, x, y, surf.vertex[nv].y);
 
         surf.vertex[nv].y = std::lerp(surf.vertex[nv].y, prevRowVertex_y, mainLerpFactor)
                             + mainErrorFactor*prevRowVertex_y;
         prevRowVertex_y = surf.vertex[nv].y;
-        GOOM_LOG_INFO("Iter %d: after   surf.vertex[%d,%d].y = %f.", iterNum, x, y, surf.vertex[nv].y);
+        logDebug("Iter {}: after   surf.vertex[{},{}].y = {:.2}.", iterNum, x, y, surf.vertex[nv].y);
 
         surf.vertex[nv].ignore = std::fabs(surf.vertex[nv].y) > lastY;
         if (surf.vertex[nv].ignore) {
-          GOOM_LOG_INFO("Iter %d: ignoring vertex surf.vertex[%d,%d].y = %f.", iterNum, x, y, surf.vertex[nv].y);
+          logDebug("Iter {}: ignoring vertex surf.vertex[{},{}].y = {:.2}.", iterNum, x, y, surf.vertex[nv].y);
         }
       }
     }
@@ -215,7 +216,7 @@ invert[x] = false;
   // '0.5*M_PI - angle' gets passed in as workaround but we need 'angle'.
   cam.y += 2.0 * sin(-(angle - 0.5*M_PI) / 4.3f);
 
-  GOOM_LOG_INFO("Rotation angle = %f deg.", angle*360.0);
+  logDebug("Rotation angle = {:.2} deg.", angle*360.0);
   const float cosa = cos(angle);
   const float sina = sin(angle);
   const VertNum vnum(num_x);
@@ -232,7 +233,7 @@ invert[x] = false;
         }
         y_rotate_v3d(vert, surf.svertex[nv], sina, cosa);
         translate_v3d(cam, surf.svertex[nv]);
-        GOOM_LOG_INFO("surf.svertex[%d].y = %f.", nv, surf.svertex[nv].y);
+        logDebug("surf.svertex[{}].y = {:.2}.", nv, surf.svertex[nv].y);
       }
     }
   }
