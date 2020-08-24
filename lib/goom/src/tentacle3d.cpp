@@ -4,7 +4,6 @@
 #include "goom_config.h"
 #include "goom_plugin_info.h"
 #include "goom_tools.h"
-#include "surf3d.h"
 #include "tentacle_driver.h"
 #include "tentacles_new.h"
 #include "v3d.h"

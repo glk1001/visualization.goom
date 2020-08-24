@@ -2,7 +2,8 @@
 #define _TENTACLE3D_H
 
 #include "goom_visual_fx.h"
-#include "surf3d.h"
+
+#include <algorithm>
 
 class TentaclesWrapper;
 

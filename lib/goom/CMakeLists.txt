@@ -25,7 +25,6 @@ set (SRCE_FILES
                  src/lines.cpp
                  src/plugin_info.cpp
                  src/sound_tester.cpp
-                 src/surf3d.cpp
                  src/tentacle_driver.cpp
                  src/tentacle3d.cpp
                  src/tentacles_new.cpp
