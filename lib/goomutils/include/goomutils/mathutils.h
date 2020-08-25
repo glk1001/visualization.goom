@@ -1,5 +1,5 @@
-#ifndef LIB_GOOMUTILS_INCLUDE_GOOMUTILS_MATH_UTILS_H_
-#define LIB_GOOMUTILS_INCLUDE_GOOMUTILS_MATH_UTILS_H_
+#ifndef LIB_GOOMUTILS_INCLUDE_GOOMUTILS_MATHUTILS_H_
+#define LIB_GOOMUTILS_INCLUDE_GOOMUTILS_MATHUTILS_H_
 
 #include <cmath>
 #include <cstdlib>
@@ -9,6 +9,13 @@
 #include <tuple>
 #include <utility>
 #include <vector>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+extern const float sin256[256];
+extern const float cos256[256];
 
 inline float getRandNeg1toPos1();
 
@@ -21,6 +28,22 @@ inline float getRandSignFlt();
 inline size_t getRandInRange(const size_t x0, const size_t x1);
 // Return random float in the range x0 <= n <= x1.
 inline float getRandInRange(const float x0, const float x1);
+
+class VertNum {
+public:
+  explicit VertNum(const int xw): xwidth(xw) {}
+  int getRowZeroVertNum(const int x) const { return x; }
+  int operator()(const int x, const int z) const { return z * xwidth + x; }
+//  int getPrevRowVertNum(const int vertNum) const { return vertNum - xwidth; }
+  std::tuple<int, int> getXZ(const int vertNum) const
+  {
+    const int z = vertNum/xwidth;
+    const int x = vertNum % xwidth;
+    return std::make_tuple(x, z);
+  }
+private:
+  const int xwidth;
+};
 
 template<class E>
 class Weights

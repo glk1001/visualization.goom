@@ -41,7 +41,7 @@
 #include "goom_testing.h"
 #include "goom_tools.h"
 #include "goomutils/logging.h"
-#include "goomutils/mathtools.h"
+#include "goomutils/mathutils.h"
 
 #include <math.h>
 #include <stdio.h>

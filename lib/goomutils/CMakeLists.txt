@@ -5,8 +5,7 @@ add_library( ${PROJECT_NAME} STATIC
     src/all_maps.cpp
     src/colormap.cpp
     src/logging.cpp
-    src/math_utils.cpp
-    src/mathtools.c
+    src/mathutils.cpp
     src/SimplexNoise.cpp
 )
 

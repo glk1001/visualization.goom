@@ -2,7 +2,7 @@
 #define LIBS_GOOM_INCLUDE_GOOM_TENTACLES_NEW_H_
 
 #include "goomutils/colormap.h"
-#include "goomutils/math_utils.h"
+#include "goomutils/mathutils.h"
 
 #include <functional>
 #include <memory>

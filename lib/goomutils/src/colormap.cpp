@@ -2,7 +2,7 @@
 
 #include "goomutils/colordata/all_maps.h"
 #include "goomutils/colormap_enums.h"
-#include "goomutils/math_utils.h"
+#include "goomutils/mathutils.h"
 
 #include <algorithm>
 #include <format>

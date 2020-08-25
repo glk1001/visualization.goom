@@ -11,7 +11,7 @@
 
 #include "goomutils/colormap.h"
 #include "goomutils/logging.h"
-#include "goomutils/math_utils.h"
+#include "goomutils/mathutils.h"
 
 #include <cmath>
 #include <cstdint>

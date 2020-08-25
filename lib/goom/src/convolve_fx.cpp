@@ -1,7 +1,7 @@
 #include "goom_config.h"
 #include "goom_fx.h"
 #include "goom_plugin_info.h"
-#include "goomutils/mathtools.h"
+#include "goomutils/mathutils.h"
 
 #include <math.h>
 #include <stdio.h>

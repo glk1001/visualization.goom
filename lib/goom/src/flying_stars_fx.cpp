@@ -4,7 +4,7 @@
 #include "goom_tools.h"
 #include "goomutils/colormap.h"
 #include "goomutils/colormap_enums.h"
-#include "goomutils/mathtools.h"
+#include "goomutils/mathutils.h"
 
 #include <vector>
 

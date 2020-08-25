@@ -1,7 +1,7 @@
 #include "tentacles_new.h"
 
 #include "goomutils/colormap.h"
-#include "goomutils/math_utils.h"
+#include "goomutils/mathutils.h"
 
 #include <algorithm>
 #include <assert.h>
