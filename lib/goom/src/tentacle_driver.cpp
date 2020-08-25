@@ -107,7 +107,7 @@ void TentacleDriver::init()
     colorizers.push_back(std::move(colorizer));
 
     std::unique_ptr<Tentacle2D> tentacle2D{createNewTentacle2D(i, params)};
-    logInfo("Created tentacle2D {}.", i);
+    logDebug("Created tentacle2D {}.", i);
 
     const uint32_t headColor = ColorMap::getRandomColor(*headColorMap);
     const uint32_t headColorLow = ColorMap::getLighterColor(headColor, 50);
@@ -120,7 +120,7 @@ void TentacleDriver::init()
 
     tentacles.addTentacle(std::move(tentacle));
 
-    logInfo("Added tentacle {}.", i);
+    logDebug("Added tentacle {}.", i);
   }
 
   updateTentaclesLayout(layout);
@@ -148,7 +148,7 @@ TentacleDriver::IterationParams TentacleDriver::IterParamsGroup::getNext(const f
 std::unique_ptr<Tentacle2D> TentacleDriver::createNewTentacle2D(const size_t ID,
                                                                 const IterationParams& params)
 {
-  logInfo("Creating new tentacle2D {}...", ID);
+  logDebug("Creating new tentacle2D {}...", ID);
 
   const size_t tentacleLen = size_t(getRandInRange(0.99f, 1.01f) * float(params.length));
   const double tent2d_xmax = tent2d_xmin + tentacleLen;
@@ -156,7 +156,7 @@ std::unique_ptr<Tentacle2D> TentacleDriver::createNewTentacle2D(const size_t ID,
   std::unique_ptr<Tentacle2D> tentacle{
       new Tentacle2D{ID, std::move(createNewTweaker(
                              params, std::move(createNewDampingFunction(params, tentacleLen))))}};
-  logInfo("Created new tentacle2D {}.", ID);
+  logDebug("Created new tentacle2D {}.", ID);
 
   tentacle->setXDimensions(tent2d_xmin, tent2d_xmax);
   tentacle->setYDimensions(tent2d_ymin, tent2d_ymax);
@@ -164,7 +164,7 @@ std::unique_ptr<Tentacle2D> TentacleDriver::createNewTentacle2D(const size_t ID,
   tentacle->setPrevYWeight(params.prevYWeight);
   tentacle->setCurrentYWeight(1.0 - params.prevYWeight);
   tentacle->setNumNodes(size_t(float(params.numNodes) * getRandInRange(0.9f, 1.1f)));
-  logInfo("tentacle {:3}:"
+  logDebug("tentacle {:3}:"
           " tentacleLen = {:4}, tent2d_xmin = {:7.2f}, tent2d_xmax = {:5.2f},"
           " prevYWeight = {:5.2f}, curYWeight = {:5.2f}, numNodes = {:5}",
           ID, tentacleLen, tent2d_xmin, tent2d_xmax, tentacle->getPrevYWeight(),
@@ -259,7 +259,7 @@ void TentacleDriver::stopIterating()
 
 void TentacleDriver::updateTentaclesLayout(const TentacleLayout& layout)
 {
-  logInfo("Updating tentacles layout. numTentacles = {}.", numTentacles);
+  logDebug("Updating tentacles layout. numTentacles = {}.", numTentacles);
   assert(layout.getNumPoints() == numTentacles);
 
   std::vector<size_t> sortedLongestFirst(numTentacles);
@@ -274,7 +274,7 @@ void TentacleDriver::updateTentaclesLayout(const TentacleLayout& layout)
 
   for (size_t i = 0; i < numTentacles; i++)
   {
-    logInfo("{} {} tentacle[{}].len = {:.2}.", i, sortedLongestFirst.at(i),
+    logDebug("{} {} tentacle[{}].len = {:.2}.", i, sortedLongestFirst.at(i),
             sortedLongestFirst.at(i),
             tentacles[sortedLongestFirst.at(i)].get2DTentacle().getLength());
   }
@@ -318,22 +318,22 @@ void TentacleDriver::updateIterTimers()
 
 void TentacleDriver::checkForTimerEvents()
 {
-  //  logInfo(stdnew::format("Update num = {}: checkForTimerEvents", updateNum));
+  //  logDebug(stdnew::format("Update num = {}: checkForTimerEvents", updateNum));
 
   /**
   if (updateNum % doGlitchEveryNUpdates == 0) {
-//    logInfo(stdnew::format("Update num = {}: starting glitchTimer.", updateNum));
+//    logDebug(stdnew::format("Update num = {}: starting glitchTimer.", updateNum));
     glitchTimer.start();
   }
   **/
   /**
   if (updateNum % doDominantColorEveryNUpdates == 0) {
     if (updateNum % (2*doDominantColorEveryNUpdates) == 0) {
-      logInfo(stdnew::format("Update num = {}: get new dominantColor", updateNum));
+      logDebug(stdnew::format("Update num = {}: get new dominantColor", updateNum));
       dominantColorGroup = &getRandomColorGroup();
-      logInfo(stdnew::format("Update num = {}: got new dominantColorGroup", updateNum));
+      logDebug(stdnew::format("Update num = {}: got new dominantColorGroup", updateNum));
       dominantColor = getRandomColor(*dominantColorGroup);
-      logInfo(stdnew::format("Update num = {}: new dominantColor = {}", updateNum, dominantColor));
+      logDebug(stdnew::format("Update num = {}: new dominantColor = {}", updateNum, dominantColor));
     }
     dominantColor = getEvolvedColor(dominantColor);
   }
@@ -361,16 +361,16 @@ void TentacleDriver::beforeIter(const size_t ID,
       y += getRandInRange(glitchLower, glitchUpper);
     }
     /**
-//    logInfo(stdnew::format("iter = {} and tentacle {} and resetGlitchTimer.getCurrentCount() = {}.",
+//    logDebug(stdnew::format("iter = {} and tentacle {} and resetGlitchTimer.getCurrentCount() = {}.",
 //        iterNum, ID, glitchTimer.getCurrentCount()));
     if (glitchTimer.atStart()) {
       for (double& y : yvec) {
         y += getRandInRange(glitchLower, glitchUpper);
       }
-//      logInfo(stdnew::format("Pushing color for iter = {} and tentacle {}.", iterNum, ID));
+//      logDebug(stdnew::format("Pushing color for iter = {} and tentacle {}.", iterNum, ID));
       colorizers[ID]->pushColorMap(glitchColorGroup);
     } else if (glitchTimer.getCurrentCount() == 1) {
-//      logInfo(stdnew::format("Popping color for iter = {} and tentacle {}.", iterNum, ID));
+//      logDebug(stdnew::format("Popping color for iter = {} and tentacle {}.", iterNum, ID));
       colorizers[ID]->popColorMap();
     }
     **/
@@ -391,7 +391,7 @@ void TentacleDriver::update(const float angle,
                             Pixel* backBuff)
 {
   updateNum++;
-  //  logInfo(stdnew::format("Doing update {}.", updateNum));
+  //  logDebug(stdnew::format("Doing update {}.", updateNum));
 
   if (updateNum % changeCurrentColorMapGroupEveryNUpdates == 0)
   {
@@ -412,10 +412,10 @@ void TentacleDriver::update(const float angle,
     tentacle2D.setIterZeroLerpFactor(iterZeroLerpFactor);
     tentacle2D.setIterZeroYVal(iterZeroYVal);
 
-    //    logInfo(stdnew::format("Starting iterate {} for tentacle {}.", tentacle2D.getIterNum()+1, tentacle2D.getID()));
+    //    logDebug(stdnew::format("Starting iterate {} for tentacle {}.", tentacle2D.getIterNum()+1, tentacle2D.getID()));
     tentacle2D.iterate();
 
-    //    logInfo(stdnew::format("Update num = {}, tentacle = {}, doing plot with angle = {}, "
+    //    logDebug(stdnew::format("Update num = {}, tentacle = {}, doing plot with angle = {}, "
     //        "distance = {}, distance2 = {}, color = {} and colorLow = {}.",
     //        updateNum, tentacle2D.getID(), angle, distance, distance2, color, colorLow));
     plot3D(tentacle, color, colorLow, angle, distance, distance2, frontBuff, backBuff);
@@ -439,21 +439,21 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
   V3d cam = {0, 0, 3}; // TODO ????????????????????????????????
   cam.z += distance2;
   cam.y += 2.0 * sin(-(angle - 0.5 * M_PI) / 4.3f);
-  logInfo("cam = ({:.2f}, {:.2f}, {:.2f}).", cam.x, cam.y, cam.z);
+  logDebug("cam = ({:.2f}, {:.2f}, {:.2f}).", cam.x, cam.y, cam.z);
 
   const float sina = sin(M_PI - angle);
   const float cosa = cos(M_PI - angle);
-  logInfo("angle = {:.2f}, sina = {:.2}, cosa = {:.2},"
+  logDebug("angle = {:.2f}, sina = {:.2}, cosa = {:.2},"
           " distance = {:.2f}, distance2 = {:.2f}.",
           angle, sina, cosa, distance, distance2);
 
   std::vector<V3d> v3{vertices};
   for (size_t i = 0; i < n; i++)
   {
-    logInfo("v3[{}]  = ({:.2f}, {:.2f}, {:.2f}).", i, v3[i].x, v3[i].y, v3[i].z);
+    logDebug("v3[{}]  = ({:.2f}, {:.2f}, {:.2f}).", i, v3[i].x, v3[i].y, v3[i].z);
     y_rotate_v3d(v3[i], v3[i], sina, cosa);
     translate_v3d(cam, v3[i]);
-    logInfo("v3[{}]+ = ({:.2f}, {:.2f}, {:.2f}).", i, v3[i].x, v3[i].y, v3[i].z);
+    logDebug("v3[{}]+ = ({:.2f}, {:.2f}, {:.2f}).", i, v3[i].x, v3[i].y, v3[i].z);
   }
 
   std::vector<v2d> v2(n);
@@ -469,17 +469,17 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
     if (((ix0 == coordIgnoreVal) && (iy0 == coordIgnoreVal)) ||
         ((ix1 == coordIgnoreVal) && (iy1 == coordIgnoreVal)))
     {
-      logInfo("Skipping draw ignore vals {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}.", i, ix0, iy0,
+      logDebug("Skipping draw ignore vals {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}.", i, ix0, iy0,
               ix1, iy1);
     }
     else if ((ix0 == ix1) && (iy0 == iy1))
     {
-      logInfo("Skipping draw equal points {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}.", i, ix0, iy0,
+      logDebug("Skipping draw equal points {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}.", i, ix0, iy0,
               ix1, iy1);
     }
     else
     {
-      logInfo("draw_line {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}.", i, ix0, iy0, ix1, iy1);
+      logDebug("draw_line {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}.", i, ix0, iy0, ix1, iy1);
 
       const auto [color, colorLow] = tentacle.getMixedColors(i, dominantColor, dominantColorLow);
       const std::vector<_PIXEL> colors = {{.val = color}, {.val = colorLow}};
@@ -499,7 +499,7 @@ void TentacleDriver::project_v3d_to_v2d(const std::vector<V3d>& v3,
 {
   for (size_t i = 0; i < v3.size(); ++i)
   {
-    logInfo("project_v3d_to_v2d {}: v3[i].x = {:.2f}, v3[i].y = {:.2f}, v2[i].z = {:.2f}.", i,
+    logDebug("project_v3d_to_v2d {}: v3[i].x = {:.2f}, v3[i].y = {:.2f}, v2[i].z = {:.2f}.", i,
             v3[i].x, v3[i].y, v3[i].z);
     if (!v3[i].ignore && (v3[i].z > 2))
     {
@@ -507,13 +507,13 @@ void TentacleDriver::project_v3d_to_v2d(const std::vector<V3d>& v3,
       const int Yp = (int)(distance * v3[i].y / v3[i].z);
       v2[i].x = Xp + (screenWidth >> 1);
       v2[i].y = -Yp + (screenHeight >> 1);
-      logInfo("project_v3d_to_v2d {}: Xp = {}, Yp = {}, v2[i].x = {}, v2[i].y = {}.", i, Xp, Yp,
+      logDebug("project_v3d_to_v2d {}: Xp = {}, Yp = {}, v2[i].x = {}, v2[i].y = {}.", i, Xp, Yp,
               v2[i].x, v2[i].y);
     }
     else
     {
       v2[i].x = v2[i].y = coordIgnoreVal;
-      logInfo("project_v3d_to_v2d {}: v2[i].x = {}, v2[i].y = {}.", i, v2[i].x, v2[i].y);
+      logDebug("project_v3d_to_v2d {}: v2[i].x = {}, v2[i].y = {}.", i, v2[i].x, v2[i].y);
     }
   }
 }
@@ -635,7 +635,7 @@ CirclesTentacleLayout::CirclesTentacleLayout(const float radiusMin,
   // TODO - Should be lerps here?
   const auto logLastPoint = [&](size_t i, const float r, const float angle) {
     const size_t el = points.size() - 1;
-    logInfo("  sample {:3}: angle = {:+6.2f}, cos(angle) = {:+6.2f}, r = {:+6.2f},"
+    logDebug("  sample {:3}: angle = {:+6.2f}, cos(angle) = {:+6.2f}, r = {:+6.2f},"
             " pt[{:3}] = ({:+6.2f}, {:+6.2f}, {:+6.2f})",
             i, angle, cos(angle), r, el, points.at(el).x, points.at(el).y, points.at(el).z);
   };
@@ -658,7 +658,7 @@ CirclesTentacleLayout::CirclesTentacleLayout(const float radiusMin,
   const float angleLeftFinish = +1.5 * M_PI;
   const float angleRightStart = -0.5 * M_PI;
   const float angleRightFinish = +0.5 * M_PI;
-  logInfo("Setup: angleLeftStart = {:.2f}, angleLeftFinish = {:.2f},"
+  logDebug("Setup: angleLeftStart = {:.2f}, angleLeftFinish = {:.2f},"
           " angleRightStart = {:.2f}, angleRightFinish = {:.2f}",
           angleLeftStart, angleLeftFinish, angleRightStart, angleRightFinish);
 
@@ -666,7 +666,7 @@ CirclesTentacleLayout::CirclesTentacleLayout(const float radiusMin,
   const float angleOffsetFinish = 0.30;
   const float offsetStep = (angleOffsetStart - angleOffsetFinish) / float(numCircles - 1);
   const float radiusStep = (radiusMax - radiusMin) / float(numCircles - 1);
-  logInfo("Setup: numCircles = {}, radiusStep = {:.2f}, radiusMin = {:.2f}, radiusMax = {:.2f},"
+  logDebug("Setup: numCircles = {}, radiusStep = {:.2f}, radiusMin = {:.2f}, radiusMax = {:.2f},"
           " offsetStep = {:.2f}, angleOffsetStart = {:.2f}, angleOffsetFinish = {:.2f}",
           numCircles, radiusStep, radiusMin, radiusMax, offsetStep, angleOffsetStart,
           angleOffsetFinish);
@@ -675,7 +675,7 @@ CirclesTentacleLayout::CirclesTentacleLayout(const float radiusMin,
   float angleOffset = angleOffsetStart;
   for (const auto numSample : numCircleSamples)
   {
-    logInfo("Circle with {} samples: r = {:.2f}", numSample, r);
+    logDebug("Circle with {} samples: r = {:.2f}", numSample, r);
 
     getSamplePoints(r, numSample / 2, angleLeftStart + angleOffset, angleLeftFinish - angleOffset);
     getSamplePoints(r, numSample / 2, angleRightStart + angleOffset,

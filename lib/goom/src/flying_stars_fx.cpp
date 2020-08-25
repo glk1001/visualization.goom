@@ -6,27 +6,35 @@
 #include "goomutils/colormap_enums.h"
 #include "goomutils/mathutils.h"
 
-#include <vector>
+#include <array>
 
 /* TODO:-- FAIRE PROPREMENT... BOAH... */
-#define NCOL 15
-static const uint32_t colval[] = {0x1416181a, 0x1419181a, 0x141f181a, 0x1426181a, 0x142a181a,
-                                  0x142f181a, 0x1436181a, 0x142f1819, 0x14261615, 0x13201411,
-                                  0x111a100a, 0x0c180508, 0x08100304, 0x00050101, 0x0};
+// clang-format off
+constexpr size_t numLowColors = 15;
+constexpr std::array<uint32_t, numLowColors> starLowColors{
+  0x1416181a, 0x1419181a, 0x141f181a, 0x1426181a, 0x142a181a,
+  0x142f181a, 0x1436181a, 0x142f1819, 0x14261615, 0x13201411,
+  0x111a100a, 0x0c180508, 0x08100304, 0x00050101, 0x0
+};
+// clang-format on
 
 /* The different modes of the visual FX.
  * Put this values on fx_mode */
-#define FIREWORKS_FX 0
-#define RAIN_FX 1
-#define FOUNTAIN_FX 2
-#define LAST_FX 3
+constexpr int FIREWORKS_FX = 0;
+constexpr int RAIN_FX = 1;
+constexpr int FOUNTAIN_FX = 2;
+constexpr int LAST_FX = 3;
 
 struct Star
 {
-  float x, y;
-  float vx, vy;
-  float ax, ay;
-  float age, vage;
+  float x;
+  float y;
+  float vx;
+  float vy;
+  float ax;
+  float ay;
+  float age;
+  float vage;
   const ColorMap* currentColorMap = nullptr;
 };
 
@@ -296,17 +304,24 @@ static void fs_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* info)
     /* choose the color of the particule */
     const float t = data->stars[i].age / float(data->maxAge);
     const uint32_t color = data->stars[i].currentColorMap->getColor(t);
-    const uint32_t colorLow = ColorMap::colorMix(color, colval[size_t(t * float(NCOL - 1))], t);
+    const uint32_t colorLow = starLowColors[size_t(t * float(numLowColors - 1))];
 
     /* draws the particule */
-    draw_line(dest, (int)data->stars[i].x, (int)data->stars[i].y,
-              (int)(data->stars[i].x - data->stars[i].vx * 6),
-              (int)(data->stars[i].y - data->stars[i].vy * 6), color, (int)info->screen.width,
-              (int)info->screen.height);
-    draw_line(dest, (int)data->stars[i].x, (int)data->stars[i].y,
-              (int)(data->stars[i].x - data->stars[i].vx * 2),
-              (int)(data->stars[i].y - data->stars[i].vy * 2), colorLow, (int)info->screen.width,
-              (int)info->screen.height);
+    const int x0 = int(data->stars[i].x);
+    const int y0 = int(data->stars[i].y);
+    int x1 = x0;
+    int y1 = y0;
+    constexpr size_t numParts = 7;
+    for (size_t j = 1; j <= numParts; j++)
+    {
+      const float t = float(j - 1) / float(numParts - 1);
+      const uint32_t col = ColorMap::colorMix(color, colorLow, t);
+      const int x2 = x0 - int(data->stars[i].vx * j);
+      const int y2 = y0 - int(data->stars[i].vy * j);
+      draw_line(dest, x1, y1, x2, y2, col, info->screen.width, info->screen.height);
+      x1 = x2;
+      y1 = y2;
+    }
   }
 
   /* look for dead particules */

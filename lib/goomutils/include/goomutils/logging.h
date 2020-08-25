@@ -1,8 +1,6 @@
 #ifndef LIB_GOOMUTILS_INCLUDE_GOOMUTILS_LOGGING_H_
 #define LIB_GOOMUTILS_INCLUDE_GOOMUTILS_LOGGING_H_
 
-#define NO_LOGGING
-
 #include <format>
 #include <fstream>
 #include <functional>
@@ -52,7 +50,7 @@ private:
   Logging() noexcept;
   Logging(const Logging& rhs) = delete;
   Logging& operator=(const Logging& rhs) = delete;
-  LogLevel cutoffFileLogLevel = LogLevel::debug;
+  LogLevel cutoffFileLogLevel = LogLevel::info;
   LogLevel cutoffHandlersLogLevel = LogLevel::info;
   bool doLogging = false;
   std::string logFile = "";
