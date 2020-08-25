@@ -9,7 +9,8 @@
 #include "goom_typedefs.h"
 #include "goom_visual_fx.h"
 
-struct GoomState {
+struct GoomState
+{
   bool drawIFS;
   bool drawPoints;
   bool drawTentacle;
@@ -26,11 +27,12 @@ constexpr size_t STATES_MAX_NB = 8;
 /**
  * Gives informations about the sound.
  */
-struct _SOUND_INFO {
+struct _SOUND_INFO
+{
   /* nota : a Goom is just a sound event... */
 
   int timeSinceLastGoom; /* >= 0 */
-  float goomPower;       /* power of the last Goom [0..1] */
+  float goomPower; /* power of the last Goom [0..1] */
 
   int timeSinceLastBigGoom; /* >= 0 */
 
@@ -67,14 +69,16 @@ struct _SOUND_INFO {
 /**
  * Allows FXs to know the current state of the plugin.
  */
-struct _PLUGIN_INFO {
+struct _PLUGIN_INFO
+{
   /* public data */
 
   int nbParams;
   PluginParameters* params;
 
   /* private data */
-  struct _SIZE_TYPE {
+  struct _SIZE_TYPE
+  {
     int width;
     int height;
     int size; /* == screen.height * screen.width. */
@@ -120,21 +124,22 @@ struct _PLUGIN_INFO {
   /** goom_update internals.
      * I took all static variables from goom_update and put them here.. for the moment.
      */
-  struct GoomUpdate {
+  struct GoomUpdate
+  {
     int lockvar; /* pour empecher de nouveaux changements */
     int goomvar; /* boucle des gooms */
     int loopvar; /* mouvement des points */
     int stop_lines;
-    int ifs_incr;              /* dessiner l'ifs (0 = non: > = increment) */
-    int decay_ifs;             /* disparition de l'ifs */
-    int recay_ifs;             /* dedisparition de l'ifs */
+    int ifs_incr; /* dessiner l'ifs (0 = non: > = increment) */
+    int decay_ifs; /* disparition de l'ifs */
+    int recay_ifs; /* dedisparition de l'ifs */
     int cyclesSinceLastChange; /* nombre de Cycle Depuis Dernier Changement */
-    int drawLinesDuration;     /* duree de la transition entre afficher les lignes ou pas */
-    int lineMode;              /* l'effet lineaire a dessiner */
-    float switchMultAmount;    /* SWITCHMULT (29.0f/30.0f) */
-    int switchIncrAmount;      /* 0x7f */
-    float switchMult;          /* 1.0f */
-    int switchIncr;            /*  = SWITCHINCR; */
+    int drawLinesDuration; /* duree de la transition entre afficher les lignes ou pas */
+    int lineMode; /* l'effet lineaire a dessiner */
+    float switchMultAmount; /* SWITCHMULT (29.0f/30.0f) */
+    int switchIncrAmount; /* 0x7f */
+    float switchMult; /* 1.0f */
+    int switchIncr; /*  = SWITCHINCR; */
     int stateSelectionRand;
     int stateSelectionBlocker;
     int previousZoomSpeed;
@@ -143,18 +148,26 @@ struct _PLUGIN_INFO {
     ZoomFilterData zoomFilterData;
   } update;
 
-  struct {
+  struct
+  {
     int numberOfLinesInMessage;
     char message[0x800];
     int affiche;
     int longueur;
   } update_message;
 
-  struct {
-    void (*draw_line)(Pixel* data, int x1, int y1, int x2, int y2, uint32_t col, int screenx,
-                      int screeny);
-    void (*zoom_filter)(unsigned int sizeX, unsigned int sizeY, Pixel* src, Pixel* dest, int* brutS,
-                        int* brutD, int buffratio, int precalCoef[16][16]);
+  struct
+  {
+    void (*draw_line)(
+        Pixel* data, int x1, int y1, int x2, int y2, uint32_t col, int screenx, int screeny);
+    void (*zoom_filter)(unsigned int sizeX,
+                        unsigned int sizeY,
+                        Pixel* src,
+                        Pixel* dest,
+                        int* brutS,
+                        int* brutD,
+                        int buffratio,
+                        int precalCoef[16][16]);
   } methods;
 
   GoomRandom* gRandom;

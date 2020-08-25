@@ -5,7 +5,6 @@
 #include "goom_config.h"
 #include "goom_plugin_info.h"
 #include "goom_tools.h"
-
 #include "goomutils/colormap.h"
 #include "goomutils/mathtools.h"
 
@@ -18,16 +17,21 @@ static inline unsigned char lighten(unsigned char value, float power)
   int val = value;
   float t = (float)val * log10(power) / 2.0;
 
-  if (t > 0) {
+  if (t > 0)
+  {
     val = (int)t; /* (32.0f * log (t)); */
-    if (val > 255) {
+    if (val > 255)
+    {
       val = 255;
     }
-    if (val < 0) {
+    if (val < 0)
+    {
       val = 0;
     }
     return val;
-  } else {
+  }
+  else
+  {
     return 0;
   }
 }
@@ -48,23 +52,27 @@ static void lightencolor(guint32* col, float power)
 
 static void genline(int id, float param, GMUnitPointer* l, int rx, int ry)
 {
-  switch (id) {
+  switch (id)
+  {
     case GML_HLINE:
-      for (int i = 0; i < AUDIO_SAMPLE_LEN; i++) {
+      for (int i = 0; i < AUDIO_SAMPLE_LEN; i++)
+      {
         l[i].x = ((float)i * rx) / (float)AUDIO_SAMPLE_LEN;
         l[i].y = param;
         l[i].angle = M_PI / 2.0f;
       }
       return;
     case GML_VLINE:
-      for (int i = 0; i < AUDIO_SAMPLE_LEN; i++) {
+      for (int i = 0; i < AUDIO_SAMPLE_LEN; i++)
+      {
         l[i].y = ((float)i * ry) / (float)AUDIO_SAMPLE_LEN;
         l[i].x = param;
         l[i].angle = 0.0f;
       }
       return;
     case GML_CIRCLE:
-      for (int i = 0; i < AUDIO_SAMPLE_LEN; i++) {
+      for (int i = 0; i < AUDIO_SAMPLE_LEN; i++)
+      {
         float cosa, sina;
 
         l[i].angle = 2.0f * M_PI * (float)i / (float)AUDIO_SAMPLE_LEN;
@@ -79,7 +87,8 @@ static void genline(int id, float param, GMUnitPointer* l, int rx, int ry)
 
 static guint32 getcouleur(int mode)
 {
-  switch (mode) {
+  switch (mode)
+  {
     case GML_RED:
       return (230 << (ROUGE * 8)) | (120 << (VERT * 8)) | (18 << (BLEU * 8));
     case GML_ORANGE_J:
@@ -100,7 +109,8 @@ static guint32 getcouleur(int mode)
 
 void goom_lines_set_res(GMLine* gml, int rx, int ry)
 {
-  if (gml != NULL) {
+  if (gml != NULL)
+  {
     gml->screenX = rx;
     gml->screenY = ry;
 
@@ -110,7 +120,8 @@ void goom_lines_set_res(GMLine* gml, int rx, int ry)
 
 static void goom_lines_move(GMLine* l)
 {
-  for (int i = 0; i < AUDIO_SAMPLE_LEN; i++) {
+  for (int i = 0; i < AUDIO_SAMPLE_LEN; i++)
+  {
     l->points[i].x = (l->points2[i].x + 39.0f * l->points[i].x) / 40.0f;
     l->points[i].y = (l->points2[i].y + 39.0f * l->points[i].y) / 40.0f;
     l->points[i].angle = (l->points2[i].angle + 39.0f * l->points[i].angle) / 40.0f;
@@ -118,7 +129,8 @@ static void goom_lines_move(GMLine* l)
 
   unsigned char* c1 = (unsigned char*)&l->color;
   unsigned char* c2 = (unsigned char*)&l->color2;
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 4; i++)
+  {
     int cc1 = *c1;
     int cc2 = *c2;
     *c1 = (unsigned char)((cc1 * 63 + cc2) >> 6);
@@ -127,11 +139,13 @@ static void goom_lines_move(GMLine* l)
   }
 
   l->power += l->powinc;
-  if (l->power < 1.1f) {
+  if (l->power < 1.1f)
+  {
     l->power = 1.1f;
     l->powinc = (float)(goom_irand(l->goomInfo->gRandom, 20) + 10) / 300.0f;
   }
-  if (l->power > 17.5f) {
+  if (l->power > 17.5f)
+  {
     l->power = 17.5f;
     l->powinc = -(float)(goom_irand(l->goomInfo->gRandom, 20) + 10) / 300.0f;
   }
@@ -148,8 +162,15 @@ void goom_lines_switch_to(GMLine* gml, int IDdest, float param, float amplitude,
   gml->color2 = getcouleur(col);
 }
 
-GMLine* goom_lines_init(PluginInfo* goomInfo, int rx, int ry, int IDsrc, float paramS, int coulS,
-                        int IDdest, float paramD, int coulD)
+GMLine* goom_lines_init(PluginInfo* goomInfo,
+                        int rx,
+                        int ry,
+                        int IDsrc,
+                        float paramS,
+                        int coulS,
+                        int IDdest,
+                        float paramD,
+                        int coulD)
 {
   GMLine* l = (GMLine*)malloc(sizeof(GMLine));
 
@@ -201,10 +222,13 @@ static inline float getNormalizedData(PluginInfo* goomInfo, short data)
   return float((MAX_NORMALIZED_PEAK * data) / goomInfo->sound.allTimesMax);
 }
 
-void goom_lines_draw(PluginInfo* goomInfo, GMLine* line, const gint16 data[AUDIO_SAMPLE_LEN],
+void goom_lines_draw(PluginInfo* goomInfo,
+                     GMLine* line,
+                     const gint16 data[AUDIO_SAMPLE_LEN],
                      Pixel* p)
 {
-  if (line != NULL) {
+  if (line != NULL)
+  {
     guint32 color = line->color;
     const GMUnitPointer* pt = &(line->points[0]);
 
@@ -219,7 +243,8 @@ void goom_lines_draw(PluginInfo* goomInfo, GMLine* line, const gint16 data[AUDIO
     int x1 = (int)(pt->x + cosa * line->amplitude * fdata);
     int y1 = (int)(pt->y + sina * line->amplitude * fdata);
 
-    for (int i = 1; i < AUDIO_SAMPLE_LEN; i++) {
+    for (int i = 1; i < AUDIO_SAMPLE_LEN; i++)
+    {
       const GMUnitPointer* pt = &(line->points[i]);
 
       const float cosa = cos(pt->angle) / 1000.0f;
@@ -229,7 +254,7 @@ void goom_lines_draw(PluginInfo* goomInfo, GMLine* line, const gint16 data[AUDIO
       const int x2 = (int)(pt->x + cosa * line->amplitude * fdata);
       const int y2 = (int)(pt->y + sina * line->amplitude * fdata);
 
-      const float t = fdata/MAX_NORMALIZED_PEAK;
+      const float t = fdata / MAX_NORMALIZED_PEAK;
       const uint32_t modColor = ColorMap::colorMix(color, randColor, t);
 
       goomInfo->methods.draw_line(p, x1, y1, x2, y2, modColor, line->screenX, line->screenY);

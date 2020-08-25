@@ -17,7 +17,8 @@ void goom_random_free(GoomRandom* grandom)
 
 void goom_random_update_array(GoomRandom* grandom, int numberOfValuesToChange)
 {
-  while (numberOfValuesToChange > 0) {
+  while (numberOfValuesToChange > 0)
+  {
 #if RAND_MAX < 0x10000
     grandom->array[grandom->pos++] = ((pcg32_rand() << 16) + pcg32_rand()) / 127;
 #else
@@ -47,7 +48,7 @@ uint32_t pcg32_rand(void)
   unsigned count = (unsigned)(x >> 59); // 59 = 64 - 5
 
   state = x * multiplier + increment;
-  x ^= x >> 18;                              // 18 = (64 - 27)/2
+  x ^= x >> 18; // 18 = (64 - 27)/2
   return rotr32((uint32_t)(x >> 27), count); // 27 = 32 - 5
 }
 

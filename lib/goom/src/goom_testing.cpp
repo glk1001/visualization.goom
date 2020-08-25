@@ -21,14 +21,17 @@ const char* getVersionDescriptionAtRuntime()
 static void read_line(char** line, FILE* f)
 {
   size_t len = 0;
-  if (getline(line, &len, f) == -1) {
+  if (getline(line, &len, f) == -1)
+  {
     printf("Could not read ifs settings line.");
     exit(1);
   }
 }
 
-static void getFullSettingNameAndFormat(const char* parent, const char* settingName,
-                                        const char* formatSpecifier, char* fullSettingName,
+static void getFullSettingNameAndFormat(const char* parent,
+                                        const char* settingName,
+                                        const char* formatSpecifier,
+                                        char* fullSettingName,
                                         char* settingFormat)
 {
   strcpy(fullSettingName, parent);
@@ -43,8 +46,8 @@ static void getFullSettingNameAndFormat(const char* parent, const char* settingN
 static char fullSettingName[50];
 static char settingFormat[100];
 
-int getIntSetting(FILE* f, const char* parent, const char* settingName, const char* srceFilename,
-                  int lineNum)
+int getIntSetting(
+    FILE* f, const char* parent, const char* settingName, const char* srceFilename, int lineNum)
 {
   char* line = NULL;
   read_line(&line, f);
@@ -53,7 +56,8 @@ int getIntSetting(FILE* f, const char* parent, const char* settingName, const ch
 
   int value;
   const int matched = sscanf(line, settingFormat, &value);
-  if (matched != 1) {
+  if (matched != 1)
+  {
     printf("File %s, line %d: sscanf = %d; Could not read setting \"%s\" from line \"%s\" with fmt "
            "= \"%s\".",
            srceFilename, lineNum, matched, fullSettingName, line, settingFormat);
@@ -65,8 +69,8 @@ int getIntSetting(FILE* f, const char* parent, const char* settingName, const ch
   return value;
 }
 
-float getFloatSetting(FILE* f, const char* parent, const char* settingName,
-                      const char* srceFilename, int lineNum)
+float getFloatSetting(
+    FILE* f, const char* parent, const char* settingName, const char* srceFilename, int lineNum)
 {
   char* line = NULL;
   read_line(&line, f);
@@ -75,7 +79,8 @@ float getFloatSetting(FILE* f, const char* parent, const char* settingName,
 
   float value;
   const int matched = sscanf(line, settingFormat, &value);
-  if (matched != 1) {
+  if (matched != 1)
+  {
     printf("File %s, line %d: sscanf = %d; Could not read setting \"%s\" from line \"%s\" with fmt "
            "= \"%s\".",
            srceFilename, lineNum, matched, fullSettingName, line, settingFormat);
@@ -86,16 +91,24 @@ float getFloatSetting(FILE* f, const char* parent, const char* settingName,
   return value;
 }
 
-int getIndexedIntSetting(FILE* f, const char* parent, const char* settingName, int i,
-                         const char* srceFilename, int lineNum)
+int getIndexedIntSetting(FILE* f,
+                         const char* parent,
+                         const char* settingName,
+                         int i,
+                         const char* srceFilename,
+                         int lineNum)
 {
   char indexedSettingName[60];
   sprintf(indexedSettingName, "%s_%d", settingName, i);
   return getIntSetting(f, parent, indexedSettingName, srceFilename, lineNum);
 }
 
-float getIndexedFloatSetting(FILE* f, const char* parent, const char* settingName, int i,
-                             const char* srceFilename, int lineNum)
+float getIndexedFloatSetting(FILE* f,
+                             const char* parent,
+                             const char* settingName,
+                             int i,
+                             const char* srceFilename,
+                             int lineNum)
 {
   char indexedSettingName[60];
   sprintf(indexedSettingName, "%s_%d", settingName, i);

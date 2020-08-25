@@ -9,7 +9,6 @@
 /*---------------------------------------------------------------------------*/
 
 #include "goom_config_param.h"
-
 #include "goomutils/logging.h"
 
 #include <string.h>
@@ -119,9 +118,12 @@ void goom_set_list_param_value(PluginParam* p, const char* str)
   const unsigned int len = strlen(str);
   logDebug("{}: {}", str, len);
 
-  if (LVAL(*p)) {
+  if (LVAL(*p))
+  {
     LVAL(*p) = (char*)realloc(LVAL(*p), len + 1);
-  } else {
+  }
+  else
+  {
     LVAL(*p) = (char*)malloc(len + 1);
   }
 

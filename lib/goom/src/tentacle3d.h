@@ -7,7 +7,8 @@
 
 class TentaclesWrapper;
 
-typedef struct _TENTACLE_FX_DATA {
+typedef struct _TENTACLE_FX_DATA
+{
   PluginParam enabled_bp;
   PluginParameters params;
 
@@ -34,7 +35,7 @@ void tentacle_fx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* goo
 
 inline float getRapport(const float accelvar)
 {
-  return std::min(1.12f, 1.2f*(1.0f + 2.0f*(accelvar - 1.0f)));
+  return std::min(1.12f, 1.2f * (1.0f + 2.0f * (accelvar - 1.0f)));
 }
 
 #endif

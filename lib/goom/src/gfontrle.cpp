@@ -2,6 +2,7 @@
 
 /* RGBA C-Source image dump (with zRLE compression) */
 
+// clang-format off
 const TheFont the_font = {
     1277,
     21,
@@ -2624,7 +2625,10 @@ const TheFont the_font = {
      57,  0,   120, 9,   7,   4,   91,  16,  11,  7,   170, 20,  13,  9,   170, 13,  10,  8,   28,
      0,   255, 0,   255, 0,   255, 0,   255, 0,   255, 0,   255, 0,   255, 0,   255, 0,   255, 0,
      255, 0,   255, 0,   255, 0,   255, 0,   255, 0,   255, 0,   255, 0,   255, 0,   255, 0,   255,
-     0,   255}};
+     0,   255
+    }
+};
+// clang-format on
 
 /* Created by MiniCompress.. an iOS RLE compressor.
  * Compress Rate : 46.36 %

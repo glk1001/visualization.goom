@@ -18,7 +18,8 @@ static GoomHashEntry* entry_new(const char* key, HashValue value)
 
 static void entry_free(GoomHashEntry* entry)
 {
-  if (entry != NULL) {
+  if (entry != NULL)
+  {
     entry_free(entry->lower);
     entry_free(entry->upper);
     free(entry->key);
@@ -29,18 +30,29 @@ static void entry_free(GoomHashEntry* entry)
 static void entry_put(GoomHashEntry* entry, const char* key, HashValue value)
 {
   const int cmp = strcmp(key, entry->key);
-  if (cmp == 0) {
+  if (cmp == 0)
+  {
     entry->value = value;
-  } else if (cmp > 0) {
-    if (entry->upper == NULL) {
+  }
+  else if (cmp > 0)
+  {
+    if (entry->upper == NULL)
+    {
       entry->upper = entry_new(key, value);
-    } else {
+    }
+    else
+    {
       entry_put(entry->upper, key, value);
     }
-  } else {
-    if (entry->lower == NULL) {
+  }
+  else
+  {
+    if (entry->lower == NULL)
+    {
       entry->lower = entry_new(key, value);
-    } else {
+    }
+    else
+    {
       entry_put(entry->lower, key, value);
     }
   }
@@ -49,16 +61,22 @@ static void entry_put(GoomHashEntry* entry, const char* key, HashValue value)
 static HashValue* entry_get(GoomHashEntry* entry, const char* key)
 {
 
-  if (entry == NULL) {
+  if (entry == NULL)
+  {
     return NULL;
   }
 
   const int cmp = strcmp(key, entry->key);
-  if (cmp > 0) {
+  if (cmp > 0)
+  {
     return entry_get(entry->upper, key);
-  } else if (cmp < 0) {
+  }
+  else if (cmp < 0)
+  {
     return entry_get(entry->lower, key);
-  } else {
+  }
+  else
+  {
     return &(entry->value);
   }
 }
@@ -78,9 +96,12 @@ void goom_hash_free(GoomHash* _this)
 
 void goom_hash_put(GoomHash* _this, const char* key, HashValue value)
 {
-  if (_this->root == NULL) {
+  if (_this->root == NULL)
+  {
     _this->root = entry_new(key, value);
-  } else {
+  }
+  else
+  {
     entry_put(_this->root, key, value);
   }
 }

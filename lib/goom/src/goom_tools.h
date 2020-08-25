@@ -9,12 +9,12 @@
  */
 
 #ifdef _WIN32PC
-  #define inline __inline
-  #ifndef M_PI
-    #define M_PI 3.14159265358979323846
-  #endif
-  #define random rand
-  #define bzero(x, y) memset(x, 0, y)
+#define inline __inline
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+#define random rand
+#define bzero(x, y) memset(x, 0, y)
 #endif
 
 /* Permuted congruential generator. */
@@ -26,7 +26,8 @@ void pcg32_set_state(uint64_t s);
 
 #define GOOM_NB_RAND 0x10000
 
-typedef struct _GOOM_RANDOM {
+typedef struct _GOOM_RANDOM
+{
   uint32_t array[GOOM_NB_RAND];
   unsigned short pos;
 } GoomRandom;

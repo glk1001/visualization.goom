@@ -64,6 +64,7 @@ void plugin_info_init(PluginInfo* pp, int nbVisuals)
 
   pp->statesNumber = STATES_MAX_NB;
   pp->statesRangeMax = 510;
+  // clang-format off
   GoomState states[STATES_MAX_NB] = {
     {.drawIFS = 1, .drawPoints = 0, .drawTentacle = 1, .drawScope = 1, .farScope = 1, .minSelect =   0},
     {.drawIFS = 1, .drawPoints = 0, .drawTentacle = 0, .drawScope = 0, .farScope = 1, .minSelect = 101},
@@ -74,11 +75,14 @@ void plugin_info_init(PluginInfo* pp, int nbVisuals)
     {.drawIFS = 0, .drawPoints = 0, .drawTentacle = 1, .drawScope = 0, .farScope = 1, .minSelect = 401},
     {.drawIFS = 0, .drawPoints = 0, .drawTentacle = 0, .drawScope = 1, .farScope = 1, .minSelect = 451},
   };
-  states[STATES_MAX_NB-1].maxSelect = pp->statesRangeMax;
-  for (size_t i = 0; i < STATES_MAX_NB - 1; i++) {
-    states[i].maxSelect = states[i+1].minSelect - 1;
+  // clang-format on
+  states[STATES_MAX_NB - 1].maxSelect = pp->statesRangeMax;
+  for (size_t i = 0; i < STATES_MAX_NB - 1; i++)
+  {
+    states[i].maxSelect = states[i + 1].minSelect - 1;
   }
-  for (size_t i = 0; i < STATES_MAX_NB; ++i) {
+  for (size_t i = 0; i < STATES_MAX_NB; ++i)
+  {
     pp->states[i] = states[i];
   }
   pp->curGStateIndex = 6;
@@ -89,7 +93,7 @@ void plugin_info_init(PluginInfo* pp, int nbVisuals)
   pp->update.goomvar = 0;
   pp->update.loopvar = 0;
   pp->update.stop_lines = 0;
-  pp->update.ifs_incr = 1;  /* dessiner l'ifs (0 = non: > = increment) */
+  pp->update.ifs_incr = 1; /* dessiner l'ifs (0 = non: > = increment) */
   pp->update.decay_ifs = 0; /* disparition de l'ifs */
   pp->update.recay_ifs = 0; /* dedisparition de l'ifs */
   pp->update.cyclesSinceLastChange = 0;
@@ -113,7 +117,8 @@ void plugin_info_init(PluginInfo* pp, int nbVisuals)
 
   setOptimizedMethods(pp);
 
-  for (int i = 0; i < 0xffff; i++) {
+  for (int i = 0; i < 0xffff; i++)
+  {
     pp->sintable[i] =
         (int)(1024 * sin((double)i * 360 / (sizeof(pp->sintable) / sizeof(pp->sintable[0]) - 1) *
                          3.141592 / 180) +
@@ -125,11 +130,14 @@ void plugin_info_init(PluginInfo* pp, int nbVisuals)
 void plugin_info_add_visual(PluginInfo* p, int i, VisualFX* visual)
 {
   p->visuals[i] = visual;
-  if (i == p->nbVisuals - 1) {
+  if (i == p->nbVisuals - 1)
+  {
     ++i;
     p->nbParams = 1;
-    while (i--) {
-      if (p->visuals[i]->params) {
+    while (i--)
+    {
+      if (p->visuals[i]->params)
+      {
         p->nbParams++;
       }
     }
@@ -137,8 +145,10 @@ void plugin_info_add_visual(PluginInfo* p, int i, VisualFX* visual)
     i = p->nbVisuals;
     p->nbParams = 1;
     p->params[0] = p->sound.params;
-    while (i--) {
-      if (p->visuals[i]->params) {
+    while (i--)
+    {
+      if (p->visuals[i]->params)
+      {
         p->params[p->nbParams++] = *(p->visuals[i]->params);
       }
     }

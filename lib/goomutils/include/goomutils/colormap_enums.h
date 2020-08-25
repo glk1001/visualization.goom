@@ -1,6 +1,7 @@
 #pragma once
 
-enum class ColorMapName {
+enum class ColorMapName
+{
   Accent,
   afmhot,
   autumn,

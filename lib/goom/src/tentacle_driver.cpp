@@ -2,11 +2,10 @@
 
 #include "drawmethods.h"
 #include "goom.h"
-#include "tentacles_new.h"
-#include "v3d.h"
-
 #include "goomutils/colormap.h"
 #include "goomutils/logging.h"
+#include "tentacles_new.h"
+#include "v3d.h"
 
 #include <algorithm>
 #include <cmath>
@@ -22,40 +21,40 @@
 
 
 TentacleDriver::TentacleDriver(const ColorMaps* cm, const int screenW, const int screenH)
-  : iterParamsGroups{}
-  , screenWidth{ screenW }
-  , screenHeight{ screenH }
-  , colorMaps{ cm }
-  , currentColorMapGroup{ colorMaps->getRandomGroup() }
-  , colorizers{}
-  , constPrevYWeightFunc()
-  , constCurrentYWeightFunc()
-  , weightsHandler{ constPrevYWeightFunc, constCurrentYWeightFunc }
-  , weightsReset{ nullptr }
-  , weightsAdjust{ nullptr }
-  , tentacles{}
-  , tentacleParams{}
-  , glitchTimer{ glitchIterLength }
-  , glitchColorGroup{ &colorMaps->getColorMap(ColorMapName::magma) }
-  , iterTimers{ &glitchTimer }
+  : iterParamsGroups{},
+    screenWidth{screenW},
+    screenHeight{screenH},
+    colorMaps{cm},
+    currentColorMapGroup{colorMaps->getRandomGroup()},
+    colorizers{},
+    constPrevYWeightFunc(),
+    constCurrentYWeightFunc(),
+    weightsHandler{constPrevYWeightFunc, constCurrentYWeightFunc},
+    weightsReset{nullptr},
+    weightsAdjust{nullptr},
+    tentacles{},
+    tentacleParams{},
+    glitchTimer{glitchIterLength},
+    glitchColorGroup{&colorMaps->getColorMap(ColorMapName::magma)},
+    iterTimers{&glitchTimer}
 {
   const IterParamsGroup iter1 = {
-    { 100, 0.500, 1.0, { 1.5, -10.0, +10.0, M_PI }, 70.0 },
-    { 125, 0.600, 2.0, { 1.0, -10.0, +10.0,  0.0 }, 75.0 },
+      {100, 0.500, 1.0, {1.5, -10.0, +10.0, M_PI}, 70.0},
+      {125, 0.600, 2.0, {1.0, -10.0, +10.0, 0.0}, 75.0},
   };
   const IterParamsGroup iter2 = {
-    { 125, 0.600, 0.5, { 1.0, -10.0, +10.0,  0.0 }, 70.0 },
-    { 150, 0.700, 1.5, { 1.5, -10.0, +10.0, M_PI }, 75.0 },
+      {125, 0.600, 0.5, {1.0, -10.0, +10.0, 0.0}, 70.0},
+      {150, 0.700, 1.5, {1.5, -10.0, +10.0, M_PI}, 75.0},
   };
   const IterParamsGroup iter3 = {
-    { 150, 0.700, 1.5, { 1.5, -10.0, +10.0, M_PI }, 70.0 },
-    { 200, 0.900, 2.5, { 1.0, -10.0, +10.0,  0.0 }, 75.0 },
+      {150, 0.700, 1.5, {1.5, -10.0, +10.0, M_PI}, 70.0},
+      {200, 0.900, 2.5, {1.0, -10.0, +10.0, 0.0}, 75.0},
   };
 
   iterParamsGroups = {
-    iter1,
-    iter2,
-    iter3,
+      iter1,
+      iter2,
+      iter3,
   };
 
   logInfo("Constructed TentacleDriver.");
@@ -69,29 +68,32 @@ void TentacleDriver::init()
 {
   logInfo("Starting driver init.");
 
-  const CirclesTentacleLayout layout{  10, 80, { 30, 20, 14, 6, 4 }, 0 };
-//  const GridTentacleLayout layout{ -100, 100, xRowLen, -100, 100, numXRows, 0 };
+  const CirclesTentacleLayout layout{10, 80, {30, 20, 14, 6, 4}, 0};
+  //  const GridTentacleLayout layout{ -100, 100, xRowLen, -100, 100, numXRows, 0 };
   numTentacles = layout.getNumPoints();
   logInfo("numTentacles = {}.", numTentacles);
 
   tentacleParams.resize(numTentacles);
 
-  constexpr V3d initialHeadPos = { 0, 0, 0 };
+  constexpr V3d initialHeadPos = {0, 0, 0};
   const ColorMap* specialColorMap = &colorMaps->getRandomColorMap(ColorMapGroup::qualitative);
-  const std::vector<size_t> specialColorNodes = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+  const std::vector<size_t> specialColorNodes = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
   const ColorMap* headColorMap = &colorMaps->getColorMap(ColorMapName::red_black_sky);
   logInfo("Got color maps.");
 
-  const size_t numInParamGroup = numTentacles/iterParamsGroups.size();
-  const float tStep = 1.0/float(numInParamGroup - 1);
+  const size_t numInParamGroup = numTentacles / iterParamsGroups.size();
+  const float tStep = 1.0 / float(numInParamGroup - 1);
   logInfo("numInTentacleGroup = {}, tStep = {:.2f}.", numInParamGroup, tStep);
 
   size_t paramsIndex = 0;
   float t = 0;
-  for (size_t i=0; i < numTentacles; i++) {
+  for (size_t i = 0; i < numTentacles; i++)
+  {
     const IterParamsGroup paramsGrp = iterParamsGroups.at(paramsIndex);
-    if (i % numInParamGroup == 0) {
-      if (paramsIndex < iterParamsGroups.size()-1) {
+    if (i % numInParamGroup == 0)
+    {
+      if (paramsIndex < iterParamsGroups.size() - 1)
+      {
         paramsIndex++;
       }
       t = 0;
@@ -100,19 +102,19 @@ void TentacleDriver::init()
     t += tStep;
     tentacleParams[i] = params;
 
-    std::unique_ptr<TentacleColorMapColorizer> colorizer{
-      new TentacleColorMapColorizer{ colorMaps->getRandomColorMap(currentColorMapGroup), params.numNodes } };
+    std::unique_ptr<TentacleColorMapColorizer> colorizer{new TentacleColorMapColorizer{
+        colorMaps->getRandomColorMap(currentColorMapGroup), params.numNodes}};
     colorizers.push_back(std::move(colorizer));
 
-    std::unique_ptr<Tentacle2D> tentacle2D{ createNewTentacle2D(i, params) };
+    std::unique_ptr<Tentacle2D> tentacle2D{createNewTentacle2D(i, params)};
     logInfo("Created tentacle2D {}.", i);
 
     const uint32_t headColor = ColorMap::getRandomColor(*headColorMap);
     const uint32_t headColorLow = ColorMap::getLighterColor(headColor, 50);
-//const uint32_t headColor = 0xff0000ff;
-//const uint32_t headColorLow = 0xff0000ff;
-    Tentacle3D tentacle{ std::move(tentacle2D),
-      *colorizers[colorizers.size()-1], headColor, headColorLow, initialHeadPos };
+    //const uint32_t headColor = 0xff0000ff;
+    //const uint32_t headColorLow = 0xff0000ff;
+    Tentacle3D tentacle{std::move(tentacle2D), *colorizers[colorizers.size() - 1], headColor,
+                        headColorLow, initialHeadPos};
 
     tentacle.setSpecialColorNodes(*specialColorMap, specialColorNodes);
 
@@ -128,26 +130,32 @@ void TentacleDriver::init()
 
 TentacleDriver::IterationParams TentacleDriver::IterParamsGroup::getNext(const float t) const
 {
-  const float prevYWeight = getRandInRange(0.9f, 1.1f)*std::lerp(float(first.prevYWeight), float(last.prevYWeight), t);
+  const float prevYWeight =
+      getRandInRange(0.9f, 1.1f) * std::lerp(float(first.prevYWeight), float(last.prevYWeight), t);
   IterationParams params{};
-  params.length = size_t(getRandInRange(1.0f, 1.1f)*std::lerp(float(first.length), float(last.length), t));
-  params.numNodes = size_t(getRandInRange(0.9f, 1.1f)*std::lerp(float(first.numNodes), float(last.numNodes), t));
+  params.length =
+      size_t(getRandInRange(1.0f, 1.1f) * std::lerp(float(first.length), float(last.length), t));
+  params.numNodes = size_t(getRandInRange(0.9f, 1.1f) *
+                           std::lerp(float(first.numNodes), float(last.numNodes), t));
   params.prevYWeight = prevYWeight;
   params.iterZeroYValWave = first.iterZeroYValWave;
-  params.iterZeroYValWaveFreq = getRandInRange(0.9f, 1.1f)*std::lerp(
-                                     float(first.iterZeroYValWaveFreq), float(last.iterZeroYValWaveFreq), t);
+  params.iterZeroYValWaveFreq =
+      getRandInRange(0.9f, 1.1f) *
+      std::lerp(float(first.iterZeroYValWaveFreq), float(last.iterZeroYValWaveFreq), t);
   return params;
 }
 
-std::unique_ptr<Tentacle2D> TentacleDriver::createNewTentacle2D(const size_t ID, const IterationParams& params)
+std::unique_ptr<Tentacle2D> TentacleDriver::createNewTentacle2D(const size_t ID,
+                                                                const IterationParams& params)
 {
   logInfo("Creating new tentacle2D {}...", ID);
 
-  const size_t tentacleLen = size_t(getRandInRange(0.99f, 1.01f)*float(params.length));
+  const size_t tentacleLen = size_t(getRandInRange(0.99f, 1.01f) * float(params.length));
   const double tent2d_xmax = tent2d_xmin + tentacleLen;
 
-  std::unique_ptr<Tentacle2D> tentacle{ new Tentacle2D{ ID,
-    std::move(createNewTweaker(params, std::move(createNewDampingFunction(params, tentacleLen)))) }};
+  std::unique_ptr<Tentacle2D> tentacle{
+      new Tentacle2D{ID, std::move(createNewTweaker(
+                             params, std::move(createNewDampingFunction(params, tentacleLen))))}};
   logInfo("Created new tentacle2D {}.", ID);
 
   tentacle->setXDimensions(tent2d_xmin, tent2d_xmax);
@@ -155,18 +163,18 @@ std::unique_ptr<Tentacle2D> TentacleDriver::createNewTentacle2D(const size_t ID,
 
   tentacle->setPrevYWeight(params.prevYWeight);
   tentacle->setCurrentYWeight(1.0 - params.prevYWeight);
-  tentacle->setNumNodes(size_t(float(params.numNodes)*getRandInRange(0.9f, 1.1f)));
+  tentacle->setNumNodes(size_t(float(params.numNodes) * getRandInRange(0.9f, 1.1f)));
   logInfo("tentacle {:3}:"
           " tentacleLen = {:4}, tent2d_xmin = {:7.2f}, tent2d_xmax = {:5.2f},"
           " prevYWeight = {:5.2f}, curYWeight = {:5.2f}, numNodes = {:5}",
-          ID, tentacleLen, tent2d_xmin, tent2d_xmax,
-          tentacle->getPrevYWeight(), tentacle->getCurrentYWeight(), tentacle->getNumNodes());
+          ID, tentacleLen, tent2d_xmin, tent2d_xmax, tentacle->getPrevYWeight(),
+          tentacle->getCurrentYWeight(), tentacle->getNumNodes());
 
   tentacle->setDoDamping(true);
   tentacle->setPostProcessing(false);
   tentacle->setDoPrevYWeightAdjust(false);
   tentacle->setDoCurrentYWeightAdjust(false);
-//    tentacle->turnOffAllAdjusts();
+  //    tentacle->turnOffAllAdjusts();
 
   return tentacle;
 }
@@ -174,7 +182,8 @@ std::unique_ptr<Tentacle2D> TentacleDriver::createNewTentacle2D(const size_t ID,
 std::unique_ptr<DampingFunction> TentacleDriver::createNewDampingFunction(
     const IterationParams& params, const size_t tentacleLen) const
 {
-  if (params.prevYWeight < 0.6) {
+  if (params.prevYWeight < 0.6)
+  {
     return createNewLinearDampingFunction(params, tentacleLen);
   }
   return createNewExpDampingFunction(params, tentacleLen);
@@ -185,11 +194,12 @@ std::unique_ptr<DampingFunction> TentacleDriver::createNewExpDampingFunction(
 {
   const double tent2d_xmax = tent2d_xmin + tentacleLen;
 
-  const double xRiseStart = tent2d_xmin + 0.25*tent2d_xmax;
+  const double xRiseStart = tent2d_xmin + 0.25 * tent2d_xmax;
   constexpr double dampStart = 5;
   constexpr double dampMax = 30;
 
-  return std::unique_ptr<DampingFunction>{ new ExpDampingFunction{ 0.1, xRiseStart, dampStart, tent2d_xmax, dampMax } };
+  return std::unique_ptr<DampingFunction>{
+      new ExpDampingFunction{0.1, xRiseStart, dampStart, tent2d_xmax, dampMax}};
 }
 
 std::unique_ptr<DampingFunction> TentacleDriver::createNewLinearDampingFunction(
@@ -200,12 +210,14 @@ std::unique_ptr<DampingFunction> TentacleDriver::createNewLinearDampingFunction(
   constexpr float yScale = 30;
 
   std::vector<std::tuple<double, double, std::unique_ptr<DampingFunction>>> pieces{};
-  pieces.emplace_back(std::make_tuple(tent2d_xmin, 0.1*tent2d_xmax,
-      std::unique_ptr<DampingFunction>{ new FlatDampingFunction{ 0.1 } }));
-  pieces.emplace_back(std::make_tuple(0.1*tent2d_xmax, 10*tent2d_xmax,
-      std::unique_ptr<DampingFunction>{ new LinearDampingFunction{ 0.1*tent2d_xmax, 0.1, tent2d_xmax, yScale } }));
+  pieces.emplace_back(
+      std::make_tuple(tent2d_xmin, 0.1 * tent2d_xmax,
+                      std::unique_ptr<DampingFunction>{new FlatDampingFunction{0.1}}));
+  pieces.emplace_back(std::make_tuple(0.1 * tent2d_xmax, 10 * tent2d_xmax,
+                                      std::unique_ptr<DampingFunction>{new LinearDampingFunction{
+                                          0.1 * tent2d_xmax, 0.1, tent2d_xmax, yScale}}));
 
-  return std::unique_ptr<DampingFunction>{ new PiecewiseDampingFunction{ pieces } };
+  return std::unique_ptr<DampingFunction>{new PiecewiseDampingFunction{pieces}};
 }
 
 std::unique_ptr<TentacleTweaker> TentacleDriver::createNewTweaker(
@@ -223,26 +235,24 @@ std::unique_ptr<TentacleTweaker> TentacleDriver::createNewTweaker(
   TentacleTweaker::WeightFunctionsAdjuster weightsAdjust =
       std::bind(&SimpleWeightHandler::weightsAdjust, &weightsHandler, _1, _2, _3, _4, _5);
 
-  return std::unique_ptr<TentacleTweaker>{ new TentacleTweaker {
-    std::move(dampingFunc),
-    std::bind(&TentacleDriver::beforeIter, this, _1, _2, _3, _4),
-    &(weightsHandler.getPrevYWeightFunc()),
-    &(weightsHandler.getCurrentYWeightFunc()),
-    weightsReset,
-    weightsAdjust
-  }};
+  return std::unique_ptr<TentacleTweaker>{new TentacleTweaker{
+      std::move(dampingFunc), std::bind(&TentacleDriver::beforeIter, this, _1, _2, _3, _4),
+      &(weightsHandler.getPrevYWeightFunc()), &(weightsHandler.getCurrentYWeightFunc()),
+      weightsReset, weightsAdjust}};
 }
 
 void TentacleDriver::startIterating()
 {
-  for (auto& t : tentacles) {
+  for (auto& t : tentacles)
+  {
     t.get2DTentacle().startIterating();
   }
 }
 
 void TentacleDriver::stopIterating()
 {
-  for (auto& t : tentacles) {
+  for (auto& t : tentacles)
+  {
     t.get2DTentacle().finishIterating();
   }
 }
@@ -262,21 +272,24 @@ void TentacleDriver::updateTentaclesLayout(const TentacleLayout& layout)
   };
   std::sort(sortedLongestFirst.begin(), sortedLongestFirst.end(), compareByLength);
 
-  for (size_t i=0; i < numTentacles; i++) {
-    logInfo("{} {} tentacle[{}].len = {:.2}.",
-    i, sortedLongestFirst.at(i),
-    sortedLongestFirst.at(i), tentacles[sortedLongestFirst.at(i)].get2DTentacle().getLength());
+  for (size_t i = 0; i < numTentacles; i++)
+  {
+    logInfo("{} {} tentacle[{}].len = {:.2}.", i, sortedLongestFirst.at(i),
+            sortedLongestFirst.at(i),
+            tentacles[sortedLongestFirst.at(i)].get2DTentacle().getLength());
   }
 
-  for (size_t i=0; i < numTentacles; i++) {
+  for (size_t i = 0; i < numTentacles; i++)
+  {
     tentacles[sortedLongestFirst.at(i)].setHead(layout.getPoints().at(i));
   }
 }
 
 void TentacleDriver::multiplyIterZeroYValWaveFreq(const float val)
 {
-  for (size_t i=0; i < numTentacles; i++) {
-    const float newFreq = val*tentacleParams[i].iterZeroYValWaveFreq;
+  for (size_t i = 0; i < numTentacles; i++)
+  {
+    const float newFreq = val * tentacleParams[i].iterZeroYValWaveFreq;
     tentacleParams[i].iterZeroYValWave.setFrequency(newFreq);
   }
 }
@@ -289,21 +302,23 @@ void TentacleDriver::setGlitchValues(const float lower, const float upper)
 
 void TentacleDriver::setReverseColorMix(const bool val)
 {
-  for (auto& t : tentacles) {
+  for (auto& t : tentacles)
+  {
     t.setReverseColorMix(val);
   }
 }
 
 void TentacleDriver::updateIterTimers()
 {
-  for (auto t : iterTimers) {
+  for (auto t : iterTimers)
+  {
     t->next();
   }
 }
 
 void TentacleDriver::checkForTimerEvents()
 {
-//  logInfo(stdnew::format("Update num = {}: checkForTimerEvents", updateNum));
+  //  logInfo(stdnew::format("Update num = {}: checkForTimerEvents", updateNum));
 
   /**
   if (updateNum % doGlitchEveryNUpdates == 0) {
@@ -325,18 +340,24 @@ void TentacleDriver::checkForTimerEvents()
   **/
 }
 
-void TentacleDriver::beforeIter(
-    const size_t ID, const size_t iterNum, const std::vector<double>& xvec, std::vector<double>& yvec)
+void TentacleDriver::beforeIter(const size_t ID,
+                                const size_t iterNum,
+                                const std::vector<double>& xvec,
+                                std::vector<double>& yvec)
 {
-  if (iterNum == 1) {
-    for (size_t i=0; i < xvec.size(); i++) {
-//      yvec[i] = (*dampingFunc)(xvec[i]);
+  if (iterNum == 1)
+  {
+    for (size_t i = 0; i < xvec.size(); i++)
+    {
+      //      yvec[i] = (*dampingFunc)(xvec[i]);
       yvec[i] = getRandInRange(-10.0f, +10.0f);
     }
   }
 
-  if ((std::fabs(glitchUpper - glitchLower) > 0.001) && (glitchTimer.getCurrentCount() > 0)) {
-    for (double& y : yvec) {
+  if ((std::fabs(glitchUpper - glitchLower) > 0.001) && (glitchTimer.getCurrentCount() > 0))
+  {
+    for (double& y : yvec)
+    {
       y += getRandInRange(glitchLower, glitchUpper);
     }
     /**
@@ -355,19 +376,25 @@ void TentacleDriver::beforeIter(
     **/
   }
 
-  if (iterNum % changeTentacleColorMapEveryNUpdates == 0) {
+  if (iterNum % changeTentacleColorMapEveryNUpdates == 0)
+  {
     colorizers[ID]->resetColorMap(colorMaps->getRandomColorMap(currentColorMapGroup));
   }
 }
 
 void TentacleDriver::update(const float angle,
-    const float distance, const float distance2,
-    const uint32_t color, const uint32_t colorLow, Pixel* frontBuff, Pixel* backBuff)
+                            const float distance,
+                            const float distance2,
+                            const uint32_t color,
+                            const uint32_t colorLow,
+                            Pixel* frontBuff,
+                            Pixel* backBuff)
 {
   updateNum++;
-//  logInfo(stdnew::format("Doing update {}.", updateNum));
+  //  logInfo(stdnew::format("Doing update {}.", updateNum));
 
-  if (updateNum % changeCurrentColorMapGroupEveryNUpdates == 0) {
+  if (updateNum % changeCurrentColorMapGroupEveryNUpdates == 0)
+  {
     currentColorMapGroup = colorMaps->getRandomGroup();
   }
 
@@ -376,7 +403,8 @@ void TentacleDriver::update(const float angle,
 
   const float iterZeroLerpFactor = 0.9;
 
-  for (size_t i=0; i < numTentacles; i++) {
+  for (size_t i = 0; i < numTentacles; i++)
+  {
     Tentacle3D& tentacle = tentacles[i];
     Tentacle2D& tentacle2D = tentacle.get2DTentacle();
 
@@ -384,12 +412,12 @@ void TentacleDriver::update(const float angle,
     tentacle2D.setIterZeroLerpFactor(iterZeroLerpFactor);
     tentacle2D.setIterZeroYVal(iterZeroYVal);
 
-//    logInfo(stdnew::format("Starting iterate {} for tentacle {}.", tentacle2D.getIterNum()+1, tentacle2D.getID()));
+    //    logInfo(stdnew::format("Starting iterate {} for tentacle {}.", tentacle2D.getIterNum()+1, tentacle2D.getID()));
     tentacle2D.iterate();
 
-//    logInfo(stdnew::format("Update num = {}, tentacle = {}, doing plot with angle = {}, "
-//        "distance = {}, distance2 = {}, color = {} and colorLow = {}.",
-//        updateNum, tentacle2D.getID(), angle, distance, distance2, color, colorLow));
+    //    logInfo(stdnew::format("Update num = {}, tentacle = {}, doing plot with angle = {}, "
+    //        "distance = {}, distance2 = {}, color = {} and colorLow = {}.",
+    //        updateNum, tentacle2D.getID(), angle, distance, distance2, color, colorLow));
     plot3D(tentacle, color, colorLow, angle, distance, distance2, frontBuff, backBuff);
   }
 }
@@ -397,25 +425,31 @@ void TentacleDriver::update(const float angle,
 constexpr int coordIgnoreVal = -666;
 
 void TentacleDriver::plot3D(const Tentacle3D& tentacle,
-                            const uint32_t dominantColor, const uint32_t dominantColorLow,
-                            const float angle, const float distance, const float distance2,
-                            Pixel* frontBuff, Pixel* backBuff)
+                            const uint32_t dominantColor,
+                            const uint32_t dominantColorLow,
+                            const float angle,
+                            const float distance,
+                            const float distance2,
+                            Pixel* frontBuff,
+                            Pixel* backBuff)
 {
   const std::vector<V3d> vertices = tentacle.getVertices();
   const size_t n = vertices.size();
 
-  V3d cam = { 0, 0, 3 }; // TODO ????????????????????????????????
+  V3d cam = {0, 0, 3}; // TODO ????????????????????????????????
   cam.z += distance2;
-  cam.y += 2.0 * sin(-(angle - 0.5*M_PI) / 4.3f);
+  cam.y += 2.0 * sin(-(angle - 0.5 * M_PI) / 4.3f);
   logInfo("cam = ({:.2f}, {:.2f}, {:.2f}).", cam.x, cam.y, cam.z);
 
   const float sina = sin(M_PI - angle);
   const float cosa = cos(M_PI - angle);
   logInfo("angle = {:.2f}, sina = {:.2}, cosa = {:.2},"
-          " distance = {:.2f}, distance2 = {:.2f}.", angle, sina, cosa, distance, distance2);
+          " distance = {:.2f}, distance2 = {:.2f}.",
+          angle, sina, cosa, distance, distance2);
 
-  std::vector<V3d> v3{ vertices };
-  for (size_t i = 0; i < n; i++) {
+  std::vector<V3d> v3{vertices};
+  for (size_t i = 0; i < n; i++)
+  {
     logInfo("v3[{}]  = ({:.2f}, {:.2f}, {:.2f}).", i, v3[i].x, v3[i].y, v3[i].z);
     y_rotate_v3d(v3[i], v3[i], sina, cosa);
     translate_v3d(cam, v3[i]);
@@ -425,50 +459,66 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
   std::vector<v2d> v2(n);
   project_v3d_to_v2d(v3, v2, distance);
 
-  for (size_t i=0; i < v2.size()-1; i++) {
+  for (size_t i = 0; i < v2.size() - 1; i++)
+  {
     const int ix0 = int(v2[i].x);
-    const int ix1 = int(v2[i+1].x);
+    const int ix1 = int(v2[i + 1].x);
     const int iy0 = int(v2[i].y);
-    const int iy1 = int(v2[i+1].y);
+    const int iy1 = int(v2[i + 1].y);
 
-    if (((ix0 == coordIgnoreVal) && (iy0 == coordIgnoreVal)) || ((ix1 == coordIgnoreVal) && (iy1 == coordIgnoreVal))) {
-      logInfo("Skipping draw ignore vals {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}.", i, ix0, iy0, ix1, iy1);
-    } else if ((ix0 == ix1) && (iy0 == iy1)) {
-      logInfo("Skipping draw equal points {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}.", i, ix0, iy0, ix1, iy1);
-    } else {
+    if (((ix0 == coordIgnoreVal) && (iy0 == coordIgnoreVal)) ||
+        ((ix1 == coordIgnoreVal) && (iy1 == coordIgnoreVal)))
+    {
+      logInfo("Skipping draw ignore vals {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}.", i, ix0, iy0,
+              ix1, iy1);
+    }
+    else if ((ix0 == ix1) && (iy0 == iy1))
+    {
+      logInfo("Skipping draw equal points {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}.", i, ix0, iy0,
+              ix1, iy1);
+    }
+    else
+    {
       logInfo("draw_line {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}.", i, ix0, iy0, ix1, iy1);
 
       const auto [color, colorLow] = tentacle.getMixedColors(i, dominantColor, dominantColorLow);
-      const std::vector<_PIXEL> colors = { { .val = color }, { .val = colorLow } };
+      const std::vector<_PIXEL> colors = {{.val = color}, {.val = colorLow}};
 
-      Pixel* buffs[2] = { frontBuff, backBuff };
+      Pixel* buffs[2] = {frontBuff, backBuff};
       // TODO - Control brightness because of back buff??
       // One buff may be better????? Make lighten more aggressive over whole tentacle??
-//      draw_line(frontBuff, ix0, iy0, ix1, iy1, color, 1280, 720);
+      //      draw_line(frontBuff, ix0, iy0, ix1, iy1, color, 1280, 720);
       draw_line(std::size(buffs), buffs, colors, ix0, iy0, ix1, iy1, 1280, 720);
     }
   }
 }
 
-void TentacleDriver::project_v3d_to_v2d(const std::vector<V3d>& v3, std::vector<v2d>& v2, const float distance)
+void TentacleDriver::project_v3d_to_v2d(const std::vector<V3d>& v3,
+                                        std::vector<v2d>& v2,
+                                        const float distance)
 {
-  for (size_t i = 0; i < v3.size(); ++i) {
-    logInfo("project_v3d_to_v2d {}: v3[i].x = {:.2f}, v3[i].y = {:.2f}, v2[i].z = {:.2f}.",
-        i, v3[i].x, v3[i].y, v3[i].z);
-    if (!v3[i].ignore && (v3[i].z > 2)) {
+  for (size_t i = 0; i < v3.size(); ++i)
+  {
+    logInfo("project_v3d_to_v2d {}: v3[i].x = {:.2f}, v3[i].y = {:.2f}, v2[i].z = {:.2f}.", i,
+            v3[i].x, v3[i].y, v3[i].z);
+    if (!v3[i].ignore && (v3[i].z > 2))
+    {
       const int Xp = (int)(distance * v3[i].x / v3[i].z);
       const int Yp = (int)(distance * v3[i].y / v3[i].z);
       v2[i].x = Xp + (screenWidth >> 1);
       v2[i].y = -Yp + (screenHeight >> 1);
-      logInfo("project_v3d_to_v2d {}: Xp = {}, Yp = {}, v2[i].x = {}, v2[i].y = {}.", i, Xp, Yp, v2[i].x, v2[i].y);
-    } else {
+      logInfo("project_v3d_to_v2d {}: Xp = {}, Yp = {}, v2[i].x = {}, v2[i].y = {}.", i, Xp, Yp,
+              v2[i].x, v2[i].y);
+    }
+    else
+    {
       v2[i].x = v2[i].y = coordIgnoreVal;
       logInfo("project_v3d_to_v2d {}: v2[i].x = {}, v2[i].y = {}.", i, v2[i].x, v2[i].y);
     }
   }
 }
 
-inline void TentacleDriver::y_rotate_v3d(const V3d& vi, V3d& vf, const float sina, const float cosa)                                                           \
+inline void TentacleDriver::y_rotate_v3d(const V3d& vi, V3d& vf, const float sina, const float cosa)
 {
   const float vi_x = vi.x;
   const float vi_z = vi.z;
@@ -485,10 +535,7 @@ inline void TentacleDriver::translate_v3d(const V3d& vsrc, V3d& vdest)
 }
 
 TentacleColorMapColorizer::TentacleColorMapColorizer(const ColorMap& cm, const size_t nNodes)
-  : origColorMap{ &cm }
-  , colorMap{ &cm }
-  , colorStack()
-  , numNodes{ nNodes }
+  : origColorMap{&cm}, colorMap{&cm}, colorStack(), numNodes{nNodes}
 {
 }
 
@@ -496,7 +543,7 @@ void TentacleColorMapColorizer::resetColorMap(const ColorMap& cm)
 {
   origColorMap = &cm;
   colorMap = &cm;
-  colorStack = std::stack<const ColorMap*>{ };
+  colorStack = std::stack<const ColorMap*>{};
 }
 
 void TentacleColorMapColorizer::pushColorMap(const ColorMap& cm)
@@ -507,7 +554,8 @@ void TentacleColorMapColorizer::pushColorMap(const ColorMap& cm)
 
 void TentacleColorMapColorizer::TentacleColorMapColorizer::popColorMap()
 {
-  if (colorStack.empty()) {
+  if (colorStack.empty())
+  {
     return;
   }
   colorMap = colorStack.top();
@@ -516,24 +564,29 @@ void TentacleColorMapColorizer::TentacleColorMapColorizer::popColorMap()
 
 uint32_t TentacleColorMapColorizer::getColor(size_t nodeNum) const
 {
-  const float t = float(nodeNum)/float(numNodes);
+  const float t = float(nodeNum) / float(numNodes);
   return colorMap->getColor(t);
 }
 
-GridTentacleLayout::GridTentacleLayout(
-    const float xmin, const float xmax, const size_t xNum,
-    const float ymin, const float ymax, const size_t yNum,
-    const float zConst)
+GridTentacleLayout::GridTentacleLayout(const float xmin,
+                                       const float xmax,
+                                       const size_t xNum,
+                                       const float ymin,
+                                       const float ymax,
+                                       const size_t yNum,
+                                       const float zConst)
   : points{}
 {
-  const float xStep = (xmax - xmin)/float(xNum - 1);
-  const float yStep = (ymax - ymin)/float(yNum - 1);
+  const float xStep = (xmax - xmin) / float(xNum - 1);
+  const float yStep = (ymax - ymin) / float(yNum - 1);
 
   float y = ymin;
-  for (size_t i=0; i < yNum; i++) {
+  for (size_t i = 0; i < yNum; i++)
+  {
     float x = xmin;
-    for (size_t j=0; j < xNum; j++) {
-      points.emplace_back(V3d{ x, y, zConst });
+    for (size_t j = 0; j < xNum; j++)
+    {
+      points.emplace_back(V3d{x, y, zConst});
       x += xStep;
     }
     y += yStep;
@@ -550,75 +603,83 @@ const std::vector<V3d>& GridTentacleLayout::getPoints() const
   return points;
 }
 
-std::vector<size_t> CirclesTentacleLayout::getCircleSamples(const size_t numCircles, const size_t totalPoints)
+std::vector<size_t> CirclesTentacleLayout::getCircleSamples(const size_t numCircles,
+                                                            const size_t totalPoints)
 {
   std::vector<size_t> circleSamples(numCircles);
 
   return circleSamples;
 }
 
-CirclesTentacleLayout::CirclesTentacleLayout(
-    const float radiusMin, const float radiusMax, const std::vector<size_t>& numCircleSamples, const float zConst)
+CirclesTentacleLayout::CirclesTentacleLayout(const float radiusMin,
+                                             const float radiusMax,
+                                             const std::vector<size_t>& numCircleSamples,
+                                             const float zConst)
   : points{}
 {
   const size_t numCircles = numCircleSamples.size();
-  if (numCircles < 2) {
-    std::runtime_error(stdnew::format("There must be >= 2 circle sample numbers not {}.", numCircles));
+  if (numCircles < 2)
+  {
+    std::runtime_error(
+        stdnew::format("There must be >= 2 circle sample numbers not {}.", numCircles));
   }
-  for (const auto numSample : numCircleSamples) {
-    if (numSample % 2 != 0) {
+  for (const auto numSample : numCircleSamples)
+  {
+    if (numSample % 2 != 0)
+    {
       // Perspective looks bad with odd because of x=0 tentacle.
       std::runtime_error(stdnew::format("Circle sample num must be even not {}.", numSample));
     }
   }
 
   // TODO - Should be lerps here?
-  const auto logLastPoint = [&](size_t i, const float r, const float angle)
-  {
+  const auto logLastPoint = [&](size_t i, const float r, const float angle) {
     const size_t el = points.size() - 1;
-    logInfo("  sample {:3}: angle = {:+6.2f}, cos(angle) = {:+6.2f}, r = {:+6.2f},"\
+    logInfo("  sample {:3}: angle = {:+6.2f}, cos(angle) = {:+6.2f}, r = {:+6.2f},"
             " pt[{:3}] = ({:+6.2f}, {:+6.2f}, {:+6.2f})",
             i, angle, cos(angle), r, el, points.at(el).x, points.at(el).y, points.at(el).z);
   };
-  const auto getSamplePoints = [&](
-      const float radius, const size_t numSample,
-      const float angleStart, const float angleFinish)
-  {
-    const float angleStep = (angleFinish - angleStart)/float(numSample - 1);
+  const auto getSamplePoints = [&](const float radius, const size_t numSample,
+                                   const float angleStart, const float angleFinish) {
+    const float angleStep = (angleFinish - angleStart) / float(numSample - 1);
     float angle = angleStart;
-    for (size_t i=0; i < numSample; i++) {
-      const float x = float(radius*cos(angle));
-      const float y = float(radius*sin(angle));
-      const V3d point = { x, y, zConst };
+    for (size_t i = 0; i < numSample; i++)
+    {
+      const float x = float(radius * cos(angle));
+      const float y = float(radius * sin(angle));
+      const V3d point = {x, y, zConst};
       points.push_back(point);
       logLastPoint(i, radius, angle);
       angle += angleStep;
     };
   };
 
-  const float angleLeftStart = +0.5*M_PI;
-  const float angleLeftFinish = +1.5*M_PI;
-  const float angleRightStart = -0.5*M_PI;
-  const float angleRightFinish = +0.5*M_PI;
+  const float angleLeftStart = +0.5 * M_PI;
+  const float angleLeftFinish = +1.5 * M_PI;
+  const float angleRightStart = -0.5 * M_PI;
+  const float angleRightFinish = +0.5 * M_PI;
   logInfo("Setup: angleLeftStart = {:.2f}, angleLeftFinish = {:.2f},"
           " angleRightStart = {:.2f}, angleRightFinish = {:.2f}",
           angleLeftStart, angleLeftFinish, angleRightStart, angleRightFinish);
 
   const float angleOffsetStart = 0.10;
   const float angleOffsetFinish = 0.30;
-  const float offsetStep = (angleOffsetStart - angleOffsetFinish)/float(numCircles - 1);
-  const float radiusStep = (radiusMax - radiusMin)/float(numCircles - 1);
+  const float offsetStep = (angleOffsetStart - angleOffsetFinish) / float(numCircles - 1);
+  const float radiusStep = (radiusMax - radiusMin) / float(numCircles - 1);
   logInfo("Setup: numCircles = {}, radiusStep = {:.2f}, radiusMin = {:.2f}, radiusMax = {:.2f},"
           " offsetStep = {:.2f}, angleOffsetStart = {:.2f}, angleOffsetFinish = {:.2f}",
-          numCircles, radiusStep, radiusMin, radiusMax, offsetStep, angleOffsetStart, angleOffsetFinish);
+          numCircles, radiusStep, radiusMin, radiusMax, offsetStep, angleOffsetStart,
+          angleOffsetFinish);
 
   float r = radiusMax;
   float angleOffset = angleOffsetStart;
-  for (const auto numSample : numCircleSamples) {
+  for (const auto numSample : numCircleSamples)
+  {
     logInfo("Circle with {} samples: r = {:.2f}", numSample, r);
 
-    getSamplePoints(r, numSample/2, angleLeftStart + angleOffset, angleLeftFinish - angleOffset);
-    getSamplePoints(r, numSample/2, angleRightStart + angleOffset, angleRightFinish - angleOffset);
+    getSamplePoints(r, numSample / 2, angleLeftStart + angleOffset, angleLeftFinish - angleOffset);
+    getSamplePoints(r, numSample / 2, angleRightStart + angleOffset,
+                    angleRightFinish - angleOffset);
 
     r -= radiusStep;
     angleOffset -= offsetStep;
@@ -635,17 +696,16 @@ const std::vector<V3d>& CirclesTentacleLayout::getPoints() const
   return points;
 }
 
-SimpleWeightHandler::SimpleWeightHandler(
-    ConstantSequenceFunction& prevYWeightFun,
-    ConstantSequenceFunction& currentYWeightFun)
-  : prevYWeightFunc(&prevYWeightFun)
-  , currentYWeightFunc(&currentYWeightFun)
+SimpleWeightHandler::SimpleWeightHandler(ConstantSequenceFunction& prevYWeightFun,
+                                         ConstantSequenceFunction& currentYWeightFun)
+  : prevYWeightFunc(&prevYWeightFun), currentYWeightFunc(&currentYWeightFun)
 {
 }
 
-void SimpleWeightHandler::weightsReset(
-    [[ maybe_unused ]]const size_t ID, [[ maybe_unused ]]const size_t nmNodes,
-    const float basePrevYWgt, const float baseCurrentYWgt)
+void SimpleWeightHandler::weightsReset([[maybe_unused]] const size_t ID,
+                                       [[maybe_unused]] const size_t nmNodes,
+                                       const float basePrevYWgt,
+                                       const float baseCurrentYWgt)
 {
   basePrevYWeight = basePrevYWgt;
   baseCurrentYWeight = baseCurrentYWgt;
@@ -653,40 +713,40 @@ void SimpleWeightHandler::weightsReset(
   currentYWeightFunc->setConstVal(baseCurrentYWeight);
 }
 
-void SimpleWeightHandler::weightsAdjust(
-    [[ maybe_unused ]]const size_t ID,
-    [[ maybe_unused ]]const size_t iterNum, [[ maybe_unused ]]const size_t nodeNum,
-    [[ maybe_unused ]]const float prevY, [[ maybe_unused ]]const float currentY)
+void SimpleWeightHandler::weightsAdjust([[maybe_unused]] const size_t ID,
+                                        [[maybe_unused]] const size_t iterNum,
+                                        [[maybe_unused]] const size_t nodeNum,
+                                        [[maybe_unused]] const float prevY,
+                                        [[maybe_unused]] const float currentY)
 {
   prevYWeightFunc->setConstVal(basePrevYWeight * getRandInRange(0.8f, 1.2f));
   currentYWeightFunc->setConstVal(1.0 - prevYWeightFunc->getConstVal());
 }
 
-RandWeightHandler::RandWeightHandler(
-    RandSequenceFunction& prevYWeightFun,
-    RandSequenceFunction& currentYWeightFun,
-    const float _r0, const float _r1)
-  : prevYWeightFunc(&prevYWeightFun)
-  , currentYWeightFunc(&currentYWeightFun)
-  , r0(_r0)
-  , r1(_r1)
+RandWeightHandler::RandWeightHandler(RandSequenceFunction& prevYWeightFun,
+                                     RandSequenceFunction& currentYWeightFun,
+                                     const float _r0,
+                                     const float _r1)
+  : prevYWeightFunc(&prevYWeightFun), currentYWeightFunc(&currentYWeightFun), r0(_r0), r1(_r1)
 {
 }
 
-void RandWeightHandler::weightsReset(
-    [[ maybe_unused ]]const size_t ID,
-    [[ maybe_unused ]]const size_t numItrs, [[ maybe_unused ]]const size_t nmNodes,
-    const float basePrevYWgt, const float baseCurrentYWgt)
+void RandWeightHandler::weightsReset([[maybe_unused]] const size_t ID,
+                                     [[maybe_unused]] const size_t numItrs,
+                                     [[maybe_unused]] const size_t nmNodes,
+                                     const float basePrevYWgt,
+                                     const float baseCurrentYWgt)
 {
-  prevYWeightFunc->setX0(r0*basePrevYWgt);
-  prevYWeightFunc->setX1(r1*basePrevYWgt);
-  currentYWeightFunc->setX0(r0*baseCurrentYWgt);
-  currentYWeightFunc->setX1(r1*baseCurrentYWgt);
+  prevYWeightFunc->setX0(r0 * basePrevYWgt);
+  prevYWeightFunc->setX1(r1 * basePrevYWgt);
+  currentYWeightFunc->setX0(r0 * baseCurrentYWgt);
+  currentYWeightFunc->setX1(r1 * baseCurrentYWgt);
 }
 
-void RandWeightHandler::weightsAdjust(
-    [[ maybe_unused ]]const size_t ID,
-    [[ maybe_unused ]]const size_t iterNum, [[ maybe_unused ]]const size_t nodeNum,
-    [[ maybe_unused ]]const float prevY, [[ maybe_unused ]]const float currentY)
+void RandWeightHandler::weightsAdjust([[maybe_unused]] const size_t ID,
+                                      [[maybe_unused]] const size_t iterNum,
+                                      [[maybe_unused]] const size_t nodeNum,
+                                      [[maybe_unused]] const float prevY,
+                                      [[maybe_unused]] const float currentY)
 {
 }

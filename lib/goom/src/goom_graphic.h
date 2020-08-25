@@ -5,7 +5,8 @@
 
 typedef unsigned int Uint;
 
-typedef struct {
+typedef struct
+{
   unsigned short r, v, b;
 } Color;
 
@@ -19,14 +20,16 @@ extern const Color ORANGE;
 extern const Color VIOLET;
 
 #ifdef COLOR_BGRA
-  #define A_CHANNEL 0x000000FF
-  #define R_OFFSET 24
-  #define G_OFFSET 16
-  #define B_OFFSET 8
-  #define A_OFFSET 0
+#define A_CHANNEL 0x000000FF
+#define R_OFFSET 24
+#define G_OFFSET 16
+#define B_OFFSET 8
+#define A_OFFSET 0
 
-typedef union _PIXEL {
-  struct {
+typedef union _PIXEL
+{
+  struct
+  {
     unsigned char r;
     unsigned char g;
     unsigned char b;
@@ -37,14 +40,16 @@ typedef union _PIXEL {
 } Pixel;
 
 #else
-  #define A_CHANNEL 0xFF000000
-  #define A_OFFSET 24
-  #define R_OFFSET 16
-  #define G_OFFSET 8
-  #define B_OFFSET 0
+#define A_CHANNEL 0xFF000000
+#define A_OFFSET 24
+#define R_OFFSET 16
+#define G_OFFSET 8
+#define B_OFFSET 0
 
-typedef union _PIXEL {
-  struct {
+typedef union _PIXEL
+{
+  struct
+  {
     unsigned char a;
     unsigned char r;
     unsigned char g;

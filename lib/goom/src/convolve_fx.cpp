@@ -1,7 +1,6 @@
 #include "goom_config.h"
 #include "goom_fx.h"
 #include "goom_plugin_info.h"
-
 #include "goomutils/mathtools.h"
 
 #include <math.h>
@@ -9,7 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct _CONV_DATA {
+typedef struct _CONV_DATA
+{
   PluginParam light;
   PluginParam factor_adj_p;
   PluginParam factor_p;
@@ -46,16 +46,21 @@ static void convolve_init(VisualFX* _this, PluginInfo* info)
 
 static void convolve_free(VisualFX* _this)
 {
-  ConvData* data = (ConvData* )_this->fx_data;
+  ConvData* data = (ConvData*)_this->fx_data;
   free(data->params.params);
   free(data);
 }
 
-static void create_output_with_brightness(Pixel* src, Pixel* dest, PluginInfo* info, unsigned int iff)
+static void create_output_with_brightness(Pixel* src,
+                                          Pixel* dest,
+                                          PluginInfo* info,
+                                          unsigned int iff)
 {
   int i = 0; //info->screen.height * info->screen.width - 1;
-  for (int y = 0; y < info->screen.height; y++) {
-    for (int x = 0; x < info->screen.width; x++) {
+  for (int y = 0; y < info->screen.height; y++)
+  {
+    for (int x = 0; x < info->screen.width; x++)
+    {
       const unsigned int f0 = (src[i].cop[0] * iff) >> 8;
       const unsigned int f1 = (src[i].cop[1] * iff) >> 8;
       const unsigned int f2 = (src[i].cop[2] * iff) >> 8;
@@ -88,7 +93,8 @@ static void convolve_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo*
   {
     const float INCREASE_RATE = 1.5;
     const float DECAY_RATE = 0.955;
-    if (FVAL(info->sound.last_goom_p) > 0.8) {
+    if (FVAL(info->sound.last_goom_p) > 0.8)
+    {
       FVAL(data->factor_p) += FVAL(info->sound.goom_power_p) * INCREASE_RATE;
     }
     FVAL(data->factor_p) *= DECAY_RATE;
@@ -96,9 +102,12 @@ static void convolve_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo*
     data->factor_p.change_listener(&data->factor_p);
   }
 
-  if ((ff > 0.98f) && (ff < 1.02f)) {
+  if ((ff > 0.98f) && (ff < 1.02f))
+  {
     memcpy(dest, src, (size_t)info->screen.size * sizeof(Pixel));
-  } else {
+  }
+  else
+  {
     create_output_with_brightness(src, dest, info, iff);
   }
   /*

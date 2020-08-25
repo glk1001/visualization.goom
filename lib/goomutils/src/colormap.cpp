@@ -1,23 +1,20 @@
 #include "goomutils/colormap.h"
 
+#include "goomutils/colordata/all_maps.h"
 #include "goomutils/colormap_enums.h"
 #include "goomutils/math_utils.h"
-#include "goomutils/colordata/all_maps.h"
-
-#include <vivid/vivid.h>
 
 #include <algorithm>
 #include <format>
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <vivid/vivid.h>
 
 std::vector<ColorMap, ColorMap::ColorMapAllocator> ColorMaps::colorMaps{};
-ColorMaps::GroupColorNames ColorMaps::groups{ nullptr };
+ColorMaps::GroupColorNames ColorMaps::groups{nullptr};
 
-ColorMaps::ColorMaps()
-  : overrideColorMap{ nullptr }
-  , overrideColorGroup{ ColorMapGroup::_null }
+ColorMaps::ColorMaps() : overrideColorMap{nullptr}, overrideColorGroup{ColorMapGroup::_null}
 {
 }
 
@@ -33,7 +30,8 @@ void ColorMaps::setOverrideColorGroup(const ColorMapGroup grp)
 
 const ColorMap& ColorMaps::getRandomColorMap() const
 {
-  if (overrideColorMap != nullptr) {
+  if (overrideColorMap != nullptr)
+  {
     return *overrideColorMap;
   }
 
@@ -44,7 +42,8 @@ const ColorMap& ColorMaps::getRandomColorMap() const
 
 const ColorMap& ColorMaps::getRandomColorMap(const ColorMapGroup groupName) const
 {
-  if (overrideColorMap != nullptr) {
+  if (overrideColorMap != nullptr)
+  {
     return *overrideColorMap;
   }
 
@@ -73,11 +72,13 @@ size_t ColorMaps::getNumColorMaps() const
 
 void ColorMaps::initColorMaps()
 {
-  if (colorMaps.size() != 0) {
+  if (colorMaps.size() != 0)
+  {
     return;
   }
   colorMaps.reserve(colordata::allMaps.size());
-  for(const auto& [name, vividMap] : colordata::allMaps) {
+  for (const auto& [name, vividMap] : colordata::allMaps)
+  {
     colorMaps.emplace_back(name, vividMap);
   }
 }
@@ -90,7 +91,8 @@ size_t ColorMaps::getNumGroups() const
 
 ColorMapGroup ColorMaps::getRandomGroup() const
 {
-  if (overrideColorGroup != ColorMapGroup::_null) {
+  if (overrideColorGroup != ColorMapGroup::_null)
+  {
     return overrideColorGroup;
   }
 
@@ -100,7 +102,8 @@ ColorMapGroup ColorMaps::getRandomGroup() const
 
 void ColorMaps::initGroups()
 {
-  if (groups[0] != nullptr) {
+  if (groups[0] != nullptr)
+  {
     return;
   }
   at(groups, ColorMapGroup::perceptuallyUniformSequential) = &colordata::perc_unif_sequentialMaps;
@@ -113,17 +116,12 @@ void ColorMaps::initGroups()
   at(groups, ColorMapGroup::misc) = &colordata::miscMaps;
 }
 
-WeightedColorMaps::WeightedColorMaps()
-  : ColorMaps{}
-  , weights{}
-  , weightsActive{ true }
+WeightedColorMaps::WeightedColorMaps() : ColorMaps{}, weights{}, weightsActive{true}
 {
 }
 
 WeightedColorMaps::WeightedColorMaps(const Weights<ColorMapGroup>& w)
-  : ColorMaps{}
-  , weights{ w }
-  , weightsActive{ true }
+  : ColorMaps{}, weights{w}, weightsActive{true}
 {
 }
 
@@ -149,25 +147,23 @@ void WeightedColorMaps::setWeightsActive(const bool value)
 
 ColorMapGroup WeightedColorMaps::getRandomGroup() const
 {
-  if (getOverrideColorGroup() != ColorMapGroup::_null) {
+  if (getOverrideColorGroup() != ColorMapGroup::_null)
+  {
     return getOverrideColorGroup();
   }
-  if (!weightsActive) {
+  if (!weightsActive)
+  {
     return ColorMaps::getRandomGroup();
   }
 
   return weights.getRandomWeighted();
 }
 
-ColorMap::ColorMap(const std::string& mapNm, const vivid::ColorMap& cm)
-  : mapName{ mapNm }
-  , cmap{ cm }
+ColorMap::ColorMap(const std::string& mapNm, const vivid::ColorMap& cm) : mapName{mapNm}, cmap{cm}
 {
 }
 
-ColorMap::ColorMap(const ColorMap& other)
-  : mapName(other.mapName)
-  , cmap(other.cmap)
+ColorMap::ColorMap(const ColorMap& other) : mapName(other.mapName), cmap(other.cmap)
 {
 }
 
@@ -186,8 +182,9 @@ uint32_t ColorMap::colorMix(const uint32_t col1, const uint32_t col2, const floa
 uint32_t ColorMap::getLighterColor(const uint32_t color, const int incPercent)
 {
   vivid::hsl_t col = vivid::hsl::fromRgb(vivid::rgb::fromRgb32(color));
-  col.z *= 1.0 + float(incPercent/100.0);
-  if (col.z > 1.0) {
+  col.z *= 1.0 + float(incPercent / 100.0);
+  if (col.z > 1.0)
+  {
     col.z = 1.0;
   }
 

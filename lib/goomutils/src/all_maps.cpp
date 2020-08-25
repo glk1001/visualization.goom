@@ -1,25 +1,53 @@
 #include "../include/goomutils/colordata/all_maps.h"
 
-#include "goomutils/colormap_enums.h"
-
 #include "../include/goomutils/colordata/Accent.h"
+#include "../include/goomutils/colordata/Blues.h"
+#include "../include/goomutils/colordata/BrBG.h"
+#include "../include/goomutils/colordata/BuGn.h"
+#include "../include/goomutils/colordata/BuPu.h"
+#include "../include/goomutils/colordata/CMRmap.h"
+#include "../include/goomutils/colordata/Dark2.h"
+#include "../include/goomutils/colordata/GnBu.h"
+#include "../include/goomutils/colordata/Greens.h"
+#include "../include/goomutils/colordata/Greys.h"
+#include "../include/goomutils/colordata/OrRd.h"
+#include "../include/goomutils/colordata/Oranges.h"
+#include "../include/goomutils/colordata/PRGn.h"
+#include "../include/goomutils/colordata/Paired.h"
+#include "../include/goomutils/colordata/Pastel1.h"
+#include "../include/goomutils/colordata/Pastel2.h"
+#include "../include/goomutils/colordata/PiYG.h"
+#include "../include/goomutils/colordata/PuBu.h"
+#include "../include/goomutils/colordata/PuBuGn.h"
+#include "../include/goomutils/colordata/PuOr.h"
+#include "../include/goomutils/colordata/PuRd.h"
+#include "../include/goomutils/colordata/Purples.h"
+#include "../include/goomutils/colordata/RdBu.h"
+#include "../include/goomutils/colordata/RdGy.h"
+#include "../include/goomutils/colordata/RdPu.h"
+#include "../include/goomutils/colordata/RdYlBu.h"
+#include "../include/goomutils/colordata/RdYlGn.h"
+#include "../include/goomutils/colordata/Reds.h"
+#include "../include/goomutils/colordata/Set1.h"
+#include "../include/goomutils/colordata/Set2.h"
+#include "../include/goomutils/colordata/Set3.h"
+#include "../include/goomutils/colordata/Spectral.h"
+#include "../include/goomutils/colordata/Wistia.h"
+#include "../include/goomutils/colordata/YlGn.h"
+#include "../include/goomutils/colordata/YlGnBu.h"
+#include "../include/goomutils/colordata/YlOrBr.h"
+#include "../include/goomutils/colordata/YlOrRd.h"
 #include "../include/goomutils/colordata/afmhot.h"
 #include "../include/goomutils/colordata/autumn.h"
 #include "../include/goomutils/colordata/binary.h"
-#include "../include/goomutils/colordata/Blues.h"
 #include "../include/goomutils/colordata/bone.h"
-#include "../include/goomutils/colordata/BrBG.h"
 #include "../include/goomutils/colordata/brg.h"
-#include "../include/goomutils/colordata/BuGn.h"
-#include "../include/goomutils/colordata/BuPu.h"
 #include "../include/goomutils/colordata/bwr.h"
 #include "../include/goomutils/colordata/cividis.h"
-#include "../include/goomutils/colordata/CMRmap.h"
 #include "../include/goomutils/colordata/cool.h"
 #include "../include/goomutils/colordata/coolwarm.h"
 #include "../include/goomutils/colordata/copper.h"
 #include "../include/goomutils/colordata/cubehelix.h"
-#include "../include/goomutils/colordata/Dark2.h"
 #include "../include/goomutils/colordata/flag.h"
 #include "../include/goomutils/colordata/gist_earth.h"
 #include "../include/goomutils/colordata/gist_gray.h"
@@ -28,12 +56,9 @@
 #include "../include/goomutils/colordata/gist_rainbow.h"
 #include "../include/goomutils/colordata/gist_stern.h"
 #include "../include/goomutils/colordata/gist_yarg.h"
-#include "../include/goomutils/colordata/GnBu.h"
 #include "../include/goomutils/colordata/gnuplot.h"
 #include "../include/goomutils/colordata/gnuplot2.h"
 #include "../include/goomutils/colordata/gray.h"
-#include "../include/goomutils/colordata/Greens.h"
-#include "../include/goomutils/colordata/Greys.h"
 #include "../include/goomutils/colordata/hot.h"
 #include "../include/goomutils/colordata/hsv.h"
 #include "../include/goomutils/colordata/inferno.h"
@@ -41,38 +66,16 @@
 #include "../include/goomutils/colordata/magma.h"
 #include "../include/goomutils/colordata/nipy_spectral.h"
 #include "../include/goomutils/colordata/ocean.h"
-#include "../include/goomutils/colordata/Oranges.h"
-#include "../include/goomutils/colordata/OrRd.h"
-#include "../include/goomutils/colordata/Paired.h"
-#include "../include/goomutils/colordata/Pastel1.h"
-#include "../include/goomutils/colordata/Pastel2.h"
 #include "../include/goomutils/colordata/pink.h"
 #include "../include/goomutils/colordata/pink_black_green_w3c_.h"
-#include "../include/goomutils/colordata/PiYG.h"
 #include "../include/goomutils/colordata/plasma.h"
-#include "../include/goomutils/colordata/PRGn.h"
 #include "../include/goomutils/colordata/prism.h"
-#include "../include/goomutils/colordata/PuBu.h"
-#include "../include/goomutils/colordata/PuBuGn.h"
-#include "../include/goomutils/colordata/PuOr.h"
-#include "../include/goomutils/colordata/PuRd.h"
-#include "../include/goomutils/colordata/Purples.h"
 #include "../include/goomutils/colordata/rainbow.h"
-#include "../include/goomutils/colordata/RdBu.h"
-#include "../include/goomutils/colordata/RdGy.h"
-#include "../include/goomutils/colordata/RdPu.h"
-#include "../include/goomutils/colordata/RdYlBu.h"
-#include "../include/goomutils/colordata/RdYlGn.h"
 #include "../include/goomutils/colordata/red_black_blue.h"
 #include "../include/goomutils/colordata/red_black_green.h"
 #include "../include/goomutils/colordata/red_black_orange.h"
 #include "../include/goomutils/colordata/red_black_sky.h"
-#include "../include/goomutils/colordata/Reds.h"
 #include "../include/goomutils/colordata/seismic.h"
-#include "../include/goomutils/colordata/Set1.h"
-#include "../include/goomutils/colordata/Set2.h"
-#include "../include/goomutils/colordata/Set3.h"
-#include "../include/goomutils/colordata/Spectral.h"
 #include "../include/goomutils/colordata/spring.h"
 #include "../include/goomutils/colordata/summer.h"
 #include "../include/goomutils/colordata/tab10.h"
@@ -84,14 +87,9 @@
 #include "../include/goomutils/colordata/twilight_shifted.h"
 #include "../include/goomutils/colordata/viridis.h"
 #include "../include/goomutils/colordata/winter.h"
-#include "../include/goomutils/colordata/Wistia.h"
 #include "../include/goomutils/colordata/yellow_black_blue.h"
 #include "../include/goomutils/colordata/yellow_black_sky.h"
-#include "../include/goomutils/colordata/YlGn.h"
-#include "../include/goomutils/colordata/YlGnBu.h"
-#include "../include/goomutils/colordata/YlOrBr.h"
-#include "../include/goomutils/colordata/YlOrRd.h"
-
+#include "goomutils/colormap_enums.h"
 #include "vivid/types.h"
 
 #include <array>
@@ -99,9 +97,9 @@
 #include <utility>
 #include <vector>
 
-namespace colordata {
-
-  const std::array<std::pair<std::string, std::vector<vivid::srgb_t>>, 89> allMaps = {
+namespace colordata
+{
+const std::array<std::pair<std::string, std::vector<vivid::srgb_t>>, 89> allMaps = {
     std::make_pair("Accent", colordata::Accent),
     std::make_pair("afmhot", colordata::afmhot),
     std::make_pair("autumn", colordata::autumn),
@@ -191,16 +189,19 @@ namespace colordata {
     std::make_pair("YlGnBu", colordata::YlGnBu),
     std::make_pair("YlOrBr", colordata::YlOrBr),
     std::make_pair("YlOrRd", colordata::YlOrRd),
-  };
+};
 
-  const std::vector<ColorMapName> perc_unif_sequentialMaps = {
+// clang-format off
+const std::vector<ColorMapName> perc_unif_sequentialMaps =
+{
     ColorMapName::cividis,
     ColorMapName::inferno,
     ColorMapName::magma,
     ColorMapName::plasma,
     ColorMapName::viridis,
-  };
-  const std::vector<ColorMapName> sequentialMaps = {
+};
+const std::vector<ColorMapName> sequentialMaps =
+{
     ColorMapName::Blues,
     ColorMapName::BuGn,
     ColorMapName::BuPu,
@@ -219,8 +220,9 @@ namespace colordata {
     ColorMapName::YlGnBu,
     ColorMapName::YlOrBr,
     ColorMapName::YlOrRd,
-  };
-  const std::vector<ColorMapName> sequential2Maps = {
+};
+const std::vector<ColorMapName> sequential2Maps =
+{
     ColorMapName::afmhot,
     ColorMapName::autumn,
     ColorMapName::binary,
@@ -237,8 +239,9 @@ namespace colordata {
     ColorMapName::summer,
     ColorMapName::winter,
     ColorMapName::Wistia,
-  };
-  const std::vector<ColorMapName> divergingMaps = {
+};
+const std::vector<ColorMapName> divergingMaps =
+{
     ColorMapName::BrBG,
     ColorMapName::bwr,
     ColorMapName::coolwarm,
@@ -251,8 +254,9 @@ namespace colordata {
     ColorMapName::RdYlGn,
     ColorMapName::seismic,
     ColorMapName::Spectral,
-  };
-  const std::vector<ColorMapName> diverging_blackMaps = {
+};
+const std::vector<ColorMapName> diverging_blackMaps =
+{
     ColorMapName::pink_black_green_w3c_,
     ColorMapName::red_black_blue,
     ColorMapName::red_black_green,
@@ -260,8 +264,9 @@ namespace colordata {
     ColorMapName::red_black_sky,
     ColorMapName::yellow_black_blue,
     ColorMapName::yellow_black_sky,
-  };
-  const std::vector<ColorMapName> qualitativeMaps = {
+};
+const std::vector<ColorMapName> qualitativeMaps =
+{
     ColorMapName::Accent,
     ColorMapName::Dark2,
     ColorMapName::Paired,
@@ -274,8 +279,9 @@ namespace colordata {
     ColorMapName::tab20,
     ColorMapName::tab20b,
     ColorMapName::tab20c,
-  };
-  const std::vector<ColorMapName> miscMaps = {
+};
+const std::vector<ColorMapName> miscMaps =
+{
     ColorMapName::brg,
     ColorMapName::CMRmap,
     ColorMapName::cubehelix,
@@ -293,11 +299,13 @@ namespace colordata {
     ColorMapName::prism,
     ColorMapName::rainbow,
     ColorMapName::terrain,
-  };
-  const std::vector<ColorMapName> cyclicMaps = {
+};
+const std::vector<ColorMapName> cyclicMaps =
+{
     ColorMapName::hsv,
     ColorMapName::twilight,
     ColorMapName::twilight_shifted,
-  };
+};
+// clang-format on
 
-} // colordata
+} // namespace colordata

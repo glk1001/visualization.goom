@@ -13,7 +13,8 @@
 #include <string_view>
 #include <vector>
 
-class Logging {
+class Logging
+{
 public:
   static Logging& getLogger();
   ~Logging() noexcept;
@@ -25,32 +26,46 @@ public:
   void suspend();
   void resume();
   bool isLogging() const;
-  enum class LogLevel { debug, info, warn, error };
+  enum class LogLevel
+  {
+    debug,
+    info,
+    warn,
+    error
+  };
   LogLevel getFileLogLevel() const;
   void setFileLogLevel(const LogLevel lvl);
   LogLevel getHandlersLogLevel() const;
   void setHandlersLogLevel(const LogLevel lvl);
-  void log(const LogLevel lvl, const int line_num, const std::string& func_name,
+  void log(const LogLevel lvl,
+           const int line_num,
+           const std::string& func_name,
            const std::string& msg);
-  template <typename... Args> void log(
-      const LogLevel lvl, const int line_num, const std::string& func_name,
-      std::string_view format_str, const Args&... args);
+  template<typename... Args>
+  void log(const LogLevel lvl,
+           const int line_num,
+           const std::string& func_name,
+           std::string_view format_str,
+           const Args&... args);
+
 private:
   Logging() noexcept;
-  Logging(const Logging &rhs) = delete;
-  Logging& operator=(const Logging &rhs) = delete;
+  Logging(const Logging& rhs) = delete;
+  Logging& operator=(const Logging& rhs) = delete;
   LogLevel cutoffFileLogLevel = LogLevel::debug;
   LogLevel cutoffHandlersLogLevel = LogLevel::info;
   bool doLogging = false;
   std::string logFile = "";
-  std::vector<std::function<void(std::string)>> handlers { };
-  std::vector<std::string> logEntries { };
-  std::mutex mutex { };
+  std::vector<std::function<void(std::string)>> handlers{};
+  std::vector<std::string> logEntries{};
+  std::mutex mutex{};
   static std::unique_ptr<Logging> logger;
   void doFlush();
-  void vlog(
-      const LogLevel lvl, const int line_num, const std::string& func_name,
-      std::string_view format_str, stdnew::format_args args);
+  void vlog(const LogLevel lvl,
+            const int line_num,
+            const std::string& func_name,
+            std::string_view format_str,
+            stdnew::format_args args);
 };
 
 inline Logging::Logging() noexcept
@@ -91,7 +106,7 @@ inline void Logging::addHandler(const std::function<void(std::string)> f)
 
 inline void Logging::flush()
 {
-  const std::lock_guard<std::mutex> lock { mutex };
+  const std::lock_guard<std::mutex> lock{mutex};
   doFlush();
 }
 
@@ -112,17 +127,21 @@ inline Logging& Logging::getLogger()
   return *logger.get();
 }
 
-template <typename... Args>
-  inline void Logging::log(
-      const LogLevel lvl, const int line_num, const std::string& func_name,
-      std::string_view format_str, const Args&... args)
+template<typename... Args>
+inline void Logging::log(const LogLevel lvl,
+                         const int line_num,
+                         const std::string& func_name,
+                         std::string_view format_str,
+                         const Args&... args)
 {
   vlog(lvl, line_num, func_name, format_str, stdnew::make_format_args(args...));
 }
 
-inline void Logging::vlog(
-    const LogLevel lvl, const int line_num, const std::string& func_name,
-    std::string_view format_str, stdnew::format_args args)
+inline void Logging::vlog(const LogLevel lvl,
+                          const int line_num,
+                          const std::string& func_name,
+                          std::string_view format_str,
+                          stdnew::format_args args)
 {
   stdnew::memory_buffer buffer;
   // Pass custom argument formatter as a template arg to vwrite.
@@ -131,41 +150,41 @@ inline void Logging::vlog(
 }
 
 #ifdef NO_LOGGING
-  #pragma message ("Compiling " __FILE__ " with 'NO_LOGGING' ON.")
-  #define setLogFile(logF)
-  #define addLogHandler(h)
-  #define logStart()
-  #define logStop()
-  #define logFlush()
-  #define logSuspend()
-  #define logResume()
-  #define isLogging()
-  #define getLogLevel()
-  #define setLogLevel(lvl)
-  #define logDebug(...)
-  #define logInfo(...)
-  #define logWarn(...)
-  #define logError(...)
+#pragma message("Compiling " __FILE__ " with 'NO_LOGGING' ON.")
+#define setLogFile(logF)
+#define addLogHandler(h)
+#define logStart()
+#define logStop()
+#define logFlush()
+#define logSuspend()
+#define logResume()
+#define isLogging()
+#define getLogLevel()
+#define setLogLevel(lvl)
+#define logDebug(...)
+#define logInfo(...)
+#define logWarn(...)
+#define logError(...)
 #else
-  #pragma message ("Compiling " __FILE__ " with 'NO_LOGGING' OFF.")
-  #define setLogFile(logF) Logging::getLogger().setLogFile(logF)
-  #define addLogHandler(h) Logging::getLogger().addHandler(h);
-  #define logStart() Logging::getLogger().start()
-  #define logStop() Logging::getLogger().stop()
-  #define logFlush() Logging::getLogger().flush()
-  #define logSuspend() Logging::getLogger().suspend()
-  #define logResume() Logging::getLogger().resume()
-  #define isLogging() Logging::getLogger().isLogging()
-  #define getLogLevel() Logging::getLogger().getHandlersLogLevel()
-  #define setLogLevel(lvl) Logging::getLogger().setHandlersLogLevel(lvl)
-  #define logDebug(...)                                                                            \
-    Logging::getLogger().log(Logging::LogLevel::debug, __LINE__, __func__, __VA_ARGS__)
-  #define logInfo(...)                                                                             \
-    Logging::getLogger().log(Logging::LogLevel::info, __LINE__, __func__, __VA_ARGS__)
-  #define logWarn(...)                                                                             \
-    Logging::getLogger().log(Logging::LogLevel::warn, __LINE__, __func__, __VA_ARGS__)
-  #define logError(...)                                                                            \
-    Logging::getLogger().log(Logging::LogLevel::error, __LINE__, __func__, __VA_ARGS__)
+#pragma message("Compiling " __FILE__ " with 'NO_LOGGING' OFF.")
+#define setLogFile(logF) Logging::getLogger().setLogFile(logF)
+#define addLogHandler(h) Logging::getLogger().addHandler(h);
+#define logStart() Logging::getLogger().start()
+#define logStop() Logging::getLogger().stop()
+#define logFlush() Logging::getLogger().flush()
+#define logSuspend() Logging::getLogger().suspend()
+#define logResume() Logging::getLogger().resume()
+#define isLogging() Logging::getLogger().isLogging()
+#define getLogLevel() Logging::getLogger().getHandlersLogLevel()
+#define setLogLevel(lvl) Logging::getLogger().setHandlersLogLevel(lvl)
+#define logDebug(...) \
+  Logging::getLogger().log(Logging::LogLevel::debug, __LINE__, __func__, __VA_ARGS__)
+#define logInfo(...) \
+  Logging::getLogger().log(Logging::LogLevel::info, __LINE__, __func__, __VA_ARGS__)
+#define logWarn(...) \
+  Logging::getLogger().log(Logging::LogLevel::warn, __LINE__, __func__, __VA_ARGS__)
+#define logError(...) \
+  Logging::getLogger().log(Logging::LogLevel::error, __LINE__, __func__, __VA_ARGS__)
 #endif
 
 #endif

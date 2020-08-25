@@ -6,18 +6,19 @@
 #include "goom_typedefs.h"
 #include "goom_visual_fx.h"
 
-struct _ZOOM_FILTER_DATA {
+struct _ZOOM_FILTER_DATA
+{
   int vitesse; /* 128 = vitesse nule... * * 256 = en arriere
 	                                * hyper vite.. * * 0 = en avant hype vite. */
   char pertedec;
   unsigned int middleX, middleY; /* milieu de l'effet */
-  char reverse;                  /* inverse la vitesse */
-  char mode;                     /* type d'effet ? appliquer (cf les #define) */
+  char reverse; /* inverse la vitesse */
+  char mode; /* type d'effet ? appliquer (cf les #define) */
   /** @since June 2001 */
   int hPlaneEffect; /* deviation horitontale */
   int vPlaneEffect; /* deviation verticale */
   /** @since April 2002 */
-  int waveEffect;     /* applique une "surcouche" de wave effect */
+  int waveEffect; /* applique une "surcouche" de wave effect */
   int hypercosEffect; /* applique une "surcouche de hypercos effect */
 
   char noisify; /* ajoute un bruit a la transformation */
@@ -41,7 +42,13 @@ VisualFX zoomFilterVisualFXWrapper_create(void);
  * zf : si non NULL, configure l'effet.
  * resx,resy : taille des buffers.
  */
-void zoomFilterFastRGB(PluginInfo* goomInfo, Pixel* pix1, Pixel* pix2, ZoomFilterData* zf,
-                       guint32 resx, guint32 resy, int switchIncr, float switchMult);
+void zoomFilterFastRGB(PluginInfo* goomInfo,
+                       Pixel* pix1,
+                       Pixel* pix2,
+                       ZoomFilterData* zf,
+                       guint32 resx,
+                       guint32 resy,
+                       int switchIncr,
+                       float switchMult);
 
 #endif

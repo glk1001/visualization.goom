@@ -2,18 +2,17 @@
 #include "goom_fx.h"
 #include "goom_plugin_info.h"
 #include "goom_tools.h"
-
-#include "goomutils/colormap_enums.h"
 #include "goomutils/colormap.h"
+#include "goomutils/colormap_enums.h"
 #include "goomutils/mathtools.h"
 
 #include <vector>
 
 /* TODO:-- FAIRE PROPREMENT... BOAH... */
 #define NCOL 15
-static const uint32_t colval[] = { 0x1416181a, 0x1419181a, 0x141f181a, 0x1426181a, 0x142a181a,
-                                   0x142f181a, 0x1436181a, 0x142f1819, 0x14261615, 0x13201411,
-                                   0x111a100a, 0x0c180508, 0x08100304, 0x00050101, 0x0};
+static const uint32_t colval[] = {0x1416181a, 0x1419181a, 0x141f181a, 0x1426181a, 0x142a181a,
+                                  0x142f181a, 0x1436181a, 0x142f1819, 0x14261615, 0x13201411,
+                                  0x111a100a, 0x0c180508, 0x08100304, 0x00050101, 0x0};
 
 /* The different modes of the visual FX.
  * Put this values on fx_mode */
@@ -22,7 +21,8 @@ static const uint32_t colval[] = { 0x1416181a, 0x1419181a, 0x141f181a, 0x1426181
 #define FOUNTAIN_FX 2
 #define LAST_FX 3
 
-struct Star {
+struct Star
+{
   float x, y;
   float vx, vy;
   float ax, ay;
@@ -30,7 +30,8 @@ struct Star {
   const ColorMap* currentColorMap = nullptr;
 };
 
-struct FSData {
+struct FSData
+{
   PluginParam enabled_bp;
 
   ColorMaps colorMaps;
@@ -125,9 +126,11 @@ static void fs_free(VisualFX* _this)
 /**
  * Cree une nouvelle 'bombe', c'est a dire une particule appartenant a une fusee d'artifice.
  */
-static void addABomb(FSData* data, int mx, int my, float radius, float vage, float gravity, PluginInfo* info)
+static void addABomb(
+    FSData* data, int mx, int my, float radius, float vage, float gravity, PluginInfo* info)
 {
-  if (data->nbStars >= data->maxStars) {
+  if (data->nbStars >= data->maxStars)
+  {
     return;
   }
   data->nbStars++;
@@ -150,7 +153,8 @@ static void addABomb(FSData* data, int mx, int my, float radius, float vage, flo
   data->stars[i].ay = gravity;
 
   data->stars[i].age = 0;
-  if (vage < data->min_age) {
+  if (vage < data->min_age)
+  {
     vage = data->min_age;
   }
   data->stars[i].vage = vage;
@@ -180,29 +184,37 @@ static void fs_sound_event_occured(VisualFX* _this, PluginInfo* info)
   data->maxAge = 10 + int(goom_irand(info->gRandom, 10));
 
   int max = (int)((1.0f + info->sound.goomPower) * goom_irand(info->gRandom, 150)) + 100;
-  float radius = (1.0f + info->sound.goomPower) * (float)(goom_irand(info->gRandom, 150) + 50) / 300;
+  float radius =
+      (1.0f + info->sound.goomPower) * (float)(goom_irand(info->gRandom, 150) + 50) / 300;
   float vage;
   float gravity = 0.02f;
   unsigned int mx;
   int my;
 
-  switch (data->fx_mode) {
-    case FIREWORKS_FX: {
+  switch (data->fx_mode)
+  {
+    case FIREWORKS_FX:
+    {
       double dx;
       double dy;
-      do {
+      do
+      {
         mx = goom_irand(info->gRandom, (uint32_t)info->screen.width);
         my = (int)goom_irand(info->gRandom, (uint32_t)info->screen.height);
         dx = ((int)mx - info->screen.width / 2);
         dy = (my - info->screen.height / 2);
       } while (dx * dx + dy * dy < (info->screen.height / 2) * (info->screen.height / 2));
       vage = data->max_age * (1.0f - info->sound.goomPower);
-    } break;
+    }
+    break;
     case RAIN_FX:
       mx = goom_irand(info->gRandom, (uint32_t)info->screen.width);
-      if (mx > (uint32_t)info->screen.width / 2) {
+      if (mx > (uint32_t)info->screen.width / 2)
+      {
         mx = (uint32_t)info->screen.width;
-      } else {
+      }
+      else
+      {
         mx = 0;
       }
       my = -(info->screen.height / 3) -
@@ -225,11 +237,13 @@ static void fs_sound_event_occured(VisualFX* _this, PluginInfo* info)
   radius *= info->screen.height / 200.0f; /* why 200 ? because the FX was developed on 320x200 */
   max *= info->screen.height / 200.0f;
 
-  if (info->sound.timeSinceLastBigGoom < 1) {
+  if (info->sound.timeSinceLastBigGoom < 1)
+  {
     radius *= 1.5;
     max *= 2;
   }
-  for (int i = 0; i < max; ++i) {
+  for (int i = 0; i < max; ++i)
+  {
     addABomb(data, (int)mx, my, radius, vage, gravity, info);
   }
 }
@@ -244,7 +258,8 @@ static void fs_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* info)
 {
   FSData* data = (FSData*)_this->fx_data;
 
-  if (!BVAL(data->enabled_bp)) {
+  if (!BVAL(data->enabled_bp))
+  {
     return;
   }
 
@@ -257,48 +272,56 @@ static void fs_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* info)
   data->fx_mode = IVAL(data->fx_mode_p);
 
   /* look for events */
-  if (info->sound.timeSinceLastGoom < 1) {
+  if (info->sound.timeSinceLastGoom < 1)
+  {
     fs_sound_event_occured(_this, info);
-    if (goom_irand(info->gRandom, 20) == 1) {
+    if (goom_irand(info->gRandom, 20) == 1)
+    {
       IVAL(data->fx_mode_p) = (int)goom_irand(info->gRandom, (LAST_FX * 3));
       data->fx_mode_p.change_listener(&data->fx_mode_p);
     }
   }
 
   /* update particules */
-  for (unsigned i = 0; i < data->nbStars; ++i) {
+  for (unsigned i = 0; i < data->nbStars; ++i)
+  {
     updateStar(&data->stars[i]);
 
     /* dead particule */
-    if (data->stars[i].age >= data->maxAge) {
+    if (data->stars[i].age >= data->maxAge)
+    {
       continue;
     }
 
     /* choose the color of the particule */
-    const float t = data->stars[i].age/float(data->maxAge);
+    const float t = data->stars[i].age / float(data->maxAge);
     const uint32_t color = data->stars[i].currentColorMap->getColor(t);
-    const uint32_t colorLow = ColorMap::colorMix(color, colval[size_t(t*float(NCOL-1))], t);
+    const uint32_t colorLow = ColorMap::colorMix(color, colval[size_t(t * float(NCOL - 1))], t);
 
     /* draws the particule */
     draw_line(dest, (int)data->stars[i].x, (int)data->stars[i].y,
-                    (int)(data->stars[i].x - data->stars[i].vx * 6),
-                    (int)(data->stars[i].y - data->stars[i].vy * 6), color,
-                    (int)info->screen.width, (int)info->screen.height);
+              (int)(data->stars[i].x - data->stars[i].vx * 6),
+              (int)(data->stars[i].y - data->stars[i].vy * 6), color, (int)info->screen.width,
+              (int)info->screen.height);
     draw_line(dest, (int)data->stars[i].x, (int)data->stars[i].y,
-                    (int)(data->stars[i].x - data->stars[i].vx * 2),
-                    (int)(data->stars[i].y - data->stars[i].vy * 2), colorLow,
-                    (int)info->screen.width, (int)info->screen.height);
+              (int)(data->stars[i].x - data->stars[i].vx * 2),
+              (int)(data->stars[i].y - data->stars[i].vy * 2), colorLow, (int)info->screen.width,
+              (int)info->screen.height);
   }
 
   /* look for dead particules */
-  for (unsigned i = 0; i < data->nbStars;) {
+  for (unsigned i = 0; i < data->nbStars;)
+  {
     if ((data->stars[i].x > info->screen.width + 64) ||
         ((data->stars[i].vy >= 0) &&
          (data->stars[i].y - 16 * data->stars[i].vy > info->screen.height)) ||
-        (data->stars[i].x < -64) || (data->stars[i].age >= data->maxAge)) {
+        (data->stars[i].x < -64) || (data->stars[i].age >= data->maxAge))
+    {
       data->stars[i] = data->stars[data->nbStars - 1];
       data->nbStars--;
-    } else {
+    }
+    else
+    {
       ++i;
     }
   }

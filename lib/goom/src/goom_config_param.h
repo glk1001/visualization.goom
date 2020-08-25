@@ -10,7 +10,8 @@
  * LGPL Licence.
  */
 
-typedef enum {
+typedef enum
+{
   PARAM_INTVAL,
   PARAM_FLOATVAL,
   PARAM_BOOLVAL,
@@ -18,36 +19,43 @@ typedef enum {
   PARAM_LISTVAL,
 } ParamType;
 
-struct IntVal {
+struct IntVal
+{
   int value;
   int min;
   int max;
   int step;
 };
-struct FloatVal {
+struct FloatVal
+{
   float value;
   float min;
   float max;
   float step;
 };
-struct StrVal {
+struct StrVal
+{
   char* value;
 };
-struct ListVal {
+struct ListVal
+{
   char* value;
   int nbChoices;
   char** choices;
 };
-struct BoolVal {
+struct BoolVal
+{
   int value;
 };
 
-typedef struct _PARAM {
+typedef struct _PARAM
+{
   const char* name;
   const char* desc;
   char rw;
   ParamType type;
-  union {
+  union
+  {
     struct IntVal ival;
     struct FloatVal fval;
     struct StrVal sval;
@@ -91,7 +99,8 @@ PluginParam goom_secure_i_feedback(const char* name);
 void goom_set_str_param_value(PluginParam* p, const char* str);
 void goom_set_list_param_value(PluginParam* p, const char* str);
 
-typedef struct _PARAMETERS {
+typedef struct _PARAMETERS
+{
   const char* name;
   const char* desc;
   unsigned int nbParams;
