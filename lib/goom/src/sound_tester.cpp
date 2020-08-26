@@ -3,8 +3,7 @@
 #include "goom.h"
 #include "goom_config.h"
 
-#include <stdlib.h>
-#include <string.h>
+#include <cstdint>
 
 /* some constants */
 #define BIG_GOOM_DURATION 100
@@ -13,9 +12,9 @@
 #define ACCEL_MULT 0.95f
 #define SPEED_MULT 0.99f
 
-void evaluate_sound(const gint16 data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], SoundInfo* info)
+void evaluate_sound(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], SoundInfo* info)
 {
-  /* find the max */
+  // find the max
   int incvar = 0;
   for (int i = 0; i < AUDIO_SAMPLE_LEN; i++)
   {
@@ -30,15 +29,15 @@ void evaluate_sound(const gint16 data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], Soun
     info->allTimesMax = incvar;
   }
 
-  /* volume sonore */
+  // volume sonore
   info->volume = (float)incvar / (float)info->allTimesMax;
   memcpy(info->samples[0], data[0], AUDIO_SAMPLE_LEN * sizeof(short));
   memcpy(info->samples[1], data[1], AUDIO_SAMPLE_LEN * sizeof(short));
 
   float difaccel = info->accelvar;
-  info->accelvar = info->volume; /* accel entre 0 et 1 */
+  info->accelvar = info->volume; // accel entre 0 et 1
 
-  /* transformations sur la vitesse du son */
+  // transformations sur la vitesse du son
   if (info->speedvar > 1.0f)
   {
     info->speedvar = 1.0f;
@@ -57,7 +56,7 @@ void evaluate_sound(const gint16 data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], Soun
     info->accelvar *= (0.8f - (float)(info->speedvar - 0.3f) / 4.0f);
   }
 
-  /* adoucissement de l'acceleration */
+  // adoucissement de l'acceleration
   info->accelvar *= ACCEL_MULT;
   if (info->accelvar < 0)
   {
@@ -70,7 +69,7 @@ void evaluate_sound(const gint16 data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], Soun
     difaccel = -difaccel;
   }
 
-  /* mise a jour de la vitesse */
+  // mise a jour de la vitesse
   float prevspeed = info->speedvar;
   info->speedvar = (info->speedvar + difaccel * 0.5f) / 2;
   info->speedvar *= SPEED_MULT;
@@ -84,12 +83,12 @@ void evaluate_sound(const gint16 data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], Soun
     info->speedvar = 1;
   }
 
-  /* temps du goom */
+  // temps du goom
   info->timeSinceLastGoom++;
   info->timeSinceLastBigGoom++;
   info->cycle++;
 
-  /* detection des nouveaux gooms */
+  // detection des nouveaux gooms
   if ((info->speedvar > (float)IVAL(info->biggoom_speed_limit_p) / 100.0f) &&
       (info->accelvar > info->bigGoomLimit) && (info->timeSinceLastBigGoom > BIG_GOOM_DURATION))
   {
@@ -114,8 +113,7 @@ void evaluate_sound(const gint16 data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], Soun
     info->goom_limit = 1;
   }
 
-  /* toute les 2 secondes : vérifier si le taux de goom est correct
-	 * et le modifier sinon.. */
+  // toute les 2 secondes : vérifier si le taux de goom est correct et le modifier sinon..
   if (info->cycle % 64 == 0)
   {
     if (info->speedvar < 0.01f)
@@ -149,7 +147,7 @@ void evaluate_sound(const gint16 data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], Soun
     info->prov_max = 0;
   }
 
-  /* mise a jour des parametres pour la GUI */
+  //* mise a jour des parametres pour la GUI
   FVAL(info->volume_p) = info->volume;
   info->volume_p.change_listener(&info->volume_p);
   FVAL(info->speed_p) = info->speedvar * 4;
@@ -166,5 +164,5 @@ void evaluate_sound(const gint16 data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], Soun
   FVAL(info->last_biggoom_p) = 1.0 - ((float)info->timeSinceLastBigGoom / 40.0f);
   info->last_biggoom_p.change_listener(&info->last_biggoom_p);
 
-  /* bigGoomLimit ==goomLimit*9/8+7 ? */
+  // bigGoomLimit ==goomLimit*9/8+7 ?
 }

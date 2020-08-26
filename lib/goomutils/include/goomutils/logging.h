@@ -156,7 +156,7 @@ inline void Logging::vlog(const LogLevel lvl,
 #define logFlush()
 #define logSuspend()
 #define logResume()
-#define isLogging()
+#define isLogging() false
 #define getLogLevel()
 #define setLogLevel(lvl)
 #define logDebug(...)

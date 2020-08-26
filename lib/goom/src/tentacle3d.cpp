@@ -25,7 +25,7 @@ public:
   void update(PluginInfo* goomInfo,
               Pixel* buf,
               Pixel* back,
-              gint16 data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
+              int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
               float accelvar,
               int drawit,
               TentacleFXData* fx_data);
@@ -110,7 +110,7 @@ void updateColors(PluginInfo* goomInfo, const TentacleFXData* fx_data)
 void TentaclesWrapper::update(PluginInfo* goomInfo,
                               Pixel* buf,
                               Pixel* back,
-                              gint16 data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
+                              int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
                               float accelvar,
                               int drawit,
                               TentacleFXData* fx_data)
@@ -371,9 +371,6 @@ inline unsigned char TentaclesWrapper::lighten(const unsigned char value, const 
  * VisualFX wrapper for the tentacles
  */
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-
 void tentacle_fx_init(VisualFX* _this, PluginInfo* info)
 {
   TentacleFXData* data = (TentacleFXData*)malloc(sizeof(TentacleFXData));
@@ -401,8 +398,6 @@ void tentacle_fx_init(VisualFX* _this, PluginInfo* info)
   _this->params = &data->params;
   _this->fx_data = (void*)data;
 }
-
-#pragma GCC diagnostic pop
 
 void tentacle_fx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* goomInfo)
 {

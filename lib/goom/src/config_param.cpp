@@ -11,18 +11,14 @@
 #include "goom_config_param.h"
 #include "goomutils/logging.h"
 
+#include <cstddef>
 #include <string.h>
 
 /* TODO: Ajouter goom_ devant ces fonctions */
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-
-static void empty_fct(PluginParam* dummy)
+static void empty_fct(PluginParam*)
 {
 }
-
-#pragma GCC diagnostic pop
 
 PluginParam goom_secure_param()
 {
@@ -39,7 +35,7 @@ PluginParam goom_secure_f_param(const char* name)
 {
   PluginParam p = secure_param();
   p.name = name;
-  p.type = PARAM_FLOATVAL;
+  p.type = ParamType::PARAM_FLOATVAL;
   FVAL(p) = 0.5f;
   FMIN(p) = 0.0f;
   FMAX(p) = 1.0f;
@@ -58,7 +54,7 @@ PluginParam goom_secure_s_param(const char* name)
 {
   PluginParam p = secure_param();
   p.name = name;
-  p.type = PARAM_STRVAL;
+  p.type = ParamType::PARAM_STRVAL;
   SVAL(p) = 0;
   return p;
 }
@@ -67,7 +63,7 @@ PluginParam goom_secure_b_param(const char* name, int value)
 {
   PluginParam p = secure_param();
   p.name = name;
-  p.type = PARAM_BOOLVAL;
+  p.type = ParamType::PARAM_BOOLVAL;
   BVAL(p) = value;
   return p;
 }
@@ -76,7 +72,7 @@ PluginParam goom_secure_i_param(const char* name)
 {
   PluginParam p = secure_param();
   p.name = name;
-  p.type = PARAM_INTVAL;
+  p.type = ParamType::PARAM_INTVAL;
   IVAL(p) = 50;
   IMIN(p) = 0;
   IMAX(p) = 100;
@@ -84,7 +80,7 @@ PluginParam goom_secure_i_param(const char* name)
   return p;
 }
 
-PluginParam goom_secure_i_feedback(char* name)
+PluginParam goom_secure_i_feedback(const char* name)
 {
   PluginParam p = secure_i_param(name);
   p.rw = 0;
@@ -94,7 +90,7 @@ PluginParam goom_secure_i_feedback(char* name)
 PluginParameters goom_plugin_parameters(const char* name, unsigned int nb)
 {
   PluginParameters p;
-  p.name = (char*)name;
+  p.name = name;
   p.desc = "";
   p.nbParams = nb;
   p.params = (PluginParam**)malloc(nb * sizeof(PluginParam*));
@@ -105,7 +101,7 @@ PluginParameters goom_plugin_parameters(const char* name, unsigned int nb)
 
 void goom_set_str_param_value(PluginParam* p, const char* str)
 {
-  const unsigned int len = strlen(str);
+  const size_t len = strlen(str);
   if (SVAL(*p))
     SVAL(*p) = (char*)realloc(SVAL(*p), len + 1);
   else
@@ -115,7 +111,7 @@ void goom_set_str_param_value(PluginParam* p, const char* str)
 
 void goom_set_list_param_value(PluginParam* p, const char* str)
 {
-  const unsigned int len = strlen(str);
+  const size_t len = strlen(str);
   logDebug("{}: {}", str, len);
 
   if (LVAL(*p))

@@ -1,16 +1,14 @@
 #include "lines.h"
 
 #include "drawmethods.h"
-#include "goom.h"
 #include "goom_config.h"
 #include "goom_plugin_info.h"
 #include "goom_tools.h"
 #include "goomutils/colormap.h"
 #include "goomutils/mathutils.h"
 
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cmath>
+#include <cstdint>
 
 static inline unsigned char lighten(unsigned char value, float power)
 {
@@ -36,7 +34,7 @@ static inline unsigned char lighten(unsigned char value, float power)
   }
 }
 
-static void lightencolor(guint32* col, float power)
+static void lightencolor(uint32_t* col, float power)
 {
   unsigned char* color;
 
@@ -50,7 +48,11 @@ static void lightencolor(guint32* col, float power)
   *color = lighten(*color, power);
 }
 
-static void genline(int id, float param, GMUnitPointer* l, int rx, int ry)
+static void genline(const int id,
+                    const float param,
+                    GMUnitPointer* l,
+                    const uint32_t rx,
+                    const uint32_t ry)
 {
   switch (id)
   {
@@ -85,7 +87,7 @@ static void genline(int id, float param, GMUnitPointer* l, int rx, int ry)
   }
 }
 
-static guint32 getcouleur(int mode)
+static uint32_t getcouleur(int mode)
 {
   switch (mode)
   {
@@ -107,7 +109,7 @@ static guint32 getcouleur(int mode)
   return 0;
 }
 
-void goom_lines_set_res(GMLine* gml, int rx, int ry)
+void goom_lines_set_res(GMLine* gml, const uint32_t rx, const uint32_t ry)
 {
   if (gml != NULL)
   {
@@ -153,7 +155,11 @@ static void goom_lines_move(GMLine* l)
   l->amplitude = (99.0f * l->amplitude + l->amplitudeF) / 100.0f;
 }
 
-void goom_lines_switch_to(GMLine* gml, int IDdest, float param, float amplitude, int col)
+void goom_lines_switch_to(GMLine* gml,
+                          const int IDdest,
+                          const float param,
+                          const float amplitude,
+                          const int col)
 {
   genline(IDdest, param, gml->points2, gml->screenX, gml->screenY);
   gml->IDdest = IDdest;
@@ -163,14 +169,14 @@ void goom_lines_switch_to(GMLine* gml, int IDdest, float param, float amplitude,
 }
 
 GMLine* goom_lines_init(PluginInfo* goomInfo,
-                        int rx,
-                        int ry,
-                        int IDsrc,
-                        float paramS,
-                        int coulS,
-                        int IDdest,
-                        float paramD,
-                        int coulD)
+                        const uint32_t rx,
+                        const uint32_t ry,
+                        const int IDsrc,
+                        const float paramS,
+                        const int coulS,
+                        const int IDdest,
+                        const float paramD,
+                        const int coulD)
 {
   GMLine* l = (GMLine*)malloc(sizeof(GMLine));
 
@@ -224,12 +230,12 @@ static inline float getNormalizedData(PluginInfo* goomInfo, short data)
 
 void goom_lines_draw(PluginInfo* goomInfo,
                      GMLine* line,
-                     const gint16 data[AUDIO_SAMPLE_LEN],
+                     const int16_t data[AUDIO_SAMPLE_LEN],
                      Pixel* p)
 {
   if (line != NULL)
   {
-    guint32 color = line->color;
+    uint32_t color = line->color;
     const GMUnitPointer* pt = &(line->points[0]);
 
     const float cosa = cos(pt->angle) / 1000.0f;

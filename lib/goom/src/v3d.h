@@ -1,22 +1,24 @@
 #ifndef _V3D_H
 #define _V3D_H
 
-typedef struct
+struct v3d
 {
   float x = 0;
   float y = 0;
   float z = 0;
   bool ignore = false;
-} v3d;
+};
 
-typedef struct
+struct v2d
 {
-  int x, y;
-} v2d;
+  int x;
+  int y;
+};
 
-typedef struct
+struct v2g
 {
-  double x, y;
-} v2g;
+  double x;
+  double y;
+};
 
 #endif

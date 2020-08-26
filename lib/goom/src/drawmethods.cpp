@@ -1,12 +1,11 @@
 #include "drawmethods.h"
 
-#include <array>
 #undef NDEBUG
-#include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include <functional>
-#include <utility>
 #include <vector>
 
 static void WuDrawLine(float x0,
@@ -15,10 +14,10 @@ static void WuDrawLine(float x0,
                        float y1,
                        const std::function<void(int x, int y, float brightess)>& plot)
 {
-  auto ipart = [](float x) -> int { return int(std::floor(x)); };
-  auto round = [](float x) -> float { return std::round(x); };
-  auto fpart = [](float x) -> float { return x - std::floor(x); };
-  auto rfpart = [=](float x) -> float { return 1 - fpart(x); };
+  const auto ipart = [](float x) -> int { return int(std::floor(x)); };
+  const auto round = [](float x) -> float { return std::round(x); };
+  const auto fpart = [](float x) -> float { return x - std::floor(x); };
+  const auto rfpart = [=](float x) -> float { return 1 - fpart(x); };
 
   const bool steep = abs(y1 - y0) > abs(x1 - x0);
   if (steep)
@@ -42,7 +41,7 @@ static void WuDrawLine(float x0,
     const float xend = round(x0);
     const float yend = y0 + gradient * (xend - x0);
     const float xgap = rfpart(x0 + 0.5);
-    xpx11 = int(xend);
+    xpx11 = static_cast<int>(xend);
     const int ypx11 = ipart(yend);
     if (steep)
     {
@@ -62,7 +61,7 @@ static void WuDrawLine(float x0,
     const float xend = round(x1);
     const float yend = y1 + gradient * (xend - x1);
     const float xgap = rfpart(x1 + 0.5);
-    xpx12 = int(xend);
+    xpx12 = static_cast<int>(xend);
     const int ypx12 = ipart(yend);
     if (steep)
     {
@@ -96,9 +95,9 @@ static void WuDrawLine(float x0,
   }
 }
 
-inline unsigned char brighten(const uint32_t br, unsigned char c)
+inline uint8_t brighten(const uint32_t br, unsigned char c)
 {
-  return (unsigned char)((br * uint32_t(c)) >> 8);
+  return static_cast<uint8_t>((br * uint32_t(c)) >> 8);
 }
 
 inline Pixel getColor(const float brightness, const Pixel& color)
@@ -113,14 +112,14 @@ inline Pixel getColor(const float brightness, const Pixel& color)
   return c;
 }
 
-inline unsigned char colorAdd(const unsigned char c1, const unsigned char c2)
+inline uint8_t colorAdd(const unsigned char c1, const unsigned char c2)
 {
   uint32_t cadd = uint32_t(c1) + (uint32_t(c2) >> 1);
   if (cadd > 255)
   {
     cadd = 255;
   }
-  return (unsigned char)(cadd);
+  return static_cast<uint8_t>(cadd);
 }
 
 inline Pixel getColorAdd(const Pixel& color1, const Pixel& color2)
@@ -133,7 +132,10 @@ inline Pixel getColorAdd(const Pixel& color1, const Pixel& color2)
   return c;
 }
 
-inline void draw_pixels(size_t n, Pixel* buffs[], const std::vector<Pixel>& cols, const int pos)
+inline void draw_pixels(const size_t n,
+                        Pixel *buffs[],
+                        const std::vector<Pixel> &cols,
+                        const int pos)
 {
   for (size_t i = 0; i < n; i++)
   {
@@ -142,26 +144,27 @@ inline void draw_pixels(size_t n, Pixel* buffs[], const std::vector<Pixel>& cols
   }
 }
 
-static void draw_wuline(size_t n,
+static void draw_wuline(const size_t n,
                         Pixel* buffs[],
                         const std::vector<Pixel>& cols,
-                        int x1,
-                        int y1,
-                        int x2,
-                        int y2,
-                        int screenx,
-                        int screeny)
+                        const int x1,
+                        const int y1,
+                        const int x2,
+                        const int y2,
+                        const uint16_t screenx,
+                        const uint16_t screeny)
 {
-  if ((y1 < 0) || (y2 < 0) || (x1 < 0) || (x2 < 0) || (y1 >= screeny) || (y2 >= screeny) ||
-      (x1 >= screenx) || (x2 >= screenx))
+  if ((y1 < 0) || (y2 < 0) || (x1 < 0) || (x2 < 0) ||
+      (uint16_t(y1) >= screeny) || (uint16_t(y2) >= screeny) ||
+      (uint16_t(x1) >= screenx) || (uint16_t(x2) >= screenx))
   {
     return;
   }
 
   assert(n == cols.size());
-  std::vector<Pixel> colors = cols;
+  const std::vector<Pixel> colors = cols;
   auto plot = [&](int x, int y, float brightness) -> void {
-    if (x >= screenx || y >= screeny)
+    if (uint16_t(x) >= screenx || uint16_t(y) >= screeny)
     {
       return;
     }
@@ -169,7 +172,7 @@ static void draw_wuline(size_t n,
     {
       return;
     }
-    const int pos = y * screenx + x;
+    const int pos = y * int(screenx) + x;
     if (brightness >= 0.999)
     {
       draw_pixels(n, buffs, cols, pos);
@@ -187,7 +190,14 @@ static void draw_wuline(size_t n,
   WuDrawLine(x1, y1, x2, y2, plot);
 }
 
-void draw_line(Pixel* data, int x1, int y1, int x2, int y2, uint32_t col, int screenx, int screeny)
+void draw_line(Pixel* data,
+               const int x1,
+               const int y1,
+               const int x2,
+               const int y2,
+               const uint32_t col,
+               const uint16_t screenx,
+               const uint16_t screeny)
 {
   Pixel* buffs[] = {data};
   std::vector<Pixel> colors(1);
@@ -195,21 +205,22 @@ void draw_line(Pixel* data, int x1, int y1, int x2, int y2, uint32_t col, int sc
   draw_line(1, buffs, colors, x1, y1, x2, y2, screenx, screeny);
 }
 
-void draw_line(size_t n,
+void draw_line(const size_t n,
                Pixel* buffs[],
                const std::vector<Pixel>& cols,
                int x1,
                int y1,
                int x2,
                int y2,
-               int screenx,
-               int screeny)
+               const uint16_t screenx,
+               const uint16_t screeny)
 {
   draw_wuline(n, buffs, cols, x1, y1, x2, y2, screenx, screeny);
   return;
 
-  if ((y1 < 0) || (y2 < 0) || (x1 < 0) || (x2 < 0) || (y1 >= screeny) || (y2 >= screeny) ||
-      (x1 >= screenx) || (x2 >= screenx))
+  if ((y1 < 0) || (y2 < 0) || (x1 < 0) || (x2 < 0) ||
+      (uint16_t(y1) >= screeny) || (uint16_t(y2) >= screeny) ||
+      (uint16_t(x1) >= screenx) || (uint16_t(x2) >= screenx))
   {
     return;
   }
@@ -281,20 +292,20 @@ void draw_line(size_t n,
   {
     if (y1 < y2)
     {
-      int i = (screenx * y1) + x1;
+      int i = (static_cast<int>(screenx) * y1) + x1;
       for (int y = y1; y <= y2; y++)
       {
         draw_pixels(n, buffs, cols, i);
-        i += screenx;
+        i += static_cast<int>(screenx);
       }
     }
     else
     {
-      int i = (screenx * y2) + x1;
+      int i = (static_cast<int>(screenx) * y2) + x1;
       for (int y = y2; y <= y1; y++)
       {
         draw_pixels(n, buffs, cols, i);
-        i += screenx;
+        i += static_cast<int>(screenx);
       }
     }
     return;
@@ -304,7 +315,7 @@ void draw_line(size_t n,
   {
     if (x1 < x2)
     {
-      int i = (screenx * y1) + x1;
+      int i = (static_cast<int>(screenx) * y1) + x1;
       for (int x = x1; x <= x2; x++)
       {
         draw_pixels(n, buffs, cols, i);
@@ -314,7 +325,7 @@ void draw_line(size_t n,
     }
     else
     {
-      int i = (screenx * y1) + x2;
+      int i = (static_cast<int>(screenx) * y1) + x2;
       for (int x = x2; x <= x1; x++)
       {
         draw_pixels(n, buffs, cols, i);
@@ -337,9 +348,9 @@ void draw_line(size_t n,
       for (int y = y1; y <= y2; y++)
       {
         const int xx = x >> 16;
-        int i = (screenx * y) + xx;
+        int i = (static_cast<int>(screenx) * y) + xx;
         draw_pixels(n, buffs, cols, i);
-        if (xx < (screenx - 1))
+        if (xx < (static_cast<int>(screenx) - 1))
         {
           i++;
           /* DRAWMETHOD; */
@@ -356,11 +367,11 @@ void draw_line(size_t n,
       for (int x = x1; x <= x2; x++)
       {
         const int yy = y >> 16;
-        int i = (screenx * yy) + x;
+        int i = (static_cast<int>(screenx) * yy) + x;
         draw_pixels(n, buffs, cols, i);
-        if (yy < (screeny - 1))
+        if (yy < (static_cast<int>(screeny) - 1))
         {
-          i += screeny;
+          i += static_cast<int>(screeny);
           /* DRAWMETHOD; */
         }
         y += dy;
@@ -381,9 +392,9 @@ void draw_line(size_t n,
       for (int y = y1; y >= y2; y--)
       {
         const int xx = x >> 16;
-        int i = (screenx * y) + xx;
+        int i = (static_cast<int>(screenx) * y) + xx;
         draw_pixels(n, buffs, cols, i);
-        if (xx < (screenx - 1))
+        if (xx < (static_cast<int>(screenx) - 1))
         {
           i--;
           /* DRAWMETHOD; */
@@ -400,11 +411,11 @@ void draw_line(size_t n,
       for (int x = x1; x <= x2; x++)
       {
         const int yy = y >> 16;
-        int i = (screenx * yy) + x;
+        int i = (static_cast<int>(screenx) * yy) + x;
         draw_pixels(n, buffs, cols, i);
-        if (yy < (screeny - 1))
+        if (yy < (static_cast<int>(screeny) - 1))
         {
-          i += screeny;
+          i += static_cast<int>(screeny);
           /* DRAWMETHOD; */
         }
         y += dy;

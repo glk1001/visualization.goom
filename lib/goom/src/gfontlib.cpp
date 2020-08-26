@@ -2,9 +2,10 @@
 
 #include "gfontrle.h"
 #include "goom_config.h"
+#include "goom_graphic.h"
 
+#include <cstdint>
 #include <stdlib.h>
-#include <string.h>
 
 static Pixel*** font_chars;
 static int* font_width;
@@ -17,7 +18,7 @@ void gfont_load(void)
 {
   /* decompress le rle */
   unsigned char* gfont =
-      (unsigned char*)malloc(the_font.width * the_font.height * the_font.bytes_per_pixel);
+      (unsigned char*)malloc(size_t(the_font.width * the_font.height * the_font.bytes_per_pixel));
   unsigned int i = 0;
   unsigned int j = 0;
   while (i < the_font.rle_size)
@@ -145,8 +146,14 @@ void gfont_load(void)
   free(font_pos);
 }
 
-void goom_draw_text(
-    Pixel* buf, int resolx, int resoly, int x, int y, const char* str, float charspace, int center)
+void goom_draw_text(Pixel* buf,
+                    const uint16_t resolx,
+                    const uint16_t resoly,
+                    int x,
+                    int y,
+                    const char* str,
+                    const float charspace,
+                    const int center)
 {
   float fx = (float)x;
   int fin = 0;
@@ -217,14 +224,14 @@ void goom_draw_text(
         xmin = 0;
       }
 
-      if (xmin >= resolx - 1)
+      if (xmin >= int(resolx) - 1)
       {
         return;
       }
 
       if (xmax >= (int)resolx)
       {
-        xmax = resolx - 1;
+        xmax = int(resolx) - 1;
       }
 
       if (yy < 0)
@@ -236,7 +243,7 @@ void goom_draw_text(
       {
         if (ymax >= (int)resoly - 1)
         {
-          ymax = resoly - 1;
+          ymax = int(resoly) - 1;
         }
 
         for (; yy < ymax; yy++)
@@ -249,22 +256,22 @@ void goom_draw_text(
             {
               if (transparency.val == A_CHANNEL)
               {
-                buf[yy * resolx + xx] = color;
+                buf[yy * int(resolx) + xx] = color;
               }
               else
               {
-                Pixel back = buf[yy * resolx + xx];
+                Pixel back = buf[yy * int(resolx) + xx];
                 unsigned int a1 = color.channels.a;
                 unsigned int a2 = 255 - a1;
-                buf[yy * resolx + xx].channels.r =
+                buf[yy * int(resolx) + xx].channels.r =
                     (unsigned char)((((unsigned int)color.channels.r * a1) +
                                      ((unsigned int)back.channels.r * a2)) >>
                                     8);
-                buf[yy * resolx + xx].channels.g =
+                buf[yy * int(resolx) + xx].channels.g =
                     (unsigned char)((((unsigned int)color.channels.g * a1) +
                                      ((unsigned int)back.channels.g * a2)) >>
                                     8);
-                buf[yy * resolx + xx].channels.b =
+                buf[yy * int(resolx) + xx].channels.b =
                     (unsigned char)((((unsigned int)color.channels.b * a1) +
                                      ((unsigned int)back.channels.b * a2)) >>
                                     8);

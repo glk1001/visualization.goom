@@ -7,7 +7,7 @@
 
 class TentaclesWrapper;
 
-typedef struct _TENTACLE_FX_DATA
+struct TentacleFXData
 {
   PluginParam enabled_bp;
   PluginParameters params;
@@ -20,14 +20,14 @@ typedef struct _TENTACLE_FX_DATA
   float lig;
   float ligs;
 
-  /* statics from pretty_move */
+  // statics from pretty_move
   float distt;
   float distt2;
-  float rot; /* entre 0 et 2 * M_PI */
+  float rot; // entre 0 et 2 * M_PI
   int happens;
   int rotation;
   int lock;
-} TentacleFXData;
+};
 
 VisualFX tentacle_fx_create(void);
 void tentacle_free(TentacleFXData* data);

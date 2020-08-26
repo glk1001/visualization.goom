@@ -3,12 +3,14 @@
 
 #include "goom_config.h"
 
-typedef unsigned int Uint;
+#include <cstdint>
 
-typedef struct
+struct Color
 {
-  unsigned short r, v, b;
-} Color;
+  uint8_t r;
+  uint8_t g;
+  uint8_t b;
+};
 
 extern const Color BLACK;
 extern const Color WHITE;
@@ -26,44 +28,39 @@ extern const Color VIOLET;
 #define B_OFFSET 8
 #define A_OFFSET 0
 
-typedef union _PIXEL
+union Pixel
 {
   struct
   {
-    unsigned char r;
-    unsigned char g;
-    unsigned char b;
-    unsigned char a;
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+    uint8_t a;
   } channels;
-  unsigned int val;
-  unsigned char cop[4];
-} Pixel;
+  uint32_t val;
+  uint8_t cop[4];
+};
 
-#else
+#else // not COLOR_BGRA
 #define A_CHANNEL 0xFF000000
 #define A_OFFSET 24
 #define R_OFFSET 16
 #define G_OFFSET 8
 #define B_OFFSET 0
 
-typedef union _PIXEL
+union Pixel
 {
   struct
   {
-    unsigned char a;
-    unsigned char r;
-    unsigned char g;
-    unsigned char b;
+    uint8_t a;
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
   } channels;
-  unsigned int val;
-  unsigned char cop[4];
-} Pixel;
+  uint32_t val;
+  uint8_t cop[4];
+};
 
 #endif /* COLOR_BGRA */
 
-/*
-inline void setPixelRGB (Pixel * buffer, Uint x, Uint y, Color c);
-inline void getPixelRGB (Pixel * buffer, Uint x, Uint y, Color * c);
-*/
-
-#endif /* GRAPHIC_H */
+#endif

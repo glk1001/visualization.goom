@@ -7,21 +7,24 @@
  *  Copyright (c) 2000-2003 iOS-software. All rights reserved.
  */
 
-#include "goom.h"
 #include "goom_config.h"
 #include "goom_graphic.h"
-#include "goom_typedefs.h"
 #include "goomutils/colormap.h"
 
-struct _GMUNITPOINTER
+#include <cstddef>
+#include <cstdint>
+
+struct GMUnitPointer
 {
   float x;
   float y;
   float angle;
 };
 
-/* tableau de points */
-struct _GMLINE
+struct PluginInfo;
+
+// tableau de points
+struct GMLine
 {
   ColorMaps* colorMaps;
 
@@ -32,13 +35,13 @@ struct _GMLINE
   float amplitudeF;
   float amplitude;
 
-  int nbPoints;
-  guint32
-      color; /* pour l'instant je stocke la couleur a terme, on stockera le mode couleur et l'on animera */
-  guint32 color2;
+  size_t nbPoints;
+  // pour l'instant je stocke la couleur a terme, on stockera le mode couleur et l'on animera
+  uint32_t color;
+  uint32_t color2;
 
-  int screenX;
-  int screenY;
+  uint16_t screenX;
+  uint16_t screenY;
 
   float power;
   float powinc;
@@ -46,19 +49,18 @@ struct _GMLINE
   PluginInfo* goomInfo;
 };
 
-/* les ID possibles */
+// les ID possibles...
 
 #define GML_CIRCLE 0
-/* (param = radius) */
+// (param = radius)
 
 #define GML_HLINE 1
-/* (param = y) */
+// (param = y)
 
 #define GML_VLINE 2
-/* (param = x) */
+// (param = x)
 
-/* les modes couleur possible (si tu mets un autre c'est noir) */
-
+// les modes couleur possible (si tu mets un autre c'est noir)
 #define GML_BLEUBLANC 0
 #define GML_RED 1
 #define GML_ORANGE_V 2
@@ -67,26 +69,30 @@ struct _GMLINE
 #define GML_BLEU 5
 #define GML_BLACK 6
 
-/* construit un effet de line (une ligne horitontale pour commencer) */
+// construit un effet de line (une ligne horitontale pour commencer)
 GMLine* goom_lines_init(PluginInfo* goomInfo,
-                        int rx,
-                        int ry,
-                        int IDsrc,
-                        float paramS,
-                        int modeCoulSrc,
-                        int IDdest,
-                        float paramD,
-                        int modeCoulDest);
+                        const uint32_t rx,
+                        const uint32_t ry,
+                        const int IDsrc,
+                        const float paramS,
+                        const int modeCoulSrc,
+                        const int IDdest,
+                        const float paramD,
+                        const int modeCoulDest);
 
-void goom_lines_switch_to(GMLine* gml, int IDdest, float param, float amplitude, int modeCoul);
+void goom_lines_switch_to(GMLine* gml,
+                          const int IDdest,
+                          const float param,
+                          const float amplitude,
+                          const int modeCoul);
 
-void goom_lines_set_res(GMLine* gml, int rx, int ry);
+void goom_lines_set_res(GMLine* gml, const uint32_t rx, const uint32_t ry);
 
 void goom_lines_free(GMLine** gml);
 
 void goom_lines_draw(PluginInfo* goomInfo,
                      GMLine* line,
-                     const gint16 data[AUDIO_SAMPLE_LEN],
+                     const int16_t data[AUDIO_SAMPLE_LEN],
                      Pixel* p);
 
-#endif /* _LINES_H */
+#endif

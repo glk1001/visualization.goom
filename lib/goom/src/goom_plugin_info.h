@@ -6,8 +6,11 @@
 #include "goom_config_param.h"
 #include "goom_graphic.h"
 #include "goom_tools.h"
-#include "goom_typedefs.h"
 #include "goom_visual_fx.h"
+#include "lines.h"
+
+#include <cstddef>
+#include <cstdint>
 
 struct GoomState
 {
@@ -25,34 +28,34 @@ struct GoomState
 constexpr size_t STATES_MAX_NB = 8;
 
 /**
- * Gives informations about the sound.
+ * Gives information about the sound.
  */
-struct _SOUND_INFO
+struct SoundInfo
 {
-  /* nota : a Goom is just a sound event... */
+  // Note: a Goom is just a sound event...
 
-  int timeSinceLastGoom; /* >= 0 */
-  float goomPower; /* power of the last Goom [0..1] */
+  int timeSinceLastGoom; // >= 0
+  float goomPower;       // power of the last Goom [0..1]
 
-  int timeSinceLastBigGoom; /* >= 0 */
+  int timeSinceLastBigGoom; // >= 0
 
-  float volume; /* [0..1] */
-  gint16 samples[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN];
+  float volume; // [0..1]
+  int16_t samples[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN];
 
-  /* other "internal" datas for the sound_tester */
-  float goom_limit; /* auto-updated limit of goom_detection */
+  // other "internal" data for the sound_tester
+  float goom_limit;  // auto-updated limit of goom_detection
   float bigGoomLimit;
-  float accelvar; /* acceleration of the sound - [0..1] */
-  float speedvar; /* speed of the sound - [0..100] */
+  float accelvar;    // acceleration of the sound - [0..1]
+  float speedvar;    // speed of the sound - [0..100]
   int allTimesMax;
-  int totalgoom; /* number of goom since last reset
-     * (a reset every 64 cycles) */
+  int totalgoom;     // number of goom since last reset
+			               // (a reset every 64 cycles)
 
-  float prov_max; /* accel max since last reset */
+  float prov_max;    // accel max since last reset
 
   int cycle;
 
-  /* private */
+  // private data
   PluginParam volume_p;
   PluginParam speed_p;
   PluginParam accel_p;
@@ -63,48 +66,47 @@ struct _SOUND_INFO
   PluginParam biggoom_speed_limit_p;
   PluginParam biggoom_factor_p;
 
-  PluginParameters params; /* contains the previously defined parameters. */
+  PluginParameters params; // contains the previously defined parameters.
 };
 
 /**
  * Allows FXs to know the current state of the plugin.
  */
-struct _PLUGIN_INFO
+struct PluginInfo
 {
-  /* public data */
-
-  int nbParams;
+  // public data
+  size_t nbParams;
   PluginParameters* params;
 
-  /* private data */
+  // private data
   struct _SIZE_TYPE
   {
-    int width;
-    int height;
-    int size; /* == screen.height * screen.width. */
+    uint16_t width;
+    uint16_t height;
+    uint32_t size; // == screen.height * screen.width.
   } screen;
 
   SoundInfo sound;
 
-  int nbVisuals;
-  VisualFX** visuals; /* pointers on all the visual fx */
+  size_t nbVisuals;
+  VisualFX** visuals; // pointers on all the visual fx
 
-  /** The known FX */
+  // The known FX
   VisualFX convolve_fx;
   VisualFX star_fx;
   VisualFX zoomFilter_fx;
   VisualFX tentacles_fx;
   VisualFX ifs_fx;
 
-  /** image buffers */
-  guint32* pixel;
-  guint32* back;
+  // image buffers
+  uint32_t* pixel;
+  uint32_t* back;
   Pixel *p1, *p2;
   Pixel* conv;
   Pixel* outputBuf;
 
-  /** state of goom */
-  guint32 cycle;
+  // state of goom
+  uint32_t cycle;
   GoomState states[STATES_MAX_NB];
   int statesNumber;
   int statesRangeMax;
@@ -112,34 +114,34 @@ struct _PLUGIN_INFO
   GoomState* curGState;
   int curGStateIndex;
 
-  /** effet de ligne.. */
+  // effet de ligne.
   GMLine* gmline1;
   GMLine* gmline2;
 
-  /** sinus table */
+  // sinus table
   int sintable[0x10000];
 
-  /* INTERNALS */
+  // INTERNALS
 
   /** goom_update internals.
-     * I took all static variables from goom_update and put them here.. for the moment.
-     */
+    * I took all static variables from goom_update and put them here.. for the moment.
+    */
   struct GoomUpdate
   {
-    int lockvar; /* pour empecher de nouveaux changements */
-    int goomvar; /* boucle des gooms */
-    int loopvar; /* mouvement des points */
+    int lockvar; // pour empecher de nouveaux changements
+    int goomvar; // boucle des gooms
+    uint32_t loopvar; // mouvement des points
     int stop_lines;
-    int ifs_incr; /* dessiner l'ifs (0 = non: > = increment) */
-    int decay_ifs; /* disparition de l'ifs */
-    int recay_ifs; /* dedisparition de l'ifs */
-    int cyclesSinceLastChange; /* nombre de Cycle Depuis Dernier Changement */
-    int drawLinesDuration; /* duree de la transition entre afficher les lignes ou pas */
-    int lineMode; /* l'effet lineaire a dessiner */
-    float switchMultAmount; /* SWITCHMULT (29.0f/30.0f) */
-    int switchIncrAmount; /* 0x7f */
-    float switchMult; /* 1.0f */
-    int switchIncr; /*  = SWITCHINCR; */
+    int ifs_incr; // dessiner l'ifs (0 = non: > = increment)
+    int decay_ifs; // disparition de l'ifs
+    int recay_ifs; // dedisparition de l'ifs
+    int cyclesSinceLastChange; // nombre de Cycle Depuis Dernier Changement
+    int drawLinesDuration; // duree de la transition entre afficher les lignes ou pas
+    int lineMode; // l'effet lineaire a dessiner
+    float switchMultAmount; // SWITCHMULT (29.0f/30.0f)
+    int switchIncrAmount; // 0x7f
+    float switchMult; // 1.0f
+    int switchIncr; //  = SWITCHINCR;
     int stateSelectionRand;
     int stateSelectionBlocker;
     int previousZoomSpeed;
@@ -150,32 +152,38 @@ struct _PLUGIN_INFO
 
   struct
   {
-    int numberOfLinesInMessage;
+    uint32_t numberOfLinesInMessage;
     char message[0x800];
-    int affiche;
-    int longueur;
+    uint32_t affiche;
+    uint32_t longueur;
   } update_message;
 
   struct
   {
-    void (*draw_line)(
-        Pixel* data, int x1, int y1, int x2, int y2, uint32_t col, int screenx, int screeny);
-    void (*zoom_filter)(unsigned int sizeX,
-                        unsigned int sizeY,
+    void (*draw_line)(Pixel* data,
+                      int x1,
+                      int y1,
+                      int x2,
+                      int y2,
+                      const uint32_t col,
+                      const uint16_t screenx,
+                      const uint16_t screeny);
+    void (*zoom_filter)(const uint16_t sizeX,
+                        const uint16_t sizeY,
                         Pixel* src,
                         Pixel* dest,
-                        int* brutS,
-                        int* brutD,
-                        int buffratio,
-                        int precalCoef[16][16]);
+                        const int* brutS,
+                        const int* brutD,
+                        const int buffratio,
+                        const int precalCoef[16][16]);
   } methods;
 
   GoomRandom* gRandom;
 };
 
-void plugin_info_init(PluginInfo* p, int nbVisual);
+void plugin_info_init(PluginInfo* p, size_t nbVisual);
 
-/* i = [0..p->nbVisual-1] */
-void plugin_info_add_visual(PluginInfo* p, int i, VisualFX* visual);
+// i = [0..p->nbVisual-1]
+void plugin_info_add_visual(PluginInfo* p, size_t i, VisualFX* visual);
 
 #endif

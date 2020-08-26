@@ -20,25 +20,21 @@
 #include "sound_tester.h"
 #include "tentacle3d.h"
 
-#include <inttypes.h>
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <strings.h>
+#include <cmath>
+#include <cstdint>
 
 #define STOP_SPEED 128
 /* TODO: put that as variable in PluginInfo */
 #define TIME_BTW_CHG 300
 
-static void init_buffers(PluginInfo* goomInfo, size_t buffsize)
+static void init_buffers(PluginInfo* goomInfo, uint32_t buffsize)
 {
-  goomInfo->pixel = (guint32*)malloc(buffsize * sizeof(guint32) + 128);
-  bzero(goomInfo->pixel, buffsize * sizeof(guint32) + 128);
-  goomInfo->back = (guint32*)malloc(buffsize * sizeof(guint32) + 128);
-  bzero(goomInfo->back, buffsize * sizeof(guint32) + 128);
-  goomInfo->conv = (Pixel*)malloc(buffsize * sizeof(guint32) + 128);
-  bzero(goomInfo->conv, buffsize * sizeof(guint32) + 128);
+  goomInfo->pixel = (uint32_t*)malloc(buffsize * sizeof(uint32_t) + 128);
+  bzero(goomInfo->pixel, buffsize * sizeof(uint32_t) + 128);
+  goomInfo->back = (uint32_t*)malloc(buffsize * sizeof(uint32_t) + 128);
+  bzero(goomInfo->back, buffsize * sizeof(uint32_t) + 128);
+  goomInfo->conv = (Pixel*)malloc(buffsize * sizeof(uint32_t) + 128);
+  bzero(goomInfo->conv, buffsize * sizeof(uint32_t) + 128);
 
   goomInfo->outputBuf = goomInfo->conv;
 
@@ -56,9 +52,9 @@ static void swapBuffers(PluginInfo* goomInfo)
 /**************************
 *         INIT           *
 **************************/
-PluginInfo* goom_init(guint32 resx, guint32 resy, int seed)
+PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, int seed)
 {
-  logInfo("Initialize goom: resx = {}, resy = {}, seed = {}.", resx, resy, seed);
+  logDebug("Initialize goom: resx = {}, resy = {}, seed = {}.", resx, resy, seed);
 
   PluginInfo* goomInfo = (PluginInfo*)malloc(sizeof(PluginInfo));
 
@@ -70,11 +66,11 @@ PluginInfo* goom_init(guint32 resx, guint32 resy, int seed)
   goomInfo->convolve_fx = convolve_create();
   goomInfo->ifs_fx = ifs_visualfx_create();
 
-  goomInfo->screen.width = (int)resx;
-  goomInfo->screen.height = (int)resy;
-  goomInfo->screen.size = (int)(resx * resy);
+  goomInfo->screen.width = resx;
+  goomInfo->screen.height = resy;
+  goomInfo->screen.size = resx * resy;
 
-  init_buffers(goomInfo, (size_t)goomInfo->screen.size);
+  init_buffers(goomInfo, goomInfo->screen.size);
   if (seed == 0)
   {
     seed = (uint64_t)goomInfo->pixel;
@@ -98,11 +94,11 @@ PluginInfo* goom_init(guint32 resx, guint32 resy, int seed)
 
   goomInfo->cycle = 0;
 
-  goomInfo->gmline1 = goom_lines_init(goomInfo, (int)resx, goomInfo->screen.height, GML_HLINE,
+  goomInfo->gmline1 = goom_lines_init(goomInfo, resx, goomInfo->screen.height, GML_HLINE,
                                       goomInfo->screen.height, GML_BLACK, GML_CIRCLE,
                                       0.4f * (float)goomInfo->screen.height, GML_VERT);
   goomInfo->gmline2 =
-      goom_lines_init(goomInfo, (int)resx, goomInfo->screen.height, GML_HLINE, 0, GML_BLACK,
+      goom_lines_init(goomInfo, resx, goomInfo->screen.height, GML_HLINE, 0, GML_BLACK,
                       GML_CIRCLE, 0.2f * (float)goomInfo->screen.height, GML_RED);
 
   gfont_load();
@@ -112,24 +108,24 @@ PluginInfo* goom_init(guint32 resx, guint32 resy, int seed)
   return goomInfo;
 }
 
-void goom_set_resolution(PluginInfo* goomInfo, guint32 resx, guint32 resy)
+void goom_set_resolution(PluginInfo* goomInfo, const uint16_t resx, const uint16_t resy)
 {
   free(goomInfo->pixel);
   free(goomInfo->back);
   free(goomInfo->conv);
 
-  goomInfo->screen.width = (int)resx;
-  goomInfo->screen.height = (int)resy;
-  goomInfo->screen.size = (int)(resx * resy);
+  goomInfo->screen.width = resx;
+  goomInfo->screen.height = resy;
+  goomInfo->screen.size = resx * resy;
 
-  init_buffers(goomInfo, (size_t)goomInfo->screen.size);
+  init_buffers(goomInfo, goomInfo->screen.size);
 
   /* init_ifs (goomInfo, resx, goomInfo->screen.height); */
   goomInfo->ifs_fx.free(&goomInfo->ifs_fx);
   goomInfo->ifs_fx.init(&goomInfo->ifs_fx, goomInfo);
 
-  goom_lines_set_res(goomInfo->gmline1, (int)resx, goomInfo->screen.height);
-  goom_lines_set_res(goomInfo->gmline2, (int)resx, goomInfo->screen.height);
+  goom_lines_set_res(goomInfo->gmline1, resx, goomInfo->screen.height);
+  goom_lines_set_res(goomInfo->gmline2, resx, goomInfo->screen.height);
 }
 
 int goom_set_screenbuffer(PluginInfo* goomInfo, void* buffer)
@@ -151,13 +147,13 @@ static void regularlyLowerTheSpeed(PluginInfo* goomInfo, ZoomFilterData** pzfd);
 static void lowerSpeed(PluginInfo* goomInfo, ZoomFilterData** pzfd);
 
 // on verifie qu'il ne se pas un truc interressant avec le son.
-static void changeModeIfMusicChanges(PluginInfo* goomInfo, int forceMode);
+static void changeModeIfMusicChanges(PluginInfo* goomInfo, const int forceMode);
 
 // changement eventuel de mode
 static void changeMode(PluginInfo* goomInfo);
 
 // Changement d'effet de zoom !
-static void changeZoomEffect(PluginInfo* goomInfo, ZoomFilterData* pzfd, int forceMode);
+static void changeZoomEffect(PluginInfo* goomInfo, ZoomFilterData* pzfd, const int forceMode);
 
 static void applyIfsIfRequired(PluginInfo* goomInfo);
 
@@ -168,12 +164,12 @@ static void applyTentaclesAndStars(PluginInfo* goomInfo);
 void displayText(PluginInfo* goomInfo, const char* songTitle, const char* message, float fps);
 
 static void drawPointsIfRequired(PluginInfo* goomInfo,
-                                 const guint32 pointWidth,
-                                 const guint32 pointHeight,
+                                 const uint32_t pointWidth,
+                                 const uint32_t pointHeight,
                                  const float largfactor);
 static void drawPoints(PluginInfo* goomInfo,
-                       const guint32 pointWidth,
-                       const guint32 pointHeight,
+                       const uint32_t pointWidth,
+                       const uint32_t pointHeight,
                        const float largfactor);
 
 static void choose_a_goom_line(PluginInfo* goomInfo,
@@ -186,9 +182,9 @@ static void choose_a_goom_line(PluginInfo* goomInfo,
 
 // si on est dans un goom : afficher les lignes
 static void displayLinesIfInAGoom(PluginInfo* goomInfo,
-                                  const gint16 data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN]);
+                                  const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN]);
 static void displayLines(PluginInfo* goomInfo,
-                         const gint16 data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN]);
+                         const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN]);
 
 // arret demande
 static void stopRequest(PluginInfo* goomInfo);
@@ -198,8 +194,8 @@ static void stopIfRequested(PluginInfo* goomInfo);
 static void stopRandomLineChangeMode(PluginInfo* goomInfo);
 
 // Permet de forcer un effet.
-static void forceEffectIfSet(PluginInfo* oomInfo, ZoomFilterData** pzfd, int forceMode);
-static void forceEffect(PluginInfo* goomInfo, int forceMode, ZoomFilterData** pzfd);
+static void forceEffectIfSet(PluginInfo* oomInfo, ZoomFilterData** pzfd, const int forceMode);
+static void forceEffect(PluginInfo* goomInfo, const int forceMode, ZoomFilterData** pzfd);
 
 // arreter de decrémenter au bout d'un certain temps
 static void stopDecrementingAfterAWhile(PluginInfo* goomInfo, ZoomFilterData** pzfd);
@@ -222,24 +218,24 @@ static void pointFilter(PluginInfo* goomInfo,
                         float t2,
                         float t3,
                         float t4,
-                        guint32 cycle);
+                        uint32_t cycle);
 
 
-guint32* goom_update(PluginInfo* goomInfo,
-                     const gint16 data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
-                     int forceMode,
-                     float fps,
-                     const char* songTitle,
-                     const char* message)
+uint32_t* goom_update(PluginInfo* goomInfo,
+                      const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
+                      const int forceMode,
+                      const float fps,
+                      const char* songTitle,
+                      const char* message)
 {
   // elargissement de l'intervalle d'évolution des points
   // ! calcul du deplacement des petits points ...
-  const guint32 pointWidth = (guint32)(goomInfo->screen.width * 2) / 5;
-  const guint32 pointHeight = (guint32)((goomInfo->screen.height) * 2) / 5;
+  const uint32_t pointWidth = (uint32_t)(goomInfo->screen.width * 2) / 5;
+  const uint32_t pointHeight = (uint32_t)((goomInfo->screen.height) * 2) / 5;
 
-  logInfo("goomInfo->sound.timeSinceLastGoom = {}", goomInfo->sound.timeSinceLastGoom);
-  logInfo("pcg32_get_last_state = {}", pcg32_get_last_state());
-  logInfo("goomInfo->gRandom->pos = {}", goomInfo->gRandom->pos);
+  logDebug("goomInfo->sound.timeSinceLastGoom = {}", goomInfo->sound.timeSinceLastGoom);
+  logDebug("pcg32_get_last_state = {}", pcg32_get_last_state());
+  logDebug("goomInfo->gRandom->pos = {}", goomInfo->gRandom->pos);
 
   /* ! etude du signal ... */
   evaluate_sound(data, &(goomInfo->sound));
@@ -282,8 +278,8 @@ guint32* goom_update(PluginInfo* goomInfo,
   changeZoomEffect(goomInfo, pzfd, forceMode);
 
   // Zoom here!
-  zoomFilterFastRGB(goomInfo, goomInfo->p1, goomInfo->p2, pzfd, (Uint)goomInfo->screen.width,
-                    (Uint)goomInfo->screen.height, goomInfo->update.switchIncr,
+  zoomFilterFastRGB(goomInfo, goomInfo->p1, goomInfo->p2, pzfd, goomInfo->screen.width,
+                    goomInfo->screen.height, goomInfo->update.switchIncr,
                     goomInfo->update.switchMult);
 
   applyTentaclesAndStars(goomInfo);
@@ -301,9 +297,9 @@ guint32* goom_update(PluginInfo* goomInfo,
   goomInfo->cycle++;
   goomInfo->convolve_fx.apply(&goomInfo->convolve_fx, return_val, goomInfo->outputBuf, goomInfo);
 
-  logInfo("About to return.");
+  logDebug("About to return.");
 
-  return (guint32*)goomInfo->outputBuf;
+  return (uint32_t*)goomInfo->outputBuf;
 }
 
 /****************************************
@@ -424,11 +420,15 @@ static void update_message(PluginInfo* goomInfo, const char* message)
 
   if (message)
   {
-    int i = 1, j = 0;
     strcpy(goomInfo->update_message.message, message);
-    for (j = 0; goomInfo->update_message.message[j]; j++)
+    uint32_t i = 1;
+    for (size_t j = 0; goomInfo->update_message.message[j]; j++)
+    {
       if (goomInfo->update_message.message[j] == '\n')
+      {
         i++;
+      }
+    }
     goomInfo->update_message.numberOfLinesInMessage = i;
     goomInfo->update_message.affiche =
         goomInfo->screen.height + goomInfo->update_message.numberOfLinesInMessage * 25 + 105;
@@ -436,10 +436,9 @@ static void update_message(PluginInfo* goomInfo, const char* message)
   }
   if (goomInfo->update_message.affiche)
   {
-    int i = 0;
+    uint32_t i = 0;
     char* msg = (char*)malloc((size_t)goomInfo->update_message.longueur + 1);
     char* ptr = msg;
-    int pos;
     float ecart;
     message = msg;
     strcpy(msg, goomInfo->update_message.message);
@@ -460,19 +459,19 @@ static void update_message(PluginInfo* goomInfo, const char* message)
         }
         ++ptr;
       }
-      pos = goomInfo->update_message.affiche -
-            (goomInfo->update_message.numberOfLinesInMessage - i) * 25;
+      uint32_t pos = goomInfo->update_message.affiche -
+                     (goomInfo->update_message.numberOfLinesInMessage - i) * 25;
       pos += POS_VARIATION * (cos((double)pos / 20.0));
       pos -= SCROLLING_SPEED;
       ecart = (ECART_VARIATION * sin((double)pos / 20.0));
-      if ((fin) && (2 * pos < (int)goomInfo->screen.height))
+      if ((fin) && (2 * pos < goomInfo->screen.height))
       {
-        pos = (int)goomInfo->screen.height / 2;
+        pos = goomInfo->screen.height / 2;
       }
       pos += 7;
 
       goom_draw_text(goomInfo->p1, goomInfo->screen.width, goomInfo->screen.height,
-                     goomInfo->screen.width / 2, pos, message, ecart, 1);
+                     int(goomInfo->screen.width / 2), int(pos), message, ecart, 1);
       message = ++ptr;
       i++;
     }
@@ -482,8 +481,8 @@ static void update_message(PluginInfo* goomInfo, const char* message)
 }
 
 static void drawPointsIfRequired(PluginInfo* goomInfo,
-                                 const guint32 pointWidth,
-                                 const guint32 pointHeight,
+                                 const uint32_t pointWidth,
+                                 const uint32_t pointHeight,
                                  const float largfactor)
 {
   logInfo("goomInfo->curGState->drawPoints = {}", goomInfo->curGState->drawPoints);
@@ -496,14 +495,14 @@ static void drawPointsIfRequired(PluginInfo* goomInfo,
 }
 
 static void drawPoints(PluginInfo* goomInfo,
-                       const guint32 pointWidth,
-                       const guint32 pointHeight,
+                       const uint32_t pointWidth,
+                       const uint32_t pointHeight,
                        const float largfactor)
 {
-  const unsigned int speedvarMult80Plus15 = goomInfo->sound.speedvar * 80 + 15;
-  const unsigned int speedvarMult50Plus1 = goomInfo->sound.speedvar * 50 + 1;
-  logInfo("speedvarMult80Plus15 = {}", speedvarMult80Plus15);
-  logInfo("speedvarMult50Plus1 = {}", speedvarMult50Plus1);
+  const uint32_t speedvarMult80Plus15 = goomInfo->sound.speedvar * 80 + 15;
+  const uint32_t speedvarMult50Plus1 = goomInfo->sound.speedvar * 50 + 1;
+  logDebug("speedvarMult80Plus15 = {}", speedvarMult80Plus15);
+  logDebug("speedvarMult50Plus1 = {}", speedvarMult50Plus1);
 
   const float pointWidthDiv2 = pointWidth / 2;
   const float pointHeightDiv2 = pointHeight / 2;
@@ -520,36 +519,36 @@ static void drawPoints(PluginInfo* goomInfo,
   const float pointWidthMultLarge = pointWidth * largfactor;
   const float pointHeightMultLarge = pointHeight * largfactor;
 
-  logInfo("goomInfo->update.loopvar = {}", goomInfo->update.loopvar);
-  for (unsigned int i = 1; i * 15 <= speedvarMult80Plus15; i++)
+  logDebug("goomInfo->update.loopvar = {}", goomInfo->update.loopvar);
+  for (uint32_t i = 1; i * 15 <= speedvarMult80Plus15; i++)
   {
-    goomInfo->update.loopvar += (int)speedvarMult50Plus1;
-    logInfo("goomInfo->update.loopvar = {}", goomInfo->update.loopvar);
+    goomInfo->update.loopvar += speedvarMult50Plus1;
+    logDebug("goomInfo->update.loopvar = {}", goomInfo->update.loopvar);
 
-    const Uint loopvar_div_i = (Uint)goomInfo->update.loopvar / i;
+    const uint32_t loopvar_div_i = goomInfo->update.loopvar / i;
     const float i_mult_10 = 10.0f * i;
 
     const float yellow_t3 = i * 152.0f;
     const float yellow_t4 = 128.0f;
-    const Uint yellow_cycle = (Uint)goomInfo->update.loopvar + i * 2032;
+    const uint32_t yellow_cycle = goomInfo->update.loopvar + i * 2032;
     const float orange_t1 = pointWidthDiv2MultLarge / i + i_mult_10;
     const float orange_t2 = pointHeightDiv2MultLarge / i + i_mult_10;
     const float orange_t3 = 96.0f;
     const float orange_t4 = i * 80.0f;
-    const Uint orange_cycle = loopvar_div_i;
+    const uint32_t orange_cycle = loopvar_div_i;
     const float violet_t1 = pointWidthDiv3MultLarge / i + i_mult_10;
     const float violet_t2 = pointHeightDiv3MultLarge / i + i_mult_10;
     const float violet_t3 = i + 122.0f;
     const float violet_t4 = 134.0f;
-    const Uint violet_cycle = loopvar_div_i;
+    const uint32_t violet_cycle = loopvar_div_i;
     const float black_t3 = 58.0f;
     const float black_t4 = i * 66.0f;
-    const Uint black_cycle = loopvar_div_i;
+    const uint32_t black_cycle = loopvar_div_i;
     const float white_t1 = (pointWidthMultLarge + i_mult_10) / i;
     const float white_t2 = (pointHeightMultLarge + i_mult_10) / i;
     const float white_t3 = 66.0f;
     const float white_t4 = 74.0f;
-    const Uint white_cycle = (Uint)goomInfo->update.loopvar + i * 500;
+    const uint32_t white_cycle = goomInfo->update.loopvar + i * 500;
 
     pointFilter(goomInfo, goomInfo->p1, YELLOW, yellow_t1, yellow_t2, yellow_t3, yellow_t4,
                 yellow_cycle);
@@ -562,9 +561,9 @@ static void drawPoints(PluginInfo* goomInfo,
   }
 }
 
-static void changeModeIfMusicChanges(PluginInfo* goomInfo, int forceMode)
+static void changeModeIfMusicChanges(PluginInfo* goomInfo, const int forceMode)
 {
-  logInfo("goomInfo->sound.timeSinceLastGoom = {}, forceMode = {}, "
+  logDebug("goomInfo->sound.timeSinceLastGoom = {}, forceMode = {}, "
            "goomInfo->update.cyclesSinceLastChange = {}",
            goomInfo->sound.timeSinceLastGoom, forceMode, goomInfo->update.cyclesSinceLastChange);
   if ((forceMode != -1) && ((goomInfo->sound.timeSinceLastGoom == 0) || (forceMode > 0) ||
@@ -596,8 +595,8 @@ static void changeMode(PluginInfo* goomInfo)
     case 13:
     case 20:
     case 21:
-      goomInfo->update.zoomFilterData.mode = WAVE_MODE;
-      goomInfo->update.zoomFilterData.reverse = 0;
+      goomInfo->update.zoomFilterData.mode = ZoomFilterMode::WAVE_MODE;
+      goomInfo->update.zoomFilterData.reverse = false;
       goomInfo->update.zoomFilterData.waveEffect = (goom_irand(goomInfo->gRandom, 3) == 0);
       if (goom_irand(goomInfo->gRandom, 2))
       {
@@ -607,64 +606,64 @@ static void changeMode(PluginInfo* goomInfo)
       break;
     case 1:
     case 11:
-      goomInfo->update.zoomFilterData.mode = CRYSTAL_BALL_MODE;
+      goomInfo->update.zoomFilterData.mode = ZoomFilterMode::CRYSTAL_BALL_MODE;
       goomInfo->update.zoomFilterData.waveEffect = 0;
       goomInfo->update.zoomFilterData.hypercosEffect = 0;
       break;
     case 2:
     case 12:
-      goomInfo->update.zoomFilterData.mode = AMULETTE_MODE;
+      goomInfo->update.zoomFilterData.mode = ZoomFilterMode::AMULETTE_MODE;
       goomInfo->update.zoomFilterData.waveEffect = 0;
       goomInfo->update.zoomFilterData.hypercosEffect = 0;
       break;
     case 3:
-      goomInfo->update.zoomFilterData.mode = WATER_MODE;
+      goomInfo->update.zoomFilterData.mode = ZoomFilterMode::WATER_MODE;
       goomInfo->update.zoomFilterData.waveEffect = 0;
       goomInfo->update.zoomFilterData.hypercosEffect = 0;
       break;
     case 4:
     case 14:
-      goomInfo->update.zoomFilterData.mode = SCRUNCH_MODE;
+      goomInfo->update.zoomFilterData.mode = ZoomFilterMode::SCRUNCH_MODE;
       goomInfo->update.zoomFilterData.waveEffect = 0;
       goomInfo->update.zoomFilterData.hypercosEffect = 0;
       break;
     case 5:
     case 15:
     case 22:
-      goomInfo->update.zoomFilterData.mode = HYPERCOS1_MODE;
+      goomInfo->update.zoomFilterData.mode = ZoomFilterMode::HYPERCOS1_MODE;
       goomInfo->update.zoomFilterData.waveEffect = 0;
       goomInfo->update.zoomFilterData.hypercosEffect = (goom_irand(goomInfo->gRandom, 3) == 0);
       break;
     case 6:
     case 16:
-      goomInfo->update.zoomFilterData.mode = HYPERCOS2_MODE;
+      goomInfo->update.zoomFilterData.mode = ZoomFilterMode::HYPERCOS2_MODE;
       goomInfo->update.zoomFilterData.waveEffect = 0;
       goomInfo->update.zoomFilterData.hypercosEffect = 0;
       break;
     case 7:
     case 17:
-      goomInfo->update.zoomFilterData.mode = CRYSTAL_BALL_MODE;
+      goomInfo->update.zoomFilterData.mode = ZoomFilterMode::CRYSTAL_BALL_MODE;
       goomInfo->update.zoomFilterData.waveEffect = (goom_irand(goomInfo->gRandom, 4) == 0);
       goomInfo->update.zoomFilterData.hypercosEffect = (int)goom_irand(goomInfo->gRandom, 2);
       break;
     case 8:
     case 18:
     case 19:
-      goomInfo->update.zoomFilterData.mode = SCRUNCH_MODE;
+      goomInfo->update.zoomFilterData.mode = ZoomFilterMode::SCRUNCH_MODE;
       goomInfo->update.zoomFilterData.waveEffect = 1;
       goomInfo->update.zoomFilterData.hypercosEffect = 1;
       break;
     case 29:
     case 30:
-      goomInfo->update.zoomFilterData.mode = YONLY_MODE;
+      goomInfo->update.zoomFilterData.mode = ZoomFilterMode::YONLY_MODE;
       break;
     case 31:
     case 32:
     case 33:
-      goomInfo->update.zoomFilterData.mode = SPEEDWAY_MODE;
+      goomInfo->update.zoomFilterData.mode = ZoomFilterMode::SPEEDWAY_MODE;
       break;
     default:
-      goomInfo->update.zoomFilterData.mode = NORMAL_MODE;
+      goomInfo->update.zoomFilterData.mode = ZoomFilterMode::NORMAL_MODE;
       goomInfo->update.zoomFilterData.waveEffect = 0;
       goomInfo->update.zoomFilterData.hypercosEffect = 0;
   }
@@ -727,8 +726,8 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
 
     /* if (goomInfo->update.goomvar % 1 == 0) */
     {
-      guint32 vtmp;
-      guint32 newvit;
+      uint32_t vtmp;
+      uint32_t newvit;
 
       goomInfo->update.lockvar = 50;
       newvit = STOP_SPEED + 1 - ((float)3.5f * log10(goomInfo->sound.speedvar * 60 + 1));
@@ -736,13 +735,13 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
       if ((goomInfo->update.zoomFilterData.reverse) && (!(goomInfo->cycle % 13)) &&
           (pcg32_rand() % 5 == 0))
       {
-        goomInfo->update.zoomFilterData.reverse = 0;
+        goomInfo->update.zoomFilterData.reverse = false;
         goomInfo->update.zoomFilterData.vitesse = STOP_SPEED - 2;
         goomInfo->update.lockvar = 75;
       }
       if (goom_irand(goomInfo->gRandom, 10) == 0)
       {
-        goomInfo->update.zoomFilterData.reverse = 1;
+        goomInfo->update.zoomFilterData.reverse = true;
         goomInfo->update.lockvar = 100;
       }
 
@@ -761,28 +760,28 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
         case 0:
         case 3:
         case 6:
-          goomInfo->update.zoomFilterData.middleY = (Uint)goomInfo->screen.height - 1;
-          goomInfo->update.zoomFilterData.middleX = (Uint)goomInfo->screen.width / 2;
+          goomInfo->update.zoomFilterData.middleY = goomInfo->screen.height - 1;
+          goomInfo->update.zoomFilterData.middleX = goomInfo->screen.width / 2;
           break;
         case 1:
         case 4:
-          goomInfo->update.zoomFilterData.middleX = (Uint)goomInfo->screen.width - 1;
+          goomInfo->update.zoomFilterData.middleX = goomInfo->screen.width - 1;
           break;
         case 2:
         case 5:
           goomInfo->update.zoomFilterData.middleX = 1;
           break;
         default:
-          goomInfo->update.zoomFilterData.middleY = (Uint)goomInfo->screen.height / 2;
-          goomInfo->update.zoomFilterData.middleX = (Uint)goomInfo->screen.width / 2;
+          goomInfo->update.zoomFilterData.middleY = goomInfo->screen.height / 2;
+          goomInfo->update.zoomFilterData.middleX = goomInfo->screen.width / 2;
       }
 
-      if ((goomInfo->update.zoomFilterData.mode == WATER_MODE) ||
-          (goomInfo->update.zoomFilterData.mode == YONLY_MODE) ||
-          (goomInfo->update.zoomFilterData.mode == AMULETTE_MODE))
+      if ((goomInfo->update.zoomFilterData.mode == ZoomFilterMode::WATER_MODE) ||
+          (goomInfo->update.zoomFilterData.mode == ZoomFilterMode::YONLY_MODE) ||
+          (goomInfo->update.zoomFilterData.mode == ZoomFilterMode::AMULETTE_MODE))
       {
-        goomInfo->update.zoomFilterData.middleX = (Uint)goomInfo->screen.width / 2;
-        goomInfo->update.zoomFilterData.middleY = (Uint)goomInfo->screen.height / 2;
+        goomInfo->update.zoomFilterData.middleX = goomInfo->screen.width / 2;
+        goomInfo->update.zoomFilterData.middleY = goomInfo->screen.height / 2;
       }
 
       switch (vtmp = (goom_irand(goomInfo->gRandom, 15)))
@@ -848,7 +847,7 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
         goomInfo->update.lockvar *= 2;
       }
 
-      if (goomInfo->update.zoomFilterData.mode == AMULETTE_MODE)
+      if (goomInfo->update.zoomFilterData.mode == ZoomFilterMode::AMULETTE_MODE)
       {
         goomInfo->update.zoomFilterData.vPlaneEffect = 0;
         goomInfo->update.zoomFilterData.hPlaneEffect = 0;
@@ -916,7 +915,7 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
 
 /* Changement d'effet de zoom !
  */
-static void changeZoomEffect(PluginInfo* goomInfo, ZoomFilterData* pzfd, int forceMode)
+static void changeZoomEffect(PluginInfo* goomInfo, ZoomFilterData* pzfd, const int forceMode)
 {
   if (pzfd != NULL)
   {
@@ -999,14 +998,14 @@ void displayText(PluginInfo* goomInfo, const char* songTitle, const char* messag
   if (goomInfo->update.timeOfTitleDisplay)
   {
     goom_draw_text(goomInfo->p1, goomInfo->screen.width, goomInfo->screen.height,
-                   goomInfo->screen.width / 2, goomInfo->screen.height / 2 + 7,
+                   int(goomInfo->screen.width / 2), int(goomInfo->screen.height / 2 + 7),
                    goomInfo->update.titleText,
                    ((float)(190 - goomInfo->update.timeOfTitleDisplay) / 10.0f), 1);
     goomInfo->update.timeOfTitleDisplay--;
     if (goomInfo->update.timeOfTitleDisplay < 4)
     {
       goom_draw_text(goomInfo->p2, goomInfo->screen.width, goomInfo->screen.height,
-                     goomInfo->screen.width / 2, goomInfo->screen.height / 2 + 7,
+                     int(goomInfo->screen.width / 2), int(goomInfo->screen.height / 2 + 7),
                      goomInfo->update.titleText,
                      ((float)(190 - goomInfo->update.timeOfTitleDisplay) / 10.0f), 1);
     }
@@ -1087,7 +1086,7 @@ static void stopRandomLineChangeMode(PluginInfo* goomInfo)
 }
 
 static void displayLines(PluginInfo* goomInfo,
-                         const gint16 data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN])
+                         const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN])
 {
   goomInfo->gmline2->power = goomInfo->gmline1->power;
 
@@ -1143,10 +1142,10 @@ static void bigBreak(PluginInfo* goomInfo, ZoomFilterData** pzfd)
   goomInfo->update.goomvar = 0;
 }
 
-static void forceEffect(PluginInfo* goomInfo, int forceMode, ZoomFilterData** pzfd)
+static void forceEffect(PluginInfo* goomInfo, const int forceMode, ZoomFilterData** pzfd)
 {
   *pzfd = &goomInfo->update.zoomFilterData;
-  (*pzfd)->mode = forceMode - 1;
+  (*pzfd)->mode = static_cast<ZoomFilterMode>(forceMode - 1);
 }
 
 static void lowerSpeed(PluginInfo* goomInfo, ZoomFilterData** pzfd)
@@ -1205,12 +1204,12 @@ static void bigUpdateIfNotLocked(PluginInfo* goomInfo, ZoomFilterData** pzfd)
   logInfo("goomInfo->sound.timeSinceLastGoom = {}", goomInfo->sound.timeSinceLastGoom);
 }
 
-static void forceEffectIfSet(PluginInfo* goomInfo, ZoomFilterData** pzfd, int forceMode)
+static void forceEffectIfSet(PluginInfo* goomInfo, ZoomFilterData** pzfd, const int forceMode)
 {
-  logInfo("forceMode = {}", forceMode);
-  if ((forceMode > 0) && (forceMode <= NB_FX))
+  logDebug("forceMode = {}", forceMode);
+  if ((forceMode > 0) && (size_t(forceMode) <= NB_FX))
   {
-    logInfo("forceMode = {} <= NB_FX = {}.", forceMode, NB_FX);
+    logDebug("forceMode = {} <= NB_FX = {}.", forceMode, NB_FX);
     forceEffect(goomInfo, forceMode, pzfd);
   }
   if (forceMode == -1)
@@ -1230,9 +1229,9 @@ static void stopIfRequested(PluginInfo* goomInfo)
 }
 
 static void displayLinesIfInAGoom(PluginInfo* goomInfo,
-                                  const gint16 data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN])
+                                  const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN])
 {
-  logInfo("goomInfo->update.lineMode = {} != 0 || goomInfo->sound.timeSinceLastGoom = {}",
+  logDebug("goomInfo->update.lineMode = {} != 0 || goomInfo->sound.timeSinceLastGoom = {}",
            goomInfo->update.lineMode, goomInfo->sound.timeSinceLastGoom);
   if ((goomInfo->update.lineMode != 0) || (goomInfo->sound.timeSinceLastGoom < 5))
   {
@@ -1277,24 +1276,25 @@ static void stopDecrementingAfterAWhile(PluginInfo* goomInfo, ZoomFilterData** p
   }
 }
 
-static inline void setPixelRGB(PluginInfo* goomInfo, Pixel* buffer, Uint x, Uint y, Color c)
+static inline void setPixelRGB(PluginInfo* goomInfo, Pixel* buffer, uint32_t x, uint32_t y, Color c)
 {
   Pixel i;
   i.channels.b = c.b;
-  i.channels.g = c.v;
+  i.channels.g = c.g;
   i.channels.r = c.r;
 
-  *(buffer + (x + (y * (Uint)goomInfo->screen.width))) = i;
+  *(buffer + (x + (y * goomInfo->screen.width))) = i;
 }
 
 static void pointFilter(
-    PluginInfo* goomInfo, Pixel* pix1, Color c, float t1, float t2, float t3, float t4, Uint cycle)
+    PluginInfo* goomInfo, Pixel* pix1, const Color c, const float t1, const float t2,
+    const float t3, const float t4, const uint32_t cycle)
 {
-  const Uint x = (Uint)((int)(goomInfo->screen.width / 2) + (int)(t1 * cos((float)cycle / t3)));
-  const Uint y = (Uint)((int)(goomInfo->screen.height / 2) + (int)(t2 * sin((float)cycle / t4)));
+  const uint32_t x = goomInfo->screen.width / 2 + uint32_t(t1 * cos(float(cycle) / t3));
+  const uint32_t y = goomInfo->screen.height / 2 + uint32_t(t2 * sin(float(cycle) / t4));
 
-  if ((x > 1) && (y > 1) && (x < (Uint)goomInfo->screen.width - 2) &&
-      (y < (Uint)goomInfo->screen.height - 2))
+  if ((x > 1) && (y > 1) && (x < uint32_t(goomInfo->screen.width) - 2)
+      && (y < uint32_t(goomInfo->screen.height) - 2))
   {
     setPixelRGB(goomInfo, pix1, x + 1, y, c);
     setPixelRGB(goomInfo, pix1, x, y + 1, c);

@@ -17,7 +17,7 @@
 #define bzero(x, y) memset(x, 0, y)
 #endif
 
-/* Permuted congruential generator. */
+// Permuted congruential generator.
 uint32_t pcg32_rand(void);
 void pcg32_init(uint64_t seed);
 uint64_t pcg32_get_seed();
@@ -26,11 +26,11 @@ void pcg32_set_state(uint64_t s);
 
 #define GOOM_NB_RAND 0x10000
 
-typedef struct _GOOM_RANDOM
+struct GoomRandom
 {
   uint32_t array[GOOM_NB_RAND];
   unsigned short pos;
-} GoomRandom;
+};
 
 GoomRandom* goom_random_init();
 void goom_random_free(GoomRandom* grandom);

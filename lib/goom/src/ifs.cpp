@@ -43,14 +43,14 @@
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
 
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cmath>
+#include <cstdint>
 
-typedef struct _ifsPoint
+struct IFSPoint
 {
-  gint32 x, y;
-} IFSPoint;
+  int32_t x;
+  int32_t y;
+};
 
 #define LRAND() ((long)(goom_random(goomInfo->gRandom) & 0x7fffffff))
 #define NRAND(n) ((int)(LRAND() % (n)))
@@ -69,8 +69,8 @@ typedef int F_PT;
 
 /*****************************************************/
 
-static const int FIX = 12;
-static const int unit = 1 << FIX;
+constexpr int FIX = 12;
+constexpr int unit = 1 << FIX;
 #define DBL_To_F_PT(x) (F_PT)((DBL)(unit) * (x))
 // Following inline is different to above #define???!!
 //static inline F_PT DBL_To_F_PT(const DBL x) { return (F_PT)((DBL)unit * x); }
@@ -83,51 +83,66 @@ static inline F_PT div_by_2units(const F_PT x)
   return x >> (FIX + 1);
 }
 
-#define MAX_SIMI 6
+constexpr size_t MAX_SIMI = 6;
 
 #define MAX_DEPTH_2 10
 #define MAX_DEPTH_3 6
 #define MAX_DEPTH_4 4
 #define MAX_DEPTH_5 2
 
-typedef struct Similitude_Struct SIMI;
-typedef struct Fractal_Struct FRACTAL;
-
-struct Similitude_Struct
+struct Similitude
 {
-  DBL c_x, c_y;
-  DBL r, r2, A, A2;
-  F_PT Ct, St, Ct2, St2;
-  F_PT Cx, Cy;
-  F_PT R, R2;
+  DBL c_x;
+  DBL c_y;
+  DBL r;
+  DBL r2;
+  DBL A;
+  DBL A2;
+  F_PT Ct;
+  F_PT St;
+  F_PT Ct2;
+  F_PT St2;
+  F_PT Cx;
+  F_PT Cy;
+  F_PT R;
+  F_PT R2;
 };
 
-struct Fractal_Struct
+struct Fractal
 {
-  int Nb_Simi;
-  SIMI Components[5 * MAX_SIMI];
-  int Depth, Col;
-  int Count, Speed;
-  int Width, Height, Lx, Ly;
-  DBL r_mean, dr_mean, dr2_mean;
-  int Cur_Pt, Max_Pt;
+  int numSimi;
+  Similitude components[5 * MAX_SIMI];
+  uint32_t depth;
+  uint32_t col;
+  int count;
+  int speed;
+  uint16_t width;
+  uint16_t height;
+  uint16_t lx;
+  uint16_t ly;
+  DBL rMean;
+  DBL drMean;
+  DBL dr2Mean;
+  int curPt;
+  int maxPt;
 
-  IFSPoint *Buffer1, *Buffer2;
+  IFSPoint* buffer1;
+  IFSPoint* buffer2;
 };
 
-typedef struct _IFS_DATA
+struct IfsData
 {
   PluginParam enabled_bp;
   PluginParameters params;
 
-  FRACTAL* Root;
-  FRACTAL* Cur_F;
+  Fractal* root;
+  Fractal* curF;
 
   /* Used by the Trace recursive method */
-  IFSPoint* Buf;
-  int Cur_Pt;
-  int initalized;
-} IfsData;
+  IFSPoint* buff;
+  int curPt;
+  bool initialized;
+};
 
 /*****************************************************/
 
@@ -154,7 +169,7 @@ static DBL get_1_minus_exp_neg_S(DBL S)
   return 1.0 - exp(-S);
 }
 
-static void Random_Simis(PluginInfo* goomInfo, FRACTAL* F, SIMI* Cur, int i)
+static void Random_Simis(PluginInfo* goomInfo, Fractal* fractal, Similitude* cur, int i)
 {
   static DBL c_AS_factor;
   static DBL r_1_minus_exp_neg_S;
@@ -162,7 +177,7 @@ static void Random_Simis(PluginInfo* goomInfo, FRACTAL* F, SIMI* Cur, int i)
   static DBL A_AS_factor;
   static DBL A2_AS_factor;
 
-  static int doneInit = 0;
+  static bool doneInit = false;
   if (!doneInit)
   {
     c_AS_factor = 0.8 * get_1_minus_exp_neg_S(4.0);
@@ -170,136 +185,136 @@ static void Random_Simis(PluginInfo* goomInfo, FRACTAL* F, SIMI* Cur, int i)
     r2_1_minus_exp_neg_S = get_1_minus_exp_neg_S(2.0);
     A_AS_factor = 360.0 * get_1_minus_exp_neg_S(4.0);
     A2_AS_factor = A_AS_factor;
-    doneInit = 1;
+    doneInit = true;
   }
-  const DBL r_AS_factor = F->dr_mean * r_1_minus_exp_neg_S;
-  const DBL r2_AS_factor = F->dr2_mean * r2_1_minus_exp_neg_S;
+  const DBL r_AS_factor = fractal->drMean * r_1_minus_exp_neg_S;
+  const DBL r2_AS_factor = fractal->dr2Mean * r2_1_minus_exp_neg_S;
 
   while (i--)
   {
-    Cur->c_x = Gauss_Rand(goomInfo, 0.0, 4.0, c_AS_factor);
-    Cur->c_y = Gauss_Rand(goomInfo, 0.0, 4.0, c_AS_factor);
-    Cur->r = Gauss_Rand(goomInfo, F->r_mean, 3.0, r_AS_factor);
-    Cur->r2 = Half_Gauss_Rand(goomInfo, 0.0, 2.0, r2_AS_factor);
-    Cur->A = Gauss_Rand(goomInfo, 0.0, 4.0, A_AS_factor) * (M_PI / 180.0);
-    Cur->A2 = Gauss_Rand(goomInfo, 0.0, 4.0, A2_AS_factor) * (M_PI / 180.0);
-    Cur->Ct = 0;
-    Cur->St = 0;
-    Cur->Ct2 = 0;
-    Cur->St2 = 0;
-    Cur->Cx = 0;
-    Cur->Cy = 0;
-    Cur->R = 0;
-    Cur->R2 = 0;
-    Cur++;
+    cur->c_x = Gauss_Rand(goomInfo, 0.0, 4.0, c_AS_factor);
+    cur->c_y = Gauss_Rand(goomInfo, 0.0, 4.0, c_AS_factor);
+    cur->r = Gauss_Rand(goomInfo, fractal->rMean, 3.0, r_AS_factor);
+    cur->r2 = Half_Gauss_Rand(goomInfo, 0.0, 2.0, r2_AS_factor);
+    cur->A = Gauss_Rand(goomInfo, 0.0, 4.0, A_AS_factor) * (M_PI / 180.0);
+    cur->A2 = Gauss_Rand(goomInfo, 0.0, 4.0, A2_AS_factor) * (M_PI / 180.0);
+    cur->Ct = 0;
+    cur->St = 0;
+    cur->Ct2 = 0;
+    cur->St2 = 0;
+    cur->Cx = 0;
+    cur->Cy = 0;
+    cur->R = 0;
+    cur->R2 = 0;
+    cur++;
   }
 }
 
-static void free_ifs_buffers(FRACTAL* Fractal)
+static void free_ifs_buffers(Fractal* fractal)
 {
-  if (Fractal->Buffer1 != NULL)
+  if (fractal->buffer1 != NULL)
   {
-    (void)free((void*)Fractal->Buffer1);
-    Fractal->Buffer1 = (IFSPoint*)NULL;
+    (void)free((void*)fractal->buffer1);
+    fractal->buffer1 = (IFSPoint*)NULL;
   }
-  if (Fractal->Buffer2 != NULL)
+  if (fractal->buffer2 != NULL)
   {
-    (void)free((void*)Fractal->Buffer2);
-    Fractal->Buffer2 = (IFSPoint*)NULL;
+    (void)free((void*)fractal->buffer2);
+    fractal->buffer2 = (IFSPoint*)NULL;
   }
 }
 
-static void free_ifs(FRACTAL* Fractal)
+static void free_ifs(Fractal* fractal)
 {
-  free_ifs_buffers(Fractal);
+  free_ifs_buffers(fractal);
 }
 
 /***************************************************************/
 
 static void init_ifs(PluginInfo* goomInfo, IfsData* data)
 {
-  const int width = goomInfo->screen.width;
-  const int height = goomInfo->screen.height;
+  const uint32_t width = goomInfo->screen.width;
+  const uint32_t height = goomInfo->screen.height;
 
   data->enabled_bp = secure_b_param("Enabled", 1);
 
-  if (data->Root == NULL)
+  if (data->root == NULL)
   {
-    data->Root = (FRACTAL*)malloc(sizeof(FRACTAL));
-    if (data->Root == NULL)
+    data->root = (Fractal*)malloc(sizeof(Fractal));
+    if (data->root == NULL)
       return;
-    data->Root->Buffer1 = (IFSPoint*)NULL;
-    data->Root->Buffer2 = (IFSPoint*)NULL;
+    data->root->buffer1 = (IFSPoint*)NULL;
+    data->root->buffer2 = (IFSPoint*)NULL;
   }
-  FRACTAL* Fractal = data->Root;
+  Fractal* fractal = data->root;
 
-  free_ifs_buffers(Fractal);
+  free_ifs_buffers(fractal);
 
   const int num_centres = (NRAND(4)) + 2; /* Number of centers */
   switch (num_centres)
   {
     case 3:
-      Fractal->Depth = MAX_DEPTH_3;
-      Fractal->r_mean = .6;
-      Fractal->dr_mean = .4;
-      Fractal->dr2_mean = .3;
+      fractal->depth = MAX_DEPTH_3;
+      fractal->rMean = .6;
+      fractal->drMean = .4;
+      fractal->dr2Mean = .3;
       break;
 
     case 4:
-      Fractal->Depth = MAX_DEPTH_4;
-      Fractal->r_mean = .5;
-      Fractal->dr_mean = .4;
-      Fractal->dr2_mean = .3;
+      fractal->depth = MAX_DEPTH_4;
+      fractal->rMean = .5;
+      fractal->drMean = .4;
+      fractal->dr2Mean = .3;
       break;
 
     case 5:
-      Fractal->Depth = MAX_DEPTH_5;
-      Fractal->r_mean = .5;
-      Fractal->dr_mean = .4;
-      Fractal->dr2_mean = .3;
+      fractal->depth = MAX_DEPTH_5;
+      fractal->rMean = .5;
+      fractal->drMean = .4;
+      fractal->dr2Mean = .3;
       break;
 
     default:
     case 2:
-      Fractal->Depth = MAX_DEPTH_2;
-      Fractal->r_mean = .7;
-      Fractal->dr_mean = .3;
-      Fractal->dr2_mean = .4;
+      fractal->depth = MAX_DEPTH_2;
+      fractal->rMean = .7;
+      fractal->drMean = .3;
+      fractal->dr2Mean = .4;
       break;
   }
 
-  Fractal->Nb_Simi = num_centres;
-  Fractal->Max_Pt = Fractal->Nb_Simi - 1;
-  for (int i = 0; i <= Fractal->Depth + 2; i++)
+  fractal->numSimi = num_centres;
+  fractal->maxPt = fractal->numSimi - 1;
+  for (uint32_t i = 0; i <= fractal->depth + 2; i++)
   {
-    Fractal->Max_Pt *= Fractal->Nb_Simi;
+    fractal->maxPt *= fractal->numSimi;
   }
 
-  if ((Fractal->Buffer1 = (IFSPoint*)calloc((size_t)Fractal->Max_Pt, sizeof(IFSPoint))) == NULL)
+  if ((fractal->buffer1 = (IFSPoint*)calloc((size_t)fractal->maxPt, sizeof(IFSPoint))) == NULL)
   {
-    free_ifs(Fractal);
+    free_ifs(fractal);
     return;
   }
-  if ((Fractal->Buffer2 = (IFSPoint*)calloc((size_t)Fractal->Max_Pt, sizeof(IFSPoint))) == NULL)
+  if ((fractal->buffer2 = (IFSPoint*)calloc((size_t)fractal->maxPt, sizeof(IFSPoint))) == NULL)
   {
-    free_ifs(Fractal);
+    free_ifs(fractal);
     return;
   }
 
-  Fractal->Speed = 6;
-  Fractal->Width = width; /* modif by JeKo */
-  Fractal->Height = height; /* modif by JeKo */
-  Fractal->Cur_Pt = 0;
-  Fractal->Count = 0;
-  Fractal->Lx = (Fractal->Width - 1) / 2;
-  Fractal->Ly = (Fractal->Height - 1) / 2;
-  Fractal->Col = (int)pcg32_rand() % (width * height); /* modif by JeKo */
+  fractal->speed = 6;
+  fractal->width = width; /* modif by JeKo */
+  fractal->height = height; /* modif by JeKo */
+  fractal->curPt = 0;
+  fractal->count = 0;
+  fractal->lx = (fractal->width - 1) / 2;
+  fractal->ly = (fractal->height - 1) / 2;
+  fractal->col = pcg32_rand() % (width * height); /* modif by JeKo */
 
-  Random_Simis(goomInfo, Fractal, Fractal->Components, 5 * MAX_SIMI);
+  Random_Simis(goomInfo, fractal, fractal->components, 5 * MAX_SIMI);
 
-  for (int i = 0; i < 5 * MAX_SIMI; i++)
+  for (size_t i = 0; i < 5 * MAX_SIMI; i++)
   {
-    SIMI cur = Fractal->Components[i];
+    Similitude cur = fractal->components[i];
     logDebug("simi[{}]: c_x = {:.2}, c_y = {:.2}, r = {:.2}, r2 = {:.2}, A = {:.2}, A2 = {:.2}.", i,
              cur.c_x, cur.c_y, cur.r, cur.r2, cur.A, cur.A2);
   }
@@ -307,7 +322,7 @@ static void init_ifs(PluginInfo* goomInfo, IfsData* data)
 
 /***************************************************************/
 
-static inline void Transform(SIMI* Simi, F_PT xo, F_PT yo, F_PT* x, F_PT* y)
+static inline void Transform(Similitude* Simi, F_PT xo, F_PT yo, F_PT* x, F_PT* y)
 {
   xo = xo - Simi->Cx;
   xo = div_by_unit(xo * Simi->R);
@@ -325,36 +340,36 @@ static inline void Transform(SIMI* Simi, F_PT xo, F_PT yo, F_PT* x, F_PT* y)
 
 /***************************************************************/
 
-static void Trace(FRACTAL* F, F_PT xo, F_PT yo, IfsData* data)
+static void Trace(Fractal* F, F_PT xo, F_PT yo, IfsData* data)
 {
-  SIMI* Cur = data->Cur_F->Components;
-  //	logDebug("data->Cur_F->Nb_Simi = {}, xo = {}, yo = {}", data->Cur_F->Nb_Simi, xo, yo);
-  for (int i = data->Cur_F->Nb_Simi; i; --i, Cur++)
+  Similitude* Cur = data->curF->components;
+  //	logDebug("data->Cur_F->numSimi = {}, xo = {}, yo = {}", data->Cur_F->numSimi, xo, yo);
+  for (int i = data->curF->numSimi; i; --i, Cur++)
   {
     F_PT x, y;
     Transform(Cur, xo, yo, &x, &y);
 
-    data->Buf->x = F->Lx + div_by_2units(x * F->Lx);
-    data->Buf->y = F->Ly - div_by_2units(y * F->Ly);
-    data->Buf++;
+    data->buff->x = F->lx + div_by_2units(x * F->lx);
+    data->buff->y = F->ly - div_by_2units(y * F->ly);
+    data->buff++;
 
-    data->Cur_Pt++;
+    data->curPt++;
 
-    if (F->Depth && ((x - xo) >> 4) && ((y - yo) >> 4))
+    if (F->depth && ((x - xo) >> 4) && ((y - yo) >> 4))
     {
-      F->Depth--;
+      F->depth--;
       Trace(F, x, y, data);
-      F->Depth++;
+      F->depth++;
     }
   }
 }
 
 static void Draw_Fractal(IfsData* data)
 {
-  FRACTAL* F = data->Root;
+  Fractal* F = data->root;
   int i;
-  SIMI* Cur;
-  for (Cur = F->Components, i = F->Nb_Simi; i; --i, Cur++)
+  Similitude* Cur;
+  for (Cur = F->components, i = F->numSimi; i; --i, Cur++)
   {
     Cur->Cx = DBL_To_F_PT(Cur->c_x);
     Cur->Cy = DBL_To_F_PT(Cur->c_y);
@@ -368,17 +383,17 @@ static void Draw_Fractal(IfsData* data)
     Cur->R2 = DBL_To_F_PT(Cur->r2);
   }
 
-  data->Cur_Pt = 0;
-  data->Cur_F = F;
-  data->Buf = F->Buffer2;
+  data->curPt = 0;
+  data->curF = F;
+  data->buff = F->buffer2;
   int j;
-  for (Cur = F->Components, i = F->Nb_Simi; i; --i, Cur++)
+  for (Cur = F->components, i = F->numSimi; i; --i, Cur++)
   {
     const F_PT xo = Cur->Cx;
     const F_PT yo = Cur->Cy;
-    logDebug("F->Nb_Simi = {}, xo = {}, yo = {}", F->Nb_Simi, xo, yo);
-    SIMI* Simi;
-    for (Simi = F->Components, j = F->Nb_Simi; j; --j, Simi++)
+    logDebug("F->numSimi = {}, xo = {}, yo = {}", F->numSimi, xo, yo);
+    Similitude* Simi;
+    for (Simi = F->components, j = F->numSimi; j; --j, Simi++)
     {
       if (Simi == Cur)
       {
@@ -392,25 +407,25 @@ static void Draw_Fractal(IfsData* data)
   }
 
   /* Erase previous */
-  F->Cur_Pt = data->Cur_Pt;
-  data->Buf = F->Buffer1;
-  F->Buffer1 = F->Buffer2;
-  F->Buffer2 = data->Buf;
+  F->curPt = data->curPt;
+  data->buff = F->buffer1;
+  F->buffer1 = F->buffer2;
+  F->buffer2 = data->buff;
 }
 
 static IFSPoint* draw_ifs(PluginInfo* goomInfo, int* nbpt, IfsData* data)
 {
-  if (data->Root == NULL)
+  if (data->root == NULL)
   {
     return NULL;
   }
-  FRACTAL* F = data->Root;
-  if (F->Buffer1 == NULL)
+  Fractal* F = data->root;
+  if (F->buffer1 == NULL)
   {
     return NULL;
   }
 
-  const DBL u = (DBL)(F->Count) * (DBL)(F->Speed) / 1000.0;
+  const DBL u = (DBL)(F->count) * (DBL)(F->speed) / 1000.0;
   const DBL uu = u * u;
   const DBL v = 1.0 - u;
   const DBL vv = v * v;
@@ -419,13 +434,13 @@ static IFSPoint* draw_ifs(PluginInfo* goomInfo, int* nbpt, IfsData* data)
   const DBL u2 = 3.0 * v * uu;
   const DBL u3 = u * uu;
 
-  SIMI* S = F->Components;
-  SIMI* S1 = S + F->Nb_Simi;
-  SIMI* S2 = S1 + F->Nb_Simi;
-  SIMI* S3 = S2 + F->Nb_Simi;
-  SIMI* S4 = S3 + F->Nb_Simi;
+  Similitude* S = F->components;
+  Similitude* S1 = S + F->numSimi;
+  Similitude* S2 = S1 + F->numSimi;
+  Similitude* S3 = S2 + F->numSimi;
+  Similitude* S4 = S3 + F->numSimi;
 
-  for (int i = F->Nb_Simi; i; --i, S++, S1++, S2++, S3++, S4++)
+  for (int i = F->numSimi; i; --i, S++, S1++, S2++, S3++, S4++)
   {
     S->c_x = u0 * S1->c_x + u1 * S2->c_x + u2 * S3->c_x + u3 * S4->c_x;
     S->c_y = u0 * S1->c_y + u1 * S2->c_y + u2 * S3->c_y + u3 * S4->c_y;
@@ -437,15 +452,15 @@ static IFSPoint* draw_ifs(PluginInfo* goomInfo, int* nbpt, IfsData* data)
 
   Draw_Fractal(data);
 
-  if (F->Count >= 1000 / F->Speed)
+  if (F->count >= 1000 / F->speed)
   {
-    S = F->Components;
-    S1 = S + F->Nb_Simi;
-    S2 = S1 + F->Nb_Simi;
-    S3 = S2 + F->Nb_Simi;
-    S4 = S3 + F->Nb_Simi;
+    S = F->components;
+    S1 = S + F->numSimi;
+    S2 = S1 + F->numSimi;
+    S3 = S2 + F->numSimi;
+    S4 = S3 + F->numSimi;
 
-    for (int i = F->Nb_Simi; i; --i, S++, S1++, S2++, S3++, S4++)
+    for (int i = F->numSimi; i; --i, S++, S1++, S2++, S3++, S4++)
     {
       S2->c_x = 2.0 * S4->c_x - S3->c_x;
       S2->c_y = 2.0 * S4->c_y - S3->c_y;
@@ -457,31 +472,31 @@ static IFSPoint* draw_ifs(PluginInfo* goomInfo, int* nbpt, IfsData* data)
       *S1 = *S4;
     }
 
-    Random_Simis(goomInfo, F, F->Components + 3 * F->Nb_Simi, F->Nb_Simi);
-    Random_Simis(goomInfo, F, F->Components + 4 * F->Nb_Simi, F->Nb_Simi);
+    Random_Simis(goomInfo, F, F->components + 3 * F->numSimi, F->numSimi);
+    Random_Simis(goomInfo, F, F->components + 4 * F->numSimi, F->numSimi);
 
-    F->Count = 0;
+    F->count = 0;
   }
   else
   {
-    F->Count++;
+    F->count++;
   }
 
-  F->Col++;
-  (*nbpt) = data->Cur_Pt;
+  F->col++;
+  (*nbpt) = data->curPt;
 
-  return F->Buffer2;
+  return F->buffer2;
 }
 
 /***************************************************************/
 
 static void release_ifs(IfsData* data)
 {
-  if (data->Root != NULL)
+  if (data->root != NULL)
   {
-    free_ifs(data->Root);
-    (void)free((void*)data->Root);
-    data->Root = (FRACTAL*)NULL;
+    free_ifs(data->root);
+    (void)free((void*)data->root);
+    data->root = (Fractal*)NULL;
   }
 }
 
@@ -490,7 +505,7 @@ static void release_ifs(IfsData* data)
 #define MOD_FEU 1
 #define MOD_MERVER 2
 
-static struct
+static struct IfsUpdate
 {
   int justChanged;
   int couleur;
@@ -840,9 +855,9 @@ static void ifs_update(
 static void ifs_vfx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* goomInfo)
 {
   IfsData* data = (IfsData*)_this->fx_data;
-  if (!data->initalized)
+  if (!data->initialized)
   {
-    data->initalized = 1;
+    data->initialized = true;
     init_ifs(goomInfo, data);
   }
   if (!BVAL(data->enabled_bp))
@@ -854,12 +869,9 @@ static void ifs_vfx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* 
   /*TODO: trouver meilleur soluce pour increment (mettre le code de gestion de l'ifs dans ce fichier: ifs_vfx_apply) */
 }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
+static const char *const vfxname = "Ifs";
 
-static const char* const vfxname = "Ifs";
-
-static void ifs_vfx_save(VisualFX* _this, const PluginInfo* info, const char* file)
+static void ifs_vfx_save(VisualFX* _this, const PluginInfo*, const char* file)
 {
   FILE* f = fopen(file, "w");
 
@@ -877,28 +889,28 @@ static void ifs_vfx_save(VisualFX* _this, const PluginInfo* info, const char* fi
   save_int_setting(f, vfxname, "ifs_update_data.cycle", ifs_update_data.cycle);
 
   IfsData* data = (IfsData*)_this->fx_data;
-  save_int_setting(f, vfxname, "data.Cur_Pt", data->Cur_Pt);
-  save_int_setting(f, vfxname, "data.initalized", data->initalized);
+  save_int_setting(f, vfxname, "data.Cur_Pt", data->curPt);
+  save_int_setting(f, vfxname, "data.initalized", data->initialized);
 
-  FRACTAL* Fractal = data->Root;
-  save_int_setting(f, vfxname, "Fractal.Nb_Simi", Fractal->Nb_Simi);
-  save_int_setting(f, vfxname, "Fractal.Depth", Fractal->Depth);
-  save_int_setting(f, vfxname, "Fractal.Col", Fractal->Col);
-  save_int_setting(f, vfxname, "Fractal.Count", Fractal->Count);
-  save_int_setting(f, vfxname, "Fractal.Speed", Fractal->Speed);
-  save_int_setting(f, vfxname, "Fractal.Width", Fractal->Width);
-  save_int_setting(f, vfxname, "Fractal.Height", Fractal->Height);
-  save_int_setting(f, vfxname, "Fractal.Lx", Fractal->Lx);
-  save_int_setting(f, vfxname, "Fractal.Ly", Fractal->Ly);
-  save_float_setting(f, vfxname, "Fractal.r_mean", Fractal->r_mean);
-  save_float_setting(f, vfxname, "Fractal.dr_mean", Fractal->dr_mean);
-  save_float_setting(f, vfxname, "Fractal.dr2_mean", Fractal->dr2_mean);
-  save_int_setting(f, vfxname, "Fractal.Cur_Pt", Fractal->Cur_Pt);
-  save_int_setting(f, vfxname, "Fractal.Max_Pt", Fractal->Max_Pt);
+  Fractal* fractal = data->root;
+  save_int_setting(f, vfxname, "fractal.numSimi", fractal->numSimi);
+  save_int_setting(f, vfxname, "fractal.depth", int(fractal->depth));
+  save_int_setting(f, vfxname, "fractal.col", int(fractal->col));
+  save_int_setting(f, vfxname, "fractal.count", fractal->count);
+  save_int_setting(f, vfxname, "fractal.speed", fractal->speed);
+  save_int_setting(f, vfxname, "fractal.width", fractal->width);
+  save_int_setting(f, vfxname, "fractal.height", fractal->height);
+  save_int_setting(f, vfxname, "fractal.lx", fractal->lx);
+  save_int_setting(f, vfxname, "fractal.ly", fractal->ly);
+  save_float_setting(f, vfxname, "fractal.rMean", fractal->rMean);
+  save_float_setting(f, vfxname, "fractal.drMean", fractal->drMean);
+  save_float_setting(f, vfxname, "fractal.dr2Mean", fractal->dr2Mean);
+  save_int_setting(f, vfxname, "fractal.curPt", fractal->curPt);
+  save_int_setting(f, vfxname, "fractal.maxPt", fractal->maxPt);
 
-  for (int i = 0; i < Fractal->Nb_Simi; i++)
+  for (int i = 0; i < fractal->numSimi; i++)
   {
-    const SIMI* simi = &(Fractal->Components[i]);
+    const Similitude* simi = &(fractal->components[i]);
     save_indexed_float_setting(f, vfxname, "simi.c_x", i, simi->c_x);
     save_indexed_float_setting(f, vfxname, "simi.c_y", i, simi->c_y);
     save_indexed_float_setting(f, vfxname, "simi.r", i, simi->r);
@@ -918,12 +930,7 @@ static void ifs_vfx_save(VisualFX* _this, const PluginInfo* info, const char* fi
   fclose(f);
 }
 
-#pragma GCC diagnostic pop
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-
-static void ifs_vfx_restore(VisualFX* _this, PluginInfo* info, const char* file)
+static void ifs_vfx_restore(VisualFX* _this, PluginInfo*, const char* file)
 {
   FILE* f = fopen(file, "r");
   if (f == NULL)
@@ -945,29 +952,29 @@ static void ifs_vfx_restore(VisualFX* _this, PluginInfo* info, const char* file)
   ifs_update_data.cycle = get_int_setting(f, vfxname, "ifs_update_data.cycle");
 
   IfsData* data = (IfsData*)_this->fx_data;
-  data->Cur_Pt = get_int_setting(f, vfxname, "data.Cur_Pt");
-  data->initalized = get_int_setting(f, vfxname, "data.initalized");
-  data->initalized = 1;
+  data->curPt = get_int_setting(f, vfxname, "data.Cur_Pt");
+  data->initialized = get_int_setting(f, vfxname, "data.initalized");
+  data->initialized = true;
 
-  FRACTAL* Fractal = data->Root;
-  Fractal->Nb_Simi = get_int_setting(f, vfxname, "Fractal.Nb_Simi");
-  Fractal->Depth = get_int_setting(f, vfxname, "Fractal.Depth");
-  Fractal->Col = get_int_setting(f, vfxname, "Fractal.Col");
-  Fractal->Count = get_int_setting(f, vfxname, "Fractal.Count");
-  Fractal->Speed = get_int_setting(f, vfxname, "Fractal.Speed");
-  Fractal->Width = get_int_setting(f, vfxname, "Fractal.Width");
-  Fractal->Height = get_int_setting(f, vfxname, "Fractal.Height");
-  Fractal->Lx = get_int_setting(f, vfxname, "Fractal.Lx");
-  Fractal->Ly = get_int_setting(f, vfxname, "Fractal.Ly");
-  Fractal->r_mean = get_float_setting(f, vfxname, "Fractal.r_mean");
-  Fractal->dr_mean = get_float_setting(f, vfxname, "Fractal.dr_mean");
-  Fractal->dr2_mean = get_float_setting(f, vfxname, "Fractal.dr2_mean");
-  Fractal->Cur_Pt = get_int_setting(f, vfxname, "Fractal.Cur_Pt");
-  Fractal->Max_Pt = get_int_setting(f, vfxname, "Fractal.Max_Pt");
+  Fractal* fractal = data->root;
+  fractal->numSimi = get_int_setting(f, vfxname, "fractal.numSimi");
+  fractal->depth = uint32_t(get_int_setting(f, vfxname, "fractal.depth"));
+  fractal->col = uint32_t(get_int_setting(f, vfxname, "fractal.col"));
+  fractal->count = get_int_setting(f, vfxname, "fractal.count");
+  fractal->speed = get_int_setting(f, vfxname, "fractal.speed");
+  fractal->width = get_int_setting(f, vfxname, "fractal.width");
+  fractal->height = get_int_setting(f, vfxname, "fractal.height");
+  fractal->lx = get_int_setting(f, vfxname, "fractal.lx");
+  fractal->ly = get_int_setting(f, vfxname, "fractal.ly");
+  fractal->rMean = get_float_setting(f, vfxname, "fractal.rMean");
+  fractal->drMean = get_float_setting(f, vfxname, "fractal.drMean");
+  fractal->dr2Mean = get_float_setting(f, vfxname, "fractal.dr2Mean");
+  fractal->curPt = get_int_setting(f, vfxname, "fractal.curPt");
+  fractal->maxPt = get_int_setting(f, vfxname, "fractal.maxPt");
 
-  for (int i = 0; i < Fractal->Nb_Simi; i++)
+  for (int i = 0; i < fractal->numSimi; i++)
   {
-    SIMI* simi = &(Fractal->Components[i]);
+    Similitude* simi = &(fractal->components[i]);
     simi->c_x = get_indexed_float_setting(f, vfxname, "simi.c_x", i);
     simi->c_y = get_indexed_float_setting(f, vfxname, "simi.c_y", i);
     simi->r = get_indexed_float_setting(f, vfxname, "simi.r", i);
@@ -989,8 +996,6 @@ static void ifs_vfx_restore(VisualFX* _this, PluginInfo* info, const char* file)
   //    ifs_vfx_save(_this, info, "/tmp/vfx_save_after_restore.txt");
 }
 
-#pragma GCC diagnostic pop
-
 static void ifs_vfx_init(VisualFX* _this, PluginInfo* info)
 {
   IfsData* data = (IfsData*)malloc(sizeof(IfsData));
@@ -999,14 +1004,14 @@ static void ifs_vfx_init(VisualFX* _this, PluginInfo* info)
   data->params = plugin_parameters("Ifs", 1);
   data->params.params[0] = &data->enabled_bp;
 
-  data->Root = (FRACTAL*)NULL;
-  data->initalized = 0;
+  data->root = (Fractal*)NULL;
+  data->initialized = false;
 
   _this->fx_data = data;
   _this->params = &data->params;
 
   init_ifs(info, data);
-  data->initalized = 1;
+  data->initialized = true;
 }
 
 static void ifs_vfx_free(VisualFX* _this)

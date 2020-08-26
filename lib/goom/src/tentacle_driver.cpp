@@ -482,7 +482,7 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
       logDebug("draw_line {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}.", i, ix0, iy0, ix1, iy1);
 
       const auto [color, colorLow] = tentacle.getMixedColors(i, dominantColor, dominantColorLow);
-      const std::vector<_PIXEL> colors = {{.val = color}, {.val = colorLow}};
+      const std::vector<Pixel> colors = {{.val = color}, {.val = colorLow}};
 
       Pixel* buffs[2] = {frontBuff, backBuff};
       // TODO - Control brightness because of back buff??

@@ -11,7 +11,7 @@
 #endif
 
 #ifndef WORDS_BIGENDIAN
-/** position des composantes **/
+// position des composantes
 #define ALPHA 3
 #define BLEU 2
 #define VERT 1
@@ -21,15 +21,6 @@
 #define VERT 2
 #define ROUGE 1
 #define ALPHA 0
-#endif
-
-#ifndef guint32
-#define guint8 unsigned char
-#define guin16 unsigned short
-#define guint32 unsigned int
-#define gint8 signed char
-#define gint16 signed short int
-#define gint32 signed int
 #endif
 
 #endif

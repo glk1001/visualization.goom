@@ -1,8 +1,6 @@
 #ifndef _CONFIG_PARAM_H
 #define _CONFIG_PARAM_H
 
-#include <stdlib.h>
-
 /**
  * File created on 2003-05-24 by Jeko.
  * (c)2003, JC Hoelt for iOS-software.
@@ -10,14 +8,16 @@
  * LGPL Licence.
  */
 
-typedef enum
+#include <cstddef>
+
+enum class ParamType
 {
   PARAM_INTVAL,
   PARAM_FLOATVAL,
   PARAM_BOOLVAL,
   PARAM_STRVAL,
   PARAM_LISTVAL,
-} ParamType;
+};
 
 struct IntVal
 {
@@ -48,7 +48,7 @@ struct BoolVal
   int value;
 };
 
-typedef struct _PARAM
+struct PluginParam
 {
   const char* name;
   const char* desc;
@@ -63,14 +63,15 @@ typedef struct _PARAM
     struct BoolVal bval;
   } param;
 
-  /* used by the core to inform the GUI of a change */
-  void (*change_listener)(struct _PARAM* _this);
+  // used by the core to inform the GUI of a change
+  void (*change_listener)(PluginParam* _this);
 
-  /* used by the GUI to inform the core of a change */
-  void (*changed)(struct _PARAM* _this);
+  // used by the GUI to inform the core of a change
+  void (*changed)(PluginParam* _this);
 
-  void* user_data; /* can be used by the GUI */
-} PluginParam;
+  // can be used by the GUI
+  void* user_data;
+};
 
 #define IVAL(p) ((p).param.ival.value)
 #define SVAL(p) ((p).param.sval.value)
@@ -99,13 +100,13 @@ PluginParam goom_secure_i_feedback(const char* name);
 void goom_set_str_param_value(PluginParam* p, const char* str);
 void goom_set_list_param_value(PluginParam* p, const char* str);
 
-typedef struct _PARAMETERS
+struct PluginParameters
 {
   const char* name;
   const char* desc;
-  unsigned int nbParams;
+  size_t nbParams;
   PluginParam** params;
-} PluginParameters;
+};
 
 PluginParameters goom_plugin_parameters(const char* name, unsigned int nb);
 

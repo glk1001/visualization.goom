@@ -3,18 +3,18 @@
 #include "goom_fx.h"
 #include "goom_plugin_info.h"
 
-#include <math.h>
-#include <stdio.h>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
 
 static void setOptimizedMethods(PluginInfo* p)
 {
   /* set default methods */
   p->methods.draw_line = draw_line;
   p->methods.zoom_filter = zoom_filter_c;
-  /*    p->methods.create_output_with_brightness = create_output_with_brightness;*/
 }
 
-void plugin_info_init(PluginInfo* pp, int nbVisuals)
+void plugin_info_init(PluginInfo* pp, size_t nbVisuals)
 {
   PluginInfo p;
 
@@ -112,7 +112,19 @@ void plugin_info_init(PluginInfo* pp, int nbVisuals)
 
   pp->update_message.affiche = 0;
 
-  ZoomFilterData zfd = {127, 8, 16, 1, 1, 0, NORMAL_MODE, 0, 0, 0, 0};
+  ZoomFilterData zfd{
+    .vitesse = 127,
+    .pertedec = 8,
+    .middleX = 16,
+    .middleY = 1,
+    .reverse = true,
+    .mode = ZoomFilterMode::NORMAL_MODE,
+    .hPlaneEffect = 0,
+    .vPlaneEffect = 0,
+    .waveEffect = 0,
+    .hypercosEffect = 0,
+    .noisify = 0,
+  };
   pp->update.zoomFilterData = zfd;
 
   setOptimizedMethods(pp);
@@ -127,7 +139,7 @@ void plugin_info_init(PluginInfo* pp, int nbVisuals)
   }
 }
 
-void plugin_info_add_visual(PluginInfo* p, int i, VisualFX* visual)
+void plugin_info_add_visual(PluginInfo* p, size_t i, VisualFX* visual)
 {
   p->visuals[i] = visual;
   if (i == p->nbVisuals - 1)
