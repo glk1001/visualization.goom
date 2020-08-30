@@ -57,7 +57,7 @@ TentacleDriver::TentacleDriver(const ColorMaps* cm, const int screenW, const int
       iter3,
   };
 
-  logInfo("Constructed TentacleDriver.");
+  logDebug("Constructed TentacleDriver.");
 }
 
 constexpr double tent2d_xmin = 0.0;
@@ -66,12 +66,12 @@ constexpr double tent2d_ymax = 10000;
 
 void TentacleDriver::init()
 {
-  logInfo("Starting driver init.");
+  logDebug("Starting driver init.");
 
   const CirclesTentacleLayout layout{10, 80, {30, 20, 14, 6, 4}, 0};
   //  const GridTentacleLayout layout{ -100, 100, xRowLen, -100, 100, numXRows, 0 };
   numTentacles = layout.getNumPoints();
-  logInfo("numTentacles = {}.", numTentacles);
+  logDebug("numTentacles = {}.", numTentacles);
 
   tentacleParams.resize(numTentacles);
 
@@ -79,11 +79,11 @@ void TentacleDriver::init()
   const ColorMap* specialColorMap = &colorMaps->getRandomColorMap(ColorMapGroup::qualitative);
   const std::vector<size_t> specialColorNodes = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
   const ColorMap* headColorMap = &colorMaps->getColorMap(ColorMapName::red_black_sky);
-  logInfo("Got color maps.");
+  logDebug("Got color maps.");
 
   const size_t numInParamGroup = numTentacles / iterParamsGroups.size();
   const float tStep = 1.0 / float(numInParamGroup - 1);
-  logInfo("numInTentacleGroup = {}, tStep = {:.2f}.", numInParamGroup, tStep);
+  logDebug("numInTentacleGroup = {}, tStep = {:.2f}.", numInParamGroup, tStep);
 
   size_t paramsIndex = 0;
   float t = 0;

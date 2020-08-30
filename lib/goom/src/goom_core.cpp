@@ -250,7 +250,7 @@ uint32_t* goom_update(PluginInfo* goomInfo,
   ZoomFilterData* pzfd = nullptr;
   if (forceMode != 0)
   {
-    logInfo("forcemode = {}\n", forceMode);
+    logDebug("forcemode = {}\n", forceMode);
   }
 
   if (--goomInfo->update.lockvar < 0)
@@ -484,13 +484,13 @@ static void drawPointsIfRequired(PluginInfo* goomInfo,
                                  const uint32_t pointHeight,
                                  const float largfactor)
 {
-  logInfo("goomInfo->curGState->drawPoints = {}", goomInfo->curGState->drawPoints);
+  logDebug("goomInfo->curGState->drawPoints = {}", goomInfo->curGState->drawPoints);
   if (goomInfo->curGState->drawPoints)
   {
-    logInfo("goomInfo->curGState->drawPoints = {} is true", goomInfo->curGState->drawPoints);
+    logDebug("goomInfo->curGState->drawPoints = {} is true", goomInfo->curGState->drawPoints);
     drawPoints(goomInfo, pointWidth, pointHeight, largfactor);
   }
-  logInfo("goomInfo->sound.timeSinceLastGoom = {}", goomInfo->sound.timeSinceLastGoom);
+  logDebug("goomInfo->sound.timeSinceLastGoom = {}", goomInfo->sound.timeSinceLastGoom);
 }
 
 static void drawPoints(PluginInfo* goomInfo,
@@ -573,7 +573,7 @@ static void changeModeIfMusicChanges(PluginInfo* goomInfo, const int forceMode)
              goomInfo->sound.timeSinceLastGoom, forceMode, goomInfo->update.cyclesSinceLastChange);
     changeMode(goomInfo);
   }
-  logInfo("goomInfo->sound.timeSinceLastGoom = {}", goomInfo->sound.timeSinceLastGoom);
+  logDebug("goomInfo->sound.timeSinceLastGoom = {}", goomInfo->sound.timeSinceLastGoom);
 }
 
 static void changeMode(PluginInfo* goomInfo)
@@ -585,7 +585,7 @@ static void changeMode(PluginInfo* goomInfo)
     return;
   }
 
-  logInfo("goom_irand(goomInfo->gRandom, 16) = 0");
+  logDebug("goom_irand(goomInfo->gRandom, 16) = 0");
   switch (goom_irand(goomInfo->gRandom, 34))
   {
     case 0:
@@ -676,7 +676,7 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
   logDebug("goomInfo->sound.timeSinceLastGoom = {}", goomInfo->sound.timeSinceLastGoom);
   if (goomInfo->sound.timeSinceLastGoom == 0)
   {
-    logInfo("goomInfo->sound.timeSinceLastGoom = 0");
+    logDebug("goomInfo->sound.timeSinceLastGoom = 0");
 
     goomInfo->update.goomvar++;
 
@@ -924,7 +924,7 @@ static void changeZoomEffect(PluginInfo* goomInfo, ZoomFilterData* pzfd, const i
 {
   if (pzfd != NULL)
   {
-    logInfo("pzfd != NULL");
+    logDebug("pzfd != NULL");
 
     goomInfo->update.cyclesSinceLastChange = 0;
     goomInfo->update.switchIncr = goomInfo->update.switchIncrAmount;
@@ -969,13 +969,13 @@ static void changeZoomEffect(PluginInfo* goomInfo, ZoomFilterData* pzfd, const i
 
   if (pzfd)
   {
-    logInfo("pzfd->mode = {}", pzfd->mode);
+    logDebug("pzfd->mode = {}", pzfd->mode);
   }
 }
 
 static void applyTentaclesAndStars(PluginInfo* goomInfo)
 {
-  logInfo("Before goomInfo->tentacles_fx.apply, goomInfo->star_fx.apply");
+  logDebug("Before goomInfo->tentacles_fx.apply, goomInfo->star_fx.apply");
   goomInfo->tentacles_fx.apply(&goomInfo->tentacles_fx, goomInfo->p2, goomInfo->p1, goomInfo);
   goomInfo->star_fx.apply(&goomInfo->star_fx, goomInfo->p2, goomInfo->p1, goomInfo);
 }
@@ -1028,7 +1028,7 @@ void displayText(PluginInfo* goomInfo, const char* songTitle, const char* messag
 
 static void stopRequest(PluginInfo* goomInfo)
 {
-  logInfo("goomInfo->update.stop_lines = {}, goomInfo->curGState->drawScope = {}",
+  logDebug("goomInfo->update.stop_lines = {}, goomInfo->curGState->drawScope = {}",
            goomInfo->update.stop_lines, goomInfo->curGState->drawScope);
 
   float param1 = 0;
@@ -1091,7 +1091,7 @@ static void stopRandomLineChangeMode(PluginInfo* goomInfo)
         }
       }
 
-      logInfo("goomInfo->update.lineMode = {} == {} = goomInfo->update.drawLinesDuration",
+      logDebug("goomInfo->update.lineMode = {} == {} = goomInfo->update.drawLinesDuration",
                goomInfo->update.lineMode, goomInfo->update.drawLinesDuration);
       goom_lines_switch_to(goomInfo->gmline1, mode, param1, amplitude, couleur1);
       goom_lines_switch_to(goomInfo->gmline2, mode, param2, amplitude, couleur2);
@@ -1112,7 +1112,7 @@ static void displayLines(PluginInfo* goomInfo,
        (goomInfo->update.lineMode == goomInfo->update.drawLinesDuration)))
   {
 
-    logInfo("goomInfo->cycle % 121 etc.: goomInfo->cycle = {}, rand1_3 = ?", goomInfo->cycle);
+    logDebug("goomInfo->cycle % 121 etc.: goomInfo->cycle = {}, rand1_3 = ?", goomInfo->cycle);
     float param1 = 0;
     float param2 = 0;
     float amplitude = 0;
@@ -1137,7 +1137,7 @@ static void displayLines(PluginInfo* goomInfo,
 
 static void bigBreakIfMusicIsCalm(PluginInfo* goomInfo, ZoomFilterData** pzfd)
 {
-  logInfo("goomInfo->sound.speedvar = {:.2}, goomInfo->update.zoomFilterData.vitesse = {}, "
+  logDebug("goomInfo->sound.speedvar = {:.2}, goomInfo->update.zoomFilterData.vitesse = {}, "
            "goomInfo->cycle = {}",
            goomInfo->sound.speedvar, goomInfo->update.zoomFilterData.vitesse, goomInfo->cycle);
   if ((goomInfo->sound.speedvar < 0.01f) &&
@@ -1209,13 +1209,13 @@ static void updateDecayRecay(PluginInfo* goomInfo)
 
 static void bigUpdateIfNotLocked(PluginInfo* goomInfo, ZoomFilterData** pzfd)
 {
-  logInfo("goomInfo->update.lockvar = {}", goomInfo->update.lockvar);
+  logDebug("goomInfo->update.lockvar = {}", goomInfo->update.lockvar);
   if (goomInfo->update.lockvar == 0)
   {
-    logInfo("goomInfo->update.lockvar = 0");
+    logDebug("goomInfo->update.lockvar = 0");
     bigUpdate(goomInfo, pzfd);
   }
-  logInfo("goomInfo->sound.timeSinceLastGoom = {}", goomInfo->sound.timeSinceLastGoom);
+  logDebug("goomInfo->sound.timeSinceLastGoom = {}", goomInfo->sound.timeSinceLastGoom);
 }
 
 static void forceEffectIfSet(PluginInfo* goomInfo, ZoomFilterData** pzfd, const int forceMode)
@@ -1236,7 +1236,7 @@ static void forceEffectIfSet(PluginInfo* goomInfo, ZoomFilterData** pzfd, const 
 
 static void stopIfRequested(PluginInfo* goomInfo)
 {
-  logInfo("goomInfo->update.stop_lines = {}, goomInfo->curGState->drawScope = {}",
+  logDebug("goomInfo->update.stop_lines = {}, goomInfo->curGState->drawScope = {}",
            goomInfo->update.stop_lines, goomInfo->curGState->drawScope);
   if ((goomInfo->update.stop_lines & 0xf000) || !goomInfo->curGState->drawScope)
   {
@@ -1251,7 +1251,7 @@ static void displayLinesIfInAGoom(PluginInfo* goomInfo,
            goomInfo->update.lineMode, goomInfo->sound.timeSinceLastGoom);
   if ((goomInfo->update.lineMode != 0) || (goomInfo->sound.timeSinceLastGoom < 5))
   {
-    logInfo("goomInfo->update.lineMode = {} != 0 || goomInfo->sound.timeSinceLastGoom = {} < 5",
+    logDebug("goomInfo->update.lineMode = {} != 0 || goomInfo->sound.timeSinceLastGoom = {} < 5",
              goomInfo->update.lineMode, goomInfo->sound.timeSinceLastGoom);
 
     displayLines(goomInfo, data);
@@ -1260,10 +1260,10 @@ static void displayLinesIfInAGoom(PluginInfo* goomInfo,
 
 static void applyIfsIfRequired(PluginInfo* goomInfo)
 {
-  logInfo("goomInfo->update.ifs_incr = {}", goomInfo->update.ifs_incr);
+  logDebug("goomInfo->update.ifs_incr = {}", goomInfo->update.ifs_incr);
   if (goomInfo->update.ifs_incr > 0)
   {
-    logInfo("goomInfo->update.ifs_incr = {} > 0", goomInfo->update.ifs_incr);
+    logDebug("goomInfo->update.ifs_incr = {} > 0", goomInfo->update.ifs_incr);
     goomInfo->ifs_fx.apply(&goomInfo->ifs_fx, goomInfo->p2, goomInfo->p1, goomInfo);
   }
 }
@@ -1282,11 +1282,11 @@ static void regularlyLowerTheSpeed(PluginInfo* goomInfo, ZoomFilterData** pzfd)
 
 static void stopDecrementingAfterAWhile(PluginInfo* goomInfo, ZoomFilterData** pzfd)
 {
-  logInfo("goomInfo->cycle = {}, goomInfo->update.zoomFilterData.pertedec = {}", goomInfo->cycle,
+  logDebug("goomInfo->cycle = {}, goomInfo->update.zoomFilterData.pertedec = {}", goomInfo->cycle,
            goomInfo->update.zoomFilterData.pertedec);
   if ((goomInfo->cycle % 101 == 0) && (goomInfo->update.zoomFilterData.pertedec == 7))
   {
-    logInfo("goomInfo->cycle % 101 = 0 && dgoomInfo->update.zoomFilterData.pertedec = 7, ",
+    logDebug("goomInfo->cycle % 101 = 0 && dgoomInfo->update.zoomFilterData.pertedec = 7, ",
              goomInfo->cycle, goomInfo->update.zoomFilterData.vitesse);
     stopDecrementing(goomInfo, pzfd);
   }
