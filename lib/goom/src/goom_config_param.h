@@ -12,11 +12,10 @@
 
 enum class ParamType
 {
-  PARAM_INTVAL,
-  PARAM_FLOATVAL,
-  PARAM_BOOLVAL,
-  PARAM_STRVAL,
-  PARAM_LISTVAL,
+  intVal,
+  floatVal,
+  boolVal,
+  strVal,
 };
 
 struct IntVal
@@ -37,12 +36,6 @@ struct StrVal
 {
   char* value;
 };
-struct ListVal
-{
-  char* value;
-  int nbChoices;
-  char** choices;
-};
 struct BoolVal
 {
   int value;
@@ -59,7 +52,6 @@ struct PluginParam
     struct IntVal ival;
     struct FloatVal fval;
     struct StrVal sval;
-    struct ListVal slist;
     struct BoolVal bval;
   } param;
 
@@ -77,7 +69,6 @@ struct PluginParam
 #define SVAL(p) ((p).param.sval.value)
 #define FVAL(p) ((p).param.fval.value)
 #define BVAL(p) ((p).param.bval.value)
-#define LVAL(p) ((p).param.slist.value)
 
 #define FMIN(p) ((p).param.fval.min)
 #define FMAX(p) ((p).param.fval.max)
@@ -98,7 +89,6 @@ PluginParam goom_secure_f_feedback(const char* name);
 PluginParam goom_secure_i_feedback(const char* name);
 
 void goom_set_str_param_value(PluginParam* p, const char* str);
-void goom_set_list_param_value(PluginParam* p, const char* str);
 
 struct PluginParameters
 {
@@ -117,7 +107,6 @@ PluginParameters goom_plugin_parameters(const char* name, unsigned int nb);
 #define secure_s_param goom_secure_s_param
 #define secure_f_feedback goom_secure_f_feedback
 #define secure_i_feedback goom_secure_i_feedback
-#define set_list_param_value goom_set_list_param_value
 #define set_str_param_value goom_set_str_param_value
 #define plugin_parameters goom_plugin_parameters
 

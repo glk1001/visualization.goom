@@ -869,7 +869,7 @@ static void ifs_vfx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* 
   /*TODO: trouver meilleur soluce pour increment (mettre le code de gestion de l'ifs dans ce fichier: ifs_vfx_apply) */
 }
 
-static const char *const vfxname = "Ifs";
+static const char* const vfxname = "Ifs";
 
 static void ifs_vfx_save(VisualFX* _this, const PluginInfo*, const char* file)
 {

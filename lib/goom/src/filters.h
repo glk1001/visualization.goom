@@ -6,24 +6,26 @@
 
 #include <cstdint>
 
-enum class ZoomFilterMode {
-  NORMAL_MODE = 0,
-  WAVE_MODE,
-  CRYSTAL_BALL_MODE,
-  SCRUNCH_MODE,
-  AMULETTE_MODE,
-  WATER_MODE,
-  HYPERCOS1_MODE,
-  HYPERCOS2_MODE,
-  YONLY_MODE,
-  SPEEDWAY_MODE,
-  _size // last - gives num enums
+enum class ZoomFilterMode
+{
+  normalMode = 0,
+  waveMode,
+  crystalBallMode,
+  scrunchMode,
+  amuletteMode,
+  waterMode,
+  hyperCos1Mode,
+  hyperCos2Mode,
+  yOnlyMode,
+  speedwayMode,
+  _size // must be last - gives number of enums
 };
 
 struct ZoomFilterData
 {
-  int vitesse; // 128 = vitesse nule... * * 256 = en arriere
-	             // hyper vite.. * * 0 = en avant hype vite.
+  // 128 = vitesse nule... * * 256 = en arriere
+  //   hyper vite.. * * 0 = en avant hype vite.
+  uint32_t vitesse;
   uint8_t pertedec;
   uint16_t middleX;
   uint16_t middleY; // milieu de l'effet

@@ -34,24 +34,23 @@ struct SoundInfo
 {
   // Note: a Goom is just a sound event...
 
-  int timeSinceLastGoom; // >= 0
-  float goomPower;       // power of the last Goom [0..1]
+  uint32_t timeSinceLastGoom; // >= 0
+  float goomPower; // power of the last Goom [0..1]
 
-  int timeSinceLastBigGoom; // >= 0
+  uint32_t timeSinceLastBigGoom; // >= 0
 
   float volume; // [0..1]
   int16_t samples[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN];
 
   // other "internal" data for the sound_tester
-  float goom_limit;  // auto-updated limit of goom_detection
+  float goom_limit; // auto-updated limit of goom_detection
   float bigGoomLimit;
-  float accelvar;    // acceleration of the sound - [0..1]
-  float speedvar;    // speed of the sound - [0..100]
-  int allTimesMax;
-  int totalgoom;     // number of goom since last reset
-			               // (a reset every 64 cycles)
+  float accelvar; // acceleration of the sound - [0..1]
+  float speedvar; // speed of the sound - [0..100]
+  int16_t allTimesMax;
+  uint32_t totalgoom; // number of goom since last reset (a reset every 64 cycles)
 
-  float prov_max;    // accel max since last reset
+  float prov_max; // accel max since last reset
 
   int cycle;
 
@@ -144,7 +143,7 @@ struct PluginInfo
     int switchIncr; //  = SWITCHINCR;
     int stateSelectionRand;
     int stateSelectionBlocker;
-    int previousZoomSpeed;
+    uint32_t previousZoomSpeed;
     int timeOfTitleDisplay;
     char titleText[1024];
     ZoomFilterData zoomFilterData;

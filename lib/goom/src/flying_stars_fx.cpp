@@ -29,7 +29,7 @@ enum class StarModes
   fireworks,
   rain,
   fountain,
-  _size // last - gives num enums
+  _size // must be last - gives number of enums
 };
 constexpr size_t numFx = static_cast<uint32_t>(StarModes::_size);
 
@@ -137,9 +137,13 @@ static void fs_free(VisualFX* _this)
 /**
  * Cree une nouvelle 'bombe', c'est a dire une particule appartenant a une fusee d'artifice.
  */
-static void addABomb(
-    FSData* data, const uint32_t mx, const uint32_t my,
-    const float radius, float vage, const float gravity, PluginInfo* info)
+static void addABomb(FSData* data,
+                     const uint32_t mx,
+                     const uint32_t my,
+                     const float radius,
+                     float vage,
+                     const float gravity,
+                     PluginInfo* info)
 {
   if (data->numStars >= data->maxStars)
   {
@@ -196,8 +200,8 @@ static void fs_sound_event_occured(VisualFX* _this, PluginInfo* info)
   data->maxAge = 10 + int(goom_irand(info->gRandom, 10));
 
   int max = static_cast<int>((1.0f + info->sound.goomPower) * goom_irand(info->gRandom, 150)) + 100;
-  float radius =
-      (1.0f + info->sound.goomPower) * static_cast<float>(goom_irand(info->gRandom, 150) + 50) / 300;
+  float radius = (1.0f + info->sound.goomPower) *
+                 static_cast<float>(goom_irand(info->gRandom, 150) + 50) / 300;
   float gravity = 0.02f;
   uint32_t mx;
   uint32_t my;
@@ -342,14 +346,11 @@ static void fs_apply(VisualFX* _this, [[maybe_unused]] Pixel* src, Pixel* dest, 
 
 VisualFX flying_star_create(void)
 {
-  return VisualFX
-  {
-    .init = fs_init,
-    .free = fs_free,
-    .apply = fs_apply,
-    .save = nullptr,
-    .restore = nullptr,
-    .fx_data = nullptr,
-    .params = nullptr
-  };
+  return VisualFX{.init = fs_init,
+                  .free = fs_free,
+                  .apply = fs_apply,
+                  .save = nullptr,
+                  .restore = nullptr,
+                  .fx_data = nullptr,
+                  .params = nullptr};
 }

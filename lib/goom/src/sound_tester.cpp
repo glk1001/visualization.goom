@@ -3,20 +3,21 @@
 #include "goom.h"
 #include "goom_config.h"
 
+#include <cstddef>
 #include <cstdint>
 
 /* some constants */
-#define BIG_GOOM_DURATION 100
-#define BIG_GOOM_SPEED_LIMIT 0.1f
+constexpr uint32_t BIG_GOOM_DURATION = 100;
+constexpr float BIG_GOOM_SPEED_LIMIT = 0.1;
 
-#define ACCEL_MULT 0.95f
-#define SPEED_MULT 0.99f
+constexpr float ACCEL_MULT = 0.95;
+constexpr float SPEED_MULT = 0.99;
 
 void evaluate_sound(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], SoundInfo* info)
 {
   // find the max
-  int incvar = 0;
-  for (int i = 0; i < AUDIO_SAMPLE_LEN; i++)
+  int16_t incvar = 0;
+  for (size_t i = 0; i < AUDIO_SAMPLE_LEN; i++)
   {
     if (incvar < data[0][i])
     {
@@ -45,15 +46,15 @@ void evaluate_sound(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], Sou
 
   if (info->speedvar < 0.1f)
   {
-    info->accelvar *= (1.0f - (float)info->speedvar);
+    info->accelvar *= (1.0f - static_cast<float>(info->speedvar));
   }
   else if (info->speedvar < 0.3f)
   {
-    info->accelvar *= (0.9f - (float)(info->speedvar - 0.1f) / 2.0f);
+    info->accelvar *= (0.9f - static_cast<float>(info->speedvar - 0.1f) / 2.0f);
   }
   else
   {
-    info->accelvar *= (0.8f - (float)(info->speedvar - 0.3f) / 4.0f);
+    info->accelvar *= (0.8f - static_cast<float>(info->speedvar - 0.3f) / 4.0f);
   }
 
   // adoucissement de l'acceleration
@@ -89,7 +90,7 @@ void evaluate_sound(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], Sou
   info->cycle++;
 
   // detection des nouveaux gooms
-  if ((info->speedvar > (float)IVAL(info->biggoom_speed_limit_p) / 100.0f) &&
+  if ((info->speedvar > static_cast<float>(IVAL(info->biggoom_speed_limit_p)) / 100.0f) &&
       (info->accelvar > info->bigGoomLimit) && (info->timeSinceLastBigGoom > BIG_GOOM_DURATION))
   {
     info->timeSinceLastBigGoom = 0;
@@ -143,7 +144,7 @@ void evaluate_sound(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], Sou
       info->goom_limit -= 0.01;
     }
     info->totalgoom = 0;
-    info->bigGoomLimit = info->goom_limit * (1.0f + (float)IVAL(info->biggoom_factor_p) / 500.0f);
+    info->bigGoomLimit = info->goom_limit * (1.0f + static_cast<float>(IVAL(info->biggoom_factor_p)) / 500.0f);
     info->prov_max = 0;
   }
 
@@ -159,10 +160,10 @@ void evaluate_sound(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], Sou
   info->goom_limit_p.change_listener(&info->goom_limit_p);
   FVAL(info->goom_power_p) = info->goomPower;
   info->goom_power_p.change_listener(&info->goom_power_p);
-  FVAL(info->last_goom_p) = 1.0 - ((float)info->timeSinceLastGoom / 20.0f);
+  FVAL(info->last_goom_p) = 1.0 - static_cast<float>(info->timeSinceLastGoom) / 20.0f;
   info->last_goom_p.change_listener(&info->last_goom_p);
-  FVAL(info->last_biggoom_p) = 1.0 - ((float)info->timeSinceLastBigGoom / 40.0f);
+  FVAL(info->last_biggoom_p) = 1.0 - static_cast<float>(info->timeSinceLastBigGoom) / 40.0f;
   info->last_biggoom_p.change_listener(&info->last_biggoom_p);
 
-  // bigGoomLimit ==goomLimit*9/8+7 ?
+  // bigGoomLimit == goomLimit*9/8+7 ?
 }

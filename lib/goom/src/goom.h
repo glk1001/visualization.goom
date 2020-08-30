@@ -7,9 +7,7 @@
 
 #include <cstdint>
 
-constexpr size_t NB_FX = static_cast<size_t>(ZoomFilterMode::_size);
-
-extern PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, int seed);
+extern PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed);
 extern void goom_set_resolution(PluginInfo* goomInfo, const uint16_t resx, const uint16_t resy);
 
 /*

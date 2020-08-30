@@ -118,10 +118,9 @@ struct FilterDataWrapper
   // calculatePXandPY statics
   int wave;
   int wavesp;
-
 };
 
-static inline v2g zoomVector(FilterDataWrapper *data, const float X, const float Y)
+static inline v2g zoomVector(FilterDataWrapper* data, const float X, const float Y)
 {
   const float sq_dist = X * X + Y * Y;
 
@@ -135,16 +134,16 @@ static inline v2g zoomVector(FilterDataWrapper *data, const float X, const float
   // Centralized FX
   switch (data->theMode)
   {
-    case ZoomFilterMode::CRYSTAL_BALL_MODE:
+    case ZoomFilterMode::crystalBallMode:
       coefVitesse -= (sq_dist - 0.3f) / 15.0f;
       break;
-    case ZoomFilterMode::AMULETTE_MODE:
+    case ZoomFilterMode::amuletteMode:
       coefVitesse += sq_dist * 3.5f;
       break;
-    case ZoomFilterMode::WAVE_MODE:
+    case ZoomFilterMode::waveMode:
       coefVitesse += sin(sq_dist * 20.0f) / 100.0f;
       break;
-    case ZoomFilterMode::SCRUNCH_MODE:
+    case ZoomFilterMode::scrunchMode:
       coefVitesse += sq_dist / 10.0f;
       break;
       //case ZoomFilterMode::HYPERCOS1_MODE:
@@ -153,7 +152,7 @@ static inline v2g zoomVector(FilterDataWrapper *data, const float X, const float
       break;
       //case ZoomFilterMode::YONLY_MODE:
       break;
-    case ZoomFilterMode::SPEEDWAY_MODE:
+    case ZoomFilterMode::speedwayMode:
       coefVitesse *= 4.0f * Y;
       break;
     default:
@@ -210,7 +209,7 @@ static inline v2g zoomVector(FilterDataWrapper *data, const float X, const float
   /* TODO : Water Mode */
   //    if (data->waveEffect)
 
-  return v2g{ vx, vy };
+  return v2g{vx, vy};
 }
 
 /*
@@ -262,12 +261,10 @@ static void makeZoomBufferStripe(FilterDataWrapper* data, const uint32_t INTERLA
         vector.y = (vector.y < 0.0f) ? -min : min;
       }
 
-      data->brutT[premul_y_prevX] =
-          static_cast<int>((X - vector.x) * inv_ratio)
-          + static_cast<int>(data->middleX * BUFFPOINTNB);
-      data->brutT[premul_y_prevX + 1] =
-          static_cast<int>((Y - vector.y) * inv_ratio)
-          + static_cast<int>(data->middleY * BUFFPOINTNB);
+      data->brutT[premul_y_prevX] = static_cast<int>((X - vector.x) * inv_ratio) +
+                                    static_cast<int>(data->middleX * BUFFPOINTNB);
+      data->brutT[premul_y_prevX + 1] = static_cast<int>((Y - vector.y) * inv_ratio) +
+                                        static_cast<int>(data->middleY * BUFFPOINTNB);
       premul_y_prevX += 2;
       X += ratio;
     }
@@ -427,9 +424,11 @@ static void c_zoom(Pixel* expix1,
     myPos2 = myPos + 1;
 
     int brutSmypos = brutS[myPos];
-    const uint32_t px = static_cast<uint32_t>(brutSmypos + (((brutD[myPos] - brutSmypos) * buffratio) >> BUFFPOINTNB));
+    const uint32_t px = static_cast<uint32_t>(
+        brutSmypos + (((brutD[myPos] - brutSmypos) * buffratio) >> BUFFPOINTNB));
     brutSmypos = brutS[myPos2];
-    const uint32_t py = static_cast<uint32_t>(brutSmypos + (((brutD[myPos2] - brutSmypos) * buffratio) >> BUFFPOINTNB));
+    const uint32_t py = static_cast<uint32_t>(
+        brutSmypos + (((brutD[myPos2] - brutSmypos) * buffratio) >> BUFFPOINTNB));
 
     uint32_t coeffs;
     uint32_t pos;
@@ -713,9 +712,8 @@ void zoomFilterFastRGB(PluginInfo* goomInfo,
 
   if (switchMult != 1.0f)
   {
-    data->buffratio =
-        static_cast<int>(static_cast<float>(BUFFPOINTMASK) * (1.0f - switchMult)
-        + static_cast<float>(data->buffratio) * switchMult);
+    data->buffratio = static_cast<int>(static_cast<float>(BUFFPOINTMASK) * (1.0f - switchMult) +
+                                       static_cast<float>(data->buffratio) * switchMult);
   }
 
   data->zoomWidth = data->prevX;
@@ -772,7 +770,7 @@ static void generatePrecalCoef(int precalCoef[16][16])
 
 /* VisualFX Wrapper */
 
-static const char *const vfxname = "ZoomFilter";
+static const char* const vfxname = "ZoomFilter";
 
 static void zoomFilterSave(VisualFX* _this, const PluginInfo*, const char* file)
 {
@@ -861,7 +859,7 @@ static void zoomFilterVisualFXWrapper_init(VisualFX* _this, PluginInfo* info)
 
   data->generalSpeed = 0.0f;
   data->reverse = false;
-  data->theMode = ZoomFilterMode::AMULETTE_MODE;
+  data->theMode = ZoomFilterMode::amuletteMode;
   data->waveEffect = 0;
   data->hypercosEffect = 0;
   data->vPlaneEffect = 0;
