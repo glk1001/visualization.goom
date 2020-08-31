@@ -26,9 +26,9 @@ struct PluginInfo;
 // les ID possibles...
 enum class LineTypes
 {
-  GML_CIRCLE = 0, // (param = radius)
-  GML_HLINE, // (param = y)
-  GML_VLINE, // (param = x)
+  circle = 0, // (param = radius)
+  hline, // (param = y)
+  vline, // (param = x)
   _size // must be last - gives number of enums
 };
 constexpr size_t numLineTypes = static_cast<size_t>(LineTypes::_size);

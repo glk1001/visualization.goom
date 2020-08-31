@@ -94,11 +94,11 @@ PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
 
   goomInfo->cycle = 0;
 
-  goomInfo->gmline1 = goom_lines_init(goomInfo, resx, goomInfo->screen.height, LineTypes::GML_HLINE,
-                                      goomInfo->screen.height, GML_BLACK, LineTypes::GML_CIRCLE,
+  goomInfo->gmline1 = goom_lines_init(goomInfo, resx, goomInfo->screen.height, LineTypes::hline,
+                                      goomInfo->screen.height, GML_BLACK, LineTypes::circle,
                                       0.4f * static_cast<float>(goomInfo->screen.height), GML_VERT);
-  goomInfo->gmline2 = goom_lines_init(goomInfo, resx, goomInfo->screen.height, LineTypes::GML_HLINE,
-                                      0, GML_BLACK, LineTypes::GML_CIRCLE,
+  goomInfo->gmline2 = goom_lines_init(goomInfo, resx, goomInfo->screen.height, LineTypes::hline,
+                                      0, GML_BLACK, LineTypes::circle,
                                       0.2f * static_cast<float>(goomInfo->screen.height), GML_RED);
 
   gfont_load();
@@ -355,7 +355,7 @@ static void choose_a_goom_line(PluginInfo* goomInfo,
   *mode = static_cast<LineTypes>(goom_irand(goomInfo->gRandom, numLineTypes));
   switch (*mode)
   {
-    case LineTypes::GML_CIRCLE:
+    case LineTypes::circle:
       if (far)
       {
         *param1 = *param2 = 0.47f;
@@ -377,7 +377,7 @@ static void choose_a_goom_line(PluginInfo* goomInfo,
         *param1 = *param2 = goomInfo->screen.height * 0.35;
       }
       break;
-    case LineTypes::GML_HLINE:
+    case LineTypes::hline:
       if (goom_irand(goomInfo->gRandom, 4) || far)
       {
         *param1 = goomInfo->screen.height / 7;
@@ -389,7 +389,7 @@ static void choose_a_goom_line(PluginInfo* goomInfo,
         *amplitude = 2.0f;
       }
       break;
-    case LineTypes::GML_VLINE:
+    case LineTypes::vline:
       if (goom_irand(goomInfo->gRandom, 3) || far)
       {
         *param1 = goomInfo->screen.width / 7.0f;

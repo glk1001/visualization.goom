@@ -7,6 +7,7 @@
 #include "goomutils/colormap.h"
 #include "goomutils/mathutils.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <stdexcept>
@@ -53,7 +54,7 @@ static void genline(
 {
   switch (id)
   {
-    case LineTypes::GML_HLINE:
+    case LineTypes::hline:
       for (uint32_t i = 0; i < AUDIO_SAMPLE_LEN; i++)
       {
         l[i].x = (static_cast<float>(i) * rx) / static_cast<float>(AUDIO_SAMPLE_LEN);
@@ -61,7 +62,7 @@ static void genline(
         l[i].angle = M_PI / 2.0f;
       }
       return;
-    case LineTypes::GML_VLINE:
+    case LineTypes::vline:
       for (uint32_t i = 0; i < AUDIO_SAMPLE_LEN; i++)
       {
         l[i].y = (static_cast<float>(i) * ry) / static_cast<float>(AUDIO_SAMPLE_LEN);
@@ -69,7 +70,7 @@ static void genline(
         l[i].angle = 0.0f;
       }
       return;
-    case LineTypes::GML_CIRCLE:
+    case LineTypes::circle:
       for (uint32_t i = 0; i < AUDIO_SAMPLE_LEN; i++)
       {
         l[i].angle = 2.0f * M_PI * static_cast<float>(i) / static_cast<float>(AUDIO_SAMPLE_LEN);
@@ -256,7 +257,7 @@ void goom_lines_draw(PluginInfo* goomInfo,
       const int x2 = static_cast<int>(pt->x + cosa * line->amplitude * fdata);
       const int y2 = static_cast<int>(pt->y + sina * line->amplitude * fdata);
 
-      const float t = fdata / static_cast<float>(maxNormalizedPeak);
+      const float t = std::max(0.05f, fdata / static_cast<float>(maxNormalizedPeak));
       const uint32_t modColor = ColorMap::colorMix(color, randColor, t);
 
       goomInfo->methods.draw_line(p, x1, y1, x2, y2, modColor, line->screenX, line->screenY);
