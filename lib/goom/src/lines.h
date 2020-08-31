@@ -80,11 +80,8 @@ GMLine* goom_lines_init(PluginInfo* goomInfo,
                         const float paramD,
                         const int modeCoulDest);
 
-void goom_lines_switch_to(GMLine* gml,
-                          const int IDdest,
-                          const float param,
-                          const float amplitude,
-                          const int modeCoul);
+void goom_lines_switch_to(
+    GMLine* gml, const int IDdest, const float param, const float amplitude, const int modeCoul);
 
 void goom_lines_set_res(GMLine* gml, const uint32_t rx, const uint32_t ry);
 

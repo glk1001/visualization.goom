@@ -165,10 +165,10 @@ std::unique_ptr<Tentacle2D> TentacleDriver::createNewTentacle2D(const size_t ID,
   tentacle->setCurrentYWeight(1.0 - params.prevYWeight);
   tentacle->setNumNodes(size_t(float(params.numNodes) * getRandInRange(0.9f, 1.1f)));
   logDebug("tentacle {:3}:"
-          " tentacleLen = {:4}, tent2d_xmin = {:7.2f}, tent2d_xmax = {:5.2f},"
-          " prevYWeight = {:5.2f}, curYWeight = {:5.2f}, numNodes = {:5}",
-          ID, tentacleLen, tent2d_xmin, tent2d_xmax, tentacle->getPrevYWeight(),
-          tentacle->getCurrentYWeight(), tentacle->getNumNodes());
+           " tentacleLen = {:4}, tent2d_xmin = {:7.2f}, tent2d_xmax = {:5.2f},"
+           " prevYWeight = {:5.2f}, curYWeight = {:5.2f}, numNodes = {:5}",
+           ID, tentacleLen, tent2d_xmin, tent2d_xmax, tentacle->getPrevYWeight(),
+           tentacle->getCurrentYWeight(), tentacle->getNumNodes());
 
   tentacle->setDoDamping(true);
   tentacle->setPostProcessing(false);
@@ -275,8 +275,8 @@ void TentacleDriver::updateTentaclesLayout(const TentacleLayout& layout)
   for (size_t i = 0; i < numTentacles; i++)
   {
     logDebug("{} {} tentacle[{}].len = {:.2}.", i, sortedLongestFirst.at(i),
-            sortedLongestFirst.at(i),
-            tentacles[sortedLongestFirst.at(i)].get2DTentacle().getLength());
+             sortedLongestFirst.at(i),
+             tentacles[sortedLongestFirst.at(i)].get2DTentacle().getLength());
   }
 
   for (size_t i = 0; i < numTentacles; i++)
@@ -444,8 +444,8 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
   const float sina = sin(M_PI - angle);
   const float cosa = cos(M_PI - angle);
   logDebug("angle = {:.2f}, sina = {:.2}, cosa = {:.2},"
-          " distance = {:.2f}, distance2 = {:.2f}.",
-          angle, sina, cosa, distance, distance2);
+           " distance = {:.2f}, distance2 = {:.2f}.",
+           angle, sina, cosa, distance, distance2);
 
   std::vector<V3d> v3{vertices};
   for (size_t i = 0; i < n; i++)
@@ -470,12 +470,12 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
         ((ix1 == coordIgnoreVal) && (iy1 == coordIgnoreVal)))
     {
       logDebug("Skipping draw ignore vals {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}.", i, ix0, iy0,
-              ix1, iy1);
+               ix1, iy1);
     }
     else if ((ix0 == ix1) && (iy0 == iy1))
     {
-      logDebug("Skipping draw equal points {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}.", i, ix0, iy0,
-              ix1, iy1);
+      logDebug("Skipping draw equal points {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}.", i, ix0,
+               iy0, ix1, iy1);
     }
     else
     {
@@ -500,7 +500,7 @@ void TentacleDriver::project_v3d_to_v2d(const std::vector<V3d>& v3,
   for (size_t i = 0; i < v3.size(); ++i)
   {
     logDebug("project_v3d_to_v2d {}: v3[i].x = {:.2f}, v3[i].y = {:.2f}, v2[i].z = {:.2f}.", i,
-            v3[i].x, v3[i].y, v3[i].z);
+             v3[i].x, v3[i].y, v3[i].z);
     if (!v3[i].ignore && (v3[i].z > 2))
     {
       const int Xp = (int)(distance * v3[i].x / v3[i].z);
@@ -508,7 +508,7 @@ void TentacleDriver::project_v3d_to_v2d(const std::vector<V3d>& v3,
       v2[i].x = Xp + (screenWidth >> 1);
       v2[i].y = -Yp + (screenHeight >> 1);
       logDebug("project_v3d_to_v2d {}: Xp = {}, Yp = {}, v2[i].x = {}, v2[i].y = {}.", i, Xp, Yp,
-              v2[i].x, v2[i].y);
+               v2[i].x, v2[i].y);
     }
     else
     {
@@ -636,8 +636,8 @@ CirclesTentacleLayout::CirclesTentacleLayout(const float radiusMin,
   const auto logLastPoint = [&](size_t i, const float r, const float angle) {
     const size_t el = points.size() - 1;
     logDebug("  sample {:3}: angle = {:+6.2f}, cos(angle) = {:+6.2f}, r = {:+6.2f},"
-            " pt[{:3}] = ({:+6.2f}, {:+6.2f}, {:+6.2f})",
-            i, angle, cos(angle), r, el, points.at(el).x, points.at(el).y, points.at(el).z);
+             " pt[{:3}] = ({:+6.2f}, {:+6.2f}, {:+6.2f})",
+             i, angle, cos(angle), r, el, points.at(el).x, points.at(el).y, points.at(el).z);
   };
   const auto getSamplePoints = [&](const float radius, const size_t numSample,
                                    const float angleStart, const float angleFinish) {
@@ -659,17 +659,17 @@ CirclesTentacleLayout::CirclesTentacleLayout(const float radiusMin,
   const float angleRightStart = -0.5 * M_PI;
   const float angleRightFinish = +0.5 * M_PI;
   logDebug("Setup: angleLeftStart = {:.2f}, angleLeftFinish = {:.2f},"
-          " angleRightStart = {:.2f}, angleRightFinish = {:.2f}",
-          angleLeftStart, angleLeftFinish, angleRightStart, angleRightFinish);
+           " angleRightStart = {:.2f}, angleRightFinish = {:.2f}",
+           angleLeftStart, angleLeftFinish, angleRightStart, angleRightFinish);
 
   const float angleOffsetStart = 0.10;
   const float angleOffsetFinish = 0.30;
   const float offsetStep = (angleOffsetStart - angleOffsetFinish) / float(numCircles - 1);
   const float radiusStep = (radiusMax - radiusMin) / float(numCircles - 1);
   logDebug("Setup: numCircles = {}, radiusStep = {:.2f}, radiusMin = {:.2f}, radiusMax = {:.2f},"
-          " offsetStep = {:.2f}, angleOffsetStart = {:.2f}, angleOffsetFinish = {:.2f}",
-          numCircles, radiusStep, radiusMin, radiusMax, offsetStep, angleOffsetStart,
-          angleOffsetFinish);
+           " offsetStep = {:.2f}, angleOffsetStart = {:.2f}, angleOffsetFinish = {:.2f}",
+           numCircles, radiusStep, radiusMin, radiusMax, offsetStep, angleOffsetStart,
+           angleOffsetFinish);
 
   float r = radiusMax;
   float angleOffset = angleOffsetStart;

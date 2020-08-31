@@ -144,7 +144,8 @@ void evaluate_sound(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], Sou
       info->goom_limit -= 0.01;
     }
     info->totalgoom = 0;
-    info->bigGoomLimit = info->goom_limit * (1.0f + static_cast<float>(IVAL(info->biggoom_factor_p)) / 500.0f);
+    info->bigGoomLimit =
+        info->goom_limit * (1.0f + static_cast<float>(IVAL(info->biggoom_factor_p)) / 500.0f);
     info->prov_max = 0;
   }
 

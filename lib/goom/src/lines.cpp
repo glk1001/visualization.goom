@@ -48,11 +48,8 @@ static void lightencolor(uint32_t* col, float power)
   *color = lighten(*color, power);
 }
 
-static void genline(const int id,
-                    const float param,
-                    GMUnitPointer* l,
-                    const uint32_t rx,
-                    const uint32_t ry)
+static void genline(
+    const int id, const float param, GMUnitPointer* l, const uint32_t rx, const uint32_t ry)
 {
   switch (id)
   {
@@ -155,11 +152,8 @@ static void goom_lines_move(GMLine* l)
   l->amplitude = (99.0f * l->amplitude + l->amplitudeF) / 100.0f;
 }
 
-void goom_lines_switch_to(GMLine* gml,
-                          const int IDdest,
-                          const float param,
-                          const float amplitude,
-                          const int col)
+void goom_lines_switch_to(
+    GMLine* gml, const int IDdest, const float param, const float amplitude, const int col)
 {
   genline(IDdest, param, gml->points2, gml->screenX, gml->screenY);
   gml->IDdest = IDdest;

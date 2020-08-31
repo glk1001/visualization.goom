@@ -75,7 +75,8 @@ PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
 
   if (seed >= 0)
   {
-    const uint64_t seedVal = seed == 0 ? reinterpret_cast<uint64_t>(goomInfo->pixel) : static_cast<uint64_t>(seed);
+    const uint64_t seedVal =
+        seed == 0 ? reinterpret_cast<uint64_t>(goomInfo->pixel) : static_cast<uint64_t>(seed);
     pcg32_init(seedVal);
   }
   goomInfo->gRandom = goom_random_init();
@@ -93,12 +94,12 @@ PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
 
   goomInfo->cycle = 0;
 
-  goomInfo->gmline1 = goom_lines_init(goomInfo, resx, goomInfo->screen.height, GML_HLINE,
-                                      goomInfo->screen.height, GML_BLACK, GML_CIRCLE,
-                                      0.4f * (float)goomInfo->screen.height, GML_VERT);
+  goomInfo->gmline1 =
+      goom_lines_init(goomInfo, resx, goomInfo->screen.height, GML_HLINE, goomInfo->screen.height,
+                      GML_BLACK, GML_CIRCLE, 0.4f * (float)goomInfo->screen.height, GML_VERT);
   goomInfo->gmline2 =
-      goom_lines_init(goomInfo, resx, goomInfo->screen.height, GML_HLINE, 0, GML_BLACK,
-                      GML_CIRCLE, 0.2f * (float)goomInfo->screen.height, GML_RED);
+      goom_lines_init(goomInfo, resx, goomInfo->screen.height, GML_HLINE, 0, GML_BLACK, GML_CIRCLE,
+                      0.2f * (float)goomInfo->screen.height, GML_RED);
 
   gfont_load();
 
@@ -408,7 +409,7 @@ static void choose_a_goom_line(PluginInfo* goomInfo,
 }
 
 constexpr float ECART_VARIATION = 1.5;
-constexpr float  POS_VARIATION = 3.0;
+constexpr float POS_VARIATION = 3.0;
 constexpr int SCROLLING_SPEED = 80;
 
 /*
@@ -470,7 +471,8 @@ static void update_message(PluginInfo* goomInfo, const char* message)
       pos += 7;
 
       goom_draw_text(goomInfo->p1, goomInfo->screen.width, goomInfo->screen.height,
-          static_cast<int>(goomInfo->screen.width / 2), static_cast<int>(pos), message, ecart, 1);
+                     static_cast<int>(goomInfo->screen.width / 2), static_cast<int>(pos), message,
+                     ecart, 1);
       message = ++ptr;
       i++;
     }
@@ -590,7 +592,8 @@ static void changeMode(PluginInfo* goomInfo)
   {
     case 0:
     case 10:
-      goomInfo->update.zoomFilterData.hypercosEffect = static_cast<int>(goom_irand(goomInfo->gRandom, 2));
+      goomInfo->update.zoomFilterData.hypercosEffect =
+          static_cast<int>(goom_irand(goomInfo->gRandom, 2));
       [[fallthrough]]; // TODO: Is this really a fallthrough????
     case 13:
     case 20:
@@ -644,7 +647,8 @@ static void changeMode(PluginInfo* goomInfo)
     case 17:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::crystalBallMode;
       goomInfo->update.zoomFilterData.waveEffect = (goom_irand(goomInfo->gRandom, 4) == 0);
-      goomInfo->update.zoomFilterData.hypercosEffect = static_cast<int>(goom_irand(goomInfo->gRandom, 2));
+      goomInfo->update.zoomFilterData.hypercosEffect =
+          static_cast<int>(goom_irand(goomInfo->gRandom, 2));
       break;
     case 8:
     case 18:
@@ -683,7 +687,8 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
     // Selection of the Goom state
     if ((!goomInfo->update.stateSelectionBlocker) && (goom_irand(goomInfo->gRandom, 3)))
     {
-      goomInfo->update.stateSelectionRand = static_cast<int>(goom_irand(goomInfo->gRandom, static_cast<uint32_t>(goomInfo->statesRangeMax)));
+      goomInfo->update.stateSelectionRand = static_cast<int>(
+          goom_irand(goomInfo->gRandom, static_cast<uint32_t>(goomInfo->statesRangeMax)));
       goomInfo->update.stateSelectionBlocker = 3;
     }
     else if (goomInfo->update.stateSelectionBlocker)
@@ -804,9 +809,10 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
         case 6:
         case 7:
           goomInfo->update.zoomFilterData.vPlaneEffect =
-              static_cast<int>(goom_irand(goomInfo->gRandom, 5))-
+              static_cast<int>(goom_irand(goomInfo->gRandom, 5)) -
               static_cast<int>(goom_irand(goomInfo->gRandom, 5));
-          goomInfo->update.zoomFilterData.hPlaneEffect = -goomInfo->update.zoomFilterData.vPlaneEffect;
+          goomInfo->update.zoomFilterData.hPlaneEffect =
+              -goomInfo->update.zoomFilterData.vPlaneEffect;
           break;
         case 8:
           goomInfo->update.zoomFilterData.hPlaneEffect =
@@ -881,9 +887,8 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
              (goomInfo->cycle % 3 == 0)) ||
             (goom_irand(goomInfo->gRandom, 40) == 0))
         {
-          goomInfo->update.zoomFilterData.vitesse = stopSpeed -
-                                                    goom_irand(goomInfo->gRandom, 2) +
-                                                    goom_irand(goomInfo->gRandom, 2);
+          goomInfo->update.zoomFilterData.vitesse =
+              stopSpeed - goom_irand(goomInfo->gRandom, 2) + goom_irand(goomInfo->gRandom, 2);
           goomInfo->update.zoomFilterData.reverse = !goomInfo->update.zoomFilterData.reverse;
         }
         else
@@ -1003,25 +1008,17 @@ void displayText(PluginInfo* goomInfo, const char* songTitle, const char* messag
 
   if (goomInfo->update.timeOfTitleDisplay)
   {
-    goom_draw_text(goomInfo->p1,
-                   goomInfo->screen.width,
-                   goomInfo->screen.height,
+    goom_draw_text(goomInfo->p1, goomInfo->screen.width, goomInfo->screen.height,
                    static_cast<int>(goomInfo->screen.width / 2),
-                   static_cast<int>(goomInfo->screen.height / 2 + 7),
-                   goomInfo->update.titleText,
-                   static_cast<float>(190 - goomInfo->update.timeOfTitleDisplay) / 10.0f,
-                   1);
+                   static_cast<int>(goomInfo->screen.height / 2 + 7), goomInfo->update.titleText,
+                   static_cast<float>(190 - goomInfo->update.timeOfTitleDisplay) / 10.0f, 1);
     goomInfo->update.timeOfTitleDisplay--;
     if (goomInfo->update.timeOfTitleDisplay < 4)
     {
-      goom_draw_text(goomInfo->p2,
-                     goomInfo->screen.width,
-                     goomInfo->screen.height,
+      goom_draw_text(goomInfo->p2, goomInfo->screen.width, goomInfo->screen.height,
                      static_cast<int>(goomInfo->screen.width / 2),
-                     static_cast<int>(goomInfo->screen.height / 2 + 7),
-                     goomInfo->update.titleText,
-                     static_cast<float>(190 - goomInfo->update.timeOfTitleDisplay) / 10.0f,
-                     1);
+                     static_cast<int>(goomInfo->screen.height / 2 + 7), goomInfo->update.titleText,
+                     static_cast<float>(190 - goomInfo->update.timeOfTitleDisplay) / 10.0f, 1);
     }
   }
 }

@@ -52,7 +52,7 @@ static void WuDrawLine(float x0,
                        float y1,
                        const std::function<void(int x, int y, float brightess)>& plot)
 {
-  const auto ipart = [](float x) -> int {return static_cast<int>(std::floor(x));};
+  const auto ipart = [](float x) -> int { return static_cast<int>(std::floor(x)); };
   const auto round = [](float x) -> float { return std::round(x); };
   const auto fpart = [](float x) -> float { return x - std::floor(x); };
   const auto rfpart = [=](float x) -> float { return 1 - fpart(x); };
