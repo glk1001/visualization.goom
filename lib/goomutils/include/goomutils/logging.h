@@ -11,6 +11,8 @@
 #include <string_view>
 #include <vector>
 
+#define NO_LOGGING
+
 class Logging
 {
 public:

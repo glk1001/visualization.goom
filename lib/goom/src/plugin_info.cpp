@@ -113,16 +113,16 @@ void plugin_info_init(PluginInfo* pp, size_t nbVisuals)
   pp->update_message.affiche = 0;
 
   ZoomFilterData zfd{
+      .mode = ZoomFilterMode::normalMode,
       .vitesse = 127,
       .pertedec = 8,
       .middleX = 16,
       .middleY = 1,
       .reverse = true,
-      .mode = ZoomFilterMode::normalMode,
       .hPlaneEffect = 0,
       .vPlaneEffect = 0,
-      .waveEffect = 0,
-      .hypercosEffect = 0,
+      .waveEffect = false,
+      .hypercosEffect = false,
       .noisify = 0,
   };
   pp->update.zoomFilterData = zfd;

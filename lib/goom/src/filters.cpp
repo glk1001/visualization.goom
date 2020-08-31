@@ -90,15 +90,14 @@ struct FilterDataWrapper
   int* freebrutT; // temp (en cours de generation)
 
   uint32_t zoomWidth;
-
   uint32_t prevX;
   uint32_t prevY;
 
+  ZoomFilterMode theMode;
   float generalSpeed;
   bool reverse; // reverse the speed
-  ZoomFilterMode theMode;
-  int waveEffect;
-  int hypercosEffect;
+  bool waveEffect;
+  bool hypercosEffect;
   int vPlaneEffect;
   int hPlaneEffect;
   int8_t noisify;
@@ -114,10 +113,6 @@ struct FilterDataWrapper
 
   // modif d'optim by Jeko : precalcul des 4 coefs resultant des 2 pos
   int precalCoef[BUFFPOINTNB][BUFFPOINTNB];
-
-  // calculatePXandPY statics
-  int wave;
-  int wavesp;
 };
 
 static inline v2g zoomVector(FilterDataWrapper* data, const float X, const float Y)
@@ -276,128 +271,6 @@ static void makeZoomBufferStripe(FilterDataWrapper* data, const uint32_t INTERLA
     data->interlaceStart = -1;
   }
 }
-
-/*
- * calculer px et py en fonction de x,y,middleX,middleY et theMode
- * px et py indique la nouvelle position (en sqrtperte ieme de pixel)
- * (valeur * 16)
- 
- inline void calculatePXandPY (PluginInfo *goomInfo, ZoomFilterFXWrapperData *data, int x, int y, int *px, int *py)
- {
-     if (data->theMode == WATER_MODE) {
-         int yy;
-         
-         yy = y + goom_irand(goomInfo->gRandom, 4) - goom_irand(goomInfo->gRandom, 4) + data->wave / 10;
-         if (yy < 0)
-             yy = 0;
-         if (yy >= (signed int)goomInfo->screen.height)
-             yy = goomInfo->screen.height - 1;
-         
-         *px = (x << 4) + data->firedec[yy] + (data->wave / 10);
-         *py = (y << 4) + 132 - ((data->vitesse < 131) ? data->vitesse : 130);
-         
-         data->wavesp += goom_irand(goomInfo->gRandom, 3) - goom_irand(goomInfo->gRandom, 3);
-         if (data->wave < -10)
-             data->wavesp += 2;
-         if (data->wave > 10)
-             data->wavesp -= 2;
-         data->wave += (data->wavesp / 10) + goom_irand(goomInfo->gRandom, 3) - goom_irand(goomInfo->gRandom, 3);
-         if (data->wavesp > 100)
-             data->wavesp = (data->wavesp * 9) / 10;
-     }
-     else {
-         int     dist = 0, vx9, vy9;
-         int     vx, vy;
-         int     ppx, ppy;
-         int     fvitesse = data->vitesse << 4;
-         
-         if (data->noisify) {
-             x += goom_irand(goomInfo->gRandom, data->noisify) - goom_irand(goomInfo->gRandom, data->noisify);
-             y += goom_irand(goomInfo->gRandom, data->noisify) - goom_irand(goomInfo->gRandom, data->noisify);
-         }
-         vx = (x - data->middleX) << 9;
-         vy = (y - data->middleY) << 9;
-         
-         if (data->hPlaneEffect)
-             vx += data->hPlaneEffect * (y - data->middleY);
-         
-         if (data->vPlaneEffect)
-             vy += data->vPlaneEffect * (x - data->middleX);
-         
-         if (data->waveEffect) {
-             fvitesse *=
-             1024 +
-             ShiftRight (goomInfo->sintable
-                         [(unsigned short) (dist * 0xffff + EFFECT_DISTORS)], 6);
-             fvitesse /= 1024;
-         }
-         
-         if (data->hypercosEffect) {
-             vx += ShiftRight (goomInfo->sintable[(-vy + dist) & 0xffff], 1);
-             vy += ShiftRight (goomInfo->sintable[(vx + dist) & 0xffff], 1);
-         }
-         
-         vx9 = ShiftRight (vx, 9);
-         vy9 = ShiftRight (vy, 9);
-         dist = vx9 * vx9 + vy9 * vy9;
-         
-         switch (data->theMode) {
-             case WAVE_MODE:
-                 fvitesse *=
-                 1024 +
-                 ShiftRight (goomInfo->sintable
-                             [(unsigned short) (dist * 0xffff * EFFECT_DISTORS)], 6);
-                 fvitesse>>=10;
-                 break;
-             case CRYSTAL_BALL_MODE:
-                 fvitesse += (dist >> (10-EFFECT_DISTORS_SL));
-                 break;
-             case AMULETTE_MODE:
-                 fvitesse -= (dist >> (4 - EFFECT_DISTORS_SL));
-                 break;
-             case SCRUNCH_MODE:
-                 fvitesse -= (dist >> (10 - EFFECT_DISTORS_SL));
-                 break;
-             case HYPERCOS1_MODE:
-                 vx = vx + ShiftRight (goomInfo->sintable[(-vy + dist) & 0xffff], 1);
-                 vy = vy + ShiftRight (goomInfo->sintable[(vx + dist) & 0xffff], 1);
-                 break;
-             case HYPERCOS2_MODE:
-                 vx =
-                 vx + ShiftRight (goomInfo->sintable[(-ShiftRight (vy, 1) + dist) & 0xffff], 0);
-                 vy =
-                     vy + ShiftRight (goomInfo->sintable[(ShiftRight (vx, 1) + dist) & 0xffff], 0);
-                 fvitesse = 128 << 4;
-                 break;
-             case YONLY_MODE:
-                 fvitesse *= 1024 + ShiftRight (goomInfo->sintable[vy & 0xffff], 6);
-                 fvitesse >>= 10;
-                 break;
-             case SPEEDWAY_MODE:
-                 fvitesse -= (ShiftRight(vy,10-EFFECT_DISTORS_SL));
-                 break;
-         }
-         
-         if (fvitesse < -3024)
-             fvitesse = -3024;
-         
-         if (vx < 0)									// pb avec decalage sur nb negatif
-             ppx = -(-(vx * fvitesse) >> 16);
-         // 16 = 9 + 7 (7 = nb chiffre virgule de vitesse * (v = 128 => immobile)
-         //    * * * * * 9 = nb chiffre virgule de vx) 
-         else
-             ppx = ((vx * fvitesse) >> 16);
-         
-         if (vy < 0)
-             ppy = -(-(vy * fvitesse) >> 16);
-         else
-             ppy = ((vy * fvitesse) >> 16);
-         
-         *px = (data->middleX << 4) + ppx;
-         *py = (data->middleY << 4) + ppy;
-     }
- }
- */
 
 static void c_zoom(Pixel* expix1,
                    Pixel* expix2,
@@ -770,7 +643,7 @@ static void generatePrecalCoef(int precalCoef[16][16])
 
 /* VisualFX Wrapper */
 
-static const char* const vfxname = "ZoomFilter";
+static const char *const vfxname = "ZoomFilter";
 
 static void zoomFilterSave(VisualFX* _this, const PluginInfo*, const char* file)
 {
@@ -797,9 +670,6 @@ static void zoomFilterSave(VisualFX* _this, const PluginInfo*, const char* file)
 
   save_int_setting(f, vfxname, "data->buffratio", data->buffratio);
   //    int precalCoef[BUFFPOINTNB][BUFFPOINTNB];
-
-  save_int_setting(f, vfxname, "data->wave", data->wave);
-  save_int_setting(f, vfxname, "data->wavesp", data->wavesp);
 
   fclose(f);
 }
@@ -833,9 +703,6 @@ static void zoomFilterRestore(VisualFX* _this, PluginInfo*, const char* file)
 
   data->buffratio = get_int_setting(f, vfxname, "data->buffratio");
 
-  data->wave = get_int_setting(f, vfxname, "data->wave");
-  data->wavesp = get_int_setting(f, vfxname, "data->wavesp");
-
   fclose(f);
 }
 
@@ -860,8 +727,8 @@ static void zoomFilterVisualFXWrapper_init(VisualFX* _this, PluginInfo* info)
   data->generalSpeed = 0.0f;
   data->reverse = false;
   data->theMode = ZoomFilterMode::amuletteMode;
-  data->waveEffect = 0;
-  data->hypercosEffect = 0;
+  data->waveEffect = false;
+  data->hypercosEffect = false;
   data->vPlaneEffect = 0;
   data->hPlaneEffect = 0;
   data->noisify = 2;
@@ -869,8 +736,6 @@ static void zoomFilterVisualFXWrapper_init(VisualFX* _this, PluginInfo* info)
   /** modif by jeko : fixedpoint : buffration = (16:16) (donc 0<=buffration<=2^16) */
   data->buffratio = 0;
   data->firedec = 0;
-
-  data->wave = data->wavesp = 0;
 
   data->enabled_bp = secure_b_param("Enabled", 1);
 

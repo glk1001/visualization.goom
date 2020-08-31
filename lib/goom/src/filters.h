@@ -23,6 +23,7 @@ enum class ZoomFilterMode
 
 struct ZoomFilterData
 {
+  ZoomFilterMode mode; // type d'effet à appliquer (cf les #define)
   // 128 = vitesse nule... * * 256 = en arriere
   //   hyper vite.. * * 0 = en avant hype vite.
   int32_t vitesse;
@@ -30,13 +31,14 @@ struct ZoomFilterData
   uint16_t middleX;
   uint16_t middleY; // milieu de l'effet
   bool reverse; // inverse la vitesse
-  ZoomFilterMode mode; // type d'effet à appliquer (cf les #define)
+
   // @since June 2001
   int hPlaneEffect; // deviation horitontale
   int vPlaneEffect; // deviation verticale
+
   //* @since April 2002
-  int waveEffect; // applique une "surcouche" de wave effect
-  int hypercosEffect; // applique une "surcouche de hypercos effect
+  bool waveEffect; // applique une "surcouche" de wave effect
+  bool hypercosEffect; // applique une "surcouche de hypercos effect
 
   int8_t noisify; // ajoute un bruit a la transformation
 };

@@ -610,38 +610,38 @@ static void changeMode(PluginInfo* goomInfo)
     case 1:
     case 11:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::crystalBallMode;
-      goomInfo->update.zoomFilterData.waveEffect = 0;
-      goomInfo->update.zoomFilterData.hypercosEffect = 0;
+      goomInfo->update.zoomFilterData.waveEffect = false;
+      goomInfo->update.zoomFilterData.hypercosEffect = false;
       break;
     case 2:
     case 12:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::amuletteMode;
-      goomInfo->update.zoomFilterData.waveEffect = 0;
-      goomInfo->update.zoomFilterData.hypercosEffect = 0;
+      goomInfo->update.zoomFilterData.waveEffect = false;
+      goomInfo->update.zoomFilterData.hypercosEffect = false;
       break;
     case 3:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::waterMode;
-      goomInfo->update.zoomFilterData.waveEffect = 0;
-      goomInfo->update.zoomFilterData.hypercosEffect = 0;
+      goomInfo->update.zoomFilterData.waveEffect = false;
+      goomInfo->update.zoomFilterData.hypercosEffect = false;
       break;
     case 4:
     case 14:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::scrunchMode;
-      goomInfo->update.zoomFilterData.waveEffect = 0;
-      goomInfo->update.zoomFilterData.hypercosEffect = 0;
+      goomInfo->update.zoomFilterData.waveEffect = false;
+      goomInfo->update.zoomFilterData.hypercosEffect = false;
       break;
     case 5:
     case 15:
     case 22:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::hyperCos1Mode;
-      goomInfo->update.zoomFilterData.waveEffect = 0;
+      goomInfo->update.zoomFilterData.waveEffect = false;
       goomInfo->update.zoomFilterData.hypercosEffect = (goom_irand(goomInfo->gRandom, 3) == 0);
       break;
     case 6:
     case 16:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::hyperCos2Mode;
-      goomInfo->update.zoomFilterData.waveEffect = 0;
-      goomInfo->update.zoomFilterData.hypercosEffect = 0;
+      goomInfo->update.zoomFilterData.waveEffect = false;
+      goomInfo->update.zoomFilterData.hypercosEffect = false;
       break;
     case 7:
     case 17:
@@ -654,8 +654,8 @@ static void changeMode(PluginInfo* goomInfo)
     case 18:
     case 19:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::scrunchMode;
-      goomInfo->update.zoomFilterData.waveEffect = 1;
-      goomInfo->update.zoomFilterData.hypercosEffect = 1;
+      goomInfo->update.zoomFilterData.waveEffect = true;
+      goomInfo->update.zoomFilterData.hypercosEffect = true;
       break;
     case 29:
     case 30:
@@ -668,8 +668,8 @@ static void changeMode(PluginInfo* goomInfo)
       break;
     default:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::normalMode;
-      goomInfo->update.zoomFilterData.waveEffect = 0;
-      goomInfo->update.zoomFilterData.hypercosEffect = 0;
+      goomInfo->update.zoomFilterData.waveEffect = false;
+      goomInfo->update.zoomFilterData.hypercosEffect = false;
   }
 }
 
