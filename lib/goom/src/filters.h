@@ -25,7 +25,7 @@ struct ZoomFilterData
 {
   // 128 = vitesse nule... * * 256 = en arriere
   //   hyper vite.. * * 0 = en avant hype vite.
-  uint32_t vitesse;
+  int32_t vitesse;
   uint8_t pertedec;
   uint16_t middleX;
   uint16_t middleY; // milieu de l'effet
@@ -38,7 +38,7 @@ struct ZoomFilterData
   int waveEffect; // applique une "surcouche" de wave effect
   int hypercosEffect; // applique une "surcouche de hypercos effect
 
-  uint8_t noisify; // ajoute un bruit a la transformation
+  int8_t noisify; // ajoute un bruit a la transformation
 };
 
 VisualFX zoomFilterVisualFXWrapper_create(void);

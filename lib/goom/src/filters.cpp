@@ -101,7 +101,7 @@ struct FilterDataWrapper
   int hypercosEffect;
   int vPlaneEffect;
   int hPlaneEffect;
-  uint8_t noisify;
+  int8_t noisify;
   uint32_t middleX;
   uint32_t middleY;
 
@@ -226,7 +226,7 @@ static void makeZoomBufferStripe(FilterDataWrapper* data, const uint32_t INTERLA
   // uint32_t maxEnd = uint32_t(data->interlaceStart + (int)INTERLACE_INCR);
 
   // Ratio from pixmap to normalized coordinates
-  const float ratio = 2.0f / ((float)data->prevX);
+  const float ratio = 2.0f / (static_cast<float>(data->prevX));
 
   // Ratio from normalized to virtual pixmap coordinates
   const float inv_ratio = BUFFPOINTNBF / ratio;
@@ -475,7 +475,7 @@ static void c_zoom(Pixel* expix1,
     }
     couleur.b >>= 8;
 
-    setPixelRGB(expix2, uint32_t(myPos >> 1), couleur);
+    setPixelRGB(expix2, static_cast<uint32_t>(myPos >> 1), couleur);
   }
 }
 

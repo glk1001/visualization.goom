@@ -24,9 +24,9 @@
 #include <cstdint>
 #include <stdexcept>
 
-constexpr uint32_t stopSpeed = 128;
+constexpr int32_t stopSpeed = 128;
 // TODO: put that as variable in PluginInfo
-constexpr int timeBetweenChange = 300;
+constexpr int32_t timeBetweenChange = 300;
 
 static void init_buffers(PluginInfo* goomInfo, const uint32_t buffsize)
 {
@@ -730,11 +730,9 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
 
     // if (goomInfo->update.goomvar % 1 == 0)
     {
-      uint32_t vtmp;
-      uint32_t newvit;
-
       goomInfo->update.lockvar = 50;
-      newvit = stopSpeed + 1 - (3.5f * log10(goomInfo->sound.speedvar * 60 + 1));
+      const int32_t newvit =
+          stopSpeed + 1 - static_cast<int32_t>(3.5f * log10(goomInfo->sound.speedvar * 60 + 1));
       // retablir le zoom avant..
       if ((goomInfo->update.zoomFilterData.reverse) && (!(goomInfo->cycle % 13)) &&
           (pcg32_rand() % 5 == 0))
@@ -788,7 +786,7 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
         goomInfo->update.zoomFilterData.middleY = goomInfo->screen.height / 2;
       }
 
-      switch (vtmp = (goom_irand(goomInfo->gRandom, 15)))
+      switch (const uint32_t vtmp = (goom_irand(goomInfo->gRandom, 15)))
       {
         case 0:
           goomInfo->update.zoomFilterData.vPlaneEffect =
@@ -882,13 +880,14 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
         logDebug("newvit = {} < {} = goomInfo->update.zoomFilterData.vitesse", newvit,
                  goomInfo->update.zoomFilterData.vitesse);
         *pzfd = &goomInfo->update.zoomFilterData;
-        if (((newvit < stopSpeed - 7) &&
+        if (((newvit < (stopSpeed - 7)) &&
              (goomInfo->update.zoomFilterData.vitesse < stopSpeed - 6) &&
              (goomInfo->cycle % 3 == 0)) ||
             (goom_irand(goomInfo->gRandom, 40) == 0))
         {
           goomInfo->update.zoomFilterData.vitesse =
-              stopSpeed - goom_irand(goomInfo->gRandom, 2) + goom_irand(goomInfo->gRandom, 2);
+              stopSpeed - static_cast<int32_t>(goom_irand(goomInfo->gRandom, 2)) +
+              static_cast<int32_t>(goom_irand(goomInfo->gRandom, 2));
           goomInfo->update.zoomFilterData.reverse = !goomInfo->update.zoomFilterData.reverse;
         }
         else
@@ -1138,7 +1137,7 @@ static void bigBreakIfMusicIsCalm(PluginInfo* goomInfo, ZoomFilterData** pzfd)
            "goomInfo->cycle = {}",
            goomInfo->sound.speedvar, goomInfo->update.zoomFilterData.vitesse, goomInfo->cycle);
   if ((goomInfo->sound.speedvar < 0.01f) &&
-      (goomInfo->update.zoomFilterData.vitesse < stopSpeed - 4) && (goomInfo->cycle % 16 == 0))
+      (goomInfo->update.zoomFilterData.vitesse < (stopSpeed - 4)) && (goomInfo->cycle % 16 == 0))
   {
     logDebug("goomInfo->sound.speedvar = {:.2}", goomInfo->sound.speedvar);
     bigBreak(goomInfo, pzfd);
@@ -1269,7 +1268,7 @@ static void regularlyLowerTheSpeed(PluginInfo* goomInfo, ZoomFilterData** pzfd)
 {
   logDebug("goomInfo->update.zoomFilterData.vitesse = {}, goomInfo->cycle = {}",
            goomInfo->update.zoomFilterData.vitesse, goomInfo->cycle);
-  if ((goomInfo->cycle % 73 == 0) && (goomInfo->update.zoomFilterData.vitesse < stopSpeed - 5))
+  if ((goomInfo->cycle % 73 == 0) && (goomInfo->update.zoomFilterData.vitesse < (stopSpeed - 5)))
   {
     logDebug("goomInfo->cycle % 73 = 0 && dgoomInfo->update.zoomFilterData.vitesse = {} < {} - 5, ",
              goomInfo->cycle, goomInfo->update.zoomFilterData.vitesse, stopSpeed);

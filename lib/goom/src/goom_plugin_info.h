@@ -143,7 +143,7 @@ struct PluginInfo
     int switchIncr; //  = SWITCHINCR;
     int stateSelectionRand;
     int stateSelectionBlocker;
-    uint32_t previousZoomSpeed;
+    int32_t previousZoomSpeed;
     int timeOfTitleDisplay;
     char titleText[1024];
     ZoomFilterData zoomFilterData;
