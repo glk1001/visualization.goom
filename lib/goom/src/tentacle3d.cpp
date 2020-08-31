@@ -25,9 +25,9 @@ public:
   void update(PluginInfo* goomInfo,
               Pixel* buf,
               Pixel* back,
-              int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
-              float accelvar,
-              int drawit,
+              const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
+              const float accelvar,
+              const int drawit,
               TentacleFXData* fx_data);
 
 private:
@@ -86,8 +86,8 @@ inline float randFactor(PluginInfo* goomInfo, const float min)
 
 inline int get_rand_in_range(int n1, int n2)
 {
-  const uint32_t range_len = (uint32_t)(n2 - n1 + 1);
-  return n1 + (int)(pcg32_rand() % range_len);
+  const uint32_t range_len = static_cast<uint32_t>(n2 - n1 + 1);
+  return n1 + static_cast<int>(pcg32_rand() % range_len);
 }
 
 
@@ -110,9 +110,9 @@ void updateColors(PluginInfo* goomInfo, const TentacleFXData* fx_data)
 void TentaclesWrapper::update(PluginInfo* goomInfo,
                               Pixel* buf,
                               Pixel* back,
-                              int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
-                              float accelvar,
-                              int drawit,
+                              const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
+                              const float accelvar,
+                              const int drawit,
                               TentacleFXData* fx_data)
 {
   logDebug("Starting update.");

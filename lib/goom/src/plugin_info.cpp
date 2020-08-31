@@ -129,12 +129,12 @@ void plugin_info_init(PluginInfo* pp, size_t nbVisuals)
 
   setOptimizedMethods(pp);
 
-  for (int i = 0; i < 0xffff; i++)
+  for (size_t i = 0; i < 0xffff; i++)
   {
-    pp->sintable[i] =
-        (int)(1024 * sin((double)i * 360 / (sizeof(pp->sintable) / sizeof(pp->sintable[0]) - 1) *
-                         3.141592 / 180) +
-              .5);
+    pp->sintable[i] = static_cast<int>(
+        1024 * sin(static_cast<double>(i) * 360 /
+                   (sizeof(pp->sintable) / sizeof(pp->sintable[0]) - 1) * M_PI / 180.0) +
+        0.5);
     /* sintable [us] = (int)(1024.0f * sin (us*2*3.31415f/0xffff)) ; */
   }
 }
@@ -153,7 +153,7 @@ void plugin_info_add_visual(PluginInfo* p, size_t i, VisualFX* visual)
         p->nbParams++;
       }
     }
-    p->params = (PluginParameters*)malloc(sizeof(PluginParameters) * (size_t)p->nbParams);
+    p->params = (PluginParameters*)malloc(sizeof(PluginParameters) * p->nbParams);
     i = p->nbVisuals;
     p->nbParams = 1;
     p->params[0] = p->sound.params;

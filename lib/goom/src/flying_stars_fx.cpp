@@ -99,7 +99,7 @@ static void fs_init(VisualFX* _this, PluginInfo*)
   data->nbStars_limit_p = secure_i_param("Max Number of Particules");
   IVAL(data->nbStars_limit_p) = 512;
   IMIN(data->nbStars_limit_p) = 0;
-  IMAX(data->nbStars_limit_p) = (int)data->maxStars;
+  IMAX(data->nbStars_limit_p) = static_cast<int>(data->maxStars);
   ISTEP(data->nbStars_limit_p) = 64;
 
   data->fx_mode_p = secure_i_param("FX Mode");

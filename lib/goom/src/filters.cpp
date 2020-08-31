@@ -223,7 +223,7 @@ static void makeZoomBufferStripe(FilterDataWrapper* data, const uint32_t INTERLA
 {
   // Where (vertically) to stop generating the buffer stripe
   // ??? TODO: Unused
-  // uint32_t maxEnd = uint32_t(data->interlaceStart + (int)INTERLACE_INCR);
+  // uint32_t maxEnd = uint32_t(data->interlaceStart + static_cast<int>(INTERLACE_INCR);
 
   // Ratio from pixmap to normalized coordinates
   const float ratio = 2.0f / (static_cast<float>(data->prevX));

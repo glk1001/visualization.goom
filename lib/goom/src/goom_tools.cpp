@@ -45,11 +45,11 @@ uint32_t pcg32_rand(void)
 {
   last_state = state;
   uint64_t x = state;
-  unsigned count = (unsigned)(x >> 59); // 59 = 64 - 5
+  const uint32_t count = static_cast<uint32_t>(x >> 59); // 59 = 64 - 5
 
   state = x * multiplier + increment;
   x ^= x >> 18; // 18 = (64 - 27)/2
-  return rotr32((uint32_t)(x >> 27), count); // 27 = 32 - 5
+  return rotr32(static_cast<uint32_t>(x >> 27), count); // 27 = 32 - 5
 }
 
 uint64_t pcg32_get_seed()
@@ -62,13 +62,13 @@ uint64_t pcg32_get_last_state()
   return last_state;
 }
 
-void pcg32_set_state(uint64_t s)
+void pcg32_set_state(const uint64_t s)
 {
   state = s;
   last_state = state;
 }
 
-void pcg32_init(uint64_t the_seed)
+void pcg32_init(const uint64_t the_seed)
 {
   seed = the_seed;
   state = seed + increment;

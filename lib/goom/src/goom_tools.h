@@ -19,10 +19,10 @@
 
 // Permuted congruential generator.
 uint32_t pcg32_rand(void);
-void pcg32_init(uint64_t seed);
+void pcg32_init(const uint64_t seed);
 uint64_t pcg32_get_seed();
 uint64_t pcg32_get_last_state();
-void pcg32_set_state(uint64_t s);
+void pcg32_set_state(const uint64_t s);
 
 #define GOOM_NB_RAND 0x10000
 

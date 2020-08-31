@@ -23,6 +23,16 @@ struct GMUnitPointer
 
 struct PluginInfo;
 
+// les ID possibles...
+enum class LineTypes
+{
+  GML_CIRCLE = 0, // (param = radius)
+  GML_HLINE, // (param = y)
+  GML_VLINE, // (param = x)
+  _size // must be last - gives number of enums
+};
+constexpr size_t numLineTypes = static_cast<size_t>(LineTypes::_size);
+
 // tableau de points
 struct GMLine
 {
@@ -30,7 +40,7 @@ struct GMLine
 
   GMUnitPointer* points;
   GMUnitPointer* points2;
-  int IDdest;
+  LineTypes IDdest;
   float param;
   float amplitudeF;
   float amplitude;
@@ -49,17 +59,6 @@ struct GMLine
   PluginInfo* goomInfo;
 };
 
-// les ID possibles...
-
-#define GML_CIRCLE 0
-// (param = radius)
-
-#define GML_HLINE 1
-// (param = y)
-
-#define GML_VLINE 2
-// (param = x)
-
 // les modes couleur possible (si tu mets un autre c'est noir)
 #define GML_BLEUBLANC 0
 #define GML_RED 1
@@ -73,15 +72,18 @@ struct GMLine
 GMLine* goom_lines_init(PluginInfo* goomInfo,
                         const uint32_t rx,
                         const uint32_t ry,
-                        const int IDsrc,
+                        const LineTypes IDsrc,
                         const float paramS,
                         const int modeCoulSrc,
-                        const int IDdest,
+                        const LineTypes IDdest,
                         const float paramD,
                         const int modeCoulDest);
 
-void goom_lines_switch_to(
-    GMLine* gml, const int IDdest, const float param, const float amplitude, const int modeCoul);
+void goom_lines_switch_to(GMLine* gml,
+                          const LineTypes IDdest,
+                          const float param,
+                          const float amplitude,
+                          const int modeCoul);
 
 void goom_lines_set_res(GMLine* gml, const uint32_t rx, const uint32_t ry);
 

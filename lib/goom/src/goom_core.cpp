@@ -94,12 +94,12 @@ PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
 
   goomInfo->cycle = 0;
 
-  goomInfo->gmline1 =
-      goom_lines_init(goomInfo, resx, goomInfo->screen.height, GML_HLINE, goomInfo->screen.height,
-                      GML_BLACK, GML_CIRCLE, 0.4f * (float)goomInfo->screen.height, GML_VERT);
-  goomInfo->gmline2 =
-      goom_lines_init(goomInfo, resx, goomInfo->screen.height, GML_HLINE, 0, GML_BLACK, GML_CIRCLE,
-                      0.2f * (float)goomInfo->screen.height, GML_RED);
+  goomInfo->gmline1 = goom_lines_init(goomInfo, resx, goomInfo->screen.height, LineTypes::GML_HLINE,
+                                      goomInfo->screen.height, GML_BLACK, LineTypes::GML_CIRCLE,
+                                      0.4f * static_cast<float>(goomInfo->screen.height), GML_VERT);
+  goomInfo->gmline2 = goom_lines_init(goomInfo, resx, goomInfo->screen.height, LineTypes::GML_HLINE,
+                                      0, GML_BLACK, LineTypes::GML_CIRCLE,
+                                      0.2f * static_cast<float>(goomInfo->screen.height), GML_RED);
 
   gfont_load();
 
@@ -176,9 +176,9 @@ static void choose_a_goom_line(PluginInfo* goomInfo,
                                float* param1,
                                float* param2,
                                int* couleur,
-                               int* mode,
+                               LineTypes* mode,
                                float* amplitude,
-                               int far);
+                               const int far);
 
 // si on est dans un goom : afficher les lignes
 static void displayLinesIfInAGoom(PluginInfo* goomInfo,
@@ -347,15 +347,15 @@ static void choose_a_goom_line(PluginInfo* goomInfo,
                                float* param1,
                                float* param2,
                                int* couleur,
-                               int* mode,
+                               LineTypes* mode,
                                float* amplitude,
-                               int far)
+                               const int far)
 {
-  *mode = (int)goom_irand(goomInfo->gRandom, 3);
   *amplitude = 1.0f;
+  *mode = static_cast<LineTypes>(goom_irand(goomInfo->gRandom, numLineTypes));
   switch (*mode)
   {
-    case GML_CIRCLE:
+    case LineTypes::GML_CIRCLE:
       if (far)
       {
         *param1 = *param2 = 0.47f;
@@ -377,7 +377,7 @@ static void choose_a_goom_line(PluginInfo* goomInfo,
         *param1 = *param2 = goomInfo->screen.height * 0.35;
       }
       break;
-    case GML_HLINE:
+    case LineTypes::GML_HLINE:
       if (goom_irand(goomInfo->gRandom, 4) || far)
       {
         *param1 = goomInfo->screen.height / 7;
@@ -389,7 +389,7 @@ static void choose_a_goom_line(PluginInfo* goomInfo,
         *amplitude = 2.0f;
       }
       break;
-    case GML_VLINE:
+    case LineTypes::GML_VLINE:
       if (goom_irand(goomInfo->gRandom, 3) || far)
       {
         *param1 = goomInfo->screen.width / 7.0f;
@@ -827,7 +827,8 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
         case 13:
           goomInfo->update.zoomFilterData.hPlaneEffect = 0;
           goomInfo->update.zoomFilterData.vPlaneEffect =
-              (int)(goom_irand(goomInfo->gRandom, 10) - goom_irand(goomInfo->gRandom, 10));
+              static_cast<int>(goom_irand(goomInfo->gRandom, 10)) -
+              static_cast<int>(goom_irand(goomInfo->gRandom, 10));
           break;
         case 14:
           goomInfo->update.zoomFilterData.hPlaneEffect =
@@ -1031,7 +1032,7 @@ static void stopRequest(PluginInfo* goomInfo)
   float param2 = 0;
   float amplitude = 0;
   int couleur = 0;
-  int mode = 0;
+  LineTypes mode;
   choose_a_goom_line(goomInfo, &param1, &param2, &couleur, &mode, &amplitude, 1);
   couleur = GML_BLACK;
 
@@ -1073,7 +1074,7 @@ static void stopRandomLineChangeMode(PluginInfo* goomInfo)
       float param2 = 0;
       float amplitude = 0;
       int couleur1 = 0;
-      int mode = 0;
+      LineTypes mode;
       choose_a_goom_line(goomInfo, &param1, &param2, &couleur1, &mode, &amplitude,
                          goomInfo->update.stop_lines);
 
@@ -1113,7 +1114,7 @@ static void displayLines(PluginInfo* goomInfo,
     float param2 = 0;
     float amplitude = 0;
     int couleur1 = 0;
-    int mode = 0;
+    LineTypes mode;
     choose_a_goom_line(goomInfo, &param1, &param2, &couleur1, &mode, &amplitude,
                        goomInfo->update.stop_lines);
     int couleur2 = 5 - couleur1;

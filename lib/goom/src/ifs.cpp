@@ -500,7 +500,7 @@ static void release_ifs(IfsData* data)
   }
 }
 
-#define RAND() (int)goom_random(goomInfo->gRandom)
+#define RAND() static_cast<int>(goom_random(goomInfo->gRandom))
 #define MOD_MER 0
 #define MOD_FEU 1
 #define MOD_MERVER 2
@@ -557,12 +557,12 @@ static void ifs_update(
 
   for (int i = 0; i < nbpt; i += increment)
   {
-    const int x = (int)points[i].x & 0x7fffffff;
-    const int y = (int)points[i].y & 0x7fffffff;
+    const int x = static_cast<int>(points[i].x) & 0x7fffffff;
+    const int y = static_cast<int>(points[i].y) & 0x7fffffff;
 
     if ((x < width) && (y < height))
     {
-      const int pos = x + (int)(y * width);
+      const int pos = x + static_cast<int>(y * width);
       int tra = 0, i = 0;
       unsigned char* bra = (unsigned char*)&back[pos];
       unsigned char* dra = (unsigned char*)&data[pos];

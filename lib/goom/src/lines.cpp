@@ -9,6 +9,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <stdexcept>
 
 static inline unsigned char lighten(unsigned char value, float power)
 {
@@ -36,9 +37,8 @@ static inline unsigned char lighten(unsigned char value, float power)
 
 static void lightencolor(uint32_t* col, float power)
 {
-  unsigned char* color;
+  unsigned char* color = (unsigned char*)(col);
 
-  color = (unsigned char*)col;
   *color = lighten(*color, power);
   color++;
   *color = lighten(*color, power);
@@ -49,42 +49,42 @@ static void lightencolor(uint32_t* col, float power)
 }
 
 static void genline(
-    const int id, const float param, GMUnitPointer* l, const uint32_t rx, const uint32_t ry)
+    const LineTypes id, const float param, GMUnitPointer* l, const uint32_t rx, const uint32_t ry)
 {
   switch (id)
   {
-    case GML_HLINE:
-      for (int i = 0; i < AUDIO_SAMPLE_LEN; i++)
+    case LineTypes::GML_HLINE:
+      for (uint32_t i = 0; i < AUDIO_SAMPLE_LEN; i++)
       {
-        l[i].x = ((float)i * rx) / (float)AUDIO_SAMPLE_LEN;
+        l[i].x = (static_cast<float>(i) * rx) / static_cast<float>(AUDIO_SAMPLE_LEN);
         l[i].y = param;
         l[i].angle = M_PI / 2.0f;
       }
       return;
-    case GML_VLINE:
-      for (int i = 0; i < AUDIO_SAMPLE_LEN; i++)
+    case LineTypes::GML_VLINE:
+      for (uint32_t i = 0; i < AUDIO_SAMPLE_LEN; i++)
       {
-        l[i].y = ((float)i * ry) / (float)AUDIO_SAMPLE_LEN;
+        l[i].y = (static_cast<float>(i) * ry) / static_cast<float>(AUDIO_SAMPLE_LEN);
         l[i].x = param;
         l[i].angle = 0.0f;
       }
       return;
-    case GML_CIRCLE:
-      for (int i = 0; i < AUDIO_SAMPLE_LEN; i++)
+    case LineTypes::GML_CIRCLE:
+      for (uint32_t i = 0; i < AUDIO_SAMPLE_LEN; i++)
       {
-        float cosa, sina;
-
-        l[i].angle = 2.0f * M_PI * (float)i / (float)AUDIO_SAMPLE_LEN;
-        cosa = param * cos(l[i].angle);
-        sina = param * sin(l[i].angle);
-        l[i].x = ((float)rx / 2.0f) + cosa;
-        l[i].y = (float)ry / 2.0f + sina;
+        l[i].angle = 2.0f * M_PI * static_cast<float>(i) / static_cast<float>(AUDIO_SAMPLE_LEN);
+        const float cosa = param * cos(l[i].angle);
+        const float sina = param * sin(l[i].angle);
+        l[i].x = static_cast<float>(rx) / 2.0f + cosa;
+        l[i].y = static_cast<float>(ry) / 2.0f + sina;
       }
       return;
+    default:
+      throw std::logic_error("Unknown LineTypes enum.");
   }
 }
 
-static uint32_t getcouleur(int mode)
+static uint32_t getcouleur(const int mode)
 {
   switch (mode)
   {
@@ -102,13 +102,15 @@ static uint32_t getcouleur(int mode)
       return (250 << (BLEU * 8)) | (30 << (VERT * 8)) | (80 << (ROUGE * 8));
     case GML_BLACK:
       return (16 << (BLEU * 8)) | (16 << (VERT * 8)) | (16 << (ROUGE * 8));
+    default:
+      throw std::logic_error("Unknown line color.");
   }
   return 0;
 }
 
 void goom_lines_set_res(GMLine* gml, const uint32_t rx, const uint32_t ry)
 {
-  if (gml != NULL)
+  if (gml)
   {
     gml->screenX = rx;
     gml->screenY = ry;
@@ -119,20 +121,20 @@ void goom_lines_set_res(GMLine* gml, const uint32_t rx, const uint32_t ry)
 
 static void goom_lines_move(GMLine* l)
 {
-  for (int i = 0; i < AUDIO_SAMPLE_LEN; i++)
+  for (uint32_t i = 0; i < AUDIO_SAMPLE_LEN; i++)
   {
     l->points[i].x = (l->points2[i].x + 39.0f * l->points[i].x) / 40.0f;
     l->points[i].y = (l->points2[i].y + 39.0f * l->points[i].y) / 40.0f;
     l->points[i].angle = (l->points2[i].angle + 39.0f * l->points[i].angle) / 40.0f;
   }
 
-  unsigned char* c1 = (unsigned char*)&l->color;
-  unsigned char* c2 = (unsigned char*)&l->color2;
+  unsigned char* c1 = reinterpret_cast<unsigned char*>(&l->color);
+  unsigned char* c2 = reinterpret_cast<unsigned char*>(&l->color2);
   for (int i = 0; i < 4; i++)
   {
     int cc1 = *c1;
     int cc2 = *c2;
-    *c1 = (unsigned char)((cc1 * 63 + cc2) >> 6);
+    *c1 = static_cast<unsigned char>((cc1 * 63 + cc2) >> 6);
     ++c1;
     ++c2;
   }
@@ -141,19 +143,19 @@ static void goom_lines_move(GMLine* l)
   if (l->power < 1.1f)
   {
     l->power = 1.1f;
-    l->powinc = (float)(goom_irand(l->goomInfo->gRandom, 20) + 10) / 300.0f;
+    l->powinc = static_cast<float>(goom_irand(l->goomInfo->gRandom, 20) + 10) / 300.0f;
   }
   if (l->power > 17.5f)
   {
     l->power = 17.5f;
-    l->powinc = -(float)(goom_irand(l->goomInfo->gRandom, 20) + 10) / 300.0f;
+    l->powinc = -static_cast<float>(goom_irand(l->goomInfo->gRandom, 20) + 10) / 300.0f;
   }
 
   l->amplitude = (99.0f * l->amplitude + l->amplitudeF) / 100.0f;
 }
 
 void goom_lines_switch_to(
-    GMLine* gml, const int IDdest, const float param, const float amplitude, const int col)
+    GMLine* gml, const LineTypes IDdest, const float param, const float amplitude, const int col)
 {
   genline(IDdest, param, gml->points2, gml->screenX, gml->screenY);
   gml->IDdest = IDdest;
@@ -165,10 +167,10 @@ void goom_lines_switch_to(
 GMLine* goom_lines_init(PluginInfo* goomInfo,
                         const uint32_t rx,
                         const uint32_t ry,
-                        const int IDsrc,
+                        const LineTypes IDsrc,
                         const float paramS,
                         const int coulS,
-                        const int IDdest,
+                        const LineTypes IDdest,
                         const float paramD,
                         const int coulD)
 {
@@ -211,15 +213,16 @@ void goom_lines_free(GMLine** l)
   free((*l)->points);
   free((*l)->points2);
   free(*l);
-  l = NULL;
+  l = nullptr;
 }
 
-// This factor gives width to the audio samples lines. 20000 seems pleasing.
-#define MAX_NORMALIZED_PEAK 30000
+// This factor gives width to the audio samples lines. 30000 seems pleasing.
+constexpr int32_t maxNormalizedPeak = 30000;
 
-static inline float getNormalizedData(PluginInfo* goomInfo, short data)
+static inline float getNormalizedData(PluginInfo* goomInfo, const int16_t data)
 {
-  return float((MAX_NORMALIZED_PEAK * data) / goomInfo->sound.allTimesMax);
+  return static_cast<float>((maxNormalizedPeak * static_cast<int32_t>(data)) /
+                            static_cast<int32_t>(goomInfo->sound.allTimesMax));
 }
 
 void goom_lines_draw(PluginInfo* goomInfo,
@@ -240,8 +243,8 @@ void goom_lines_draw(PluginInfo* goomInfo,
     const uint32_t randColor = ColorMap::getRandomColor(line->colorMaps->getRandomColorMap());
 
     const float fdata = getNormalizedData(goomInfo, data[0]);
-    int x1 = (int)(pt->x + cosa * line->amplitude * fdata);
-    int y1 = (int)(pt->y + sina * line->amplitude * fdata);
+    int x1 = static_cast<int>(pt->x + cosa * line->amplitude * fdata);
+    int y1 = static_cast<int>(pt->y + sina * line->amplitude * fdata);
 
     for (int i = 1; i < AUDIO_SAMPLE_LEN; i++)
     {
@@ -249,12 +252,11 @@ void goom_lines_draw(PluginInfo* goomInfo,
 
       const float cosa = cos(pt->angle) / 1000.0f;
       const float sina = sin(pt->angle) / 1000.0f;
-
       const float fdata = getNormalizedData(goomInfo, data[i]);
-      const int x2 = (int)(pt->x + cosa * line->amplitude * fdata);
-      const int y2 = (int)(pt->y + sina * line->amplitude * fdata);
+      const int x2 = static_cast<int>(pt->x + cosa * line->amplitude * fdata);
+      const int y2 = static_cast<int>(pt->y + sina * line->amplitude * fdata);
 
-      const float t = fdata / MAX_NORMALIZED_PEAK;
+      const float t = fdata / static_cast<float>(maxNormalizedPeak);
       const uint32_t modColor = ColorMap::colorMix(color, randColor, t);
 
       goomInfo->methods.draw_line(p, x1, y1, x2, y2, modColor, line->screenX, line->screenY);
