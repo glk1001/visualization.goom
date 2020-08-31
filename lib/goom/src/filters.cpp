@@ -643,7 +643,7 @@ static void generatePrecalCoef(int precalCoef[16][16])
 
 /* VisualFX Wrapper */
 
-static const char *const vfxname = "ZoomFilter";
+static const char* const vfxname = "ZoomFilter";
 
 static void zoomFilterSave(VisualFX* _this, const PluginInfo*, const char* file)
 {
