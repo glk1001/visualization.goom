@@ -48,6 +48,7 @@ struct SoundInfo
   float accelvar; // acceleration of the sound - [0..1]
   float speedvar; // speed of the sound - [0..100]
   int16_t allTimesMax;
+  int16_t allTimesMin;
   uint32_t totalgoom; // number of goom since last reset (a reset every 64 cycles)
 
   float prov_max; // accel max since last reset

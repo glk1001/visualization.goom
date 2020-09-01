@@ -11,6 +11,7 @@
 #include <cmath>
 #include <cstdint>
 #include <stdexcept>
+#include <tuple>
 
 static inline unsigned char lighten(unsigned char value, float power)
 {
@@ -217,54 +218,62 @@ void goom_lines_free(GMLine** l)
   l = nullptr;
 }
 
-// This factor gives width to the audio samples lines. 30000 seems pleasing.
-constexpr int32_t maxNormalizedPeak = 30000;
-
-static inline float getNormalizedData(PluginInfo* goomInfo, const int16_t data)
-{
-  return static_cast<float>((maxNormalizedPeak * static_cast<int32_t>(data)) /
-                            static_cast<int32_t>(goomInfo->sound.allTimesMax));
-}
-
 void goom_lines_draw(PluginInfo* goomInfo,
                      GMLine* line,
                      const int16_t data[AUDIO_SAMPLE_LEN],
                      Pixel* p)
 {
-  if (line != NULL)
+  if (!line)
   {
-    uint32_t color = line->color;
-    const GMUnitPointer* pt = &(line->points[0]);
+    return;
+  }
 
+  const GMUnitPointer* pt = &(line->points[0]);
+  uint32_t color = line->color;
+  lightencolor(&color, line->power);
+
+  const float audioRange =
+      static_cast<float>(goomInfo->sound.allTimesMax - goomInfo->sound.allTimesMin);
+  if (audioRange < 0.0001)
+  {
+    // No range - flatline audio
+    goomInfo->methods.draw_line(p, pt->x, pt->y, pt->x + AUDIO_SAMPLE_LEN, pt->y, color,
+                                line->screenX, line->screenY);
+    goom_lines_move(line);
+    return;
+  }
+
+  // This factor gives height to the audio samples lines. This value seems pleasing.
+  constexpr float maxNormalizedPeak = 70000;
+  const auto getNormalizedData = [&](const int16_t data) {
+    return maxNormalizedPeak * static_cast<float>(data - goomInfo->sound.allTimesMin) / audioRange;
+  };
+
+  const uint32_t randColor = ColorMap::getRandomColor(line->colorMaps->getRandomColorMap());
+
+  const auto getNextPoint = [&](const GMUnitPointer* pt, const int16_t dataVal) {
     const float cosa = cos(pt->angle) / 1000.0f;
     const float sina = sin(pt->angle) / 1000.0f;
+    const float fdata = getNormalizedData(dataVal);
+    const int x = static_cast<int>(pt->x + cosa * line->amplitude * fdata);
+    const int y = static_cast<int>(pt->y + sina * line->amplitude * fdata);
+    const float t = std::max(0.05f, fdata / static_cast<float>(maxNormalizedPeak));
+    const uint32_t modColor = ColorMap::colorMix(color, randColor, t);
+    return std::make_tuple(x, y, modColor);
+  };
 
-    lightencolor(&color, line->power);
+  auto [x1, y1, modColor] = getNextPoint(pt, data[0]);
 
-    const uint32_t randColor = ColorMap::getRandomColor(line->colorMaps->getRandomColorMap());
+  for (size_t i = 1; i < AUDIO_SAMPLE_LEN; i++)
+  {
+    const GMUnitPointer* const pt = &(line->points[i]);
+    const auto [x2, y2, modColor] = getNextPoint(pt, data[i]);
 
-    const float fdata = getNormalizedData(goomInfo, data[0]);
-    int x1 = static_cast<int>(pt->x + cosa * line->amplitude * fdata);
-    int y1 = static_cast<int>(pt->y + sina * line->amplitude * fdata);
+    goomInfo->methods.draw_line(p, x1, y1, x2, y2, modColor, line->screenX, line->screenY);
 
-    for (int i = 1; i < AUDIO_SAMPLE_LEN; i++)
-    {
-      const GMUnitPointer* pt = &(line->points[i]);
-
-      const float cosa = cos(pt->angle) / 1000.0f;
-      const float sina = sin(pt->angle) / 1000.0f;
-      const float fdata = getNormalizedData(goomInfo, data[i]);
-      const int x2 = static_cast<int>(pt->x + cosa * line->amplitude * fdata);
-      const int y2 = static_cast<int>(pt->y + sina * line->amplitude * fdata);
-
-      const float t = std::max(0.05f, fdata / static_cast<float>(maxNormalizedPeak));
-      const uint32_t modColor = ColorMap::colorMix(color, randColor, t);
-
-      goomInfo->methods.draw_line(p, x1, y1, x2, y2, modColor, line->screenX, line->screenY);
-
-      x1 = x2;
-      y1 = y2;
-    }
-    goom_lines_move(line);
+    x1 = x2;
+    y1 = y2;
   }
+
+  goom_lines_move(line);
 }

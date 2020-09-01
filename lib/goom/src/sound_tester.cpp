@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 
 /* some constants */
 constexpr uint32_t BIG_GOOM_DURATION = 100;
@@ -15,23 +16,32 @@ constexpr float SPEED_MULT = 0.99;
 
 void evaluate_sound(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], SoundInfo* info)
 {
-  // find the max
-  int16_t incvar = 0;
+  // find the min/max
+  int16_t maxVar = std::numeric_limits<int16_t>::min();
+  int16_t minVar = std::numeric_limits<int16_t>::max();
   for (size_t i = 0; i < AUDIO_SAMPLE_LEN; i++)
   {
-    if (incvar < data[0][i])
+    if (maxVar < data[0][i])
     {
-      incvar = data[0][i];
+      maxVar = data[0][i];
+    }
+    if (minVar > data[0][i])
+    {
+      minVar = data[0][i];
     }
   }
 
-  if (incvar > info->allTimesMax)
+  if (maxVar > info->allTimesMax)
   {
-    info->allTimesMax = incvar;
+    info->allTimesMax = maxVar;
+  }
+  if (minVar < info->allTimesMin)
+  {
+    info->allTimesMin = minVar;
   }
 
   // volume sonore
-  info->volume = (float)incvar / (float)info->allTimesMax;
+  info->volume = static_cast<float>(maxVar) / static_cast<float>(info->allTimesMax);
   memcpy(info->samples[0], data[0], AUDIO_SAMPLE_LEN * sizeof(short));
   memcpy(info->samples[1], data[1], AUDIO_SAMPLE_LEN * sizeof(short));
 

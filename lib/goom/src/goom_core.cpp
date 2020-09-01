@@ -97,8 +97,8 @@ PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
   goomInfo->gmline1 = goom_lines_init(goomInfo, resx, goomInfo->screen.height, LineTypes::hline,
                                       goomInfo->screen.height, GML_BLACK, LineTypes::circle,
                                       0.4f * static_cast<float>(goomInfo->screen.height), GML_VERT);
-  goomInfo->gmline2 = goom_lines_init(goomInfo, resx, goomInfo->screen.height, LineTypes::hline,
-                                      0, GML_BLACK, LineTypes::circle,
+  goomInfo->gmline2 = goom_lines_init(goomInfo, resx, goomInfo->screen.height, LineTypes::hline, 0,
+                                      GML_BLACK, LineTypes::circle,
                                       0.2f * static_cast<float>(goomInfo->screen.height), GML_RED);
 
   gfont_load();

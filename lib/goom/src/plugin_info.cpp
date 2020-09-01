@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 
 static void setOptimizedMethods(PluginInfo* p)
 {
@@ -21,7 +22,8 @@ void plugin_info_init(PluginInfo* pp, size_t nbVisuals)
   p.sound.speedvar = p.sound.accelvar = p.sound.totalgoom = 0;
   p.sound.prov_max = 0;
   p.sound.goom_limit = 1;
-  p.sound.allTimesMax = 1;
+  p.sound.allTimesMax = std::numeric_limits<int16_t>::min();
+  p.sound.allTimesMin = std::numeric_limits<int16_t>::max();
 
   p.sound.volume_p = secure_f_feedback("Sound Volume");
   p.sound.accel_p = secure_f_feedback("Sound Acceleration");
