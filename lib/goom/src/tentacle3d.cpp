@@ -27,7 +27,7 @@ public:
               Pixel* back,
               const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
               const float accelvar,
-              const int drawit,
+              const bool doDraw,
               TentacleFXData* fx_data);
 
 private:
@@ -112,20 +112,20 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
                               Pixel* back,
                               const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
                               const float accelvar,
-                              const int drawit,
+                              const bool doDraw,
                               TentacleFXData* fx_data)
 {
   logDebug("Starting update.");
 
   const float modAccelvar = accelvar;
 
-  if ((!drawit) && (fx_data->ligs > 0.0f))
+  if (!doDraw && (fx_data->ligs > 0.0f))
   {
     fx_data->ligs = -fx_data->ligs;
   }
   fx_data->lig += fx_data->ligs;
 
-  if (fx_data->lig > 1.01f)
+  if (doDraw && (fx_data->lig > 1.01f))
   {
     logDebug("Starting pretty_move 1.");
     float dist, dist2, rotangle;
