@@ -21,11 +21,11 @@ struct GoomState
   bool drawScope;
   bool farScope;
 
-  int minSelect;
-  int maxSelect = 0;
+  uint32_t minSelect;
+  uint32_t maxSelect = 0;
 };
 
-constexpr size_t STATES_MAX_NB = 8;
+constexpr size_t maxNumStates = 8;
 
 /**
  * Gives information about the sound.
@@ -107,9 +107,9 @@ struct PluginInfo
 
   // state of goom
   uint32_t cycle;
-  GoomState states[STATES_MAX_NB];
-  int statesNumber;
-  int statesRangeMax;
+  GoomState states[maxNumStates];
+  size_t numStates;
+  size_t maxStateSelect;
 
   GoomState* curGState;
   int curGStateIndex;
@@ -142,8 +142,8 @@ struct PluginInfo
     int switchIncrAmount; // 0x7f
     float switchMult; // 1.0f
     int switchIncr; //  = SWITCHINCR;
-    int stateSelectionRand;
-    int stateSelectionBlocker;
+    uint32_t stateSelectionRand;
+    uint32_t stateSelectionBlocker;
     int32_t previousZoomSpeed;
     int timeOfTitleDisplay;
     char titleText[1024];

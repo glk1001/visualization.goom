@@ -64,10 +64,10 @@ void plugin_info_init(PluginInfo* pp, size_t nbVisuals)
   pp->sound.params.params[9] = &pp->sound.last_goom_p;
   pp->sound.params.params[10] = &pp->sound.last_biggoom_p;
 
-  pp->statesNumber = STATES_MAX_NB;
-  pp->statesRangeMax = 510;
+  pp->numStates = maxNumStates;
+  pp->maxStateSelect = 510;
   // clang-format off
-  GoomState states[STATES_MAX_NB] = {
+  GoomState states[maxNumStates] = {
     {.drawIFS = 1, .drawPoints = 0, .drawTentacle = 1, .drawScope = 1, .farScope = 1, .minSelect =   0},
     {.drawIFS = 1, .drawPoints = 0, .drawTentacle = 0, .drawScope = 0, .farScope = 1, .minSelect = 101},
     {.drawIFS = 1, .drawPoints = 0, .drawTentacle = 0, .drawScope = 1, .farScope = 1, .minSelect = 141},
@@ -78,12 +78,12 @@ void plugin_info_init(PluginInfo* pp, size_t nbVisuals)
     {.drawIFS = 0, .drawPoints = 0, .drawTentacle = 0, .drawScope = 1, .farScope = 1, .minSelect = 451},
   };
   // clang-format on
-  states[STATES_MAX_NB - 1].maxSelect = pp->statesRangeMax;
-  for (size_t i = 0; i < STATES_MAX_NB - 1; i++)
+  states[maxNumStates - 1].maxSelect = pp->maxStateSelect;
+  for (size_t i = 0; i < maxNumStates - 1; i++)
   {
     states[i].maxSelect = states[i + 1].minSelect - 1;
   }
-  for (size_t i = 0; i < STATES_MAX_NB; ++i)
+  for (size_t i = 0; i < maxNumStates; ++i)
   {
     pp->states[i] = states[i];
   }
