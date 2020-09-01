@@ -24,6 +24,7 @@ else()
 endif()
 
 add_subdirectory(lib/goom)
+add_subdirectory(lib/goomtests)
 add_subdirectory(lib/goomutils)
 add_subdirectory(lib/vivid)
 
