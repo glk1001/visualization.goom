@@ -23,6 +23,7 @@
 #include "goomutils/logging.h"
 #include "v3d.h"
 
+#include <algorithm>
 #include <cstdint>
 
 static inline void setPixelRGB(Pixel* buffer, const uint32_t x, const Color& c)
@@ -154,14 +155,7 @@ static inline v2g zoomVector(FilterDataWrapper* data, const float X, const float
       break;
   }
 
-  if (coefVitesse < -2.01f)
-  {
-    coefVitesse = -2.01f;
-  }
-  if (coefVitesse > 2.01f)
-  {
-    coefVitesse = 2.01f;
-  }
+  coefVitesse = std::clamp(coefVitesse, -2.01f, +2.01f);
 
   float vx = coefVitesse * X;
   float vy = coefVitesse * Y;
@@ -221,14 +215,14 @@ static void makeZoomBufferStripe(FilterDataWrapper* data, const uint32_t INTERLA
   // uint32_t maxEnd = uint32_t(data->interlaceStart + static_cast<int>(INTERLACE_INCR);
 
   // Ratio from pixmap to normalized coordinates
-  const float ratio = 2.0f / (static_cast<float>(data->prevX));
+  const float ratio = 2.0f / static_cast<float>(data->prevX);
 
   // Ratio from normalized to virtual pixmap coordinates
   const float inv_ratio = BUFFPOINTNBF / ratio;
   const float min = ratio / BUFFPOINTNBF;
 
   // Y position of the pixel to compute in normalized coordinates
-  float Y = (static_cast<float>(data->interlaceStart - static_cast<int>(data->middleY))) * ratio;
+  float Y = ratio * static_cast<float>(data->interlaceStart - static_cast<int>(data->middleY));
 
   // Where (vertically) to stop generating the buffer stripe
   uint32_t maxEnd = data->prevY;
