@@ -24,6 +24,7 @@ void plugin_info_init(PluginInfo* pp, size_t nbVisuals)
   p.sound.goom_limit = 1;
   p.sound.allTimesMax = std::numeric_limits<int16_t>::min();
   p.sound.allTimesMin = std::numeric_limits<int16_t>::max();
+  p.sound.allTimesPositiveMax = 1;
 
   p.sound.volume_p = secure_f_feedback("Sound Volume");
   p.sound.accel_p = secure_f_feedback("Sound Acceleration");

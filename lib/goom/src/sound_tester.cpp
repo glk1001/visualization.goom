@@ -17,10 +17,15 @@ constexpr float SPEED_MULT = 0.99;
 void evaluate_sound(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], SoundInfo* info)
 {
   // find the min/max
+  int16_t incVar = 0;
   int16_t maxVar = std::numeric_limits<int16_t>::min();
   int16_t minVar = std::numeric_limits<int16_t>::max();
   for (size_t i = 0; i < AUDIO_SAMPLE_LEN; i++)
   {
+    if (incVar < data[0][i])
+    {
+      incVar = data[0][i];
+    }
     if (maxVar < data[0][i])
     {
       maxVar = data[0][i];
@@ -31,6 +36,10 @@ void evaluate_sound(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], Sou
     }
   }
 
+  if (incVar > info->allTimesPositiveMax)
+  {
+    info->allTimesPositiveMax = incVar;
+  }
   if (maxVar > info->allTimesMax)
   {
     info->allTimesMax = maxVar;
@@ -40,8 +49,8 @@ void evaluate_sound(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], Sou
     info->allTimesMin = minVar;
   }
 
-  // volume sonore
-  info->volume = static_cast<float>(maxVar) / static_cast<float>(info->allTimesMax);
+  // volume sonore - TODO: why only positive volumes?
+  info->volume = static_cast<float>(incVar) / static_cast<float>(info->allTimesPositiveMax);
   memcpy(info->samples[0], data[0], AUDIO_SAMPLE_LEN * sizeof(short));
   memcpy(info->samples[1], data[1], AUDIO_SAMPLE_LEN * sizeof(short));
 
