@@ -51,11 +51,11 @@ static void lightencolor(uint32_t* col, float power)
 }
 
 static void genline(
-    const LineTypes id, const float param, GMUnitPointer* l, const uint32_t rx, const uint32_t ry)
+    const LineType id, const float param, GMUnitPointer* l, const uint32_t rx, const uint32_t ry)
 {
   switch (id)
   {
-    case LineTypes::hline:
+    case LineType::hline:
       for (uint32_t i = 0; i < AUDIO_SAMPLE_LEN; i++)
       {
         l[i].x = (static_cast<float>(i) * rx) / static_cast<float>(AUDIO_SAMPLE_LEN);
@@ -63,7 +63,7 @@ static void genline(
         l[i].angle = M_PI / 2.0f;
       }
       return;
-    case LineTypes::vline:
+    case LineType::vline:
       for (uint32_t i = 0; i < AUDIO_SAMPLE_LEN; i++)
       {
         l[i].y = (static_cast<float>(i) * ry) / static_cast<float>(AUDIO_SAMPLE_LEN);
@@ -71,7 +71,7 @@ static void genline(
         l[i].angle = 0.0f;
       }
       return;
-    case LineTypes::circle:
+    case LineType::circle:
       for (uint32_t i = 0; i < AUDIO_SAMPLE_LEN; i++)
       {
         l[i].angle = 2.0f * M_PI * static_cast<float>(i) / static_cast<float>(AUDIO_SAMPLE_LEN);
@@ -157,7 +157,7 @@ static void goom_lines_move(GMLine* l)
 }
 
 void goom_lines_switch_to(
-    GMLine* gml, const LineTypes IDdest, const float param, const float amplitude, const int col)
+    GMLine* gml, const LineType IDdest, const float param, const float amplitude, const int col)
 {
   genline(IDdest, param, gml->points2, gml->screenX, gml->screenY);
   gml->IDdest = IDdest;
@@ -169,10 +169,10 @@ void goom_lines_switch_to(
 GMLine* goom_lines_init(PluginInfo* goomInfo,
                         const uint32_t rx,
                         const uint32_t ry,
-                        const LineTypes IDsrc,
+                        const LineType IDsrc,
                         const float paramS,
                         const int coulS,
-                        const LineTypes IDdest,
+                        const LineType IDdest,
                         const float paramD,
                         const int coulD)
 {

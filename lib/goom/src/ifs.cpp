@@ -52,8 +52,20 @@ struct IFSPoint
   int32_t y;
 };
 
-#define LRAND() (static_cast<long>(goom_random(goomInfo->gRandom) & 0x7fffffff))
-#define NRAND(n) (static_cast<int>(LRAND() % (n)))
+inline uint32_t longRand(PluginInfo* goomInfo)
+{
+  return static_cast<long>(goom_random(goomInfo->gRandom) & 0x7fffffff);
+}
+
+inline int nRand(PluginInfo* goomInfo, const size_t n)
+{
+  return static_cast<int>(longRand(goomInfo) % n);
+}
+
+inline int RAND(PluginInfo* goomInfo)
+{
+  return static_cast<int>(goom_random(goomInfo->gRandom));
+}
 
 #if RAND_MAX < 0x10000
 #define MAXRAND ((static_cast<float>(RAND_MAX < 16) + static_cast<float>(RAND_MAX) + 1.0f) / 127.0f)
@@ -63,27 +75,28 @@ struct IFSPoint
 
 /*****************************************************/
 
-typedef float DBL;
-typedef int F_PT;
+using DBL = float;
+using F_PT = int;
 /* typedef float               F_PT; */
 
 /*****************************************************/
 
-constexpr int FIX = 12;
-constexpr int unit = 1 << FIX;
+constexpr int fix = 12;
+constexpr int unit = 1 << fix;
 #define DBL_To_F_PT(x) (F_PT)((DBL)(unit) * (x))
 // Following inline is different to above #define???!!
 //static inline F_PT DBL_To_F_PT(const DBL x) { return (F_PT)((DBL)unit * x); }
-static inline F_PT div_by_unit(const F_PT x)
+
+inline F_PT div_by_unit(const F_PT x)
 {
-  return x >> FIX;
+  return x >> fix;
 }
-static inline F_PT div_by_2units(const F_PT x)
+inline F_PT div_by_2units(const F_PT x)
 {
-  return x >> (FIX + 1);
+  return x >> (fix + 1);
 }
 
-constexpr size_t MAX_SIMI = 6;
+constexpr size_t maxSimi = 6;
 
 #define MAX_DEPTH_2 10
 #define MAX_DEPTH_3 6
@@ -111,7 +124,7 @@ struct Similitude
 struct Fractal
 {
   int numSimi;
-  Similitude components[5 * MAX_SIMI];
+  Similitude components[5 * maxSimi];
   uint32_t depth;
   uint32_t col;
   int count;
@@ -144,30 +157,36 @@ struct IfsData
   bool initialized;
 };
 
-static DBL Gauss_Rand(PluginInfo* goomInfo, DBL c, DBL S, DBL A_mult_1_minus_exp_neg_S)
+static DBL gaussRand(PluginInfo* goomInfo,
+                     const DBL c,
+                     const DBL S,
+                     const DBL A_mult_1_minus_exp_neg_S)
 {
-  DBL y = (DBL)LRAND() / MAXRAND;
+  DBL y = static_cast<DBL>(longRand(goomInfo)) / MAXRAND;
   y = A_mult_1_minus_exp_neg_S * (1.0 - exp(-y * y * S));
-  if (NRAND(2))
+  if (nRand(goomInfo, 2))
   {
     return (c + y);
   }
   return (c - y);
 }
 
-static DBL Half_Gauss_Rand(PluginInfo* goomInfo, DBL c, DBL S, DBL A_mult_1_minus_exp_neg_S)
+static DBL halfGaussRand(PluginInfo* goomInfo,
+                         const DBL c,
+                         const DBL S,
+                         const DBL A_mult_1_minus_exp_neg_S)
 {
-  DBL y = static_cast<DBL>(LRAND()) / MAXRAND;
+  DBL y = static_cast<DBL>(longRand(goomInfo)) / MAXRAND;
   y = A_mult_1_minus_exp_neg_S * (1.0 - exp(-y * y * S));
   return (c + y);
 }
 
-static DBL get_1_minus_exp_neg_S(DBL S)
+inline DBL get_1_minus_exp_neg_S(const DBL S)
 {
   return 1.0 - exp(-S);
 }
 
-static void Random_Simis(PluginInfo* goomInfo, Fractal* fractal, Similitude* cur, int i)
+static void randomSimis(PluginInfo* goomInfo, Fractal* fractal, Similitude* cur, int i)
 {
   static DBL c_AS_factor;
   static DBL r_1_minus_exp_neg_S;
@@ -190,12 +209,12 @@ static void Random_Simis(PluginInfo* goomInfo, Fractal* fractal, Similitude* cur
 
   while (i--)
   {
-    cur->c_x = Gauss_Rand(goomInfo, 0.0, 4.0, c_AS_factor);
-    cur->c_y = Gauss_Rand(goomInfo, 0.0, 4.0, c_AS_factor);
-    cur->r = Gauss_Rand(goomInfo, fractal->rMean, 3.0, r_AS_factor);
-    cur->r2 = Half_Gauss_Rand(goomInfo, 0.0, 2.0, r2_AS_factor);
-    cur->A = Gauss_Rand(goomInfo, 0.0, 4.0, A_AS_factor) * (M_PI / 180.0);
-    cur->A2 = Gauss_Rand(goomInfo, 0.0, 4.0, A2_AS_factor) * (M_PI / 180.0);
+    cur->c_x = gaussRand(goomInfo, 0.0, 4.0, c_AS_factor);
+    cur->c_y = gaussRand(goomInfo, 0.0, 4.0, c_AS_factor);
+    cur->r = gaussRand(goomInfo, fractal->rMean, 3.0, r_AS_factor);
+    cur->r2 = halfGaussRand(goomInfo, 0.0, 2.0, r2_AS_factor);
+    cur->A = gaussRand(goomInfo, 0.0, 4.0, A_AS_factor) * (M_PI / 180.0);
+    cur->A2 = gaussRand(goomInfo, 0.0, 4.0, A2_AS_factor) * (M_PI / 180.0);
     cur->Ct = 0;
     cur->St = 0;
     cur->Ct2 = 0;
@@ -210,15 +229,15 @@ static void Random_Simis(PluginInfo* goomInfo, Fractal* fractal, Similitude* cur
 
 static void free_ifs_buffers(Fractal* fractal)
 {
-  if (fractal->buffer1 != NULL)
+  if (fractal->buffer1)
   {
-    (void)free((void*)fractal->buffer1);
-    fractal->buffer1 = (IFSPoint*)NULL;
+    free(fractal->buffer1);
+    fractal->buffer1 = nullptr;
   }
-  if (fractal->buffer2 != NULL)
+  if (fractal->buffer2)
   {
-    (void)free((void*)fractal->buffer2);
-    fractal->buffer2 = (IFSPoint*)NULL;
+    free(fractal->buffer2);
+    fractal->buffer2 = nullptr;
   }
 }
 
@@ -227,8 +246,6 @@ static void free_ifs(Fractal* fractal)
   free_ifs_buffers(fractal);
 }
 
-/***************************************************************/
-
 static void init_ifs(PluginInfo* goomInfo, IfsData* data)
 {
   const uint32_t width = goomInfo->screen.width;
@@ -236,19 +253,19 @@ static void init_ifs(PluginInfo* goomInfo, IfsData* data)
 
   data->enabled_bp = secure_b_param("Enabled", 1);
 
-  if (data->root == NULL)
+  if (!data->root)
   {
     data->root = (Fractal*)malloc(sizeof(Fractal));
-    if (data->root == NULL)
+    if (!data->root)
       return;
-    data->root->buffer1 = (IFSPoint*)NULL;
-    data->root->buffer2 = (IFSPoint*)NULL;
+    data->root->buffer1 = nullptr;
+    data->root->buffer2 = nullptr;
   }
-  Fractal* fractal = data->root;
 
+  Fractal* fractal = data->root;
   free_ifs_buffers(fractal);
 
-  const int num_centres = (NRAND(4)) + 2; /* Number of centers */
+  const int num_centres = nRand(goomInfo, 4) + 2; // Number of centers
   switch (num_centres)
   {
     case 3:
@@ -288,12 +305,12 @@ static void init_ifs(PluginInfo* goomInfo, IfsData* data)
     fractal->maxPt *= fractal->numSimi;
   }
 
-  if ((fractal->buffer1 = (IFSPoint*)calloc((size_t)fractal->maxPt, sizeof(IFSPoint))) == NULL)
+  if ((fractal->buffer1 = (IFSPoint*)calloc((size_t)fractal->maxPt, sizeof(IFSPoint))) == nullptr)
   {
     free_ifs(fractal);
     return;
   }
-  if ((fractal->buffer2 = (IFSPoint*)calloc((size_t)fractal->maxPt, sizeof(IFSPoint))) == NULL)
+  if ((fractal->buffer2 = (IFSPoint*)calloc((size_t)fractal->maxPt, sizeof(IFSPoint))) == nullptr)
   {
     free_ifs(fractal);
     return;
@@ -308,9 +325,9 @@ static void init_ifs(PluginInfo* goomInfo, IfsData* data)
   fractal->ly = (fractal->height - 1) / 2;
   fractal->col = pcg32_rand() % (width * height); /* modif by JeKo */
 
-  Random_Simis(goomInfo, fractal, fractal->components, 5 * MAX_SIMI);
+  randomSimis(goomInfo, fractal, fractal->components, 5 * maxSimi);
 
-  for (size_t i = 0; i < 5 * MAX_SIMI; i++)
+  for (size_t i = 0; i < 5 * maxSimi; i++)
   {
     Similitude cur = fractal->components[i];
     logDebug("simi[{}]: c_x = {:.2}, c_y = {:.2}, r = {:.2}, r2 = {:.2}, A = {:.2}, A2 = {:.2}.", i,
@@ -318,9 +335,7 @@ static void init_ifs(PluginInfo* goomInfo, IfsData* data)
   }
 }
 
-/***************************************************************/
-
-static inline void Transform(Similitude* Simi, F_PT xo, F_PT yo, F_PT* x, F_PT* y)
+static inline void transform(Similitude* Simi, F_PT xo, F_PT yo, F_PT* x, F_PT* y)
 {
   xo = xo - Simi->Cx;
   xo = div_by_unit(xo * Simi->R);
@@ -336,16 +351,14 @@ static inline void Transform(Similitude* Simi, F_PT xo, F_PT yo, F_PT* x, F_PT* 
   *y = div_by_unit(xo * Simi->St + yo * Simi->Ct + xx * Simi->St2 + yy * Simi->Ct2) + Simi->Cy;
 }
 
-/***************************************************************/
-
-static void Trace(Fractal* F, F_PT xo, F_PT yo, IfsData* data)
+static void trace(Fractal* F, const F_PT xo, const F_PT yo, IfsData* data)
 {
   Similitude* Cur = data->curF->components;
   //	logDebug("data->Cur_F->numSimi = {}, xo = {}, yo = {}", data->Cur_F->numSimi, xo, yo);
   for (int i = data->curF->numSimi; i; --i, Cur++)
   {
     F_PT x, y;
-    Transform(Cur, xo, yo, &x, &y);
+    transform(Cur, xo, yo, &x, &y);
 
     data->buff->x = F->lx + div_by_2units(x * F->lx);
     data->buff->y = F->ly - div_by_2units(y * F->ly);
@@ -356,13 +369,13 @@ static void Trace(Fractal* F, F_PT xo, F_PT yo, IfsData* data)
     if (F->depth && ((x - xo) >> 4) && ((y - yo) >> 4))
     {
       F->depth--;
-      Trace(F, x, y, data);
+      trace(F, x, y, data);
       F->depth++;
     }
   }
 }
 
-static void Draw_Fractal(IfsData* data)
+static void drawFractal(IfsData* data)
 {
   Fractal* fractal = data->root;
   int i;
@@ -399,8 +412,8 @@ static void Draw_Fractal(IfsData* data)
       }
       F_PT x;
       F_PT y;
-      Transform(Simi, xo, yo, &x, &y);
-      Trace(fractal, x, y, data);
+      transform(Simi, xo, yo, &x, &y);
+      trace(fractal, x, y, data);
     }
   }
 
@@ -411,7 +424,7 @@ static void Draw_Fractal(IfsData* data)
   fractal->buffer2 = data->buff;
 }
 
-static IFSPoint* draw_ifs(PluginInfo* goomInfo, size_t* nbpt, IfsData* data)
+static IFSPoint* drawIfs(PluginInfo* goomInfo, size_t* nbpt, IfsData* data)
 {
   if (data->root == nullptr)
   {
@@ -448,7 +461,7 @@ static IFSPoint* draw_ifs(PluginInfo* goomInfo, size_t* nbpt, IfsData* data)
     S->A2 = u0 * S1->A2 + u1 * S2->A2 + u2 * S3->A2 + u3 * S4->A2;
   }
 
-  Draw_Fractal(data);
+  drawFractal(data);
 
   if (fractal->count >= 1000 / fractal->speed)
   {
@@ -470,8 +483,8 @@ static IFSPoint* draw_ifs(PluginInfo* goomInfo, size_t* nbpt, IfsData* data)
       *S1 = *S4;
     }
 
-    Random_Simis(goomInfo, fractal, fractal->components + 3 * fractal->numSimi, fractal->numSimi);
-    Random_Simis(goomInfo, fractal, fractal->components + 4 * fractal->numSimi, fractal->numSimi);
+    randomSimis(goomInfo, fractal, fractal->components + 3 * fractal->numSimi, fractal->numSimi);
+    randomSimis(goomInfo, fractal, fractal->components + 4 * fractal->numSimi, fractal->numSimi);
 
     fractal->count = 0;
   }
@@ -496,12 +509,11 @@ static void release_ifs(IfsData* data)
   }
 }
 
-#define RAND() static_cast<int>(goom_random(goomInfo->gRandom))
 #define MOD_MER 0
 #define MOD_FEU 1
 #define MOD_MERVER 2
 
-struct IfsUpdate
+struct IfsUpdateData
 {
   int32_t couleur;
   int32_t v[4];
@@ -510,7 +522,7 @@ struct IfsUpdate
   int mode;
   int cycle;
 };
-static IfsUpdate updData{
+static IfsUpdateData updData{
     static_cast<int32_t>(0xc0c0c0c0), {2, 4, 3, 2}, {2, 4, 3, 2}, 0, MOD_MERVER, 0};
 
 inline uint8_t colorAdd(const unsigned char c1, const unsigned char c2)
@@ -533,7 +545,7 @@ inline Pixel getColorAdd(const Pixel& color1, const Pixel& color2)
   return c;
 }
 
-static void ifs_update(
+static void ifsUpdate(
     PluginInfo* goomInfo, Pixel* data, Pixel* back, int increment, IfsData* fx_data)
 {
   logDebug("increment = {}", increment);
@@ -566,7 +578,7 @@ static void ifs_update(
   }
 
   size_t nbpt = 0;
-  IFSPoint* points = draw_ifs(goomInfo, &nbpt, fx_data);
+  IFSPoint* points = drawIfs(goomInfo, &nbpt, fx_data);
   nbpt--;
   logDebug("nbpt = {}", nbpt);
 
@@ -582,7 +594,6 @@ static void ifs_update(
     if ((x < width) && (y < height))
     {
       const int pos = x + static_cast<int>(y * width);
-
       Pixel* const p = &data[pos];
       *p = getColorAdd(back[pos], color);
     }
@@ -596,40 +607,25 @@ static void ifs_update(
   updData.col[VERT] = updData.couleur >> (VERT * 8) & 0xff;
   updData.col[ROUGE] = updData.couleur >> (ROUGE * 8) & 0xff;
 
-  logDebug("updData.col[ALPHA] = {}", updData.col[ALPHA]);
-  logDebug("updData.col[BLEU] = {}", updData.col[BLEU]);
-  logDebug("updData.col[VERT] = {}", updData.col[VERT]);
-  logDebug("updData.col[ROUGE] = {}", updData.col[ROUGE]);
-
-  logDebug("updData.v[ALPHA] = {}", updData.v[ALPHA]);
-  logDebug("updData.v[BLEU] = {}", updData.v[BLEU]);
-  logDebug("updData.v[VERT] = {}", updData.v[VERT]);
-  logDebug("updData.v[ROUGE] = {}", updData.v[ROUGE]);
-
-  logDebug("updData.mode = {}", updData.mode);
-
   if (updData.mode == MOD_MER)
   {
     updData.col[BLEU] += updData.v[BLEU];
     if (updData.col[BLEU] > 255)
     {
       updData.col[BLEU] = 255;
-      updData.v[BLEU] = -(RAND() % 4) - 1;
-      logDebug("updData.v[BLEU] = {}", updData.v[BLEU]);
+      updData.v[BLEU] = -(RAND(goomInfo) % 4) - 1;
     }
     if (updData.col[BLEU] < 32)
     {
       updData.col[BLEU] = 32;
-      updData.v[BLEU] = (RAND() % 4) + 1;
-      logDebug("updData.v[BLEU] = {}", updData.v[BLEU]);
+      updData.v[BLEU] = (RAND(goomInfo) % 4) + 1;
     }
 
     updData.col[VERT] += updData.v[VERT];
     if (updData.col[VERT] > 200)
     {
       updData.col[VERT] = 200;
-      updData.v[VERT] = -(RAND() % 3) - 2;
-      logDebug("updData.v[VERT] = {}", updData.v[VERT]);
+      updData.v[VERT] = -(RAND(goomInfo) % 3) - 2;
     }
     if (updData.col[VERT] > updData.col[BLEU])
     {
@@ -639,45 +635,39 @@ static void ifs_update(
     if (updData.col[VERT] < 32)
     {
       updData.col[VERT] = 32;
-      updData.v[VERT] = (RAND() % 3) + 2;
-      logDebug("updData.v[VERT] = {}", updData.v[VERT]);
+      updData.v[VERT] = (RAND(goomInfo) % 3) + 2;
     }
 
     updData.col[ROUGE] += updData.v[ROUGE];
     if (updData.col[ROUGE] > 64)
     {
       updData.col[ROUGE] = 64;
-      updData.v[ROUGE] = -(RAND() % 4) - 1;
-      logDebug("updData.v[ROUGE] = {}", updData.v[ROUGE]);
+      updData.v[ROUGE] = -(RAND(goomInfo) % 4) - 1;
     }
     if (updData.col[ROUGE] < 0)
     {
       updData.col[ROUGE] = 0;
-      updData.v[ROUGE] = (RAND() % 4) + 1;
-      logDebug("updData.v[ROUGE] = {}", updData.v[ROUGE]);
+      updData.v[ROUGE] = (RAND(goomInfo) % 4) + 1;
     }
 
     updData.col[ALPHA] += updData.v[ALPHA];
     if (updData.col[ALPHA] > 0)
     {
       updData.col[ALPHA] = 0;
-      updData.v[ALPHA] = -(RAND() % 4) - 1;
-      logDebug("updData.v[ALPHA] = {}", updData.v[ALPHA]);
+      updData.v[ALPHA] = -(RAND(goomInfo) % 4) - 1;
     }
     if (updData.col[ALPHA] < 0)
     {
       updData.col[ALPHA] = 0;
-      updData.v[ALPHA] = (RAND() % 4) + 1;
-      logDebug("updData.v[ALPHA] = {}", updData.v[ALPHA]);
+      updData.v[ALPHA] = (RAND(goomInfo) % 4) + 1;
     }
 
     if (((updData.col[VERT] > 32) && (updData.col[ROUGE] < updData.col[VERT] + 40) &&
          (updData.col[VERT] < updData.col[ROUGE] + 20) && (updData.col[BLEU] < 64) &&
-         (RAND() % 20 == 0)) &&
+         (RAND(goomInfo) % 20 == 0)) &&
         (updData.justChanged < 0))
     {
-      updData.mode = RAND() % 3 ? MOD_FEU : MOD_MERVER;
-      logDebug("updData.mode = {}", updData.mode);
+      updData.mode = RAND(goomInfo) % 3 ? MOD_FEU : MOD_MERVER;
       updData.justChanged = 250;
     }
   }
@@ -687,22 +677,19 @@ static void ifs_update(
     if (updData.col[BLEU] > 128)
     {
       updData.col[BLEU] = 128;
-      updData.v[BLEU] = -(RAND() % 4) - 1;
-      logDebug("updData.v[BLEU] = {}", updData.v[BLEU]);
+      updData.v[BLEU] = -(RAND(goomInfo) % 4) - 1;
     }
     if (updData.col[BLEU] < 16)
     {
       updData.col[BLEU] = 16;
-      updData.v[BLEU] = (RAND() % 4) + 1;
-      logDebug("updData.v[BLEU] = {}", updData.v[BLEU]);
+      updData.v[BLEU] = (RAND(goomInfo) % 4) + 1;
     }
 
     updData.col[VERT] += updData.v[VERT];
     if (updData.col[VERT] > 200)
     {
       updData.col[VERT] = 200;
-      updData.v[VERT] = -(RAND() % 3) - 2;
-      logDebug("updData.v[VERT] = {}", updData.v[VERT]);
+      updData.v[VERT] = -(RAND(goomInfo) % 3) - 2;
     }
     if (updData.col[VERT] > updData.col[ALPHA])
     {
@@ -712,45 +699,39 @@ static void ifs_update(
     if (updData.col[VERT] < 32)
     {
       updData.col[VERT] = 32;
-      updData.v[VERT] = (RAND() % 3) + 2;
-      logDebug("updData.v[VERT] = {}", updData.v[VERT]);
+      updData.v[VERT] = (RAND(goomInfo) % 3) + 2;
     }
 
     updData.col[ROUGE] += updData.v[ROUGE];
     if (updData.col[ROUGE] > 128)
     {
       updData.col[ROUGE] = 128;
-      updData.v[ROUGE] = -(RAND() % 4) - 1;
-      logDebug("updData.v[ROUGE] = {}", updData.v[ROUGE]);
+      updData.v[ROUGE] = -(RAND(goomInfo) % 4) - 1;
     }
     if (updData.col[ROUGE] < 0)
     {
       updData.col[ROUGE] = 0;
-      updData.v[ROUGE] = (RAND() % 4) + 1;
-      logDebug("updData.v[ROUGE] = {}", updData.v[ROUGE]);
+      updData.v[ROUGE] = (RAND(goomInfo) % 4) + 1;
     }
 
     updData.col[ALPHA] += updData.v[ALPHA];
     if (updData.col[ALPHA] > 255)
     {
       updData.col[ALPHA] = 255;
-      updData.v[ALPHA] = -(RAND() % 4) - 1;
-      logDebug("updData.v[ALPHA] = {}", updData.v[ALPHA]);
+      updData.v[ALPHA] = -(RAND(goomInfo) % 4) - 1;
     }
     if (updData.col[ALPHA] < 0)
     {
       updData.col[ALPHA] = 0;
-      updData.v[ALPHA] = (RAND() % 4) + 1;
-      logDebug("updData.v[ALPHA] = {}", updData.v[ALPHA]);
+      updData.v[ALPHA] = (RAND(goomInfo) % 4) + 1;
     }
 
     if (((updData.col[VERT] > 32) && (updData.col[ROUGE] < updData.col[VERT] + 40) &&
          (updData.col[VERT] < updData.col[ROUGE] + 20) && (updData.col[BLEU] < 64) &&
-         (RAND() % 20 == 0)) &&
+         (RAND(goomInfo) % 20 == 0)) &&
         (updData.justChanged < 0))
     {
-      updData.mode = RAND() % 3 ? MOD_FEU : MOD_MER;
-      logDebug("updData.mode = {}", updData.mode);
+      updData.mode = RAND(goomInfo) % 3 ? MOD_FEU : MOD_MER;
       updData.justChanged = 250;
     }
   }
@@ -760,79 +741,68 @@ static void ifs_update(
     if (updData.col[BLEU] > 64)
     {
       updData.col[BLEU] = 64;
-      updData.v[BLEU] = -(RAND() % 4) - 1;
-      logDebug("updData.v[BLEU] = {}", updData.v[BLEU]);
+      updData.v[BLEU] = -(RAND(goomInfo) % 4) - 1;
     }
     if (updData.col[BLEU] < 0)
     {
       updData.col[BLEU] = 0;
-      updData.v[BLEU] = (RAND() % 4) + 1;
-      logDebug("updData.v[BLEU] = {}", updData.v[BLEU]);
+      updData.v[BLEU] = (RAND(goomInfo) % 4) + 1;
     }
 
     updData.col[VERT] += updData.v[VERT];
     if (updData.col[VERT] > 200)
     {
       updData.col[VERT] = 200;
-      updData.v[VERT] = -(RAND() % 3) - 2;
-      logDebug("updData.v[VERT] = {}", updData.v[VERT]);
+      updData.v[VERT] = -(RAND(goomInfo) % 3) - 2;
     }
     if (updData.col[VERT] > updData.col[ROUGE] + 20)
     {
       updData.col[VERT] = updData.col[ROUGE] + 20;
-      updData.v[VERT] = -(RAND() % 3) - 2;
-      updData.v[ROUGE] = (RAND() % 4) + 1;
-      updData.v[BLEU] = (RAND() % 4) + 1;
-      logDebug("updData.v[VERT] = {}", updData.v[VERT]);
+      updData.v[VERT] = -(RAND(goomInfo) % 3) - 2;
+      updData.v[ROUGE] = (RAND(goomInfo) % 4) + 1;
+      updData.v[BLEU] = (RAND(goomInfo) % 4) + 1;
     }
     if (updData.col[VERT] < 0)
     {
       updData.col[VERT] = 0;
-      updData.v[VERT] = (RAND() % 3) + 2;
-      logDebug("updData.v[VERT] = {}", updData.v[VERT]);
+      updData.v[VERT] = (RAND(goomInfo) % 3) + 2;
     }
 
     updData.col[ROUGE] += updData.v[ROUGE];
     if (updData.col[ROUGE] > 255)
     {
       updData.col[ROUGE] = 255;
-      updData.v[ROUGE] = -(RAND() % 4) - 1;
-      logDebug("updData.v[ROUGE] = {}", updData.v[ROUGE]);
+      updData.v[ROUGE] = -(RAND(goomInfo) % 4) - 1;
     }
     if (updData.col[ROUGE] > updData.col[VERT] + 40)
     {
       updData.col[ROUGE] = updData.col[VERT] + 40;
-      updData.v[ROUGE] = -(RAND() % 4) - 1;
-      logDebug("updData.v[ROUGE] = {}", updData.v[ROUGE]);
+      updData.v[ROUGE] = -(RAND(goomInfo) % 4) - 1;
     }
     if (updData.col[ROUGE] < 0)
     {
       updData.col[ROUGE] = 0;
-      updData.v[ROUGE] = (RAND() % 4) + 1;
-      logDebug("updData.v[ROUGE] = {}", updData.v[ROUGE]);
+      updData.v[ROUGE] = (RAND(goomInfo) % 4) + 1;
     }
 
     updData.col[ALPHA] += updData.v[ALPHA];
     if (updData.col[ALPHA] > 0)
     {
       updData.col[ALPHA] = 0;
-      updData.v[ALPHA] = -(RAND() % 4) - 1;
-      logDebug("updData.v[ALPHA] = {}", updData.v[ALPHA]);
+      updData.v[ALPHA] = -(RAND(goomInfo) % 4) - 1;
     }
     if (updData.col[ALPHA] < 0)
     {
       updData.col[ALPHA] = 0;
-      updData.v[ALPHA] = (RAND() % 4) + 1;
-      logDebug("updData.v[ALPHA] = {}", updData.v[ALPHA]);
+      updData.v[ALPHA] = (RAND(goomInfo) % 4) + 1;
     }
 
     if (((updData.col[ROUGE] < 64) && (updData.col[VERT] > 32) &&
          (updData.col[VERT] < updData.col[BLEU]) && (updData.col[BLEU] > 32) &&
-         (RAND() % 20 == 0)) &&
+         (RAND(goomInfo) % 20 == 0)) &&
         (updData.justChanged < 0))
     {
-      updData.mode = RAND() % 2 ? MOD_MER : MOD_MERVER;
-      logDebug("updData.mode = {}", updData.mode);
+      updData.mode = RAND(goomInfo) % 2 ? MOD_MER : MOD_MERVER;
       updData.justChanged = 250;
     }
   }
@@ -855,7 +825,7 @@ static void ifs_update(
 
 static void ifs_vfx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* goomInfo)
 {
-  IfsData* data = (IfsData*)_this->fx_data;
+  IfsData* data = static_cast<IfsData*>(_this->fx_data);
   if (!data->initialized)
   {
     data->initialized = true;
@@ -865,7 +835,7 @@ static void ifs_vfx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* 
   {
     return;
   }
-  ifs_update(goomInfo, dest, src, goomInfo->update.ifs_incr, data);
+  ifsUpdate(goomInfo, dest, src, goomInfo->update.ifs_incr, data);
 
   /*TODO: trouver meilleur soluce pour increment (mettre le code de gestion de l'ifs dans ce fichier: ifs_vfx_apply) */
 }
@@ -889,7 +859,7 @@ static void ifs_vfx_save(VisualFX* _this, const PluginInfo*, const char* file)
   save_int_setting(f, vfxname, "updData.mode", updData.mode);
   save_int_setting(f, vfxname, "updData.cycle", updData.cycle);
 
-  IfsData* data = (IfsData*)_this->fx_data;
+  IfsData* data = static_cast<IfsData*>(_this->fx_data);
   save_int_setting(f, vfxname, "data.Cur_Pt", data->curPt);
   save_int_setting(f, vfxname, "data.initalized", data->initialized);
 
@@ -952,7 +922,7 @@ static void ifs_vfx_restore(VisualFX* _this, PluginInfo*, const char* file)
   updData.mode = get_int_setting(f, vfxname, "updData.mode");
   updData.cycle = get_int_setting(f, vfxname, "updData.cycle");
 
-  IfsData* data = (IfsData*)_this->fx_data;
+  IfsData* data = static_cast<IfsData*>(_this->fx_data);
   data->curPt = static_cast<size_t>(get_int_setting(f, vfxname, "data.Cur_Pt"));
   data->initialized = get_int_setting(f, vfxname, "data.initalized");
   data->initialized = true;
@@ -1005,7 +975,7 @@ static void ifs_vfx_init(VisualFX* _this, PluginInfo* info)
   data->params = plugin_parameters("Ifs", 1);
   data->params.params[0] = &data->enabled_bp;
 
-  data->root = (Fractal*)NULL;
+  data->root = nullptr;
   data->initialized = false;
 
   _this->fx_data = data;
@@ -1017,7 +987,7 @@ static void ifs_vfx_init(VisualFX* _this, PluginInfo* info)
 
 static void ifs_vfx_free(VisualFX* _this)
 {
-  IfsData* data = (IfsData*)_this->fx_data;
+  IfsData* data = static_cast<IfsData*>(_this->fx_data);
   release_ifs(data);
   free(data);
 }

@@ -24,14 +24,14 @@ struct GMUnitPointer
 struct PluginInfo;
 
 // les ID possibles...
-enum class LineTypes
+enum class LineType
 {
   circle = 0, // (param = radius)
   hline, // (param = y)
   vline, // (param = x)
   _size // must be last - gives number of enums
 };
-constexpr size_t numLineTypes = static_cast<size_t>(LineTypes::_size);
+constexpr size_t numLineTypes = static_cast<size_t>(LineType::_size);
 
 // tableau de points
 struct GMLine
@@ -40,7 +40,7 @@ struct GMLine
 
   GMUnitPointer* points;
   GMUnitPointer* points2;
-  LineTypes IDdest;
+  LineType IDdest;
   float param;
   float amplitudeF;
   float amplitude;
@@ -72,15 +72,15 @@ struct GMLine
 GMLine* goom_lines_init(PluginInfo* goomInfo,
                         const uint32_t rx,
                         const uint32_t ry,
-                        const LineTypes IDsrc,
+                        const LineType IDsrc,
                         const float paramS,
                         const int modeCoulSrc,
-                        const LineTypes IDdest,
+                        const LineType IDdest,
                         const float paramD,
                         const int modeCoulDest);
 
 void goom_lines_switch_to(GMLine* gml,
-                          const LineTypes IDdest,
+                          const LineType IDdest,
                           const float param,
                           const float amplitude,
                           const int modeCoul);

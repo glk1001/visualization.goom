@@ -94,11 +94,11 @@ PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
 
   goomInfo->cycle = 0;
 
-  goomInfo->gmline1 = goom_lines_init(goomInfo, resx, goomInfo->screen.height, LineTypes::hline,
-                                      goomInfo->screen.height, GML_BLACK, LineTypes::circle,
+  goomInfo->gmline1 = goom_lines_init(goomInfo, resx, goomInfo->screen.height, LineType::hline,
+                                      goomInfo->screen.height, GML_BLACK, LineType::circle,
                                       0.4f * static_cast<float>(goomInfo->screen.height), GML_VERT);
-  goomInfo->gmline2 = goom_lines_init(goomInfo, resx, goomInfo->screen.height, LineTypes::hline, 0,
-                                      GML_BLACK, LineTypes::circle,
+  goomInfo->gmline2 = goom_lines_init(goomInfo, resx, goomInfo->screen.height, LineType::hline, 0,
+                                      GML_BLACK, LineType::circle,
                                       0.2f * static_cast<float>(goomInfo->screen.height), GML_RED);
 
   gfont_load();
@@ -178,7 +178,7 @@ static void choose_a_goom_line(PluginInfo* goomInfo,
                                float* param1,
                                float* param2,
                                int* couleur,
-                               LineTypes* mode,
+                               LineType* mode,
                                float* amplitude,
                                const int far);
 
@@ -352,15 +352,15 @@ static void choose_a_goom_line(PluginInfo* goomInfo,
                                float* param1,
                                float* param2,
                                int* couleur,
-                               LineTypes* mode,
+                               LineType* mode,
                                float* amplitude,
                                const int far)
 {
   *amplitude = 1.0f;
-  *mode = static_cast<LineTypes>(goom_irand(goomInfo->gRandom, numLineTypes));
+  *mode = static_cast<LineType>(goom_irand(goomInfo->gRandom, numLineTypes));
   switch (*mode)
   {
-    case LineTypes::circle:
+    case LineType::circle:
       if (far)
       {
         *param1 = *param2 = 0.47f;
@@ -382,7 +382,7 @@ static void choose_a_goom_line(PluginInfo* goomInfo,
         *param1 = *param2 = goomInfo->screen.height * 0.35;
       }
       break;
-    case LineTypes::hline:
+    case LineType::hline:
       if (goom_irand(goomInfo->gRandom, 4) || far)
       {
         *param1 = goomInfo->screen.height / 7;
@@ -394,7 +394,7 @@ static void choose_a_goom_line(PluginInfo* goomInfo,
         *amplitude = 2.0f;
       }
       break;
-    case LineTypes::vline:
+    case LineType::vline:
       if (goom_irand(goomInfo->gRandom, 3) || far)
       {
         *param1 = goomInfo->screen.width / 7.0f;
@@ -1035,7 +1035,7 @@ static void stopRequest(PluginInfo* goomInfo)
   float param2 = 0;
   float amplitude = 0;
   int couleur = 0;
-  LineTypes mode;
+  LineType mode;
   choose_a_goom_line(goomInfo, &param1, &param2, &couleur, &mode, &amplitude, 1);
   couleur = GML_BLACK;
 
@@ -1077,7 +1077,7 @@ static void stopRandomLineChangeMode(PluginInfo* goomInfo)
       float param2 = 0;
       float amplitude = 0;
       int couleur1 = 0;
-      LineTypes mode;
+      LineType mode;
       choose_a_goom_line(goomInfo, &param1, &param2, &couleur1, &mode, &amplitude,
                          goomInfo->update.stop_lines);
 
@@ -1117,7 +1117,7 @@ static void displayLines(PluginInfo* goomInfo,
     float param2 = 0;
     float amplitude = 0;
     int couleur1 = 0;
-    LineTypes mode;
+    LineType mode;
     choose_a_goom_line(goomInfo, &param1, &param2, &couleur1, &mode, &amplitude,
                        goomInfo->update.stop_lines);
     int couleur2 = 5 - couleur1;
