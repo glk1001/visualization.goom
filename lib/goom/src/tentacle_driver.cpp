@@ -283,6 +283,20 @@ void TentacleDriver::updateTentaclesLayout(const TentacleLayout& layout)
   {
     tentacles[sortedLongestFirst.at(i)].setHead(layout.getPoints().at(i));
   }
+
+  // To help with perspective, any tentacles near vertical centre will be shortened.
+  for (auto& tentacle : tentacles)
+  {
+    const V3d& head = tentacle.getHead();
+    if (std::fabs(head.x) < 10)
+    {
+      Tentacle2D& tentacle2D = tentacle.get2DTentacle();
+      const double xmin = tentacle2D.getXMin();
+      const double xmax = tentacle2D.getXMax();
+      const double newXmax = xmin + 0.6*(xmax - xmin);
+      tentacle2D.setXDimensions(xmin, newXmax);
+    }
+  }
 }
 
 void TentacleDriver::multiplyIterZeroYValWaveFreq(const float val)
