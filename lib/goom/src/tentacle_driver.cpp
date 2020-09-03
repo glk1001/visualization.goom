@@ -293,7 +293,7 @@ void TentacleDriver::updateTentaclesLayout(const TentacleLayout& layout)
       Tentacle2D& tentacle2D = tentacle.get2DTentacle();
       const double xmin = tentacle2D.getXMin();
       const double xmax = tentacle2D.getXMax();
-      const double newXmax = xmin + 0.6*(xmax - xmin);
+      const double newXmax = xmin + 0.6 * (xmax - xmin);
       tentacle2D.setXDimensions(xmin, newXmax);
     }
   }

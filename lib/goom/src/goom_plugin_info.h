@@ -15,15 +15,16 @@
 
 struct GoomState
 {
-  bool drawIFS;
-  bool drawPoints;
-  bool drawTentacle;
-
-  bool drawScope;
+  bool IFS;
+  bool points;
+  bool tentacle;
+  bool stars;
+  bool lines;
+  bool scope;
   bool farScope;
 
-  uint32_t minSelect;
-  uint32_t maxSelect = 0;
+  uint32_t minSel;
+  uint32_t maxSel = 0;
 };
 
 /**

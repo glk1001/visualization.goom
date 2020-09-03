@@ -491,10 +491,10 @@ static void drawPointsIfRequired(PluginInfo* goomInfo,
                                  const uint32_t pointHeight,
                                  const float largfactor)
 {
-  logDebug("goomInfo->curGState->drawPoints = {}", goomInfo->curGState->drawPoints);
-  if (goomInfo->curGState->drawPoints)
+  logDebug("goomInfo->curGState->points = {}", goomInfo->curGState->points);
+  if (goomInfo->curGState->points)
   {
-    logDebug("goomInfo->curGState->drawPoints = {} is true", goomInfo->curGState->drawPoints);
+    logDebug("goomInfo->curGState->points = {} is true", goomInfo->curGState->points);
     drawPoints(goomInfo, pointWidth, pointHeight, largfactor);
   }
   logDebug("goomInfo->sound.timeSinceLastGoom = {}", goomInfo->sound.timeSinceLastGoom);
@@ -691,7 +691,7 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
 
     const uint32_t rand3 = goom_irand(goomInfo->gRandom, 3);
     logDebug("Selection of Goom state: stateSelectionBlocker = {}, rand3 = {}",
-        goomInfo->update.stateSelectionBlocker, rand3);
+             goomInfo->update.stateSelectionBlocker, rand3);
     if (!goomInfo->update.stateSelectionBlocker && (rand3 > 0))
     {
       goomInfo->update.stateSelectionRand =
@@ -705,8 +705,8 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
 
     for (size_t i = 0; i < goomInfo->numStates; i++)
     {
-      if ((goomInfo->update.stateSelectionRand >= goomInfo->states[i].minSelect) &&
-          (goomInfo->update.stateSelectionRand <= goomInfo->states[i].maxSelect))
+      if ((goomInfo->update.stateSelectionRand >= goomInfo->states[i].minSel) &&
+          (goomInfo->update.stateSelectionRand <= goomInfo->states[i].maxSel))
       {
         goomInfo->curGState = &(goomInfo->states[i]);
         goomInfo->curGStateIndex = i;
@@ -715,18 +715,18 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
       }
     }
 
-    if ((goomInfo->curGState->drawIFS) && (goomInfo->update.ifs_incr <= 0))
+    if ((goomInfo->curGState->IFS) && (goomInfo->update.ifs_incr <= 0))
     {
       goomInfo->update.recay_ifs = 5;
       goomInfo->update.ifs_incr = 11;
     }
-    if ((!goomInfo->curGState->drawIFS) && (goomInfo->update.ifs_incr > 0) &&
+    if ((!goomInfo->curGState->IFS) && (goomInfo->update.ifs_incr > 0) &&
         (goomInfo->update.decay_ifs <= 0))
     {
       goomInfo->update.decay_ifs = 100;
     }
 
-    if (!goomInfo->curGState->drawScope)
+    if (!goomInfo->curGState->scope)
     {
       goomInfo->update.stop_lines = 0xf000 & 5;
     }
@@ -987,6 +987,10 @@ static void applyTentaclesIfRequired(PluginInfo* goomInfo)
 
 static void applyStarsIfRequired(PluginInfo* goomInfo)
 {
+  if (!goomInfo->curGState->stars)
+  {
+    return;
+  }
   logDebug("Before goomInfo->star_fx.apply");
   goomInfo->star_fx.apply(&goomInfo->star_fx, goomInfo->p2, goomInfo->p1, goomInfo);
 }
@@ -1031,8 +1035,8 @@ void displayText(PluginInfo* goomInfo, const char* songTitle, const char* messag
 
 static void stopRequest(PluginInfo* goomInfo)
 {
-  logDebug("goomInfo->update.stop_lines = {}, goomInfo->curGState->drawScope = {}",
-           goomInfo->update.stop_lines, goomInfo->curGState->drawScope);
+  logDebug("goomInfo->update.stop_lines = {}, goomInfo->curGState->scope = {}",
+           goomInfo->update.stop_lines, goomInfo->curGState->scope);
 
   float param1 = 0;
   float param2 = 0;
@@ -1066,7 +1070,7 @@ static void stopRandomLineChangeMode(PluginInfo* goomInfo)
   }
 
   if ((goomInfo->cycle % 120 == 0) && (goom_irand(goomInfo->gRandom, 4) == 0) &&
-      (goomInfo->curGState->drawScope))
+      (goomInfo->curGState->scope))
   {
     if (goomInfo->update.lineMode == 0)
     {
@@ -1105,6 +1109,11 @@ static void stopRandomLineChangeMode(PluginInfo* goomInfo)
 static void displayLines(PluginInfo* goomInfo,
                          const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN])
 {
+  if (!goomInfo->curGState->lines)
+  {
+    return;
+  }
+
   goomInfo->gmline2->power = goomInfo->gmline1->power;
 
   goom_lines_draw(goomInfo, goomInfo->gmline1, data[0], goomInfo->p2);
@@ -1239,9 +1248,9 @@ static void forceEffectIfSet(PluginInfo* goomInfo, ZoomFilterData** pzfd, const 
 
 static void stopIfRequested(PluginInfo* goomInfo)
 {
-  logDebug("goomInfo->update.stop_lines = {}, goomInfo->curGState->drawScope = {}",
-           goomInfo->update.stop_lines, goomInfo->curGState->drawScope);
-  if ((goomInfo->update.stop_lines & 0xf000) || !goomInfo->curGState->drawScope)
+  logDebug("goomInfo->update.stop_lines = {}, goomInfo->curGState->scope = {}",
+           goomInfo->update.stop_lines, goomInfo->curGState->scope);
+  if ((goomInfo->update.stop_lines & 0xf000) || !goomInfo->curGState->scope)
   {
     stopRequest(goomInfo);
   }

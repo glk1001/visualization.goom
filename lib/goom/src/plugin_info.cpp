@@ -71,21 +71,21 @@ void plugin_info_init(PluginInfo* pp, size_t nbVisuals)
   pp->maxStateSelect = 510;
   // clang-format off
   pp->states = {
-    {.drawIFS = 1, .drawPoints = 0, .drawTentacle = 1, .drawScope = 1, .farScope = 1, .minSelect =   0},
-    {.drawIFS = 1, .drawPoints = 0, .drawTentacle = 0, .drawScope = 0, .farScope = 1, .minSelect = 101},
-    {.drawIFS = 1, .drawPoints = 0, .drawTentacle = 0, .drawScope = 1, .farScope = 1, .minSelect = 141},
-    {.drawIFS = 0, .drawPoints = 1, .drawTentacle = 1, .drawScope = 1, .farScope = 1, .minSelect = 201},
-    {.drawIFS = 0, .drawPoints = 1, .drawTentacle = 1, .drawScope = 1, .farScope = 0, .minSelect = 261},
-    {.drawIFS = 0, .drawPoints = 1, .drawTentacle = 1, .drawScope = 1, .farScope = 1, .minSelect = 331},
-    {.drawIFS = 0, .drawPoints = 0, .drawTentacle = 1, .drawScope = 0, .farScope = 1, .minSelect = 401},
-    {.drawIFS = 0, .drawPoints = 0, .drawTentacle = 0, .drawScope = 1, .farScope = 1, .minSelect = 451},
+    {.IFS = 1, .points = 0, .tentacle = 0, .stars = 1, .lines = 0, .scope = 1, .farScope = 1, .minSel =   0},
+    {.IFS = 1, .points = 0, .tentacle = 1, .stars = 1, .lines = 0, .scope = 0, .farScope = 1, .minSel = 101},
+    {.IFS = 1, .points = 0, .tentacle = 0, .stars = 1, .lines = 1, .scope = 1, .farScope = 1, .minSel = 141},
+    {.IFS = 0, .points = 1, .tentacle = 1, .stars = 1, .lines = 1, .scope = 1, .farScope = 1, .minSel = 201},
+    {.IFS = 0, .points = 1, .tentacle = 1, .stars = 1, .lines = 0, .scope = 1, .farScope = 0, .minSel = 261},
+    {.IFS = 0, .points = 1, .tentacle = 1, .stars = 1, .lines = 1, .scope = 1, .farScope = 1, .minSel = 331},
+    {.IFS = 0, .points = 0, .tentacle = 1, .stars = 1, .lines = 1, .scope = 0, .farScope = 1, .minSel = 401},
+    {.IFS = 0, .points = 0, .tentacle = 0, .stars = 1, .lines = 1, .scope = 1, .farScope = 1, .minSel = 451},
   };
   // clang-format on
   pp->numStates = pp->states.size();
-  pp->states[pp->states.size() - 1].maxSelect = pp->maxStateSelect;
+  pp->states[pp->states.size() - 1].maxSel = pp->maxStateSelect;
   for (size_t i = 0; i < pp->states.size() - 1; i++)
   {
-    pp->states[i].maxSelect = pp->states[i + 1].minSelect - 1;
+    pp->states[i].maxSel = pp->states[i + 1].minSel - 1;
   }
   pp->curGStateIndex = 0;
   pp->curGState = &(pp->states[pp->curGStateIndex]);

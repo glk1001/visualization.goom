@@ -399,7 +399,7 @@ void tentacle_fx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* goo
   if (BVAL(data->enabled_bp))
   {
     data->tentacles->update(goomInfo, dest, src, goomInfo->sound.samples, goomInfo->sound.accelvar,
-                            goomInfo->curGState->drawTentacle, data);
+                            goomInfo->curGState->tentacle, data);
   }
 }
 
