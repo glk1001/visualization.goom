@@ -21,6 +21,7 @@
 #include "goom_testing.h"
 #include "goom_tools.h"
 #include "goomutils/logging.h"
+#include "goomutils/SimplexNoise.h"
 #include "v3d.h"
 
 #include <algorithm>
@@ -172,8 +173,11 @@ static inline v2g zoomVector(FilterDataWrapper* data, const float X, const float
   /* Noise */
   if (data->noisify)
   {
-    vx += ((static_cast<float>(pcg32_rand())) / static_cast<float>(RAND_MAX) - 0.5f) / 50.0f;
-    vy += ((static_cast<float>(pcg32_rand())) / static_cast<float>(RAND_MAX) - 0.5f) / 50.0f;
+    const float noise = (0.5*(1.0 + SimplexNoise::noise(X, Y)) - 0.5)/20.0;
+    vx += noise;
+    vy -= noise;
+//    vx += ((static_cast<float>(pcg32_rand())) / static_cast<float>(RAND_MAX) - 0.5f) / 1.0f;
+//    vy += ((static_cast<float>(pcg32_rand())) / static_cast<float>(RAND_MAX) - 0.5f) / 1.0f;
   }
 
   /* Hypercos */
@@ -240,7 +244,7 @@ static void makeZoomBufferStripe(FilterDataWrapper* data, const uint32_t INTERLA
     for (uint32_t x = 0; x < data->prevX; x++)
     {
       v2g vector = zoomVector(data, X, Y);
-      /* Finish and avoid null displacement */
+      // Finish and avoid null displacement
       if (fabs(vector.x) < min)
       {
         vector.x = (vector.x < 0.0f) ? -min : min;
