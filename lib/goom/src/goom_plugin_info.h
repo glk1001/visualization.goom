@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 struct GoomState
 {
@@ -24,8 +25,6 @@ struct GoomState
   uint32_t minSelect;
   uint32_t maxSelect = 0;
 };
-
-constexpr size_t maxNumStates = 8;
 
 /**
  * Gives information about the sound.
@@ -108,19 +107,16 @@ struct PluginInfo
 
   // state of goom
   uint32_t cycle;
-  GoomState states[maxNumStates];
+  std::vector<GoomState> states;
   size_t numStates;
   size_t maxStateSelect;
 
   GoomState* curGState;
-  int curGStateIndex;
+  size_t curGStateIndex;
 
   // effet de ligne.
   GMLine* gmline1;
   GMLine* gmline2;
-
-  // sinus table
-  int sintable[0x10000];
 
   // INTERNALS
 

@@ -177,6 +177,8 @@ inline void Logging::vlog(const LogLevel lvl,
 #define isLogging() Logging::getLogger().isLogging()
 #define getLogLevel() Logging::getLogger().getHandlersLogLevel()
 #define setLogLevel(lvl) Logging::getLogger().setHandlersLogLevel(lvl)
+#define getLogLevelForFiles() Logging::getLogger().getFileLogLevel()
+#define setLogLevelForFiles(lvl) Logging::getLogger().setFileLogLevel(lvl)
 #define logDebug(...) \
   Logging::getLogger().log(Logging::LogLevel::debug, __LINE__, __func__, __VA_ARGS__)
 #define logInfo(...) \

@@ -101,8 +101,12 @@ void goom_set_str_param_value(PluginParam* p, const char* str)
 {
   const size_t len = strlen(str);
   if (SVAL(*p))
+  {
     SVAL(*p) = (char*)realloc(SVAL(*p), len + 1);
+  }
   else
+  {
     SVAL(*p) = (char*)malloc(len + 1);
+  }
   memcpy(SVAL(*p), str, len + 1);
 }

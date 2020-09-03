@@ -52,10 +52,10 @@ static void WuDrawLine(float x0,
                        float y1,
                        const std::function<void(int x, int y, float brightess)>& plot)
 {
-  const auto ipart = [](float x) -> int { return static_cast<int>(std::floor(x)); };
-  const auto round = [](float x) -> float { return std::round(x); };
-  const auto fpart = [](float x) -> float { return x - std::floor(x); };
-  const auto rfpart = [=](float x) -> float { return 1 - fpart(x); };
+  const auto ipart = [](const float x) -> int { return static_cast<int>(std::floor(x)); };
+  const auto round = [](const float x) -> float { return std::round(x); };
+  const auto fpart = [](const float x) -> float { return x - std::floor(x); };
+  const auto rfpart = [=](const float x) -> float { return 1 - fpart(x); };
 
   const bool steep = abs(y1 - y0) > abs(x1 - x0);
   if (steep)
@@ -133,7 +133,7 @@ static void WuDrawLine(float x0,
   }
 }
 
-inline uint8_t brighten(const uint32_t br, unsigned char c)
+inline uint8_t brighten(const uint32_t br, const unsigned char c)
 {
   return static_cast<uint8_t>((br * uint32_t(c)) >> 8);
 }

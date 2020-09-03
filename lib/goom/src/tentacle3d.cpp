@@ -117,8 +117,6 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
 {
   logDebug("Starting update.");
 
-  const float modAccelvar = accelvar;
-
   if (!doDraw && (fx_data->ligs > 0.0f))
   {
     fx_data->ligs = -fx_data->ligs;
@@ -133,25 +131,21 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
 
     const auto [modColor, modColorLow] = getModColors(goomInfo, fx_data);
 
-    if (modAccelvar < 0.7)
+    if (accelvar < 0.7)
     {
       driver.setGlitchValues(0.0, 0.0);
       driver.setReverseColorMix(false);
     }
     else
     {
-      const float glitchLength = modAccelvar * getRandInRange(0.3f, 2.0f);
+      const float glitchLength = accelvar * getRandInRange(0.3f, 2.0f);
       driver.setGlitchValues(-0.5 * glitchLength, +0.5 * glitchLength);
       // Reversing seems too jarring
       //      driver.setReverseColorMix(true);
     }
 
-    const float rapport = getRapport(modAccelvar);
-    //const float nx_div2 = 0.5 * float(num_x);
-    // NOTE: Putting vals outside loop gives same variation per grid.
-    //    const std::vector<float> vals = getGridZeroAdditiveValues(goomInfo, rapport);
-
-    driver.multiplyIterZeroYValWaveFreq(1.0 / (1.20 - modAccelvar));
+    // Higher sound acceleration increases tentacle wave frequency.
+    driver.multiplyIterZeroYValWaveFreq(1.0 / (1.10 - accelvar));
 
     fx_data->cycle += 0.01f;
     //    updateColors(goomInfo, fx_data);

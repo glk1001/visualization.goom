@@ -57,7 +57,7 @@ PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
 {
   logDebug("Initialize goom: resx = {}, resy = {}, seed = {}.", resx, resy, seed);
 
-  PluginInfo* goomInfo = (PluginInfo*)malloc(sizeof(PluginInfo));
+  PluginInfo* goomInfo = new PluginInfo;
 
   plugin_info_init(goomInfo, 5);
 
@@ -345,7 +345,7 @@ void goom_close(PluginInfo* goomInfo)
   // Release PluginInfo
   free(goomInfo->visuals);
 
-  free(goomInfo);
+  delete goomInfo;
 }
 
 static void choose_a_goom_line(PluginInfo* goomInfo,
@@ -685,12 +685,14 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
   logDebug("goomInfo->sound.timeSinceLastGoom = {}", goomInfo->sound.timeSinceLastGoom);
   if (goomInfo->sound.timeSinceLastGoom == 0)
   {
-    logDebug("goomInfo->sound.timeSinceLastGoom = 0");
+    logDebug("goomInfo->sound.timeSinceLastGoom = 0.");
 
     goomInfo->update.goomvar++;
 
-    // Selection of the Goom state
-    if ((!goomInfo->update.stateSelectionBlocker) && (goom_irand(goomInfo->gRandom, 3)))
+    const uint32_t rand3 = goom_irand(goomInfo->gRandom, 3);
+    logDebug("Selection of Goom state: stateSelectionBlocker = {}, rand3 = {}",
+        goomInfo->update.stateSelectionBlocker, rand3);
+    if (!goomInfo->update.stateSelectionBlocker && (rand3 > 0))
     {
       goomInfo->update.stateSelectionRand =
           goom_irand(goomInfo->gRandom, goomInfo->maxStateSelect + 1);
@@ -708,6 +710,7 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
       {
         goomInfo->curGState = &(goomInfo->states[i]);
         goomInfo->curGStateIndex = i;
+        logDebug("Changed goom state to {}", goomInfo->curGStateIndex);
         break;
       }
     }
