@@ -176,8 +176,8 @@ static inline v2g zoomVector(FilterDataWrapper* data, const float X, const float
     const float noise = (0.5*(1.0 + SimplexNoise::noise(X, Y)) - 0.5)/20.0;
     vx += noise;
     vy -= noise;
-    vx *= getRandInRange(0.1f, 1.0f);
-    vy *= getRandInRange(0.1f, 1.0f);
+    vx *= getRandInRange(0.7f, 1.0f);
+    vy *= getRandInRange(0.7f, 1.0f);
 //    vx += ((static_cast<float>(pcg32_rand())) / static_cast<float>(RAND_MAX) - 0.5f) / 1.0f;
 //    vy += ((static_cast<float>(pcg32_rand())) / static_cast<float>(RAND_MAX) - 0.5f) / 1.0f;
   }
