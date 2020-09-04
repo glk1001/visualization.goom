@@ -40,7 +40,7 @@ struct ZoomFilterData
   bool waveEffect; // applique une "surcouche" de wave effect
   bool hypercosEffect; // applique une "surcouche de hypercos effect
 
-  int8_t noisify; // ajoute un bruit a la transformation
+  bool noisify; // ajoute un bruit a la transformation
 };
 
 VisualFX zoomFilterVisualFXWrapper_create(void);

@@ -128,7 +128,7 @@ void plugin_info_init(PluginInfo* pp, size_t nbVisuals)
       .vPlaneEffect = 0,
       .waveEffect = false,
       .hypercosEffect = false,
-      .noisify = 0,
+      .noisify = false,
   };
 
   setOptimizedMethods(pp);

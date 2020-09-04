@@ -54,7 +54,7 @@ struct IFSPoint
 
 inline uint32_t longRand(PluginInfo* goomInfo)
 {
-  return static_cast<long>(goom_random(goomInfo->gRandom) & 0x7fffffff);
+  return static_cast<long>(goomInfo->getRand() & 0x7fffffff);
 }
 
 inline int nRand(PluginInfo* goomInfo, const size_t n)
@@ -62,9 +62,9 @@ inline int nRand(PluginInfo* goomInfo, const size_t n)
   return static_cast<int>(longRand(goomInfo) % n);
 }
 
-inline int RAND(PluginInfo* goomInfo)
+inline int rand(PluginInfo* goomInfo)
 {
-  return static_cast<int>(goom_random(goomInfo->gRandom));
+  return static_cast<int>(goomInfo->getRand());
 }
 
 #if RAND_MAX < 0x10000
@@ -613,19 +613,19 @@ static void ifsUpdate(
     if (updData.col[BLEU] > 255)
     {
       updData.col[BLEU] = 255;
-      updData.v[BLEU] = -(RAND(goomInfo) % 4) - 1;
+      updData.v[BLEU] = -(rand(goomInfo) % 4) - 1;
     }
     if (updData.col[BLEU] < 32)
     {
       updData.col[BLEU] = 32;
-      updData.v[BLEU] = (RAND(goomInfo) % 4) + 1;
+      updData.v[BLEU] = (rand(goomInfo) % 4) + 1;
     }
 
     updData.col[VERT] += updData.v[VERT];
     if (updData.col[VERT] > 200)
     {
       updData.col[VERT] = 200;
-      updData.v[VERT] = -(RAND(goomInfo) % 3) - 2;
+      updData.v[VERT] = -(rand(goomInfo) % 3) - 2;
     }
     if (updData.col[VERT] > updData.col[BLEU])
     {
@@ -635,39 +635,39 @@ static void ifsUpdate(
     if (updData.col[VERT] < 32)
     {
       updData.col[VERT] = 32;
-      updData.v[VERT] = (RAND(goomInfo) % 3) + 2;
+      updData.v[VERT] = (rand(goomInfo) % 3) + 2;
     }
 
     updData.col[ROUGE] += updData.v[ROUGE];
     if (updData.col[ROUGE] > 64)
     {
       updData.col[ROUGE] = 64;
-      updData.v[ROUGE] = -(RAND(goomInfo) % 4) - 1;
+      updData.v[ROUGE] = -(rand(goomInfo) % 4) - 1;
     }
     if (updData.col[ROUGE] < 0)
     {
       updData.col[ROUGE] = 0;
-      updData.v[ROUGE] = (RAND(goomInfo) % 4) + 1;
+      updData.v[ROUGE] = (rand(goomInfo) % 4) + 1;
     }
 
     updData.col[ALPHA] += updData.v[ALPHA];
     if (updData.col[ALPHA] > 0)
     {
       updData.col[ALPHA] = 0;
-      updData.v[ALPHA] = -(RAND(goomInfo) % 4) - 1;
+      updData.v[ALPHA] = -(rand(goomInfo) % 4) - 1;
     }
     if (updData.col[ALPHA] < 0)
     {
       updData.col[ALPHA] = 0;
-      updData.v[ALPHA] = (RAND(goomInfo) % 4) + 1;
+      updData.v[ALPHA] = (rand(goomInfo) % 4) + 1;
     }
 
     if (((updData.col[VERT] > 32) && (updData.col[ROUGE] < updData.col[VERT] + 40) &&
          (updData.col[VERT] < updData.col[ROUGE] + 20) && (updData.col[BLEU] < 64) &&
-         (RAND(goomInfo) % 20 == 0)) &&
+         (rand(goomInfo) % 20 == 0)) &&
         (updData.justChanged < 0))
     {
-      updData.mode = RAND(goomInfo) % 3 ? MOD_FEU : MOD_MERVER;
+      updData.mode = rand(goomInfo) % 3 ? MOD_FEU : MOD_MERVER;
       updData.justChanged = 250;
     }
   }
@@ -677,19 +677,19 @@ static void ifsUpdate(
     if (updData.col[BLEU] > 128)
     {
       updData.col[BLEU] = 128;
-      updData.v[BLEU] = -(RAND(goomInfo) % 4) - 1;
+      updData.v[BLEU] = -(rand(goomInfo) % 4) - 1;
     }
     if (updData.col[BLEU] < 16)
     {
       updData.col[BLEU] = 16;
-      updData.v[BLEU] = (RAND(goomInfo) % 4) + 1;
+      updData.v[BLEU] = (rand(goomInfo) % 4) + 1;
     }
 
     updData.col[VERT] += updData.v[VERT];
     if (updData.col[VERT] > 200)
     {
       updData.col[VERT] = 200;
-      updData.v[VERT] = -(RAND(goomInfo) % 3) - 2;
+      updData.v[VERT] = -(rand(goomInfo) % 3) - 2;
     }
     if (updData.col[VERT] > updData.col[ALPHA])
     {
@@ -699,39 +699,39 @@ static void ifsUpdate(
     if (updData.col[VERT] < 32)
     {
       updData.col[VERT] = 32;
-      updData.v[VERT] = (RAND(goomInfo) % 3) + 2;
+      updData.v[VERT] = (rand(goomInfo) % 3) + 2;
     }
 
     updData.col[ROUGE] += updData.v[ROUGE];
     if (updData.col[ROUGE] > 128)
     {
       updData.col[ROUGE] = 128;
-      updData.v[ROUGE] = -(RAND(goomInfo) % 4) - 1;
+      updData.v[ROUGE] = -(rand(goomInfo) % 4) - 1;
     }
     if (updData.col[ROUGE] < 0)
     {
       updData.col[ROUGE] = 0;
-      updData.v[ROUGE] = (RAND(goomInfo) % 4) + 1;
+      updData.v[ROUGE] = (rand(goomInfo) % 4) + 1;
     }
 
     updData.col[ALPHA] += updData.v[ALPHA];
     if (updData.col[ALPHA] > 255)
     {
       updData.col[ALPHA] = 255;
-      updData.v[ALPHA] = -(RAND(goomInfo) % 4) - 1;
+      updData.v[ALPHA] = -(rand(goomInfo) % 4) - 1;
     }
     if (updData.col[ALPHA] < 0)
     {
       updData.col[ALPHA] = 0;
-      updData.v[ALPHA] = (RAND(goomInfo) % 4) + 1;
+      updData.v[ALPHA] = (rand(goomInfo) % 4) + 1;
     }
 
     if (((updData.col[VERT] > 32) && (updData.col[ROUGE] < updData.col[VERT] + 40) &&
          (updData.col[VERT] < updData.col[ROUGE] + 20) && (updData.col[BLEU] < 64) &&
-         (RAND(goomInfo) % 20 == 0)) &&
+         (rand(goomInfo) % 20 == 0)) &&
         (updData.justChanged < 0))
     {
-      updData.mode = RAND(goomInfo) % 3 ? MOD_FEU : MOD_MER;
+      updData.mode = rand(goomInfo) % 3 ? MOD_FEU : MOD_MER;
       updData.justChanged = 250;
     }
   }
@@ -741,68 +741,68 @@ static void ifsUpdate(
     if (updData.col[BLEU] > 64)
     {
       updData.col[BLEU] = 64;
-      updData.v[BLEU] = -(RAND(goomInfo) % 4) - 1;
+      updData.v[BLEU] = -(rand(goomInfo) % 4) - 1;
     }
     if (updData.col[BLEU] < 0)
     {
       updData.col[BLEU] = 0;
-      updData.v[BLEU] = (RAND(goomInfo) % 4) + 1;
+      updData.v[BLEU] = (rand(goomInfo) % 4) + 1;
     }
 
     updData.col[VERT] += updData.v[VERT];
     if (updData.col[VERT] > 200)
     {
       updData.col[VERT] = 200;
-      updData.v[VERT] = -(RAND(goomInfo) % 3) - 2;
+      updData.v[VERT] = -(rand(goomInfo) % 3) - 2;
     }
     if (updData.col[VERT] > updData.col[ROUGE] + 20)
     {
       updData.col[VERT] = updData.col[ROUGE] + 20;
-      updData.v[VERT] = -(RAND(goomInfo) % 3) - 2;
-      updData.v[ROUGE] = (RAND(goomInfo) % 4) + 1;
-      updData.v[BLEU] = (RAND(goomInfo) % 4) + 1;
+      updData.v[VERT] = -(rand(goomInfo) % 3) - 2;
+      updData.v[ROUGE] = (rand(goomInfo) % 4) + 1;
+      updData.v[BLEU] = (rand(goomInfo) % 4) + 1;
     }
     if (updData.col[VERT] < 0)
     {
       updData.col[VERT] = 0;
-      updData.v[VERT] = (RAND(goomInfo) % 3) + 2;
+      updData.v[VERT] = (rand(goomInfo) % 3) + 2;
     }
 
     updData.col[ROUGE] += updData.v[ROUGE];
     if (updData.col[ROUGE] > 255)
     {
       updData.col[ROUGE] = 255;
-      updData.v[ROUGE] = -(RAND(goomInfo) % 4) - 1;
+      updData.v[ROUGE] = -(rand(goomInfo) % 4) - 1;
     }
     if (updData.col[ROUGE] > updData.col[VERT] + 40)
     {
       updData.col[ROUGE] = updData.col[VERT] + 40;
-      updData.v[ROUGE] = -(RAND(goomInfo) % 4) - 1;
+      updData.v[ROUGE] = -(rand(goomInfo) % 4) - 1;
     }
     if (updData.col[ROUGE] < 0)
     {
       updData.col[ROUGE] = 0;
-      updData.v[ROUGE] = (RAND(goomInfo) % 4) + 1;
+      updData.v[ROUGE] = (rand(goomInfo) % 4) + 1;
     }
 
     updData.col[ALPHA] += updData.v[ALPHA];
     if (updData.col[ALPHA] > 0)
     {
       updData.col[ALPHA] = 0;
-      updData.v[ALPHA] = -(RAND(goomInfo) % 4) - 1;
+      updData.v[ALPHA] = -(rand(goomInfo) % 4) - 1;
     }
     if (updData.col[ALPHA] < 0)
     {
       updData.col[ALPHA] = 0;
-      updData.v[ALPHA] = (RAND(goomInfo) % 4) + 1;
+      updData.v[ALPHA] = (rand(goomInfo) % 4) + 1;
     }
 
     if (((updData.col[ROUGE] < 64) && (updData.col[VERT] > 32) &&
          (updData.col[VERT] < updData.col[BLEU]) && (updData.col[BLEU] > 32) &&
-         (RAND(goomInfo) % 20 == 0)) &&
+         (rand(goomInfo) % 20 == 0)) &&
         (updData.justChanged < 0))
     {
-      updData.mode = RAND(goomInfo) % 2 ? MOD_MER : MOD_MERVER;
+      updData.mode = rand(goomInfo) % 2 ? MOD_MER : MOD_MERVER;
       updData.justChanged = 250;
     }
   }

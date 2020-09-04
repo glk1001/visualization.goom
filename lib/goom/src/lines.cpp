@@ -145,12 +145,12 @@ static void goom_lines_move(GMLine* l)
   if (l->power < 1.1f)
   {
     l->power = 1.1f;
-    l->powinc = static_cast<float>(goom_irand(l->goomInfo->gRandom, 20) + 10) / 300.0f;
+    l->powinc = static_cast<float>(l->goomInfo->getNRand(20) + 10) / 300.0f;
   }
   if (l->power > 17.5f)
   {
     l->power = 17.5f;
-    l->powinc = -static_cast<float>(goom_irand(l->goomInfo->gRandom, 20) + 10) / 300.0f;
+    l->powinc = -static_cast<float>(l->goomInfo->getNRand(20) + 10) / 300.0f;
   }
 
   l->amplitude = (99.0f * l->amplitude + l->amplitudeF) / 100.0f;

@@ -80,12 +80,13 @@ struct PluginInfo
   PluginParameters* params;
 
   // private data
-  struct _SIZE_TYPE
+  struct Screen
   {
     uint16_t width;
     uint16_t height;
     uint32_t size; // == screen.height * screen.width.
-  } screen;
+  };
+  Screen screen;
 
   SoundInfo sound;
 
@@ -146,7 +147,8 @@ struct PluginInfo
     int timeOfTitleDisplay;
     char titleText[1024];
     ZoomFilterData zoomFilterData;
-  } update;
+  };
+  GoomUpdate update;
 
   struct
   {
@@ -177,6 +179,17 @@ struct PluginInfo
   } methods;
 
   GoomRandom* gRandom;
+  uint32_t getRand() { return goom_random(gRandom); }
+  uint32_t getNRand(uint32_t n) { return goom_irand(gRandom, n); }
+  bool getBoolRand() { return goom_irand(gRandom, 2); }
+  float getRandInRange(const float x0, const float x1)
+  {
+    return std::lerp(x0, x1, static_cast<float>(getRand()) / static_cast<float>(RAND_MAX));
+  }
+  inline size_t getRandInRange(const size_t x0, const size_t x1)
+  {
+    return x0 + size_t(getRand()) % (x1 - x0);
+  }
 };
 
 void plugin_info_init(PluginInfo* p, size_t nbVisual);

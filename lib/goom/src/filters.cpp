@@ -102,7 +102,7 @@ struct FilterDataWrapper
   bool hypercosEffect;
   int vPlaneEffect;
   int hPlaneEffect;
-  int8_t noisify;
+  bool noisify;
   uint32_t middleX;
   uint32_t middleY;
 
@@ -356,16 +356,16 @@ static void c_zoom(Pixel* expix1,
 static void generateTheWaterFXHorizontalDirectionBuffer(PluginInfo* goomInfo,
                                                         FilterDataWrapper* data)
 {
-  int decc = static_cast<int>(goom_irand(goomInfo->gRandom, 8) - 4);
-  int spdc = static_cast<int>(goom_irand(goomInfo->gRandom, 8) - 4);
-  int accel = static_cast<int>(goom_irand(goomInfo->gRandom, 8) - 4);
+  int decc = static_cast<int>(goomInfo->getNRand(8) - 4);
+  int spdc = static_cast<int>(goomInfo->getNRand(8) - 4);
+  int accel = static_cast<int>(goomInfo->getNRand(8) - 4);
 
   for (size_t loopv = data->prevY; loopv != 0;)
   {
     loopv--;
     data->firedec[loopv] = decc;
     decc += spdc / 10;
-    spdc += static_cast<int>(goom_irand(goomInfo->gRandom, 3) - goom_irand(goomInfo->gRandom, 3));
+    spdc += static_cast<int>(goomInfo->getNRand(3) - goomInfo->getNRand(3));
 
     if (decc > 4)
     {
@@ -378,27 +378,27 @@ static void generateTheWaterFXHorizontalDirectionBuffer(PluginInfo* goomInfo,
 
     if (spdc > 30)
     {
-      spdc = spdc - static_cast<int>(goom_irand(goomInfo->gRandom, 3)) + accel / 10;
+      spdc = spdc - static_cast<int>(goomInfo->getNRand(3)) + accel / 10;
     }
     if (spdc < -30)
     {
-      spdc = spdc + static_cast<int>(goom_irand(goomInfo->gRandom, 3)) + accel / 10;
+      spdc = spdc + static_cast<int>(goomInfo->getNRand(3)) + accel / 10;
     }
 
     if (decc > 8 && spdc > 1)
     {
-      spdc -= static_cast<int>(goom_irand(goomInfo->gRandom, 3)) - 2;
+      spdc -= static_cast<int>(goomInfo->getNRand(3)) - 2;
     }
     if (decc < -8 && spdc < -1)
     {
-      spdc += static_cast<int>(goom_irand(goomInfo->gRandom, 3)) + 2;
+      spdc += static_cast<int>(goomInfo->getNRand(3)) + 2;
     }
     if (decc > 8 || decc < -8)
     {
       decc = decc * 8 / 9;
     }
 
-    accel += static_cast<int>(goom_irand(goomInfo->gRandom, 2) - goom_irand(goomInfo->gRandom, 2));
+    accel += static_cast<int>(goomInfo->getNRand(2) - goomInfo->getNRand(2));
     if (accel > 20)
     {
       accel -= 2;
@@ -731,7 +731,7 @@ static void zoomFilterVisualFXWrapper_init(VisualFX* _this, PluginInfo* info)
   data->hypercosEffect = false;
   data->vPlaneEffect = 0;
   data->hPlaneEffect = 0;
-  data->noisify = 2;
+  data->noisify = true;
 
   /** modif by jeko : fixedpoint : buffration = (16:16) (donc 0<=buffration<=2^16) */
   data->buffratio = 0;

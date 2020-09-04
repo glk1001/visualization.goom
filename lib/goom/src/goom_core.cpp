@@ -354,7 +354,7 @@ static void chooseGoomLine(PluginInfo* goomInfo,
                            const int far)
 {
   *amplitude = 1.0f;
-  *mode = static_cast<LineType>(goom_irand(goomInfo->gRandom, numLineTypes));
+  *mode = static_cast<LineType>(goomInfo->getNRand(numLineTypes));
   switch (*mode)
   {
     case LineType::circle:
@@ -364,12 +364,12 @@ static void chooseGoomLine(PluginInfo* goomInfo,
         *amplitude = 0.8f;
         break;
       }
-      if (goom_irand(goomInfo->gRandom, 3) == 0)
+      if (goomInfo->getNRand(3) == 0)
       {
         *param1 = *param2 = 0;
         *amplitude = 3.0f;
       }
-      else if (goom_irand(goomInfo->gRandom, 2))
+      else if (goomInfo->getBoolRand())
       {
         *param1 = 0.40f * goomInfo->screen.height;
         *param2 = 0.22f * goomInfo->screen.height;
@@ -380,7 +380,7 @@ static void chooseGoomLine(PluginInfo* goomInfo,
       }
       break;
     case LineType::hline:
-      if (goom_irand(goomInfo->gRandom, 4) || far)
+      if (goomInfo->getNRand(4) || far)
       {
         *param1 = goomInfo->screen.height / 7;
         *param2 = 6.0f * goomInfo->screen.height / 7.0f;
@@ -392,7 +392,7 @@ static void chooseGoomLine(PluginInfo* goomInfo,
       }
       break;
     case LineType::vline:
-      if (goom_irand(goomInfo->gRandom, 3) || far)
+      if (goomInfo->getNRand(3) || far)
       {
         *param1 = goomInfo->screen.width / 7.0f;
         *param2 = 6.0f * goomInfo->screen.width / 7.0f;
@@ -407,7 +407,7 @@ static void chooseGoomLine(PluginInfo* goomInfo,
       throw std::logic_error("Unknown LineTypes enum.");
   }
 
-  *couleur = static_cast<int>(goom_irand(goomInfo->gRandom, 6));
+  *couleur = static_cast<int>(goomInfo->getNRand(6));
 }
 
 constexpr float ECART_VARIATION = 1.5;
@@ -582,28 +582,27 @@ static void changeFilterModeIfMusicChanges(PluginInfo* goomInfo, const int force
 
 static void changeFilterMode(PluginInfo* goomInfo)
 {
-  const uint32_t rand16 = goom_irand(goomInfo->gRandom, 16);
-  logDebug("goom_irand(goomInfo->gRandom,16) = {}", rand16);
+  const uint32_t rand16 = goomInfo->getNRand(16);
+  logDebug("rand16 = {}", rand16);
   if (rand16 != 0)
   {
     return;
   }
 
-  logDebug("goom_irand(goomInfo->gRandom, 16) = 0");
-  switch (goom_irand(goomInfo->gRandom, 34))
+  logDebug("rand16 = 0");
+  switch (goomInfo->getNRand(34))
   {
     case 0:
     case 10:
-      goomInfo->update.zoomFilterData.hypercosEffect =
-          static_cast<int>(goom_irand(goomInfo->gRandom, 2));
+      goomInfo->update.zoomFilterData.hypercosEffect = goomInfo->getBoolRand();
       [[fallthrough]]; // TODO: Is this really a fallthrough????
     case 13:
     case 20:
     case 21:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::waveMode;
       goomInfo->update.zoomFilterData.reverse = false;
-      goomInfo->update.zoomFilterData.waveEffect = (goom_irand(goomInfo->gRandom, 3) == 0);
-      if (goom_irand(goomInfo->gRandom, 2))
+      goomInfo->update.zoomFilterData.waveEffect = (goomInfo->getNRand(3) == 0);
+      if (goomInfo->getBoolRand())
       {
         goomInfo->update.zoomFilterData.vitesse =
             (goomInfo->update.zoomFilterData.vitesse + 127) >> 1;
@@ -637,7 +636,7 @@ static void changeFilterMode(PluginInfo* goomInfo)
     case 22:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::hyperCos1Mode;
       goomInfo->update.zoomFilterData.waveEffect = false;
-      goomInfo->update.zoomFilterData.hypercosEffect = (goom_irand(goomInfo->gRandom, 3) == 0);
+      goomInfo->update.zoomFilterData.hypercosEffect = (goomInfo->getNRand(3) == 0);
       break;
     case 6:
     case 16:
@@ -648,9 +647,8 @@ static void changeFilterMode(PluginInfo* goomInfo)
     case 7:
     case 17:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::crystalBallMode;
-      goomInfo->update.zoomFilterData.waveEffect = (goom_irand(goomInfo->gRandom, 4) == 0);
-      goomInfo->update.zoomFilterData.hypercosEffect =
-          static_cast<int>(goom_irand(goomInfo->gRandom, 2));
+      goomInfo->update.zoomFilterData.waveEffect = (goomInfo->getNRand(4) == 0);
+      goomInfo->update.zoomFilterData.hypercosEffect = goomInfo->getBoolRand();
       break;
     case 8:
     case 18:
@@ -686,13 +684,12 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
 
     goomInfo->update.goomvar++;
 
-    const uint32_t rand3 = goom_irand(goomInfo->gRandom, 3);
+    const uint32_t rand3 = goomInfo->getNRand(3);
     logDebug("Selection of Goom state: stateSelectionBlocker = {}, rand3 = {}",
              goomInfo->update.stateSelectionBlocker, rand3);
     if (!goomInfo->update.stateSelectionBlocker && (rand3 > 0))
     {
-      goomInfo->update.stateSelectionRand =
-          goom_irand(goomInfo->gRandom, goomInfo->maxStateSelect + 1);
+      goomInfo->update.stateSelectionRand = goomInfo->getNRand(goomInfo->maxStateSelect + 1);
       goomInfo->update.stateSelectionBlocker = 3;
     }
     else if (goomInfo->update.stateSelectionBlocker)
@@ -746,23 +743,23 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
         goomInfo->update.zoomFilterData.vitesse = stopSpeed - 2;
         goomInfo->update.lockvar = 75;
       }
-      if (goom_irand(goomInfo->gRandom, 10) == 0)
+      if (goomInfo->getNRand(10) == 0)
       {
         goomInfo->update.zoomFilterData.reverse = true;
         goomInfo->update.lockvar = 100;
       }
 
-      if (goom_irand(goomInfo->gRandom, 10) == 0)
+      if (goomInfo->getNRand(10) == 0)
       {
         goomInfo->update.zoomFilterData.vitesse = stopSpeed - 1;
       }
-      if (goom_irand(goomInfo->gRandom, 12) == 0)
+      if (goomInfo->getNRand(12) == 0)
       {
         goomInfo->update.zoomFilterData.vitesse = stopSpeed + 1;
       }
 
       // changement de milieu..
-      switch (goom_irand(goomInfo->gRandom, 25))
+      switch (goomInfo->getNRand(25))
       {
         case 0:
         case 3:
@@ -791,50 +788,48 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
         goomInfo->update.zoomFilterData.middleY = goomInfo->screen.height / 2;
       }
 
-      switch (const uint32_t vtmp = (goom_irand(goomInfo->gRandom, 15)))
+      switch (const uint32_t vtmp = goomInfo->getNRand(15))
       {
         case 0:
           goomInfo->update.zoomFilterData.vPlaneEffect =
-              static_cast<int>(goom_irand(goomInfo->gRandom, 3) - goom_irand(goomInfo->gRandom, 3));
-          goomInfo->update.zoomFilterData.hPlaneEffect =
-              static_cast<int>(goom_irand(goomInfo->gRandom, 3) - goom_irand(goomInfo->gRandom, 3));
+              static_cast<int>(goomInfo->getNRand(3) - goomInfo->getNRand(3));
+          goomInfo->update.zoomFilterData.hPlaneEffect = static_cast<int>(
+              goomInfo->getNRand(3) - goomInfo->getNRand(3));
           break;
         case 3:
           goomInfo->update.zoomFilterData.vPlaneEffect = 0;
           goomInfo->update.zoomFilterData.hPlaneEffect =
-              static_cast<int>(goom_irand(goomInfo->gRandom, 8) - goom_irand(goomInfo->gRandom, 8));
+              static_cast<int>(goomInfo->getNRand(8) - goomInfo->getNRand(8));
           break;
         case 4:
         case 5:
         case 6:
         case 7:
           goomInfo->update.zoomFilterData.vPlaneEffect =
-              static_cast<int>(goom_irand(goomInfo->gRandom, 5) - goom_irand(goomInfo->gRandom, 5));
+              static_cast<int>(goomInfo->getNRand(5) - goomInfo->getNRand(5));
           goomInfo->update.zoomFilterData.hPlaneEffect =
               -goomInfo->update.zoomFilterData.vPlaneEffect;
           break;
         case 8:
-          goomInfo->update.zoomFilterData.hPlaneEffect =
-              static_cast<int>(5 + goom_irand(goomInfo->gRandom, 8));
+          goomInfo->update.zoomFilterData.hPlaneEffect = static_cast<int>(5 + goomInfo->getNRand(8));
           goomInfo->update.zoomFilterData.vPlaneEffect =
               -goomInfo->update.zoomFilterData.hPlaneEffect;
           break;
         case 9:
-          goomInfo->update.zoomFilterData.vPlaneEffect =
-              static_cast<int>(5 + goom_irand(goomInfo->gRandom, 8));
+          goomInfo->update.zoomFilterData.vPlaneEffect = static_cast<int>(5 + goomInfo->getNRand(8));
           goomInfo->update.zoomFilterData.hPlaneEffect =
               -goomInfo->update.zoomFilterData.hPlaneEffect;
           break;
         case 13:
           goomInfo->update.zoomFilterData.hPlaneEffect = 0;
           goomInfo->update.zoomFilterData.vPlaneEffect = static_cast<int>(
-              goom_irand(goomInfo->gRandom, 10) - goom_irand(goomInfo->gRandom, 10));
+              goomInfo->getNRand(10) - goomInfo->getNRand(10));
           break;
         case 14:
           goomInfo->update.zoomFilterData.hPlaneEffect = static_cast<int>(
-              goom_irand(goomInfo->gRandom, 10) - goom_irand(goomInfo->gRandom, 10));
+              goomInfo->getNRand(10) - goomInfo->getNRand(10));
           goomInfo->update.zoomFilterData.vPlaneEffect = static_cast<int>(
-              goom_irand(goomInfo->gRandom, 10) - goom_irand(goomInfo->gRandom, 10));
+              goomInfo->getNRand(10) - goomInfo->getNRand(10));
           break;
         default:
           if (vtmp < 10)
@@ -844,14 +839,13 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
           }
       }
 
-      if (goom_irand(goomInfo->gRandom, 5) != 0)
+      if (goomInfo->getNRand(5) != 0)
       {
-        goomInfo->update.zoomFilterData.noisify = 0;
+        goomInfo->update.zoomFilterData.noisify = false;
       }
       else
       {
-        goomInfo->update.zoomFilterData.noisify =
-            static_cast<int8_t>(goom_irand(goomInfo->gRandom, 2) + 1);
+        goomInfo->update.zoomFilterData.noisify = true;
         goomInfo->update.lockvar *= 2;
       }
 
@@ -859,14 +853,14 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
       {
         goomInfo->update.zoomFilterData.vPlaneEffect = 0;
         goomInfo->update.zoomFilterData.hPlaneEffect = 0;
-        goomInfo->update.zoomFilterData.noisify = 0;
+        goomInfo->update.zoomFilterData.noisify = false;
       }
 
       if ((goomInfo->update.zoomFilterData.middleX == 1) ||
           (goomInfo->update.zoomFilterData.middleX == goomInfo->screen.width - 1))
       {
         goomInfo->update.zoomFilterData.vPlaneEffect = 0;
-        if (goom_irand(goomInfo->gRandom, 2))
+        if (goomInfo->getBoolRand())
         {
           goomInfo->update.zoomFilterData.hPlaneEffect = 0;
         }
@@ -881,12 +875,11 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
         *pzfd = &goomInfo->update.zoomFilterData;
         if (((newvit < (stopSpeed - 7)) &&
              (goomInfo->update.zoomFilterData.vitesse < stopSpeed - 6) &&
-             (goomInfo->cycle % 3 == 0)) ||
-            (goom_irand(goomInfo->gRandom, 40) == 0))
+             (goomInfo->cycle % 3 == 0)) || (goomInfo->getNRand(40) == 0))
         {
           goomInfo->update.zoomFilterData.vitesse =
-              stopSpeed - static_cast<int32_t>(goom_irand(goomInfo->gRandom, 2)) +
-              static_cast<int32_t>(goom_irand(goomInfo->gRandom, 2));
+              stopSpeed - static_cast<int32_t>(goomInfo->getNRand(2)) +
+              static_cast<int32_t>(goomInfo->getNRand(2));
           goomInfo->update.zoomFilterData.reverse = !goomInfo->update.zoomFilterData.reverse;
         }
         else
@@ -906,7 +899,7 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
   }
 
   // mode mega-lent
-  const uint32_t rand700 = goom_irand(goomInfo->gRandom, 700);
+  const uint32_t rand700 = goomInfo->getNRand(700);
   logDebug("rand700 = {}", rand700);
   if (rand700 == 0)
   {
@@ -1060,13 +1053,13 @@ static void stopRandomLineChangeMode(PluginInfo* goomInfo)
       goomInfo->update.lineMode = 0;
     }
   }
-  else if ((goomInfo->cycle % 80 == 0) && (goom_irand(goomInfo->gRandom, 5) == 0) &&
+  else if ((goomInfo->cycle % 80 == 0) && (goomInfo->getNRand(5) == 0) &&
            goomInfo->update.lineMode)
   {
     goomInfo->update.lineMode--;
   }
 
-  if ((goomInfo->cycle % 120 == 0) && (goom_irand(goomInfo->gRandom, 4) == 0) &&
+  if ((goomInfo->cycle % 120 == 0) && (goomInfo->getNRand(4) == 0) &&
       (goomInfo->curGState->scope))
   {
     if (goomInfo->update.lineMode == 0)
@@ -1089,7 +1082,7 @@ static void stopRandomLineChangeMode(PluginInfo* goomInfo)
       if (goomInfo->update.stop_lines)
       {
         goomInfo->update.stop_lines--;
-        if (goom_irand(goomInfo->gRandom, 2))
+        if (goomInfo->getBoolRand())
         {
           couleur2 = couleur1 = GML_BLACK;
         }
@@ -1116,7 +1109,7 @@ static void displayLines(PluginInfo* goomInfo,
   goom_lines_draw(goomInfo, goomInfo->gmline1, data[0], goomInfo->p2);
   goom_lines_draw(goomInfo, goomInfo->gmline2, data[1], goomInfo->p2);
 
-  if (((goomInfo->cycle % 121) == 9) && (goom_irand(goomInfo->gRandom, 3) == 1) &&
+  if (((goomInfo->cycle % 121) == 9) && (goomInfo->getNRand(3) == 1) &&
       ((goomInfo->update.lineMode == 0) ||
        (goomInfo->update.lineMode == goomInfo->update.drawLinesDuration)))
   {
@@ -1133,7 +1126,7 @@ static void displayLines(PluginInfo* goomInfo,
     if (goomInfo->update.stop_lines)
     {
       goomInfo->update.stop_lines--;
-      if (goom_irand(goomInfo->gRandom, 2))
+      if (goomInfo->getBoolRand())
       {
         couleur2 = couleur1 = GML_BLACK;
       }

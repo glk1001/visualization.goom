@@ -81,31 +81,8 @@ constexpr float D = 256.0f;
 
 inline float randFactor(PluginInfo* goomInfo, const float min)
 {
-  return min + (1.0 - min) * float(goom_irand(goomInfo->gRandom, 101)) / 100.0;
+  return min + (1.0 - min) * static_cast<float>(goomInfo->getNRand(101)) / 100.0;
 }
-
-inline int get_rand_in_range(int n1, int n2)
-{
-  const uint32_t range_len = static_cast<uint32_t>(n2 - n1 + 1);
-  return n1 + static_cast<int>(pcg32_rand() % range_len);
-}
-
-
-/**
-void updateColors(PluginInfo* goomInfo, const TentacleFXData* fx_data)
-{
-  if (!fx_data->happens) {
-    if (goom_irand(goomInfo->gRandom, 20) == 0) {
-      TentacleLineColorer::changeColorGroup(goomInfo);
-    }
-  } else {
-    TentacleLineColorer::changeColorGroup(goomInfo);
-    if (goom_irand(goomInfo->gRandom, 50) == 0) {
-      lineColorer->changeReverseMix();
-    }
-  }
-}
-**/
 
 void TentaclesWrapper::update(PluginInfo* goomInfo,
                               Pixel* buf,
@@ -186,8 +163,7 @@ void TentaclesWrapper::pretty_move(PluginInfo* goomInfo,
   }
   else if (fx_data->lock == 0)
   {
-    fx_data->happens =
-        goom_irand(goomInfo->gRandom, 200) ? 0 : (int)(100 + goom_irand(goomInfo->gRandom, 60));
+    fx_data->happens = goomInfo->getNRand(200) ? 0 : static_cast<int>(100 + goomInfo->getNRand(60));
     fx_data->lock = fx_data->happens * 3 / 2;
   }
   else
@@ -210,8 +186,7 @@ void TentaclesWrapper::pretty_move(PluginInfo* goomInfo,
   }
   else
   {
-    fx_data->rotation = goom_irand(goomInfo->gRandom, 500) ? fx_data->rotation
-                                                           : (int)goom_irand(goomInfo->gRandom, 2);
+    fx_data->rotation = goomInfo->getNRand(500) ? fx_data->rotation : static_cast<int>(goomInfo->getNRand(2));
     if (fx_data->rotation)
     {
       cycle *= 2.0f * M_PI;
@@ -245,24 +220,6 @@ void TentaclesWrapper::pretty_move(PluginInfo* goomInfo,
   }
 }
 
-/**
-std::vector<float> TentaclesWrapper::getGridZeroAdditiveValues(PluginInfo* goomInfo, const float rapport)
-{
-  const float val = 1.7*(goom_irand(goomInfo->gRandom, 101)/100.0) * rapport;
-//      const float val =
-//          (float)(ShiftRight(data[0][goom_irand(goomInfo->gRandom, AUDIO_SAMPLE_LEN - 1)], 10)) * rapport;
-  std::vector<float> vals(num_x);
-  for (size_t x = 0; x < num_x; x++) {
-//        const float val =
-//            (float)(ShiftRight(data[0][goom_irand(goomInfo->gRandom, AUDIO_SAMPLE_LEN - 1)], 10)) * rapport;
-//        const float factor = 0.9  + 0.1*(std::abs(nx_div2 - float(x))/nx_div2);
-//        fx_data->vals[x] = val * factor * randFactor(goomInfo, 0.97);
-    vals[x] = val * randFactor(goomInfo, 0.97);
-  }
-  return vals;
-}
-***/
-
 inline std::tuple<uint32_t, uint32_t> TentaclesWrapper::getModColors(PluginInfo* goomInfo,
                                                                      TentacleFXData* fx_data)
 {
@@ -276,10 +233,8 @@ inline std::tuple<uint32_t, uint32_t> TentaclesWrapper::getModColors(PluginInfo*
     fx_data->ligs = -fx_data->ligs;
   }
 
-  if ((fx_data->lig < 6.3f) && (goom_irand(goomInfo->gRandom, 30) == 0))
+  if ((fx_data->lig < 6.3f) && (goomInfo->getNRand(30) == 0))
   {
-    //    fx_data->dstcol = (int)goom_irand(goomInfo->gRandom, NUM_TENTACLE_COLORS);
-    //    fx_data->dstcol = (int)goom_irand(goomInfo->gRandom, modColorGroup->numColors()); // TODO Make numColors a constexpr
     fx_data->col = ColorMap::getRandomColor(*dominantColorGroup);
   }
 

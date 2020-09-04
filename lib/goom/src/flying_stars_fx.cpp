@@ -158,9 +158,9 @@ static void addABomb(FSData* data,
   // TODO Get colormap based on current mode.
   data->stars[i].currentColorMap = &data->colorMaps.getRandomColorMap(data->currentColorGroup);
 
-  float ro = radius * static_cast<float>(goom_irand(info->gRandom, 100)) / 100.0f;
-  ro *= static_cast<float>(goom_irand(info->gRandom, 100)) / 100.0f + 1.0f;
-  const uint32_t theta = goom_irand(info->gRandom, 256);
+  float ro = radius * static_cast<float>(info->getNRand(100)) / 100.0f;
+  ro *= static_cast<float>(info->getNRand(100)) / 100.0f + 1.0f;
+  const uint32_t theta = info->getNRand(256);
 
   data->stars[i].vx = ro * cos256[theta];
   data->stars[i].vy = -0.2f + ro * sin256[theta];
@@ -197,11 +197,11 @@ static void fs_sound_event_occured(VisualFX* _this, PluginInfo* info)
 
   data->currentColorGroup = data->colorMaps.getRandomGroup();
 
-  data->maxAge = 10 + int(goom_irand(info->gRandom, 10));
+  data->maxAge = 10 + static_cast<int>(info->getNRand(10));
 
-  int max = static_cast<int>((1.0f + info->sound.goomPower) * goom_irand(info->gRandom, 150)) + 100;
+  int max = static_cast<int>((1.0f + info->sound.goomPower) * info->getNRand(150)) + 100;
   float radius = (1.0f + info->sound.goomPower) *
-                 static_cast<float>(goom_irand(info->gRandom, 150) + 50) / 300;
+                 static_cast<float>(info->getNRand(150) + 50) / 300;
   float gravity = 0.02f;
   uint32_t mx;
   uint32_t my;
@@ -217,8 +217,8 @@ static void fs_sound_event_occured(VisualFX* _this, PluginInfo* info)
       double dy;
       do
       {
-        mx = goom_irand(info->gRandom, info->screen.width);
-        my = goom_irand(info->gRandom, info->screen.height);
+        mx = info->getNRand(info->screen.width);
+        my = info->getNRand(info->screen.height);
         dx = (mx - info->screen.width / 2);
         dy = (my - info->screen.height / 2);
       } while (dx * dx + dy * dy < (info->screen.height / 2) * (info->screen.height / 2));
@@ -226,9 +226,9 @@ static void fs_sound_event_occured(VisualFX* _this, PluginInfo* info)
     }
     break;
     case StarModes::rain:
-      mx = goom_irand(info->gRandom, info->screen.width);
+      mx = info->getNRand(info->screen.width);
       mx = (mx <= info->screen.width / 2) ? 0 : info->screen.width;
-      my = -(info->screen.height / 3) - goom_irand(info->gRandom, info->screen.width / 3);
+      my = -(info->screen.height / 3) - info->getNRand(info->screen.width / 3);
       radius *= 1.5;
       vage = 0.002f;
       break;
@@ -282,10 +282,10 @@ static void fs_apply(VisualFX* _this, [[maybe_unused]] Pixel* src, Pixel* dest, 
   if (info->sound.timeSinceLastGoom < 1)
   {
     fs_sound_event_occured(_this, info);
-    if (goom_irand(info->gRandom, 20) == 1)
+    if (info->getNRand(20) == 1)
     {
       // Give a sleight weight towards noFx mode by using numFX + 2.
-      const uint32_t newVal = goom_irand(info->gRandom, numFx + 2);
+      const uint32_t newVal = info->getNRand(numFx + 2);
       const StarModes newMode = newVal >= numFx ? StarModes::noFx : static_cast<StarModes>(newVal);
       IVAL(data->fx_mode_p) = static_cast<int>(newMode);
       data->fx_mode_p.change_listener(&data->fx_mode_p);
