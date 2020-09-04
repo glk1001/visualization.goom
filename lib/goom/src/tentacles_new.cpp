@@ -122,9 +122,9 @@ void Tentacle2D::startIterating()
   startedIterating = true;
   iterNum = 0;
 
-  const double xstep = (xmax - xmin) / double(numNodes - 1);
+  const double xstep = (xmax - xmin) / static_cast<double>(numNodes - 1);
   const double ystep =
-      100.0 / double(numNodes - 1); // ?????????????????????????????????????????????????????
+      100.0 / static_cast<double>(numNodes - 1);// ?????????????????????????????????????????????????????
 
   xvec.resize(numNodes);
   yvec.resize(numNodes);
@@ -296,13 +296,13 @@ Tentacle3D::Tentacle3D(std::unique_ptr<Tentacle2D> t,
                        const uint32_t headCol,
                        const uint32_t headColLow,
                        const V3d& h)
-  : tentacle{std::move(t)},
-    colorizer{nullptr},
-    specialColorNodes{0, tentacle->getNumNodes(), {}},
-    specialNodesColorMap{nullptr},
-    headColor{headCol},
-    headColorLow{headColLow},
-    head{h}
+  : specialColorNodes { 0, tentacle->getNumNodes(), { } },
+    tentacle { std::move(t) },
+    head { h },
+    colorizer { nullptr },
+    specialNodesColorMap { nullptr },
+    headColor { headCol },
+    headColorLow { headColLow }
 {
 }
 
@@ -326,9 +326,9 @@ Tentacle3D::Tentacle3D(Tentacle3D&& o)
     colorizer{o.colorizer},
     specialColorNodes{o.specialColorNodes},
     specialNodesColorMap{o.specialNodesColorMap},
-    headColor(o.headColor),
-    headColorLow(o.headColorLow),
-    head{o.head}
+    headColor{ o.headColor },
+    headColorLow{ o.headColorLow },
+    head{ o.head }
 {
 }
 

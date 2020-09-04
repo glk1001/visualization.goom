@@ -390,12 +390,12 @@ void tentacle_fx_init(VisualFX* _this, PluginInfo* info)
   // data->colors;
 
   _this->params = &data->params;
-  _this->fx_data = (void*)data;
+  _this->fx_data = data;
 }
 
 void tentacle_fx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* goomInfo)
 {
-  TentacleFXData* data = (TentacleFXData*)_this->fx_data;
+  TentacleFXData* data = static_cast<TentacleFXData*>(_this->fx_data);
   if (BVAL(data->enabled_bp))
   {
     data->tentacles->update(goomInfo, dest, src, goomInfo->sound.samples, goomInfo->sound.accelvar,
@@ -405,7 +405,7 @@ void tentacle_fx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* goo
 
 void tentacle_fx_free(VisualFX* _this)
 {
-  TentacleFXData* data = (TentacleFXData*)_this->fx_data;
+  TentacleFXData *data = static_cast<TentacleFXData*>(_this->fx_data);
   free(data->params.params);
   tentacle_free(data);
   free(_this->fx_data);

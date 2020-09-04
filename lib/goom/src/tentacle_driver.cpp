@@ -109,10 +109,10 @@ void TentacleDriver::init()
     std::unique_ptr<Tentacle2D> tentacle2D{createNewTentacle2D(i, params)};
     logDebug("Created tentacle2D {}.", i);
 
-    const uint32_t headColor = ColorMap::getRandomColor(*headColorMap);
-    const uint32_t headColorLow = ColorMap::getLighterColor(headColor, 50);
-    //const uint32_t headColor = 0xff0000ff;
-    //const uint32_t headColorLow = 0xff0000ff;
+//    const uint32_t headColor = ColorMap::getRandomColor(*headColorMap);
+//    const uint32_t headColorLow = ColorMap::getLighterColor(headColor, 50);
+    const uint32_t headColor = 0xff101010;
+    const uint32_t headColorLow = 0xff101010;
     Tentacle3D tentacle{std::move(tentacle2D), *colorizers[colorizers.size() - 1], headColor,
                         headColorLow, initialHeadPos};
 

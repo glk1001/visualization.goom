@@ -50,9 +50,6 @@ static void swapBuffers(PluginInfo* goomInfo)
   goomInfo->p2 = tmp;
 }
 
-/**************************
-*         INIT           *
-**************************/
 PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
 {
   logDebug("Initialize goom: resx = {}, resy = {}, seed = {}.", resx, resy, seed);
@@ -147,10 +144,10 @@ static void regularlyLowerTheSpeed(PluginInfo* goomInfo, ZoomFilterData** pzfd);
 static void lowerSpeed(PluginInfo* goomInfo, ZoomFilterData** pzfd);
 
 // on verifie qu'il ne se pas un truc interressant avec le son.
-static void changeModeIfMusicChanges(PluginInfo* goomInfo, const int forceMode);
+static void changeFilterModeIfMusicChanges(PluginInfo* goomInfo, const int forceMode);
 
 // changement eventuel de mode
-static void changeMode(PluginInfo* goomInfo);
+static void changeFilterMode(PluginInfo* goomInfo);
 
 // Changement d'effet de zoom !
 static void changeZoomEffect(PluginInfo* goomInfo, ZoomFilterData* pzfd, const int forceMode);
@@ -174,13 +171,13 @@ static void drawPoints(PluginInfo* goomInfo,
                        const uint32_t pointHeight,
                        const float largfactor);
 
-static void choose_a_goom_line(PluginInfo* goomInfo,
-                               float* param1,
-                               float* param2,
-                               int* couleur,
-                               LineType* mode,
-                               float* amplitude,
-                               const int far);
+static void chooseGoomLine(PluginInfo* goomInfo,
+                           float* param1,
+                           float* param2,
+                           int* couleur,
+                           LineType* mode,
+                           float* amplitude,
+                           const int far);
 
 // si on est dans un goom : afficher les lignes
 static void displayLinesIfInAGoom(PluginInfo* goomInfo,
@@ -196,8 +193,8 @@ static void stopIfRequested(PluginInfo* goomInfo);
 static void stopRandomLineChangeMode(PluginInfo* goomInfo);
 
 // Permet de forcer un effet.
-static void forceEffectIfSet(PluginInfo* oomInfo, ZoomFilterData** pzfd, const int forceMode);
-static void forceEffect(PluginInfo* goomInfo, const int forceMode, ZoomFilterData** pzfd);
+static void forceFilterModeIfSet(PluginInfo* oomInfo, ZoomFilterData** pzfd, const int forceMode);
+static void forceFilterMode(PluginInfo* goomInfo, const int forceMode, ZoomFilterData** pzfd);
 
 // arreter de decrémenter au bout d'un certain temps
 static void stopDecrementingAfterAWhile(PluginInfo* goomInfo, ZoomFilterData** pzfd);
@@ -241,19 +238,19 @@ uint32_t* goom_update(PluginInfo* goomInfo,
 
   /* ! etude du signal ... */
   evaluate_sound(data, &(goomInfo->sound));
-  const float largfactor = largeSoundFactor(&goomInfo->sound);
+  const float largeFactor = largeSoundFactor(&goomInfo->sound);
 
   updateDecayRecay(goomInfo);
 
   applyIfsIfRequired(goomInfo);
 
-  drawPointsIfRequired(goomInfo, pointWidth, pointHeight, largfactor);
+  drawPointsIfRequired(goomInfo, pointWidth, pointHeight, largeFactor);
 
   /* par défaut pas de changement de zoom */
   ZoomFilterData* pzfd = nullptr;
   if (forceMode != 0)
   {
-    logDebug("forcemode = {}\n", forceMode);
+    logDebug("forceMode = {}\n", forceMode);
   }
 
   goomInfo->update.lockvar--;
@@ -266,7 +263,7 @@ uint32_t* goom_update(PluginInfo* goomInfo,
   // -- Note for those who have not followed: the lockvar prevents a change
   // of state of the plugin just after another change of state.
 
-  changeModeIfMusicChanges(goomInfo, forceMode);
+  changeFilterModeIfMusicChanges(goomInfo, forceMode);
 
   bigUpdateIfNotLocked(goomInfo, &pzfd);
 
@@ -276,7 +273,7 @@ uint32_t* goom_update(PluginInfo* goomInfo,
 
   stopDecrementingAfterAWhile(goomInfo, &pzfd);
 
-  forceEffectIfSet(goomInfo, &pzfd, forceMode);
+  forceFilterModeIfSet(goomInfo, &pzfd, forceMode);
 
   changeZoomEffect(goomInfo, pzfd, forceMode);
 
@@ -297,14 +294,14 @@ uint32_t* goom_update(PluginInfo* goomInfo,
   displayLinesIfInAGoom(goomInfo, data);
 
   // affichage et swappage des buffers...
-  Pixel* return_val = goomInfo->p1;
+  Pixel* returnVal = goomInfo->p1;
   swapBuffers(goomInfo);
   goomInfo->cycle++;
-  goomInfo->convolve_fx.apply(&goomInfo->convolve_fx, return_val, goomInfo->outputBuf, goomInfo);
+  goomInfo->convolve_fx.apply(&goomInfo->convolve_fx, returnVal, goomInfo->outputBuf, goomInfo);
 
   logDebug("About to return.");
 
-  return (uint32_t*)goomInfo->outputBuf;
+  return reinterpret_cast<uint32_t*>(goomInfo->outputBuf);
 }
 
 /****************************************
@@ -348,13 +345,13 @@ void goom_close(PluginInfo* goomInfo)
   delete goomInfo;
 }
 
-static void choose_a_goom_line(PluginInfo* goomInfo,
-                               float* param1,
-                               float* param2,
-                               int* couleur,
-                               LineType* mode,
-                               float* amplitude,
-                               const int far)
+static void chooseGoomLine(PluginInfo* goomInfo,
+                           float* param1,
+                           float* param2,
+                           int* couleur,
+                           LineType* mode,
+                           float* amplitude,
+                           const int far)
 {
   *amplitude = 1.0f;
   *mode = static_cast<LineType>(goom_irand(goomInfo->gRandom, numLineTypes));
@@ -567,7 +564,7 @@ static void drawPoints(PluginInfo* goomInfo,
   }
 }
 
-static void changeModeIfMusicChanges(PluginInfo* goomInfo, const int forceMode)
+static void changeFilterModeIfMusicChanges(PluginInfo* goomInfo, const int forceMode)
 {
   logDebug("goomInfo->sound.timeSinceLastGoom = {}, forceMode = {}, "
            "goomInfo->update.cyclesSinceLastChange = {}",
@@ -578,12 +575,12 @@ static void changeModeIfMusicChanges(PluginInfo* goomInfo, const int forceMode)
     logDebug("goomInfo->sound.timeSinceLastGoom = {}, forceMode = {}, "
              "goomInfo->update.cyclesSinceLastChange = {}",
              goomInfo->sound.timeSinceLastGoom, forceMode, goomInfo->update.cyclesSinceLastChange);
-    changeMode(goomInfo);
+    changeFilterMode(goomInfo);
   }
   logDebug("goomInfo->sound.timeSinceLastGoom = {}", goomInfo->sound.timeSinceLastGoom);
 }
 
-static void changeMode(PluginInfo* goomInfo)
+static void changeFilterMode(PluginInfo* goomInfo)
 {
   const uint32_t rand16 = goom_irand(goomInfo->gRandom, 16);
   logDebug("goom_irand(goomInfo->gRandom,16) = {}", rand16);
@@ -930,7 +927,7 @@ static void changeZoomEffect(PluginInfo* goomInfo, ZoomFilterData* pzfd, const i
 {
   if (pzfd)
   {
-    logDebug("pzfd != NULL");
+    logDebug("pzfd != nullptr");
 
     goomInfo->update.cyclesSinceLastChange = 0;
     goomInfo->update.switchIncr = goomInfo->update.switchIncrAmount;
@@ -958,7 +955,7 @@ static void changeZoomEffect(PluginInfo* goomInfo, ZoomFilterData* pzfd, const i
   }
   else
   {
-    logDebug("pzfd = NULL");
+    logDebug("pzfd = nullptr");
     logDebug("goomInfo->update.cyclesSinceLastChange = {}", goomInfo->update.cyclesSinceLastChange);
     if (goomInfo->update.cyclesSinceLastChange > timeBetweenChange)
     {
@@ -1009,7 +1006,7 @@ void displayText(PluginInfo* goomInfo, const char* songTitle, const char* messag
   }
 
   // Le titre
-  if (songTitle != NULL)
+  if (songTitle)
   {
     strncpy(goomInfo->update.titleText, songTitle, 1023);
     goomInfo->update.titleText[1023] = 0;
@@ -1043,7 +1040,7 @@ static void stopRequest(PluginInfo* goomInfo)
   float amplitude = 0;
   int couleur = 0;
   LineType mode;
-  choose_a_goom_line(goomInfo, &param1, &param2, &couleur, &mode, &amplitude, 1);
+  chooseGoomLine(goomInfo, &param1, &param2, &couleur, &mode, &amplitude, 1);
   couleur = GML_BLACK;
 
   goom_lines_switch_to(goomInfo->gmline1, mode, param1, amplitude, couleur);
@@ -1085,8 +1082,8 @@ static void stopRandomLineChangeMode(PluginInfo* goomInfo)
       float amplitude = 0;
       int couleur1 = 0;
       LineType mode;
-      choose_a_goom_line(goomInfo, &param1, &param2, &couleur1, &mode, &amplitude,
-                         goomInfo->update.stop_lines);
+      chooseGoomLine(goomInfo, &param1, &param2, &couleur1, &mode, &amplitude,
+                     goomInfo->update.stop_lines);
 
       int couleur2 = 5 - couleur1;
       if (goomInfo->update.stop_lines)
@@ -1123,17 +1120,16 @@ static void displayLines(PluginInfo* goomInfo,
       ((goomInfo->update.lineMode == 0) ||
        (goomInfo->update.lineMode == goomInfo->update.drawLinesDuration)))
   {
-
     logDebug("goomInfo->cycle % 121 etc.: goomInfo->cycle = {}, rand1_3 = ?", goomInfo->cycle);
     float param1 = 0;
     float param2 = 0;
     float amplitude = 0;
     int couleur1 = 0;
     LineType mode;
-    choose_a_goom_line(goomInfo, &param1, &param2, &couleur1, &mode, &amplitude,
-                       goomInfo->update.stop_lines);
-    int couleur2 = 5 - couleur1;
+    chooseGoomLine(goomInfo, &param1, &param2, &couleur1, &mode, &amplitude,
+                   goomInfo->update.stop_lines);
 
+    int couleur2 = 5 - couleur1;
     if (goomInfo->update.stop_lines)
     {
       goomInfo->update.stop_lines--;
@@ -1168,7 +1164,7 @@ static void bigBreak(PluginInfo* goomInfo, ZoomFilterData** pzfd)
   goomInfo->update.goomvar = 0;
 }
 
-static void forceEffect(PluginInfo* goomInfo, const int forceMode, ZoomFilterData** pzfd)
+static void forceFilterMode(PluginInfo* goomInfo, const int forceMode, ZoomFilterData** pzfd)
 {
   *pzfd = &goomInfo->update.zoomFilterData;
   (*pzfd)->mode = static_cast<ZoomFilterMode>(forceMode - 1);
@@ -1188,12 +1184,12 @@ static void stopDecrementing(PluginInfo* goomInfo, ZoomFilterData** pzfd)
 
 static float largeSoundFactor(const SoundInfo* sound)
 {
-  float largfactor = sound->speedvar / 150.0f + sound->volume / 1.5f;
-  if (largfactor > 1.5f)
+  float largefactor = sound->speedvar / 150.0f + sound->volume / 1.5f;
+  if (largefactor > 1.5f)
   {
-    largfactor = 1.5f;
+    largefactor = 1.5f;
   }
-  return largfactor;
+  return largefactor;
 }
 
 static void updateDecayRecay(PluginInfo* goomInfo)
@@ -1230,7 +1226,7 @@ static void bigUpdateIfNotLocked(PluginInfo* goomInfo, ZoomFilterData** pzfd)
   logDebug("goomInfo->sound.timeSinceLastGoom = {}", goomInfo->sound.timeSinceLastGoom);
 }
 
-static void forceEffectIfSet(PluginInfo* goomInfo, ZoomFilterData** pzfd, const int forceMode)
+static void forceFilterModeIfSet(PluginInfo* goomInfo, ZoomFilterData** pzfd, const int forceMode)
 {
   constexpr size_t numFilterFx = static_cast<size_t>(ZoomFilterMode::_size);
 
@@ -1238,11 +1234,11 @@ static void forceEffectIfSet(PluginInfo* goomInfo, ZoomFilterData** pzfd, const 
   if ((forceMode > 0) && (size_t(forceMode) <= numFilterFx))
   {
     logDebug("forceMode = {} <= numFilterFx = {}.", forceMode, numFilterFx);
-    forceEffect(goomInfo, forceMode, pzfd);
+    forceFilterMode(goomInfo, forceMode, pzfd);
   }
   if (forceMode == -1)
   {
-    pzfd = NULL;
+    pzfd = nullptr;
   }
 }
 
@@ -1304,7 +1300,7 @@ static void stopDecrementingAfterAWhile(PluginInfo* goomInfo, ZoomFilterData** p
   }
 }
 
-static inline void setPixelRGB(
+inline void setPixelRGB(
     PluginInfo* goomInfo, Pixel* buffer, const uint32_t x, const uint32_t y, const Color& c)
 {
   Pixel i;
