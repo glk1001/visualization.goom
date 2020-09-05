@@ -40,6 +40,8 @@
 #include "goom_graphic.h"
 #include "goom_testing.h"
 #include "goom_tools.h"
+#include "goomutils/logging_control.h"
+// #undef NO_LOGGING
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
 

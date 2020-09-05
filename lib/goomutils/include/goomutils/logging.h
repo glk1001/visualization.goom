@@ -11,8 +11,6 @@
 #include <string_view>
 #include <vector>
 
-#define NO_LOGGING
-
 class Logging
 {
 public:
@@ -65,7 +63,7 @@ private:
             const int line_num,
             const std::string& func_name,
             std::string_view format_str,
-            stdnew::format_args args);
+            std20::format_args args);
 };
 
 inline Logging::Logging() noexcept
@@ -134,18 +132,18 @@ inline void Logging::log(const LogLevel lvl,
                          std::string_view format_str,
                          const Args&... args)
 {
-  vlog(lvl, line_num, func_name, format_str, stdnew::make_format_args(args...));
+  vlog(lvl, line_num, func_name, format_str, std20::make_format_args(args...));
 }
 
 inline void Logging::vlog(const LogLevel lvl,
                           const int line_num,
                           const std::string& func_name,
                           std::string_view format_str,
-                          stdnew::format_args args)
+                          std20::format_args args)
 {
-  stdnew::memory_buffer buffer;
+  std20::memory_buffer buffer;
   // Pass custom argument formatter as a template arg to vwrite.
-  stdnew::vformat_to(stdnew::detail::buffer_appender<char>(buffer), format_str, args);
+  std20::vformat_to(std20::detail::buffer_appender<char>(buffer), format_str, args);
   log(lvl, line_num, func_name, std::string(buffer.data(), buffer.size()));
 }
 

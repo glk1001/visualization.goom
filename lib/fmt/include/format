@@ -12,6 +12,6 @@
 
 #pragma GCC diagnostic pop
 
-namespace stdnew = ::fmt;
+namespace std20 = ::fmt;
 
 #endif

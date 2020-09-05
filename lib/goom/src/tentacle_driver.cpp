@@ -3,6 +3,8 @@
 #include "drawmethods.h"
 #include "goom.h"
 #include "goomutils/colormap.h"
+#include "goomutils/logging_control.h"
+// #undef NO_LOGGING
 #include "goomutils/logging.h"
 #include "tentacles_new.h"
 #include "v3d.h"
@@ -332,22 +334,22 @@ void TentacleDriver::updateIterTimers()
 
 void TentacleDriver::checkForTimerEvents()
 {
-  //  logDebug(stdnew::format("Update num = {}: checkForTimerEvents", updateNum));
+  //  logDebug("Update num = {}: checkForTimerEvents", updateNum);
 
   /**
   if (updateNum % doGlitchEveryNUpdates == 0) {
-//    logDebug(stdnew::format("Update num = {}: starting glitchTimer.", updateNum));
+//    logDebug("Update num = {}: starting glitchTimer.", updateNum);
     glitchTimer.start();
   }
   **/
   /**
   if (updateNum % doDominantColorEveryNUpdates == 0) {
     if (updateNum % (2*doDominantColorEveryNUpdates) == 0) {
-      logDebug(stdnew::format("Update num = {}: get new dominantColor", updateNum));
+      logDebug("Update num = {}: get new dominantColor", updateNum);
       dominantColorGroup = &getRandomColorGroup();
-      logDebug(stdnew::format("Update num = {}: got new dominantColorGroup", updateNum));
+      logDebug("Update num = {}: got new dominantColorGroup", updateNum);
       dominantColor = getRandomColor(*dominantColorGroup);
-      logDebug(stdnew::format("Update num = {}: new dominantColor = {}", updateNum, dominantColor));
+      logDebug("Update num = {}: new dominantColor = {}", updateNum, dominantColor);
     }
     dominantColor = getEvolvedColor(dominantColor);
   }
@@ -375,16 +377,16 @@ void TentacleDriver::beforeIter(const size_t ID,
       y += getRandInRange(glitchLower, glitchUpper);
     }
     /**
-//    logDebug(stdnew::format("iter = {} and tentacle {} and resetGlitchTimer.getCurrentCount() = {}.",
-//        iterNum, ID, glitchTimer.getCurrentCount()));
+//    logDebug("iter = {} and tentacle {} and resetGlitchTimer.getCurrentCount() = {}.",
+//        iterNum, ID, glitchTimer.getCurrentCount());
     if (glitchTimer.atStart()) {
       for (double& y : yvec) {
         y += getRandInRange(glitchLower, glitchUpper);
       }
-//      logDebug(stdnew::format("Pushing color for iter = {} and tentacle {}.", iterNum, ID));
+//      logDebug("Pushing color for iter = {} and tentacle {}.", iterNum, ID);
       colorizers[ID]->pushColorMap(glitchColorGroup);
     } else if (glitchTimer.getCurrentCount() == 1) {
-//      logDebug(stdnew::format("Popping color for iter = {} and tentacle {}.", iterNum, ID));
+//      logDebug("Popping color for iter = {} and tentacle {}.", iterNum, ID);
       colorizers[ID]->popColorMap();
     }
     **/
@@ -405,7 +407,7 @@ void TentacleDriver::update(const float angle,
                             Pixel* backBuff)
 {
   updateNum++;
-  //  logDebug(stdnew::format("Doing update {}.", updateNum));
+  //  logDebug("Doing update {}.", updateNum);
 
   if (updateNum % changeCurrentColorMapGroupEveryNUpdates == 0)
   {
@@ -426,12 +428,12 @@ void TentacleDriver::update(const float angle,
     tentacle2D.setIterZeroLerpFactor(iterZeroLerpFactor);
     tentacle2D.setIterZeroYVal(iterZeroYVal);
 
-    //    logDebug(stdnew::format("Starting iterate {} for tentacle {}.", tentacle2D.getIterNum()+1, tentacle2D.getID()));
+    //    logDebug("Starting iterate {} for tentacle {}.", tentacle2D.getIterNum()+1, tentacle2D.getID());
     tentacle2D.iterate();
 
-    //    logDebug(stdnew::format("Update num = {}, tentacle = {}, doing plot with angle = {}, "
+    //    logDebug("Update num = {}, tentacle = {}, doing plot with angle = {}, "
     //        "distance = {}, distance2 = {}, color = {} and colorLow = {}.",
-    //        updateNum, tentacle2D.getID(), angle, distance, distance2, color, colorLow));
+    //        updateNum, tentacle2D.getID(), angle, distance, distance2, color, colorLow);
     plot3D(tentacle, color, colorLow, angle, distance, distance2, frontBuff, backBuff);
   }
 }
@@ -635,14 +637,14 @@ CirclesTentacleLayout::CirclesTentacleLayout(const float radiusMin,
   if (numCircles < 2)
   {
     std::runtime_error(
-        stdnew::format("There must be >= 2 circle sample numbers not {}.", numCircles));
+        std20::format("There must be >= 2 circle sample numbers not {}.", numCircles));
   }
   for (const auto numSample : numCircleSamples)
   {
     if (numSample % 2 != 0)
     {
       // Perspective looks bad with odd because of x=0 tentacle.
-      std::runtime_error(stdnew::format("Circle sample num must be even not {}.", numSample));
+      std::runtime_error(std20::format("Circle sample num must be even not {}.", numSample));
     }
   }
 

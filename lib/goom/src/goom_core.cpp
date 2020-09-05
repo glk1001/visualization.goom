@@ -14,6 +14,8 @@
 #include "goom_fx.h"
 #include "goom_plugin_info.h"
 #include "goom_tools.h"
+#include "goomutils/logging_control.h"
+// #undef NO_LOGGING
 #include "goomutils/logging.h"
 #include "ifs.h"
 #include "lines.h"

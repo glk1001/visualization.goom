@@ -62,7 +62,6 @@ void evaluate_sound(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], Sou
   {
     info->speedvar = 1.0f;
   }
-
   if (info->speedvar < 0.1f)
   {
     info->accelvar *= (1.0f - static_cast<float>(info->speedvar));
@@ -83,14 +82,13 @@ void evaluate_sound(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], Sou
     info->accelvar = 0;
   }
 
+  // mise a jour de la vitesse
   difaccel = info->accelvar - difaccel;
   if (difaccel < 0)
   {
     difaccel = -difaccel;
   }
-
-  // mise a jour de la vitesse
-  float prevspeed = info->speedvar;
+  const float prevspeed = info->speedvar;
   info->speedvar = (info->speedvar + difaccel * 0.5f) / 2;
   info->speedvar *= SPEED_MULT;
   info->speedvar = (info->speedvar + 3.0f * prevspeed) / 4.0f;

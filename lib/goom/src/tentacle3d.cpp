@@ -7,9 +7,10 @@
 #include "tentacle_driver.h"
 #include "tentacles_new.h"
 #include "v3d.h"
-//#include "SimplexNoise.h"
 
 #include "goomutils/colormap.h"
+#include "goomutils/logging_control.h"
+// #undef NO_LOGGING
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
 

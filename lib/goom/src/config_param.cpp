@@ -9,6 +9,8 @@
 /*---------------------------------------------------------------------------*/
 
 #include "goom_config_param.h"
+#include "goomutils/logging_control.h"
+// #undef NO_LOGGING
 #include "goomutils/logging.h"
 
 #include <cstddef>

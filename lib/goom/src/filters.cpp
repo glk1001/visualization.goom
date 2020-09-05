@@ -20,6 +20,8 @@
 #include "goom_plugin_info.h"
 #include "goom_testing.h"
 #include "goom_tools.h"
+#include "goomutils/logging_control.h"
+// #undef NO_LOGGING
 #include "goomutils/logging.h"
 #include "goomutils/SimplexNoise.h"
 #include "v3d.h"

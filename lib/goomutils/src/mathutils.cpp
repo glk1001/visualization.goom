@@ -49,17 +49,17 @@ ExpDampingFunction::ExpDampingFunction(const double amp,
   if (std::fabs(amplitude) < minAmp)
   {
     throw std::runtime_error(
-        stdnew::format("abs(amplitude) should be >= {}, not {}.", minAmp, amplitude));
+        std20::format("abs(amplitude) should be >= {}, not {}.", minAmp, amplitude));
   }
   if (yAtStartToRise <= amplitude)
   {
-    throw std::runtime_error(stdnew::format("yAtStartToRise should be > {} = amplitude, not {}.",
+    throw std::runtime_error(std20::format("yAtStartToRise should be > {} = amplitude, not {}.",
                                             amplitude, yAtStartToRise));
   }
   if (yAtXMax <= amplitude)
   {
     throw std::runtime_error(
-        stdnew::format("yAtXMax should be > {} = amplitude, not {}.", amplitude, yAtXMax));
+        std20::format("yAtXMax should be > {} = amplitude, not {}.", amplitude, yAtXMax));
   }
   const double y0 = yAtStartToRise / amplitude - 1.0;
   const double y1 = yAtXMax / amplitude - 1.0;
@@ -141,7 +141,7 @@ SineWaveMultiplier::SineWaveMultiplier(const float freq,
 float SineWaveMultiplier::getNext()
 {
   const float val = rangeMapper(lower, upper, sin(frequency * x));
-  //logInfo(stdnew::format("lower = {}, upper = {}, sin({}) = {}.", lower, upper, x, val));
+  //logInfo("lower = {}, upper = {}, sin({}) = {}.", lower, upper, x, val);
   x += piStepFrac * M_PI;
   return val;
 }

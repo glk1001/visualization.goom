@@ -393,7 +393,7 @@ E Weights<E>::getRandomWeighted() const
     }
     randVal -= w;
   }
-  throw std::logic_error(stdnew::format("Should not get here. randVal = {}.", randVal));
+  throw std::logic_error(std20::format("Should not get here. randVal = {}.", randVal));
 }
 
 #endif
