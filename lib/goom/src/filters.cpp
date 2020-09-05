@@ -78,6 +78,7 @@ void zoom_filter_c(const uint16_t sizeX,
 
 static void generatePrecalCoef(int precalCoef[BUFFPOINTNB][BUFFPOINTNB]);
 
+// TODO repeated fields in here
 struct FilterDataWrapper
 {
   PluginParam enabled_bp;
@@ -104,6 +105,7 @@ struct FilterDataWrapper
   bool hypercosEffect;
   int vPlaneEffect;
   int hPlaneEffect;
+  bool perlinNoisify;
   bool noisify;
   uint32_t middleX;
   uint32_t middleY;
@@ -173,15 +175,25 @@ static inline v2g zoomVector(FilterDataWrapper* data, const float X, const float
 
   // Effects adds-on
   /* Noise */
-  if (data->noisify)
+  if (data->perlinNoisify)
   {
-    const float noise = (0.5*(1.0 + SimplexNoise::noise(X, Y)) - 0.5)/20.0;
+    const float noise = (0.5*(1.0 + SimplexNoise::noise(X, Y)) - 0.5)/1.0;
     vx += noise;
     vy -= noise;
     vx *= getRandInRange(0.7f, 1.0f);
     vy *= getRandInRange(0.7f, 1.0f);
-//    vx += ((static_cast<float>(pcg32_rand())) / static_cast<float>(RAND_MAX) - 0.5f) / 1.0f;
-//    vy += ((static_cast<float>(pcg32_rand())) / static_cast<float>(RAND_MAX) - 0.5f) / 1.0f;
+    vx += ((static_cast<float>(pcg32_rand())) / static_cast<float>(RAND_MAX) - 0.5f) / 5.0f;
+    vy += ((static_cast<float>(pcg32_rand())) / static_cast<float>(RAND_MAX) - 0.5f) / 5.0f;
+  }
+  if (data->noisify)
+  {
+    const float noise = (0.5*(1.0 + SimplexNoise::noise(X, Y)) - 0.5)/5.0;
+    vx += noise;
+    vy -= noise;
+    vx *= getRandInRange(0.7f, 1.0f);
+    vy *= getRandInRange(0.7f, 1.0f);
+//    vx += ((static_cast<float>(pcg32_rand())) / static_cast<float>(RAND_MAX) - 0.5f) / 20.0f;
+//    vy += ((static_cast<float>(pcg32_rand())) / static_cast<float>(RAND_MAX) - 0.5f) / 20.0f;
   }
 
   /* Hypercos */
@@ -531,6 +543,7 @@ void zoomFilterFastRGB(PluginInfo* goomInfo,
     data->vPlaneEffect = zf->vPlaneEffect;
     data->waveEffect = zf->waveEffect;
     data->hypercosEffect = zf->hypercosEffect;
+    data->perlinNoisify = zf->perlinNoisify;
     data->noisify = zf->noisify;
     data->interlaceStart = 0;
   }
@@ -663,6 +676,7 @@ static void zoomFilterSave(VisualFX* _this, const PluginInfo*, const char* file)
   save_int_setting(f, vfxname, "data->hypercosEffect", data->hypercosEffect);
   save_int_setting(f, vfxname, "data->vPlaneEffect", data->vPlaneEffect);
   save_int_setting(f, vfxname, "data->hPlaneEffect", data->hPlaneEffect);
+  save_int_setting(f, vfxname, "data->perlinNoisify", static_cast<int>(data->perlinNoisify));
   save_int_setting(f, vfxname, "data->noisify", static_cast<int>(data->noisify));
   save_int_setting(f, vfxname, "data->middleX", static_cast<int>(data->middleX));
   save_int_setting(f, vfxname, "data->middleY", static_cast<int>(data->middleY));
@@ -696,6 +710,7 @@ static void zoomFilterRestore(VisualFX* _this, PluginInfo*, const char* file)
   data->hypercosEffect = get_int_setting(f, vfxname, "data->hypercosEffect");
   data->vPlaneEffect = get_int_setting(f, vfxname, "data->vPlaneEffect");
   data->hPlaneEffect = get_int_setting(f, vfxname, "data->hPlaneEffect");
+  data->perlinNoisify = get_int_setting(f, vfxname, "data->perlinNoisify");
   data->noisify = get_int_setting(f, vfxname, "data->noisify");
   data->middleX = static_cast<uint32_t>(get_int_setting(f, vfxname, "data->middleX"));
   data->middleY = static_cast<uint32_t>(get_int_setting(f, vfxname, "data->middleY"));
@@ -733,6 +748,7 @@ static void zoomFilterVisualFXWrapper_init(VisualFX* _this, PluginInfo* info)
   data->hypercosEffect = false;
   data->vPlaneEffect = 0;
   data->hPlaneEffect = 0;
+  data->perlinNoisify = false;
   data->noisify = true;
 
   /** modif by jeko : fixedpoint : buffration = (16:16) (donc 0<=buffration<=2^16) */

@@ -23,7 +23,7 @@ enum class ZoomFilterMode
 
 struct ZoomFilterData
 {
-  ZoomFilterMode mode; // type d'effet à appliquer (cf les #define)
+  ZoomFilterMode mode; // type d'effet à appliquer
   // 128 = vitesse nule... * * 256 = en arriere
   //   hyper vite.. * * 0 = en avant hype vite.
   int32_t vitesse;
@@ -40,6 +40,7 @@ struct ZoomFilterData
   bool waveEffect; // applique une "surcouche" de wave effect
   bool hypercosEffect; // applique une "surcouche de hypercos effect
 
+  bool perlinNoisify;
   bool noisify; // ajoute un bruit a la transformation
 };
 
