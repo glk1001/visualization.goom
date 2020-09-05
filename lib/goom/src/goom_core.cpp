@@ -15,7 +15,7 @@
 #include "goom_plugin_info.h"
 #include "goom_tools.h"
 #include "goomutils/logging_control.h"
-// #undef NO_LOGGING
+#undef NO_LOGGING
 #include "goomutils/logging.h"
 #include "ifs.h"
 #include "lines.h"
@@ -25,6 +25,138 @@
 #include <cmath>
 #include <cstdint>
 #include <stdexcept>
+
+class GoomStats {
+public:
+  GoomStats() {}
+  void reset();
+  void log();
+  void updateChange();
+  void stateChange();
+  void filterModeChange();
+  void doIFS();
+  void doPoints();
+  void doLines();
+  void doStars();
+  void doTentacles();
+  void doBigUpdate();
+  void lastTimeGoomChange();
+  void megaLentChange();
+  void doPerlinNoise();
+  void doNoise();
+private:
+  uint32_t numUpdates = 0;
+  uint32_t numStateChanges = 0;
+  uint32_t numFilterModeChanges = 0;
+  uint32_t numDoIFS = 0;
+  uint32_t numDoPoints = 0;
+  uint32_t numDoLines = 0;
+  uint32_t numDoStars = 0;
+  uint32_t numDoTentacles = 0;
+  uint32_t numBigUpdates = 0;
+  uint32_t numLastTimeGoomChanges = 0;
+  uint32_t numMegaLentChanges = 0;
+  uint32_t numPerlinNoise = 0;
+  uint32_t numNoise = 0;
+};
+
+void GoomStats::reset()
+{
+  numUpdates = 0;
+  numStateChanges = 0;
+  numFilterModeChanges = 0;
+  numDoIFS = 0;
+  numDoPoints = 0;
+  numDoLines = 0;
+  numDoStars = 0;
+  numDoTentacles = 0;
+  numBigUpdates = 0;
+  numLastTimeGoomChanges = 0;
+  numMegaLentChanges = 0;
+  numPerlinNoise = 0;
+  numNoise = 0;
+}
+
+void GoomStats::log()
+{
+  logInfo("numUpdates = {}", numUpdates);
+  logInfo("numStateChanges = {}", numStateChanges);
+  logInfo("numFilterModeChanges = {}", numFilterModeChanges);
+  logInfo("numDoIFS = {}", numDoIFS);
+  logInfo("numDoPoints = {}", numDoPoints);
+  logInfo("numDoLines = {}", numDoLines);
+  logInfo("numDoStars = {}", numDoStars);
+  logInfo("numDoTentacles = {}", numDoTentacles);
+  logInfo("numLastTimeGoomChanges = {}", numLastTimeGoomChanges);
+  logInfo("numMegaLentChanges = {}", numMegaLentChanges);
+  logInfo("numPerlinNoise = {}", numPerlinNoise);
+  logInfo("numNoise = {}", numNoise);
+}
+
+inline void GoomStats::updateChange()
+{
+  numUpdates++;
+}
+
+inline void GoomStats::stateChange()
+{
+  numStateChanges++;
+}
+
+inline void GoomStats::filterModeChange()
+{
+  numFilterModeChanges++;
+}
+
+inline void GoomStats::doIFS()
+{
+  numDoIFS++;
+}
+
+inline void GoomStats::doPoints()
+{
+  numDoPoints++;
+}
+
+inline void GoomStats::doLines()
+{
+  numDoLines++;
+}
+
+inline void GoomStats::doStars()
+{
+  numDoStars++;
+}
+
+inline void GoomStats::doTentacles()
+{
+  numDoTentacles++;
+}
+
+inline void GoomStats::doBigUpdate()
+{
+  numBigUpdates++;
+}
+
+inline void GoomStats::lastTimeGoomChange()
+{
+  numLastTimeGoomChanges++;
+}
+
+inline void GoomStats::megaLentChange()
+{
+  numMegaLentChanges++;
+}
+
+inline void GoomStats::doPerlinNoise()
+{
+  numPerlinNoise++;
+}
+
+inline void GoomStats::doNoise()
+{
+  numNoise++;
+}
 
 constexpr int32_t stopSpeed = 128;
 // TODO: put that as variable in PluginInfo
@@ -52,9 +184,13 @@ static void swapBuffers(PluginInfo* goomInfo)
   goomInfo->p2 = tmp;
 }
 
+static GoomStats stats{};
+
 PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
 {
   logDebug("Initialize goom: resx = {}, resy = {}, seed = {}.", resx, resy, seed);
+
+  stats.reset();
 
   PluginInfo* goomInfo = new PluginInfo;
 
@@ -229,6 +365,8 @@ uint32_t* goom_update(PluginInfo* goomInfo,
                       const char* songTitle,
                       const char* message)
 {
+  stats.updateChange();
+
   // elargissement de l'intervalle d'évolution des points
   // ! calcul du deplacement des petits points ...
   const uint16_t pointWidth = (goomInfo->screen.width * 2) / 5;
@@ -311,6 +449,8 @@ uint32_t* goom_update(PluginInfo* goomInfo,
 ****************************************/
 void goom_close(PluginInfo* goomInfo)
 {
+  stats.log();
+
   if (goomInfo->pixel)
   {
     free(goomInfo->pixel);
@@ -504,6 +644,8 @@ static void drawPoints(PluginInfo* goomInfo,
                        const uint32_t pointHeight,
                        const float largfactor)
 {
+  stats.doPoints();
+
   const uint32_t speedvarMult80Plus15 = goomInfo->sound.speedvar * 80 + 15;
   const uint32_t speedvarMult50Plus1 = goomInfo->sound.speedvar * 50 + 1;
   logDebug("speedvarMult80Plus15 = {}", speedvarMult80Plus15);
@@ -591,6 +733,8 @@ static void changeFilterMode(PluginInfo* goomInfo)
     return;
   }
 
+  stats.filterModeChange();
+
   logDebug("rand16 = 0");
   switch (goomInfo->getNRand(34))
   {
@@ -677,11 +821,15 @@ static void changeFilterMode(PluginInfo* goomInfo)
 
 static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
 {
+  stats.doBigUpdate();
+
   // reperage de goom (acceleration forte de l'acceleration du volume)
   //   -> coup de boost de la vitesse si besoin..
   logDebug("goomInfo->sound.timeSinceLastGoom = {}", goomInfo->sound.timeSinceLastGoom);
   if (goomInfo->sound.timeSinceLastGoom == 0)
   {
+    stats.lastTimeGoomChange();
+
     logDebug("goomInfo->sound.timeSinceLastGoom = 0.");
 
     goomInfo->update.goomvar++;
@@ -707,6 +855,7 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
         goomInfo->curGState = &(goomInfo->states[i]);
         goomInfo->curGStateIndex = i;
         logDebug("Changed goom state to {}", goomInfo->curGStateIndex);
+        stats.stateChange();
         break;
       }
     }
@@ -843,12 +992,24 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
 
       if (goomInfo->getNRand(5) != 0)
       {
+        goomInfo->update.zoomFilterData.perlinNoisify = false;
+      }
+      else
+      {
+        goomInfo->update.zoomFilterData.perlinNoisify = true;
+        goomInfo->update.lockvar *= 2;
+        stats.doPerlinNoise();
+      }
+
+      if (goomInfo->getNRand(5) != 0)
+      {
         goomInfo->update.zoomFilterData.noisify = false;
       }
       else
       {
         goomInfo->update.zoomFilterData.noisify = true;
         goomInfo->update.lockvar *= 2;
+        stats.doNoise();
       }
 
       if (goomInfo->update.zoomFilterData.mode == ZoomFilterMode::amuletteMode)
@@ -905,6 +1066,7 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
   logDebug("rand700 = {}", rand700);
   if (rand700 == 0)
   {
+    stats.megaLentChange();
     logDebug("rand700 = 0");
     *pzfd = &goomInfo->update.zoomFilterData;
     goomInfo->update.zoomFilterData.vitesse = stopSpeed - 1;
@@ -974,6 +1136,10 @@ static void changeZoomEffect(PluginInfo* goomInfo, ZoomFilterData* pzfd, const i
 static void applyTentaclesIfRequired(PluginInfo* goomInfo)
 {
   logDebug("Before goomInfo->tentacles_fx.apply");
+  if (goomInfo->curGState->tentacle)
+  {
+    stats.doTentacles();
+  }
   goomInfo->tentacles_fx.apply(&goomInfo->tentacles_fx, goomInfo->p2, goomInfo->p1, goomInfo);
 }
 
@@ -984,6 +1150,7 @@ static void applyStarsIfRequired(PluginInfo* goomInfo)
     return;
   }
   logDebug("Before goomInfo->star_fx.apply");
+  stats.doStars();
   goomInfo->star_fx.apply(&goomInfo->star_fx, goomInfo->p2, goomInfo->p1, goomInfo);
 }
 
@@ -1105,6 +1272,8 @@ static void displayLines(PluginInfo* goomInfo,
   {
     return;
   }
+
+  stats.doLines();
 
   goomInfo->gmline2->power = goomInfo->gmline1->power;
 
@@ -1267,6 +1436,7 @@ static void applyIfsIfRequired(PluginInfo* goomInfo)
   if (goomInfo->update.ifs_incr > 0)
   {
     logDebug("goomInfo->update.ifs_incr = {} > 0", goomInfo->update.ifs_incr);
+    stats.doIFS();
     goomInfo->ifs_fx.apply(&goomInfo->ifs_fx, goomInfo->p2, goomInfo->p1, goomInfo);
   }
 }

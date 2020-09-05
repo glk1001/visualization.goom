@@ -22,6 +22,9 @@
 #include "Main.h"
 
 #include "AudioData.h"
+#include "goomutils/logging_control.h"
+#undef NO_LOGGING
+#include "goomutils/logging.h"
 
 CVisualizationGoom::CVisualizationGoom()
 {
@@ -84,6 +87,11 @@ bool CVisualizationGoom::Start(int iChannels,
     kodi::Log(ADDON_LOG_WARNING, "Start: Already started without a stop - skipping this.");
     return true;
   }
+
+  setLogFile("/tmp/kodi_goom.log");
+  setLogLevelForFiles(Logging::LogLevel::info);
+  logStart();
+  logInfo("Visualization start. SongName = \"{}\".", szSongName);
 
   m_channels = iChannels;
   m_audioBufferLen = m_channels * AUDIO_SAMPLE_LEN;
