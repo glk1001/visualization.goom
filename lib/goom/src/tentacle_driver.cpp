@@ -111,8 +111,8 @@ void TentacleDriver::init()
     std::unique_ptr<Tentacle2D> tentacle2D{createNewTentacle2D(i, params)};
     logDebug("Created tentacle2D {}.", i);
 
-//    const uint32_t headColor = ColorMap::getRandomColor(*headColorMap);
-//    const uint32_t headColorLow = ColorMap::getLighterColor(headColor, 50);
+    //    const uint32_t headColor = ColorMap::getRandomColor(*headColorMap);
+    //    const uint32_t headColorLow = ColorMap::getLighterColor(headColor, 50);
     const uint32_t headColor = 0xff101010;
     const uint32_t headColorLow = 0xff101010;
     Tentacle3D tentacle{std::move(tentacle2D), *colorizers[colorizers.size() - 1], headColor,
@@ -398,7 +398,8 @@ void TentacleDriver::beforeIter(const size_t ID,
   }
 }
 
-void TentacleDriver::update(const float angle,
+void TentacleDriver::update(const bool doDraw,
+                            const float angle,
                             const float distance,
                             const float distance2,
                             const uint32_t color,
@@ -434,7 +435,10 @@ void TentacleDriver::update(const float angle,
     //    logDebug("Update num = {}, tentacle = {}, doing plot with angle = {}, "
     //        "distance = {}, distance2 = {}, color = {} and colorLow = {}.",
     //        updateNum, tentacle2D.getID(), angle, distance, distance2, color, colorLow);
-    plot3D(tentacle, color, colorLow, angle, distance, distance2, frontBuff, backBuff);
+    if (doDraw)
+    {
+      plot3D(tentacle, color, colorLow, angle, distance, distance2, frontBuff, backBuff);
+    }
   }
 }
 

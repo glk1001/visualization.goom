@@ -90,6 +90,7 @@ bool CVisualizationGoom::Start(int iChannels,
 
   setLogFile("/tmp/kodi_goom.log");
   setLogLevelForFiles(Logging::LogLevel::info);
+//  setLogLevelForFiles(Logging::LogLevel::debug);
   logStart();
   logInfo("Visualization start. SongName = \"{}\".", szSongName);
 

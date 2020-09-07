@@ -39,14 +39,14 @@ inline static uint32_t goom_random(GoomRandom* grandom)
 {
   grandom->pos++; /* works because pos is an unsigned short */
   const uint32_t val = grandom->array[grandom->pos];
-//  logDebug("{}, {}", grandom->pos, val);
+  //  logDebug("{}, {}", grandom->pos, val);
   return val;
 }
 
 inline static uint32_t goom_irand(GoomRandom* grandom, uint32_t i)
 {
   grandom->pos++;
-//  logDebug("{}, {}", grandom->pos, grandom->array[grandom->pos]);
+  //  logDebug("{}, {}", grandom->pos, grandom->array[grandom->pos]);
   return grandom->array[grandom->pos] % i;
 }
 

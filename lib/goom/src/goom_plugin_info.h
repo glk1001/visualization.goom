@@ -33,14 +33,12 @@ struct GoomState
 struct SoundInfo
 {
   // Note: a Goom is just a sound event...
-
-  uint32_t timeSinceLastGoom; // >= 0
-  float goomPower; // power of the last Goom [0..1]
+  int16_t samples[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN];
 
   uint32_t timeSinceLastBigGoom; // >= 0
-
+  uint32_t timeSinceLastGoom; // >= 0
+  float goomPower; // power of the last Goom [0..1]
   float volume; // [0..1]
-  int16_t samples[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN];
 
   // other "internal" data for the sound_tester
   float goom_limit; // auto-updated limit of goom_detection
@@ -53,7 +51,6 @@ struct SoundInfo
   uint32_t totalgoom; // number of goom since last reset (a reset every 64 cycles)
 
   float prov_max; // accel max since last reset
-
   int cycle;
 
   // private data
@@ -103,7 +100,8 @@ struct PluginInfo
   // image buffers
   uint32_t* pixel;
   uint32_t* back;
-  Pixel *p1, *p2;
+  Pixel* p1;
+  Pixel* p2;
   Pixel* conv;
   Pixel* outputBuf;
 

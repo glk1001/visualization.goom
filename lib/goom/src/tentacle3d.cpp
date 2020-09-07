@@ -4,12 +4,11 @@
 #include "goom_config.h"
 #include "goom_plugin_info.h"
 #include "goom_tools.h"
+#include "goomutils/colormap.h"
+#include "goomutils/logging_control.h"
 #include "tentacle_driver.h"
 #include "tentacles_new.h"
 #include "v3d.h"
-
-#include "goomutils/colormap.h"
-#include "goomutils/logging_control.h"
 // #undef NO_LOGGING
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
@@ -101,7 +100,7 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
   }
   fx_data->lig += fx_data->ligs;
 
-  if (doDraw && (fx_data->lig > 1.01f))
+  if (fx_data->lig > 1.01f)
   {
     logDebug("Starting pretty_move 1.");
     float dist, dist2, rotangle;
@@ -128,7 +127,7 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
     fx_data->cycle += 0.01f;
     //    updateColors(goomInfo, fx_data);
 
-    driver.update(0.5 * M_PI - rotangle, dist, dist2, modColor, modColorLow, buf, back);
+    driver.update(doDraw, 0.5 * M_PI - rotangle, dist, dist2, modColor, modColorLow, buf, back);
   }
   else
   {
@@ -187,7 +186,8 @@ void TentaclesWrapper::pretty_move(PluginInfo* goomInfo,
   }
   else
   {
-    fx_data->rotation = goomInfo->getNRand(500) ? fx_data->rotation : static_cast<int>(goomInfo->getNRand(2));
+    fx_data->rotation =
+        goomInfo->getNRand(500) ? fx_data->rotation : static_cast<int>(goomInfo->getNRand(2));
     if (fx_data->rotation)
     {
       cycle *= 2.0f * M_PI;
@@ -361,7 +361,7 @@ void tentacle_fx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* goo
 
 void tentacle_fx_free(VisualFX* _this)
 {
-  TentacleFXData *data = static_cast<TentacleFXData*>(_this->fx_data);
+  TentacleFXData* data = static_cast<TentacleFXData*>(_this->fx_data);
   free(data->params.params);
   tentacle_free(data);
   free(_this->fx_data);

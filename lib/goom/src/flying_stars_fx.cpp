@@ -200,8 +200,8 @@ static void fs_sound_event_occured(VisualFX* _this, PluginInfo* info)
   data->maxAge = 10 + static_cast<int>(info->getNRand(10));
 
   int max = static_cast<int>((1.0f + info->sound.goomPower) * info->getNRand(150)) + 100;
-  float radius = (1.0f + info->sound.goomPower) *
-                 static_cast<float>(info->getNRand(150) + 50) / 300;
+  float radius =
+      (1.0f + info->sound.goomPower) * static_cast<float>(info->getNRand(150) + 50) / 300;
   float gravity = 0.02f;
   uint32_t mx;
   uint32_t my;

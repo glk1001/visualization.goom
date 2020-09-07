@@ -124,7 +124,8 @@ void Tentacle2D::startIterating()
 
   const double xstep = (xmax - xmin) / static_cast<double>(numNodes - 1);
   const double ystep =
-      100.0 / static_cast<double>(numNodes - 1);// ?????????????????????????????????????????????????????
+      100.0 /
+      static_cast<double>(numNodes - 1); // ?????????????????????????????????????????????????????
 
   xvec.resize(numNodes);
   yvec.resize(numNodes);
@@ -220,7 +221,7 @@ const Tentacle2D::XandYVectors& Tentacle2D::getXandYVectors() const
   if (std::get<0>(vecs).size() < 2)
   {
     throw std::runtime_error(std20::format("getXandYVectors: xvec.size() must be >= 2, not {}.",
-                                            std::get<0>(vecs).size()));
+                                           std::get<0>(vecs).size()));
   }
   if (xvec.size() < 2)
   {
@@ -286,7 +287,7 @@ const Tentacle2D::XandYVectors& Tentacle2D::getDampedXandYVectors() const
   {
     throw std::runtime_error(
         std20::format("getDampedXandYVectors: std::get<0>(vecs).size() must be >= 2, not {}.",
-                       std::get<0>(vecs).size()));
+                      std::get<0>(vecs).size()));
   }
 
   return dampedVecs;
@@ -296,13 +297,13 @@ Tentacle3D::Tentacle3D(std::unique_ptr<Tentacle2D> t,
                        const uint32_t headCol,
                        const uint32_t headColLow,
                        const V3d& h)
-  : specialColorNodes { 0, tentacle->getNumNodes(), { } },
-    tentacle { std::move(t) },
-    head { h },
-    colorizer { nullptr },
-    specialNodesColorMap { nullptr },
-    headColor { headCol },
-    headColorLow { headColLow }
+  : specialColorNodes{0, tentacle->getNumNodes(), {}},
+    tentacle{std::move(t)},
+    head{h},
+    colorizer{nullptr},
+    specialNodesColorMap{nullptr},
+    headColor{headCol},
+    headColorLow{headColLow}
 {
 }
 
@@ -326,9 +327,9 @@ Tentacle3D::Tentacle3D(Tentacle3D&& o)
     colorizer{o.colorizer},
     specialColorNodes{o.specialColorNodes},
     specialNodesColorMap{o.specialNodesColorMap},
-    headColor{ o.headColor },
-    headColorLow{ o.headColorLow },
-    head{ o.head }
+    headColor{o.headColor},
+    headColorLow{o.headColorLow},
+    head{o.head}
 {
 }
 

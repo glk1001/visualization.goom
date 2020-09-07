@@ -21,12 +21,22 @@ static void setOptimizedMethods(PluginInfo* p)
 void plugin_info_init(PluginInfo* pp, size_t nbVisuals)
 {
   logDebug("Starting plugin_info_init.");
-  pp->sound.speedvar = pp->sound.accelvar = pp->sound.totalgoom = 0;
-  pp->sound.prov_max = 0;
+
+  pp->sound.timeSinceLastBigGoom = 0;
+  pp->sound.timeSinceLastGoom = 0;
+  pp->sound.goomPower = 0;
+  pp->sound.volume = 0;
+
   pp->sound.goom_limit = 1;
+  pp->sound.bigGoomLimit = 1;
+  pp->sound.accelvar = 0;
+  pp->sound.speedvar = 0;
   pp->sound.allTimesMax = std::numeric_limits<int16_t>::min();
   pp->sound.allTimesMin = std::numeric_limits<int16_t>::max();
   pp->sound.allTimesPositiveMax = 1;
+  pp->sound.totalgoom = 0;
+  pp->sound.prov_max = 0;
+  pp->sound.cycle = 0;
 
   pp->sound.volume_p = secure_f_feedback("Sound Volume");
   pp->sound.accel_p = secure_f_feedback("Sound Acceleration");
