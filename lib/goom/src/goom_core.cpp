@@ -17,23 +17,217 @@
 #include "goomutils/logging_control.h"
 #undef NO_LOGGING
 #include "goomutils/logging.h"
+#include "goomutils/mathutils.h"
 #include "ifs.h"
 #include "lines.h"
 #include "sound_tester.h"
 #include "tentacle3d.h"
 
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <stdexcept>
+#include <utility>
+#include <vector>
 
-class GoomStats {
+// Return prob(m/n)
+inline bool probabilityOfMInN(PluginInfo* goomInfo, const uint32_t m, const uint32_t n)
+{
+  if (m == 1)
+  {
+    return goomInfo->getNRand(n) == 0;
+  }
+  if (m == n - 1)
+  {
+    return goomInfo->getNRand(n) > 0;
+  }
+  return goomInfo->getRandInRange(0.0f, 1.0f) < static_cast<float>(m) / static_cast<float>(n);
+}
+
+class GoomEvents
+{
+public:
+  GoomEvents();
+
+  void setGoomInfo(PluginInfo* goomInfo);
+
+  enum class GoomEvent
+  {
+    changeFilterMode = 0,
+    changeFilterFromNormalMode,
+    changeState,
+    changeNoiseState,
+    changeToMegaLentMode,
+    changeLineCircleAmplitude,
+    changeLineCircleParams,
+    changeHLineParams,
+    changeVLineParams,
+    hypercosEffectOnWithWaveMode,
+    waveEffectOnWithWaveMode,
+    changeVitesseWithWaveMode,
+    waveEffectOnWithCrystalBallMode,
+    hypercosEffectOnWithCrystalBallMode,
+    hypercosEffectOnWithHyperCos1Mode,
+    hypercosEffectOnWithHyperCos2Mode,
+    filterReverseOffAndStopSpeed,
+    filterReverseOn,
+    filterVitesseStopSpeedMinus1,
+    filterVitesseStopSpeedPlus1,
+    filterZeroHPlaneEffect,
+    filterChangeVitesseAndToggleReverse,
+    reduceLineMode,
+    updateLineMode,
+    changeLineToBlack,
+    changeGoomLine,
+    _size // must be last - gives number of enums
+  };
+
+  enum GoomFilterEvent
+  {
+    waveModeWithhypercosEffect,
+    waveMode,
+    crystalBallMode,
+    crystalBallModeWithEffects,
+    amuletteMode,
+    waterMode,
+    scrunchMode,
+    scrunchModeWithEffects,
+    hyperCos1Mode,
+    hyperCos2Mode,
+    yOnlyMode,
+    speedwayMode,
+    normalMode,
+    _size // must be last - gives number of enums
+  };
+
+  bool happens(const GoomEvent) const;
+  GoomFilterEvent getRandomFilterEvent() const;
+  LineType getRandomLineTypeEvent() const;
+
+private:
+  PluginInfo* goomInfo = nullptr;
+
+  static constexpr size_t numGoomEvents = static_cast<size_t>(GoomEvent::_size);
+  static constexpr size_t numGoomFilterEvents = static_cast<size_t>(GoomFilterEvent::_size);
+
+  struct WeightedEvent
+  {
+    GoomEvent event;
+    // m out of n
+    uint32_t m;
+    uint32_t outOf;
+  };
+  // clang-format off
+  // Note: With nomal filter mode, it's the least interesting mode so we
+  //   change away from it with higher probability than other filter modes.
+  static constexpr std::array<WeightedEvent, numGoomEvents> weightedEvents{ {
+    { .event = GoomEvent::changeFilterMode,                    .m = 1, .outOf =  16 },
+    { .event = GoomEvent::changeFilterFromNormalMode,          .m = 1, .outOf =   5 },
+    { .event = GoomEvent::changeState,                         .m = 2, .outOf =   3 },
+    { .event = GoomEvent::changeNoiseState,                    .m = 4, .outOf =   5 },
+    { .event = GoomEvent::changeToMegaLentMode,                .m = 1, .outOf = 700 },
+    { .event = GoomEvent::changeLineCircleAmplitude,           .m = 1, .outOf =   3 },
+    { .event = GoomEvent::changeLineCircleParams,              .m = 1, .outOf =   2 },
+    { .event = GoomEvent::changeHLineParams,                   .m = 3, .outOf =   4 },
+    { .event = GoomEvent::changeVLineParams,                   .m = 2, .outOf =   3 },
+    { .event = GoomEvent::hypercosEffectOnWithWaveMode,        .m = 1, .outOf =   2 },
+    { .event = GoomEvent::waveEffectOnWithWaveMode,            .m = 1, .outOf =   3 },
+    { .event = GoomEvent::changeVitesseWithWaveMode,           .m = 1, .outOf =   2 },
+    { .event = GoomEvent::waveEffectOnWithCrystalBallMode,     .m = 1, .outOf =   4 },
+    { .event = GoomEvent::hypercosEffectOnWithCrystalBallMode, .m = 1, .outOf =   2 },
+    { .event = GoomEvent::hypercosEffectOnWithHyperCos1Mode,   .m = 1, .outOf =   3 },
+    { .event = GoomEvent::hypercosEffectOnWithHyperCos2Mode,   .m = 1, .outOf =   6 },
+    { .event = GoomEvent::filterReverseOffAndStopSpeed,        .m = 1, .outOf =   5 },
+    { .event = GoomEvent::filterReverseOn,                     .m = 1, .outOf =  10 },
+    { .event = GoomEvent::filterVitesseStopSpeedMinus1,        .m = 1, .outOf =  10 },
+    { .event = GoomEvent::filterVitesseStopSpeedPlus1,         .m = 1, .outOf =  12 },
+    { .event = GoomEvent::filterZeroHPlaneEffect,              .m = 1, .outOf =   2 },
+    { .event = GoomEvent::filterChangeVitesseAndToggleReverse, .m = 1, .outOf =  40 },
+    { .event = GoomEvent::reduceLineMode,                      .m = 1, .outOf =   5 },
+    { .event = GoomEvent::updateLineMode,                      .m = 1, .outOf =   4 },
+    { .event = GoomEvent::changeLineToBlack,                   .m = 1, .outOf =   2 },
+    { .event = GoomEvent::changeGoomLine,                      .m = 1, .outOf =   3 },
+  } };
+
+  static constexpr std::array<std::pair<GoomFilterEvent, size_t>, numGoomFilterEvents> weightedFilterEvents{ {
+    { GoomFilterEvent::waveModeWithhypercosEffect,  2 },
+    { GoomFilterEvent::waveMode,                    3 },
+    { GoomFilterEvent::crystalBallMode,             2 },
+    { GoomFilterEvent::crystalBallModeWithEffects,  2 },
+    { GoomFilterEvent::amuletteMode,                2 },
+    { GoomFilterEvent::waterMode,                   2 },
+    { GoomFilterEvent::scrunchMode,                 3 },
+    { GoomFilterEvent::scrunchModeWithEffects,      3 },
+    { GoomFilterEvent::hyperCos1Mode,               3 },
+    { GoomFilterEvent::hyperCos2Mode,               2 },
+    { GoomFilterEvent::yOnlyMode,                   2 },
+    { GoomFilterEvent::speedwayMode,                3 },
+    { GoomFilterEvent::normalMode,                  3 },
+  } };
+
+  static constexpr std::array<std::pair<LineType, size_t>, numLineTypes> weightedLineEvents{ {
+    { LineType::circle,  4 },
+    { LineType::hline,   2 },
+    { LineType::vline,   1 },
+  } };
+  // clang-format on
+  const Weights<GoomFilterEvent> filterWeights;
+  const Weights<LineType> lineTypeWeights;
+};
+
+using GoomEvent = GoomEvents::GoomEvent;
+using GoomFilterEvent = GoomEvents::GoomFilterEvent;
+
+GoomEvents::GoomEvents()
+: filterWeights{ { weightedFilterEvents.begin(), weightedFilterEvents.end() } },
+  lineTypeWeights{ { weightedLineEvents.begin(), weightedLineEvents.end() } }
+{
+}
+
+void GoomEvents::setGoomInfo(PluginInfo* info)
+{
+  goomInfo = info;
+}
+
+inline bool GoomEvents::happens(const GoomEvent event) const
+{
+  const WeightedEvent& weightedEvent = weightedEvents[static_cast<size_t>(event)];
+  return probabilityOfMInN(goomInfo, weightedEvent.m, weightedEvent.outOf);
+}
+
+inline GoomEvents::GoomFilterEvent GoomEvents::getRandomFilterEvent() const
+{
+  return filterWeights.getRandomWeighted();
+}
+
+inline LineType GoomEvents::getRandomLineTypeEvent() const
+{
+  return lineTypeWeights.getRandomWeighted();
+}
+
+static GoomEvents goomEvent{};
+
+inline bool changeFilterModeEventHappens(PluginInfo* goomInfo)
+{
+  if (goomInfo->update.zoomFilterData.mode == ZoomFilterMode::normalMode)
+  {
+    return goomEvent.happens(GoomEvent::changeFilterFromNormalMode);
+  }
+  return goomEvent.happens(GoomEvent::changeFilterMode);
+}
+
+class GoomStats
+{
 public:
   GoomStats() {}
   void reset();
   void log();
   void updateChange();
   void stateChange();
+  void stateChange(const size_t index);
   void filterModeChange();
+  void filterModeChange(const ZoomFilterMode);
+  void lockChange();
   void doIFS();
   void doPoints();
   void doLines();
@@ -44,10 +238,12 @@ public:
   void megaLentChange();
   void doPerlinNoise();
   void doNoise();
+
 private:
   uint32_t numUpdates = 0;
-  uint32_t numStateChanges = 0;
-  uint32_t numFilterModeChanges = 0;
+  uint32_t totalStateChanges = 0;
+  uint32_t totalFilterModeChanges = 0;
+  uint32_t numLockChanges = 0;
   uint32_t numDoIFS = 0;
   uint32_t numDoPoints = 0;
   uint32_t numDoLines = 0;
@@ -56,15 +252,20 @@ private:
   uint32_t numBigUpdates = 0;
   uint32_t numLastTimeGoomChanges = 0;
   uint32_t numMegaLentChanges = 0;
-  uint32_t numPerlinNoise = 0;
-  uint32_t numNoise = 0;
+  uint32_t numDoPerlinNoise = 0;
+  uint32_t numDoNoise = 0;
+  std::array<int, static_cast<size_t>(ZoomFilterMode::_size)> numFilterModeChanges{0};
+  std::vector<int> numStateChanges;
 };
 
 void GoomStats::reset()
 {
   numUpdates = 0;
-  numStateChanges = 0;
-  numFilterModeChanges = 0;
+  totalStateChanges = 0;
+  std::fill(numStateChanges.begin(), numStateChanges.end(), 0);
+  totalFilterModeChanges = 0;
+  numFilterModeChanges.fill(0);
+  numLockChanges = 0;
   numDoIFS = 0;
   numDoPoints = 0;
   numDoLines = 0;
@@ -73,15 +274,24 @@ void GoomStats::reset()
   numBigUpdates = 0;
   numLastTimeGoomChanges = 0;
   numMegaLentChanges = 0;
-  numPerlinNoise = 0;
-  numNoise = 0;
+  numDoPerlinNoise = 0;
+  numDoNoise = 0;
 }
 
 void GoomStats::log()
 {
   logInfo("numUpdates = {}", numUpdates);
-  logInfo("numStateChanges = {}", numStateChanges);
-  logInfo("numFilterModeChanges = {}", numFilterModeChanges);
+  logInfo("totalStateChanges = {}", totalStateChanges);
+  for (size_t i = 0; i < numStateChanges.size(); i++)
+  {
+    logInfo("State {}: numChanges = {}", i, numStateChanges[i]);
+  }
+  logInfo("totalFilterModeChanges = {}", totalFilterModeChanges);
+  for (size_t i = 0; i < numFilterModeChanges.size(); i++)
+  {
+    logInfo("Filter mode {}: numChanges = {}", i, numFilterModeChanges[i]);
+  }
+  logInfo("numLockChanges = {}", numLockChanges);
   logInfo("numDoIFS = {}", numDoIFS);
   logInfo("numDoPoints = {}", numDoPoints);
   logInfo("numDoLines = {}", numDoLines);
@@ -89,8 +299,8 @@ void GoomStats::log()
   logInfo("numDoTentacles = {}", numDoTentacles);
   logInfo("numLastTimeGoomChanges = {}", numLastTimeGoomChanges);
   logInfo("numMegaLentChanges = {}", numMegaLentChanges);
-  logInfo("numPerlinNoise = {}", numPerlinNoise);
-  logInfo("numNoise = {}", numNoise);
+  logInfo("numDoPerlinNoise = {}", numDoPerlinNoise);
+  logInfo("numDoNoise = {}", numDoNoise);
 }
 
 inline void GoomStats::updateChange()
@@ -100,12 +310,34 @@ inline void GoomStats::updateChange()
 
 inline void GoomStats::stateChange()
 {
-  numStateChanges++;
+  totalStateChanges++;
+}
+
+inline void GoomStats::stateChange(const size_t index)
+{
+  if (index >= numStateChanges.size())
+  {
+    for (size_t i = numStateChanges.size(); i <= index; i++)
+    {
+      numStateChanges.push_back(0);
+    }
+  }
+  numStateChanges[index]++;
 }
 
 inline void GoomStats::filterModeChange()
 {
-  numFilterModeChanges++;
+  totalFilterModeChanges++;
+}
+
+inline void GoomStats::filterModeChange(const ZoomFilterMode mode)
+{
+  numFilterModeChanges.at(static_cast<size_t>(mode))++;
+}
+
+inline void GoomStats::lockChange()
+{
+  numLockChanges++;
 }
 
 inline void GoomStats::doIFS()
@@ -150,12 +382,12 @@ inline void GoomStats::megaLentChange()
 
 inline void GoomStats::doPerlinNoise()
 {
-  numPerlinNoise++;
+  numDoPerlinNoise++;
 }
 
 inline void GoomStats::doNoise()
 {
-  numNoise++;
+  numDoNoise++;
 }
 
 constexpr int32_t stopSpeed = 128;
@@ -239,6 +471,8 @@ PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
   gfont_load();
 
   /* goom_set_main_script(goomInfo, goomInfo->main_script_str); */
+
+  goomEvent.setGoomInfo(goomInfo);
 
   return goomInfo;
 }
@@ -339,8 +573,8 @@ static void stopDecrementingAfterAWhile(PluginInfo* goomInfo, ZoomFilterData** p
 static void stopDecrementing(PluginInfo* goomInfo, ZoomFilterData** pzfd);
 
 // tout ceci ne sera fait qu'en cas de non-blocage
-static void bigUpdateIfNotLocked(PluginInfo* goomInfo, ZoomFilterData** pzfd);
-static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd);
+static void bigUpdateIfNotLocked(PluginInfo* goomInfo, ZoomFilterData** pzfd, const int forceMode);
+static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd, const int forceMode);
 
 // gros frein si la musique est calme
 static void bigBreakIfMusicIsCalm(PluginInfo* goomInfo, ZoomFilterData** pzfd);
@@ -398,6 +632,7 @@ uint32_t* goom_update(PluginInfo* goomInfo,
   {
     goomInfo->update.lockvar = 0;
   }
+  stats.lockChange();
   /* note pour ceux qui n'ont pas suivis : le lockvar permet d'empecher un */
   /* changement d'etat du plugin juste apres un autre changement d'etat. oki */
   // -- Note for those who have not followed: the lockvar prevents a change
@@ -405,7 +640,7 @@ uint32_t* goom_update(PluginInfo* goomInfo,
 
   changeFilterModeIfMusicChanges(goomInfo, forceMode);
 
-  bigUpdateIfNotLocked(goomInfo, &pzfd);
+  bigUpdateIfNotLocked(goomInfo, &pzfd, forceMode);
 
   bigBreakIfMusicIsCalm(goomInfo, &pzfd);
 
@@ -496,7 +731,8 @@ static void chooseGoomLine(PluginInfo* goomInfo,
                            const int far)
 {
   *amplitude = 1.0f;
-  *mode = static_cast<LineType>(goomInfo->getNRand(numLineTypes));
+  *mode = goomEvent.getRandomLineTypeEvent();
+
   switch (*mode)
   {
     case LineType::circle:
@@ -506,12 +742,12 @@ static void chooseGoomLine(PluginInfo* goomInfo,
         *amplitude = 0.8f;
         break;
       }
-      if (goomInfo->getNRand(3) == 0)
+      if (goomEvent.happens(GoomEvent::changeLineCircleAmplitude))
       {
         *param1 = *param2 = 0;
         *amplitude = 3.0f;
       }
-      else if (goomInfo->getBoolRand())
+      else if (goomEvent.happens(GoomEvent::changeLineCircleParams))
       {
         *param1 = 0.40f * goomInfo->screen.height;
         *param2 = 0.22f * goomInfo->screen.height;
@@ -522,7 +758,7 @@ static void chooseGoomLine(PluginInfo* goomInfo,
       }
       break;
     case LineType::hline:
-      if (goomInfo->getNRand(4) || far)
+      if (goomEvent.happens(GoomEvent::changeHLineParams) || far)
       {
         *param1 = goomInfo->screen.height / 7;
         *param2 = 6.0f * goomInfo->screen.height / 7.0f;
@@ -534,7 +770,7 @@ static void chooseGoomLine(PluginInfo* goomInfo,
       }
       break;
     case LineType::vline:
-      if (goomInfo->getNRand(3) || far)
+      if (goomEvent.happens(GoomEvent::changeVLineParams) || far)
       {
         *param1 = goomInfo->screen.width / 7.0f;
         *param2 = 6.0f * goomInfo->screen.width / 7.0f;
@@ -726,100 +962,112 @@ static void changeFilterModeIfMusicChanges(PluginInfo* goomInfo, const int force
 
 static void changeFilterMode(PluginInfo* goomInfo)
 {
-  const uint32_t rand16 = goomInfo->getNRand(16);
-  logDebug("rand16 = {}", rand16);
-  if (rand16 != 0)
+  if (!changeFilterModeEventHappens(goomInfo))
   {
     return;
   }
+  logDebug("Time to change the filter mode.");
 
   stats.filterModeChange();
 
-  logDebug("rand16 = 0");
-  switch (goomInfo->getNRand(34))
+  switch (goomEvent.getRandomFilterEvent())
   {
-    case 0:
-    case 10:
-      goomInfo->update.zoomFilterData.hypercosEffect = goomInfo->getBoolRand();
-      [[fallthrough]]; // TODO: Is this really a fallthrough????
-    case 13:
-    case 20:
-    case 21:
+    case GoomFilterEvent::waveModeWithhypercosEffect:
+      goomInfo->update.zoomFilterData.hypercosEffect =
+          goomEvent.happens(GoomEvent::hypercosEffectOnWithWaveMode);
+      [[fallthrough]];
+    case GoomFilterEvent::waveMode:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::waveMode;
+      stats.filterModeChange(ZoomFilterMode::waveMode);
       goomInfo->update.zoomFilterData.reverse = false;
-      goomInfo->update.zoomFilterData.waveEffect = (goomInfo->getNRand(3) == 0);
-      if (goomInfo->getBoolRand())
+      goomInfo->update.zoomFilterData.waveEffect =
+          goomEvent.happens(GoomEvent::waveEffectOnWithWaveMode);
+      if (goomEvent.happens(GoomEvent::changeVitesseWithWaveMode))
       {
         goomInfo->update.zoomFilterData.vitesse =
             (goomInfo->update.zoomFilterData.vitesse + 127) >> 1;
       }
       break;
-    case 1:
-    case 11:
+    case GoomFilterEvent::crystalBallMode:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::crystalBallMode;
+      stats.filterModeChange(ZoomFilterMode::crystalBallMode);
       goomInfo->update.zoomFilterData.waveEffect = false;
       goomInfo->update.zoomFilterData.hypercosEffect = false;
       break;
-    case 2:
-    case 12:
+    case GoomFilterEvent::crystalBallModeWithEffects:
+      goomInfo->update.zoomFilterData.mode = ZoomFilterMode::crystalBallMode;
+      stats.filterModeChange(ZoomFilterMode::crystalBallMode);
+      goomInfo->update.zoomFilterData.waveEffect =
+          goomEvent.happens(GoomEvent::waveEffectOnWithCrystalBallMode);
+      goomInfo->update.zoomFilterData.hypercosEffect =
+          goomEvent.happens(GoomEvent::hypercosEffectOnWithCrystalBallMode);
+      break;
+    case GoomFilterEvent::amuletteMode:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::amuletteMode;
+      stats.filterModeChange(ZoomFilterMode::amuletteMode);
       goomInfo->update.zoomFilterData.waveEffect = false;
       goomInfo->update.zoomFilterData.hypercosEffect = false;
       break;
-    case 3:
+    case GoomFilterEvent::waterMode:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::waterMode;
+      stats.filterModeChange(ZoomFilterMode::waterMode);
       goomInfo->update.zoomFilterData.waveEffect = false;
       goomInfo->update.zoomFilterData.hypercosEffect = false;
       break;
-    case 4:
-    case 14:
+    case GoomFilterEvent::scrunchMode:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::scrunchMode;
+      stats.filterModeChange(ZoomFilterMode::scrunchMode);
       goomInfo->update.zoomFilterData.waveEffect = false;
       goomInfo->update.zoomFilterData.hypercosEffect = false;
       break;
-    case 5:
-    case 15:
-    case 22:
-      goomInfo->update.zoomFilterData.mode = ZoomFilterMode::hyperCos1Mode;
-      goomInfo->update.zoomFilterData.waveEffect = false;
-      goomInfo->update.zoomFilterData.hypercosEffect = (goomInfo->getNRand(3) == 0);
-      break;
-    case 6:
-    case 16:
-      goomInfo->update.zoomFilterData.mode = ZoomFilterMode::hyperCos2Mode;
-      goomInfo->update.zoomFilterData.waveEffect = false;
-      goomInfo->update.zoomFilterData.hypercosEffect = false;
-      break;
-    case 7:
-    case 17:
-      goomInfo->update.zoomFilterData.mode = ZoomFilterMode::crystalBallMode;
-      goomInfo->update.zoomFilterData.waveEffect = (goomInfo->getNRand(4) == 0);
-      goomInfo->update.zoomFilterData.hypercosEffect = goomInfo->getBoolRand();
-      break;
-    case 8:
-    case 18:
-    case 19:
+    case GoomFilterEvent::scrunchModeWithEffects:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::scrunchMode;
+      stats.filterModeChange(ZoomFilterMode::scrunchMode);
       goomInfo->update.zoomFilterData.waveEffect = true;
       goomInfo->update.zoomFilterData.hypercosEffect = true;
       break;
-    case 29:
-    case 30:
+    case GoomFilterEvent::hyperCos1Mode:
+      goomInfo->update.zoomFilterData.mode = ZoomFilterMode::hyperCos1Mode;
+      stats.filterModeChange(ZoomFilterMode::hyperCos1Mode);
+      goomInfo->update.zoomFilterData.waveEffect = false;
+      goomInfo->update.zoomFilterData.hypercosEffect =
+          goomEvent.happens(GoomEvent::hypercosEffectOnWithHyperCos1Mode);
+      break;
+    case GoomFilterEvent::hyperCos2Mode:
+      goomInfo->update.zoomFilterData.mode = ZoomFilterMode::hyperCos2Mode;
+      stats.filterModeChange(ZoomFilterMode::hyperCos2Mode);
+      goomInfo->update.zoomFilterData.waveEffect = false;
+      goomInfo->update.zoomFilterData.hypercosEffect =
+          goomEvent.happens(GoomEvent::hypercosEffectOnWithHyperCos2Mode);
+      break;
+    case GoomFilterEvent::yOnlyMode:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::yOnlyMode;
+      stats.filterModeChange(ZoomFilterMode::yOnlyMode);
       break;
-    case 31:
-    case 32:
-    case 33:
+    case GoomFilterEvent::speedwayMode:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::speedwayMode;
+      stats.filterModeChange(ZoomFilterMode::speedwayMode);
       break;
-    default:
+    case GoomFilterEvent::normalMode:
+      //      if (goomInfo->curGState->tentacle)
+      //      {
+      //        // Tentacles don't look so good with normal mode so choose something else.
+      //        goomInfo->update.zoomFilterData.mode = ZoomFilterMode::speedwayMode;
+      //      }
+      //      else
+      //      {
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::normalMode;
+      stats.filterModeChange(ZoomFilterMode::normalMode);
       goomInfo->update.zoomFilterData.waveEffect = false;
       goomInfo->update.zoomFilterData.hypercosEffect = false;
+      //      }
+      break;
+    default:
+      throw std::logic_error("GoomFilterEvent not implemented.");
   }
 }
 
-static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
+static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd, const int forceMode)
 {
   stats.doBigUpdate();
 
@@ -834,29 +1082,41 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
 
     goomInfo->update.goomvar++;
 
-    const uint32_t rand3 = goomInfo->getNRand(3);
-    logDebug("Selection of Goom state: stateSelectionBlocker = {}, rand3 = {}",
-             goomInfo->update.stateSelectionBlocker, rand3);
-    if (!goomInfo->update.stateSelectionBlocker && (rand3 > 0))
-    {
-      goomInfo->update.stateSelectionRand = goomInfo->getNRand(goomInfo->maxStateSelect + 1);
-      goomInfo->update.stateSelectionBlocker = 3;
-    }
-    else if (goomInfo->update.stateSelectionBlocker)
+    if (goomInfo->update.stateSelectionBlocker)
     {
       goomInfo->update.stateSelectionBlocker--;
     }
-
-    for (size_t i = 0; i < goomInfo->numStates; i++)
+    else if (goomEvent.happens(GoomEvent::changeState))
     {
-      if ((goomInfo->update.stateSelectionRand >= goomInfo->states[i].minSel) &&
-          (goomInfo->update.stateSelectionRand <= goomInfo->states[i].maxSel))
+      goomInfo->update.stateSelectionRand = goomInfo->getNRand(goomInfo->maxStateSelect + 1);
+      goomInfo->update.stateSelectionBlocker = 3;
+
+      for (size_t i = 0; i < goomInfo->numStates; i++)
       {
-        goomInfo->curGState = &(goomInfo->states[i]);
-        goomInfo->curGStateIndex = i;
-        logDebug("Changed goom state to {}", goomInfo->curGStateIndex);
-        stats.stateChange();
-        break;
+        if ((goomInfo->update.stateSelectionRand >= goomInfo->states[i].minSel) &&
+            (goomInfo->update.stateSelectionRand <= goomInfo->states[i].maxSel))
+        {
+          goomInfo->curGState = &(goomInfo->states[i]);
+          goomInfo->curGStateIndex = i;
+          logDebug("Changed goom state to {}", goomInfo->curGStateIndex);
+          stats.stateChange();
+          stats.stateChange(i);
+          if (goomInfo->curGState->tentacle)
+          {
+            logInfo("It's a tentacle state - filter mode = {}.",
+                    goomInfo->update.zoomFilterData.mode);
+          }
+          /**
+          if (goomInfo->curGState->tentacle && (forceMode != 0) &&
+              (goomInfo->update.zoomFilterData.mode == ZoomFilterMode::normalMode))
+          {
+            // Tentacles and normal filter mode don't look so good - choose another mode.
+            logInfo("It's a tentacle state - changing filter mode.");
+            changeFilterMode(goomInfo);
+          }
+          **/
+          break;
+        }
       }
     }
 
@@ -884,27 +1144,30 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
     // if (goomInfo->update.goomvar % 1 == 0)
     {
       goomInfo->update.lockvar = 50;
+      stats.lockChange();
       const int32_t newvit =
           stopSpeed + 1 - static_cast<int32_t>(3.5f * log10(goomInfo->sound.speedvar * 60 + 1));
       // retablir le zoom avant..
       if ((goomInfo->update.zoomFilterData.reverse) && (!(goomInfo->cycle % 13)) &&
-          (pcg32_rand() % 5 == 0))
+          goomEvent.happens(GoomEvent::filterReverseOffAndStopSpeed))
       {
         goomInfo->update.zoomFilterData.reverse = false;
         goomInfo->update.zoomFilterData.vitesse = stopSpeed - 2;
         goomInfo->update.lockvar = 75;
+        stats.lockChange();
       }
-      if (goomInfo->getNRand(10) == 0)
+      if (goomEvent.happens(GoomEvent::filterReverseOn))
       {
         goomInfo->update.zoomFilterData.reverse = true;
         goomInfo->update.lockvar = 100;
+        stats.lockChange();
       }
 
-      if (goomInfo->getNRand(10) == 0)
+      if (goomEvent.happens(GoomEvent::filterVitesseStopSpeedMinus1))
       {
         goomInfo->update.zoomFilterData.vitesse = stopSpeed - 1;
       }
-      if (goomInfo->getNRand(12) == 0)
+      if (goomEvent.happens(GoomEvent::filterVitesseStopSpeedPlus1))
       {
         goomInfo->update.zoomFilterData.vitesse = stopSpeed + 1;
       }
@@ -913,17 +1176,17 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
       switch (goomInfo->getNRand(25))
       {
         case 0:
-        case 3:
-        case 6:
+        case 1:
+        case 2:
           goomInfo->update.zoomFilterData.middleY = goomInfo->screen.height - 1;
           goomInfo->update.zoomFilterData.middleX = goomInfo->screen.width / 2;
           break;
-        case 1:
+        case 3:
         case 4:
           goomInfo->update.zoomFilterData.middleX = goomInfo->screen.width - 1;
           break;
-        case 2:
         case 5:
+        case 6:
           goomInfo->update.zoomFilterData.middleX = 1;
           break;
         default:
@@ -944,8 +1207,8 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
         case 0:
           goomInfo->update.zoomFilterData.vPlaneEffect =
               static_cast<int>(goomInfo->getNRand(3) - goomInfo->getNRand(3));
-          goomInfo->update.zoomFilterData.hPlaneEffect = static_cast<int>(
-              goomInfo->getNRand(3) - goomInfo->getNRand(3));
+          goomInfo->update.zoomFilterData.hPlaneEffect =
+              static_cast<int>(goomInfo->getNRand(3) - goomInfo->getNRand(3));
           break;
         case 3:
           goomInfo->update.zoomFilterData.vPlaneEffect = 0;
@@ -962,25 +1225,27 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
               -goomInfo->update.zoomFilterData.vPlaneEffect;
           break;
         case 8:
-          goomInfo->update.zoomFilterData.hPlaneEffect = static_cast<int>(5 + goomInfo->getNRand(8));
+          goomInfo->update.zoomFilterData.hPlaneEffect =
+              static_cast<int>(5 + goomInfo->getNRand(8));
           goomInfo->update.zoomFilterData.vPlaneEffect =
               -goomInfo->update.zoomFilterData.hPlaneEffect;
           break;
         case 9:
-          goomInfo->update.zoomFilterData.vPlaneEffect = static_cast<int>(5 + goomInfo->getNRand(8));
+          goomInfo->update.zoomFilterData.vPlaneEffect =
+              static_cast<int>(5 + goomInfo->getNRand(8));
           goomInfo->update.zoomFilterData.hPlaneEffect =
               -goomInfo->update.zoomFilterData.hPlaneEffect;
           break;
         case 13:
           goomInfo->update.zoomFilterData.hPlaneEffect = 0;
-          goomInfo->update.zoomFilterData.vPlaneEffect = static_cast<int>(
-              goomInfo->getNRand(10) - goomInfo->getNRand(10));
+          goomInfo->update.zoomFilterData.vPlaneEffect =
+              static_cast<int>(goomInfo->getNRand(10) - goomInfo->getNRand(10));
           break;
         case 14:
-          goomInfo->update.zoomFilterData.hPlaneEffect = static_cast<int>(
-              goomInfo->getNRand(10) - goomInfo->getNRand(10));
-          goomInfo->update.zoomFilterData.vPlaneEffect = static_cast<int>(
-              goomInfo->getNRand(10) - goomInfo->getNRand(10));
+          goomInfo->update.zoomFilterData.hPlaneEffect =
+              static_cast<int>(goomInfo->getNRand(10) - goomInfo->getNRand(10));
+          goomInfo->update.zoomFilterData.vPlaneEffect =
+              static_cast<int>(goomInfo->getNRand(10) - goomInfo->getNRand(10));
           break;
         default:
           if (vtmp < 10)
@@ -990,18 +1255,18 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
           }
       }
 
-      if (goomInfo->getNRand(5) != 0)
+      if (goomEvent.happens(GoomEvent::changeNoiseState))
       {
         goomInfo->update.zoomFilterData.perlinNoisify = false;
       }
       else
       {
-        goomInfo->update.zoomFilterData.perlinNoisify = true;
-        goomInfo->update.lockvar *= 2;
-        stats.doPerlinNoise();
+        goomInfo->update.zoomFilterData.perlinNoisify = false;
+        //        goomInfo->update.lockvar *= 2;
+        //        stats.doPerlinNoise();
       }
 
-      if (goomInfo->getNRand(5) != 0)
+      if (goomEvent.happens(GoomEvent::changeNoiseState))
       {
         goomInfo->update.zoomFilterData.noisify = false;
       }
@@ -1009,6 +1274,7 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
       {
         goomInfo->update.zoomFilterData.noisify = true;
         goomInfo->update.lockvar *= 2;
+        stats.lockChange();
         stats.doNoise();
       }
 
@@ -1023,7 +1289,7 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
           (goomInfo->update.zoomFilterData.middleX == goomInfo->screen.width - 1))
       {
         goomInfo->update.zoomFilterData.vPlaneEffect = 0;
-        if (goomInfo->getBoolRand())
+        if (goomEvent.happens(GoomEvent::filterZeroHPlaneEffect))
         {
           goomInfo->update.zoomFilterData.hPlaneEffect = 0;
         }
@@ -1038,11 +1304,12 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
         *pzfd = &goomInfo->update.zoomFilterData;
         if (((newvit < (stopSpeed - 7)) &&
              (goomInfo->update.zoomFilterData.vitesse < stopSpeed - 6) &&
-             (goomInfo->cycle % 3 == 0)) || (goomInfo->getNRand(40) == 0))
+             (goomInfo->cycle % 3 == 0)) ||
+            goomEvent.happens(GoomEvent::filterChangeVitesseAndToggleReverse))
         {
-          goomInfo->update.zoomFilterData.vitesse =
-              stopSpeed - static_cast<int32_t>(goomInfo->getNRand(2)) +
-              static_cast<int32_t>(goomInfo->getNRand(2));
+          goomInfo->update.zoomFilterData.vitesse = stopSpeed -
+                                                    static_cast<int32_t>(goomInfo->getNRand(2)) +
+                                                    static_cast<int32_t>(goomInfo->getNRand(2));
           goomInfo->update.zoomFilterData.reverse = !goomInfo->update.zoomFilterData.reverse;
         }
         else
@@ -1051,6 +1318,7 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
               (newvit + goomInfo->update.zoomFilterData.vitesse * 7) / 8;
         }
         goomInfo->update.lockvar += 50;
+        stats.lockChange();
       }
     }
 
@@ -1062,17 +1330,16 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
   }
 
   // mode mega-lent
-  const uint32_t rand700 = goomInfo->getNRand(700);
-  logDebug("rand700 = {}", rand700);
-  if (rand700 == 0)
+  if (goomEvent.happens(GoomEvent::changeToMegaLentMode))
   {
     stats.megaLentChange();
-    logDebug("rand700 = 0");
+    logDebug("mega lent change");
     *pzfd = &goomInfo->update.zoomFilterData;
     goomInfo->update.zoomFilterData.vitesse = stopSpeed - 1;
     goomInfo->update.zoomFilterData.pertedec = 8;
     goomInfo->update.goomvar = 1;
     goomInfo->update.lockvar += 50;
+    stats.lockChange();
     goomInfo->update.switchIncr = goomInfo->update.switchIncrAmount;
     goomInfo->update.switchMult = 1.0f;
   }
@@ -1222,13 +1489,13 @@ static void stopRandomLineChangeMode(PluginInfo* goomInfo)
       goomInfo->update.lineMode = 0;
     }
   }
-  else if ((goomInfo->cycle % 80 == 0) && (goomInfo->getNRand(5) == 0) &&
+  else if ((goomInfo->cycle % 80 == 0) && goomEvent.happens(GoomEvent::reduceLineMode) &&
            goomInfo->update.lineMode)
   {
     goomInfo->update.lineMode--;
   }
 
-  if ((goomInfo->cycle % 120 == 0) && (goomInfo->getNRand(4) == 0) &&
+  if ((goomInfo->cycle % 120 == 0) && goomEvent.happens(GoomEvent::updateLineMode) &&
       (goomInfo->curGState->scope))
   {
     if (goomInfo->update.lineMode == 0)
@@ -1251,7 +1518,7 @@ static void stopRandomLineChangeMode(PluginInfo* goomInfo)
       if (goomInfo->update.stop_lines)
       {
         goomInfo->update.stop_lines--;
-        if (goomInfo->getBoolRand())
+        if (goomEvent.happens(GoomEvent::changeLineToBlack))
         {
           couleur2 = couleur1 = GML_BLACK;
         }
@@ -1280,7 +1547,7 @@ static void displayLines(PluginInfo* goomInfo,
   goom_lines_draw(goomInfo, goomInfo->gmline1, data[0], goomInfo->p2);
   goom_lines_draw(goomInfo, goomInfo->gmline2, data[1], goomInfo->p2);
 
-  if (((goomInfo->cycle % 121) == 9) && (goomInfo->getNRand(3) == 1) &&
+  if (((goomInfo->cycle % 121) == 9) && goomEvent.happens(GoomEvent::changeGoomLine) &&
       ((goomInfo->update.lineMode == 0) ||
        (goomInfo->update.lineMode == goomInfo->update.drawLinesDuration)))
   {
@@ -1297,7 +1564,7 @@ static void displayLines(PluginInfo* goomInfo,
     if (goomInfo->update.stop_lines)
     {
       goomInfo->update.stop_lines--;
-      if (goomInfo->getBoolRand())
+      if (goomEvent.happens(GoomEvent::changeLineToBlack))
       {
         couleur2 = couleur1 = GML_BLACK;
       }
@@ -1379,13 +1646,13 @@ static void updateDecayRecay(PluginInfo* goomInfo)
   }
 }
 
-static void bigUpdateIfNotLocked(PluginInfo* goomInfo, ZoomFilterData** pzfd)
+static void bigUpdateIfNotLocked(PluginInfo* goomInfo, ZoomFilterData** pzfd, const int forceMode)
 {
   logDebug("goomInfo->update.lockvar = {}", goomInfo->update.lockvar);
   if (goomInfo->update.lockvar == 0)
   {
     logDebug("goomInfo->update.lockvar = 0");
-    bigUpdate(goomInfo, pzfd);
+    bigUpdate(goomInfo, pzfd, forceMode);
   }
   logDebug("goomInfo->sound.timeSinceLastGoom = {}", goomInfo->sound.timeSinceLastGoom);
 }
