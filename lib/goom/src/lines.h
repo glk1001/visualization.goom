@@ -59,31 +59,27 @@ struct GMLine
   PluginInfo* goomInfo;
 };
 
-// les modes couleur possible (si tu mets un autre c'est noir)
-#define GML_BLEUBLANC 0
-#define GML_RED 1
-#define GML_ORANGE_V 2
-#define GML_ORANGE_J 3
-#define GML_VERT 4
-#define GML_BLEU 5
-#define GML_BLACK 6
-
 // construit un effet de line (une ligne horitontale pour commencer)
 GMLine* goom_lines_init(PluginInfo* goomInfo,
                         const uint32_t rx,
                         const uint32_t ry,
                         const LineType IDsrc,
                         const float paramS,
-                        const int modeCoulSrc,
+                        const uint32_t srcColor,
                         const LineType IDdest,
                         const float paramD,
-                        const int modeCoulDest);
+                        const uint32_t destColor);
 
 void goom_lines_switch_to(GMLine* gml,
                           const LineType IDdest,
                           const float param,
                           const float amplitude,
-                          const int modeCoul);
+                          const uint32_t color);
+
+uint32_t getBlackLineColor();
+uint32_t getGreenLineColor();
+uint32_t getRedLineColor();
+uint32_t getRandomLineColor(PluginInfo* goomInfo);
 
 void goom_lines_set_res(GMLine* gml, const uint32_t rx, const uint32_t ry);
 

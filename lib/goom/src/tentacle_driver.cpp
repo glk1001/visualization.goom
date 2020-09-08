@@ -623,8 +623,8 @@ const std::vector<V3d>& GridTentacleLayout::getPoints() const
   return points;
 }
 
-std::vector<size_t> CirclesTentacleLayout::getCircleSamples(const size_t numCircles,
-                                                            [[maybe_unused]]const size_t totalPoints)
+std::vector<size_t> CirclesTentacleLayout::getCircleSamples(
+    const size_t numCircles, [[maybe_unused]] const size_t totalPoints)
 {
   std::vector<size_t> circleSamples(numCircles);
 

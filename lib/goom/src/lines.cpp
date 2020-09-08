@@ -86,30 +86,6 @@ static void genline(
   }
 }
 
-static uint32_t getcouleur(const int mode)
-{
-  switch (mode)
-  {
-    case GML_RED:
-      return (230 << (ROUGE * 8)) | (120 << (VERT * 8)) | (18 << (BLEU * 8));
-    case GML_ORANGE_J:
-      return (120 << (VERT * 8)) | (252 << (ROUGE * 8)) | (18 << (BLEU * 8));
-    case GML_ORANGE_V:
-      return (160 << (VERT * 8)) | (236 << (ROUGE * 8)) | (40 << (BLEU * 8));
-    case GML_BLEUBLANC:
-      return (40 << (BLEU * 8)) | (220 << (ROUGE * 8)) | (140 << (VERT * 8));
-    case GML_VERT:
-      return (200 << (VERT * 8)) | (80 << (ROUGE * 8)) | (18 << (BLEU * 8));
-    case GML_BLEU:
-      return (250 << (BLEU * 8)) | (30 << (VERT * 8)) | (80 << (ROUGE * 8));
-    case GML_BLACK:
-      return (16 << (BLEU * 8)) | (16 << (VERT * 8)) | (16 << (ROUGE * 8));
-    default:
-      throw std::logic_error("Unknown line color.");
-  }
-  return 0;
-}
-
 void goom_lines_set_res(GMLine* gml, const uint32_t rx, const uint32_t ry)
 {
   if (gml)
@@ -156,14 +132,17 @@ static void goom_lines_move(GMLine* l)
   l->amplitude = (99.0f * l->amplitude + l->amplitudeF) / 100.0f;
 }
 
-void goom_lines_switch_to(
-    GMLine* gml, const LineType IDdest, const float param, const float amplitude, const int col)
+void goom_lines_switch_to(GMLine* gml,
+                          const LineType IDdest,
+                          const float param,
+                          const float amplitude,
+                          const uint32_t color)
 {
   genline(IDdest, param, gml->points2, gml->screenX, gml->screenY);
   gml->IDdest = IDdest;
   gml->param = param;
   gml->amplitudeF = amplitude;
-  gml->color2 = getcouleur(col);
+  gml->color2 = color;
 }
 
 GMLine* goom_lines_init(PluginInfo* goomInfo,
@@ -171,10 +150,10 @@ GMLine* goom_lines_init(PluginInfo* goomInfo,
                         const uint32_t ry,
                         const LineType IDsrc,
                         const float paramS,
-                        const int coulS,
+                        const uint32_t srcColor,
                         const LineType IDdest,
                         const float paramD,
-                        const int coulD)
+                        const uint32_t destColor)
 {
   GMLine* l = (GMLine*)malloc(sizeof(GMLine));
 
@@ -194,8 +173,8 @@ GMLine* goom_lines_init(PluginInfo* goomInfo,
   genline(IDsrc, paramS, l->points, rx, ry);
   genline(IDdest, paramD, l->points2, rx, ry);
 
-  l->color = getcouleur(coulS);
-  l->color2 = getcouleur(coulD);
+  l->color = srcColor;
+  l->color2 = destColor;
 
   l->screenX = rx;
   l->screenY = ry;
@@ -203,7 +182,7 @@ GMLine* goom_lines_init(PluginInfo* goomInfo,
   l->power = 0.0f;
   l->powinc = 0.01f;
 
-  goom_lines_switch_to(l, IDdest, paramD, 1.0f, coulD);
+  goom_lines_switch_to(l, IDdest, paramD, 1.0f, destColor);
 
   return l;
 }
@@ -216,6 +195,63 @@ void goom_lines_free(GMLine** l)
   free((*l)->points2);
   free(*l);
   l = nullptr;
+}
+
+// les modes couleur possible (si tu mets un autre c'est noir)
+#define GML_BLEUBLANC 0
+#define GML_RED 1
+#define GML_ORANGE_V 2
+#define GML_ORANGE_J 3
+#define GML_VERT 4
+#define GML_BLEU 5
+#define GML_BLACK 6
+
+static uint32_t getcouleur(const int mode)
+{
+  switch (mode)
+  {
+    case GML_RED:
+      return (230 << (ROUGE * 8)) | (120 << (VERT * 8)) | (18 << (BLEU * 8));
+    case GML_ORANGE_J:
+      return (120 << (VERT * 8)) | (252 << (ROUGE * 8)) | (18 << (BLEU * 8));
+    case GML_ORANGE_V:
+      return (160 << (VERT * 8)) | (236 << (ROUGE * 8)) | (40 << (BLEU * 8));
+    case GML_BLEUBLANC:
+      return (40 << (BLEU * 8)) | (220 << (ROUGE * 8)) | (140 << (VERT * 8));
+    case GML_VERT:
+      return (200 << (VERT * 8)) | (80 << (ROUGE * 8)) | (18 << (BLEU * 8));
+    case GML_BLEU:
+      return (250 << (BLEU * 8)) | (30 << (VERT * 8)) | (80 << (ROUGE * 8));
+    case GML_BLACK:
+      return (16 << (BLEU * 8)) | (16 << (VERT * 8)) | (16 << (ROUGE * 8));
+    default:
+      throw std::logic_error("Unknown line color.");
+  }
+  return 0;
+}
+
+uint32_t getBlackLineColor()
+{
+  return getcouleur(GML_BLACK);
+}
+
+uint32_t getGreenLineColor()
+{
+  return getcouleur(GML_VERT);
+}
+
+uint32_t getRedLineColor()
+{
+  return getcouleur(GML_RED);
+}
+
+uint32_t getRandomLineColor(PluginInfo* goomInfo)
+{
+  if (goomInfo->getNRand(10) == 0)
+  {
+    return getcouleur(static_cast<int>(goomInfo->getNRand(6)));
+  }
+  return ColorMap::getRandomColor(goomInfo->gmline1->colorMaps->getRandomColorMap());
 }
 
 void goom_lines_draw(PluginInfo* goomInfo,
@@ -249,7 +285,7 @@ void goom_lines_draw(PluginInfo* goomInfo,
     return maxNormalizedPeak * static_cast<float>(data - goomInfo->sound.allTimesMin) / audioRange;
   };
 
-  const uint32_t randColor = ColorMap::getRandomColor(line->colorMaps->getRandomColorMap());
+  const uint32_t randColor = getRandomLineColor(goomInfo);
 
   const auto getNextPoint = [&](const GMUnitPointer* pt, const int16_t dataVal) {
     const float cosa = cos(pt->angle) / 1000.0f;
