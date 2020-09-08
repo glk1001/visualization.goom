@@ -9,28 +9,32 @@
 #include <ostream>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 class Logging
 {
 public:
+  enum class LogLevel
+  {
+    debug,
+    info,
+    notice,
+    warn,
+    error
+  };
+  using HandlerFunc = std::function<void(const LogLevel, const std::string&)>;
+
   static Logging& getLogger();
   ~Logging() noexcept;
   void setLogFile(const std::string& logF);
-  void addHandler(const std::function<void(std::string)> f);
+  void addHandler(const std::string& name, const HandlerFunc&);
   void start();
   void stop();
   void flush();
   void suspend();
   void resume();
   bool isLogging() const;
-  enum class LogLevel
-  {
-    debug,
-    info,
-    warn,
-    error
-  };
   LogLevel getFileLogLevel() const;
   void setFileLogLevel(const LogLevel lvl);
   LogLevel getHandlersLogLevel() const;
@@ -54,7 +58,7 @@ private:
   LogLevel cutoffHandlersLogLevel = LogLevel::info;
   bool doLogging = false;
   std::string logFile = "";
-  std::vector<std::function<void(std::string)>> handlers{};
+  std::vector<std::pair<std::string,HandlerFunc>> handlers{};
   std::vector<std::string> logEntries{};
   std::mutex mutex{};
   static std::unique_ptr<Logging> logger;
@@ -66,17 +70,6 @@ private:
             std20::format_args args);
 };
 
-inline Logging::Logging() noexcept
-{
-  setFileLogLevel(cutoffFileLogLevel);
-  setHandlersLogLevel(cutoffHandlersLogLevel);
-}
-
-inline Logging::~Logging()
-{
-  doFlush();
-}
-
 inline Logging::LogLevel Logging::getFileLogLevel() const
 {
   return cutoffFileLogLevel;
@@ -87,25 +80,9 @@ inline Logging::LogLevel Logging::getHandlersLogLevel() const
   return cutoffHandlersLogLevel;
 }
 
-inline void Logging::setHandlersLogLevel(const LogLevel lvl)
-{
-  cutoffHandlersLogLevel = lvl;
-}
-
 inline void Logging::setLogFile(const std::string& logF)
 {
   logFile = logF;
-}
-
-inline void Logging::addHandler(const std::function<void(std::string)> f)
-{
-  handlers.push_back(f);
-}
-
-inline void Logging::flush()
-{
-  const std::lock_guard<std::mutex> lock{mutex};
-  doFlush();
 }
 
 inline void Logging::suspend()
@@ -166,7 +143,7 @@ inline void Logging::vlog(const LogLevel lvl,
 #else
 #pragma message("Compiling " __FILE__ " with 'NO_LOGGING' OFF.")
 #define setLogFile(logF) Logging::getLogger().setLogFile(logF)
-#define addLogHandler(h) Logging::getLogger().addHandler(h);
+#define addLogHandler(name, h) Logging::getLogger().addHandler(name, h);
 #define logStart() Logging::getLogger().start()
 #define logStop() Logging::getLogger().stop()
 #define logFlush() Logging::getLogger().flush()

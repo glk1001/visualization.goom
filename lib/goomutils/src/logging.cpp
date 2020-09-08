@@ -1,13 +1,26 @@
 #include "goomutils/logging.h"
 
 #include <fstream>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <ostream>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 std::unique_ptr<Logging> Logging::logger(new Logging());
+
+Logging::Logging() noexcept
+{
+  setFileLogLevel(cutoffFileLogLevel);
+  setHandlersLogLevel(cutoffHandlersLogLevel);
+}
+
+Logging::~Logging()
+{
+  doFlush();
+}
 
 void Logging::log(const LogLevel lvl,
                   const int line_num,
@@ -28,9 +41,9 @@ void Logging::log(const LogLevel lvl,
   }
   if (lvl >= cutoffHandlersLogLevel)
   {
-    for (const auto h : handlers)
+    for (const auto& [name, handlr] : handlers)
     {
-      h(logMsg);
+      handlr(lvl, logMsg);
     }
   }
 }
@@ -52,6 +65,29 @@ void Logging::stop()
 void Logging::setFileLogLevel(const Logging::LogLevel lvl)
 {
   cutoffFileLogLevel = lvl;
+}
+
+void Logging::setHandlersLogLevel(const LogLevel lvl)
+{
+  cutoffHandlersLogLevel = lvl;
+}
+
+void Logging::addHandler(const std::string& name, const HandlerFunc& f)
+{
+  for (const auto& [hname, handlr] : handlers)
+  {
+    if (hname == name)
+    {
+      return;
+    }
+  }
+  handlers.push_back(std::make_pair(name, f));
+}
+
+void Logging::flush()
+{
+  const std::lock_guard<std::mutex> lock{mutex};
+  doFlush();
 }
 
 void Logging::doFlush()
