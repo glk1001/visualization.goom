@@ -472,6 +472,12 @@ static void InitBuffers(PluginInfo* goomInfo, const uint32_t resx, const uint32_
   memcpy(data->brutD, data->brutT, resx * resy * 2 * sizeof(int));
 }
 
+void zoomFilterInitData(PluginInfo* goomInfo)
+{
+  FilterDataWrapper* data = static_cast<FilterDataWrapper*>(goomInfo->zoomFilter_fx.fx_data);
+  data->filterData = goomInfo->update.zoomFilterData;
+}
+
 /**
  * Main work for the dynamic displacement map.
  * 
@@ -514,7 +520,7 @@ void zoomFilterFastRGB(PluginInfo* goomInfo,
 
   if (data->interlaceStart != -2)
   {
-    zf = NULL;
+    zf = nullptr;
   }
 
   // changement de config
@@ -725,7 +731,7 @@ static void zoomFilterVisualFXWrapper_init(VisualFX* _this, PluginInfo* info)
 
   data->generalSpeed = 0.0f;
   data->filterData.reverse = false;
-  data->filterData.mode = ZoomFilterMode::amuletteMode;
+  data->filterData.mode = ZoomFilterMode::crystalBallMode;
   data->filterData.waveEffect = false;
   data->filterData.hypercosEffect = false;
   data->filterData.vPlaneEffect = 0;
@@ -743,7 +749,7 @@ static void zoomFilterVisualFXWrapper_init(VisualFX* _this, PluginInfo* info)
   data->params.params[0] = &data->enabled_bp;
 
   _this->params = &data->params;
-  _this->fx_data = (void*)data;
+  _this->fx_data = data;
 
   /** modif d'optim by Jeko : precalcul des 4 coefs resultant des 2 pos */
   generatePrecalCoef(data->precalCoef);
@@ -766,7 +772,7 @@ static void zoomFilterVisualFXWrapper_apply(VisualFX*, Pixel*, Pixel*, PluginInf
 {
 }
 
-VisualFX zoomFilterVisualFXWrapper_create(void)
+VisualFX zoomFilterVisualFXWrapper_create()
 {
   VisualFX fx;
   fx.init = zoomFilterVisualFXWrapper_init;

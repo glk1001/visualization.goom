@@ -11,20 +11,26 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <unordered_set>
 #include <vector>
+
+enum class GoomDrawable
+{
+  IFS = 0,
+  points,
+  tentacles,
+  stars,
+  lines,
+  scope,
+  farScope,
+  _size // must be last - gives number of enums
+};
 
 struct GoomState
 {
-  bool IFS;
-  bool points;
-  bool tentacle;
-  bool stars;
-  bool lines;
-  bool scope;
-  bool farScope;
-
   uint32_t minSel;
   uint32_t maxSel = 0;
+  std::unordered_set<GoomDrawable> drawables;
 };
 
 /**
@@ -110,9 +116,9 @@ struct PluginInfo
   std::vector<GoomState> states;
   size_t numStates;
   size_t maxStateSelect;
-
-  GoomState* curGState;
   size_t curGStateIndex;
+  const GoomState* curGState;
+  std::unordered_set<GoomDrawable> curGDrawables;
 
   // effet de ligne.
   GMLine* gmline1;

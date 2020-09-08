@@ -624,7 +624,7 @@ const std::vector<V3d>& GridTentacleLayout::getPoints() const
 }
 
 std::vector<size_t> CirclesTentacleLayout::getCircleSamples(const size_t numCircles,
-                                                            const size_t totalPoints)
+                                                            [[maybe_unused]]const size_t totalPoints)
 {
   std::vector<size_t> circleSamples(numCircles);
 
@@ -659,6 +659,7 @@ CirclesTentacleLayout::CirclesTentacleLayout(const float radiusMin,
              " pt[{:3}] = ({:+6.2f}, {:+6.2f}, {:+6.2f})",
              i, angle, cos(angle), r, el, points.at(el).x, points.at(el).y, points.at(el).z);
   };
+
   const auto getSamplePoints = [&](const float radius, const size_t numSample,
                                    const float angleStart, const float angleFinish) {
     const float angleStep = (angleFinish - angleStart) / float(numSample - 1);

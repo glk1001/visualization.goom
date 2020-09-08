@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <unordered_set>
 
 static void setOptimizedMethods(PluginInfo* p)
 {
@@ -60,12 +61,9 @@ void plugin_info_init(PluginInfo* pp, size_t nbVisuals)
 
   pp->sound.params = plugin_parameters("Sound", 11);
 
-  logDebug("Past sound init.");
-
   pp->nbParams = 0;
   pp->nbVisuals = nbVisuals;
   pp->visuals = (VisualFX**)malloc(sizeof(VisualFX*) * (size_t)nbVisuals);
-  logDebug("Past visuals init.");
 
   pp->sound.params.params[0] = &pp->sound.biggoom_speed_limit_p;
   pp->sound.params.params[1] = &pp->sound.biggoom_factor_p;
@@ -79,18 +77,18 @@ void plugin_info_init(PluginInfo* pp, size_t nbVisuals)
   pp->sound.params.params[9] = &pp->sound.last_goom_p;
   pp->sound.params.params[10] = &pp->sound.last_biggoom_p;
 
-  logDebug("Start states init with vector assign.");
   pp->maxStateSelect = 510;
   // clang-format off
+  using GD = GoomDrawable;
   pp->states = {
-    {.IFS = 1, .points = 0, .tentacle = 0, .stars = 1, .lines = 0, .scope = 1, .farScope = 1, .minSel =   0},
-    {.IFS = 1, .points = 0, .tentacle = 1, .stars = 1, .lines = 0, .scope = 0, .farScope = 1, .minSel = 101},
-    {.IFS = 1, .points = 0, .tentacle = 0, .stars = 1, .lines = 1, .scope = 1, .farScope = 1, .minSel = 141},
-    {.IFS = 0, .points = 1, .tentacle = 1, .stars = 1, .lines = 1, .scope = 1, .farScope = 1, .minSel = 201},
-    {.IFS = 0, .points = 1, .tentacle = 1, .stars = 1, .lines = 0, .scope = 1, .farScope = 0, .minSel = 261},
-    {.IFS = 0, .points = 1, .tentacle = 1, .stars = 1, .lines = 1, .scope = 1, .farScope = 1, .minSel = 331},
-    {.IFS = 0, .points = 0, .tentacle = 1, .stars = 1, .lines = 1, .scope = 0, .farScope = 1, .minSel = 401},
-    {.IFS = 0, .points = 0, .tentacle = 0, .stars = 1, .lines = 1, .scope = 1, .farScope = 1, .minSel = 451},
+    { .minSel =   0, .drawables = {GD::IFS,                            GD::stars,            GD::scope, GD::farScope}},
+    { .minSel = 101, .drawables = {GD::IFS,             GD::tentacles, GD::stars,                       GD::farScope}},
+    { .minSel = 141, .drawables = {GD::IFS,                            GD::stars, GD::lines, GD::scope, GD::farScope}},
+    { .minSel = 201, .drawables = {         GD::points, GD::tentacles, GD::stars, GD::lines, GD::scope, GD::farScope}},
+    { .minSel = 261, .drawables = {         GD::points, GD::tentacles, GD::stars,            GD::scope              }},
+    { .minSel = 331, .drawables = {         GD::points, GD::tentacles, GD::stars, GD::lines, GD::scope, GD::farScope}},
+    { .minSel = 401, .drawables = {                     GD::tentacles, GD::stars, GD::lines,            GD::farScope}},
+    { .minSel = 451, .drawables = {                                    GD::stars, GD::lines, GD::scope, GD::farScope}},
   };
   // clang-format on
   pp->numStates = pp->states.size();
@@ -99,9 +97,9 @@ void plugin_info_init(PluginInfo* pp, size_t nbVisuals)
   {
     pp->states[i].maxSel = pp->states[i + 1].minSel - 1;
   }
-  pp->curGStateIndex = 0;
-  pp->curGState = &(pp->states[pp->curGStateIndex]);
-  logDebug("Past states init.");
+  pp->curGStateIndex = pp->numStates;
+  pp->curGState = nullptr;
+  pp->curGDrawables = std::unordered_set<GoomDrawable>{};
 
   /* data for the update loop */
   pp->update.lockvar = 0;
@@ -127,10 +125,8 @@ void plugin_info_init(PluginInfo* pp, size_t nbVisuals)
 
   pp->update_message.affiche = 0;
 
-  logDebug("Before zoom init.");
-
   pp->update.zoomFilterData = {
-      .mode = ZoomFilterMode::normalMode,
+      .mode = ZoomFilterMode::crystalBallMode,
       .vitesse = 127,
       .pertedec = 8,
       .middleX = 16,

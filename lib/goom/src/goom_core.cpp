@@ -106,6 +106,7 @@ public:
 
 private:
   PluginInfo* goomInfo = nullptr;
+  mutable GoomFilterEvent lastReturnedMode = GoomFilterEvent::_size;
 
   static constexpr size_t numGoomEvents = static_cast<size_t>(GoomEvent::_size);
   static constexpr size_t numGoomFilterEvents = static_cast<size_t>(GoomFilterEvent::_size);
@@ -197,7 +198,17 @@ inline bool GoomEvents::happens(const GoomEvent event) const
 
 inline GoomEvents::GoomFilterEvent GoomEvents::getRandomFilterEvent() const
 {
-  return filterWeights.getRandomWeighted();
+  for (size_t i=0; i < 20; i++)
+  {
+    const GoomFilterEvent newMode = filterWeights.getRandomWeighted();
+    if (newMode != lastReturnedMode)
+    {
+      lastReturnedMode = newMode;
+      return newMode;
+    }
+  }
+  // Give up - return the last mode again.
+  return lastReturnedMode;
 }
 
 inline LineType GoomEvents::getRandomLineTypeEvent() const
@@ -220,6 +231,7 @@ class GoomStats
 {
 public:
   GoomStats() {}
+  void setStartValues(const uint32_t stateIndex, const ZoomFilterMode filterMode);
   void reset();
   void log();
   void updateChange();
@@ -240,6 +252,9 @@ public:
   void doNoise();
 
 private:
+  uint32_t startingState = 0;
+  ZoomFilterMode startingFilterMode = ZoomFilterMode::_size;
+
   uint32_t numUpdates = 0;
   uint32_t totalStateChanges = 0;
   uint32_t totalFilterModeChanges = 0;
@@ -257,6 +272,12 @@ private:
   std::array<int, static_cast<size_t>(ZoomFilterMode::_size)> numFilterModeChanges{0};
   std::vector<int> numStateChanges;
 };
+
+void GoomStats::setStartValues(const uint32_t stateIndex, const ZoomFilterMode filterMode)
+{
+  startingState = stateIndex;
+  startingFilterMode = filterMode;
+}
 
 void GoomStats::reset()
 {
@@ -280,6 +301,8 @@ void GoomStats::reset()
 
 void GoomStats::log()
 {
+  logInfo("startingState = {}", startingState);
+  logInfo("startingFilterMode = {}", startingFilterMode);
   logInfo("numUpdates = {}", numUpdates);
   logInfo("totalStateChanges = {}", totalStateChanges);
   for (size_t i = 0; i < numStateChanges.size(); i++)
@@ -394,6 +417,9 @@ constexpr int32_t stopSpeed = 128;
 // TODO: put that as variable in PluginInfo
 constexpr int32_t timeBetweenChange = 300;
 
+static void changeState(PluginInfo* goomInfo, const int forceMode);
+static void changeFilterMode(PluginInfo* goomInfo);
+
 static void init_buffers(PluginInfo* goomInfo, const uint32_t buffsize)
 {
   goomInfo->pixel = (uint32_t*)malloc(buffsize * sizeof(uint32_t) + 128);
@@ -474,6 +500,12 @@ PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
 
   goomEvent.setGoomInfo(goomInfo);
 
+  changeState(goomInfo, 0);
+  changeFilterMode(goomInfo);
+  zoomFilterInitData(goomInfo);
+
+  stats.setStartValues(goomInfo->curGStateIndex, goomInfo->update.zoomFilterData.mode);
+
   return goomInfo;
 }
 
@@ -517,9 +549,6 @@ static void lowerSpeed(PluginInfo* goomInfo, ZoomFilterData** pzfd);
 
 // on verifie qu'il ne se pas un truc interressant avec le son.
 static void changeFilterModeIfMusicChanges(PluginInfo* goomInfo, const int forceMode);
-
-// changement eventuel de mode
-static void changeFilterMode(PluginInfo* goomInfo);
 
 // Changement d'effet de zoom !
 static void changeZoomEffect(PluginInfo* goomInfo, ZoomFilterData* pzfd, const int forceMode);
@@ -866,12 +895,13 @@ static void drawPointsIfRequired(PluginInfo* goomInfo,
                                  const uint32_t pointHeight,
                                  const float largfactor)
 {
-  logDebug("goomInfo->curGState->points = {}", goomInfo->curGState->points);
-  if (goomInfo->curGState->points)
+  if (!goomInfo->curGDrawables.count(GoomDrawable::points))
   {
-    logDebug("goomInfo->curGState->points = {} is true", goomInfo->curGState->points);
-    drawPoints(goomInfo, pointWidth, pointHeight, largfactor);
-  }
+    return;
+  }	
+
+  logDebug("goomInfo->curGDrawables points is set.");
+  drawPoints(goomInfo, pointWidth, pointHeight, largfactor);
   logDebug("goomInfo->sound.timeSinceLastGoom = {}", goomInfo->sound.timeSinceLastGoom);
 }
 
@@ -946,26 +976,29 @@ static void drawPoints(PluginInfo* goomInfo,
 
 static void changeFilterModeIfMusicChanges(PluginInfo* goomInfo, const int forceMode)
 {
-  logDebug("goomInfo->sound.timeSinceLastGoom = {}, forceMode = {}, "
-           "goomInfo->update.cyclesSinceLastChange = {}",
-           goomInfo->sound.timeSinceLastGoom, forceMode, goomInfo->update.cyclesSinceLastChange);
-  if ((forceMode != -1) && ((goomInfo->sound.timeSinceLastGoom == 0) || (forceMode > 0) ||
-                            (goomInfo->update.cyclesSinceLastChange > timeBetweenChange)))
+  logDebug("forceMode = {}", forceMode);
+  if (forceMode == -1)
   {
-    logDebug("goomInfo->sound.timeSinceLastGoom = {}, forceMode = {}, "
-             "goomInfo->update.cyclesSinceLastChange = {}",
-             goomInfo->sound.timeSinceLastGoom, forceMode, goomInfo->update.cyclesSinceLastChange);
-    changeFilterMode(goomInfo);
+    return;
+  }
+  
+  logDebug("goomInfo->sound.timeSinceLastGoom = {}, goomInfo->update.cyclesSinceLastChange = {}",
+           goomInfo->sound.timeSinceLastGoom, goomInfo->update.cyclesSinceLastChange);
+  if ((goomInfo->sound.timeSinceLastGoom == 0) ||
+      (goomInfo->update.cyclesSinceLastChange > timeBetweenChange) ||
+      (forceMode > 0))
+  {
+    logDebug("Try to change the filter mode.");
+    if (changeFilterModeEventHappens(goomInfo))
+    {
+      changeFilterMode(goomInfo);
+    }
   }
   logDebug("goomInfo->sound.timeSinceLastGoom = {}", goomInfo->sound.timeSinceLastGoom);
 }
 
 static void changeFilterMode(PluginInfo* goomInfo)
 {
-  if (!changeFilterModeEventHappens(goomInfo))
-  {
-    return;
-  }
   logDebug("Time to change the filter mode.");
 
   stats.filterModeChange();
@@ -978,7 +1011,6 @@ static void changeFilterMode(PluginInfo* goomInfo)
       [[fallthrough]];
     case GoomFilterEvent::waveMode:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::waveMode;
-      stats.filterModeChange(ZoomFilterMode::waveMode);
       goomInfo->update.zoomFilterData.reverse = false;
       goomInfo->update.zoomFilterData.waveEffect =
           goomEvent.happens(GoomEvent::waveEffectOnWithWaveMode);
@@ -990,13 +1022,11 @@ static void changeFilterMode(PluginInfo* goomInfo)
       break;
     case GoomFilterEvent::crystalBallMode:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::crystalBallMode;
-      stats.filterModeChange(ZoomFilterMode::crystalBallMode);
       goomInfo->update.zoomFilterData.waveEffect = false;
       goomInfo->update.zoomFilterData.hypercosEffect = false;
       break;
     case GoomFilterEvent::crystalBallModeWithEffects:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::crystalBallMode;
-      stats.filterModeChange(ZoomFilterMode::crystalBallMode);
       goomInfo->update.zoomFilterData.waveEffect =
           goomEvent.happens(GoomEvent::waveEffectOnWithCrystalBallMode);
       goomInfo->update.zoomFilterData.hypercosEffect =
@@ -1004,66 +1034,126 @@ static void changeFilterMode(PluginInfo* goomInfo)
       break;
     case GoomFilterEvent::amuletteMode:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::amuletteMode;
-      stats.filterModeChange(ZoomFilterMode::amuletteMode);
       goomInfo->update.zoomFilterData.waveEffect = false;
       goomInfo->update.zoomFilterData.hypercosEffect = false;
       break;
     case GoomFilterEvent::waterMode:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::waterMode;
-      stats.filterModeChange(ZoomFilterMode::waterMode);
       goomInfo->update.zoomFilterData.waveEffect = false;
       goomInfo->update.zoomFilterData.hypercosEffect = false;
       break;
     case GoomFilterEvent::scrunchMode:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::scrunchMode;
-      stats.filterModeChange(ZoomFilterMode::scrunchMode);
       goomInfo->update.zoomFilterData.waveEffect = false;
       goomInfo->update.zoomFilterData.hypercosEffect = false;
       break;
     case GoomFilterEvent::scrunchModeWithEffects:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::scrunchMode;
-      stats.filterModeChange(ZoomFilterMode::scrunchMode);
       goomInfo->update.zoomFilterData.waveEffect = true;
       goomInfo->update.zoomFilterData.hypercosEffect = true;
       break;
     case GoomFilterEvent::hyperCos1Mode:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::hyperCos1Mode;
-      stats.filterModeChange(ZoomFilterMode::hyperCos1Mode);
       goomInfo->update.zoomFilterData.waveEffect = false;
       goomInfo->update.zoomFilterData.hypercosEffect =
           goomEvent.happens(GoomEvent::hypercosEffectOnWithHyperCos1Mode);
       break;
     case GoomFilterEvent::hyperCos2Mode:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::hyperCos2Mode;
-      stats.filterModeChange(ZoomFilterMode::hyperCos2Mode);
       goomInfo->update.zoomFilterData.waveEffect = false;
       goomInfo->update.zoomFilterData.hypercosEffect =
           goomEvent.happens(GoomEvent::hypercosEffectOnWithHyperCos2Mode);
       break;
     case GoomFilterEvent::yOnlyMode:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::yOnlyMode;
-      stats.filterModeChange(ZoomFilterMode::yOnlyMode);
       break;
     case GoomFilterEvent::speedwayMode:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::speedwayMode;
-      stats.filterModeChange(ZoomFilterMode::speedwayMode);
       break;
     case GoomFilterEvent::normalMode:
-      //      if (goomInfo->curGState->tentacle)
-      //      {
-      //        // Tentacles don't look so good with normal mode so choose something else.
-      //        goomInfo->update.zoomFilterData.mode = ZoomFilterMode::speedwayMode;
-      //      }
-      //      else
-      //      {
-      goomInfo->update.zoomFilterData.mode = ZoomFilterMode::normalMode;
-      stats.filterModeChange(ZoomFilterMode::normalMode);
-      goomInfo->update.zoomFilterData.waveEffect = false;
-      goomInfo->update.zoomFilterData.hypercosEffect = false;
-      //      }
+      if (goomInfo->curGDrawables.count(GoomDrawable::tentacles))
+      {
+        // Tentacles don't look so good with normal mode so remove tentacles.
+        goomInfo->curGDrawables.erase(GoomDrawable::tentacles);
+        logInfo("Because of 'normal mode' filter, removed tentacles from current goom state.");
+      }
+      else
+      {
+        goomInfo->update.zoomFilterData.mode = ZoomFilterMode::normalMode;
+        goomInfo->update.zoomFilterData.waveEffect = false;
+        goomInfo->update.zoomFilterData.hypercosEffect = false;
+      }
       break;
     default:
       throw std::logic_error("GoomFilterEvent not implemented.");
+  }
+
+  stats.filterModeChange(goomInfo->update.zoomFilterData.mode);
+
+  if ((goomInfo->update.zoomFilterData.mode != ZoomFilterMode::normalMode) &&
+      goomInfo->curGDrawables != goomInfo->curGState->drawables)
+  {
+    goomInfo->curGDrawables = goomInfo->curGState->drawables;
+  }
+}
+
+static void changeState(PluginInfo* goomInfo, const int forceMode)
+{
+  size_t stateIndex = (goomInfo->curGStateIndex + 1) % goomInfo->numStates;
+  for (size_t numTry=0; numTry < 10; numTry++)
+  {
+    goomInfo->update.stateSelectionRand = goomInfo->getNRand(goomInfo->maxStateSelect + 1);
+
+    for (size_t i = 0; i < goomInfo->numStates; i++)
+    {
+      if (i == goomInfo->curGStateIndex)
+      {
+        // Don't pick the same state again.
+        continue;
+      }
+      if ((goomInfo->update.stateSelectionRand >= goomInfo->states[i].minSel) &&
+          (goomInfo->update.stateSelectionRand <= goomInfo->states[i].maxSel))
+      {
+        stateIndex = i;
+        break;
+      }
+    }
+  }
+
+  goomInfo->curGState = &(goomInfo->states[stateIndex]);
+  goomInfo->curGDrawables = goomInfo->states[stateIndex].drawables;
+  goomInfo->curGStateIndex = stateIndex;
+  logDebug("Changed goom state to {}", goomInfo->curGStateIndex);
+  stats.stateChange();
+  stats.stateChange(stateIndex);
+
+  if (goomInfo->curGDrawables.count(GoomDrawable::IFS) && (goomInfo->update.ifs_incr <= 0))
+  {
+    goomInfo->update.recay_ifs = 5;
+    goomInfo->update.ifs_incr = 11;
+  }
+  if (!goomInfo->curGDrawables.count(GoomDrawable::IFS) && (goomInfo->update.ifs_incr > 0) &&
+      (goomInfo->update.decay_ifs <= 0))
+  {
+    goomInfo->update.decay_ifs = 100;
+  }
+
+  if (!goomInfo->curGDrawables.count(GoomDrawable::scope))
+  {
+    goomInfo->update.stop_lines = 0xf000 & 5;
+  }
+  if (!goomInfo->curGDrawables.count(GoomDrawable::farScope))
+  {
+    goomInfo->update.stop_lines = 0;
+    goomInfo->update.lineMode = goomInfo->update.drawLinesDuration;
+  }
+
+  if (goomInfo->curGDrawables.count(GoomDrawable::tentacles) && (forceMode == 0) &&
+      (goomInfo->update.zoomFilterData.mode == ZoomFilterMode::normalMode))
+  {
+    // Tentacles and normal filter mode don't look so good - choose another mode.
+    logInfo("It's a tentacle state - changing filter mode away from 'normal mode'.");
+    changeFilterMode(goomInfo);
   }
 }
 
@@ -1088,57 +1178,8 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd, const int for
     }
     else if (goomEvent.happens(GoomEvent::changeState))
     {
-      goomInfo->update.stateSelectionRand = goomInfo->getNRand(goomInfo->maxStateSelect + 1);
       goomInfo->update.stateSelectionBlocker = 3;
-
-      for (size_t i = 0; i < goomInfo->numStates; i++)
-      {
-        if ((goomInfo->update.stateSelectionRand >= goomInfo->states[i].minSel) &&
-            (goomInfo->update.stateSelectionRand <= goomInfo->states[i].maxSel))
-        {
-          goomInfo->curGState = &(goomInfo->states[i]);
-          goomInfo->curGStateIndex = i;
-          logDebug("Changed goom state to {}", goomInfo->curGStateIndex);
-          stats.stateChange();
-          stats.stateChange(i);
-          if (goomInfo->curGState->tentacle)
-          {
-            logInfo("It's a tentacle state - filter mode = {}.",
-                    goomInfo->update.zoomFilterData.mode);
-          }
-          /**
-          if (goomInfo->curGState->tentacle && (forceMode != 0) &&
-              (goomInfo->update.zoomFilterData.mode == ZoomFilterMode::normalMode))
-          {
-            // Tentacles and normal filter mode don't look so good - choose another mode.
-            logInfo("It's a tentacle state - changing filter mode.");
-            changeFilterMode(goomInfo);
-          }
-          **/
-          break;
-        }
-      }
-    }
-
-    if ((goomInfo->curGState->IFS) && (goomInfo->update.ifs_incr <= 0))
-    {
-      goomInfo->update.recay_ifs = 5;
-      goomInfo->update.ifs_incr = 11;
-    }
-    if ((!goomInfo->curGState->IFS) && (goomInfo->update.ifs_incr > 0) &&
-        (goomInfo->update.decay_ifs <= 0))
-    {
-      goomInfo->update.decay_ifs = 100;
-    }
-
-    if (!goomInfo->curGState->scope)
-    {
-      goomInfo->update.stop_lines = 0xf000 & 5;
-    }
-    if (!goomInfo->curGState->farScope)
-    {
-      goomInfo->update.stop_lines = 0;
-      goomInfo->update.lineMode = goomInfo->update.drawLinesDuration;
+      changeState(goomInfo, forceMode);
     }
 
     // if (goomInfo->update.goomvar % 1 == 0)
@@ -1402,9 +1443,9 @@ static void changeZoomEffect(PluginInfo* goomInfo, ZoomFilterData* pzfd, const i
 
 static void applyTentaclesIfRequired(PluginInfo* goomInfo)
 {
-  logDebug("Before goomInfo->tentacles_fx.apply");
-  if (goomInfo->curGState->tentacle)
+  if (goomInfo->curGDrawables.count(GoomDrawable::tentacles))
   {
+    logDebug("goomInfo->curGDrawables tentacles is set.");
     stats.doTentacles();
   }
   goomInfo->tentacles_fx.apply(&goomInfo->tentacles_fx, goomInfo->p2, goomInfo->p1, goomInfo);
@@ -1412,11 +1453,12 @@ static void applyTentaclesIfRequired(PluginInfo* goomInfo)
 
 static void applyStarsIfRequired(PluginInfo* goomInfo)
 {
-  if (!goomInfo->curGState->stars)
+  if (!goomInfo->curGDrawables.count(GoomDrawable::stars))
   {
     return;
   }
-  logDebug("Before goomInfo->star_fx.apply");
+
+  logDebug("goomInfo->curGDrawables stars is set.");
   stats.doStars();
   goomInfo->star_fx.apply(&goomInfo->star_fx, goomInfo->p2, goomInfo->p1, goomInfo);
 }
@@ -1461,8 +1503,9 @@ void displayText(PluginInfo* goomInfo, const char* songTitle, const char* messag
 
 static void stopRequest(PluginInfo* goomInfo)
 {
-  logDebug("goomInfo->update.stop_lines = {}, goomInfo->curGState->scope = {}",
-           goomInfo->update.stop_lines, goomInfo->curGState->scope);
+  logDebug("goomInfo->update.stop_lines = {},"
+           " goomInfo->curGDrawables.count(GoomDrawable::scope) = {}",
+           goomInfo->update.stop_lines, goomInfo->curGDrawables.count(GoomDrawable::scope));
 
   float param1 = 0;
   float param2 = 0;
@@ -1496,7 +1539,7 @@ static void stopRandomLineChangeMode(PluginInfo* goomInfo)
   }
 
   if ((goomInfo->cycle % 120 == 0) && goomEvent.happens(GoomEvent::updateLineMode) &&
-      (goomInfo->curGState->scope))
+      goomInfo->curGDrawables.count(GoomDrawable::scope))
   {
     if (goomInfo->update.lineMode == 0)
     {
@@ -1535,10 +1578,12 @@ static void stopRandomLineChangeMode(PluginInfo* goomInfo)
 static void displayLines(PluginInfo* goomInfo,
                          const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN])
 {
-  if (!goomInfo->curGState->lines)
+  if (!goomInfo->curGDrawables.count(GoomDrawable::lines))
   {
     return;
   }
+
+  logDebug("goomInfo->curGDrawables lines is set.");
 
   stats.doLines();
 
@@ -1676,8 +1721,8 @@ static void forceFilterModeIfSet(PluginInfo* goomInfo, ZoomFilterData** pzfd, co
 static void stopIfRequested(PluginInfo* goomInfo)
 {
   logDebug("goomInfo->update.stop_lines = {}, goomInfo->curGState->scope = {}",
-           goomInfo->update.stop_lines, goomInfo->curGState->scope);
-  if ((goomInfo->update.stop_lines & 0xf000) || !goomInfo->curGState->scope)
+           goomInfo->update.stop_lines, goomInfo->curGDrawables.count(GoomDrawable::scope));
+  if ((goomInfo->update.stop_lines & 0xf000) || !goomInfo->curGDrawables.count(GoomDrawable::scope))
   {
     stopRequest(goomInfo);
   }

@@ -44,7 +44,7 @@ struct ZoomFilterData
   bool noisify; // ajoute un bruit a la transformation
 };
 
-VisualFX zoomFilterVisualFXWrapper_create(void);
+VisualFX zoomFilterVisualFXWrapper_create();
 
 /* filtre de zoom :
  * le contenu de pix1 est copie dans pix2.
@@ -53,10 +53,12 @@ VisualFX zoomFilterVisualFXWrapper_create(void);
  */
 struct PluginInfo;
 
-void zoomFilterFastRGB(PluginInfo* goomInfo,
+void zoomFilterInitData(PluginInfo*);
+
+void zoomFilterFastRGB(PluginInfo*,
                        Pixel* pix1,
                        Pixel* pix2,
-                       ZoomFilterData* zf,
+                       ZoomFilterData*,
                        const uint16_t resx,
                        const uint16_t resy,
                        const int switchIncr,
