@@ -1,6 +1,5 @@
 /*---------------------------------------------------------------------------*/
 /*
- ** config_param.c
  ** Goom Project
  **
  ** Created by Jean-Christophe Hoelt on Sat Jul 19 2003
@@ -9,6 +8,7 @@
 /*---------------------------------------------------------------------------*/
 
 #include "goom_config_param.h"
+
 #include "goomutils/logging_control.h"
 // #undef NO_LOGGING
 #include "goomutils/logging.h"

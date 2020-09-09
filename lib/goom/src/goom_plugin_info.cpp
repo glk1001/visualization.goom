@@ -1,7 +1,8 @@
+#include "goom_plugin_info.h"
+
 #include "drawmethods.h"
 #include "goom.h"
 #include "goom_fx.h"
-#include "goom_plugin_info.h"
 #include "goomutils/logging_control.h"
 // #undef NO_LOGGING
 #include "goomutils/logging.h"
