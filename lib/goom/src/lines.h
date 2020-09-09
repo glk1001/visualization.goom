@@ -60,34 +60,28 @@ struct GMLine
 };
 
 // construit un effet de line (une ligne horitontale pour commencer)
-GMLine* goom_lines_init(PluginInfo* goomInfo,
-                        const uint32_t rx,
-                        const uint32_t ry,
-                        const LineType IDsrc,
-                        const float paramS,
-                        const uint32_t srcColor,
-                        const LineType IDdest,
-                        const float paramD,
-                        const uint32_t destColor);
+GMLine* goomLinesInit(PluginInfo* goomInfo,
+                      const uint32_t rx,
+                      const uint32_t ry,
+                      const LineType IDsrc,
+                      const float paramS,
+                      const uint32_t srcColor,
+                      const LineType IDdest,
+                      const float paramD,
+                      const uint32_t destColor);
 
-void goom_lines_switch_to(GMLine* gml,
-                          const LineType IDdest,
-                          const float param,
-                          const float amplitude,
-                          const uint32_t color);
+void goomLinesFree(GMLine**);
+
+void goomLinesSetResolution(GMLine*, const uint32_t rx, const uint32_t ry);
+
+void switchGoomLines(
+    GMLine*, const LineType dest, const float param, const float amplitude, const uint32_t color);
 
 uint32_t getBlackLineColor();
 uint32_t getGreenLineColor();
 uint32_t getRedLineColor();
-uint32_t getRandomLineColor(PluginInfo* goomInfo);
+uint32_t getRandomLineColor(PluginInfo*);
 
-void goom_lines_set_res(GMLine* gml, const uint32_t rx, const uint32_t ry);
-
-void goom_lines_free(GMLine** gml);
-
-void goom_lines_draw(PluginInfo* goomInfo,
-                     GMLine* line,
-                     const int16_t data[AUDIO_SAMPLE_LEN],
-                     Pixel* p);
+void drawGoomLines(PluginInfo*, GMLine*, const int16_t data[AUDIO_SAMPLE_LEN], Pixel*);
 
 #endif

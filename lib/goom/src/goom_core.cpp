@@ -41,7 +41,7 @@ inline bool probabilityOfMInN(PluginInfo* goomInfo, const uint32_t m, const uint
   {
     return goomInfo->getNRand(n) > 0;
   }
-  return goomInfo->getRandInRange(0.0f, 1.0f) < static_cast<float>(m) / static_cast<float>(n);
+  return goomInfo->getRandInRange(0.0f, 1.0f) <= static_cast<float>(m) / static_cast<float>(n);
 }
 
 class GoomEvents
@@ -106,7 +106,6 @@ public:
 
 private:
   PluginInfo* goomInfo = nullptr;
-  mutable GoomFilterEvent lastReturnedMode = GoomFilterEvent::_size;
 
   static constexpr size_t numGoomEvents = static_cast<size_t>(GoomEvent::_size);
   static constexpr size_t numGoomFilterEvents = static_cast<size_t>(GoomFilterEvent::_size);
@@ -198,17 +197,7 @@ inline bool GoomEvents::happens(const GoomEvent event) const
 
 inline GoomEvents::GoomFilterEvent GoomEvents::getRandomFilterEvent() const
 {
-  for (size_t i = 0; i < 20; i++)
-  {
-    const GoomFilterEvent newMode = filterWeights.getRandomWeighted();
-    if (newMode != lastReturnedMode)
-    {
-      lastReturnedMode = newMode;
-      return newMode;
-    }
-  }
-  // Give up - return the last mode again.
-  return lastReturnedMode;
+  return filterWeights.getRandomWeighted();
 }
 
 inline LineType GoomEvents::getRandomLineTypeEvent() const
@@ -490,12 +479,12 @@ PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
   const uint32_t lRed = getRedLineColor();
   const uint32_t lGreen = getGreenLineColor();
   const uint32_t lBlack = getBlackLineColor();
-  goomInfo->gmline1 = goom_lines_init(goomInfo, resx, goomInfo->screen.height, LineType::hline,
-                                      goomInfo->screen.height, lBlack, LineType::circle,
-                                      0.4f * static_cast<float>(goomInfo->screen.height), lGreen);
+  goomInfo->gmline1 = goomLinesInit(goomInfo, resx, goomInfo->screen.height, LineType::hline,
+                                    goomInfo->screen.height, lBlack, LineType::circle,
+                                    0.4f * static_cast<float>(goomInfo->screen.height), lGreen);
   goomInfo->gmline2 =
-      goom_lines_init(goomInfo, resx, goomInfo->screen.height, LineType::hline, 0, lBlack,
-                      LineType::circle, 0.2f * static_cast<float>(goomInfo->screen.height), lRed);
+      goomLinesInit(goomInfo, resx, goomInfo->screen.height, LineType::hline, 0, lBlack,
+                    LineType::circle, 0.2f * static_cast<float>(goomInfo->screen.height), lRed);
 
   gfont_load();
 
@@ -528,8 +517,8 @@ void goom_set_resolution(PluginInfo* goomInfo, const uint16_t resx, const uint16
   goomInfo->ifs_fx.free(&goomInfo->ifs_fx);
   goomInfo->ifs_fx.init(&goomInfo->ifs_fx, goomInfo);
 
-  goom_lines_set_res(goomInfo->gmline1, resx, goomInfo->screen.height);
-  goom_lines_set_res(goomInfo->gmline2, resx, goomInfo->screen.height);
+  goomLinesSetResolution(goomInfo->gmline1, resx, goomInfo->screen.height);
+  goomLinesSetResolution(goomInfo->gmline2, resx, goomInfo->screen.height);
 }
 
 int goom_set_screenbuffer(PluginInfo* goomInfo, void* buffer)
@@ -569,11 +558,11 @@ void displayText(PluginInfo* goomInfo, const char* songTitle, const char* messag
 static void drawPointsIfRequired(PluginInfo* goomInfo,
                                  const uint32_t pointWidth,
                                  const uint32_t pointHeight,
-                                 const float largfactor);
+                                 const float largeFactor);
 static void drawPoints(PluginInfo* goomInfo,
                        const uint32_t pointWidth,
                        const uint32_t pointHeight,
-                       const float largfactor);
+                       const float largeFactor);
 
 static void chooseGoomLine(PluginInfo* goomInfo,
                            float* param1,
@@ -616,7 +605,7 @@ static void update_message(PluginInfo* goomInfo, const char* message);
 
 static void pointFilter(PluginInfo* goomInfo,
                         Pixel* pix1,
-                        const Color& c,
+                        const uint32_t color,
                         const float t1,
                         const float t2,
                         const float t3,
@@ -734,8 +723,8 @@ void goom_close(PluginInfo* goomInfo)
   goomInfo->pixel = goomInfo->back = nullptr;
   goomInfo->conv = nullptr;
   goom_random_free(goomInfo->gRandom);
-  goom_lines_free(&goomInfo->gmline1);
-  goom_lines_free(&goomInfo->gmline2);
+  goomLinesFree(&goomInfo->gmline1);
+  goomLinesFree(&goomInfo->gmline2);
 
   /* release_ifs (); */
   goomInfo->ifs_fx.free(&goomInfo->ifs_fx);
@@ -896,7 +885,7 @@ static void update_message(PluginInfo* goomInfo, const char* message)
 static void drawPointsIfRequired(PluginInfo* goomInfo,
                                  const uint32_t pointWidth,
                                  const uint32_t pointHeight,
-                                 const float largfactor)
+                                 const float largeFactor)
 {
   if (!goomInfo->curGDrawables.count(GoomDrawable::points))
   {
@@ -904,14 +893,16 @@ static void drawPointsIfRequired(PluginInfo* goomInfo,
   }
 
   logDebug("goomInfo->curGDrawables points is set.");
-  drawPoints(goomInfo, pointWidth, pointHeight, largfactor);
+  drawPoints(goomInfo, pointWidth, pointHeight, largeFactor);
   logDebug("goomInfo->sound.timeSinceLastGoom = {}", goomInfo->sound.timeSinceLastGoom);
 }
+
+constexpr uint32_t WHITE = 0xffffffff;
 
 static void drawPoints(PluginInfo* goomInfo,
                        const uint32_t pointWidth,
                        const uint32_t pointHeight,
-                       const float largfactor)
+                       const float largeFactor)
 {
   stats.doPoints();
 
@@ -920,20 +911,26 @@ static void drawPoints(PluginInfo* goomInfo,
   logDebug("speedvarMult80Plus15 = {}", speedvarMult80Plus15);
   logDebug("speedvarMult50Plus1 = {}", speedvarMult50Plus1);
 
+  constexpr uint32_t BLACK = 0;
+  constexpr uint32_t YELLOW = 0xffffff33;
+  constexpr uint32_t ORANGE = 0xffffcc05;
+  constexpr uint32_t VIOLET = 0xff5505ff;
+
   const float pointWidthDiv2 = pointWidth / 2;
   const float pointHeightDiv2 = pointHeight / 2;
   const float pointWidthDiv3 = pointWidth / 3;
   const float pointHeightDiv3 = pointHeight / 3;
-  const float yellow_t1 = (pointWidth - 6.0f) * largfactor + 5.0f;
-  const float yellow_t2 = (pointHeight - 6.0f) * largfactor + 5.0f;
-  const float black_t1 = pointHeightDiv3 * largfactor + 20.0f;
+  const float pointWidthDiv2MultLarge = pointWidthDiv2 * largeFactor;
+  const float pointHeightDiv2MultLarge = pointHeightDiv2 * largeFactor;
+  const float pointWidthDiv3MultLarge = (pointWidthDiv3 + 5.0f) * largeFactor;
+  const float pointHeightDiv3MultLarge = (pointHeightDiv3 + 5.0f) * largeFactor;
+  const float pointWidthMultLarge = pointWidth * largeFactor;
+  const float pointHeightMultLarge = pointHeight * largeFactor;
+
+  const float yellow_t1 = (pointWidth - 6.0f) * largeFactor + 5.0f;
+  const float yellow_t2 = (pointHeight - 6.0f) * largeFactor + 5.0f;
+  const float black_t1 = pointHeightDiv3 * largeFactor + 20.0f;
   const float black_t2 = black_t1;
-  const float pointWidthDiv2MultLarge = pointWidthDiv2 * largfactor;
-  const float pointHeightDiv2MultLarge = pointHeightDiv2 * largfactor;
-  const float pointWidthDiv3MultLarge = (pointWidthDiv3 + 5.0f) * largfactor;
-  const float pointHeightDiv3MultLarge = (pointHeightDiv3 + 5.0f) * largfactor;
-  const float pointWidthMultLarge = pointWidth * largfactor;
-  const float pointHeightMultLarge = pointHeight * largfactor;
 
   logDebug("goomInfo->update.loopvar = {}", goomInfo->update.loopvar);
   for (uint32_t i = 1; i * 15 <= speedvarMult80Plus15; i++)
@@ -947,19 +944,23 @@ static void drawPoints(PluginInfo* goomInfo,
     const float yellow_t3 = i * 152.0f;
     const float yellow_t4 = 128.0f;
     const uint32_t yellow_cycle = goomInfo->update.loopvar + i * 2032;
+
     const float orange_t1 = pointWidthDiv2MultLarge / i + i_mult_10;
     const float orange_t2 = pointHeightDiv2MultLarge / i + i_mult_10;
     const float orange_t3 = 96.0f;
     const float orange_t4 = i * 80.0f;
     const uint32_t orange_cycle = loopvar_div_i;
+
     const float violet_t1 = pointWidthDiv3MultLarge / i + i_mult_10;
     const float violet_t2 = pointHeightDiv3MultLarge / i + i_mult_10;
     const float violet_t3 = i + 122.0f;
     const float violet_t4 = 134.0f;
     const uint32_t violet_cycle = loopvar_div_i;
+
     const float black_t3 = 58.0f;
     const float black_t4 = i * 66.0f;
     const uint32_t black_cycle = loopvar_div_i;
+
     const float white_t1 = (pointWidthMultLarge + i_mult_10) / i;
     const float white_t2 = (pointHeightMultLarge + i_mult_10) / i;
     const float white_t3 = 66.0f;
@@ -1517,8 +1518,8 @@ static void stopRequest(PluginInfo* goomInfo)
   chooseGoomLine(goomInfo, &param1, &param2, &couleur, &mode, &amplitude, 1);
   couleur = getBlackLineColor();
 
-  goom_lines_switch_to(goomInfo->gmline1, mode, param1, amplitude, couleur);
-  goom_lines_switch_to(goomInfo->gmline2, mode, param2, amplitude, couleur);
+  switchGoomLines(goomInfo->gmline1, mode, param1, amplitude, couleur);
+  switchGoomLines(goomInfo->gmline2, mode, param2, amplitude, couleur);
   goomInfo->update.stop_lines &= 0x0fff;
 }
 
@@ -1571,8 +1572,8 @@ static void stopRandomLineChangeMode(PluginInfo* goomInfo)
 
       logDebug("goomInfo->update.lineMode = {} == {} = goomInfo->update.drawLinesDuration",
                goomInfo->update.lineMode, goomInfo->update.drawLinesDuration);
-      goom_lines_switch_to(goomInfo->gmline1, mode, param1, amplitude, couleur1);
-      goom_lines_switch_to(goomInfo->gmline2, mode, param2, amplitude, couleur2);
+      switchGoomLines(goomInfo->gmline1, mode, param1, amplitude, couleur1);
+      switchGoomLines(goomInfo->gmline2, mode, param2, amplitude, couleur2);
     }
   }
 }
@@ -1591,8 +1592,8 @@ static void displayLines(PluginInfo* goomInfo,
 
   goomInfo->gmline2->power = goomInfo->gmline1->power;
 
-  goom_lines_draw(goomInfo, goomInfo->gmline1, data[0], goomInfo->p2);
-  goom_lines_draw(goomInfo, goomInfo->gmline2, data[1], goomInfo->p2);
+  drawGoomLines(goomInfo, goomInfo->gmline1, data[0], goomInfo->p2);
+  drawGoomLines(goomInfo, goomInfo->gmline2, data[1], goomInfo->p2);
 
   if (((goomInfo->cycle % 121) == 9) && goomEvent.happens(GoomEvent::changeGoomLine) &&
       ((goomInfo->update.lineMode == 0) ||
@@ -1616,8 +1617,8 @@ static void displayLines(PluginInfo* goomInfo,
         couleur2 = couleur1 = getBlackLineColor();
       }
     }
-    goom_lines_switch_to(goomInfo->gmline1, mode, param1, amplitude, couleur1);
-    goom_lines_switch_to(goomInfo->gmline2, mode, param2, amplitude, couleur2);
+    switchGoomLines(goomInfo->gmline1, mode, param1, amplitude, couleur1);
+    switchGoomLines(goomInfo->gmline2, mode, param2, amplitude, couleur2);
   }
 }
 
@@ -1780,35 +1781,36 @@ static void stopDecrementingAfterAWhile(PluginInfo* goomInfo, ZoomFilterData** p
 }
 
 inline void setPixelRGB(
-    PluginInfo* goomInfo, Pixel* buffer, const uint32_t x, const uint32_t y, const Color& c)
+    PluginInfo* goomInfo, Pixel* buffer, const uint32_t x, const uint32_t y, const uint32_t c)
 {
-  Pixel i;
-  i.channels.b = c.b;
-  i.channels.g = c.g;
-  i.channels.r = c.r;
+  const Pixel p = { .val = c };
 
-  *(buffer + (x + (y * goomInfo->screen.width))) = i;
+  *(buffer + (x + (y * goomInfo->screen.width))) = p;
 }
 
 static void pointFilter(PluginInfo* goomInfo,
                         Pixel* pix1,
-                        const Color& c,
+                        const uint32_t color,
                         const float t1,
                         const float t2,
                         const float t3,
                         const float t4,
                         const uint32_t cycle)
 {
-  const uint32_t x = goomInfo->screen.width / 2 + uint32_t(t1 * cos(float(cycle) / t3));
-  const uint32_t y = goomInfo->screen.height / 2 + uint32_t(t2 * sin(float(cycle) / t4));
+  const uint32_t xOffset = static_cast<uint32_t>(t1 * cos(static_cast<float>(cycle) / t3));
+  const uint32_t yOffset = static_cast<uint32_t>(t2 * sin(static_cast<float>(cycle) / t4));
+  const uint32_t x = goomInfo->screen.width / 2 + xOffset;
+  const uint32_t y = goomInfo->screen.height / 2 + yOffset;
 
-  if ((x > 1) && (y > 1) && (x < uint32_t(goomInfo->screen.width) - 2) &&
-      (y < uint32_t(goomInfo->screen.height) - 2))
+  const uint32_t widthLess2 = goomInfo->screen.width - 2;
+  const uint32_t heightLess2 = goomInfo->screen.height - 2;
+
+  if ((x > 1) && (y > 1) && (x < widthLess2) && (y < heightLess2))
   {
-    setPixelRGB(goomInfo, pix1, x + 1, y, c);
-    setPixelRGB(goomInfo, pix1, x, y + 1, c);
+    setPixelRGB(goomInfo, pix1, x + 1, y, color);
+    setPixelRGB(goomInfo, pix1, x, y + 1, color);
     setPixelRGB(goomInfo, pix1, x + 1, y + 1, WHITE);
-    setPixelRGB(goomInfo, pix1, x + 2, y + 1, c);
-    setPixelRGB(goomInfo, pix1, x + 1, y + 2, c);
+    setPixelRGB(goomInfo, pix1, x + 2, y + 1, color);
+    setPixelRGB(goomInfo, pix1, x + 1, y + 2, color);
   }
 }

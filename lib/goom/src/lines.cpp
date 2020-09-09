@@ -82,11 +82,11 @@ static void genline(
       }
       return;
     default:
-      throw std::logic_error("Unknown LineTypes enum.");
+      throw std::logic_error("Unknown LineType enum.");
   }
 }
 
-void goom_lines_set_res(GMLine* gml, const uint32_t rx, const uint32_t ry)
+void goomLinesSetResolution(GMLine* gml, const uint32_t rx, const uint32_t ry)
 {
   if (gml)
   {
@@ -132,28 +132,28 @@ static void goom_lines_move(GMLine* l)
   l->amplitude = (99.0f * l->amplitude + l->amplitudeF) / 100.0f;
 }
 
-void goom_lines_switch_to(GMLine* gml,
-                          const LineType IDdest,
-                          const float param,
-                          const float amplitude,
-                          const uint32_t color)
+void switchGoomLines(GMLine* gml,
+                     const LineType dest,
+                     const float param,
+                     const float amplitude,
+                     const uint32_t color)
 {
-  genline(IDdest, param, gml->points2, gml->screenX, gml->screenY);
-  gml->IDdest = IDdest;
+  genline(dest, param, gml->points2, gml->screenX, gml->screenY);
+  gml->IDdest = dest;
   gml->param = param;
   gml->amplitudeF = amplitude;
   gml->color2 = color;
 }
 
-GMLine* goom_lines_init(PluginInfo* goomInfo,
-                        const uint32_t rx,
-                        const uint32_t ry,
-                        const LineType IDsrc,
-                        const float paramS,
-                        const uint32_t srcColor,
-                        const LineType IDdest,
-                        const float paramD,
-                        const uint32_t destColor)
+GMLine* goomLinesInit(PluginInfo* goomInfo,
+                      const uint32_t rx,
+                      const uint32_t ry,
+                      const LineType IDsrc,
+                      const float paramS,
+                      const uint32_t srcColor,
+                      const LineType IDdest,
+                      const float paramD,
+                      const uint32_t destColor)
 {
   GMLine* l = (GMLine*)malloc(sizeof(GMLine));
 
@@ -182,12 +182,12 @@ GMLine* goom_lines_init(PluginInfo* goomInfo,
   l->power = 0.0f;
   l->powinc = 0.01f;
 
-  goom_lines_switch_to(l, IDdest, paramD, 1.0f, destColor);
+  switchGoomLines(l, IDdest, paramD, 1.0f, destColor);
 
   return l;
 }
 
-void goom_lines_free(GMLine** l)
+void goomLinesFree(GMLine** l)
 {
   delete (*l)->colorMaps;
 
@@ -254,10 +254,10 @@ uint32_t getRandomLineColor(PluginInfo* goomInfo)
   return ColorMap::getRandomColor(goomInfo->gmline1->colorMaps->getRandomColorMap());
 }
 
-void goom_lines_draw(PluginInfo* goomInfo,
-                     GMLine* line,
-                     const int16_t data[AUDIO_SAMPLE_LEN],
-                     Pixel* p)
+void drawGoomLines(PluginInfo* goomInfo,
+                   GMLine* line,
+                   const int16_t data[AUDIO_SAMPLE_LEN],
+                   Pixel* p)
 {
   if (!line)
   {

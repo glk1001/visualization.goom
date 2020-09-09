@@ -10,20 +10,19 @@ if ($ENV{DO_GOOM_LOGGING})
 endif()
 
 set (SRCE_FILES
-                 src/config_param.cpp
                  src/convolve_fx.cpp
                  src/drawmethods.cpp
                  src/filters.cpp
                  src/flying_stars_fx.cpp
                  src/gfontlib.cpp
                  src/gfontrle.cpp
+                 src/goom_config_param.cpp
                  src/goom_core.cpp
+                 src/goom_plugin_info.cpp
                  src/goom_testing.cpp
                  src/goom_tools.cpp
-                 src/graphic.cpp
                  src/ifs.cpp
                  src/lines.cpp
-                 src/plugin_info.cpp
                  src/sound_tester.cpp
                  src/tentacle_driver.cpp
                  src/tentacle3d.cpp

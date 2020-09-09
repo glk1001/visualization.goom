@@ -29,14 +29,22 @@
 #include <algorithm>
 #include <cstdint>
 
-static inline void setPixelRGB(Pixel* buffer, const uint32_t x, const Color& c)
+struct Color
+{
+  // TODO: Why uint16 here and not uint8?
+  uint16_t r;
+  uint16_t g;
+  uint16_t b;
+};
+
+inline void setPixelRGB(Pixel* buffer, const uint32_t x, const Color& c)
 {
   buffer[x].channels.r = c.r;
   buffer[x].channels.g = c.g;
   buffer[x].channels.b = c.b;
 }
 
-static inline void getPixelRGB(Pixel* buffer, const uint32_t x, Color* c)
+inline void getPixelRGB(Pixel* buffer, const uint32_t x, Color* c)
 {
   Pixel i = *(buffer + x);
   c->b = i.channels.b;
