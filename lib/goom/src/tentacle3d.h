@@ -1,6 +1,9 @@
 #ifndef _TENTACLE3D_H
 #define _TENTACLE3D_H
 
+#include "goom_config_param.h"
+#include "goom_graphic.h"
+#include "goom_plugin_info.h"
 #include "goom_visual_fx.h"
 
 #include <algorithm>

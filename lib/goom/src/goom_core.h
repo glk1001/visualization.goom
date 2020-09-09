@@ -1,5 +1,5 @@
-#ifndef _GOOM_H
-#define _GOOM_H
+#ifndef _GOOM_CORE_H
+#define _GOOM_CORE_H
 
 #include "filters.h"
 #include "goom_config.h"

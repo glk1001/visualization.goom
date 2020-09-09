@@ -1,7 +1,7 @@
 #include "sound_tester.h"
 
-#include "goom.h"
 #include "goom_config.h"
+#include "goom_core.h"
 
 #include <cstddef>
 #include <cstdint>

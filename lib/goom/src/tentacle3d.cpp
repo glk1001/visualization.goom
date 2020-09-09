@@ -1,7 +1,7 @@
 #include "tentacle3d.h"
 
-#include "goom.h"
 #include "goom_config.h"
+#include "goom_core.h"
 #include "goom_plugin_info.h"
 #include "goom_tools.h"
 #include "goomutils/colormap.h"

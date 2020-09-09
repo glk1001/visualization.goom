@@ -1,5 +1,5 @@
-#ifndef GRAPHIC_H
-#define GRAPHIC_H
+#ifndef _GOOM_GRAPHIC_H
+#define _GOOM_GRAPHIC_H
 
 #include "goom_config.h"
 
