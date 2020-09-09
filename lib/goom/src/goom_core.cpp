@@ -154,17 +154,17 @@ private:
   static constexpr std::array<std::pair<GoomFilterEvent, size_t>, numGoomFilterEvents> weightedFilterEvents{ {
     { GoomFilterEvent::waveModeWithHyperCosEffect,  2 },
     { GoomFilterEvent::waveMode,                    3 },
-    { GoomFilterEvent::crystalBallMode,             2 },
+    { GoomFilterEvent::crystalBallMode,             1 },
     { GoomFilterEvent::crystalBallModeWithEffects,  2 },
     { GoomFilterEvent::amuletteMode,                2 },
     { GoomFilterEvent::waterMode,                   2 },
-    { GoomFilterEvent::scrunchMode,                 3 },
-    { GoomFilterEvent::scrunchModeWithEffects,      3 },
+    { GoomFilterEvent::scrunchMode,                 2 },
+    { GoomFilterEvent::scrunchModeWithEffects,      2 },
     { GoomFilterEvent::hyperCos1Mode,               3 },
     { GoomFilterEvent::hyperCos2Mode,               2 },
-    { GoomFilterEvent::yOnlyMode,                   2 },
+    { GoomFilterEvent::yOnlyMode,                   3 },
     { GoomFilterEvent::speedwayMode,                3 },
-    { GoomFilterEvent::normalMode,                  3 },
+    { GoomFilterEvent::normalMode,                  2 },
   } };
 
   static constexpr std::array<std::pair<LineType, size_t>, numLineTypes> weightedLineEvents{ {
@@ -211,10 +211,13 @@ static GoomEvents goomEvent{};
 
 inline bool changeFilterModeEventHappens(PluginInfo* goomInfo)
 {
+  // If we're in normal mode, then get out with a different probability.
+  // (Rationale: the other modes are more interesting.)
   if (goomInfo->update.zoomFilterData.mode == ZoomFilterMode::normalMode)
   {
     return goomEvent.happens(GoomEvent::changeFilterFromNormalMode);
   }
+
   return goomEvent.happens(GoomEvent::changeFilterMode);
 }
 
@@ -1098,6 +1101,7 @@ static void changeFilterMode(PluginInfo* goomInfo)
   if ((goomInfo->update.zoomFilterData.mode != ZoomFilterMode::normalMode) &&
       goomInfo->curGDrawables != goomInfo->curGState->drawables)
   {
+    logInfo("Not 'normal' filter mode: reset drawables (put back anything previously removed).");
     goomInfo->curGDrawables = goomInfo->curGState->drawables;
   }
 }
