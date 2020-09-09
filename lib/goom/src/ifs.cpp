@@ -35,8 +35,9 @@
 
 #include "ifs.h"
 
-#include "goom.h"
+#include "colorutils.h"
 #include "goom_config.h"
+#include "goom_core.h"
 #include "goom_graphic.h"
 #include "goom_testing.h"
 #include "goom_tools.h"
@@ -527,26 +528,6 @@ struct IfsUpdateData
 static IfsUpdateData updData{
     static_cast<int32_t>(0xc0c0c0c0), {2, 4, 3, 2}, {2, 4, 3, 2}, 0, MOD_MERVER, 0};
 
-inline uint8_t colorAdd(const unsigned char c1, const unsigned char c2)
-{
-  uint32_t cadd = uint32_t(c1) + (uint32_t(c2) >> 1);
-  if (cadd > 255)
-  {
-    cadd = 255;
-  }
-  return static_cast<uint8_t>(cadd);
-}
-
-inline Pixel getColorAdd(const Pixel& color1, const Pixel& color2)
-{
-  Pixel c;
-  c.channels.r = colorAdd(color1.channels.r, color2.channels.r);
-  c.channels.g = colorAdd(color1.channels.g, color2.channels.g);
-  c.channels.b = colorAdd(color1.channels.b, color2.channels.b);
-  c.channels.a = colorAdd(color1.channels.a, color2.channels.a);
-  return c;
-}
-
 static void ifsUpdate(
     PluginInfo* goomInfo, Pixel* data, Pixel* back, int increment, IfsData* fx_data)
 {
@@ -558,27 +539,6 @@ static void ifsUpdate(
     updData.cycle = 0;
   }
 
-  int cycle10;
-  if (updData.cycle < 40)
-  {
-    cycle10 = updData.cycle / 10;
-  }
-  else
-  {
-    cycle10 = 7 - updData.cycle / 10;
-  }
-
-  int couleursl = updData.couleur;
-  {
-    unsigned char* tmp = (unsigned char*)&couleursl;
-
-    for (int i = 0; i < 4; i++)
-    {
-      *tmp = (*tmp) >> cycle10;
-      tmp++;
-    }
-  }
-
   size_t nbpt = 0;
   IFSPoint* points = drawIfs(goomInfo, &nbpt, fx_data);
   nbpt--;
@@ -586,7 +546,8 @@ static void ifsUpdate(
 
   const int width = goomInfo->screen.width;
   const int height = goomInfo->screen.height;
-  const Pixel color = {.val = static_cast<uint32_t>(couleursl)};
+  const int cycle10 = (updData.cycle < 40) ? updData.cycle / 10 : 7 - updData.cycle / 10;
+  const Pixel color = getDividedChannels(static_cast<uint32_t>(updData.couleur), cycle10);
 
   for (size_t i = 0; i < nbpt; i += static_cast<size_t>(increment))
   {

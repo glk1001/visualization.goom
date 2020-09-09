@@ -7,9 +7,11 @@
  * (c)2000-2003, by iOS-software.
  */
 
+#include "goom_core.h"
+
+#include "colorutils.h"
 #include "filters.h"
 #include "gfontlib.h"
-#include "goom.h"
 #include "goom_config.h"
 #include "goom_fx.h"
 #include "goom_plugin_info.h"
@@ -84,7 +86,7 @@ public:
 
   enum GoomFilterEvent
   {
-    waveModeWithhypercosEffect,
+    waveModeWithHyperCosEffect,
     waveMode,
     crystalBallMode,
     crystalBallModeWithEffects,
@@ -150,7 +152,7 @@ private:
   } };
 
   static constexpr std::array<std::pair<GoomFilterEvent, size_t>, numGoomFilterEvents> weightedFilterEvents{ {
-    { GoomFilterEvent::waveModeWithhypercosEffect,  2 },
+    { GoomFilterEvent::waveModeWithHyperCosEffect,  2 },
     { GoomFilterEvent::waveMode,                    3 },
     { GoomFilterEvent::crystalBallMode,             2 },
     { GoomFilterEvent::crystalBallModeWithEffects,  2 },
@@ -1008,7 +1010,7 @@ static void changeFilterMode(PluginInfo* goomInfo)
 
   switch (goomEvent.getRandomFilterEvent())
   {
-    case GoomFilterEvent::waveModeWithhypercosEffect:
+    case GoomFilterEvent::waveModeWithHyperCosEffect:
       goomInfo->update.zoomFilterData.hypercosEffect =
           goomEvent.happens(GoomEvent::hypercosEffectOnWithWaveMode);
       [[fallthrough]];
@@ -1780,14 +1782,6 @@ static void stopDecrementingAfterAWhile(PluginInfo* goomInfo, ZoomFilterData** p
   }
 }
 
-inline void setPixelRGB(
-    PluginInfo* goomInfo, Pixel* buffer, const uint32_t x, const uint32_t y, const uint32_t c)
-{
-  const Pixel p = { .val = c };
-
-  *(buffer + (x + (y * goomInfo->screen.width))) = p;
-}
-
 static void pointFilter(PluginInfo* goomInfo,
                         Pixel* pix1,
                         const uint32_t color,
@@ -1807,10 +1801,10 @@ static void pointFilter(PluginInfo* goomInfo,
 
   if ((x > 1) && (y > 1) && (x < widthLess2) && (y < heightLess2))
   {
-    setPixelRGB(goomInfo, pix1, x + 1, y, color);
-    setPixelRGB(goomInfo, pix1, x, y + 1, color);
-    setPixelRGB(goomInfo, pix1, x + 1, y + 1, WHITE);
-    setPixelRGB(goomInfo, pix1, x + 2, y + 1, color);
-    setPixelRGB(goomInfo, pix1, x + 1, y + 2, color);
+    setPixelRGB(pix1, x + 1, y, goomInfo->screen.width, color);
+    setPixelRGB(pix1, x, y + 1, goomInfo->screen.width, color);
+    setPixelRGB(pix1, x + 1, y + 1, goomInfo->screen.width, WHITE);
+    setPixelRGB(pix1, x + 2, y + 1, goomInfo->screen.width, color);
+    setPixelRGB(pix1, x + 1, y + 2, goomInfo->screen.width, color);
   }
 }
