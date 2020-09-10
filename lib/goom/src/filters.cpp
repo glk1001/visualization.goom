@@ -29,29 +29,6 @@
 #include <algorithm>
 #include <cstdint>
 
-struct Color
-{
-  // TODO: Why uint16 here and not uint8?
-  uint16_t r;
-  uint16_t g;
-  uint16_t b;
-};
-
-inline void setPixelRGB(Pixel* buffer, const uint32_t x, const Color& c)
-{
-  buffer[x].channels.r = c.r;
-  buffer[x].channels.g = c.g;
-  buffer[x].channels.b = c.b;
-}
-
-inline void getPixelRGB(Pixel* buffer, const uint32_t x, Color* c)
-{
-  Pixel i = *(buffer + x);
-  c->b = i.channels.b;
-  c->g = i.channels.g;
-  c->r = i.channels.r;
-}
-
 constexpr float BUFFPOINTNBF = static_cast<float>(BUFFPOINTNB);
 constexpr int BUFFPOINTMASK = 0xffff;
 
@@ -284,6 +261,57 @@ static void makeZoomBufferStripe(PluginInfo* goomInfo, const uint32_t INTERLACE_
   }
 }
 
+inline Pixel getMixedColor(const uint32_t coeffs,
+                           const Pixel& col1,
+                           const Pixel& col2,
+                           const Pixel& col3,
+                           const Pixel& col4)
+{
+  const uint32_t c1 = coeffs & 0xff;
+  const uint32_t c2 = (coeffs >> 8) & 0xff;
+  const uint32_t c3 = (coeffs >> 16) & 0xff;
+  const uint32_t c4 = (coeffs >> 24) & 0xff;
+
+  uint32_t r =
+      col1.channels.r * c1 + col2.channels.r * c2 + col3.channels.r * c3 + col4.channels.r * c4;
+  if (r > 5)
+  {
+    r -= 5;
+  }
+  r >>= 8;
+
+  uint32_t g =
+      col1.channels.g * c1 + col2.channels.g * c2 + col3.channels.g * c3 + col4.channels.g * c4;
+  if (g > 5)
+  {
+    g -= 5;
+  }
+  g >>= 8;
+
+  uint32_t b =
+      col1.channels.b * c1 + col2.channels.b * c2 + col3.channels.b * c3 + col4.channels.b * c4;
+  if (b > 5)
+  {
+    b -= 5;
+  }
+  b >>= 8;
+
+  return Pixel{.channels = {.r = static_cast<uint8_t>(r),
+                            .g = static_cast<uint8_t>(g),
+                            .b = static_cast<uint8_t>(b),
+                            .a = 0xff}};
+}
+
+inline Pixel getPixelRGB(const Pixel* buffer, const uint32_t x)
+{
+  return *(buffer + x);
+}
+
+inline void setPixelRGB(Pixel* buffer, const uint32_t x, const Pixel& p)
+{
+  buffer[x] = p;
+}
+
 static void c_zoom(Pixel* expix1,
                    Pixel* expix2,
                    const uint16_t prevX,
@@ -302,7 +330,6 @@ static void c_zoom(Pixel* expix1,
   expix1[0].val = expix1[prevX - 1].val = expix1[prevX * prevY - 1].val =
       expix1[prevX * prevY - prevX].val = 0;
 
-  Color couleur;
   uint32_t myPos2;
   for (uint32_t myPos = 0; myPos < bufsize; myPos += 2)
   {
@@ -327,40 +354,15 @@ static void c_zoom(Pixel* expix1,
       // coef en modulo 15
       coeffs = static_cast<uint32_t>(precalCoef[px & PERTEMASK][py & PERTEMASK]);
     }
-    Color col1, col2, col3, col4;
-    getPixelRGB(expix1, pos, &col1);
-    getPixelRGB(expix1, pos + 1, &col2);
-    getPixelRGB(expix1, pos + bufwidth, &col3);
-    getPixelRGB(expix1, pos + bufwidth + 1, &col4);
 
-    uint32_t c1 = coeffs;
-    const uint32_t c2 = (c1 >> 8) & 0xFF;
-    const uint32_t c3 = (c1 >> 16) & 0xFF;
-    const uint32_t c4 = (c1 >> 24) & 0xFF;
-    c1 = c1 & 0xff;
+    const Pixel col1 = getPixelRGB(expix1, pos);
+    const Pixel col2 = getPixelRGB(expix1, pos + 1);
+    const Pixel col3 = getPixelRGB(expix1, pos + bufwidth);
+    const Pixel col4 = getPixelRGB(expix1, pos + bufwidth + 1);
 
-    couleur.r = col1.r * c1 + col2.r * c2 + col3.r * c3 + col4.r * c4;
-    if (couleur.r > 5)
-    {
-      couleur.r -= 5;
-    }
-    couleur.r >>= 8;
+    const Pixel newColor = getMixedColor(coeffs, col1, col2, col3, col4);
 
-    couleur.g = col1.g * c1 + col2.g * c2 + col3.g * c3 + col4.g * c4;
-    if (couleur.g > 5)
-    {
-      couleur.g -= 5;
-    }
-    couleur.g >>= 8;
-
-    couleur.b = col1.b * c1 + col2.b * c2 + col3.b * c3 + col4.b * c4;
-    if (couleur.b > 5)
-    {
-      couleur.b -= 5;
-    }
-    couleur.b >>= 8;
-
-    setPixelRGB(expix2, static_cast<uint32_t>(myPos >> 1), couleur);
+    setPixelRGB(expix2, static_cast<uint32_t>(myPos >> 1), newColor);
   }
 }
 
