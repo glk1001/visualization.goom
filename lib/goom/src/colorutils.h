@@ -7,7 +7,7 @@
 
 inline uint8_t colorChannelAdd(const uint8_t c1, const uint8_t c2)
 {
-  uint32_t cadd = uint32_t(c1) + (uint32_t(c2) >> 1);
+  uint32_t cadd = static_cast<uint32_t>(c1) + static_cast<uint32_t>(c2);
   if (cadd > 255)
   {
     cadd = 255;
