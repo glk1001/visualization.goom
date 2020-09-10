@@ -10,6 +10,7 @@ if ($ENV{DO_GOOM_LOGGING})
 endif()
 
 set (SRCE_FILES
+                 src/colorutils.cpp
                  src/convolve_fx.cpp
                  src/drawmethods.cpp
                  src/filters.cpp

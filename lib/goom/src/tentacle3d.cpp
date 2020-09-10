@@ -1,5 +1,6 @@
 #include "tentacle3d.h"
 
+#include "colorutils.h"
 #include "goom_config.h"
 #include "goom_core.h"
 #include "goom_plugin_info.h"
@@ -41,13 +42,6 @@ private:
                    float* rotangle,
                    TentacleFXData* fx_data);
   std::tuple<uint32_t, uint32_t> getModColors(PluginInfo* goomInfo, TentacleFXData* fx_data);
-  static uint32_t getEvolvedColor(const uint32_t baseColor);
-  static uint32_t evolvecolor(uint32_t src,
-                              uint32_t dest,
-                              const uint32_t mask,
-                              const uint32_t incr);
-  static uint32_t lightencolor(const uint32_t oldColor, const float power);
-  static unsigned char lighten(const unsigned char value, const float power);
   std::vector<float> getGridZeroAdditiveValues(PluginInfo* goomInfo, const float rapport);
 };
 
@@ -241,81 +235,12 @@ inline std::tuple<uint32_t, uint32_t> TentaclesWrapper::getModColors(PluginInfo*
 
   fx_data->col = getEvolvedColor(fx_data->col);
 
-  const uint32_t color = lightencolor(fx_data->col, fx_data->lig * 2.0f + 2.0f);
-  //  const uint32_t colorLow = lightencolor(color, (fx_data->lig / 3.0f) + 0.67f);
-  const uint32_t colorLow = lightencolor(color, (fx_data->lig / 2.0f) + 0.67f);
+  const uint32_t color = getLightenedColor(fx_data->col, fx_data->lig * 2.0f + 2.0f);
+  //  const uint32_t colorLow = getLightenedColor(color, (fx_data->lig / 3.0f) + 0.67f);
+  const uint32_t colorLow = getLightenedColor(color, (fx_data->lig / 2.0f) + 0.67f);
 
   return std::make_tuple(color, colorLow);
 }
-
-inline uint32_t TentaclesWrapper::getEvolvedColor(const uint32_t baseColor)
-{
-  uint32_t newColor = baseColor;
-
-  newColor = evolvecolor(newColor, baseColor, 0xff, 0x01);
-  newColor = evolvecolor(newColor, baseColor, 0xff00, 0x0100);
-  newColor = evolvecolor(newColor, baseColor, 0xff0000, 0x010000);
-  newColor = evolvecolor(newColor, baseColor, 0xff000000, 0x01000000);
-
-  newColor = lightencolor(newColor, 10.0 * 2.0f + 2.0f);
-
-  return newColor;
-}
-
-inline uint32_t TentaclesWrapper::evolvecolor(uint32_t src,
-                                              uint32_t dest,
-                                              const uint32_t mask,
-                                              const uint32_t incr)
-{
-  const uint32_t color = src & (~mask);
-  src &= mask;
-  dest &= mask;
-
-  if ((src != mask) && (src < dest))
-  {
-    src += incr;
-  }
-
-  if (src > dest)
-  {
-    src -= incr;
-  }
-  return uint32_t((src & mask) | color);
-}
-
-inline uint32_t TentaclesWrapper::lightencolor(const uint32_t oldColor, const float power)
-{
-  Pixel pixel{.val = oldColor};
-
-  pixel.channels.r = lighten(pixel.channels.r, power);
-  pixel.channels.g = lighten(pixel.channels.g, power);
-  pixel.channels.b = lighten(pixel.channels.b, power);
-
-  return pixel.val;
-}
-
-inline unsigned char TentaclesWrapper::lighten(const unsigned char value, const float power)
-{
-  int val = value;
-
-  const float t = float(val * std::log10(power) / 2.0);
-  if (t <= 0.0)
-  {
-    return 0;
-  }
-
-  val = int(t); /* (32.0f * log (t)); */
-  if (val > 255)
-  {
-    val = 255;
-  }
-  else if (val < 0)
-  {
-    val = 0;
-  }
-  return val;
-}
-
 
 /* 
  * VisualFX wrapper for the tentacles

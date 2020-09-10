@@ -36,7 +36,7 @@ constexpr size_t numLineTypes = static_cast<size_t>(LineType::_size);
 // tableau de points
 struct GMLine
 {
-  ColorMaps* colorMaps;
+  const ColorMaps* colorMaps;
 
   GMUnitPointer* points;
   GMUnitPointer* points2;

@@ -29,7 +29,7 @@ inline Pixel getColorAdd(const Pixel& color1, const Pixel& color2)
 
 inline Pixel getDividedChannels(const uint32_t color, const int value)
 {
-  Pixel p{ .val = color };
+  Pixel p{.val = color};
 
   p.channels.r >>= value;
   p.channels.g >>= value;
@@ -39,10 +39,13 @@ inline Pixel getDividedChannels(const uint32_t color, const int value)
   return p;
 }
 
+uint32_t getLightenedColor(const uint32_t oldColor, const float power);
+uint32_t getEvolvedColor(const uint32_t baseColor);
+
 inline void setPixelRGB(
     Pixel* buff, const uint32_t x, const uint32_t y, const uint32_t screenWidth, const uint32_t col)
 {
-  const Pixel p{ .val = col };
+  const Pixel p{.val = col};
 
   *(buff + (x + (y * screenWidth))) = p;
 }

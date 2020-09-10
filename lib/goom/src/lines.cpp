@@ -1,9 +1,10 @@
 #include "lines.h"
 
+#include "colorutils.h"
 #include "drawmethods.h"
 #include "goom_config.h"
+#include "goom_graphic.h"
 #include "goom_plugin_info.h"
-#include "goom_tools.h"
 #include "goomutils/colormap.h"
 #include "goomutils/mathutils.h"
 
@@ -13,44 +14,7 @@
 #include <stdexcept>
 #include <tuple>
 
-static inline unsigned char lighten(unsigned char value, float power)
-{
-  int val = value;
-  float t = (float)val * log10(power) / 2.0;
-
-  if (t > 0)
-  {
-    val = (int)t; /* (32.0f * log (t)); */
-    if (val > 255)
-    {
-      val = 255;
-    }
-    if (val < 0)
-    {
-      val = 0;
-    }
-    return val;
-  }
-  else
-  {
-    return 0;
-  }
-}
-
-static void lightencolor(uint32_t* col, float power)
-{
-  unsigned char* color = (unsigned char*)(col);
-
-  *color = lighten(*color, power);
-  color++;
-  *color = lighten(*color, power);
-  color++;
-  *color = lighten(*color, power);
-  color++;
-  *color = lighten(*color, power);
-}
-
-static void genline(
+static void generateLine(
     const LineType id, const float param, GMUnitPointer* l, const uint32_t rx, const uint32_t ry)
 {
   switch (id)
@@ -93,11 +57,11 @@ void goomLinesSetResolution(GMLine* gml, const uint32_t rx, const uint32_t ry)
     gml->screenX = rx;
     gml->screenY = ry;
 
-    genline(gml->IDdest, gml->param, gml->points2, rx, ry);
+    generateLine(gml->IDdest, gml->param, gml->points2, rx, ry);
   }
 }
 
-static void goom_lines_move(GMLine* l)
+static void goomLinesMove(GMLine* l)
 {
   for (uint32_t i = 0; i < AUDIO_SAMPLE_LEN; i++)
   {
@@ -138,7 +102,7 @@ void switchGoomLines(GMLine* gml,
                      const float amplitude,
                      const uint32_t color)
 {
-  genline(dest, param, gml->points2, gml->screenX, gml->screenY);
+  generateLine(dest, param, gml->points2, gml->screenX, gml->screenY);
   gml->IDdest = dest;
   gml->param = param;
   gml->amplitudeF = amplitude;
@@ -170,8 +134,8 @@ GMLine* goomLinesInit(PluginInfo* goomInfo,
 
   l->amplitude = l->amplitudeF = 1.0f;
 
-  genline(IDsrc, paramS, l->points, rx, ry);
-  genline(IDdest, paramD, l->points2, rx, ry);
+  generateLine(IDsrc, paramS, l->points, rx, ry);
+  generateLine(IDdest, paramD, l->points2, rx, ry);
 
   l->color = srcColor;
   l->color2 = destColor;
@@ -265,8 +229,7 @@ void drawGoomLines(PluginInfo* goomInfo,
   }
 
   const GMUnitPointer* pt = &(line->points[0]);
-  uint32_t color = line->color;
-  lightencolor(&color, line->power);
+  const uint32_t color = getLightenedColor(line->color, line->power);
 
   const float audioRange =
       static_cast<float>(goomInfo->sound.allTimesMax - goomInfo->sound.allTimesMin);
@@ -275,7 +238,7 @@ void drawGoomLines(PluginInfo* goomInfo,
     // No range - flatline audio
     goomInfo->methods.draw_line(p, pt->x, pt->y, pt->x + AUDIO_SAMPLE_LEN, pt->y, color,
                                 line->screenX, line->screenY);
-    goom_lines_move(line);
+    goomLinesMove(line);
     return;
   }
 
@@ -311,5 +274,5 @@ void drawGoomLines(PluginInfo* goomInfo,
     y1 = y2;
   }
 
-  goom_lines_move(line);
+  goomLinesMove(line);
 }
