@@ -366,9 +366,7 @@ static void c_zoom(Pixel* expix1,
   }
 }
 
-// Generate the water fx horizontal direction buffer
-static void generateTheWaterFXHorizontalDirectionBuffer(PluginInfo* goomInfo,
-                                                        FilterDataWrapper* data)
+static void generateWaterFXHorizontalBuffer(PluginInfo* goomInfo, FilterDataWrapper* data)
 {
   int decc = static_cast<int>(goomInfo->getNRand(8) - 4);
   int spdc = static_cast<int>(goomInfo->getNRand(8) - 4);
@@ -424,7 +422,7 @@ static void generateTheWaterFXHorizontalDirectionBuffer(PluginInfo* goomInfo,
   }
 }
 
-static void InitBuffers(PluginInfo* goomInfo, const uint32_t resx, const uint32_t resy)
+static void initBuffers(PluginInfo* goomInfo, const uint32_t resx, const uint32_t resy)
 {
   FilterDataWrapper* data = static_cast<FilterDataWrapper*>(goomInfo->zoomFilter_fx.fx_data);
 
@@ -472,7 +470,7 @@ static void InitBuffers(PluginInfo* goomInfo, const uint32_t resx, const uint32_
   data->buffratio = 0;
 
   data->firedec = (int*)malloc(data->prevY * sizeof(int));
-  generateTheWaterFXHorizontalDirectionBuffer(goomInfo, data);
+  generateWaterFXHorizontalBuffer(goomInfo, data);
 
   data->interlaceStart = 0;
   makeZoomBufferStripe(goomInfo, resy);
@@ -524,8 +522,8 @@ void zoomFilterFastRGB(PluginInfo* goomInfo,
   logDebug("data->prevX = {}, data->prevY = {}", data->prevX, data->prevY);
   if (data->mustInitBuffers)
   {
-    logDebug("Calling InitBuffers");
-    InitBuffers(goomInfo, resx, resy);
+    logDebug("Calling initBuffers");
+    initBuffers(goomInfo, resx, resy);
   }
 
   if (data->interlaceStart != -2)
@@ -764,7 +762,7 @@ static void zoomFilterVisualFXWrapper_init(VisualFX* _this, PluginInfo* info)
   /** modif d'optim by Jeko : precalcul des 4 coefs resultant des 2 pos */
   generatePrecalCoef(data->precalCoef);
 
-  InitBuffers(info, info->screen.width, info->screen.height);
+  initBuffers(info, info->screen.width, info->screen.height);
 }
 
 static void zoomFilterVisualFXWrapper_free(VisualFX* _this)
