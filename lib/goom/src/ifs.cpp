@@ -41,18 +41,20 @@
 #include "goom_graphic.h"
 #include "goom_testing.h"
 #include "goom_tools.h"
+#include "goomutils/colormap.h"
 #include "goomutils/logging_control.h"
 // #undef NO_LOGGING
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
 
+#include <array>
 #include <cmath>
 #include <cstdint>
 
 struct IFSPoint
 {
-  int32_t x;
-  int32_t y;
+  uint32_t x;
+  uint32_t y;
 };
 
 inline uint32_t longRand(PluginInfo* goomInfo)
@@ -129,7 +131,6 @@ struct Fractal
   int numSimi;
   Similitude components[5 * maxSimi];
   uint32_t depth;
-  uint32_t col;
   int count;
   int speed;
   uint16_t width;
@@ -150,6 +151,8 @@ struct IfsData
 {
   PluginParam enabled_bp;
   PluginParameters params;
+
+  const ColorMaps* colorMaps;
 
   Fractal* root;
   Fractal* curF;
@@ -230,7 +233,7 @@ static void randomSimis(PluginInfo* goomInfo, Fractal* fractal, Similitude* cur,
   }
 }
 
-static void free_ifs_buffers(Fractal* fractal)
+static void freeIfsBuffers(Fractal* fractal)
 {
   if (fractal->buffer1)
   {
@@ -244,16 +247,13 @@ static void free_ifs_buffers(Fractal* fractal)
   }
 }
 
-static void free_ifs(Fractal* fractal)
+static void freeIfs(Fractal* fractal)
 {
-  free_ifs_buffers(fractal);
+  freeIfsBuffers(fractal);
 }
 
-static void init_ifs(PluginInfo* goomInfo, IfsData* data)
+static void initIfs(PluginInfo* goomInfo, IfsData* data)
 {
-  const uint32_t width = goomInfo->screen.width;
-  const uint32_t height = goomInfo->screen.height;
-
   data->enabled_bp = secure_b_param("Enabled", 1);
 
   if (!data->root)
@@ -266,10 +266,10 @@ static void init_ifs(PluginInfo* goomInfo, IfsData* data)
   }
 
   Fractal* fractal = data->root;
-  free_ifs_buffers(fractal);
+  freeIfsBuffers(fractal);
 
-  const int num_centres = nRand(goomInfo, 4) + 2; // Number of centers
-  switch (num_centres)
+  const int numCentres = nRand(goomInfo, 4) + 2;
+  switch (numCentres)
   {
     case 3:
       fractal->depth = MAX_DEPTH_3;
@@ -301,7 +301,7 @@ static void init_ifs(PluginInfo* goomInfo, IfsData* data)
       break;
   }
 
-  fractal->numSimi = num_centres;
+  fractal->numSimi = numCentres;
   fractal->maxPt = fractal->numSimi - 1;
   for (uint32_t i = 0; i <= fractal->depth + 2; i++)
   {
@@ -310,23 +310,22 @@ static void init_ifs(PluginInfo* goomInfo, IfsData* data)
 
   if ((fractal->buffer1 = (IFSPoint*)calloc((size_t)fractal->maxPt, sizeof(IFSPoint))) == nullptr)
   {
-    free_ifs(fractal);
+    freeIfs(fractal);
     return;
   }
   if ((fractal->buffer2 = (IFSPoint*)calloc((size_t)fractal->maxPt, sizeof(IFSPoint))) == nullptr)
   {
-    free_ifs(fractal);
+    freeIfs(fractal);
     return;
   }
 
   fractal->speed = 6;
-  fractal->width = width; /* modif by JeKo */
-  fractal->height = height; /* modif by JeKo */
+  fractal->width = goomInfo->screen.width; // modif by JeKo
+  fractal->height = goomInfo->screen.height; // modif by JeKo
   fractal->curPt = 0;
   fractal->count = 0;
   fractal->lx = (fractal->width - 1) / 2;
   fractal->ly = (fractal->height - 1) / 2;
-  fractal->col = pcg32_rand() % (width * height); /* modif by JeKo */
 
   randomSimis(goomInfo, fractal, fractal->components, 5 * maxSimi);
 
@@ -363,8 +362,8 @@ static void trace(Fractal* F, const F_PT xo, const F_PT yo, IfsData* data)
     F_PT x, y;
     transform(Cur, xo, yo, &x, &y);
 
-    data->buff->x = F->lx + div_by_2units(x * F->lx);
-    data->buff->y = F->ly - div_by_2units(y * F->ly);
+    data->buff->x = static_cast<uint32_t>(F->lx + div_by_2units(x * F->lx));
+    data->buff->y = static_cast<uint32_t>(F->ly - div_by_2units(y * F->ly));
     data->buff++;
 
     data->curPt++;
@@ -427,15 +426,18 @@ static void drawFractal(IfsData* data)
   fractal->buffer2 = data->buff;
 }
 
-static IFSPoint* drawIfs(PluginInfo* goomInfo, size_t* nbpt, IfsData* data)
+static IFSPoint* drawIfs(PluginInfo* goomInfo, size_t* numPoints, IfsData* data)
 {
   if (data->root == nullptr)
   {
+    *numPoints = 0;
     return nullptr;
   }
+
   Fractal* fractal = data->root;
   if (fractal->buffer1 == nullptr)
   {
+    *numPoints = 0;
     return nullptr;
   }
 
@@ -466,7 +468,11 @@ static IFSPoint* drawIfs(PluginInfo* goomInfo, size_t* nbpt, IfsData* data)
 
   drawFractal(data);
 
-  if (fractal->count >= 1000 / fractal->speed)
+  if (fractal->count < 1000 / fractal->speed)
+  {
+    fractal->count++;
+  }
+  else
   {
     S = fractal->components;
     S1 = S + fractal->numSimi;
@@ -491,24 +497,19 @@ static IFSPoint* drawIfs(PluginInfo* goomInfo, size_t* nbpt, IfsData* data)
 
     fractal->count = 0;
   }
-  else
-  {
-    fractal->count++;
-  }
 
-  fractal->col++;
-  *nbpt = data->curPt;
+  *numPoints = data->curPt;
 
   return fractal->buffer2;
 }
 
-static void release_ifs(IfsData* data)
+static void releaseIfs(IfsData* data)
 {
-  if (data->root != NULL)
+  if (data->root)
   {
-    free_ifs(data->root);
-    (void)free((void*)data->root);
-    data->root = (Fractal*)NULL;
+    freeIfs(data->root);
+    free(data->root);
+    data->root = nullptr;
   }
 }
 
@@ -516,20 +517,83 @@ static void release_ifs(IfsData* data)
 #define MOD_FEU 1
 #define MOD_MERVER 2
 
+constexpr size_t numChannels = 4;
+using Int32ChannelArray = std::array<int32_t, numChannels>;
+
 struct IfsUpdateData
 {
-  int32_t couleur;
-  int32_t v[4];
-  int32_t col[4];
+  Pixel couleur;
+  Int32ChannelArray v;
+  Int32ChannelArray col;
   int justChanged;
   int mode;
   int cycle;
 };
-static IfsUpdateData updData{
-    static_cast<int32_t>(0xc0c0c0c0), {2, 4, 3, 2}, {2, 4, 3, 2}, 0, MOD_MERVER, 0};
 
-static void ifsUpdate(
-    PluginInfo* goomInfo, Pixel* data, Pixel* back, int increment, IfsData* fx_data)
+// TODO Put this on IfsData ???????????????????????????????????????????????????????????????????
+// clang-format off
+static IfsUpdateData updData{
+  .couleur = { .val = 0xc0c0c0c0 },
+  .v = { 2, 4, 3, 2 },
+  .col = { 2, 4, 3, 2 },
+  .justChanged = 0,
+  .mode = MOD_MERVER,
+  .cycle = 0,
+};
+// clang-format on
+
+inline Pixel getPixel(const Int32ChannelArray& col)
+{
+  Pixel p;
+  for (size_t i = 0; i < numChannels; i++)
+  {
+    p.cop[i] = static_cast<uint8_t>(col[i]);
+  }
+  return p;
+}
+
+inline Int32ChannelArray getChannelArray(const Pixel& p)
+{
+  Int32ChannelArray a;
+  for (size_t i = 0; i < numChannels; i++)
+  {
+    a[i] = p.cop[i];
+  }
+  return a;
+}
+
+static void updateColors(PluginInfo*, IfsUpdateData*);
+static void updateColorsModeMer(PluginInfo*, IfsUpdateData*);
+static void updateColorsModeMerver(PluginInfo*, IfsUpdateData*);
+static void updateColorsModeFeu(PluginInfo*, IfsUpdateData*);
+
+static void updatePixelBuffers(PluginInfo* goomInfo,
+                               Pixel* frontBuff,
+                               Pixel* backBuff,
+                               const size_t numPoints,
+                               const IFSPoint* points,
+                               const int increment,
+                               const Pixel& color)
+{
+  const uint32_t width = goomInfo->screen.width;
+  const uint32_t height = goomInfo->screen.height;
+
+  for (size_t i = 0; i < numPoints; i += static_cast<size_t>(increment))
+  {
+    const uint32_t x = points[i].x & 0x7fffffff;
+    const uint32_t y = points[i].y & 0x7fffffff;
+
+    if ((x < width) && (y < height))
+    {
+      const uint32_t pos = x + (y * width);
+      Pixel* const p = &frontBuff[pos];
+      *p = getColorAdd(backBuff[pos], color);
+    }
+  }
+}
+
+static void updateIfs(
+    PluginInfo* goomInfo, Pixel* frontBuff, Pixel* backBuff, int increment, IfsData* fx_data)
 {
   logDebug("increment = {}", increment);
 
@@ -539,239 +603,22 @@ static void ifsUpdate(
     updData.cycle = 0;
   }
 
-  size_t nbpt = 0;
-  IFSPoint* points = drawIfs(goomInfo, &nbpt, fx_data);
-  nbpt--;
-  logDebug("nbpt = {}", nbpt);
+  size_t numPoints;
+  const IFSPoint* points = drawIfs(goomInfo, &numPoints, fx_data);
+  numPoints--;
 
-  const int width = goomInfo->screen.width;
-  const int height = goomInfo->screen.height;
   const int cycle10 = (updData.cycle < 40) ? updData.cycle / 10 : 7 - updData.cycle / 10;
-  const Pixel color = getDividedChannels(static_cast<uint32_t>(updData.couleur), cycle10);
+  const Pixel color = getRightShiftedChannels(updData.couleur, cycle10);
 
-  for (size_t i = 0; i < nbpt; i += static_cast<size_t>(increment))
-  {
-    const int x = static_cast<int>(points[i].x) & 0x7fffffff;
-    const int y = static_cast<int>(points[i].y) & 0x7fffffff;
-
-    if ((x < width) && (y < height))
-    {
-      const int pos = x + static_cast<int>(y * width);
-      Pixel* const p = &data[pos];
-      *p = getColorAdd(back[pos], color);
-    }
-  }
+  updatePixelBuffers(goomInfo, frontBuff, backBuff, numPoints, points, increment, color);
 
   updData.justChanged--;
-  logDebug("updData.justChanged = {}", updData.justChanged);
 
-  updData.col[ALPHA] = updData.couleur >> (ALPHA * 8) & 0xff;
-  updData.col[BLEU] = updData.couleur >> (BLEU * 8) & 0xff;
-  updData.col[VERT] = updData.couleur >> (VERT * 8) & 0xff;
-  updData.col[ROUGE] = updData.couleur >> (ROUGE * 8) & 0xff;
+  updData.col = getChannelArray(updData.couleur);
 
-  if (updData.mode == MOD_MER)
-  {
-    updData.col[BLEU] += updData.v[BLEU];
-    if (updData.col[BLEU] > 255)
-    {
-      updData.col[BLEU] = 255;
-      updData.v[BLEU] = -(rand(goomInfo) % 4) - 1;
-    }
-    if (updData.col[BLEU] < 32)
-    {
-      updData.col[BLEU] = 32;
-      updData.v[BLEU] = (rand(goomInfo) % 4) + 1;
-    }
+  updateColors(goomInfo, &updData);
 
-    updData.col[VERT] += updData.v[VERT];
-    if (updData.col[VERT] > 200)
-    {
-      updData.col[VERT] = 200;
-      updData.v[VERT] = -(rand(goomInfo) % 3) - 2;
-    }
-    if (updData.col[VERT] > updData.col[BLEU])
-    {
-      updData.col[VERT] = updData.col[BLEU];
-      updData.v[VERT] = updData.v[BLEU];
-    }
-    if (updData.col[VERT] < 32)
-    {
-      updData.col[VERT] = 32;
-      updData.v[VERT] = (rand(goomInfo) % 3) + 2;
-    }
-
-    updData.col[ROUGE] += updData.v[ROUGE];
-    if (updData.col[ROUGE] > 64)
-    {
-      updData.col[ROUGE] = 64;
-      updData.v[ROUGE] = -(rand(goomInfo) % 4) - 1;
-    }
-    if (updData.col[ROUGE] < 0)
-    {
-      updData.col[ROUGE] = 0;
-      updData.v[ROUGE] = (rand(goomInfo) % 4) + 1;
-    }
-
-    updData.col[ALPHA] += updData.v[ALPHA];
-    if (updData.col[ALPHA] > 0)
-    {
-      updData.col[ALPHA] = 0;
-      updData.v[ALPHA] = -(rand(goomInfo) % 4) - 1;
-    }
-    if (updData.col[ALPHA] < 0)
-    {
-      updData.col[ALPHA] = 0;
-      updData.v[ALPHA] = (rand(goomInfo) % 4) + 1;
-    }
-
-    if (((updData.col[VERT] > 32) && (updData.col[ROUGE] < updData.col[VERT] + 40) &&
-         (updData.col[VERT] < updData.col[ROUGE] + 20) && (updData.col[BLEU] < 64) &&
-         (rand(goomInfo) % 20 == 0)) &&
-        (updData.justChanged < 0))
-    {
-      updData.mode = rand(goomInfo) % 3 ? MOD_FEU : MOD_MERVER;
-      updData.justChanged = 250;
-    }
-  }
-  else if (updData.mode == MOD_MERVER)
-  {
-    updData.col[BLEU] += updData.v[BLEU];
-    if (updData.col[BLEU] > 128)
-    {
-      updData.col[BLEU] = 128;
-      updData.v[BLEU] = -(rand(goomInfo) % 4) - 1;
-    }
-    if (updData.col[BLEU] < 16)
-    {
-      updData.col[BLEU] = 16;
-      updData.v[BLEU] = (rand(goomInfo) % 4) + 1;
-    }
-
-    updData.col[VERT] += updData.v[VERT];
-    if (updData.col[VERT] > 200)
-    {
-      updData.col[VERT] = 200;
-      updData.v[VERT] = -(rand(goomInfo) % 3) - 2;
-    }
-    if (updData.col[VERT] > updData.col[ALPHA])
-    {
-      updData.col[VERT] = updData.col[ALPHA];
-      updData.v[VERT] = updData.v[ALPHA];
-    }
-    if (updData.col[VERT] < 32)
-    {
-      updData.col[VERT] = 32;
-      updData.v[VERT] = (rand(goomInfo) % 3) + 2;
-    }
-
-    updData.col[ROUGE] += updData.v[ROUGE];
-    if (updData.col[ROUGE] > 128)
-    {
-      updData.col[ROUGE] = 128;
-      updData.v[ROUGE] = -(rand(goomInfo) % 4) - 1;
-    }
-    if (updData.col[ROUGE] < 0)
-    {
-      updData.col[ROUGE] = 0;
-      updData.v[ROUGE] = (rand(goomInfo) % 4) + 1;
-    }
-
-    updData.col[ALPHA] += updData.v[ALPHA];
-    if (updData.col[ALPHA] > 255)
-    {
-      updData.col[ALPHA] = 255;
-      updData.v[ALPHA] = -(rand(goomInfo) % 4) - 1;
-    }
-    if (updData.col[ALPHA] < 0)
-    {
-      updData.col[ALPHA] = 0;
-      updData.v[ALPHA] = (rand(goomInfo) % 4) + 1;
-    }
-
-    if (((updData.col[VERT] > 32) && (updData.col[ROUGE] < updData.col[VERT] + 40) &&
-         (updData.col[VERT] < updData.col[ROUGE] + 20) && (updData.col[BLEU] < 64) &&
-         (rand(goomInfo) % 20 == 0)) &&
-        (updData.justChanged < 0))
-    {
-      updData.mode = rand(goomInfo) % 3 ? MOD_FEU : MOD_MER;
-      updData.justChanged = 250;
-    }
-  }
-  else if (updData.mode == MOD_FEU)
-  {
-    updData.col[BLEU] += updData.v[BLEU];
-    if (updData.col[BLEU] > 64)
-    {
-      updData.col[BLEU] = 64;
-      updData.v[BLEU] = -(rand(goomInfo) % 4) - 1;
-    }
-    if (updData.col[BLEU] < 0)
-    {
-      updData.col[BLEU] = 0;
-      updData.v[BLEU] = (rand(goomInfo) % 4) + 1;
-    }
-
-    updData.col[VERT] += updData.v[VERT];
-    if (updData.col[VERT] > 200)
-    {
-      updData.col[VERT] = 200;
-      updData.v[VERT] = -(rand(goomInfo) % 3) - 2;
-    }
-    if (updData.col[VERT] > updData.col[ROUGE] + 20)
-    {
-      updData.col[VERT] = updData.col[ROUGE] + 20;
-      updData.v[VERT] = -(rand(goomInfo) % 3) - 2;
-      updData.v[ROUGE] = (rand(goomInfo) % 4) + 1;
-      updData.v[BLEU] = (rand(goomInfo) % 4) + 1;
-    }
-    if (updData.col[VERT] < 0)
-    {
-      updData.col[VERT] = 0;
-      updData.v[VERT] = (rand(goomInfo) % 3) + 2;
-    }
-
-    updData.col[ROUGE] += updData.v[ROUGE];
-    if (updData.col[ROUGE] > 255)
-    {
-      updData.col[ROUGE] = 255;
-      updData.v[ROUGE] = -(rand(goomInfo) % 4) - 1;
-    }
-    if (updData.col[ROUGE] > updData.col[VERT] + 40)
-    {
-      updData.col[ROUGE] = updData.col[VERT] + 40;
-      updData.v[ROUGE] = -(rand(goomInfo) % 4) - 1;
-    }
-    if (updData.col[ROUGE] < 0)
-    {
-      updData.col[ROUGE] = 0;
-      updData.v[ROUGE] = (rand(goomInfo) % 4) + 1;
-    }
-
-    updData.col[ALPHA] += updData.v[ALPHA];
-    if (updData.col[ALPHA] > 0)
-    {
-      updData.col[ALPHA] = 0;
-      updData.v[ALPHA] = -(rand(goomInfo) % 4) - 1;
-    }
-    if (updData.col[ALPHA] < 0)
-    {
-      updData.col[ALPHA] = 0;
-      updData.v[ALPHA] = (rand(goomInfo) % 4) + 1;
-    }
-
-    if (((updData.col[ROUGE] < 64) && (updData.col[VERT] > 32) &&
-         (updData.col[VERT] < updData.col[BLEU]) && (updData.col[BLEU] > 32) &&
-         (rand(goomInfo) % 20 == 0)) &&
-        (updData.justChanged < 0))
-    {
-      updData.mode = rand(goomInfo) % 2 ? MOD_MER : MOD_MERVER;
-      updData.justChanged = 250;
-    }
-  }
-
-  updData.couleur = (updData.col[ALPHA] << (ALPHA * 8)) | (updData.col[BLEU] << (BLEU * 8)) |
-                    (updData.col[VERT] << (VERT * 8)) | (updData.col[ROUGE] << (ROUGE * 8));
+  updData.couleur = getPixel(updData.col);
 
   logDebug("updData.col[ALPHA] = {}", updData.col[ALPHA]);
   logDebug("updData.col[BLEU] = {}", updData.col[BLEU]);
@@ -786,19 +633,236 @@ static void ifsUpdate(
   logDebug("updData.mode = {}", updData.mode);
 }
 
+static void updateColors(PluginInfo* goomInfo, IfsUpdateData* upd)
+{
+  if (upd->mode == MOD_MER)
+  {
+    updateColorsModeMer(goomInfo, upd);
+  }
+  else if (upd->mode == MOD_MERVER)
+  {
+    updateColorsModeMerver(goomInfo, upd);
+  }
+  else if (upd->mode == MOD_FEU)
+  {
+    updateColorsModeFeu(goomInfo, upd);
+  }
+}
+
+static void updateColorsModeMer(PluginInfo* goomInfo, IfsUpdateData* upd)
+{
+  upd->col[BLEU] += upd->v[BLEU];
+  if (upd->col[BLEU] > 255)
+  {
+    upd->col[BLEU] = 255;
+    upd->v[BLEU] = -(rand(goomInfo) % 4) - 1;
+  }
+  if (upd->col[BLEU] < 32)
+  {
+    upd->col[BLEU] = 32;
+    upd->v[BLEU] = (rand(goomInfo) % 4) + 1;
+  }
+
+  upd->col[VERT] += upd->v[VERT];
+  if (upd->col[VERT] > 200)
+  {
+    upd->col[VERT] = 200;
+    upd->v[VERT] = -(rand(goomInfo) % 3) - 2;
+  }
+  if (upd->col[VERT] > upd->col[BLEU])
+  {
+    upd->col[VERT] = upd->col[BLEU];
+    upd->v[VERT] = upd->v[BLEU];
+  }
+  if (upd->col[VERT] < 32)
+  {
+    upd->col[VERT] = 32;
+    upd->v[VERT] = (rand(goomInfo) % 3) + 2;
+  }
+
+  upd->col[ROUGE] += upd->v[ROUGE];
+  if (upd->col[ROUGE] > 64)
+  {
+    upd->col[ROUGE] = 64;
+    upd->v[ROUGE] = -(rand(goomInfo) % 4) - 1;
+  }
+  if (upd->col[ROUGE] < 0)
+  {
+    upd->col[ROUGE] = 0;
+    upd->v[ROUGE] = (rand(goomInfo) % 4) + 1;
+  }
+
+  upd->col[ALPHA] += upd->v[ALPHA];
+  if (upd->col[ALPHA] > 0)
+  {
+    upd->col[ALPHA] = 0;
+    upd->v[ALPHA] = -(rand(goomInfo) % 4) - 1;
+  }
+  if (upd->col[ALPHA] < 0)
+  {
+    upd->col[ALPHA] = 0;
+    upd->v[ALPHA] = (rand(goomInfo) % 4) + 1;
+  }
+
+  if (((upd->col[VERT] > 32) && (upd->col[ROUGE] < upd->col[VERT] + 40) &&
+       (upd->col[VERT] < upd->col[ROUGE] + 20) && (upd->col[BLEU] < 64) &&
+       (rand(goomInfo) % 20 == 0)) &&
+      (upd->justChanged < 0))
+  {
+    upd->mode = rand(goomInfo) % 3 ? MOD_FEU : MOD_MERVER;
+    upd->justChanged = 250;
+  }
+}
+
+static void updateColorsModeMerver(PluginInfo* goomInfo, IfsUpdateData* upd)
+{
+  upd->col[BLEU] += upd->v[BLEU];
+  if (upd->col[BLEU] > 128)
+  {
+    upd->col[BLEU] = 128;
+    upd->v[BLEU] = -(rand(goomInfo) % 4) - 1;
+  }
+  if (upd->col[BLEU] < 16)
+  {
+    upd->col[BLEU] = 16;
+    upd->v[BLEU] = (rand(goomInfo) % 4) + 1;
+  }
+
+  upd->col[VERT] += upd->v[VERT];
+  if (upd->col[VERT] > 200)
+  {
+    upd->col[VERT] = 200;
+    upd->v[VERT] = -(rand(goomInfo) % 3) - 2;
+  }
+  if (upd->col[VERT] > upd->col[ALPHA])
+  {
+    upd->col[VERT] = upd->col[ALPHA];
+    upd->v[VERT] = upd->v[ALPHA];
+  }
+  if (upd->col[VERT] < 32)
+  {
+    upd->col[VERT] = 32;
+    upd->v[VERT] = (rand(goomInfo) % 3) + 2;
+  }
+
+  upd->col[ROUGE] += upd->v[ROUGE];
+  if (upd->col[ROUGE] > 128)
+  {
+    upd->col[ROUGE] = 128;
+    upd->v[ROUGE] = -(rand(goomInfo) % 4) - 1;
+  }
+  if (upd->col[ROUGE] < 0)
+  {
+    upd->col[ROUGE] = 0;
+    upd->v[ROUGE] = (rand(goomInfo) % 4) + 1;
+  }
+
+  upd->col[ALPHA] += upd->v[ALPHA];
+  if (upd->col[ALPHA] > 255)
+  {
+    upd->col[ALPHA] = 255;
+    upd->v[ALPHA] = -(rand(goomInfo) % 4) - 1;
+  }
+  if (upd->col[ALPHA] < 0)
+  {
+    upd->col[ALPHA] = 0;
+    upd->v[ALPHA] = (rand(goomInfo) % 4) + 1;
+  }
+
+  if (((upd->col[VERT] > 32) && (upd->col[ROUGE] < upd->col[VERT] + 40) &&
+       (upd->col[VERT] < upd->col[ROUGE] + 20) && (upd->col[BLEU] < 64) &&
+       (rand(goomInfo) % 20 == 0)) &&
+      (upd->justChanged < 0))
+  {
+    upd->mode = rand(goomInfo) % 3 ? MOD_FEU : MOD_MER;
+    upd->justChanged = 250;
+  }
+}
+
+static void updateColorsModeFeu(PluginInfo* goomInfo, IfsUpdateData* upd)
+{
+  upd->col[BLEU] += upd->v[BLEU];
+  if (upd->col[BLEU] > 64)
+  {
+    upd->col[BLEU] = 64;
+    upd->v[BLEU] = -(rand(goomInfo) % 4) - 1;
+  }
+  if (upd->col[BLEU] < 0)
+  {
+    upd->col[BLEU] = 0;
+    upd->v[BLEU] = (rand(goomInfo) % 4) + 1;
+  }
+
+  upd->col[VERT] += upd->v[VERT];
+  if (upd->col[VERT] > 200)
+  {
+    upd->col[VERT] = 200;
+    upd->v[VERT] = -(rand(goomInfo) % 3) - 2;
+  }
+  if (upd->col[VERT] > upd->col[ROUGE] + 20)
+  {
+    upd->col[VERT] = upd->col[ROUGE] + 20;
+    upd->v[VERT] = -(rand(goomInfo) % 3) - 2;
+    upd->v[ROUGE] = (rand(goomInfo) % 4) + 1;
+    upd->v[BLEU] = (rand(goomInfo) % 4) + 1;
+  }
+  if (upd->col[VERT] < 0)
+  {
+    upd->col[VERT] = 0;
+    upd->v[VERT] = (rand(goomInfo) % 3) + 2;
+  }
+
+  upd->col[ROUGE] += upd->v[ROUGE];
+  if (upd->col[ROUGE] > 255)
+  {
+    upd->col[ROUGE] = 255;
+    upd->v[ROUGE] = -(rand(goomInfo) % 4) - 1;
+  }
+  if (upd->col[ROUGE] > upd->col[VERT] + 40)
+  {
+    upd->col[ROUGE] = upd->col[VERT] + 40;
+    upd->v[ROUGE] = -(rand(goomInfo) % 4) - 1;
+  }
+  if (upd->col[ROUGE] < 0)
+  {
+    upd->col[ROUGE] = 0;
+    upd->v[ROUGE] = (rand(goomInfo) % 4) + 1;
+  }
+
+  upd->col[ALPHA] += upd->v[ALPHA];
+  if (upd->col[ALPHA] > 0)
+  {
+    upd->col[ALPHA] = 0;
+    upd->v[ALPHA] = -(rand(goomInfo) % 4) - 1;
+  }
+  if (upd->col[ALPHA] < 0)
+  {
+    upd->col[ALPHA] = 0;
+    upd->v[ALPHA] = (rand(goomInfo) % 4) + 1;
+  }
+
+  if (((upd->col[ROUGE] < 64) && (upd->col[VERT] > 32) && (upd->col[VERT] < upd->col[BLEU]) &&
+       (upd->col[BLEU] > 32) && (rand(goomInfo) % 20 == 0)) &&
+      (upd->justChanged < 0))
+  {
+    upd->mode = rand(goomInfo) % 2 ? MOD_MER : MOD_MERVER;
+    upd->justChanged = 250;
+  }
+}
+
 static void ifs_vfx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* goomInfo)
 {
   IfsData* data = static_cast<IfsData*>(_this->fx_data);
   if (!data->initialized)
   {
     data->initialized = true;
-    init_ifs(goomInfo, data);
+    initIfs(goomInfo, data);
   }
   if (!BVAL(data->enabled_bp))
   {
     return;
   }
-  ifsUpdate(goomInfo, dest, src, goomInfo->update.ifs_incr, data);
+  updateIfs(goomInfo, dest, src, goomInfo->update.ifs_incr, data);
 
   /*TODO: trouver meilleur soluce pour increment (mettre le code de gestion de l'ifs dans ce fichier: ifs_vfx_apply) */
 }
@@ -810,7 +874,7 @@ static void ifs_vfx_save(VisualFX* _this, const PluginInfo*, const char* file)
   FILE* f = fopen(file, "w");
 
   save_int_setting(f, vfxname, "updData.justChanged", updData.justChanged);
-  save_int_setting(f, vfxname, "updData.couleur", updData.couleur);
+  save_int_setting(f, vfxname, "updData.couleur", static_cast<int>(updData.couleur.val));
   save_int_setting(f, vfxname, "updData.v_0", updData.v[0]);
   save_int_setting(f, vfxname, "updData.v_1", updData.v[1]);
   save_int_setting(f, vfxname, "updData.v_2", updData.v[2]);
@@ -829,7 +893,6 @@ static void ifs_vfx_save(VisualFX* _this, const PluginInfo*, const char* file)
   Fractal* fractal = data->root;
   save_int_setting(f, vfxname, "fractal.numSimi", fractal->numSimi);
   save_int_setting(f, vfxname, "fractal.depth", int(fractal->depth));
-  save_int_setting(f, vfxname, "fractal.col", int(fractal->col));
   save_int_setting(f, vfxname, "fractal.count", fractal->count);
   save_int_setting(f, vfxname, "fractal.speed", fractal->speed);
   save_int_setting(f, vfxname, "fractal.width", fractal->width);
@@ -873,7 +936,7 @@ static void ifs_vfx_restore(VisualFX* _this, PluginInfo*, const char* file)
   }
 
   updData.justChanged = get_int_setting(f, vfxname, "updData.justChanged");
-  updData.couleur = get_int_setting(f, vfxname, "updData.couleur");
+  updData.couleur.val = static_cast<uint32_t>(get_int_setting(f, vfxname, "updData.couleur"));
   updData.v[0] = get_int_setting(f, vfxname, "updData.v_0");
   updData.v[1] = get_int_setting(f, vfxname, "updData.v_1");
   updData.v[2] = get_int_setting(f, vfxname, "updData.v_2");
@@ -893,7 +956,6 @@ static void ifs_vfx_restore(VisualFX* _this, PluginInfo*, const char* file)
   Fractal* fractal = data->root;
   fractal->numSimi = get_int_setting(f, vfxname, "fractal.numSimi");
   fractal->depth = uint32_t(get_int_setting(f, vfxname, "fractal.depth"));
-  fractal->col = uint32_t(get_int_setting(f, vfxname, "fractal.col"));
   fractal->count = get_int_setting(f, vfxname, "fractal.count");
   fractal->speed = get_int_setting(f, vfxname, "fractal.speed");
   fractal->width = get_int_setting(f, vfxname, "fractal.width");
@@ -930,7 +992,7 @@ static void ifs_vfx_restore(VisualFX* _this, PluginInfo*, const char* file)
   //    ifs_vfx_save(_this, info, "/tmp/vfx_save_after_restore.txt");
 }
 
-static void ifs_vfx_init(VisualFX* _this, PluginInfo* info)
+static void ifs_vfx_init(VisualFX* _this, PluginInfo* goomInfo)
 {
   IfsData* data = (IfsData*)malloc(sizeof(IfsData));
 
@@ -938,20 +1000,24 @@ static void ifs_vfx_init(VisualFX* _this, PluginInfo* info)
   data->params = plugin_parameters("Ifs", 1);
   data->params.params[0] = &data->enabled_bp;
 
+  data->colorMaps = new ColorMaps{};
+
   data->root = nullptr;
   data->initialized = false;
 
   _this->fx_data = data;
   _this->params = &data->params;
 
-  init_ifs(info, data);
+  initIfs(goomInfo, data);
   data->initialized = true;
+
+  ifsRenew(goomInfo);
 }
 
 static void ifs_vfx_free(VisualFX* _this)
 {
   IfsData* data = static_cast<IfsData*>(_this->fx_data);
-  release_ifs(data);
+  releaseIfs(data);
   free(data);
 }
 
@@ -964,4 +1030,10 @@ VisualFX ifs_visualfx_create(void)
   vfx.save = ifs_vfx_save;
   vfx.restore = ifs_vfx_restore;
   return vfx;
+}
+
+void ifsRenew(PluginInfo* goomInfo)
+{
+  IfsData* data = static_cast<IfsData*>(goomInfo->ifs_fx.fx_data);
+  updData.couleur.val = ColorMap::getRandomColor(data->colorMaps->getRandomColorMap());
 }

@@ -3,6 +3,7 @@
 
 #include "goom_graphic.h"
 
+#include <cassert>
 #include <cstdint>
 
 inline uint8_t colorChannelAdd(const uint8_t c1, const uint8_t c2)
@@ -27,16 +28,37 @@ inline Pixel getColorAdd(const Pixel& color1, const Pixel& color2)
   return p;
 }
 
-inline Pixel getDividedChannels(const uint32_t color, const int value)
+inline uint8_t getBrighterChannelColor(const uint32_t br, const uint8_t c)
 {
-  Pixel p{.val = color};
+  return static_cast<uint8_t>((br * static_cast<uint32_t>(c)) >> 8);
+}
+
+inline Pixel getBrighterColor(const float brightness, const Pixel& color)
+{
+  assert(brightness >= 0.0 && brightness <= 1.0);
+  const uint32_t br = static_cast<uint32_t>(brightness * 255);
+  Pixel p;
+  p.channels.r = getBrighterChannelColor(br, color.channels.r);
+  p.channels.g = getBrighterChannelColor(br, color.channels.g);
+  p.channels.b = getBrighterChannelColor(br, color.channels.b);
+  p.channels.a = color.channels.a;
+  return p;
+}
+
+inline Pixel getRightShiftedChannels(const Pixel& color, const int value)
+{
+  Pixel p = color;
 
   p.channels.r >>= value;
   p.channels.g >>= value;
   p.channels.b >>= value;
-  p.channels.a >>= value;
 
   return p;
+}
+
+inline Pixel getHalfIntensityColor(const Pixel& color)
+{
+  return getRightShiftedChannels(color, 1);
 }
 
 uint32_t getLightenedColor(const uint32_t oldColor, const float power);

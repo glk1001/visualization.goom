@@ -127,7 +127,7 @@ inline void Logging::vlog(const LogLevel lvl,
 #ifdef NO_LOGGING
 #pragma message("Compiling " __FILE__ " with 'NO_LOGGING' ON.")
 #define setLogFile(logF)
-#define addLogHandler(h)
+#define addLogHandler(name, h)
 #define logStart()
 #define logStop()
 #define logFlush()

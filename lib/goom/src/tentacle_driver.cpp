@@ -481,10 +481,10 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
 
   for (size_t i = 0; i < v2.size() - 1; i++)
   {
-    const int ix0 = int(v2[i].x);
-    const int ix1 = int(v2[i + 1].x);
-    const int iy0 = int(v2[i].y);
-    const int iy1 = int(v2[i + 1].y);
+    const int ix0 = static_cast<int>(v2[i].x);
+    const int ix1 = static_cast<int>(v2[i + 1].x);
+    const int iy0 = static_cast<int>(v2[i].y);
+    const int iy1 = static_cast<int>(v2[i + 1].y);
 
     if (((ix0 == coordIgnoreVal) && (iy0 == coordIgnoreVal)) ||
         ((ix1 == coordIgnoreVal) && (iy1 == coordIgnoreVal)))
@@ -507,7 +507,7 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
       Pixel* buffs[2] = {frontBuff, backBuff};
       // TODO - Control brightness because of back buff??
       // One buff may be better????? Make lighten more aggressive over whole tentacle??
-      //      draw_line(frontBuff, ix0, iy0, ix1, iy1, color, 1280, 720);
+      // draw_line(frontBuff, ix0, iy0, ix1, iy1, color, 1280, 720);
       draw_line(std::size(buffs), buffs, colors, ix0, iy0, ix1, iy1, 1280, 720);
     }
   }

@@ -244,6 +244,8 @@ public:
   void megaLentChange();
   void doPerlinNoise();
   void doNoise();
+  void ifsIncrLessThanEqualZero();
+  void ifsIncrGreaterThanZero();
 
 private:
   uint32_t startingState = 0;
@@ -263,6 +265,8 @@ private:
   uint32_t numMegaLentChanges = 0;
   uint32_t numDoPerlinNoise = 0;
   uint32_t numDoNoise = 0;
+  uint32_t numIfsIncrLessThanEqualZero = 0;
+  uint32_t numIfsIncrGreaterThanZero = 0;
   std::array<int, static_cast<size_t>(ZoomFilterMode::_size)> numFilterModeChanges{0};
   std::vector<int> numStateChanges;
 };
@@ -318,6 +322,8 @@ void GoomStats::log()
   logInfo("numMegaLentChanges = {}", numMegaLentChanges);
   logInfo("numDoPerlinNoise = {}", numDoPerlinNoise);
   logInfo("numDoNoise = {}", numDoNoise);
+  logInfo("numIfsIncrLessThanEqualZero = {}", numIfsIncrLessThanEqualZero);
+  logInfo("numIfsIncrGreaterThanZero = {}", numIfsIncrGreaterThanZero);
 }
 
 inline void GoomStats::updateChange()
@@ -405,6 +411,16 @@ inline void GoomStats::doPerlinNoise()
 inline void GoomStats::doNoise()
 {
   numDoNoise++;
+}
+
+inline void GoomStats::ifsIncrLessThanEqualZero()
+{
+  numIfsIncrLessThanEqualZero++;
+}
+
+inline void GoomStats::ifsIncrGreaterThanZero()
+{
+  numIfsIncrGreaterThanZero++;
 }
 
 constexpr int32_t stopSpeed = 128;
@@ -1140,11 +1156,15 @@ static void changeState(PluginInfo* goomInfo, const int forceMode)
   {
     goomInfo->update.recay_ifs = 5;
     goomInfo->update.ifs_incr = 11;
+    ifsRenew(goomInfo);
+    stats.ifsIncrLessThanEqualZero();
   }
   if (!goomInfo->curGDrawables.count(GoomDrawable::IFS) && (goomInfo->update.ifs_incr > 0) &&
       (goomInfo->update.decay_ifs <= 0))
   {
     goomInfo->update.decay_ifs = 100;
+    ifsRenew(goomInfo);
+    stats.ifsIncrGreaterThanZero();
   }
 
   if (!goomInfo->curGDrawables.count(GoomDrawable::scope))
