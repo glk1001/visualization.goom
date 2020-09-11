@@ -1011,7 +1011,7 @@ static void ifs_vfx_init(VisualFX* _this, PluginInfo* goomInfo)
   initIfs(goomInfo, data);
   data->initialized = true;
 
-  ifsRenew(goomInfo);
+  ifsRenew(_this);
 }
 
 static void ifs_vfx_free(VisualFX* _this)
@@ -1032,8 +1032,8 @@ VisualFX ifs_visualfx_create(void)
   return vfx;
 }
 
-void ifsRenew(PluginInfo* goomInfo)
+void ifsRenew(VisualFX* _this)
 {
-  IfsData* data = static_cast<IfsData*>(goomInfo->ifs_fx.fx_data);
+  IfsData* data = static_cast<IfsData*>(_this->fx_data);
   updData.couleur.val = ColorMap::getRandomColor(data->colorMaps->getRandomColorMap());
 }

@@ -23,26 +23,27 @@ class TentaclesWrapper
 {
 public:
   explicit TentaclesWrapper(const int screenWidth, const int screenHeight);
-  void update(PluginInfo* goomInfo,
-              Pixel* buf,
-              Pixel* back,
+  void update(PluginInfo*,
+              Pixel* frontBuff,
+              Pixel* backBuff,
               const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
-              const float accelvar,
+              const float accelVar,
               const bool doDraw,
-              TentacleFXData* fx_data);
+              TentacleFXData*);
 
 private:
   WeightedColorMaps colorMaps;
   const ColorMap* dominantColorGroup;
   TentacleDriver driver;
-  void pretty_move(PluginInfo* goomInfo,
-                   float cycle,
-                   float* dist,
-                   float* dist2,
-                   float* rotangle,
-                   TentacleFXData* fx_data);
-  std::tuple<uint32_t, uint32_t> getModColors(PluginInfo* goomInfo, TentacleFXData* fx_data);
-  std::vector<float> getGridZeroAdditiveValues(PluginInfo* goomInfo, const float rapport);
+  struct PrettyMoveValues
+  {
+    float dist;
+    float dist2;
+    float rotangle;
+  };
+  PrettyMoveValues prettyMove(PluginInfo*, float cycle, TentacleFXData*) const;
+  std::tuple<uint32_t, uint32_t> getModColors(PluginInfo*, TentacleFXData*);
+  std::vector<float> getGridZeroAdditiveValues(PluginInfo*, const float rapport);
 };
 
 TentaclesWrapper::TentaclesWrapper(const int screenWidth, const int screenHeight)
@@ -79,10 +80,10 @@ inline float randFactor(PluginInfo* goomInfo, const float min)
 }
 
 void TentaclesWrapper::update(PluginInfo* goomInfo,
-                              Pixel* buf,
-                              Pixel* back,
+                              Pixel* frontBuff,
+                              Pixel* backBuff,
                               const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
-                              const float accelvar,
+                              const float accelVar,
                               const bool doDraw,
                               TentacleFXData* fx_data)
 {
@@ -97,31 +98,30 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
   if (fx_data->lig > 1.01f)
   {
     logDebug("Starting pretty_move 1.");
-    float dist, dist2, rotangle;
-    pretty_move(goomInfo, fx_data->cycle, &dist, &dist2, &rotangle, fx_data);
-
+    const PrettyMoveValues movevalues = prettyMove(goomInfo, fx_data->cycle, fx_data);
     const auto [modColor, modColorLow] = getModColors(goomInfo, fx_data);
 
-    if (accelvar < 0.7)
+    if (accelVar < 0.7)
     {
       driver.setGlitchValues(0.0, 0.0);
       driver.setReverseColorMix(false);
     }
     else
     {
-      const float glitchLength = accelvar * getRandInRange(0.3f, 2.0f);
+      const float glitchLength = accelVar * getRandInRange(0.3f, 2.0f);
       driver.setGlitchValues(-0.5 * glitchLength, +0.5 * glitchLength);
       // Reversing seems too jarring
       //      driver.setReverseColorMix(true);
     }
 
     // Higher sound acceleration increases tentacle wave frequency.
-    driver.multiplyIterZeroYValWaveFreq(1.0 / (1.10 - accelvar));
+    driver.multiplyIterZeroYValWaveFreq(1.0 / (1.10 - accelVar));
 
     fx_data->cycle += 0.01f;
     //    updateColors(goomInfo, fx_data);
 
-    driver.update(doDraw, 0.5 * M_PI - rotangle, dist, dist2, modColor, modColorLow, buf, back);
+    driver.update(doDraw, 0.5 * M_PI - movevalues.rotangle, movevalues.dist, movevalues.dist2,
+                  modColor, modColorLow, frontBuff, backBuff);
   }
   else
   {
@@ -132,8 +132,7 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
     }
 
     logDebug("Starting pretty_move 2.");
-    float dist, dist2, rotangle;
-    pretty_move(goomInfo, fx_data->cycle, &dist, &dist2, &rotangle, fx_data);
+    prettyMove(goomInfo, fx_data->cycle, fx_data);
 
     fx_data->cycle += 0.1f;
     if (fx_data->cycle > 1000)
@@ -143,12 +142,9 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
   }
 }
 
-void TentaclesWrapper::pretty_move(PluginInfo* goomInfo,
-                                   float cycle,
-                                   float* dist,
-                                   float* dist2,
-                                   float* rotangle,
-                                   TentacleFXData* fx_data)
+TentaclesWrapper::PrettyMoveValues TentaclesWrapper::prettyMove(PluginInfo* goomInfo,
+                                                                float cycle,
+                                                                TentacleFXData* fx_data) const
 {
   /* many magic numbers here... I don't really like that. */
   if (fx_data->happens)
@@ -165,14 +161,16 @@ void TentaclesWrapper::pretty_move(PluginInfo* goomInfo,
     fx_data->lock--;
   }
 
+  PrettyMoveValues moveValues{};
+
   float tmp = fx_data->happens ? 8.0f : 0;
-  *dist2 = fx_data->distt2 = (tmp + 15.0f * fx_data->distt2) / 16.0f;
+  moveValues.dist2 = fx_data->distt2 = (tmp + 15.0f * fx_data->distt2) / 16.0f;
 
   tmp = 30 + D - 90.0f * (1.0f + sin(cycle * 19 / 20));
   if (fx_data->happens)
     tmp *= 0.6f;
 
-  *dist = fx_data->distt = (tmp + 3.0f * fx_data->distt) / 4.0f;
+  moveValues.dist = fx_data->distt = (tmp + 3.0f * fx_data->distt) / 4.0f;
 
   if (!fx_data->happens)
   {
@@ -200,19 +198,23 @@ void TentaclesWrapper::pretty_move(PluginInfo* goomInfo,
     {
       fx_data->rot -= 2.0 * M_PI;
     }
-    *rotangle = fx_data->rot;
+    moveValues.rotangle = fx_data->rot;
   }
   else if (fabs(tmp - fx_data->rot) > fabs(tmp - (fx_data->rot - 2.0 * M_PI)))
   {
     fx_data->rot = (tmp + 15.0f * (fx_data->rot - 2.0 * M_PI)) / 16.0f;
     if (fx_data->rot < 0.0f)
+    {
       fx_data->rot += 2.0 * M_PI;
-    *rotangle = fx_data->rot;
+    }
+    moveValues.rotangle = fx_data->rot;
   }
   else
   {
-    *rotangle = fx_data->rot = (tmp + 15.0f * fx_data->rot) / 16.0f;
+    moveValues.rotangle = fx_data->rot = (tmp + 15.0f * fx_data->rot) / 16.0f;
   }
+
+  return moveValues;
 }
 
 inline std::tuple<uint32_t, uint32_t> TentaclesWrapper::getModColors(PluginInfo* goomInfo,

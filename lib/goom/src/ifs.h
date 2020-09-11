@@ -8,6 +8,6 @@
 #include "goom_visual_fx.h"
 
 VisualFX ifs_visualfx_create(void);
-void ifsRenew(PluginInfo*);
+void ifsRenew(VisualFX* _this);
 
 #endif
