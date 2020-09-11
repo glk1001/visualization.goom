@@ -29,6 +29,7 @@
 #include <cmath>
 #include <cstdint>
 #include <stdexcept>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -207,19 +208,85 @@ inline LineType GoomEvents::getRandomLineTypeEvent() const
   return lineTypeWeights.getRandomWeighted();
 }
 
-static GoomEvents goomEvent{};
-
-inline bool changeFilterModeEventHappens(PluginInfo* goomInfo)
+class GoomStates
 {
-  // If we're in normal mode, then get out with a different probability.
-  // (Rationale: the other modes are more interesting.)
-  if (goomInfo->update.zoomFilterData.mode == ZoomFilterMode::normalMode)
-  {
-    return goomEvent.happens(GoomEvent::changeFilterFromNormalMode);
-  }
+public:
+  using DrawablesState = std::unordered_set<GoomDrawable>;
 
-  return goomEvent.happens(GoomEvent::changeFilterMode);
+  GoomStates() noexcept;
+
+  bool isCurrentlyDrawable(const GoomDrawable) const;
+  size_t getCurrentStateIndex() const;
+  const DrawablesState& getCurrentDrawables() const;
+
+  void doRandomStateChange();
+private:
+  using GD = GoomDrawable;
+  struct State
+  {
+    uint32_t weight;
+    DrawablesState drawables;
+  };
+  static constexpr size_t numStates = 8;
+  using WeightedStatesArray = std::array<State, numStates>;
+    static const WeightedStatesArray states;
+  static std::vector<std::pair<uint16_t, size_t>> getWeightedStates(const WeightedStatesArray&);
+  const Weights<uint16_t> weightedStates;
+  size_t currentStateIndex;
+};
+
+GoomStates::GoomStates() noexcept
+  : weightedStates{getWeightedStates(states)},
+    currentStateIndex{0}
+{
+  doRandomStateChange();
 }
+
+inline bool GoomStates::isCurrentlyDrawable(const GoomDrawable drawable) const
+{
+  return states[currentStateIndex].drawables.count(drawable);
+}
+
+inline size_t GoomStates::getCurrentStateIndex() const
+{
+  return currentStateIndex;
+}
+
+inline const GoomStates::DrawablesState& GoomStates::getCurrentDrawables() const
+{
+  return states[currentStateIndex].drawables;
+}
+
+
+inline void GoomStates::doRandomStateChange()
+{
+  currentStateIndex = static_cast<size_t>(weightedStates.getRandomWeighted());
+}
+
+// clang-format off
+const GoomStates::WeightedStatesArray GoomStates::states{ {
+  { .weight = 100, .drawables = {GD::IFS,                            GD::stars,            GD::scope, GD::farScope}},
+  { .weight =  40, .drawables = {GD::IFS,             GD::tentacles, GD::stars,                       GD::farScope}},
+  { .weight =  60, .drawables = {GD::IFS,                            GD::stars, GD::lines, GD::scope, GD::farScope}},
+  { .weight =  60, .drawables = {         GD::points, GD::tentacles, GD::stars, GD::lines, GD::scope, GD::farScope}},
+  { .weight =  70, .drawables = {         GD::points, GD::tentacles, GD::stars,            GD::scope              }},
+  { .weight =  70, .drawables = {         GD::points, GD::tentacles, GD::stars, GD::lines, GD::scope, GD::farScope}},
+  { .weight =  50, .drawables = {                     GD::tentacles, GD::stars, GD::lines,            GD::farScope}},
+  { .weight =  60, .drawables = {                                    GD::stars, GD::lines, GD::scope, GD::farScope}},
+}};
+// clang-format on
+
+std::vector<std::pair<uint16_t, size_t>> GoomStates::getWeightedStates(
+    const GoomStates::WeightedStatesArray& states)
+{
+  std::vector<std::pair<uint16_t, size_t>> weightedVals(states.size());
+  for (size_t i = 0; i < states.size(); i++)
+  {
+    weightedVals[i] = std::make_pair(i, states[i].weight);
+  }
+  return weightedVals;
+}
+
 
 class GoomStats
 {
@@ -452,13 +519,29 @@ static void swapBuffers(PluginInfo* goomInfo)
   goomInfo->p2 = tmp;
 }
 
+// TODO make these non-static
 static GoomStats stats{};
+static GoomStates states{};
+static GoomEvents goomEvent{};
+
+inline bool changeFilterModeEventHappens(PluginInfo* goomInfo)
+{
+  // If we're in normal mode, then get out with a different probability.
+  // (Rationale: the other modes are more interesting.)
+  if (goomInfo->update.zoomFilterData.mode == ZoomFilterMode::normalMode)
+  {
+    return goomEvent.happens(GoomEvent::changeFilterFromNormalMode);
+  }
+
+  return goomEvent.happens(GoomEvent::changeFilterMode);
+}
 
 PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
 {
   logDebug("Initialize goom: resx = {}, resy = {}, seed = {}.", resx, resy, seed);
 
   stats.reset();
+  states.doRandomStateChange();
 
   PluginInfo* goomInfo = new PluginInfo;
 
@@ -517,7 +600,7 @@ PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
   changeFilterMode(goomInfo);
   zoomFilterInitData(goomInfo);
 
-  stats.setStartValues(goomInfo->curGStateIndex, goomInfo->update.zoomFilterData.mode);
+  stats.setStartValues(states.getCurrentStateIndex(), goomInfo->update.zoomFilterData.mode);
 
   return goomInfo;
 }
@@ -1115,69 +1198,59 @@ static void changeFilterMode(PluginInfo* goomInfo)
   stats.filterModeChange(goomInfo->update.zoomFilterData.mode);
 
   if ((goomInfo->update.zoomFilterData.mode != ZoomFilterMode::normalMode) &&
-      goomInfo->curGDrawables != goomInfo->curGState->drawables)
+      goomInfo->curGDrawables != states.getCurrentDrawables())
   {
     logInfo("Not 'normal' filter mode: reset drawables (put back anything previously removed).");
-    goomInfo->curGDrawables = goomInfo->curGState->drawables;
+    goomInfo->curGDrawables = states.getCurrentDrawables();
   }
 }
 
 static void changeState(PluginInfo* goomInfo, const int forceMode)
 {
-  size_t stateIndex = (goomInfo->curGStateIndex + 1) % goomInfo->numStates;
+  const size_t oldStateIndex = states.getCurrentStateIndex();
+
   for (size_t numTry = 0; numTry < 10; numTry++)
   {
-    goomInfo->update.stateSelectionRand = goomInfo->getNRand(goomInfo->maxStateSelect + 1);
+    states.doRandomStateChange();
 
-    for (size_t i = 0; i < goomInfo->numStates; i++)
+    if (oldStateIndex != states.getCurrentStateIndex())
     {
-      if (i == goomInfo->curGStateIndex)
-      {
-        // Don't pick the same state again.
-        continue;
-      }
-      if ((goomInfo->update.stateSelectionRand >= goomInfo->states[i].minSel) &&
-          (goomInfo->update.stateSelectionRand <= goomInfo->states[i].maxSel))
-      {
-        stateIndex = i;
-        break;
-      }
+      // Only pick a different state.
+      break;
     }
   }
 
-  goomInfo->curGState = &(goomInfo->states[stateIndex]);
-  goomInfo->curGDrawables = goomInfo->states[stateIndex].drawables;
-  goomInfo->curGStateIndex = stateIndex;
-  logDebug("Changed goom state to {}", goomInfo->curGStateIndex);
+  goomInfo->curGDrawables = states.getCurrentDrawables();
+  logDebug("Changed goom state to {}", states.getCurrentStateIndex());
   stats.stateChange();
-  stats.stateChange(stateIndex);
+  stats.stateChange(states.getCurrentStateIndex());
 
-  if (goomInfo->curGDrawables.count(GoomDrawable::IFS) && (goomInfo->update.ifs_incr <= 0))
+  if (states.isCurrentlyDrawable(GoomDrawable::IFS) && (goomInfo->update.ifs_incr <= 0))
   {
     goomInfo->update.recay_ifs = 5;
     goomInfo->update.ifs_incr = 11;
-    ifsRenew(goomInfo);
+    ifsRenew(&goomInfo->ifs_fx);
     stats.ifsIncrLessThanEqualZero();
   }
-  if (!goomInfo->curGDrawables.count(GoomDrawable::IFS) && (goomInfo->update.ifs_incr > 0) &&
+  if (!states.isCurrentlyDrawable(GoomDrawable::IFS) && (goomInfo->update.ifs_incr > 0) &&
       (goomInfo->update.decay_ifs <= 0))
   {
     goomInfo->update.decay_ifs = 100;
-    ifsRenew(goomInfo);
+    ifsRenew(&goomInfo->ifs_fx);
     stats.ifsIncrGreaterThanZero();
   }
 
-  if (!goomInfo->curGDrawables.count(GoomDrawable::scope))
+  if (!states.isCurrentlyDrawable(GoomDrawable::scope))
   {
     goomInfo->update.stop_lines = 0xf000 & 5;
   }
-  if (!goomInfo->curGDrawables.count(GoomDrawable::farScope))
+  if (!states.isCurrentlyDrawable(GoomDrawable::farScope))
   {
     goomInfo->update.stop_lines = 0;
     goomInfo->update.lineMode = goomInfo->update.drawLinesDuration;
   }
 
-  if (goomInfo->curGDrawables.count(GoomDrawable::tentacles) && (forceMode == 0) &&
+  if (states.isCurrentlyDrawable(GoomDrawable::tentacles) && (forceMode == 0) &&
       (goomInfo->update.zoomFilterData.mode == ZoomFilterMode::normalMode))
   {
     // Tentacles and normal filter mode don't look so good - choose another mode.
@@ -1749,9 +1822,9 @@ static void forceFilterModeIfSet(PluginInfo* goomInfo, ZoomFilterData** pzfd, co
 
 static void stopIfRequested(PluginInfo* goomInfo)
 {
-  logDebug("goomInfo->update.stop_lines = {}, goomInfo->curGState->scope = {}",
-           goomInfo->update.stop_lines, goomInfo->curGDrawables.count(GoomDrawable::scope));
-  if ((goomInfo->update.stop_lines & 0xf000) || !goomInfo->curGDrawables.count(GoomDrawable::scope))
+  logDebug("goomInfo->update.stop_lines = {}, curGState->scope = {}",
+           goomInfo->update.stop_lines, states.isCurrentlyDrawable(GoomDrawable::scope));
+  if ((goomInfo->update.stop_lines & 0xf000) || !states.isCurrentlyDrawable(GoomDrawable::scope))
   {
     stopRequest(goomInfo);
   }

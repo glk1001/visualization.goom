@@ -12,7 +12,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <unordered_set>
-#include <vector>
 
 enum class GoomDrawable
 {
@@ -24,13 +23,6 @@ enum class GoomDrawable
   scope,
   farScope,
   _size // must be last - gives number of enums
-};
-
-struct GoomState
-{
-  uint32_t minSel;
-  uint32_t maxSel = 0;
-  std::unordered_set<GoomDrawable> drawables;
 };
 
 /**
@@ -113,11 +105,6 @@ struct PluginInfo
 
   // state of goom
   uint32_t cycle;
-  std::vector<GoomState> states;
-  size_t numStates;
-  size_t maxStateSelect;
-  size_t curGStateIndex;
-  const GoomState* curGState;
   std::unordered_set<GoomDrawable> curGDrawables;
 
   // effet de ligne.
@@ -145,7 +132,6 @@ struct PluginInfo
     int switchIncrAmount; // 0x7f
     float switchMult; // 1.0f
     int switchIncr; //  = SWITCHINCR;
-    uint32_t stateSelectionRand;
     uint32_t stateSelectionBlocker;
     int32_t previousZoomSpeed;
     int timeOfTitleDisplay;

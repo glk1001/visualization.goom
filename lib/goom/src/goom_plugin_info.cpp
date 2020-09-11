@@ -1,17 +1,13 @@
 #include "goom_plugin_info.h"
 
 #include "drawmethods.h"
-#include "goom_core.h"
 #include "goom_fx.h"
 #include "goomutils/logging_control.h"
 // #undef NO_LOGGING
 #include "goomutils/logging.h"
 
-#include <cmath>
 #include <cstddef>
-#include <cstdint>
 #include <limits>
-#include <unordered_set>
 
 static void setOptimizedMethods(PluginInfo* p)
 {
@@ -78,30 +74,6 @@ void plugin_info_init(PluginInfo* pp, size_t nbVisuals)
   pp->sound.params.params[9] = &pp->sound.last_goom_p;
   pp->sound.params.params[10] = &pp->sound.last_biggoom_p;
 
-  pp->maxStateSelect = 510;
-  // clang-format off
-  using GD = GoomDrawable;
-  pp->states = {
-    { .minSel =   0, .drawables = {GD::IFS,                            GD::stars,            GD::scope, GD::farScope}},
-    { .minSel = 101, .drawables = {GD::IFS,             GD::tentacles, GD::stars,                       GD::farScope}},
-    { .minSel = 141, .drawables = {GD::IFS,                            GD::stars, GD::lines, GD::scope, GD::farScope}},
-    { .minSel = 201, .drawables = {         GD::points, GD::tentacles, GD::stars, GD::lines, GD::scope, GD::farScope}},
-    { .minSel = 261, .drawables = {         GD::points, GD::tentacles, GD::stars,            GD::scope              }},
-    { .minSel = 331, .drawables = {         GD::points, GD::tentacles, GD::stars, GD::lines, GD::scope, GD::farScope}},
-    { .minSel = 401, .drawables = {                     GD::tentacles, GD::stars, GD::lines,            GD::farScope}},
-    { .minSel = 451, .drawables = {                                    GD::stars, GD::lines, GD::scope, GD::farScope}},
-  };
-  // clang-format on
-  pp->numStates = pp->states.size();
-  pp->states[pp->states.size() - 1].maxSel = pp->maxStateSelect;
-  for (size_t i = 0; i < pp->states.size() - 1; i++)
-  {
-    pp->states[i].maxSel = pp->states[i + 1].minSel - 1;
-  }
-  pp->curGStateIndex = pp->numStates;
-  pp->curGState = nullptr;
-  pp->curGDrawables = std::unordered_set<GoomDrawable>{};
-
   /* data for the update loop */
   pp->update.lockvar = 0;
   pp->update.goomvar = 0;
@@ -119,7 +91,6 @@ void plugin_info_init(PluginInfo* pp, size_t nbVisuals)
   pp->update.switchMult = 1.0f;
   pp->update.switchIncr = pp->update.switchIncrAmount;
 
-  pp->update.stateSelectionRand = 0;
   pp->update.stateSelectionBlocker = 0;
   pp->update.previousZoomSpeed = 128;
   pp->update.timeOfTitleDisplay = 0;
