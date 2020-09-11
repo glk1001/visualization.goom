@@ -182,6 +182,20 @@ struct PluginInfo
   }
 };
 
+// Return prob(m/n)
+inline bool probabilityOfMInN(PluginInfo* goomInfo, const uint32_t m, const uint32_t n)
+{
+  if (m == 1)
+  {
+    return goomInfo->getNRand(n) == 0;
+  }
+  if (m == n - 1)
+  {
+    return goomInfo->getNRand(n) > 0;
+  }
+  return goomInfo->getRandInRange(0.0f, 1.0f) <= static_cast<float>(m) / static_cast<float>(n);
+}
+
 void plugin_info_init(PluginInfo* p, size_t nbVisual);
 
 // i = [0..p->nbVisual-1]

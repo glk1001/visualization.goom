@@ -8,7 +8,7 @@
 #include <cstdint>
 
 extern PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed);
-extern void goom_set_resolution(PluginInfo* goomInfo, const uint16_t resx, const uint16_t resy);
+extern void goom_set_resolution(PluginInfo*, const uint16_t resx, const uint16_t resy);
 
 /*
  * forceMode == 0 : do nothing
@@ -19,7 +19,7 @@ extern void goom_set_resolution(PluginInfo* goomInfo, const uint16_t resx, const
  *      - NULL if it is not the start of the song
  *      - only have a value at the start of the song
  */
-extern uint32_t* goom_update(PluginInfo* goomInfo,
+extern uint32_t* goom_update(PluginInfo*,
                              const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
                              const int forceMode,
                              const float fps,
@@ -27,8 +27,8 @@ extern uint32_t* goom_update(PluginInfo* goomInfo,
                              const char* message);
 
 // returns 0 if the buffer wasn't accepted
-int goom_set_screenbuffer(PluginInfo* goomInfo, void* buffer);
+int goom_set_screenbuffer(PluginInfo*, void* buffer);
 
-void goom_close(PluginInfo* goomInfo);
+void goom_close(PluginInfo*);
 
 #endif

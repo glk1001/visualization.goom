@@ -7,6 +7,7 @@
 #include "goom_visual_fx.h"
 
 #include <algorithm>
+#include <cstdint>
 
 class TentaclesWrapper;
 
@@ -19,7 +20,7 @@ struct TentacleFXData
 
   float cycle;
 
-  unsigned int col;
+  uint32_t col;
   float lig;
   float ligs;
 
@@ -32,9 +33,10 @@ struct TentacleFXData
   int lock;
 };
 
-VisualFX tentacle_fx_create(void);
-void tentacle_free(TentacleFXData* data);
-void tentacle_fx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* goomInfo);
+VisualFX tentacle_fx_create();
+void tentacle_free(TentacleFXData*);
+void tentacle_fx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo*);
+void tentacle_log_states(VisualFX* _this, const StatsLogValueFunc);
 
 inline float getRapport(const float accelvar)
 {

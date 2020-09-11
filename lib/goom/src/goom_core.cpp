@@ -29,23 +29,10 @@
 #include <cmath>
 #include <cstdint>
 #include <stdexcept>
+#include <string>
 #include <unordered_set>
 #include <utility>
 #include <vector>
-
-// Return prob(m/n)
-inline bool probabilityOfMInN(PluginInfo* goomInfo, const uint32_t m, const uint32_t n)
-{
-  if (m == 1)
-  {
-    return goomInfo->getNRand(n) == 0;
-  }
-  if (m == n - 1)
-  {
-    return goomInfo->getNRand(n) > 0;
-  }
-  return goomInfo->getRandInRange(0.0f, 1.0f) <= static_cast<float>(m) / static_cast<float>(n);
-}
 
 class GoomEvents
 {
@@ -293,8 +280,9 @@ class GoomStats
 public:
   GoomStats() {}
   void setStartValues(const uint32_t stateIndex, const ZoomFilterMode filterMode);
+  void setLastValues(const uint32_t stateIndex, const ZoomFilterMode filterMode);
   void reset();
-  void log();
+  void log(const StatsLogValueFunc) const;
   void updateChange();
   void stateChange();
   void stateChange(const size_t index);
@@ -304,6 +292,7 @@ public:
   void doIFS();
   void doPoints();
   void doLines();
+  void switchLines();
   void doStars();
   void doTentacles();
   void doBigUpdate();
@@ -313,10 +302,13 @@ public:
   void doNoise();
   void ifsIncrLessThanEqualZero();
   void ifsIncrGreaterThanZero();
+  void changeLineColor();
 
 private:
   uint32_t startingState = 0;
   ZoomFilterMode startingFilterMode = ZoomFilterMode::_size;
+  uint32_t lastState = 0;
+  ZoomFilterMode lastFilterMode = ZoomFilterMode::_size;
 
   uint32_t numUpdates = 0;
   uint32_t totalStateChanges = 0;
@@ -334,15 +326,11 @@ private:
   uint32_t numDoNoise = 0;
   uint32_t numIfsIncrLessThanEqualZero = 0;
   uint32_t numIfsIncrGreaterThanZero = 0;
-  std::array<int, static_cast<size_t>(ZoomFilterMode::_size)> numFilterModeChanges{0};
-  std::vector<int> numStateChanges;
+  uint32_t numChangeLineColor = 0;
+  uint32_t numSwitchLines = 0;
+  std::array<uint32_t, static_cast<size_t>(ZoomFilterMode::_size)> numFilterModeChanges{0};
+  std::vector<uint32_t> numStateChanges;
 };
-
-void GoomStats::setStartValues(const uint32_t stateIndex, const ZoomFilterMode filterMode)
-{
-  startingState = stateIndex;
-  startingFilterMode = filterMode;
-}
 
 void GoomStats::reset()
 {
@@ -362,35 +350,57 @@ void GoomStats::reset()
   numMegaLentChanges = 0;
   numDoPerlinNoise = 0;
   numDoNoise = 0;
+  numIfsIncrLessThanEqualZero = 0;
+  numIfsIncrGreaterThanZero = 0;
+  numChangeLineColor = 0;
+  numSwitchLines = 0;
 }
 
-void GoomStats::log()
+void GoomStats::log(const StatsLogValueFunc logVal) const
 {
-  logInfo("startingState = {}", startingState);
-  logInfo("startingFilterMode = {}", startingFilterMode);
-  logInfo("numUpdates = {}", numUpdates);
-  logInfo("totalStateChanges = {}", totalStateChanges);
+  const constexpr char* module = "goom_core";
+
+  logVal(module, "startingState", startingState);
+  logVal(module, "startingFilterMode", static_cast<uint32_t>(lastFilterMode));
+  logVal(module, "lastState", startingState);
+  logVal(module, "lastFilterMode", static_cast<uint32_t>(lastFilterMode));
+  logVal(module, "numUpdates", numUpdates);
+  logVal(module, "totalStateChanges", totalStateChanges);
   for (size_t i = 0; i < numStateChanges.size(); i++)
   {
-    logInfo("State {}: numChanges = {}", i, numStateChanges[i]);
+    logVal(module, "numState_" + std::to_string(i) + "_Changes", numStateChanges[i]);
   }
-  logInfo("totalFilterModeChanges = {}", totalFilterModeChanges);
+  logVal(module, "totalFilterModeChanges = {}", totalFilterModeChanges);
   for (size_t i = 0; i < numFilterModeChanges.size(); i++)
   {
-    logInfo("Filter mode {}: numChanges = {}", i, numFilterModeChanges[i]);
+    logVal(module, "numFilterMode_" + std::to_string(i) + "_Changes", numFilterModeChanges[i]);
   }
-  logInfo("numLockChanges = {}", numLockChanges);
-  logInfo("numDoIFS = {}", numDoIFS);
-  logInfo("numDoPoints = {}", numDoPoints);
-  logInfo("numDoLines = {}", numDoLines);
-  logInfo("numDoStars = {}", numDoStars);
-  logInfo("numDoTentacles = {}", numDoTentacles);
-  logInfo("numLastTimeGoomChanges = {}", numLastTimeGoomChanges);
-  logInfo("numMegaLentChanges = {}", numMegaLentChanges);
-  logInfo("numDoPerlinNoise = {}", numDoPerlinNoise);
-  logInfo("numDoNoise = {}", numDoNoise);
-  logInfo("numIfsIncrLessThanEqualZero = {}", numIfsIncrLessThanEqualZero);
-  logInfo("numIfsIncrGreaterThanZero = {}", numIfsIncrGreaterThanZero);
+  logVal(module, "numLockChanges", numLockChanges);
+  logVal(module, "numDoIFS", numDoIFS);
+  logVal(module, "numDoPoints", numDoPoints);
+  logVal(module, "numDoLines", numDoLines);
+  logVal(module, "numDoStars", numDoStars);
+  logVal(module, "numDoTentacles", numDoTentacles);
+  logVal(module, "numLastTimeGoomChanges", numLastTimeGoomChanges);
+  logVal(module, "numMegaLentChanges", numMegaLentChanges);
+  logVal(module, "numDoPerlinNoise", numDoPerlinNoise);
+  logVal(module, "numDoNoise", numDoNoise);
+  logVal(module, "numIfsIncrLessThanEqualZero", numIfsIncrLessThanEqualZero);
+  logVal(module, "numIfsIncrGreaterThanZero", numIfsIncrGreaterThanZero);
+  logVal(module, "numChangeLineColor", numChangeLineColor);
+  logVal(module, "numSwitchLines", numSwitchLines);
+}
+
+void GoomStats::setStartValues(const uint32_t stateIndex, const ZoomFilterMode filterMode)
+{
+  startingState = stateIndex;
+  startingFilterMode = filterMode;
+}
+
+void GoomStats::setLastValues(const uint32_t stateIndex, const ZoomFilterMode filterMode)
+{
+  lastState = stateIndex;
+  lastFilterMode = filterMode;
 }
 
 inline void GoomStats::updateChange()
@@ -490,6 +500,16 @@ inline void GoomStats::ifsIncrGreaterThanZero()
   numIfsIncrGreaterThanZero++;
 }
 
+inline void GoomStats::changeLineColor()
+{
+  numChangeLineColor++;
+}
+
+inline void GoomStats::switchLines()
+{
+  numSwitchLines++;
+}
+
 constexpr int32_t stopSpeed = 128;
 // TODO: put that as variable in PluginInfo
 constexpr int32_t timeBetweenChange = 300;
@@ -523,6 +543,11 @@ static void swapBuffers(PluginInfo* goomInfo)
 static GoomStats stats{};
 static GoomStates states{};
 static GoomEvents goomEvent{};
+
+static void logStatsValue(const std::string& module, const std::string& name, const uint32_t value)
+{
+  logInfo("{}.{} = {}", module, name, value);
+}
 
 inline bool changeFilterModeEventHappens(PluginInfo* goomInfo)
 {
@@ -809,7 +834,10 @@ uint32_t* goom_update(PluginInfo* goomInfo,
 ****************************************/
 void goom_close(PluginInfo* goomInfo)
 {
-  stats.log();
+  stats.setLastValues(states.getCurrentStateIndex(), goomInfo->update.zoomFilterData.mode);
+
+  stats.log(logStatsValue);
+  tentacle_log_states(&goomInfo->tentacles_fx, logStatsValue);
 
   if (goomInfo->pixel)
   {
@@ -910,6 +938,7 @@ static void chooseGoomLine(PluginInfo* goomInfo,
       throw std::logic_error("Unknown LineTypes enum.");
   }
 
+  stats.changeLineColor();
   *couleur = getRandomLineColor(goomInfo);
 }
 
@@ -1619,6 +1648,7 @@ static void stopRequest(PluginInfo* goomInfo)
 
   switchGoomLines(goomInfo->gmline1, mode, param1, amplitude, couleur);
   switchGoomLines(goomInfo->gmline2, mode, param2, amplitude, couleur);
+  stats.switchLines();
   goomInfo->update.stop_lines &= 0x0fff;
 }
 
@@ -1673,6 +1703,7 @@ static void stopRandomLineChangeMode(PluginInfo* goomInfo)
                goomInfo->update.lineMode, goomInfo->update.drawLinesDuration);
       switchGoomLines(goomInfo->gmline1, mode, param1, amplitude, couleur1);
       switchGoomLines(goomInfo->gmline2, mode, param2, amplitude, couleur2);
+      stats.switchLines();
     }
   }
 }
