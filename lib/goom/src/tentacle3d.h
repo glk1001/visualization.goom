@@ -36,7 +36,7 @@ struct TentacleFXData
 VisualFX tentacle_fx_create();
 void tentacle_free(TentacleFXData*);
 void tentacle_fx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo*);
-void tentacle_log_states(VisualFX* _this, const StatsLogValueFunc);
+void tentacle_log_stats(VisualFX* _this, const StatsLogValueFunc);
 
 inline float getRapport(const float accelvar)
 {

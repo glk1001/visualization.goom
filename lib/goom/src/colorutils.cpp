@@ -5,6 +5,12 @@
 #include <cmath>
 #include <cstdint>
 
+uint32_t getIntColor(const uint8_t r, const uint8_t g, const uint8_t b)
+{
+  const Pixel p{.channels = {.r = r, .g = g, .b = b, .a = 0xff}};
+  return p.val;
+}
+
 inline uint8_t lighten(const uint8_t value, const float power)
 {
   const float t = static_cast<float>(value * std::log10(power) / 2.0);

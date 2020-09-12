@@ -108,7 +108,9 @@ static void draw_wuline(const size_t n,
   WuDrawLine(x1, y1, x2, y2, plot);
 }
 
-// The Wu anti-aliased draw line.
+// The Xiaolin Wu anti-aliased draw line.
+// From https://rosettacode.org/wiki/Xiaolin_Wu%27s_line_algorithm#C.2B.2B
+//
 static void WuDrawLine(float x0, float y0, float x1, float y1, const PlotFunc& plot)
 {
   const auto ipart = [](const float x) -> int { return static_cast<int>(std::floor(x)); };

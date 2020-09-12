@@ -1,5 +1,6 @@
 #include "tentacle_driver.h"
 
+#include "colorutils.h"
 #include "drawmethods.h"
 #include "goom_core.h"
 #include "goomutils/colormap.h"
@@ -113,8 +114,9 @@ void TentacleDriver::init()
 
     //    const uint32_t headColor = ColorMap::getRandomColor(*headColorMap);
     //    const uint32_t headColorLow = ColorMap::getLighterColor(headColor, 50);
-    const uint32_t headColor = 0xff101010;
-    const uint32_t headColorLow = 0xff101010;
+    // To hide the annoying flapping tentacle head, make near the head very dark.
+    const uint32_t headColor = getIntColor(5, 5, 5);
+    const uint32_t headColorLow = headColor;
     Tentacle3D tentacle{std::move(tentacle2D), *colorizers[colorizers.size() - 1], headColor,
                         headColorLow, initialHeadPos};
 

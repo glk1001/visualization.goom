@@ -120,8 +120,6 @@ inline void TentacleStats::resetHappens()
   numResetHappens++;
 }
 
-static TentacleStats stats{};
-
 class TentaclesWrapper
 {
 public:
@@ -133,18 +131,20 @@ public:
               const float accelVar,
               const bool doDraw,
               TentacleFXData*);
+  void logStats(const StatsLogValueFunc logVal);
 
 private:
   WeightedColorMaps colorMaps;
   const ColorMap* dominantColorGroup;
   TentacleDriver driver;
+  TentacleStats stats;
   struct PrettyMoveValues
   {
     float dist;
     float dist2;
     float rotangle;
   };
-  PrettyMoveValues prettyMove(PluginInfo*, float cycle, TentacleFXData*) const;
+  PrettyMoveValues prettyMove(PluginInfo*, float cycle, TentacleFXData*);
   std::tuple<uint32_t, uint32_t> getModColors(PluginInfo*, TentacleFXData*);
   std::vector<float> getGridZeroAdditiveValues(PluginInfo*, const float rapport);
 };
@@ -161,7 +161,8 @@ TentaclesWrapper::TentaclesWrapper(const int screenWidth, const int screenHeight
         {ColorMapGroup::misc, 20},
     }}},
     dominantColorGroup{&colorMaps.getRandomColorMap()},
-    driver{&colorMaps, screenWidth, screenHeight}
+    driver{&colorMaps, screenWidth, screenHeight},
+    stats{}
 {
   /**
 // Temp hack of weights
@@ -173,6 +174,11 @@ colorMaps.setWeights(colorGroupWeights);
 
   driver.init();
   driver.startIterating();
+}
+
+void TentaclesWrapper::logStats(const StatsLogValueFunc logVal)
+{
+  stats.log(logVal);
 }
 
 inline float randFactor(PluginInfo* goomInfo, const float min)
@@ -258,7 +264,7 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
 
 TentaclesWrapper::PrettyMoveValues TentaclesWrapper::prettyMove(PluginInfo* goomInfo,
                                                                 float cycle,
-                                                                TentacleFXData* fx_data) const
+                                                                TentacleFXData* fx_data)
 {
   constexpr float D = 256.0f;
 
@@ -407,6 +413,12 @@ void tentacle_fx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* goo
   }
 }
 
+void tentacle_log_stats(VisualFX* _this, const StatsLogValueFunc logVal)
+{
+  TentacleFXData* data = static_cast<TentacleFXData*>(_this->fx_data);
+  data->tentacles->logStats(logVal);
+}
+
 void tentacle_fx_free(VisualFX* _this)
 {
   TentacleFXData* data = static_cast<TentacleFXData*>(_this->fx_data);
@@ -429,9 +441,4 @@ VisualFX tentacle_fx_create(void)
 void tentacle_free(TentacleFXData* data)
 {
   delete data->tentacles;
-}
-
-void tentacle_log_states(VisualFX*, const StatsLogValueFunc logVal)
-{
-  stats.log(logVal);
 }

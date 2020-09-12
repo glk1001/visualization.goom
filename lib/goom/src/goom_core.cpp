@@ -207,6 +207,7 @@ public:
   const DrawablesState& getCurrentDrawables() const;
 
   void doRandomStateChange();
+
 private:
   using GD = GoomDrawable;
   struct State
@@ -214,7 +215,7 @@ private:
     uint32_t weight;
     DrawablesState drawables;
   };
-  static constexpr size_t numStates = 8;
+  static constexpr size_t numStates = 9;
   using WeightedStatesArray = std::array<State, numStates>;
     static const WeightedStatesArray states;
   static std::vector<std::pair<uint16_t, size_t>> getWeightedStates(const WeightedStatesArray&);
@@ -222,9 +223,7 @@ private:
   size_t currentStateIndex;
 };
 
-GoomStates::GoomStates() noexcept
-  : weightedStates{getWeightedStates(states)},
-    currentStateIndex{0}
+GoomStates::GoomStates() noexcept : weightedStates{getWeightedStates(states)}, currentStateIndex{0}
 {
   doRandomStateChange();
 }
@@ -260,6 +259,7 @@ const GoomStates::WeightedStatesArray GoomStates::states{ {
   { .weight =  70, .drawables = {         GD::points, GD::tentacles, GD::stars, GD::lines, GD::scope, GD::farScope}},
   { .weight =  50, .drawables = {                     GD::tentacles, GD::stars, GD::lines,            GD::farScope}},
   { .weight =  60, .drawables = {                                    GD::stars, GD::lines, GD::scope, GD::farScope}},
+  { .weight =  60, .drawables = {         GD::points,                GD::stars,            GD::scope, GD::farScope}},
 }};
 // clang-format on
 
@@ -370,7 +370,7 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
   {
     logVal(module, "numState_" + std::to_string(i) + "_Changes", numStateChanges[i]);
   }
-  logVal(module, "totalFilterModeChanges = {}", totalFilterModeChanges);
+  logVal(module, "totalFilterModeChanges", totalFilterModeChanges);
   for (size_t i = 0; i < numFilterModeChanges.size(); i++)
   {
     logVal(module, "numFilterMode_" + std::to_string(i) + "_Changes", numFilterModeChanges[i]);
@@ -837,7 +837,7 @@ void goom_close(PluginInfo* goomInfo)
   stats.setLastValues(states.getCurrentStateIndex(), goomInfo->update.zoomFilterData.mode);
 
   stats.log(logStatsValue);
-  tentacle_log_states(&goomInfo->tentacles_fx, logStatsValue);
+  tentacle_log_stats(&goomInfo->tentacles_fx, logStatsValue);
 
   if (goomInfo->pixel)
   {
@@ -858,7 +858,6 @@ void goom_close(PluginInfo* goomInfo)
   goomLinesFree(&goomInfo->gmline1);
   goomLinesFree(&goomInfo->gmline2);
 
-  /* release_ifs (); */
   goomInfo->ifs_fx.free(&goomInfo->ifs_fx);
   goomInfo->convolve_fx.free(&goomInfo->convolve_fx);
   goomInfo->star_fx.free(&goomInfo->star_fx);
@@ -1853,8 +1852,8 @@ static void forceFilterModeIfSet(PluginInfo* goomInfo, ZoomFilterData** pzfd, co
 
 static void stopIfRequested(PluginInfo* goomInfo)
 {
-  logDebug("goomInfo->update.stop_lines = {}, curGState->scope = {}",
-           goomInfo->update.stop_lines, states.isCurrentlyDrawable(GoomDrawable::scope));
+  logDebug("goomInfo->update.stop_lines = {}, curGState->scope = {}", goomInfo->update.stop_lines,
+           states.isCurrentlyDrawable(GoomDrawable::scope));
   if ((goomInfo->update.stop_lines & 0xf000) || !states.isCurrentlyDrawable(GoomDrawable::scope))
   {
     stopRequest(goomInfo);
