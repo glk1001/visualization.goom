@@ -73,8 +73,9 @@ static void draw_wuline(const size_t n,
                         const uint16_t screenx,
                         const uint16_t screeny)
 {
-  if ((y1 < 0) || (y2 < 0) || (x1 < 0) || (x2 < 0) || (uint16_t(y1) >= screeny) ||
-      (uint16_t(y2) >= screeny) || (uint16_t(x1) >= screenx) || (uint16_t(x2) >= screenx))
+  if ((y1 < 0) || (y2 < 0) || (x1 < 0) || (x2 < 0) || (y1 >= static_cast<int>(screeny)) ||
+      (y2 >= static_cast<int>(screeny)) || (x1 >= static_cast<int>(screenx)) ||
+      (x2 >= static_cast<int>(screenx)))
   {
     return;
   }
