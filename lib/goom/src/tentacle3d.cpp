@@ -16,15 +16,18 @@
 
 #include <cmath>
 #include <cstdint>
-#include <string>
+#include <numbers>
 #include <tuple>
-#include <utility>
-#include <vector>
+
+constexpr float m_pi = std::numbers::pi;
+constexpr float m_two_pi = 2.0 * std::numbers::pi;
+constexpr float m_half_pi = 0.5 * std::numbers::pi;
 
 class TentacleStats
 {
 public:
   TentacleStats() noexcept = default;
+
   void reset();
   void log(const StatsLogValueFunc) const;
   void changeColorMap();
@@ -36,6 +39,9 @@ public:
   void highAcceleration();
   void cycleReset();
   void happensReset();
+  void changePrettyLerpMixLower();
+  void changePrettyLerpMixHigher();
+  void setLastPrettyLerpMixValue(const float value);
 
 private:
   uint32_t numColorMapChanges = 0;
@@ -47,6 +53,9 @@ private:
   uint32_t numHighAcceleration = 0;
   uint32_t numCycleResets = 0;
   uint32_t numHappensResets = 0;
+  uint32_t numLowerPrettyLerpMixChanges = 0;
+  uint32_t numHigherPrettyLerpMixChanges = 0;
+  float lastPrettyLerpMixValue = 0;
 };
 
 void TentacleStats::log(const StatsLogValueFunc logVal) const
@@ -62,6 +71,9 @@ void TentacleStats::log(const StatsLogValueFunc logVal) const
   logVal(module, "numHighAcceleration", numHighAcceleration);
   logVal(module, "numCycleResets", numCycleResets);
   logVal(module, "numHappensResets", numHappensResets);
+  logVal(module, "numLowerPrettyLerpMixChanges", numLowerPrettyLerpMixChanges);
+  logVal(module, "numHigherPrettyLerpMixChanges", numHigherPrettyLerpMixChanges);
+  logVal(module, "lastPrettyLerpMixValue", lastPrettyLerpMixValue);
 }
 
 void TentacleStats::reset()
@@ -75,6 +87,9 @@ void TentacleStats::reset()
   numHighAcceleration = 0;
   numCycleResets = 0;
   numHappensResets = 0;
+  numLowerPrettyLerpMixChanges = 0;
+  numHigherPrettyLerpMixChanges = 0;
+  lastPrettyLerpMixValue = 0;
 }
 
 inline void TentacleStats::changeColorMap()
@@ -122,10 +137,26 @@ inline void TentacleStats::happensReset()
   numHappensResets++;
 }
 
+inline void TentacleStats::changePrettyLerpMixLower()
+{
+  numLowerPrettyLerpMixChanges++;
+}
+
+inline void TentacleStats::changePrettyLerpMixHigher()
+{
+  numHigherPrettyLerpMixChanges++;
+}
+
+inline void TentacleStats::setLastPrettyLerpMixValue(const float value)
+{
+  lastPrettyLerpMixValue = value;
+}
+
 class TentaclesWrapper
 {
 public:
   explicit TentaclesWrapper(const int screenWidth, const int screenHeight);
+  ~TentaclesWrapper();
   void update(PluginInfo*,
               Pixel* frontBuff,
               Pixel* backBuff,
@@ -144,14 +175,17 @@ private:
   float ligs = 0.1;
   float distt = 10;
   float distt2 = 0;
-  float rot = 0; // entre 0 et 2 * M_PI
+  float rot = 0; // entre 0 et m_2pi
   int happens = 0;
   bool doRotation = false;
   int lock = 0;
+  float prettyMoveLerpMix = 1.0 / 16.0;
 
-  static constexpr float highAcceleration = 0.7;
+  size_t countPrettyLerpMixChanged = 0;
   size_t countSinceHighAccelLastMarked = 0;
   void incCounters();
+
+  static constexpr float highAcceleration = 0.7;
   TentacleDriver driver;
   TentacleStats stats;
   void happensUpdate(PluginInfo*);
@@ -187,13 +221,19 @@ colorMaps.setWeights(colorGroupWeights);
   driver.startIterating();
 }
 
+TentaclesWrapper::~TentaclesWrapper()
+{
+}
+
 inline void TentaclesWrapper::incCounters()
 {
+  countPrettyLerpMixChanged++;
   countSinceHighAccelLastMarked++;
 }
 
 void TentaclesWrapper::logStats(const StatsLogValueFunc logVal)
 {
+  stats.setLastPrettyLerpMixValue(prettyMoveLerpMix);
   stats.log(logVal);
 }
 
@@ -228,6 +268,12 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
     if (accelVar < highAcceleration)
     {
       stats.lowToMediumAcceleration();
+      if (countPrettyLerpMixChanged > 300)
+      {
+        prettyMoveLerpMix = goomInfo->getRandInRange(1.0f / 100.0f, 1.0f / 10.0f);
+        stats.changePrettyLerpMixLower();
+        countPrettyLerpMixChanged = 0;
+      }
     }
     else
     {
@@ -237,6 +283,12 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
         countSinceHighAccelLastMarked = 0;
         stats.changeTentacleColor();
         color = ColorMap::getRandomColor(*dominantColorGroup);
+      }
+//      if (countPrettyLerpMixChanged > 30)
+      {
+        prettyMoveLerpMix = goomInfo->getRandInRange(0.4f, 0.6f);
+        stats.changePrettyLerpMixHigher();
+        countPrettyLerpMixChanged = 0;
       }
     }
 
@@ -251,7 +303,7 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
       stats.updateWithDraw();
     }
 
-    driver.update(doDraw, 0.5 * M_PI - rot, distt, distt2, modColor, modColorLow, frontBuff,
+    driver.update(doDraw, m_half_pi - rot, distt, distt2, modColor, modColorLow, frontBuff,
                   backBuff);
   }
   else
@@ -293,63 +345,69 @@ void TentaclesWrapper::happensUpdate(PluginInfo* goomInfo)
   }
 }
 
+inline float getFract(const float x)
+{
+  float intpart;
+  return std::modf(x, &intpart);
+}
+
 void TentaclesWrapper::prettyMove(PluginInfo* goomInfo)
 {
-  constexpr float D = 256.0f;
-
   /* many magic numbers here... I don't really like that. */
   happensUpdate(goomInfo);
 
+  const float distt2Offset = happens ? 8.0 : 0.0;
+  distt2 = std::lerp(distt2, distt2Offset, prettyMoveLerpMix);
+
   float currentCycle = cycle;
 
-  float tmp = happens ? 8.0f : 0;
-  distt2 = (tmp + 15.0f * distt2) / 16.0f;
-
-  tmp = 30 + D - 90.0f * (1.0f + sin(currentCycle * 19 / 20));
+  float disttOffset = 286.0 - 90.0 * (1.0 + sin(currentCycle * 19.0 / 20.0));
   if (happens)
   {
-    tmp *= 0.6f;
+    disttOffset *= 0.6f;
   }
-  distt = (tmp + 3.0f * distt) / 4.0f;
+  distt = std::lerp(distt, disttOffset, 4.0f * prettyMoveLerpMix);
 
+  float rotOffset = 0;
   if (!happens)
   {
-    tmp = M_PI * sin(currentCycle) / 32 + 3 * M_PI / 2;
+    rotOffset = (1.5 + sin(currentCycle) / 32.0) * m_pi;
   }
   else
   {
-    if (probabilityOfMInN(goomInfo, 1, 500)) {
+    if (probabilityOfMInN(goomInfo, 1, 500))
+    {
       doRotation = probabilityOfMInN(goomInfo, 1, 2);
     }
     if (doRotation)
     {
-      currentCycle *= 2.0 * M_PI;
+      currentCycle *= m_two_pi;
     }
     else
     {
-      currentCycle *= -1.0 * M_PI;
+      currentCycle *= -m_pi;
     }
-    tmp = currentCycle - 2.0 * M_PI * std::floor(currentCycle / (2.0 * M_PI));
+    rotOffset = m_two_pi * getFract(currentCycle / m_two_pi);
   }
-  if (std::fabs(tmp - rot) > std::fabs(tmp - (rot + 2.0 * M_PI)))
+  if (std::fabs(rot - rotOffset) > std::fabs(rot + m_two_pi - rotOffset))
   {
-    rot = (tmp + 15.0f * (rot + 2 * M_PI)) / 16.0f;
-    if (rot > 2.0 * M_PI)
+    rot = std::lerp(rot + m_two_pi, rotOffset, prettyMoveLerpMix);
+    if (rot > m_two_pi)
     {
-      rot -= 2.0 * M_PI;
+      rot -= m_two_pi;
     }
   }
-  else if (std::fabs(tmp - rot) > std::fabs(tmp - (rot - 2.0 * M_PI)))
+  else if (std::fabs(rot - rotOffset) > std::fabs(rot - m_two_pi - rotOffset))
   {
-    rot = (tmp + 15.0f * (rot - 2.0 * M_PI)) / 16.0f;
+    rot = std::lerp(rot - m_two_pi, rotOffset, prettyMoveLerpMix);
     if (rot < 0.0f)
     {
-      rot += 2.0 * M_PI;
+      rot += m_two_pi;
     }
   }
   else
   {
-    rot = (tmp + 15.0f * rot) / 16.0f;
+    rot = std::lerp(rot, rotOffset, prettyMoveLerpMix);
   }
 }
 
