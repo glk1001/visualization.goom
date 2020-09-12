@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <string>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 class TentacleStats
@@ -33,8 +34,9 @@ public:
   void updateWithPrettyMove2();
   void lowToMediumAcceleration();
   void highAcceleration();
-  void resetCycle();
-  void resetHappens();
+  void cycleReset();
+  void happensReset();
+
 private:
   uint32_t numColorMapChanges = 0;
   uint32_t numTentacleColorChanges = 0;
@@ -43,14 +45,14 @@ private:
   uint32_t numUpdatesWithPrettyMove2 = 0;
   uint32_t numLowToMediumAcceleration = 0;
   uint32_t numHighAcceleration = 0;
-  uint32_t numResetCycle = 0;
-  uint32_t numResetHappens = 0;
+  uint32_t numCycleResets = 0;
+  uint32_t numHappensResets = 0;
 };
 
 void TentacleStats::log(const StatsLogValueFunc logVal) const
 {
   const constexpr char* module = "Tentacles";
-  
+
   logVal(module, "numColorMapChanges", numColorMapChanges);
   logVal(module, "numTentacleColorChanges", numTentacleColorChanges);
   logVal(module, "numUpdatesWithDraw", numUpdatesWithDraw);
@@ -58,8 +60,8 @@ void TentacleStats::log(const StatsLogValueFunc logVal) const
   logVal(module, "numUpdatesWithPrettyMove2", numUpdatesWithPrettyMove2);
   logVal(module, "numLowToMediumAcceleration", numLowToMediumAcceleration);
   logVal(module, "numHighAcceleration", numHighAcceleration);
-  logVal(module, "numResetCycle", numResetCycle);
-  logVal(module, "numResetHappens", numResetHappens);
+  logVal(module, "numCycleResets", numCycleResets);
+  logVal(module, "numHappensResets", numHappensResets);
 }
 
 void TentacleStats::reset()
@@ -71,8 +73,8 @@ void TentacleStats::reset()
   numUpdatesWithPrettyMove2 = 0;
   numLowToMediumAcceleration = 0;
   numHighAcceleration = 0;
-  numResetCycle = 0;
-  numResetHappens = 0;
+  numCycleResets = 0;
+  numHappensResets = 0;
 }
 
 inline void TentacleStats::changeColorMap()
@@ -110,14 +112,14 @@ inline void TentacleStats::highAcceleration()
   numHighAcceleration++;
 }
 
-inline void TentacleStats::resetCycle()
+inline void TentacleStats::cycleReset()
 {
-  numResetCycle++;
+  numCycleResets++;
 }
 
-inline void TentacleStats::resetHappens()
+inline void TentacleStats::happensReset()
 {
-  numResetHappens++;
+  numHappensResets++;
 }
 
 class TentaclesWrapper
@@ -129,24 +131,32 @@ public:
               Pixel* backBuff,
               const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
               const float accelVar,
-              const bool doDraw,
-              TentacleFXData*);
+              const bool doDraw);
   void logStats(const StatsLogValueFunc logVal);
 
 private:
   WeightedColorMaps colorMaps;
   const ColorMap* dominantColorGroup;
+
+  float cycle = 0;
+  uint32_t color = 0;
+  float lig = 1.15;
+  float ligs = 0.1;
+  float distt = 10;
+  float distt2 = 0;
+  float rot = 0; // entre 0 et 2 * M_PI
+  int happens = 0;
+  bool doRotation = false;
+  int lock = 0;
+
+  static constexpr float highAcceleration = 0.7;
+  size_t countSinceHighAccelLastMarked = 0;
+  void incCounters();
   TentacleDriver driver;
   TentacleStats stats;
-  struct PrettyMoveValues
-  {
-    float dist;
-    float dist2;
-    float rotangle;
-  };
-  PrettyMoveValues prettyMove(PluginInfo*, float cycle, TentacleFXData*);
-  std::tuple<uint32_t, uint32_t> getModColors(PluginInfo*, TentacleFXData*);
-  std::vector<float> getGridZeroAdditiveValues(PluginInfo*, const float rapport);
+  void happensUpdate(PluginInfo*);
+  void prettyMove(PluginInfo*);
+  std::tuple<uint32_t, uint32_t> getModColors(PluginInfo*);
 };
 
 TentaclesWrapper::TentaclesWrapper(const int screenWidth, const int screenHeight)
@@ -161,6 +171,7 @@ TentaclesWrapper::TentaclesWrapper(const int screenWidth, const int screenHeight
         {ColorMapGroup::misc, 20},
     }}},
     dominantColorGroup{&colorMaps.getRandomColorMap()},
+    color{ColorMap::getRandomColor(*dominantColorGroup)},
     driver{&colorMaps, screenWidth, screenHeight},
     stats{}
 {
@@ -174,6 +185,11 @@ colorMaps.setWeights(colorGroupWeights);
 
   driver.init();
   driver.startIterating();
+}
+
+inline void TentaclesWrapper::incCounters()
+{
+  countSinceHighAccelLastMarked++;
 }
 
 void TentaclesWrapper::logStats(const StatsLogValueFunc logVal)
@@ -191,184 +207,177 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
                               Pixel* backBuff,
                               const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
                               const float accelVar,
-                              const bool doDraw,
-                              TentacleFXData* fx_data)
+                              const bool doDraw)
 {
   logDebug("Starting update.");
 
-  if (!doDraw && (fx_data->ligs > 0.0f))
-  {
-    fx_data->ligs = -fx_data->ligs;
-  }
-  fx_data->lig += fx_data->ligs;
+  incCounters();
 
-  if (fx_data->lig > 1.01f)
+  if (!doDraw && (ligs > 0.0f))
+  {
+    ligs = -ligs;
+  }
+  lig += ligs;
+
+  if (lig > 1.01f)
   {
     logDebug("Starting pretty_move 1.");
     stats.updateWithPrettyMove1();
-    const PrettyMoveValues movevalues = prettyMove(goomInfo, fx_data->cycle, fx_data);
+    prettyMove(goomInfo);
 
-    if (accelVar < 0.7)
+    if (accelVar < highAcceleration)
     {
       stats.lowToMediumAcceleration();
-      driver.setGlitchValues(0.0, 0.0);
-      driver.setReverseColorMix(false);
     }
     else
     {
       stats.highAcceleration();
-      const float glitchLength = accelVar * getRandInRange(0.3f, 2.0f);
-      driver.setGlitchValues(-0.5 * glitchLength, +0.5 * glitchLength);
-      // Reversing seems too jarring
-      //      driver.setReverseColorMix(true);
-      stats.changeTentacleColor();
-      fx_data->col = ColorMap::getRandomColor(*dominantColorGroup);
+      if (countSinceHighAccelLastMarked > 100)
+      {
+        countSinceHighAccelLastMarked = 0;
+        stats.changeTentacleColor();
+        color = ColorMap::getRandomColor(*dominantColorGroup);
+      }
     }
-
-    const auto [modColor, modColorLow] = getModColors(goomInfo, fx_data);
 
     // Higher sound acceleration increases tentacle wave frequency.
     driver.multiplyIterZeroYValWaveFreq(1.0 / (1.10 - accelVar));
 
-    fx_data->cycle += 0.01f;
-    //    updateColors(goomInfo, fx_data);
+    const auto [modColor, modColorLow] = getModColors(goomInfo);
+    cycle += 0.01f;
 
     if (doDraw)
     {
       stats.updateWithDraw();
     }
 
-    driver.update(doDraw, 0.5 * M_PI - movevalues.rotangle, movevalues.dist, movevalues.dist2,
-                  modColor, modColorLow, frontBuff, backBuff);
+    driver.update(doDraw, 0.5 * M_PI - rot, distt, distt2, modColor, modColorLow, frontBuff,
+                  backBuff);
   }
   else
   {
-    fx_data->lig = 1.05f;
-    if (fx_data->ligs < 0.0f)
+    lig = 1.05f;
+    if (ligs < 0.0f)
     {
-      fx_data->ligs = -fx_data->ligs;
+      ligs = -ligs;
     }
 
     logDebug("Starting pretty_move 2.");
     stats.updateWithPrettyMove2();
-    prettyMove(goomInfo, fx_data->cycle, fx_data);
+    prettyMove(goomInfo);
 
-    fx_data->cycle += 0.1f;
-    if (fx_data->cycle > 1000)
+    cycle += 0.1f;
+    if (cycle > 1000)
     {
-      stats.resetCycle();
-      fx_data->cycle = 0;
+      stats.cycleReset();
+      cycle = 0;
     }
   }
 }
 
-TentaclesWrapper::PrettyMoveValues TentaclesWrapper::prettyMove(PluginInfo* goomInfo,
-                                                                float cycle,
-                                                                TentacleFXData* fx_data)
+void TentaclesWrapper::happensUpdate(PluginInfo* goomInfo)
+{
+  if (happens)
+  {
+    happens -= 1;
+  }
+  else if (lock == 0)
+  {
+    stats.happensReset();
+    happens = goomInfo->getNRand(200) ? 0 : static_cast<int>(100 + goomInfo->getNRand(60));
+    lock = happens * 3 / 2;
+  }
+  else
+  {
+    lock--;
+  }
+}
+
+void TentaclesWrapper::prettyMove(PluginInfo* goomInfo)
 {
   constexpr float D = 256.0f;
 
   /* many magic numbers here... I don't really like that. */
-  if (fx_data->happens)
-  {
-    fx_data->happens -= 1;
-  }
-  else if (fx_data->lock == 0)
-  {
-    stats.resetHappens();
-    fx_data->happens = goomInfo->getNRand(200) ? 0 : static_cast<int>(100 + goomInfo->getNRand(60));
-    fx_data->lock = fx_data->happens * 3 / 2;
-  }
-  else
-  {
-    fx_data->lock--;
-  }
+  happensUpdate(goomInfo);
 
-  PrettyMoveValues moveValues{};
+  float currentCycle = cycle;
 
-  float tmp = fx_data->happens ? 8.0f : 0;
-  moveValues.dist2 = fx_data->distt2 = (tmp + 15.0f * fx_data->distt2) / 16.0f;
+  float tmp = happens ? 8.0f : 0;
+  distt2 = (tmp + 15.0f * distt2) / 16.0f;
 
-  tmp = 30 + D - 90.0f * (1.0f + sin(cycle * 19 / 20));
-  if (fx_data->happens)
+  tmp = 30 + D - 90.0f * (1.0f + sin(currentCycle * 19 / 20));
+  if (happens)
   {
     tmp *= 0.6f;
   }
+  distt = (tmp + 3.0f * distt) / 4.0f;
 
-  moveValues.dist = fx_data->distt = (tmp + 3.0f * fx_data->distt) / 4.0f;
-
-  if (!fx_data->happens)
+  if (!happens)
   {
-    tmp = M_PI * sin(cycle) / 32 + 3 * M_PI / 2;
+    tmp = M_PI * sin(currentCycle) / 32 + 3 * M_PI / 2;
   }
   else
   {
-    fx_data->rotation =
-        goomInfo->getNRand(500) ? fx_data->rotation : static_cast<int>(goomInfo->getNRand(2));
-    if (fx_data->rotation)
+    if (probabilityOfMInN(goomInfo, 1, 500)) {
+      doRotation = probabilityOfMInN(goomInfo, 1, 2);
+    }
+    if (doRotation)
     {
-      cycle *= 2.0f * M_PI;
+      currentCycle *= 2.0 * M_PI;
     }
     else
     {
-      cycle *= -1.0f * M_PI;
+      currentCycle *= -1.0 * M_PI;
     }
-    tmp = cycle - (M_PI * 2.0) * floor(cycle / (M_PI * 2.0));
+    tmp = currentCycle - 2.0 * M_PI * std::floor(currentCycle / (2.0 * M_PI));
   }
-
-  if (fabs(tmp - fx_data->rot) > fabs(tmp - (fx_data->rot + 2.0 * M_PI)))
+  if (std::fabs(tmp - rot) > std::fabs(tmp - (rot + 2.0 * M_PI)))
   {
-    fx_data->rot = (tmp + 15.0f * (fx_data->rot + 2 * M_PI)) / 16.0f;
-    if (fx_data->rot > 2.0 * M_PI)
+    rot = (tmp + 15.0f * (rot + 2 * M_PI)) / 16.0f;
+    if (rot > 2.0 * M_PI)
     {
-      fx_data->rot -= 2.0 * M_PI;
+      rot -= 2.0 * M_PI;
     }
-    moveValues.rotangle = fx_data->rot;
   }
-  else if (fabs(tmp - fx_data->rot) > fabs(tmp - (fx_data->rot - 2.0 * M_PI)))
+  else if (std::fabs(tmp - rot) > std::fabs(tmp - (rot - 2.0 * M_PI)))
   {
-    fx_data->rot = (tmp + 15.0f * (fx_data->rot - 2.0 * M_PI)) / 16.0f;
-    if (fx_data->rot < 0.0f)
+    rot = (tmp + 15.0f * (rot - 2.0 * M_PI)) / 16.0f;
+    if (rot < 0.0f)
     {
-      fx_data->rot += 2.0 * M_PI;
+      rot += 2.0 * M_PI;
     }
-    moveValues.rotangle = fx_data->rot;
   }
   else
   {
-    moveValues.rotangle = fx_data->rot = (tmp + 15.0f * fx_data->rot) / 16.0f;
+    rot = (tmp + 15.0f * rot) / 16.0f;
   }
-
-  return moveValues;
 }
 
-inline std::tuple<uint32_t, uint32_t> TentaclesWrapper::getModColors(PluginInfo* goomInfo,
-                                                                     TentacleFXData* fx_data)
+inline std::tuple<uint32_t, uint32_t> TentaclesWrapper::getModColors(PluginInfo* goomInfo)
 {
-  if (fx_data->happens)
+  if (happens)
   {
     stats.changeColorMap();
     dominantColorGroup = &colorMaps.getRandomColorMap();
   }
 
-  if ((fx_data->lig > 10.0f) || (fx_data->lig < 1.1f))
+  if ((lig > 10.0f) || (lig < 1.1f))
   {
-    fx_data->ligs = -fx_data->ligs;
+    ligs = -ligs;
   }
 
-  if ((fx_data->lig < 6.3f) && probabilityOfMInN(goomInfo, 1, 5))
+  if ((lig < 6.3f) && probabilityOfMInN(goomInfo, 1, 5))
   {
     stats.changeTentacleColor();
-    fx_data->col = ColorMap::getRandomColor(*dominantColorGroup);
+    color = ColorMap::getRandomColor(*dominantColorGroup);
   }
 
-  fx_data->col = getEvolvedColor(fx_data->col);
+  color = getEvolvedColor(color);
 
-  const uint32_t color = getLightenedColor(fx_data->col, fx_data->lig * 2.0f + 2.0f);
-  //  const uint32_t colorLow = getLightenedColor(color, (fx_data->lig / 3.0f) + 0.67f);
-  const uint32_t colorLow = getLightenedColor(color, (fx_data->lig / 2.0f) + 0.67f);
+  const uint32_t modColor = getLightenedColor(color, lig * 2.0f + 2.0f);
+  const uint32_t modColorLow = getLightenedColor(modColor, (lig / 2.0f) + 0.67f);
 
-  return std::make_tuple(color, colorLow);
+  return std::make_tuple(modColor, modColorLow);
 }
 
 /* 
@@ -385,20 +394,6 @@ void tentacle_fx_init(VisualFX* _this, PluginInfo* info)
   data->params = plugin_parameters("3D Tentacles", 1);
   data->params.params[0] = &data->enabled_bp;
 
-  data->cycle = 0.0f;
-  data->col = (0x28 << (ROUGE * 8)) | (0x2c << (VERT * 8)) | (0x5f << (BLEU * 8));
-  data->lig = 1.15f;
-  data->ligs = 0.1f;
-
-  data->distt = 10.0f;
-  data->distt2 = 0.0f;
-  data->rot = 0.0f; /* entre 0 et 2 * M_PI */
-  data->happens = 0;
-
-  data->rotation = 0;
-  data->lock = 0;
-  // data->colors;
-
   _this->params = &data->params;
   _this->fx_data = data;
 }
@@ -409,7 +404,7 @@ void tentacle_fx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* goo
   if (BVAL(data->enabled_bp))
   {
     data->tentacles->update(goomInfo, dest, src, goomInfo->sound.samples, goomInfo->sound.accelvar,
-                            goomInfo->curGDrawables.count(GoomDrawable::tentacles), data);
+                            goomInfo->curGDrawables.count(GoomDrawable::tentacles));
   }
 }
 

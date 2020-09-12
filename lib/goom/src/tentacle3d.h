@@ -15,22 +15,7 @@ struct TentacleFXData
 {
   PluginParam enabled_bp;
   PluginParameters params;
-
   TentaclesWrapper* tentacles;
-
-  float cycle;
-
-  uint32_t col;
-  float lig;
-  float ligs;
-
-  // statics from pretty_move
-  float distt;
-  float distt2;
-  float rot; // entre 0 et 2 * M_PI
-  int happens;
-  int rotation;
-  int lock;
 };
 
 VisualFX tentacle_fx_create();
