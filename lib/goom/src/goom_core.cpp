@@ -96,6 +96,7 @@ public:
 
 private:
   PluginInfo* goomInfo = nullptr;
+  mutable GoomFilterEvent lastReturnedFilterEvent = GoomFilterEvent::_size;
 
   static constexpr size_t numGoomEvents = static_cast<size_t>(GoomEvent::_size);
   static constexpr size_t numGoomFilterEvents = static_cast<size_t>(GoomFilterEvent::_size);
@@ -156,9 +157,9 @@ private:
   } };
 
   static constexpr std::array<std::pair<LineType, size_t>, numLineTypes> weightedLineEvents{ {
-    { LineType::circle,  4 },
-    { LineType::hline,   2 },
-    { LineType::vline,   1 },
+    { LineType::circle, 4 },
+    { LineType::hline,  2 },
+    { LineType::vline,  1 },
   } };
   // clang-format on
   const Weights<GoomFilterEvent> filterWeights;
@@ -187,7 +188,18 @@ inline bool GoomEvents::happens(const GoomEvent event) const
 
 inline GoomEvents::GoomFilterEvent GoomEvents::getRandomFilterEvent() const
 {
-  return filterWeights.getRandomWeighted();
+  GoomEvents::GoomFilterEvent nextEvent = lastReturnedFilterEvent;
+  for (size_t i = 0; i < 10; i++)
+  {
+    nextEvent = filterWeights.getRandomWeighted();
+    if (nextEvent != lastReturnedFilterEvent)
+    {
+      break;
+    }
+  }
+
+  lastReturnedFilterEvent = nextEvent;
+  return nextEvent;
 }
 
 inline LineType GoomEvents::getRandomLineTypeEvent() const
@@ -215,8 +227,7 @@ private:
     uint32_t weight;
     DrawablesState drawables;
   };
-  static constexpr size_t numStates = 9;
-  using WeightedStatesArray = std::array<State, numStates>;
+  using WeightedStatesArray = std::vector<State>;
     static const WeightedStatesArray states;
   static std::vector<std::pair<uint16_t, size_t>> getWeightedStates(const WeightedStatesArray&);
   const Weights<uint16_t> weightedStates;
@@ -251,6 +262,7 @@ inline void GoomStates::doRandomStateChange()
 
 // clang-format off
 const GoomStates::WeightedStatesArray GoomStates::states{ {
+//  { .weight =  40, .drawables = {                     GD::tentacles,                                  GD::farScope}},
   { .weight = 100, .drawables = {GD::IFS,                            GD::stars,            GD::scope, GD::farScope}},
   { .weight =  40, .drawables = {GD::IFS,             GD::tentacles, GD::stars,                       GD::farScope}},
   { .weight =  60, .drawables = {GD::IFS,                            GD::stars, GD::lines, GD::scope, GD::farScope}},
@@ -1168,6 +1180,12 @@ static void changeFilterMode(PluginInfo* goomInfo)
           goomEvent.happens(GoomEvent::hypercosEffectOnWithCrystalBallMode);
       break;
     case GoomFilterEvent::amuletteMode:
+      if (goomInfo->curGDrawables.count(GoomDrawable::tentacles))
+      {
+        // Tentacles don't look so good with amulette mode so remove tentacles.
+        goomInfo->curGDrawables.erase(GoomDrawable::tentacles);
+        logInfo("Because of 'amulette mode' filter, removed tentacles from current goom state.");
+      }
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::amuletteMode;
       goomInfo->update.zoomFilterData.waveEffect = false;
       goomInfo->update.zoomFilterData.hypercosEffect = false;
@@ -1206,18 +1224,9 @@ static void changeFilterMode(PluginInfo* goomInfo)
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::speedwayMode;
       break;
     case GoomFilterEvent::normalMode:
-      if (goomInfo->curGDrawables.count(GoomDrawable::tentacles))
-      {
-        // Tentacles don't look so good with normal mode so remove tentacles.
-        goomInfo->curGDrawables.erase(GoomDrawable::tentacles);
-        logInfo("Because of 'normal mode' filter, removed tentacles from current goom state.");
-      }
-      else
-      {
-        goomInfo->update.zoomFilterData.mode = ZoomFilterMode::normalMode;
-        goomInfo->update.zoomFilterData.waveEffect = false;
-        goomInfo->update.zoomFilterData.hypercosEffect = false;
-      }
+      goomInfo->update.zoomFilterData.mode = ZoomFilterMode::normalMode;
+      goomInfo->update.zoomFilterData.waveEffect = false;
+      goomInfo->update.zoomFilterData.hypercosEffect = false;
       break;
     default:
       throw std::logic_error("GoomFilterEvent not implemented.");
@@ -1225,10 +1234,10 @@ static void changeFilterMode(PluginInfo* goomInfo)
 
   stats.filterModeChange(goomInfo->update.zoomFilterData.mode);
 
-  if ((goomInfo->update.zoomFilterData.mode != ZoomFilterMode::normalMode) &&
+  if ((goomInfo->update.zoomFilterData.mode != ZoomFilterMode::amuletteMode) &&
       goomInfo->curGDrawables != states.getCurrentDrawables())
   {
-    logInfo("Not 'normal' filter mode: reset drawables (put back anything previously removed).");
+    logInfo("Not 'amulette' filter mode: reset drawables (put back anything previously removed).");
     goomInfo->curGDrawables = states.getCurrentDrawables();
   }
 }
@@ -1279,10 +1288,10 @@ static void changeState(PluginInfo* goomInfo, const int forceMode)
   }
 
   if (states.isCurrentlyDrawable(GoomDrawable::tentacles) && (forceMode == 0) &&
-      (goomInfo->update.zoomFilterData.mode == ZoomFilterMode::normalMode))
+      (goomInfo->update.zoomFilterData.mode == ZoomFilterMode::amuletteMode))
   {
     // Tentacles and normal filter mode don't look so good - choose another mode.
-    logInfo("It's a tentacle state - changing filter mode away from 'normal mode'.");
+    logInfo("It's a tentacle state - changing filter mode away from 'amulette mode'.");
     changeFilterMode(goomInfo);
   }
 }

@@ -80,7 +80,7 @@ static void fs_init(VisualFX* _this, PluginInfo*)
   data->currentColorGroup = data->colorMaps.getRandomGroup();
 
   data->fx_mode = StarModes::fireworks;
-  data->maxStars = 4096;
+  data->maxStars = 6000;
   data->stars = new Star[data->maxStars];
   data->numStars = 0;
 
