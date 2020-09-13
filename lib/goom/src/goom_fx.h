@@ -1,14 +1,17 @@
 #ifndef _GOOM_FX_H
 #define _GOOM_FX_H
 
+#include "goom_config.h"
 #include "goom_graphic.h"
 #include "goom_visual_fx.h"
 
 #include <cstddef>
 #include <cstdint>
 
-extern VisualFX convolve_create();
-extern VisualFX flying_star_create(void);
+VisualFX convolve_create();
+
+VisualFX flying_star_create(void);
+void flying_star_log_stats(VisualFX* _this, const StatsLogValueFunc);
 
 constexpr size_t BUFFPOINTNB = 16;
 

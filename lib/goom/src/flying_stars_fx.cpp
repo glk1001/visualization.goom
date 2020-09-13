@@ -11,6 +11,99 @@
 #include <cstdint>
 #include <stdexcept>
 
+class StarsStats
+{
+public:
+  StarsStats() noexcept = default;
+
+  void reset();
+  void log(const StatsLogValueFunc) const;
+  void addBombButTooManyStars();
+  void addBomb();
+  void soundEventOccurred();
+  void noFxChosen();
+  void fireworksFxChosen();
+  void rainFxChosen();
+  void fountainFxChosen();
+  void updateStars();
+
+private:
+  uint32_t numAddBombButTooManyStars = 0;
+  uint32_t numAddBombs = 0;
+  uint32_t numSoundEvents = 0;
+  uint32_t numNoFxChosen = 0;
+  uint32_t numFireworksFxChosen = 0;
+  uint32_t numRainFxChosen = 0;
+  uint32_t numFountainFxChosen = 0;
+  uint32_t numUpdateStars = 0;
+};
+
+void StarsStats::log(const StatsLogValueFunc logVal) const
+{
+  const constexpr char* module = "Stars";
+
+  logVal(module, "numUpdateStars", numUpdateStars);
+  logVal(module, "numSoundEvents", numSoundEvents);
+  logVal(module, "numAddBombButTooManyStars", numAddBombButTooManyStars);
+  logVal(module, "numAddBombs", numAddBombs);
+  logVal(module, "numNoFxChosen", numNoFxChosen);
+  logVal(module, "numFireworksFxChosen", numFireworksFxChosen);
+  logVal(module, "numRainFxChosen", numRainFxChosen);
+  logVal(module, "numFountainFxChosen", numFountainFxChosen);
+}
+
+void StarsStats::reset()
+{
+  numAddBombButTooManyStars = 0;
+  numAddBombs = 0;
+  numSoundEvents = 0;
+  numNoFxChosen = 0;
+  numFireworksFxChosen = 0;
+  numRainFxChosen = 0;
+  numFountainFxChosen = 0;
+  numUpdateStars = 0;
+}
+
+inline void StarsStats::updateStars()
+{
+  numUpdateStars++;
+}
+
+inline void StarsStats::addBombButTooManyStars()
+{
+  numAddBombButTooManyStars++;
+}
+
+inline void StarsStats::addBomb()
+{
+  numAddBombs++;
+}
+
+inline void StarsStats::soundEventOccurred()
+{
+  numSoundEvents++;
+}
+
+inline void StarsStats::noFxChosen()
+{
+  numNoFxChosen++;
+}
+
+inline void StarsStats::fireworksFxChosen()
+{
+  numFireworksFxChosen++;
+}
+
+inline void StarsStats::rainFxChosen()
+{
+  numRainFxChosen++;
+}
+
+inline void StarsStats::fountainFxChosen()
+{
+  numFountainFxChosen++;
+}
+
 /* TODO:-- FAIRE PROPREMENT... BOAH... */
 // clang-format off
 constexpr size_t numLowColors = 15;
@@ -73,8 +166,12 @@ struct FSData
   PluginParameters params;
 };
 
+static StarsStats stats{};
+
 static void fs_init(VisualFX* _this, PluginInfo*)
 {
+  stats.reset();
+
   FSData* data = new FSData;
 
   data->currentColorGroup = data->colorMaps.getRandomGroup();
@@ -147,8 +244,11 @@ static void addABomb(FSData* data,
 {
   if (data->numStars >= data->maxStars)
   {
+    stats.addBombButTooManyStars();
     return;
   }
+  stats.addBomb();
+
   data->numStars++;
 
   const unsigned int i = data->numStars - 1;
@@ -193,11 +293,13 @@ static void updateStar(Star* s)
  */
 static void fs_sound_event_occured(VisualFX* _this, PluginInfo* info)
 {
+  stats.soundEventOccurred();
+
   FSData* data = static_cast<FSData*>(_this->fx_data);
 
   data->currentColorGroup = data->colorMaps.getRandomGroup();
 
-  data->maxAge = 10 + static_cast<int>(info->getNRand(10));
+  data->maxAge = 10 + static_cast<int>(info->getNRand(50));
 
   int max = static_cast<int>((1.0f + info->sound.goomPower) * info->getNRand(150)) + 100;
   float radius =
@@ -210,9 +312,11 @@ static void fs_sound_event_occured(VisualFX* _this, PluginInfo* info)
   switch (data->fx_mode)
   {
     case StarModes::noFx:
+      stats.noFxChosen();
       return;
     case StarModes::fireworks:
     {
+      stats.fireworksFxChosen();
       double dx;
       double dy;
       do
@@ -226,6 +330,7 @@ static void fs_sound_event_occured(VisualFX* _this, PluginInfo* info)
     }
     break;
     case StarModes::rain:
+      stats.rainFxChosen();
       mx = info->getNRand(info->screen.width);
       mx = (mx <= info->screen.width / 2) ? 0 : info->screen.width;
       my = -(info->screen.height / 3) - info->getNRand(info->screen.width / 3);
@@ -233,6 +338,7 @@ static void fs_sound_event_occured(VisualFX* _this, PluginInfo* info)
       vage = 0.002f;
       break;
     case StarModes::fountain:
+      stats.fountainFxChosen();
       my = info->screen.height + 2;
       vage = 0.001f;
       radius += 1.0f;
@@ -292,23 +398,25 @@ static void fs_apply(VisualFX* _this, [[maybe_unused]] Pixel* src, Pixel* dest, 
     }
   }
 
-  /* update particules */
+  // update particules
+  stats.updateStars();
+
   for (size_t i = 0; i < data->numStars; ++i)
   {
     updateStar(&data->stars[i]);
 
-    /* dead particule */
+    // dead particule
     if (data->stars[i].age >= data->maxAge)
     {
       continue;
     }
 
-    /* choose the color of the particule */
+    // choose the color of the particule
     const float t = data->stars[i].age / static_cast<float>(data->maxAge);
     const uint32_t color = data->stars[i].currentColorMap->getColor(t);
     const uint32_t colorLow = starLowColors[size_t(t * static_cast<float>(numLowColors - 1))];
 
-    /* draws the particule */
+    // draws the particule
     const int x0 = static_cast<int>(data->stars[i].x);
     const int y0 = static_cast<int>(data->stars[i].y);
     int x1 = x0;
@@ -326,7 +434,7 @@ static void fs_apply(VisualFX* _this, [[maybe_unused]] Pixel* src, Pixel* dest, 
     }
   }
 
-  /* look for dead particules */
+  // look for dead particules
   for (size_t i = 0; i < data->numStars;)
   {
     if ((data->stars[i].x > info->screen.width + 64) ||
@@ -353,4 +461,9 @@ VisualFX flying_star_create(void)
                   .restore = nullptr,
                   .fx_data = nullptr,
                   .params = nullptr};
+}
+
+void flying_star_log_stats(VisualFX*, const StatsLogValueFunc logVal)
+{
+  stats.log(logVal);
 }

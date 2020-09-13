@@ -32,6 +32,7 @@
 #include <string>
 #include <unordered_set>
 #include <utility>
+#include <variant>
 #include <vector>
 
 class GoomEvents
@@ -556,9 +557,23 @@ static GoomStats stats{};
 static GoomStates states{};
 static GoomEvents goomEvent{};
 
-static void logStatsValue(const std::string& module, const std::string& name, const uint32_t value)
+struct LogStatsVisitor
 {
-  logInfo("{}.{} = {}", module, name, value);
+    LogStatsVisitor(const std::string& m, const std::string& n): module{m}, name{n} {}
+    const std::string& module;
+    const std::string& name;
+    void operator()(const uint32_t i) const {
+      logInfo("{}.{} = {}", module, name, i);
+    }
+    void operator()(const float f) const {
+      logInfo("{}.{} = {:.3}", module, name, f);
+    }
+};
+
+static void logStatsValue(
+    const std::string& module, const std::string& name, const std::variant<uint32_t, float>& value)
+{
+  std::visit(LogStatsVisitor{module, name}, value);
 }
 
 inline bool changeFilterModeEventHappens(PluginInfo* goomInfo)
@@ -850,6 +865,7 @@ void goom_close(PluginInfo* goomInfo)
 
   stats.log(logStatsValue);
   tentacle_log_stats(&goomInfo->tentacles_fx, logStatsValue);
+  flying_star_log_stats(&goomInfo->star_fx, logStatsValue);
 
   if (goomInfo->pixel)
   {
