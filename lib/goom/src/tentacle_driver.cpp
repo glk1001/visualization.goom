@@ -23,7 +23,7 @@
 #include <vector>
 
 
-TentacleDriver::TentacleDriver(const ColorMaps* cm, const int screenW, const int screenH)
+TentacleDriver::TentacleDriver(const ColorMaps* cm, const uint32_t screenW, const uint32_t screenH)
   : iterParamsGroups{},
     screenWidth{screenW},
     screenHeight{screenH},
@@ -81,7 +81,6 @@ void TentacleDriver::init()
   constexpr V3d initialHeadPos = {0, 0, 0};
   const ColorMap* specialColorMap = &colorMaps->getRandomColorMap(ColorMapGroup::qualitative);
   const std::vector<size_t> specialColorNodes = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-  const ColorMap* headColorMap = &colorMaps->getColorMap(ColorMapName::red_black_sky);
   logDebug("Got color maps.");
 
   const size_t numInParamGroup = numTentacles / iterParamsGroups.size();
@@ -112,8 +111,6 @@ void TentacleDriver::init()
     std::unique_ptr<Tentacle2D> tentacle2D{createNewTentacle2D(i, params)};
     logDebug("Created tentacle2D {}.", i);
 
-    //    const uint32_t headColor = ColorMap::getRandomColor(*headColorMap);
-    //    const uint32_t headColorLow = ColorMap::getLighterColor(headColor, 50);
     // To hide the annoying flapping tentacle head, make near the head very dark.
     const uint32_t headColor = getIntColor(5, 5, 5);
     const uint32_t headColorLow = headColor;
@@ -525,10 +522,10 @@ void TentacleDriver::project_v3d_to_v2d(const std::vector<V3d>& v3,
              v3[i].x, v3[i].y, v3[i].z);
     if (!v3[i].ignore && (v3[i].z > 2))
     {
-      const int Xp = (int)(distance * v3[i].x / v3[i].z);
-      const int Yp = (int)(distance * v3[i].y / v3[i].z);
-      v2[i].x = Xp + (screenWidth >> 1);
-      v2[i].y = -Yp + (screenHeight >> 1);
+      const int Xp = static_cast<int>(distance * v3[i].x / v3[i].z);
+      const int Yp = static_cast<int>(distance * v3[i].y / v3[i].z);
+      v2[i].x = Xp + static_cast<int>(screenWidth >> 1);
+      v2[i].y = -Yp + static_cast<int>(screenHeight >> 1);
       logDebug("project_v3d_to_v2d {}: Xp = {}, Yp = {}, v2[i].x = {}, v2[i].y = {}.", i, Xp, Yp,
                v2[i].x, v2[i].y);
     }
@@ -654,6 +651,7 @@ CirclesTentacleLayout::CirclesTentacleLayout(const float radiusMin,
     }
   }
 
+  #ifndef NO_LOGGING
   // TODO - Should be lerps here?
   const auto logLastPoint = [&](size_t i, const float r, const float angle) {
     const size_t el = points.size() - 1;
@@ -661,6 +659,7 @@ CirclesTentacleLayout::CirclesTentacleLayout(const float radiusMin,
              " pt[{:3}] = ({:+6.2f}, {:+6.2f}, {:+6.2f})",
              i, angle, cos(angle), r, el, points.at(el).x, points.at(el).y, points.at(el).z);
   };
+  #endif
 
   const auto getSamplePoints = [&](const float radius, const size_t numSample,
                                    const float angleStart, const float angleFinish) {
@@ -672,7 +671,9 @@ CirclesTentacleLayout::CirclesTentacleLayout(const float radiusMin,
       const float y = float(radius * sin(angle));
       const V3d point = {x, y, zConst};
       points.push_back(point);
+      #ifndef NO_LOGGING
       logLastPoint(i, radius, angle);
+      #endif
       angle += angleStep;
     };
   };

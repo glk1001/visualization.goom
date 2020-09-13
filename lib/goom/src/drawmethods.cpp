@@ -12,40 +12,40 @@
 
 static void draw_wuline(const size_t n,
                         Pixel* buffs[],
-                        const std::vector<Pixel>& cols,
+                        const std::vector<Pixel>& colors,
                         const int x1,
                         const int y1,
                         const int x2,
                         const int y2,
-                        const uint16_t screenx,
-                        const uint16_t screeny);
+                        const uint32_t screenx,
+                        const uint32_t screeny);
 
 void draw_line(Pixel* data,
                const int x1,
                const int y1,
                const int x2,
                const int y2,
-               const uint32_t col,
-               const uint16_t screenx,
-               const uint16_t screeny)
+               const uint32_t color,
+               const uint32_t screenx,
+               const uint32_t screeny)
 {
   Pixel* buffs[] = {data};
   std::vector<Pixel> colors(1);
-  colors[0].val = col;
+  colors[0].val = color;
   draw_line(1, buffs, colors, x1, y1, x2, y2, screenx, screeny);
 }
 
 void draw_line(const size_t n,
                Pixel* buffs[],
-               const std::vector<Pixel>& cols,
+               const std::vector<Pixel>& colors,
                int x1,
                int y1,
                int x2,
                int y2,
-               const uint16_t screenx,
-               const uint16_t screeny)
+               const uint32_t screenx,
+               const uint32_t screeny)
 {
-  draw_wuline(n, buffs, cols, x1, y1, x2, y2, screenx, screeny);
+  draw_wuline(n, buffs, colors, x1, y1, x2, y2, screenx, screeny);
 }
 
 using PlotFunc = const std::function<void(int x, int y, float brightess)>;
@@ -53,25 +53,25 @@ static void WuDrawLine(float x0, float y0, float x1, float y1, const PlotFunc&);
 
 inline void draw_pixels(const size_t n,
                         Pixel* buffs[],
-                        const std::vector<Pixel>& cols,
+                        const std::vector<Pixel>& colors,
                         const int pos)
 {
   for (size_t i = 0; i < n; i++)
   {
     Pixel* const p = &(buffs[i][pos]);
-    *p = getColorAdd(*p, getHalfIntensityColor(cols[i]));
+    *p = getColorAdd(*p, getHalfIntensityColor(colors[i]));
   }
 }
 
 static void draw_wuline(const size_t n,
                         Pixel* buffs[],
-                        const std::vector<Pixel>& cols,
+                        const std::vector<Pixel>& colors,
                         const int x1,
                         const int y1,
                         const int x2,
                         const int y2,
-                        const uint16_t screenx,
-                        const uint16_t screeny)
+                        const uint32_t screenx,
+                        const uint32_t screeny)
 {
   if ((y1 < 0) || (y2 < 0) || (x1 < 0) || (x2 < 0) || (y1 >= static_cast<int>(screeny)) ||
       (y2 >= static_cast<int>(screeny)) || (x1 >= static_cast<int>(screenx)) ||
@@ -80,8 +80,8 @@ static void draw_wuline(const size_t n,
     return;
   }
 
-  assert(n == cols.size());
-  std::vector<Pixel> colors = cols;
+  assert(n == colors.size());
+  std::vector<Pixel> tempColors = colors;
   auto plot = [&](const int x, const int y, const float brightness) -> void {
     if (uint16_t(x) >= screenx || uint16_t(y) >= screeny)
     {
@@ -94,15 +94,15 @@ static void draw_wuline(const size_t n,
     const int pos = y * static_cast<int>(screenx) + x;
     if (brightness >= 0.999)
     {
-      draw_pixels(n, buffs, cols, pos);
+      draw_pixels(n, buffs, colors, pos);
     }
     else
     {
-      for (size_t i = 0; i < cols.size(); i++)
+      for (size_t i = 0; i < colors.size(); i++)
       {
-        colors[i] = getBrighterColor(brightness, cols[i]);
+        tempColors[i] = getBrighterColor(brightness, colors[i]);
       }
-      draw_pixels(n, buffs, colors, pos);
+      draw_pixels(n, buffs, tempColors, pos);
     }
   };
 

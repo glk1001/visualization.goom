@@ -155,7 +155,7 @@ inline void TentacleStats::setLastPrettyLerpMixValue(const float value)
 class TentaclesWrapper
 {
 public:
-  explicit TentaclesWrapper(const int screenWidth, const int screenHeight);
+  explicit TentaclesWrapper(const uint32_t screenWidth, const uint32_t screenHeight);
   ~TentaclesWrapper();
   void update(PluginInfo*,
               Pixel* frontBuff,
@@ -193,7 +193,7 @@ private:
   std::tuple<uint32_t, uint32_t> getModColors(PluginInfo*);
 };
 
-TentaclesWrapper::TentaclesWrapper(const int screenWidth, const int screenHeight)
+TentaclesWrapper::TentaclesWrapper(const uint32_t screenWidth, const uint32_t screenHeight)
   : colorMaps{Weights<ColorMapGroup>{{
         {ColorMapGroup::perceptuallyUniformSequential, 10},
         {ColorMapGroup::sequential, 5},

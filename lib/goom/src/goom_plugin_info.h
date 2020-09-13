@@ -77,8 +77,8 @@ struct PluginInfo
   // private data
   struct Screen
   {
-    uint16_t width;
-    uint16_t height;
+    uint32_t width;
+    uint32_t height;
     uint32_t size; // == screen.height * screen.width.
   };
   Screen screen;
@@ -155,9 +155,9 @@ struct PluginInfo
                       int y1,
                       int x2,
                       int y2,
-                      const uint32_t col,
-                      const uint16_t screenx,
-                      const uint16_t screeny);
+                      const uint32_t color,
+                      const uint32_t screenx,
+                      const uint32_t screeny);
     void (*zoom_filter)(const uint16_t sizeX,
                         const uint16_t sizeY,
                         Pixel* src,

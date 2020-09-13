@@ -94,7 +94,7 @@ public:
 class TentacleDriver
 {
 public:
-  explicit TentacleDriver(const ColorMaps*, const int screenWidth, const int screenHeight);
+  explicit TentacleDriver(const ColorMaps*, const uint32_t screenWidth, const uint32_t screenHeight);
   TentacleDriver(const TentacleDriver&) = delete;
   TentacleDriver& operator=(const TentacleDriver&) = delete;
 
@@ -133,8 +133,8 @@ private:
   };
   std::vector<IterParamsGroup> iterParamsGroups;
 
-  const int screenWidth;
-  const int screenHeight;
+  const uint32_t screenWidth;
+  const uint32_t screenHeight;
   const ColorMaps* colorMaps;
   ColorMapGroup currentColorMapGroup;
   std::vector<std::unique_ptr<TentacleColorizer>> colorizers;
