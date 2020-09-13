@@ -177,7 +177,7 @@ private:
   int lock = 0;
   float prettyMoveLerpMix = 1.0 / 16.0;
 
-  size_t countPrettyLerpMixChanged = 0;
+  size_t countSincePrettyLerpMixMarked = 0;
   size_t countSinceHighAccelLastMarked = 0;
   void incCounters();
 
@@ -223,7 +223,7 @@ TentaclesWrapper::~TentaclesWrapper()
 
 inline void TentaclesWrapper::incCounters()
 {
-  countPrettyLerpMixChanged++;
+  countSincePrettyLerpMixMarked++;
   countSinceHighAccelLastMarked++;
 }
 
@@ -264,11 +264,11 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
     if (accelVar < highAcceleration)
     {
       stats.lowToMediumAcceleration();
-      if (countPrettyLerpMixChanged > 300)
+      if (countSincePrettyLerpMixMarked > 100)
       {
-        prettyMoveLerpMix = goomInfo->getRandInRange(1.0f / 100.0f, 1.0f / 10.0f);
+        prettyMoveLerpMix = 1.0 / 16.0; // original goom value
         stats.changePrettyLerpMixLower();
-        countPrettyLerpMixChanged = 0;
+        countSincePrettyLerpMixMarked = 0;
       }
     }
     else
@@ -280,11 +280,12 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
         stats.changeTentacleColor();
         color = ColorMap::getRandomColor(*dominantColorGroup);
       }
-//      if (countPrettyLerpMixChanged > 30)
+      if (countSincePrettyLerpMixMarked > 100)
       {
-        prettyMoveLerpMix = goomInfo->getRandInRange(0.4f, 0.6f);
+        // 0.5 is magic - gives star mode - not sure why.
+        prettyMoveLerpMix = 0.5;
         stats.changePrettyLerpMixHigher();
-        countPrettyLerpMixChanged = 0;
+        countSincePrettyLerpMixMarked = 0;
       }
     }
 
