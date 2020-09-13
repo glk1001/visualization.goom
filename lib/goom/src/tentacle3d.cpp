@@ -261,6 +261,9 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
     stats.updateWithPrettyMove1();
     prettyMove(goomInfo);
 
+    const uint32_t currentColor = color;
+    const auto [modColor, modColorLow] = getModColors(goomInfo);
+
     if (accelVar < highAcceleration)
     {
       stats.lowToMediumAcceleration();
@@ -277,8 +280,11 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
       if (countSinceHighAccelLastMarked > 100)
       {
         countSinceHighAccelLastMarked = 0;
-        stats.changeTentacleColor();
-        color = ColorMap::getRandomColor(*dominantColorGroup);
+        if (currentColor == color)
+        {
+          stats.changeTentacleColor();
+          color = ColorMap::getRandomColor(*dominantColorGroup);
+        }
       }
       if (countSincePrettyLerpMixMarked > 100)
       {
@@ -292,7 +298,6 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
     // Higher sound acceleration increases tentacle wave frequency.
     driver.multiplyIterZeroYValWaveFreq(1.0 / (1.10 - accelVar));
 
-    const auto [modColor, modColorLow] = getModColors(goomInfo);
     cycle += 0.01f;
 
     if (doDraw)

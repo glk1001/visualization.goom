@@ -223,7 +223,7 @@ public:
                       const uint32_t headColor,
                       const uint32_t headColorLow,
                       const V3d& head);
-  Tentacle3D(Tentacle3D&&);
+  Tentacle3D(Tentacle3D&&) noexcept;
   Tentacle3D(const Tentacle3D&) = delete;
   Tentacle3D& operator=(const Tentacle3D&) = delete;
 

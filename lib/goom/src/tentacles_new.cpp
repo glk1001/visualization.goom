@@ -322,7 +322,7 @@ Tentacle3D::Tentacle3D(std::unique_ptr<Tentacle2D> t,
 {
 }
 
-Tentacle3D::Tentacle3D(Tentacle3D&& o)
+Tentacle3D::Tentacle3D(Tentacle3D &&o) noexcept
   : tentacle{std::move(o.tentacle)},
     colorizer{o.colorizer},
     specialColorNodes{o.specialColorNodes},
