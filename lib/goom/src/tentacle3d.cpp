@@ -255,10 +255,29 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
   }
   lig += ligs;
 
-  if (lig > 1.01f)
+  if (lig <= 1.01f)
   {
+    lig = 1.05f;
+    if (ligs < 0.0f)
+    {
+      ligs = -ligs;
+    }
+
     logDebug("Starting pretty_move 1.");
     stats.updateWithPrettyMove1();
+    prettyMove(goomInfo);
+
+    cycle += 0.1f;
+    if (cycle > 1000)
+    {
+      stats.cycleReset();
+      cycle = 0;
+    }
+  }
+  else
+  {
+    logDebug("Starting pretty_move 2.");
+    stats.updateWithPrettyMove2();
     prettyMove(goomInfo);
 
     const uint32_t currentColor = color;
@@ -307,25 +326,6 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
 
     driver.update(doDraw, m_half_pi - rot, distt, distt2, modColor, modColorLow, frontBuff,
                   backBuff);
-  }
-  else
-  {
-    lig = 1.05f;
-    if (ligs < 0.0f)
-    {
-      ligs = -ligs;
-    }
-
-    logDebug("Starting pretty_move 2.");
-    stats.updateWithPrettyMove2();
-    prettyMove(goomInfo);
-
-    cycle += 0.1f;
-    if (cycle > 1000)
-    {
-      stats.cycleReset();
-      cycle = 0;
-    }
   }
 }
 
