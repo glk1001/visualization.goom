@@ -24,7 +24,7 @@ static void generateLine(
       {
         l[i].x = (static_cast<float>(i) * rx) / static_cast<float>(AUDIO_SAMPLE_LEN);
         l[i].y = param;
-        l[i].angle = M_PI / 2.0f;
+        l[i].angle = m_half_pi;
       }
       return;
     case LineType::vline:
@@ -38,7 +38,7 @@ static void generateLine(
     case LineType::circle:
       for (uint32_t i = 0; i < AUDIO_SAMPLE_LEN; i++)
       {
-        l[i].angle = 2.0f * M_PI * static_cast<float>(i) / static_cast<float>(AUDIO_SAMPLE_LEN);
+        l[i].angle = m_two_pi * static_cast<float>(i) / static_cast<float>(AUDIO_SAMPLE_LEN);
         const float cosa = param * cos(l[i].angle);
         const float sina = param * sin(l[i].angle);
         l[i].x = static_cast<float>(rx) / 2.0f + cosa;

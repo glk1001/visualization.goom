@@ -6,6 +6,7 @@
 #include "goom_plugin_info.h"
 #include "goom_tools.h"
 #include "goomutils/colormap.h"
+#include "goomutils/mathutils.h"
 #include "goomutils/logging_control.h"
 #undef NO_LOGGING
 #include "goomutils/logging.h"
@@ -16,12 +17,7 @@
 
 #include <cmath>
 #include <cstdint>
-#include <numbers>
 #include <tuple>
-
-constexpr float m_pi = std::numbers::pi;
-constexpr float m_two_pi = 2.0 * std::numbers::pi;
-constexpr float m_half_pi = 0.5 * std::numbers::pi;
 
 class TentacleStats
 {
@@ -345,12 +341,6 @@ void TentaclesWrapper::happensUpdate(PluginInfo* goomInfo)
   }
 }
 
-inline float getFract(const float x)
-{
-  float intpart;
-  return std::modf(x, &intpart);
-}
-
 void TentaclesWrapper::prettyMove(PluginInfo* goomInfo)
 {
   /* many magic numbers here... I don't really like that. */
@@ -387,7 +377,7 @@ void TentaclesWrapper::prettyMove(PluginInfo* goomInfo)
     {
       currentCycle *= -m_pi;
     }
-    rotOffset = m_two_pi * getFract(currentCycle / m_two_pi);
+    rotOffset = m_two_pi * getFractPart(currentCycle / m_two_pi);
   }
   if (std::fabs(rot - rotOffset) > std::fabs(rot + m_two_pi - rotOffset))
   {

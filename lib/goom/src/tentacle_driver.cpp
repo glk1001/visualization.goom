@@ -7,6 +7,7 @@
 #include "goomutils/logging_control.h"
 // #undef NO_LOGGING
 #include "goomutils/logging.h"
+#include "goomutils/mathutils.h"
 #include "tentacles_new.h"
 #include "v3d.h"
 
@@ -42,15 +43,15 @@ TentacleDriver::TentacleDriver(const ColorMaps* cm, const uint32_t screenW, cons
     iterTimers{&glitchTimer}
 {
   const IterParamsGroup iter1 = {
-      {100, 0.500, 1.0, {1.5, -10.0, +10.0, M_PI}, 70.0},
+      {100, 0.500, 1.0, {1.5, -10.0, +10.0, m_pi}, 70.0},
       {125, 0.600, 2.0, {1.0, -10.0, +10.0, 0.0}, 75.0},
   };
   const IterParamsGroup iter2 = {
       {125, 0.600, 0.5, {1.0, -10.0, +10.0, 0.0}, 70.0},
-      {150, 0.700, 1.5, {1.5, -10.0, +10.0, M_PI}, 75.0},
+      {150, 0.700, 1.5, {1.5, -10.0, +10.0, m_pi}, 75.0},
   };
   const IterParamsGroup iter3 = {
-      {150, 0.700, 1.5, {1.5, -10.0, +10.0, M_PI}, 70.0},
+      {150, 0.700, 1.5, {1.5, -10.0, +10.0, m_pi}, 70.0},
       {200, 0.900, 2.5, {1.0, -10.0, +10.0, 0.0}, 75.0},
   };
 
@@ -457,11 +458,11 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
 
   V3d cam = {0, 0, 3}; // TODO ????????????????????????????????
   cam.z += distance2;
-  cam.y += 2.0 * sin(-(angle - 0.5 * M_PI) / 4.3f);
+  cam.y += 2.0 * sin(-(angle - m_half_pi) / 4.3f);
   logDebug("cam = ({:.2f}, {:.2f}, {:.2f}).", cam.x, cam.y, cam.z);
 
-  const float sina = sin(M_PI - angle);
-  const float cosa = cos(M_PI - angle);
+  const float sina = sin(m_pi - angle);
+  const float cosa = cos(m_pi - angle);
   logDebug("angle = {:.2f}, sina = {:.2}, cosa = {:.2},"
            " distance = {:.2f}, distance2 = {:.2f}.",
            angle, sina, cosa, distance, distance2);
@@ -678,10 +679,10 @@ CirclesTentacleLayout::CirclesTentacleLayout(const float radiusMin,
     };
   };
 
-  const float angleLeftStart = +0.5 * M_PI;
-  const float angleLeftFinish = +1.5 * M_PI;
-  const float angleRightStart = -0.5 * M_PI;
-  const float angleRightFinish = +0.5 * M_PI;
+  const float angleLeftStart = +m_half_pi;
+  const float angleLeftFinish = 1.5 * m_pi;
+  const float angleRightStart = -m_half_pi;
+  const float angleRightFinish = +m_half_pi;
   logDebug("Setup: angleLeftStart = {:.2f}, angleLeftFinish = {:.2f},"
            " angleRightStart = {:.2f}, angleRightFinish = {:.2f}",
            angleLeftStart, angleLeftFinish, angleRightStart, angleRightFinish);

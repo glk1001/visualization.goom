@@ -219,8 +219,8 @@ static void randomSimis(PluginInfo* goomInfo, Fractal* fractal, Similitude* cur,
     cur->c_y = gaussRand(goomInfo, 0.0, 4.0, c_AS_factor);
     cur->r = gaussRand(goomInfo, fractal->rMean, 3.0, r_AS_factor);
     cur->r2 = halfGaussRand(goomInfo, 0.0, 2.0, r2_AS_factor);
-    cur->A = gaussRand(goomInfo, 0.0, 4.0, A_AS_factor) * (M_PI / 180.0);
-    cur->A2 = gaussRand(goomInfo, 0.0, 4.0, A2_AS_factor) * (M_PI / 180.0);
+    cur->A = gaussRand(goomInfo, 0.0, 4.0, A_AS_factor) * (m_pi / 180.0);
+    cur->A2 = gaussRand(goomInfo, 0.0, 4.0, A2_AS_factor) * (m_pi / 180.0);
     cur->Ct = 0;
     cur->St = 0;
     cur->Ct2 = 0;

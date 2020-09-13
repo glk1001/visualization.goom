@@ -5,17 +5,20 @@
 #include <cstdlib>
 #include <format>
 #include <memory>
+#include <numbers>
 #include <stdexcept>
 #include <tuple>
 #include <utility>
 #include <vector>
 
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
+constexpr float m_pi = std::numbers::pi;
+constexpr float m_two_pi = 2.0 * std::numbers::pi;
+constexpr float m_half_pi = 0.5 * std::numbers::pi;
 
 extern const float sin256[256];
 extern const float cos256[256];
+
+inline float getFractPart(const float x);
 
 inline float getRandNeg1toPos1();
 
@@ -288,6 +291,12 @@ inline RangeMapper::RangeMapper(const double x0, const double x1)
 inline double RangeMapper::operator()(const double r0, const double r1, const double x) const
 {
   return std::lerp(r0, r1, (x - xmin) / xwidth);
+}
+
+inline float getFractPart(const float x)
+{
+  float intpart;
+  return std::modf(x, &intpart);
 }
 
 inline float getRandNeg1toPos1()
