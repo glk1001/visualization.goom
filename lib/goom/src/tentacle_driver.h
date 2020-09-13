@@ -94,7 +94,9 @@ public:
 class TentacleDriver
 {
 public:
-  explicit TentacleDriver(const ColorMaps*, const uint32_t screenWidth, const uint32_t screenHeight);
+  explicit TentacleDriver(const ColorMaps*,
+                          const uint32_t screenWidth,
+                          const uint32_t screenHeight);
   TentacleDriver(const TentacleDriver&) = delete;
   TentacleDriver& operator=(const TentacleDriver&) = delete;
 

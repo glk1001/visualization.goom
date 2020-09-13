@@ -6,8 +6,8 @@
 #include "goom_plugin_info.h"
 #include "goom_tools.h"
 #include "goomutils/colormap.h"
-#include "goomutils/mathutils.h"
 #include "goomutils/logging_control.h"
+#include "goomutils/mathutils.h"
 #undef NO_LOGGING
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
@@ -380,6 +380,7 @@ void TentaclesWrapper::prettyMove(PluginInfo* goomInfo)
     }
     rotOffset = m_two_pi * getFractPart(currentCycle / m_two_pi);
   }
+
   if (std::fabs(rot - rotOffset) > std::fabs(rot + m_two_pi - rotOffset))
   {
     rot = std::lerp(rot + m_two_pi, rotOffset, prettyMoveLerpMix);

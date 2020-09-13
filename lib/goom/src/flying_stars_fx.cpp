@@ -26,6 +26,8 @@ public:
   void rainFxChosen();
   void fountainFxChosen();
   void updateStars();
+  void deadStar();
+  void removedDeadStar();
 
 private:
   uint32_t numAddBombButTooManyStars = 0;
@@ -36,6 +38,8 @@ private:
   uint32_t numRainFxChosen = 0;
   uint32_t numFountainFxChosen = 0;
   uint32_t numUpdateStars = 0;
+  uint32_t numDeadStars = 0;
+  uint32_t numRemovedStars = 0;
 };
 
 void StarsStats::log(const StatsLogValueFunc logVal) const
@@ -50,6 +54,8 @@ void StarsStats::log(const StatsLogValueFunc logVal) const
   logVal(module, "numFireworksFxChosen", numFireworksFxChosen);
   logVal(module, "numRainFxChosen", numRainFxChosen);
   logVal(module, "numFountainFxChosen", numFountainFxChosen);
+  logVal(module, "numDeadStars", numDeadStars);
+  logVal(module, "numRemovedStars", numRemovedStars);
 }
 
 void StarsStats::reset()
@@ -62,6 +68,8 @@ void StarsStats::reset()
   numRainFxChosen = 0;
   numFountainFxChosen = 0;
   numUpdateStars = 0;
+  numDeadStars = 0;
+  numRemovedStars = 0;
 }
 
 inline void StarsStats::updateStars()
@@ -104,6 +112,20 @@ inline void StarsStats::fountainFxChosen()
   numFountainFxChosen++;
 }
 
+inline void StarsStats::deadStar()
+{
+  numDeadStars++;
+}
+
+inline void StarsStats::removedDeadStar()
+{
+  numRemovedStars++;
+}
+
+
+constexpr uint32_t minStarAge = 10;
+constexpr uint32_t maxStarExtraAge = 40;
+
 /* TODO:-- FAIRE PROPREMENT... BOAH... */
 // clang-format off
 constexpr size_t numLowColors = 15;
@@ -114,8 +136,7 @@ constexpr std::array<uint32_t, numLowColors> starLowColors{
 };
 // clang-format on
 
-/* The different modes of the visual FX.
- * Put this values on fx_mode */
+// The different modes of the visual FX.
 enum class StarModes
 {
   noFx = 0,
@@ -146,7 +167,7 @@ struct FSData
   ColorMaps colorMaps;
   ColorMapGroup currentColorGroup;
 
-  int maxAge = 15;
+  uint32_t maxAge = 15;
 
   StarModes fx_mode;
   size_t numStars;
@@ -291,20 +312,23 @@ static void updateStar(Star* s)
 /**
  * Ajoute de nouvelles particules au moment d'un evenement sonore.
  */
-static void fs_sound_event_occured(VisualFX* _this, PluginInfo* info)
+static void fs_sound_event_occured(VisualFX* _this, PluginInfo* goomInfo)
 {
   stats.soundEventOccurred();
 
   FSData* data = static_cast<FSData*>(_this->fx_data);
 
+  const uint32_t halfWidth = goomInfo->screen.width / 2;
+  const uint32_t halfHeight = goomInfo->screen.height / 2;
   data->currentColorGroup = data->colorMaps.getRandomGroup();
+  data->maxAge = minStarAge + goomInfo->getNRand(maxStarExtraAge);
 
-  data->maxAge = 10 + static_cast<int>(info->getNRand(50));
-
-  int max = static_cast<int>((1.0f + info->sound.goomPower) * info->getNRand(150)) + 100;
+  size_t max =
+      100 + static_cast<size_t>((1.0f + goomInfo->sound.goomPower) * goomInfo->getNRand(150));
   float radius =
-      (1.0f + info->sound.goomPower) * static_cast<float>(info->getNRand(150) + 50) / 300;
+      (1.0f + goomInfo->sound.goomPower) * static_cast<float>(goomInfo->getNRand(150) + 50) / 300.0;
   float gravity = 0.02f;
+
   uint32_t mx;
   uint32_t my;
   float vage;
@@ -317,50 +341,53 @@ static void fs_sound_event_occured(VisualFX* _this, PluginInfo* info)
     case StarModes::fireworks:
     {
       stats.fireworksFxChosen();
-      double dx;
-      double dy;
-      do
+      const double rsq = halfHeight * halfHeight;
+      while (true)
       {
-        mx = info->getNRand(info->screen.width);
-        my = info->getNRand(info->screen.height);
-        dx = (mx - info->screen.width / 2);
-        dy = (my - info->screen.height / 2);
-      } while (dx * dx + dy * dy < (info->screen.height / 2) * (info->screen.height / 2));
-      vage = data->max_age * (1.0f - info->sound.goomPower);
+        mx = goomInfo->getNRand(goomInfo->screen.width);
+        my = goomInfo->getNRand(goomInfo->screen.height);
+        const double dx = mx - halfWidth;
+        const double dy = my - halfHeight;
+        if ((dx * dx) + (dy * dy) >= rsq)
+        {
+          break;
+        }
+      }
+      vage = data->max_age * (1.0f - goomInfo->sound.goomPower);
     }
     break;
     case StarModes::rain:
       stats.rainFxChosen();
-      mx = info->getNRand(info->screen.width);
-      mx = (mx <= info->screen.width / 2) ? 0 : info->screen.width;
-      my = -(info->screen.height / 3) - info->getNRand(info->screen.width / 3);
+      mx = goomInfo->getNRand(goomInfo->screen.width);
+      mx = (mx <= halfWidth) ? 0 : goomInfo->screen.width;
+      my = -(goomInfo->screen.height / 3) - goomInfo->getNRand(goomInfo->screen.width / 3);
       radius *= 1.5;
       vage = 0.002f;
       break;
     case StarModes::fountain:
       stats.fountainFxChosen();
-      my = info->screen.height + 2;
+      data->maxAge *= 2.0/3.0;
+      my = goomInfo->screen.height + 2;
+      mx = halfWidth;
       vage = 0.001f;
       radius += 1.0f;
-      mx = info->screen.width / 2;
       gravity = 0.04f;
       break;
     default:
       throw std::logic_error("Unknown StarModes enum.");
-      /* my = i R A N D (info->screen.height); vage = 0.01f; */
   }
 
-  radius *= info->screen.height / 200.0f; /* why 200 ? because the FX was developed on 320x200 */
-  max *= info->screen.height / 200.0f;
-
-  if (info->sound.timeSinceLastBigGoom < 1)
+  radius *= goomInfo->screen.height / 200.0f; // Why 200 ? Because the FX was developed on 320x200.
+  max *= goomInfo->screen.height / 200.0f;
+  if (goomInfo->sound.timeSinceLastBigGoom < 1)
   {
     radius *= 1.5;
     max *= 2;
   }
-  for (int i = 0; i < max; ++i)
+
+  for (size_t i = 0; i < max; i++)
   {
-    addABomb(data, mx, my, radius, vage, gravity, info);
+    addABomb(data, mx, my, radius, vage, gravity, goomInfo);
   }
 }
 
@@ -376,7 +403,7 @@ static void fs_apply(VisualFX* _this, [[maybe_unused]] Pixel* src, Pixel* dest, 
     return;
   }
 
-  /* Get the new parameters values */
+  // Get the new parameters values
   data->min_age = 1.0f - static_cast<float>(IVAL(data->min_age_p)) / 100.0f;
   data->max_age = 1.0f - static_cast<float>(IVAL(data->max_age_p)) / 100.0f;
   FVAL(data->nbStars_p) = static_cast<float>(data->numStars) / static_cast<float>(data->maxStars);
@@ -384,13 +411,13 @@ static void fs_apply(VisualFX* _this, [[maybe_unused]] Pixel* src, Pixel* dest, 
   data->maxStars = static_cast<size_t>(IVAL(data->nbStars_limit_p));
   data->fx_mode = static_cast<StarModes>(IVAL(data->fx_mode_p));
 
-  /* look for events */
+  // look for events
   if (info->sound.timeSinceLastGoom < 1)
   {
     fs_sound_event_occured(_this, info);
     if (info->getNRand(20) == 1)
     {
-      // Give a sleight weight towards noFx mode by using numFX + 2.
+      // Give a slight weight towards noFx mode by using numFX + 2.
       const uint32_t newVal = info->getNRand(numFx + 2);
       const StarModes newMode = newVal >= numFx ? StarModes::noFx : static_cast<StarModes>(newVal);
       IVAL(data->fx_mode_p) = static_cast<int>(newMode);
@@ -408,6 +435,7 @@ static void fs_apply(VisualFX* _this, [[maybe_unused]] Pixel* src, Pixel* dest, 
     // dead particule
     if (data->stars[i].age >= data->maxAge)
     {
+      stats.deadStar();
       continue;
     }
 
@@ -444,6 +472,7 @@ static void fs_apply(VisualFX* _this, [[maybe_unused]] Pixel* src, Pixel* dest, 
     {
       data->stars[i] = data->stars[data->numStars - 1];
       data->numStars--;
+      stats.removedDeadStar();
     }
     else
     {

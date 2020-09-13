@@ -1,6 +1,7 @@
 #ifndef LIB_GOOMUTILS_INCLUDE_GOOMUTILS_MATHUTILS_H_
 #define LIB_GOOMUTILS_INCLUDE_GOOMUTILS_MATHUTILS_H_
 
+#include <array>
 #include <cmath>
 #include <cstdlib>
 #include <format>
@@ -15,8 +16,9 @@ constexpr float m_pi = std::numbers::pi;
 constexpr float m_two_pi = 2.0 * std::numbers::pi;
 constexpr float m_half_pi = 0.5 * std::numbers::pi;
 
-extern const float sin256[256];
-extern const float cos256[256];
+constexpr size_t numSinCosAngles = 256;
+extern const std::array<float, numSinCosAngles> sin256;
+extern const std::array<float, numSinCosAngles> cos256;
 
 inline float getFractPart(const float x);
 

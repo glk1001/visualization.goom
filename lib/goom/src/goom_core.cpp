@@ -229,7 +229,7 @@ private:
     DrawablesState drawables;
   };
   using WeightedStatesArray = std::vector<State>;
-    static const WeightedStatesArray states;
+  static const WeightedStatesArray states;
   static std::vector<std::pair<uint16_t, size_t>> getWeightedStates(const WeightedStatesArray&);
   const Weights<uint16_t> weightedStates;
   size_t currentStateIndex;
@@ -559,19 +559,16 @@ static GoomEvents goomEvent{};
 
 struct LogStatsVisitor
 {
-    LogStatsVisitor(const std::string& m, const std::string& n): module{m}, name{n} {}
-    const std::string& module;
-    const std::string& name;
-    void operator()(const uint32_t i) const {
-      logInfo("{}.{} = {}", module, name, i);
-    }
-    void operator()(const float f) const {
-      logInfo("{}.{} = {:.3}", module, name, f);
-    }
+  LogStatsVisitor(const std::string& m, const std::string& n) : module{m}, name{n} {}
+  const std::string& module;
+  const std::string& name;
+  void operator()(const uint32_t i) const { logInfo("{}.{} = {}", module, name, i); }
+  void operator()(const float f) const { logInfo("{}.{} = {:.3}", module, name, f); }
 };
 
-static void logStatsValue(
-    const std::string& module, const std::string& name, const std::variant<uint32_t, float>& value)
+static void logStatsValue(const std::string& module,
+                          const std::string& name,
+                          const std::variant<uint32_t, float>& value)
 {
   std::visit(LogStatsVisitor{module, name}, value);
 }

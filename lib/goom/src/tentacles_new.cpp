@@ -297,13 +297,13 @@ Tentacle3D::Tentacle3D(std::unique_ptr<Tentacle2D> t,
                        const uint32_t headCol,
                        const uint32_t headColLow,
                        const V3d& h)
-  : specialColorNodes{0, tentacle->getNumNodes(), {}},
-    tentacle{std::move(t)},
-    head{h},
+  : tentacle{std::move(t)},
     colorizer{nullptr},
+    specialColorNodes{0, tentacle->getNumNodes(), {}},
     specialNodesColorMap{nullptr},
     headColor{headCol},
-    headColorLow{headColLow}
+    headColorLow{headColLow},
+    head{h}
 {
 }
 

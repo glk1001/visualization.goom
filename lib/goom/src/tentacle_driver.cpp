@@ -652,7 +652,7 @@ CirclesTentacleLayout::CirclesTentacleLayout(const float radiusMin,
     }
   }
 
-  #ifndef NO_LOGGING
+#ifndef NO_LOGGING
   // TODO - Should be lerps here?
   const auto logLastPoint = [&](size_t i, const float r, const float angle) {
     const size_t el = points.size() - 1;
@@ -660,7 +660,7 @@ CirclesTentacleLayout::CirclesTentacleLayout(const float radiusMin,
              " pt[{:3}] = ({:+6.2f}, {:+6.2f}, {:+6.2f})",
              i, angle, cos(angle), r, el, points.at(el).x, points.at(el).y, points.at(el).z);
   };
-  #endif
+#endif
 
   const auto getSamplePoints = [&](const float radius, const size_t numSample,
                                    const float angleStart, const float angleFinish) {
@@ -672,9 +672,9 @@ CirclesTentacleLayout::CirclesTentacleLayout(const float radiusMin,
       const float y = float(radius * sin(angle));
       const V3d point = {x, y, zConst};
       points.push_back(point);
-      #ifndef NO_LOGGING
+#ifndef NO_LOGGING
       logLastPoint(i, radius, angle);
-      #endif
+#endif
       angle += angleStep;
     };
   };
