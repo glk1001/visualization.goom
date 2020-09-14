@@ -175,10 +175,13 @@ private:
   int happens = 0;
   bool doRotation = false;
   int lock = 0;
-  float prettyMoveLerpMix = 1.0 / 16.0;
+
+  float prettyMoveLerpMix = 1.0 / 16.0; // original goom value
+  static constexpr size_t changePrettyLerpMixMark = 1000000; // big number means never change
 
   size_t countSincePrettyLerpMixMarked = 0;
   size_t countSinceHighAccelLastMarked = 0;
+  size_t countSinceColorChangeLastMarked = 0;
   void incCounters();
 
   static constexpr float highAcceleration = 0.7;
@@ -225,6 +228,7 @@ inline void TentaclesWrapper::incCounters()
 {
   countSincePrettyLerpMixMarked++;
   countSinceHighAccelLastMarked++;
+  countSinceColorChangeLastMarked++;
 }
 
 void TentaclesWrapper::logStats(const StatsLogValueFunc logVal)
@@ -280,13 +284,12 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
     stats.updateWithPrettyMove2();
     prettyMove(goomInfo);
 
-    const uint32_t currentColor = color;
     const auto [modColor, modColorLow] = getModColors(goomInfo);
 
     if (accelVar < highAcceleration)
     {
       stats.lowToMediumAcceleration();
-      if (countSincePrettyLerpMixMarked > 100)
+      if (countSincePrettyLerpMixMarked > changePrettyLerpMixMark)
       {
         prettyMoveLerpMix = 1.0 / 16.0; // original goom value
         stats.changePrettyLerpMixLower();
@@ -299,13 +302,14 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
       if (countSinceHighAccelLastMarked > 100)
       {
         countSinceHighAccelLastMarked = 0;
-        if (currentColor == color)
+        if (countSinceColorChangeLastMarked > 100)
         {
           stats.changeTentacleColor();
           color = ColorMap::getRandomColor(*dominantColorGroup);
+          countSinceColorChangeLastMarked = 0;
         }
       }
-      if (countSincePrettyLerpMixMarked > 100)
+      if (countSincePrettyLerpMixMarked > changePrettyLerpMixMark)
       {
         // 0.5 is magic - gives star mode - not sure why.
         prettyMoveLerpMix = 0.5;
@@ -425,6 +429,7 @@ inline std::tuple<uint32_t, uint32_t> TentaclesWrapper::getModColors(PluginInfo*
   {
     stats.changeTentacleColor();
     color = ColorMap::getRandomColor(*dominantColorGroup);
+    countSinceColorChangeLastMarked = 0;
   }
 
   color = getEvolvedColor(color);
