@@ -152,7 +152,7 @@ class TentaclesWrapper
 {
 public:
   explicit TentaclesWrapper(const uint32_t screenWidth, const uint32_t screenHeight);
-  ~TentaclesWrapper() noexcept = default;
+  ~TentaclesWrapper();
   void update(PluginInfo*,
               Pixel* frontBuff,
               Pixel* backBuff,
@@ -164,7 +164,9 @@ public:
 private:
   WeightedColorMaps colorMaps;
   const ColorMap* dominantColorMap;
-  uint32_t dominantColor = 0;
+  float dominantColor_t = 0.0;
+  float dominantColor_t_dir = +1.0;
+  const float dominantColor_t_step = 0.001;
 
   float cycle = 0;
   float lig = 1.15;
@@ -204,7 +206,6 @@ TentaclesWrapper::TentaclesWrapper(const uint32_t screenWidth, const uint32_t sc
         {ColorMapGroup::misc, 20},
     }}},
     dominantColorMap{&colorMaps.getRandomColorMap()},
-    dominantColor{ColorMap::getRandomColor(*dominantColorMap)},
     driver{&colorMaps, screenWidth, screenHeight},
     stats{}
 {
@@ -218,6 +219,10 @@ colorMaps.setWeights(colorGroupWeights);
 
   driver.init();
   driver.startIterating();
+}
+
+TentaclesWrapper::~TentaclesWrapper()
+{
 }
 
 inline void TentaclesWrapper::incCounters()
@@ -287,7 +292,6 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
       stats.lowToMediumAcceleration();
       if (countSincePrettyLerpMixMarked > changePrettyLerpMixMark)
       {
-        // TODO Make random?
         prettyMoveLerpMix = 1.0 / 16.0; // original goom value
         stats.changePrettyLerpMixLower();
         countSincePrettyLerpMixMarked = 0;
@@ -296,19 +300,15 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
     else
     {
       stats.highAcceleration();
-      if (countSinceHighAccelLastMarked > 100)
+      if (countSinceHighAccelLastMarked > 20)
       {
         countSinceHighAccelLastMarked = 0;
-        if (countSinceColorChangeLastMarked > 100)
-        {
-          stats.changeDominantColor();
-          dominantColor = ColorMap::getRandomColor(*dominantColorMap);
-          countSinceColorChangeLastMarked = 0;
-        }
+        stats.changeDominantColorMap();
+        dominantColorMap = &colorMaps.getRandomColorMap();
+        countSinceColorChangeLastMarked = 0;
       }
       if (countSincePrettyLerpMixMarked > changePrettyLerpMixMark)
       {
-        // TODO Make random?
         // 0.5 is magic - gives star mode - not sure why.
         prettyMoveLerpMix = 0.5;
         stats.changePrettyLerpMixHigher();
@@ -349,7 +349,6 @@ void TentaclesWrapper::happensUpdate(PluginInfo* goomInfo)
   }
 }
 
-// TODO - Make this prettier
 void TentaclesWrapper::prettyMove(PluginInfo* goomInfo)
 {
   /* many magic numbers here... I don't really like that. */
@@ -413,31 +412,34 @@ void TentaclesWrapper::prettyMove(PluginInfo* goomInfo)
 
 inline std::tuple<uint32_t, uint32_t> TentaclesWrapper::getModColors(PluginInfo* goomInfo)
 {
-  if (happens)
-  {
-    // IMPORTANT. Very delicate here - seems the right time to change maps.
-    stats.changeDominantColorMap();
-    dominantColorMap = &colorMaps.getRandomColorMap();
-  }
-
   if ((lig > 10.0f) || (lig < 1.1f))
   {
     ligs = -ligs;
   }
 
-  // IMPORTANT. Very delicate here - 1 in 30 seems just right
   if ((lig < 6.3f) && probabilityOfMInN(goomInfo, 1, 30))
   {
-    stats.changeDominantColor();
-    // TODO - To abrupt color change here may cause flicker - maybe compare 'luma'
-    dominantColor = ColorMap::getRandomColor(*dominantColorMap);
-    countSinceColorChangeLastMarked = 0;
+    stats.changeDominantColorMap();
+    dominantColorMap = &colorMaps.getRandomColorMap();
   }
 
-  // IMPORTANT. getEvolvedColor works just right - not sure why
+  uint32_t dominantColor = dominantColorMap->getColor(dominantColor_t);
+  dominantColor_t += dominantColor_t_dir * dominantColor_t_step;
+  if (dominantColor_t > 1.0)
+  {
+    dominantColor_t = 1;
+    dominantColor_t_dir = -dominantColor_t_dir;
+  }
+  if (dominantColor_t < 0.0)
+  {
+    dominantColor_t = 0;
+    dominantColor_t_dir = -dominantColor_t_dir;
+  }
+  logInfo("Evolved color: dominantColor before = {:#0x}, lig = {:.2}", dominantColor, lig);
   dominantColor = getEvolvedColor(dominantColor);
+  logInfo("Evolved color: dominantColor after  = {:#0x}", dominantColor);
 
-  const uint32_t modColor = getLightenedColor(dominantColor, lig * 2.0f + 2.0f);
+  const uint32_t modColor = getLightenedColor(dominantColor, lig * 5.0f + 2.0f);
   const uint32_t modColorLow = getLightenedColor(modColor, (lig / 2.0f) + 0.67f);
 
   return std::make_tuple(modColor, modColorLow);
@@ -491,8 +493,8 @@ VisualFX tentacle_fx_create(void)
   fx.init = tentacle_fx_init;
   fx.apply = tentacle_fx_apply;
   fx.free = tentacle_fx_free;
-  fx.save = nullptr;
-  fx.restore = nullptr;
+  fx.save = NULL;
+  fx.restore = NULL;
   return fx;
 }
 
