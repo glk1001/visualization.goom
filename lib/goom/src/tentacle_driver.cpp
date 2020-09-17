@@ -5,7 +5,7 @@
 #include "goom_core.h"
 #include "goomutils/colormap.h"
 #include "goomutils/logging_control.h"
-// #undef NO_LOGGING
+//#undef NO_LOGGING
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
 #include "tentacles_new.h"
@@ -408,7 +408,7 @@ void TentacleDriver::update(const bool doDraw,
                             Pixel* backBuff)
 {
   updateNum++;
-  //  logDebug("Doing update {}.", updateNum);
+  logInfo("Doing update {}.", updateNum);
 
   if (updateNum % changeCurrentColorMapGroupEveryNUpdates == 0)
   {
@@ -429,12 +429,12 @@ void TentacleDriver::update(const bool doDraw,
     tentacle2D.setIterZeroLerpFactor(iterZeroLerpFactor);
     tentacle2D.setIterZeroYVal(iterZeroYVal);
 
-    //    logDebug("Starting iterate {} for tentacle {}.", tentacle2D.getIterNum()+1, tentacle2D.getID());
+    logDebug("Starting iterate {} for tentacle {}.", tentacle2D.getIterNum()+1, tentacle2D.getID());
     tentacle2D.iterate();
 
-    //    logDebug("Update num = {}, tentacle = {}, doing plot with angle = {}, "
-    //        "distance = {}, distance2 = {}, color = {} and colorLow = {}.",
-    //        updateNum, tentacle2D.getID(), angle, distance, distance2, color, colorLow);
+    logDebug("Update num = {}, tentacle = {}, doing plot with angle = {}, "
+             "distance = {}, distance2 = {}, color = {} and colorLow = {}, doDraw = {}.",
+             updateNum, tentacle2D.getID(), angle, distance, distance2, color, colorLow, doDraw);
     if (doDraw)
     {
       plot3D(tentacle, color, colorLow, angle, distance, distance2, frontBuff, backBuff);
@@ -503,6 +503,9 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
 
       const auto [color, colorLow] = tentacle.getMixedColors(i, dominantColor, dominantColorLow);
       const std::vector<Pixel> colors = {{.val = color}, {.val = colorLow}};
+
+      logInfo("draw_line {}: dominantColor = {:#x}, dominantColorLow = {:#x}.", i, dominantColor, dominantColorLow);
+      logInfo("draw_line {}: color = {:#x}, colorLow = {:#x}.", i, color, colorLow);
 
       Pixel* buffs[2] = {frontBuff, backBuff};
       // TODO - Control brightness because of back buff??
@@ -584,7 +587,7 @@ void TentacleColorMapColorizer::TentacleColorMapColorizer::popColorMap()
 
 uint32_t TentacleColorMapColorizer::getColor(size_t nodeNum) const
 {
-  const float t = float(nodeNum) / float(numNodes);
+  const float t = static_cast<float>(nodeNum) / static_cast<float>(numNodes);
   return colorMap->getColor(t);
 }
 
@@ -597,8 +600,8 @@ GridTentacleLayout::GridTentacleLayout(const float xmin,
                                        const float zConst)
   : points{}
 {
-  const float xStep = (xmax - xmin) / float(xNum - 1);
-  const float yStep = (ymax - ymin) / float(yNum - 1);
+  const float xStep = (xmax - xmin) / static_cast<float>(xNum - 1);
+  const float yStep = (ymax - ymin) / static_cast<float>(yNum - 1);
 
   float y = ymin;
   for (size_t i = 0; i < yNum; i++)

@@ -16,7 +16,7 @@ void draw_line(const size_t n,
                const uint32_t screenx,
                const uint32_t screeny);
 
-void draw_line(Pixel* data,
+void draw_line(Pixel* buff,
                int x1,
                int y1,
                int x2,
@@ -25,4 +25,11 @@ void draw_line(Pixel* data,
                const uint32_t screenx,
                const uint32_t screeny);
 
+void filledCircle(Pixel* buff,
+                  const int x0,
+                  const int y0,
+                  const int radius,
+                  const uint32_t color,
+                  const uint32_t screenWidth,
+                  const uint32_t screenHeight);
 #endif

@@ -22,7 +22,7 @@ public:
   const std::string& getMapName() const { return mapName; }
   uint32_t getColor(const float t) const { return vivid::Color{cmap.at(t)}.rgb32(); }
 
-  static uint32_t getRandomColor(const ColorMap&);
+  static uint32_t getRandomColor(const ColorMap&, const float t0=0, const float t1=1);
   static uint32_t colorMix(const uint32_t col1, const uint32_t col2, const float t);
   static uint32_t getLighterColor(const uint32_t color, const int incPercent);
 

@@ -366,7 +366,7 @@ static void fs_sound_event_occured(VisualFX* _this, PluginInfo* goomInfo)
       break;
     case StarModes::fountain:
       stats.fountainFxChosen();
-      data->maxAge *= 2.0/3.0;
+      data->maxAge *= 2.0 / 3.0;
       my = goomInfo->screen.height + 2;
       mx = halfWidth;
       vage = 0.001f;

@@ -45,7 +45,7 @@ uint32_t getLightenedColor(const uint32_t oldColor, const float power)
 
 inline uint32_t evolvedColor(uint32_t src, uint32_t dest, const uint32_t mask, const uint32_t incr)
 {
-  const uint32_t color = src & (~mask);
+  const int32_t color = src & (~mask);
   src &= mask;
   dest &= mask;
 
@@ -53,11 +53,11 @@ inline uint32_t evolvedColor(uint32_t src, uint32_t dest, const uint32_t mask, c
   {
     src += incr;
   }
-
   if (src > dest)
   {
     src -= incr;
   }
+
   return static_cast<uint32_t>((src & mask) | color);
 }
 

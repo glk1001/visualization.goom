@@ -4,9 +4,7 @@
 #include "goomutils/colormap_enums.h"
 #include "goomutils/mathutils.h"
 
-#include <algorithm>
 #include <format>
-#include <stdexcept>
 #include <string>
 #include <vector>
 #include <vivid/vivid.h>
@@ -167,9 +165,9 @@ ColorMap::ColorMap(const ColorMap& other) : mapName(other.mapName), cmap(other.c
 {
 }
 
-uint32_t ColorMap::getRandomColor(const ColorMap& cg)
+uint32_t ColorMap::getRandomColor(const ColorMap& cg, const float t0, const float t1)
 {
-  return cg.getColor(getRandInRange(0.0f, 1.0f));
+  return cg.getColor(getRandInRange(t0, t1));
 }
 
 uint32_t ColorMap::colorMix(const uint32_t col1, const uint32_t col2, const float t)
@@ -182,7 +180,7 @@ uint32_t ColorMap::colorMix(const uint32_t col1, const uint32_t col2, const floa
 uint32_t ColorMap::getLighterColor(const uint32_t color, const int incPercent)
 {
   vivid::hsl_t col = vivid::hsl::fromRgb(vivid::rgb::fromRgb32(color));
-  col.z *= 1.0 + float(incPercent / 100.0);
+  col.z *= 1.0 + static_cast<float>(incPercent / 100.0);
   if (col.z > 1.0)
   {
     col.z = 1.0;

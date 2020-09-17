@@ -10,6 +10,45 @@
 #include <functional>
 #include <vector>
 
+// Bresenhams midpoint circle algorithm from
+//   "https://rosettacode.org/wiki/Bitmap/Midpoint_circle_algorithm".
+//
+void filledCircle(Pixel* buff,
+                  const int x0,
+                  const int y0,
+                  const int radius,
+                  const uint32_t color,
+                  const uint32_t screenWidth,
+                  const uint32_t screenHeight)
+{
+  int f = 1 - radius;
+  int ddF_x = 0;
+  int ddF_y = -2 * radius;
+  int x = 0;
+  int y = radius;
+
+  draw_line(buff, x0, y0 - radius, x0, y0 + radius, color, screenWidth, screenHeight);
+  draw_line(buff, x0 - radius, y0, x0 + radius, y0, color, screenWidth, screenHeight);
+
+  while (x < y)
+  {
+    if (f >= 0)
+    {
+      y--;
+      ddF_y += 2;
+      f += ddF_y;
+    }
+    x++;
+    ddF_x += 2;
+    f += ddF_x + 1;
+
+    draw_line(buff, x0 + x, y0 + y, x0 - x, y0 + y, color, screenWidth, screenHeight);
+    draw_line(buff, x0 + x, y0 - y, x0 - x, y0 - y, color, screenWidth, screenHeight);
+    draw_line(buff, x0 + y, y0 + x, x0 - y, y0 + x, color, screenWidth, screenHeight);
+    draw_line(buff, x0 + y, y0 - x, x0 - y, y0 - x, color, screenWidth, screenHeight);
+  }
+}
+
 static void draw_wuline(const size_t n,
                         Pixel* buffs[],
                         const std::vector<Pixel>& colors,
@@ -20,7 +59,7 @@ static void draw_wuline(const size_t n,
                         const uint32_t screenx,
                         const uint32_t screeny);
 
-void draw_line(Pixel* data,
+void draw_line(Pixel* buff,
                const int x1,
                const int y1,
                const int x2,
@@ -29,7 +68,7 @@ void draw_line(Pixel* data,
                const uint32_t screenx,
                const uint32_t screeny)
 {
-  Pixel* buffs[] = {data};
+  Pixel* buffs[] = {buff};
   std::vector<Pixel> colors(1);
   colors[0].val = color;
   draw_line(1, buffs, colors, x1, y1, x2, y2, screenx, screeny);
