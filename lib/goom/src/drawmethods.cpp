@@ -13,22 +13,35 @@
 // Bresenhams midpoint circle algorithm from
 //   "https://rosettacode.org/wiki/Bitmap/Midpoint_circle_algorithm".
 //
-void filledCircle(Pixel* buff,
-                  const int x0,
-                  const int y0,
-                  const int radius,
-                  const uint32_t color,
-                  const uint32_t screenWidth,
-                  const uint32_t screenHeight)
+void circle(Pixel* buff,
+            const int x0,
+            const int y0,
+            const int radius,
+            const uint32_t color,
+            const uint32_t screenWidth,
+            const uint32_t screenHeight)
 {
+  const Pixel pixColor{.val = color};
+  const auto plot = [&](const int x, const int y) -> void {
+    if (uint32_t(x) >= screenWidth || uint32_t(y) >= screenHeight)
+    {
+      return;
+    }
+    const int pos = y * static_cast<int>(screenWidth) + x;
+    Pixel* const p = &(buff[pos]);
+    *p = getColorAdd(*p, getHalfIntensityColor(pixColor));
+  };
+
   int f = 1 - radius;
   int ddF_x = 0;
   int ddF_y = -2 * radius;
   int x = 0;
   int y = radius;
 
-  draw_line(buff, x0, y0 - radius, x0, y0 + radius, color, screenWidth, screenHeight);
-  draw_line(buff, x0 - radius, y0, x0 + radius, y0, color, screenWidth, screenHeight);
+  plot(x0, y0 + radius);
+  plot(x0, y0 - radius);
+  plot(x0 + radius, y0);
+  plot(x0 - radius, y0);
 
   while (x < y)
   {
@@ -41,11 +54,28 @@ void filledCircle(Pixel* buff,
     x++;
     ddF_x += 2;
     f += ddF_x + 1;
+    plot(x0 + x, y0 + y);
+    plot(x0 - x, y0 + y);
+    plot(x0 + x, y0 - y);
+    plot(x0 - x, y0 - y);
+    plot(x0 + y, y0 + x);
+    plot(x0 - y, y0 + x);
+    plot(x0 + y, y0 - x);
+    plot(x0 - y, y0 - x);
+  }
+}
 
-    draw_line(buff, x0 + x, y0 + y, x0 - x, y0 + y, color, screenWidth, screenHeight);
-    draw_line(buff, x0 + x, y0 - y, x0 - x, y0 - y, color, screenWidth, screenHeight);
-    draw_line(buff, x0 + y, y0 + x, x0 - y, y0 + x, color, screenWidth, screenHeight);
-    draw_line(buff, x0 + y, y0 - x, x0 - y, y0 - x, color, screenWidth, screenHeight);
+void filledCircle(Pixel* buff,
+                  const int x0,
+                  const int y0,
+                  const int radius,
+                  const std::vector<uint32_t> colors,
+                  const uint32_t screenWidth,
+                  const uint32_t screenHeight)
+{
+  for (int i = 1; i <= radius; i++)
+  {
+    circle(buff, x0, y0, i, colors.at(static_cast<size_t>(i - 1)), screenWidth, screenHeight);
   }
 }
 

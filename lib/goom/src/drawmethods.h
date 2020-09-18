@@ -25,11 +25,19 @@ void draw_line(Pixel* buff,
                const uint32_t screenx,
                const uint32_t screeny);
 
+void circle(Pixel* buff,
+            const int x0,
+            const int y0,
+            const int radius,
+            const uint32_t color,
+            const uint32_t screenWidth,
+            const uint32_t screenHeight);
+
 void filledCircle(Pixel* buff,
                   const int x0,
                   const int y0,
                   const int radius,
-                  const uint32_t color,
+                  const std::vector<uint32_t> colors,
                   const uint32_t screenWidth,
                   const uint32_t screenHeight);
 #endif

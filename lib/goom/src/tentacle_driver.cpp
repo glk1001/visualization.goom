@@ -429,7 +429,8 @@ void TentacleDriver::update(const bool doDraw,
     tentacle2D.setIterZeroLerpFactor(iterZeroLerpFactor);
     tentacle2D.setIterZeroYVal(iterZeroYVal);
 
-    logDebug("Starting iterate {} for tentacle {}.", tentacle2D.getIterNum()+1, tentacle2D.getID());
+    logDebug("Starting iterate {} for tentacle {}.", tentacle2D.getIterNum() + 1,
+             tentacle2D.getID());
     tentacle2D.iterate();
 
     logDebug("Update num = {}, tentacle = {}, doing plot with angle = {}, "
@@ -504,7 +505,8 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
       const auto [color, colorLow] = tentacle.getMixedColors(i, dominantColor, dominantColorLow);
       const std::vector<Pixel> colors = {{.val = color}, {.val = colorLow}};
 
-      logInfo("draw_line {}: dominantColor = {:#x}, dominantColorLow = {:#x}.", i, dominantColor, dominantColorLow);
+      logInfo("draw_line {}: dominantColor = {:#x}, dominantColorLow = {:#x}.", i, dominantColor,
+              dominantColorLow);
       logInfo("draw_line {}: color = {:#x}, colorLow = {:#x}.", i, color, colorLow);
 
       Pixel* buffs[2] = {frontBuff, backBuff};

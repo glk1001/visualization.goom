@@ -366,8 +366,8 @@ std::tuple<uint32_t, uint32_t> Tentacle3D::getMixedColors(const size_t nodeNum,
 
   if (nodeNum < Tentacle2D::minNumNodes)
   {
-    const float t = 0.5
-        * (1.0 + static_cast<float>(nodeNum + 1) / static_cast<float>(Tentacle2D::minNumNodes + 1));
+    const float t = 0.5 * (1.0 + static_cast<float>(nodeNum + 1) /
+                                     static_cast<float>(Tentacle2D::minNumNodes + 1));
     const uint32_t mixedHeadColor = ColorMap::colorMix(headColor, color, t);
     const uint32_t mixedHeadColorLow = ColorMap::colorMix(headColorLow, colorLow, t);
     return std::make_tuple(mixedHeadColor, mixedHeadColorLow);

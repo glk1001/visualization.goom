@@ -232,7 +232,7 @@ private:
     DrawablesState drawables;
   };
   using WeightedStatesArray = std::vector<State>;
-    static const WeightedStatesArray states;
+  static const WeightedStatesArray states;
   static std::vector<std::pair<uint16_t, size_t>> getWeightedStates(const WeightedStatesArray&);
   const Weights<uint16_t> weightedStates;
   size_t currentStateIndex;
@@ -606,7 +606,7 @@ private:
   const float pointWidthDiv3;
   const float pointHeightDiv3;
 
-  ColorMaps colorMaps;
+  WeightedColorMaps colorMaps;
   const ColorMap* colorMap1 = nullptr;
   const ColorMap* colorMap2 = nullptr;
   const ColorMap* colorMap3 = nullptr;
@@ -616,16 +616,20 @@ private:
 
   void changeColors();
 
+  static std::vector<uint32_t> getColors(const uint32_t color0,
+                                         const uint32_t color1,
+                                         const size_t numPts);
+
   float getLargeSoundFactor(const SoundInfo*) const;
 
   void pointFilter(Pixel* pix1,
-                   const uint32_t color,
+                   const std::vector<uint32_t> colors,
                    const float t1,
                    const float t2,
                    const float t3,
                    const float t4,
                    const uint32_t cycle,
-                   const uint32_t numPointsDiameter) const;
+                   const uint32_t radius) const;
 };
 
 static std::unique_ptr<GoomPoints> goomPoints{nullptr};
@@ -1876,7 +1880,16 @@ GoomPoints::GoomPoints(const uint32_t screenW, const uint32_t screenH)
     pointHeightDiv2{static_cast<float>(pointHeight / 2)},
     pointWidthDiv3{static_cast<float>(pointWidth / 3)},
     pointHeightDiv3{static_cast<float>(pointHeight / 3)},
-    colorMaps{}
+    colorMaps{Weights<ColorMapGroup>{{
+          {ColorMapGroup::perceptuallyUniformSequential, 10},
+          {ColorMapGroup::sequential, 20},
+          {ColorMapGroup::sequential2, 20},
+          {ColorMapGroup::cyclic, 0},
+          {ColorMapGroup::diverging, 0},
+          {ColorMapGroup::diverging_black, 0},
+          {ColorMapGroup::qualitative, 0},
+          {ColorMapGroup::misc, 0},
+      }}}
 {
   changeColors();
 }
@@ -1888,18 +1901,35 @@ void GoomPoints::changeColors()
   colorMap3 = &colorMaps.getRandomColorMap();
   colorMap4 = &colorMaps.getRandomColorMap();
   colorMap5 = &colorMaps.getRandomColorMap();
-  middleColor = ColorMap::getRandomColor(colorMaps.getRandomColorMap());
+  middleColor = ColorMap::getRandomColor(colorMaps.getRandomColorMap(ColorMapGroup::misc), 0.7, 1);
+}
+
+std::vector<uint32_t> GoomPoints::getColors(const uint32_t color0,
+                                            const uint32_t color1,
+                                            const size_t numPts)
+{
+  std::vector<uint32_t> colors(numPts);
+  constexpr float t_min = 0.0;
+  constexpr float t_max = 1.0;
+  const float t_step = (t_max - t_min) / static_cast<float>(numPts);
+  float t = t_min;
+  for (size_t i = 0; i < numPts; i++)
+  {
+    colors[i] = ColorMap::colorMix(color0, color1, t);
+    t += t_step;
+  }
+  return colors;
 }
 
 void GoomPoints::drawPoints(PluginInfo* goomInfo)
 {
   stats.doPoints();
 
-  uint32_t numPointsDiameter = 4;
+  uint32_t radius = 3;
   if (goomInfo->sound.timeSinceLastGoom == 0)
   {
     changeColors();
-    numPointsDiameter = 8;
+    radius = 5;
   }
 
   const float largeFactor = getLargeSoundFactor(&goomInfo->sound);
@@ -1924,6 +1954,8 @@ void GoomPoints::drawPoints(PluginInfo* goomInfo)
   constexpr float t_max = 1.0;
   const float t_step = (t_max - t_min) / static_cast<float>(speedvarMult80Plus15);
 
+  const size_t numColors = radius;
+
   logDebug("goomInfo->update.loopvar = {}", goomInfo->update.loopvar);
   float t = t_min;
   for (uint32_t i = 1; i * 15 <= speedvarMult80Plus15; i++)
@@ -1934,55 +1966,55 @@ void GoomPoints::drawPoints(PluginInfo* goomInfo)
     const uint32_t loopvar_div_i = goomInfo->update.loopvar / i;
     const float i_mult_10 = 10.0f * i;
 
-    const uint32_t color1 = colorMap1->getColor(t);
+    const std::vector<uint32_t> colors1 = getColors(middleColor, colorMap1->getColor(t), numColors);
     const float color1_t3 = i * 152.0f;
     const float color1_t4 = 128.0f;
     const uint32_t color1_cycle = goomInfo->update.loopvar + i * 2032;
 
-    const uint32_t color2 = colorMap2->getColor(t);
+    const std::vector<uint32_t> colors2 = getColors(middleColor, colorMap2->getColor(t), numColors);
     const float color2_t1 = pointWidthDiv2MultLarge / i + i_mult_10;
     const float color2_t2 = pointHeightDiv2MultLarge / i + i_mult_10;
     const float color2_t3 = 96.0f;
     const float color2_t4 = i * 80.0f;
     const uint32_t color2_cycle = loopvar_div_i;
 
-    const uint32_t color3 = colorMap3->getColor(t);
+    const std::vector<uint32_t> colors3 = getColors(middleColor, colorMap3->getColor(t), numColors);
     const float color3_t1 = pointWidthDiv3MultLarge / i + i_mult_10;
     const float color3_t2 = pointHeightDiv3MultLarge / i + i_mult_10;
     const float color3_t3 = i + 122.0f;
     const float color3_t4 = 134.0f;
     const uint32_t color3_cycle = loopvar_div_i;
 
-    const uint32_t color4 = colorMap4->getColor(t);
+    const std::vector<uint32_t> colors4 = getColors(middleColor, colorMap4->getColor(t), numColors);
     const float color4_t3 = 58.0f;
     const float color4_t4 = i * 66.0f;
     const uint32_t color4_cycle = loopvar_div_i;
 
-    const uint32_t color5 = colorMap5->getColor(t);
+    const std::vector<uint32_t> colors5 = getColors(middleColor, colorMap5->getColor(t), numColors);
     const float color5_t1 = (pointWidthMultLarge + i_mult_10) / i;
     const float color5_t2 = (pointHeightMultLarge + i_mult_10) / i;
     const float color5_t3 = 66.0f;
     const float color5_t4 = 74.0f;
     const uint32_t color5_cycle = goomInfo->update.loopvar + i * 500;
 
-    pointFilter(goomInfo->p1, color1, color1_t1, color1_t2, color1_t3, color1_t4, color1_cycle,
-                numPointsDiameter);
-    pointFilter(goomInfo->p1, color2, color2_t1, color2_t2, color2_t3, color2_t4, color2_cycle,
-                numPointsDiameter);
-    pointFilter(goomInfo->p1, color3, color3_t1, color3_t2, color3_t3, color3_t4, color3_cycle,
-                numPointsDiameter);
-    pointFilter(goomInfo->p1, color4, color4_t1, color4_t2, color4_t3, color4_t4, color4_cycle,
-                numPointsDiameter);
-    pointFilter(goomInfo->p1, color5, color5_t1, color5_t2, color5_t3, color5_t4, color5_cycle,
-                numPointsDiameter);
+    pointFilter(goomInfo->p1, colors1, color1_t1, color1_t2, color1_t3, color1_t4, color1_cycle,
+                radius);
+    pointFilter(goomInfo->p1, colors2, color2_t1, color2_t2, color2_t3, color2_t4, color2_cycle,
+        radius);
+    pointFilter(goomInfo->p1, colors3, color3_t1, color3_t2, color3_t3, color3_t4, color3_cycle,
+        radius);
+    pointFilter(goomInfo->p1, colors4, color4_t1, color4_t2, color4_t3, color4_t4, color4_cycle,
+        radius);
+    pointFilter(goomInfo->p1, colors5, color5_t1, color5_t2, color5_t3, color5_t4, color5_cycle,
+        radius);
 
     t += t_step;
   }
 }
 
-float GoomPoints::getLargeSoundFactor(const SoundInfo* sound) const
+float GoomPoints::getLargeSoundFactor(const SoundInfo* soundInfo) const
 {
-  float largefactor = sound->speedvar / 150.0f + sound->volume / 1.5f;
+  float largefactor = soundInfo->speedvar / 150.0f + soundInfo->volume / 1.5f;
   if (largefactor > 1.5f)
   {
     largefactor = 1.5f;
@@ -1991,32 +2023,32 @@ float GoomPoints::getLargeSoundFactor(const SoundInfo* sound) const
 }
 
 void GoomPoints::pointFilter(Pixel* pixel,
-                             const uint32_t color,
+                             const std::vector<uint32_t> colors,
                              const float t1,
                              const float t2,
                              const float t3,
                              const float t4,
                              const uint32_t cycle,
-                             const uint32_t numPointsDiameter) const
+                             const uint32_t radius) const
 {
   const uint32_t xOffset = static_cast<uint32_t>(t1 * cos(static_cast<float>(cycle) / t3));
   const uint32_t yOffset = static_cast<uint32_t>(t2 * sin(static_cast<float>(cycle) / t4));
   const int x0 = static_cast<int>(screenWidth / 2 + xOffset);
   const int y0 = static_cast<int>(screenHeight / 2 + yOffset);
 
-  const int screenWidthLessDiameter = static_cast<int>(screenWidth - numPointsDiameter);
-  const int screenHeightLessDiameter = static_cast<int>(screenHeight - numPointsDiameter);
+  const uint32_t diameter = 2 * radius;
+  const int screenWidthLessDiameter = static_cast<int>(screenWidth - diameter);
+  const int screenHeightLessDiameter = static_cast<int>(screenHeight - diameter);
 
-  if ((x0 < static_cast<int>(numPointsDiameter)) || (y0 < static_cast<int>(numPointsDiameter)) ||
+  if ((x0 < static_cast<int>(diameter)) || (y0 < static_cast<int>(diameter)) ||
       (x0 >= screenWidthLessDiameter) || (y0 >= screenHeightLessDiameter))
   {
     return;
   }
 
-  const int xmid = x0 + static_cast<int>(numPointsDiameter) / 2;
-  const int ymid = y0 + static_cast<int>(numPointsDiameter) / 2;
-  filledCircle(pixel, xmid, ymid, static_cast<int>(numPointsDiameter) / 2, color, screenWidth,
-               screenHeight);
+  const int xmid = x0 + static_cast<int>(radius);
+  const int ymid = y0 + static_cast<int>(radius);
+  filledCircle(pixel, xmid, ymid, static_cast<int>(radius), colors, screenWidth, screenHeight);
 
   setPixelRGB(pixel, static_cast<uint32_t>(xmid), static_cast<uint32_t>(ymid), screenWidth,
               middleColor);
