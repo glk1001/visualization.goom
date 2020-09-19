@@ -266,7 +266,8 @@ inline void GoomStates::doRandomStateChange()
 
 // clang-format off
 const GoomStates::WeightedStatesArray GoomStates::states{ {
-//  { .weight =  40, .drawables = {                     GD::tentacles,                                  GD::farScope}},
+  { .weight =  40, .drawables = {                     GD::tentacles,                                  GD::farScope}},
+/**
   { .weight = 100, .drawables = {GD::IFS, GD::points, GD::stars,                           GD::scope, GD::farScope}},
   { .weight =  40, .drawables = {GD::IFS,             GD::tentacles, GD::stars,                       GD::farScope}},
   { .weight =  60, .drawables = {GD::IFS,                            GD::stars, GD::lines, GD::scope, GD::farScope}},
@@ -276,6 +277,7 @@ const GoomStates::WeightedStatesArray GoomStates::states{ {
   { .weight =  50, .drawables = {                     GD::tentacles, GD::stars, GD::lines,            GD::farScope}},
   { .weight =  60, .drawables = {                                    GD::stars, GD::lines, GD::scope, GD::farScope}},
   { .weight =  60, .drawables = {         GD::points,                GD::stars,            GD::scope, GD::farScope}},
+**/
 }};
 // clang-format on
 

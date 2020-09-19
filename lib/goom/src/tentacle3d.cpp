@@ -171,8 +171,13 @@ private:
   float ligs = 0.1;
   float distt = 10;
   float distt2 = 0;
+  const float distt2Min = 488.0;
+  const float distt2Max = 500;
+  float distt2Offset = 0;
   float rot = 0; // entre 0 et m_2pi
   int happens = 0;
+  const size_t happensMin = 100;
+  const size_t happensMax = 160;
   bool doRotation = false;
   int lock = 0;
 
@@ -340,12 +345,23 @@ void TentaclesWrapper::happensUpdate(PluginInfo* goomInfo)
   else if (lock == 0)
   {
     stats.happensReset();
-    happens = goomInfo->getNRand(200) ? 0 : static_cast<int>(100 + goomInfo->getNRand(60));
-    lock = happens * 3 / 2;
+    if (probabilityOfMInN(goomInfo, 199, 200))
+    {
+      happens = 0;
+      lock = 0;
+      distt2Offset = 0;
+    }
+    else
+    {
+      happens = static_cast<int>(goomInfo->getRandInRange(happensMin, happensMax));
+      lock = 3 * happens / 2;
+      distt2Offset = goomInfo->getRandInRange(distt2Min, distt2Max);
+    }
   }
   else
   {
     lock--;
+    distt2Offset = 0;
   }
 }
 
@@ -355,7 +371,6 @@ void TentaclesWrapper::prettyMove(PluginInfo* goomInfo)
   /* many magic numbers here... I don't really like that. */
   happensUpdate(goomInfo);
 
-  const float distt2Offset = happens ? 8.0 : 0.0;
   distt2 = std::lerp(distt2, distt2Offset, prettyMoveLerpMix);
 
   float currentCycle = cycle;
@@ -389,9 +404,11 @@ void TentaclesWrapper::prettyMove(PluginInfo* goomInfo)
     rotOffset = m_two_pi * getFractPart(currentCycle / m_two_pi);
   }
 
+//  const float rotLerpMix = prettyMoveLerpMix;
+  const float rotLerpMix = 0.95;
   if (std::fabs(rot - rotOffset) > std::fabs(rot + m_two_pi - rotOffset))
   {
-    rot = std::lerp(rot + m_two_pi, rotOffset, prettyMoveLerpMix);
+    rot = std::lerp(rot + m_two_pi, rotOffset, rotLerpMix);
     if (rot > m_two_pi)
     {
       rot -= m_two_pi;
@@ -399,7 +416,7 @@ void TentaclesWrapper::prettyMove(PluginInfo* goomInfo)
   }
   else if (std::fabs(rot - rotOffset) > std::fabs(rot - m_two_pi - rotOffset))
   {
-    rot = std::lerp(rot - m_two_pi, rotOffset, prettyMoveLerpMix);
+    rot = std::lerp(rot - m_two_pi, rotOffset, rotLerpMix);
     if (rot < 0.0f)
     {
       rot += m_two_pi;
@@ -407,7 +424,7 @@ void TentaclesWrapper::prettyMove(PluginInfo* goomInfo)
   }
   else
   {
-    rot = std::lerp(rot, rotOffset, prettyMoveLerpMix);
+    rot = std::lerp(rot, rotOffset, rotLerpMix);
   }
 }
 
