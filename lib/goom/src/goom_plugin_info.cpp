@@ -108,7 +108,6 @@ void plugin_info_init(PluginInfo* pp, size_t nbVisuals)
       .vPlaneEffect = 0,
       .waveEffect = false,
       .hypercosEffect = false,
-      .perlinNoisify = false,
       .noisify = false,
   };
 

@@ -40,7 +40,6 @@ struct ZoomFilterData
   bool waveEffect; // applique une "surcouche" de wave effect
   bool hypercosEffect; // applique une "surcouche de hypercos effect
 
-  bool perlinNoisify;
   bool noisify; // ajoute un bruit a la transformation
 };
 

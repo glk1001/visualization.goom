@@ -22,7 +22,6 @@
 #include "goom_tools.h"
 #include "goomutils/logging_control.h"
 // #undef NO_LOGGING
-#include "goomutils/SimplexNoise.h"
 #include "goomutils/logging.h"
 #include "v3d.h"
 
@@ -157,16 +156,6 @@ static inline v2g zoomVector(PluginInfo* goomInfo, const float X, const float Y)
 
   // Effects adds-on
   /* Noise */
-  if (data->filterData.perlinNoisify)
-  {
-    const float noise = (0.5 * (1.0 + SimplexNoise::noise(X, Y)) - 0.5) / 1.0;
-    vx += noise;
-    vy -= noise;
-    vx *= getRandInRange(0.7f, 1.0f);
-    vy *= getRandInRange(0.7f, 1.0f);
-    vx += ((static_cast<float>(pcg32_rand())) / static_cast<float>(RAND_MAX) - 0.5f) / 5.0f;
-    vy += ((static_cast<float>(pcg32_rand())) / static_cast<float>(RAND_MAX) - 0.5f) / 5.0f;
-  }
   if (data->filterData.noisify)
   {
     //    const float xAmp = 1.0/goomInfo->getRandInRange(50.0f, 200.0f);
@@ -675,8 +664,6 @@ static void zoomFilterSave(VisualFX* _this, const PluginInfo*, const char* file)
   save_int_setting(f, vfxname, "data->hypercosEffect", data->filterData.hypercosEffect);
   save_int_setting(f, vfxname, "data->vPlaneEffect", data->filterData.vPlaneEffect);
   save_int_setting(f, vfxname, "data->hPlaneEffect", data->filterData.hPlaneEffect);
-  save_int_setting(f, vfxname, "data->perlinNoisify",
-                   static_cast<int>(data->filterData.perlinNoisify));
   save_int_setting(f, vfxname, "data->noisify", static_cast<int>(data->filterData.noisify));
   save_int_setting(f, vfxname, "data->middleX", static_cast<int>(data->filterData.middleX));
   save_int_setting(f, vfxname, "data->middleY", static_cast<int>(data->filterData.middleY));
@@ -710,7 +697,6 @@ static void zoomFilterRestore(VisualFX* _this, PluginInfo*, const char* file)
   data->filterData.hypercosEffect = get_int_setting(f, vfxname, "data->hypercosEffect");
   data->filterData.vPlaneEffect = get_int_setting(f, vfxname, "data->vPlaneEffect");
   data->filterData.hPlaneEffect = get_int_setting(f, vfxname, "data->hPlaneEffect");
-  data->filterData.perlinNoisify = get_int_setting(f, vfxname, "data->perlinNoisify");
   data->filterData.noisify = get_int_setting(f, vfxname, "data->noisify");
   data->filterData.middleX = static_cast<uint32_t>(get_int_setting(f, vfxname, "data->middleX"));
   data->filterData.middleY = static_cast<uint32_t>(get_int_setting(f, vfxname, "data->middleY"));
@@ -748,7 +734,6 @@ static void zoomFilterVisualFXWrapper_init(VisualFX* _this, PluginInfo* info)
   data->filterData.hypercosEffect = false;
   data->filterData.vPlaneEffect = 0;
   data->filterData.hPlaneEffect = 0;
-  data->filterData.perlinNoisify = false;
   data->filterData.noisify = true;
 
   /** modif by jeko : fixedpoint : buffration = (16:16) (donc 0<=buffration<=2^16) */
