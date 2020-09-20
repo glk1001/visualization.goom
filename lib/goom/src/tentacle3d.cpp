@@ -171,18 +171,19 @@ private:
   float ligs = 0.1;
   float distt = 10;
   float distt2 = 0;
-  const float distt2Min = 488.0;
-  const float distt2Max = 500;
+  static constexpr float distt2Min = 8.0;
+  static constexpr float distt2Max = 500;
   float distt2Offset = 0;
   float rot = 0; // entre 0 et m_2pi
-  int happens = 0;
-  const size_t happensMin = 100;
-  const size_t happensMax = 160;
   bool doRotation = false;
-  int lock = 0;
-
+  int32_t isPrettyMoveHappening = 0;
+  static constexpr size_t prettyMoveHappeningMin = 100;
+  static constexpr size_t prettyMoveHappeningMax = 160;
+  int32_t postPrettyMoveLock = 0;
   float prettyMoveLerpMix = 1.0 / 16.0; // original goom value
   static constexpr size_t changePrettyLerpMixMark = 1000000; // big number means never change
+  void isPrettyMoveHappeningUpdate(PluginInfo*, const float accelVar);
+  void prettyMove(PluginInfo*, const float accelVar);
 
   size_t countSincePrettyLerpMixMarked = 0;
   size_t countSinceHighAccelLastMarked = 0;
@@ -192,8 +193,6 @@ private:
   static constexpr float highAcceleration = 0.7;
   TentacleDriver driver;
   TentacleStats stats;
-  void happensUpdate(PluginInfo*);
-  void prettyMove(PluginInfo*);
   std::tuple<uint32_t, uint32_t> getModColors(PluginInfo*);
 };
 
@@ -270,7 +269,7 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
 
     logDebug("Starting pretty_move 1.");
     stats.updateWithPrettyMove1();
-    prettyMove(goomInfo);
+    prettyMove(goomInfo, accelVar);
 
     cycle += 0.1f;
     if (cycle > 1000)
@@ -283,7 +282,7 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
   {
     logDebug("Starting pretty_move 2.");
     stats.updateWithPrettyMove2();
-    prettyMove(goomInfo);
+    prettyMove(goomInfo, accelVar);
 
     const auto [modColor, modColorLow] = getModColors(goomInfo);
 
@@ -336,54 +335,55 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
   }
 }
 
-void TentaclesWrapper::happensUpdate(PluginInfo* goomInfo)
+void TentaclesWrapper::isPrettyMoveHappeningUpdate(PluginInfo* goomInfo, const float accelVar)
 {
-  if (happens)
+  if (isPrettyMoveHappening)
   {
-    happens -= 1;
+    isPrettyMoveHappening -= 1;
   }
-  else if (lock == 0)
+  else if (postPrettyMoveLock != 0)
+  {
+    postPrettyMoveLock--;
+    distt2Offset = 0;
+  }
+  else
   {
     stats.happensReset();
     if (probabilityOfMInN(goomInfo, 199, 200))
     {
-      happens = 0;
-      lock = 0;
+      isPrettyMoveHappening = 0;
+      postPrettyMoveLock = 0;
       distt2Offset = 0;
     }
     else
     {
-      happens = static_cast<int>(goomInfo->getRandInRange(happensMin, happensMax));
-      lock = 3 * happens / 2;
-      distt2Offset = goomInfo->getRandInRange(distt2Min, distt2Max);
+      isPrettyMoveHappening = static_cast<int>(goomInfo->getRandInRange(prettyMoveHappeningMin, prettyMoveHappeningMax));
+      postPrettyMoveLock = 3 * isPrettyMoveHappening / 2;
+      distt2Offset = (1.0 / (1.10 - accelVar)) * goomInfo->getRandInRange(distt2Min, distt2Max);
     }
-  }
-  else
-  {
-    lock--;
-    distt2Offset = 0;
   }
 }
 
 // TODO - Make this prettier
-void TentaclesWrapper::prettyMove(PluginInfo* goomInfo)
+void TentaclesWrapper::prettyMove(PluginInfo* goomInfo, const float accelVar)
 {
   /* many magic numbers here... I don't really like that. */
-  happensUpdate(goomInfo);
+  isPrettyMoveHappeningUpdate(goomInfo, accelVar);
 
   distt2 = std::lerp(distt2, distt2Offset, prettyMoveLerpMix);
 
   float currentCycle = cycle;
 
+  // Bigger offset here means tentacles start further back behind screen.
   float disttOffset = 286.0 - 90.0 * (1.0 + sin(currentCycle * 19.0 / 20.0));
-  if (happens)
+  if (isPrettyMoveHappening)
   {
     disttOffset *= 0.6f;
   }
   distt = std::lerp(distt, disttOffset, 4.0f * prettyMoveLerpMix);
 
   float rotOffset = 0;
-  if (!happens)
+  if (!isPrettyMoveHappening)
   {
     rotOffset = (1.5 + sin(currentCycle) / 32.0) * m_pi;
   }
@@ -430,7 +430,7 @@ void TentaclesWrapper::prettyMove(PluginInfo* goomInfo)
 
 inline std::tuple<uint32_t, uint32_t> TentaclesWrapper::getModColors(PluginInfo* goomInfo)
 {
-  if (happens)
+  if (isPrettyMoveHappening)
   {
     // IMPORTANT. Very delicate here - seems the right time to change maps.
     stats.changeDominantColorMap();
@@ -447,6 +447,17 @@ inline std::tuple<uint32_t, uint32_t> TentaclesWrapper::getModColors(PluginInfo*
   {
     stats.changeDominantColor();
     // TODO - To abrupt color change here may cause flicker - maybe compare 'luma'
+    /***
+    Pixel oldColor{ .val = dominantColor };
+    const float oldLuma = 0.299*oldColor.channels.r + 0.587*oldColor.channels.g + 0.114*oldColor.channels.b;
+    dominantColor = ColorMap::getRandomColor(*dominantColorMap);
+    Pixel pix{ .val = dominantColor };
+    const float luma = 0.299*pix.channels.r + 0.587*pix.channels.g + 0.114*pix.channels.b;
+    pix.channels.r = (oldLuma/luma)*pix.channels.r;
+    pix.channels.g = (oldLuma/luma)*pix.channels.g;
+    pix.channels.b = (oldLuma/luma)*pix.channels.b;
+    dominantColor = pix.val;
+    **/
     dominantColor = ColorMap::getRandomColor(*dominantColorMap);
     countSinceColorChangeLastMarked = 0;
   }
