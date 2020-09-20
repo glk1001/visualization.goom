@@ -170,12 +170,13 @@ private:
   float lig = 1.15;
   float ligs = 0.1;
   float distt = 10;
+  static constexpr double disttMin = 106.0;
+  static constexpr double disttMax = 286.0;
   float distt2 = 0;
   static constexpr float distt2Min = 8.0;
   static constexpr float distt2Max = 500;
   float distt2Offset = 0;
   float rot = 0; // entre 0 et m_2pi
-  bool doRotation = false;
   int32_t isPrettyMoveHappening = 0;
   static constexpr size_t prettyMoveHappeningMin = 100;
   static constexpr size_t prettyMoveHappeningMax = 160;
@@ -357,7 +358,8 @@ void TentaclesWrapper::isPrettyMoveHappeningUpdate(PluginInfo* goomInfo, const f
     }
     else
     {
-      isPrettyMoveHappening = static_cast<int>(goomInfo->getRandInRange(prettyMoveHappeningMin, prettyMoveHappeningMax));
+      isPrettyMoveHappening = static_cast<int>(
+          goomInfo->getRandInRange(prettyMoveHappeningMin, prettyMoveHappeningMax));
       postPrettyMoveLock = 3 * isPrettyMoveHappening / 2;
       distt2Offset = (1.0 / (1.10 - accelVar)) * goomInfo->getRandInRange(distt2Min, distt2Max);
     }
@@ -372,10 +374,8 @@ void TentaclesWrapper::prettyMove(PluginInfo* goomInfo, const float accelVar)
 
   distt2 = std::lerp(distt2, distt2Offset, prettyMoveLerpMix);
 
-  float currentCycle = cycle;
-
   // Bigger offset here means tentacles start further back behind screen.
-  float disttOffset = 286.0 - 90.0 * (1.0 + sin(currentCycle * 19.0 / 20.0));
+  float disttOffset = std::lerp(disttMin, disttMax, 0.5 * (1.0 - sin(cycle * 19.0 / 20.0)));
   if (isPrettyMoveHappening)
   {
     disttOffset *= 0.6f;
@@ -385,16 +385,14 @@ void TentaclesWrapper::prettyMove(PluginInfo* goomInfo, const float accelVar)
   float rotOffset = 0;
   if (!isPrettyMoveHappening)
   {
-    rotOffset = (1.5 + sin(currentCycle) / 32.0) * m_pi;
+    rotOffset = (1.5 + sin(cycle) / 32.0) * m_pi;
   }
   else
   {
-    if (probabilityOfMInN(goomInfo, 1, 500))
+    float currentCycle = cycle;
+    if (probabilityOfMInN(goomInfo, 1, 1000))
     {
-      doRotation = probabilityOfMInN(goomInfo, 1, 2);
-    }
-    if (doRotation)
-    {
+      // do rotation
       currentCycle *= m_two_pi;
     }
     else
@@ -404,8 +402,7 @@ void TentaclesWrapper::prettyMove(PluginInfo* goomInfo, const float accelVar)
     rotOffset = m_two_pi * getFractPart(currentCycle / m_two_pi);
   }
 
-//  const float rotLerpMix = prettyMoveLerpMix;
-  const float rotLerpMix = 0.95;
+  const float rotLerpMix = prettyMoveLerpMix;
   if (std::fabs(rot - rotOffset) > std::fabs(rot + m_two_pi - rotOffset))
   {
     rot = std::lerp(rot + m_two_pi, rotOffset, rotLerpMix);

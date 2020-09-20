@@ -41,7 +41,7 @@
 class GoomEvents
 {
 public:
-  GoomEvents();
+  GoomEvents() noexcept;
 
   void setGoomInfo(PluginInfo* goomInfo);
 
@@ -173,7 +173,7 @@ private:
 using GoomEvent = GoomEvents::GoomEvent;
 using GoomFilterEvent = GoomEvents::GoomFilterEvent;
 
-GoomEvents::GoomEvents()
+GoomEvents::GoomEvents() noexcept
   : filterWeights{{weightedFilterEvents.begin(), weightedFilterEvents.end()}},
     lineTypeWeights{{weightedLineEvents.begin(), weightedLineEvents.end()}}
 {
@@ -296,7 +296,7 @@ std::vector<std::pair<uint16_t, size_t>> GoomStates::getWeightedStates(
 class GoomStats
 {
 public:
-  GoomStats() {}
+  GoomStats() noexcept = default;
   void setStartValues(const uint32_t stateIndex, const ZoomFilterMode filterMode);
   void setLastValues(const uint32_t stateIndex, const ZoomFilterMode filterMode);
   void reset();
@@ -594,7 +594,7 @@ class GoomPoints
 {
 public:
   GoomPoints(const uint32_t screenWidth, const uint32_t screenHeight);
-  ~GoomPoints() noexcept {}
+  ~GoomPoints() noexcept = default;
   void drawPoints(PluginInfo*);
 
 private:
@@ -1535,11 +1535,13 @@ static void changeZoomEffect(PluginInfo* goomInfo, ZoomFilterData* pzfd, const i
 
 static void applyTentaclesIfRequired(PluginInfo* goomInfo)
 {
-  if (goomInfo->curGDrawables.count(GoomDrawable::tentacles))
+  if (!goomInfo->curGDrawables.count(GoomDrawable::tentacles))
   {
-    logDebug("goomInfo->curGDrawables tentacles is set.");
-    stats.doTentacles();
+    return;
   }
+
+  logDebug("goomInfo->curGDrawables tentacles is set.");
+  stats.doTentacles();
   goomInfo->tentacles_fx.apply(&goomInfo->tentacles_fx, goomInfo->p2, goomInfo->p1, goomInfo);
 }
 
