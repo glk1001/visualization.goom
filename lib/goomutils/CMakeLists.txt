@@ -6,7 +6,6 @@ add_library( ${PROJECT_NAME} STATIC
     src/colormap.cpp
     src/logging.cpp
     src/mathutils.cpp
-    src/SimplexNoise.cpp
 )
 
 add_library(libs::vivid ALIAS ${PROJECT_NAME})

@@ -303,7 +303,7 @@ inline float getFractPart(const float x)
 
 inline float getRandNeg1toPos1()
 {
-  return 2.0 * (float(std::rand()) / float(RAND_MAX) - 0.5);
+  return 2.0 * (static_cast<float>(std::rand()) / float(RAND_MAX) - 0.5);
 }
 
 inline int getRandSignInt()
@@ -318,7 +318,7 @@ inline float getRandSignFlt()
 
 inline float getRandInRange(const float x0, const float x1)
 {
-  return std::lerp(x0, x1, float(std::rand()) / float(RAND_MAX));
+  return std::lerp(x0, x1, static_cast<float>(std::rand()) / float(RAND_MAX));
 }
 
 inline size_t getRandInRange(const size_t x0, const size_t x1)

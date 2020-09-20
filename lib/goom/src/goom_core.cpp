@@ -302,8 +302,8 @@ public:
   void reset();
   void log(const StatsLogValueFunc) const;
   void updateChange();
-  void stateChange();
-  void stateChange(const size_t index);
+  void stateChange(const uint32_t timeInState);
+  void stateChange(const size_t index, const uint32_t timeInState);
   void filterModeChange();
   void filterModeChange(const ZoomFilterMode);
   void lockChange();
@@ -330,6 +330,7 @@ private:
 
   uint32_t numUpdates = 0;
   uint32_t totalStateChanges = 0;
+  uint64_t totalStateDurations = 0;
   uint32_t totalFilterModeChanges = 0;
   uint32_t numLockChanges = 0;
   uint32_t numDoIFS = 0;
@@ -348,13 +349,16 @@ private:
   uint32_t numSwitchLines = 0;
   std::array<uint32_t, static_cast<size_t>(ZoomFilterMode::_size)> numFilterModeChanges{0};
   std::vector<uint32_t> numStateChanges;
+  std::vector<uint64_t> stateDurations;
 };
 
 void GoomStats::reset()
 {
   numUpdates = 0;
   totalStateChanges = 0;
+  totalStateDurations = 0;
   std::fill(numStateChanges.begin(), numStateChanges.end(), 0);
+  std::fill(stateDurations.begin(), stateDurations.end(), 0);
   totalFilterModeChanges = 0;
   numFilterModeChanges.fill(0);
   numLockChanges = 0;
@@ -384,9 +388,18 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
   logVal(module, "lastFilterMode", static_cast<uint32_t>(lastFilterMode));
   logVal(module, "numUpdates", numUpdates);
   logVal(module, "totalStateChanges", totalStateChanges);
+  const float avStateDuration = totalStateChanges == 0 ? -1.0 :
+      static_cast<float>(totalStateDurations)/ static_cast<float>(totalStateChanges);
+  logVal(module, "averageStateDuration", avStateDuration);
   for (size_t i = 0; i < numStateChanges.size(); i++)
   {
     logVal(module, "numState_" + std::to_string(i) + "_Changes", numStateChanges[i]);
+  }
+  for (size_t i = 0; i < stateDurations.size(); i++)
+  {
+    const float avStateDuration = numStateChanges[i] == 0 ? -1.0 :
+        static_cast<float>(stateDurations[i])/ static_cast<float>(numStateChanges[i]);
+    logVal(module, "averageState_" + std::to_string(i) + "_Duration", avStateDuration);
   }
   logVal(module, "totalFilterModeChanges", totalFilterModeChanges);
   for (size_t i = 0; i < numFilterModeChanges.size(); i++)
@@ -426,12 +439,13 @@ inline void GoomStats::updateChange()
   numUpdates++;
 }
 
-inline void GoomStats::stateChange()
+inline void GoomStats::stateChange(const uint32_t timeInState)
 {
   totalStateChanges++;
+  totalStateDurations += timeInState;
 }
 
-inline void GoomStats::stateChange(const size_t index)
+inline void GoomStats::stateChange(const size_t index, const uint32_t timeInState)
 {
   if (index >= numStateChanges.size())
   {
@@ -441,6 +455,15 @@ inline void GoomStats::stateChange(const size_t index)
     }
   }
   numStateChanges[index]++;
+
+  if (index >= stateDurations.size())
+  {
+    for (size_t i = stateDurations.size(); i <= index; i++)
+    {
+      stateDurations.push_back(0);
+    }
+  }
+  stateDurations[index] += timeInState;
 }
 
 inline void GoomStats::filterModeChange()
@@ -532,7 +555,7 @@ constexpr int32_t stopSpeed = 128;
 // TODO: put that as variable in PluginInfo
 constexpr int32_t timeBetweenChange = 300;
 
-static void changeState(PluginInfo* goomInfo, const int forceMode);
+static void changeState(PluginInfo* goomInfo);
 static void changeFilterMode(PluginInfo* goomInfo);
 
 static void init_buffers(PluginInfo* goomInfo, const uint32_t buffsize)
@@ -636,6 +659,8 @@ private:
 
 static std::unique_ptr<GoomDots> goomPoints{nullptr};
 
+static uint32_t timeInState = 0;
+
 PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
 {
   logDebug("Initialize goom: resx = {}, resy = {}, seed = {}.", resx, resy, seed);
@@ -696,7 +721,8 @@ PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
 
   goomEvent.setGoomInfo(goomInfo);
 
-  changeState(goomInfo, 0);
+  timeInState = 0;
+  changeState(goomInfo);
   changeFilterMode(goomInfo);
   zoomFilterInitData(goomInfo);
 
@@ -796,8 +822,8 @@ static void stopDecrementingAfterAWhile(PluginInfo* goomInfo, ZoomFilterData** p
 static void stopDecrementing(PluginInfo* goomInfo, ZoomFilterData** pzfd);
 
 // tout ceci ne sera fait qu'en cas de non-blocage
-static void bigUpdateIfNotLocked(PluginInfo* goomInfo, ZoomFilterData** pzfd, const int forceMode);
-static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd, const int forceMode);
+static void bigUpdateIfNotLocked(PluginInfo* goomInfo, ZoomFilterData** pzfd);
+static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd);
 
 // gros frein si la musique est calme
 static void bigBreakIfMusicIsCalm(PluginInfo* goomInfo, ZoomFilterData** pzfd);
@@ -813,6 +839,8 @@ uint32_t* goom_update(PluginInfo* goomInfo,
                       const char* message)
 {
   stats.updateChange();
+
+  timeInState++;
 
   // elargissement de l'intervalle d'évolution des points
   // ! calcul du deplacement des petits points ...
@@ -850,7 +878,7 @@ uint32_t* goom_update(PluginInfo* goomInfo,
 
   changeFilterModeIfMusicChanges(goomInfo, forceMode);
 
-  bigUpdateIfNotLocked(goomInfo, &pzfd, forceMode);
+  bigUpdateIfNotLocked(goomInfo, &pzfd);
 
   bigBreakIfMusicIsCalm(goomInfo, &pzfd);
 
@@ -1182,7 +1210,7 @@ static void changeFilterMode(PluginInfo* goomInfo)
   stats.filterModeChange(goomInfo->update.zoomFilterData.mode);
 }
 
-static void changeState(PluginInfo* goomInfo, const int forceMode)
+static void changeState(PluginInfo* goomInfo)
 {
   const size_t oldStateIndex = states.getCurrentStateIndex();
 
@@ -1199,8 +1227,9 @@ static void changeState(PluginInfo* goomInfo, const int forceMode)
 
   goomInfo->curGDrawables = states.getCurrentDrawables();
   logDebug("Changed goom state to {}", states.getCurrentStateIndex());
-  stats.stateChange();
-  stats.stateChange(states.getCurrentStateIndex());
+  stats.stateChange(timeInState);
+  stats.stateChange(states.getCurrentStateIndex(), timeInState);
+  timeInState = 0;
 
   if (states.isCurrentlyDrawable(GoomDrawable::IFS) && (goomInfo->update.ifs_incr <= 0))
   {
@@ -1332,7 +1361,7 @@ static void changeMilieu(PluginInfo* goomInfo)
   }
 }
 
-static void bigNormalUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd, const int forceMode)
+static void bigNormalUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
 {
   goomInfo->update.goomvar++;
 
@@ -1343,7 +1372,7 @@ static void bigNormalUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd, const i
   else if (goomEvent.happens(GoomEvent::changeState))
   {
     goomInfo->update.stateSelectionBlocker = 3;
-    changeState(goomInfo, forceMode);
+    changeState(goomInfo);
   }
 
   goomInfo->update.lockvar = 50;
@@ -1452,7 +1481,7 @@ static void megaLentUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
   goomInfo->update.switchMult = 1.0f;
 }
 
-static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd, const int forceMode)
+static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
 {
   stats.doBigUpdate();
 
@@ -1463,7 +1492,7 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd, const int for
   {
     logDebug("goomInfo->sound.timeSinceLastGoom = 0.");
     stats.lastTimeGoomChange();
-    bigNormalUpdate(goomInfo, pzfd, forceMode);
+    bigNormalUpdate(goomInfo, pzfd);
   }
 
   // mode mega-lent
@@ -1773,13 +1802,13 @@ static void updateDecayRecay(PluginInfo* goomInfo)
   }
 }
 
-static void bigUpdateIfNotLocked(PluginInfo* goomInfo, ZoomFilterData** pzfd, const int forceMode)
+static void bigUpdateIfNotLocked(PluginInfo* goomInfo, ZoomFilterData** pzfd)
 {
   logDebug("goomInfo->update.lockvar = {}", goomInfo->update.lockvar);
   if (goomInfo->update.lockvar == 0)
   {
     logDebug("goomInfo->update.lockvar = 0");
-    bigUpdate(goomInfo, pzfd, forceMode);
+    bigUpdate(goomInfo, pzfd);
   }
   logDebug("goomInfo->sound.timeSinceLastGoom = {}", goomInfo->sound.timeSinceLastGoom);
 }
