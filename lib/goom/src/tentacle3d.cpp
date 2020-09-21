@@ -8,7 +8,7 @@
 #include "goomutils/colormap.h"
 #include "goomutils/logging_control.h"
 #include "goomutils/mathutils.h"
-//#undef NO_LOGGING
+#undef NO_LOGGING
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
 #include "tentacle_driver.h"
@@ -17,6 +17,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <stdexcept>
 #include <tuple>
 
 class TentacleStats
@@ -176,7 +177,8 @@ private:
   static constexpr float distt2Min = 8.0;
   static constexpr float distt2Max = 500;
   float distt2Offset = 0;
-  float rot = 0; // entre 0 et m_2pi
+  float rot = m_two_pi; // entre 0 et m_two_pi
+  bool doRotation = false;
   int32_t isPrettyMoveHappening = 0;
   static constexpr size_t prettyMoveHappeningMin = 100;
   static constexpr size_t prettyMoveHappeningMax = 160;
@@ -390,39 +392,98 @@ void TentaclesWrapper::prettyMove(PluginInfo* goomInfo, const float accelVar)
   else
   {
     float currentCycle = cycle;
-    if (probabilityOfMInN(goomInfo, 1, 1000))
+    if (probabilityOfMInN(goomInfo, 1, 500))
     {
-      // do rotation
+      doRotation = probabilityOfMInN(goomInfo, 1, 2);
+    }
+    if (doRotation)
+    {
       currentCycle *= m_two_pi;
     }
     else
     {
       currentCycle *= -m_pi;
     }
-    rotOffset = m_two_pi * getFractPart(currentCycle / m_two_pi);
+    logInfo("currentCycle = {:.3}, cycle = {:.3}", currentCycle, cycle);
+    rotOffset = std::fmod(currentCycle, m_two_pi);
+    if (std::fabs(rotOffset) > m_two_pi)
+    {
+      throw std::logic_error(std20::format("rotOffset {:.3} > 2pi - currentCycle = {:.3}", rotOffset, currentCycle));
+    }
   }
 
+  const float oldRot = rot;
+  float testRot = rot;
   const float rotLerpMix = prettyMoveLerpMix;
+  logInfo("std::fabs(rot - rotOffset) = {:.2}, std::fabs(rot + m_two_pi - rotOffset) = {:.2}",
+      std::fabs(rot - rotOffset), std::fabs(rot + m_two_pi - rotOffset));
+  logInfo("std::fabs(rot - rotOffset) = {:.2}, std::fabs(rot - m_two_pi - rotOffset) = {:.2}",
+      std::fabs(rot - rotOffset), std::fabs(rot - m_two_pi - rotOffset));
   if (std::fabs(rot - rotOffset) > std::fabs(rot + m_two_pi - rotOffset))
   {
+    throw std::logic_error(std20::format("Should never happen: rot = {:.3}, rotOffset = {:.2}", rot, rotOffset));
     rot = std::lerp(rot + m_two_pi, rotOffset, rotLerpMix);
     if (rot > m_two_pi)
     {
       rot -= m_two_pi;
     }
+    logInfo("1) rot = {:.3}", rot);
   }
   else if (std::fabs(rot - rotOffset) > std::fabs(rot - m_two_pi - rotOffset))
   {
-    rot = std::lerp(rot - m_two_pi, rotOffset, rotLerpMix);
-    if (rot < 0.0f)
+if (rotOffset < 0.0)
+{
+  rotOffset += m_two_pi;
+}
+if (std::fabs(rotOffset) > m_two_pi)
+{
+  throw std::logic_error(std20::format("Should never happen: rot = {:.3}, rotOffset = {:.2}", rot, rotOffset));
+}
+rot = std::lerp(rot, rotOffset, rotLerpMix);
+if (rot > m_two_pi)
+{
+  rot -= m_two_pi;
+}
+//    rot = std::lerp(rot - m_two_pi, rotOffset, rotLerpMix);
+    logInfo("2) rot after lerp = {:.3}", rot);
+    if (rot <= 0.0f)
     {
       rot += m_two_pi;
     }
+    logInfo("2) rot = {:.3}", rot);
   }
   else
   {
     rot = std::lerp(rot, rotOffset, rotLerpMix);
+    if (rot <= 0.0f)
+    {
+      rot += m_two_pi;
+    }
+    logInfo("3) rot = {:.3}", rot);
   }
+
+  logInfo("new rot = {:.3}", rot);
+
+  testRot = std::lerp(oldRot, rotOffset, rotLerpMix);
+  if (testRot > m_two_pi)
+  {
+    testRot -= m_two_pi;
+  }
+  if (testRot < 0.0f)
+  {
+    testRot += m_two_pi;
+  }
+  logInfo("testRot = {:.3}", testRot);
+  if (std::fabs(rot - testRot) > 0.0001)
+  {
+//    throw std::logic_error(std20::format("rot = {:.3} != {:.3} = testRot. oldRot = {:.3}, rotOffset = {:.3}, rotLerpMix = {:.3}",
+//        rot, testRot, oldRot, rotOffset, rotLerpMix));
+        logInfo("rot = {:.3} != {:.3} = testRot. oldRot = {:.3}, rotOffset = {:.3}, lerpMix = {:.3}",
+            rot, testRot, oldRot, rotOffset, rotLerpMix);
+  }
+//  rot = testRot;
+  logInfo("happening = {}, lock = {}, oldRot = {:.03}, testRot = {:.03}, rot = {:.03}, rotOffset = {:.03}, lerpMix = {:.03}, cycle = {:.03}",
+      isPrettyMoveHappening, postPrettyMoveLock, oldRot, testRot, rot, rotOffset, prettyMoveLerpMix, cycle);
 }
 
 inline std::tuple<uint32_t, uint32_t> TentaclesWrapper::getModColors(PluginInfo* goomInfo)

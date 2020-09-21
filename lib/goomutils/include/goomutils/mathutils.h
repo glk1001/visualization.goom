@@ -295,12 +295,6 @@ inline double RangeMapper::operator()(const double r0, const double r1, const do
   return std::lerp(r0, r1, (x - xmin) / xwidth);
 }
 
-inline float getFractPart(const float x)
-{
-  float intpart;
-  return std::modf(x, &intpart);
-}
-
 inline float getRandNeg1toPos1()
 {
   return 2.0 * (static_cast<float>(std::rand()) / float(RAND_MAX) - 0.5);
