@@ -190,7 +190,7 @@ inline bool GoomEvents::happens(const GoomEvent event) const
 
 inline GoomEvents::GoomFilterEvent GoomEvents::getRandomFilterEvent() const
 {
-return GoomFilterEvent::normalMode;
+/////////////////////////////////////////////return GoomFilterEvent::normalMode;
 
   GoomEvents::GoomFilterEvent nextEvent = lastReturnedFilterEvent;
   for (size_t i = 0; i < 10; i++)
@@ -266,8 +266,9 @@ inline void GoomStates::doRandomStateChange()
 
 // clang-format off
 const GoomStates::WeightedStatesArray GoomStates::states{ {
-  { .weight =  40, .drawables = {                     GD::tentacles,                                  GD::farScope}},
   /**
+  { .weight =  40, .drawables = {                     GD::tentacles,                                  GD::farScope}},
+  **/
   { .weight = 100, .drawables = {GD::IFS, GD::points, GD::stars,                           GD::scope, GD::farScope}},
   { .weight =  40, .drawables = {GD::IFS,             GD::tentacles, GD::stars,                       GD::farScope}},
   { .weight =  60, .drawables = {GD::IFS,                            GD::stars, GD::lines, GD::scope, GD::farScope}},
@@ -277,7 +278,6 @@ const GoomStates::WeightedStatesArray GoomStates::states{ {
   { .weight =  50, .drawables = {                     GD::tentacles, GD::stars, GD::lines,            GD::farScope}},
   { .weight =  60, .drawables = {                                    GD::stars, GD::lines, GD::scope, GD::farScope}},
   { .weight =  60, .drawables = {         GD::points,                GD::stars,            GD::scope, GD::farScope}},
-  **/
 }};
 // clang-format on
 
@@ -316,7 +316,6 @@ public:
   void doBigUpdate();
   void lastTimeGoomChange();
   void megaLentChange();
-  void doPerlinNoise();
   void doNoise();
   void ifsIncrLessThanEqualZero();
   void ifsIncrGreaterThanZero();
@@ -341,7 +340,6 @@ private:
   uint32_t numBigUpdates = 0;
   uint32_t numLastTimeGoomChanges = 0;
   uint32_t numMegaLentChanges = 0;
-  uint32_t numDoPerlinNoise = 0;
   uint32_t numDoNoise = 0;
   uint32_t numIfsIncrLessThanEqualZero = 0;
   uint32_t numIfsIncrGreaterThanZero = 0;
@@ -370,7 +368,6 @@ void GoomStats::reset()
   numBigUpdates = 0;
   numLastTimeGoomChanges = 0;
   numMegaLentChanges = 0;
-  numDoPerlinNoise = 0;
   numDoNoise = 0;
   numIfsIncrLessThanEqualZero = 0;
   numIfsIncrGreaterThanZero = 0;
@@ -414,7 +411,6 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
   logVal(module, "numDoTentacles", numDoTentacles);
   logVal(module, "numLastTimeGoomChanges", numLastTimeGoomChanges);
   logVal(module, "numMegaLentChanges", numMegaLentChanges);
-  logVal(module, "numDoPerlinNoise", numDoPerlinNoise);
   logVal(module, "numDoNoise", numDoNoise);
   logVal(module, "numIfsIncrLessThanEqualZero", numIfsIncrLessThanEqualZero);
   logVal(module, "numIfsIncrGreaterThanZero", numIfsIncrGreaterThanZero);
@@ -519,11 +515,6 @@ inline void GoomStats::lastTimeGoomChange()
 inline void GoomStats::megaLentChange()
 {
   numMegaLentChanges++;
-}
-
-inline void GoomStats::doPerlinNoise()
-{
-  numDoPerlinNoise++;
 }
 
 inline void GoomStats::doNoise()

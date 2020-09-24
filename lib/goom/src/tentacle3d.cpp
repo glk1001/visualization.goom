@@ -8,7 +8,7 @@
 #include "goomutils/colormap.h"
 #include "goomutils/logging_control.h"
 #include "goomutils/mathutils.h"
-#undef NO_LOGGING
+//#undef NO_LOGGING
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
 #include "tentacle_driver.h"
@@ -36,7 +36,8 @@ public:
   void lowToMediumAcceleration();
   void highAcceleration();
   void cycleReset();
-  void happensReset();
+  void setLastCycleValue(const float val);
+  void prettyMoveHappensReset();
   void changePrettyLerpMixLower();
   void changePrettyLerpMixHigher();
   void setLastPrettyLerpMixValue(const float value);
@@ -50,7 +51,8 @@ private:
   uint32_t numLowToMediumAcceleration = 0;
   uint32_t numHighAcceleration = 0;
   uint32_t numCycleResets = 0;
-  uint32_t numHappensResets = 0;
+  float lastCycleValue = 0;
+  uint32_t numPrettyMoveHappensResets = 0;
   uint32_t numLowerPrettyLerpMixChanges = 0;
   uint32_t numHigherPrettyLerpMixChanges = 0;
   float lastPrettyLerpMixValue = 0;
@@ -68,7 +70,8 @@ void TentacleStats::log(const StatsLogValueFunc logVal) const
   logVal(module, "numLowToMediumAcceleration", numLowToMediumAcceleration);
   logVal(module, "numHighAcceleration", numHighAcceleration);
   logVal(module, "numCycleResets", numCycleResets);
-  logVal(module, "numHappensResets", numHappensResets);
+  logVal(module, "lastCycleValue", lastCycleValue);
+  logVal(module, "numPrettyMoveHappensResets", numPrettyMoveHappensResets);
   logVal(module, "numLowerPrettyLerpMixChanges", numLowerPrettyLerpMixChanges);
   logVal(module, "numHigherPrettyLerpMixChanges", numHigherPrettyLerpMixChanges);
   logVal(module, "lastPrettyLerpMixValue", lastPrettyLerpMixValue);
@@ -84,7 +87,8 @@ void TentacleStats::reset()
   numLowToMediumAcceleration = 0;
   numHighAcceleration = 0;
   numCycleResets = 0;
-  numHappensResets = 0;
+  lastCycleValue = 0;
+  numPrettyMoveHappensResets = 0;
   numLowerPrettyLerpMixChanges = 0;
   numHigherPrettyLerpMixChanges = 0;
   lastPrettyLerpMixValue = 0;
@@ -130,9 +134,14 @@ inline void TentacleStats::cycleReset()
   numCycleResets++;
 }
 
-inline void TentacleStats::happensReset()
+inline void TentacleStats::setLastCycleValue(const float val)
 {
-  numHappensResets++;
+  lastCycleValue = val;
+}
+
+inline void TentacleStats::prettyMoveHappensReset()
+{
+  numPrettyMoveHappensResets++;
 }
 
 inline void TentacleStats::changePrettyLerpMixLower()
@@ -179,10 +188,11 @@ private:
   static constexpr float distt2Max = 1000;
   float distt2Offset = 0;
   float rot; // entre 0 et m_two_pi
-  bool doRotation = true;
-    static const float initialStableRotationOffset;
+  float rotAtStartOfPrettyMove = 0;
+  bool doRotation = false;
   static float getStableRotationOffset(const float cycleVal);
   int32_t isPrettyMoveHappening = 0;
+  int32_t prettyMoveCheckStopMark = 0;
   static constexpr size_t prettyMoveHappeningMin = 130;
   static constexpr size_t prettyMoveHappeningMax = 200;
   int32_t postPrettyMoveLock = 0;
@@ -215,7 +225,7 @@ TentaclesWrapper::TentaclesWrapper(const uint32_t screenWidth, const uint32_t sc
     }}},
     dominantColorMap{&colorMaps.getRandomColorMap()},
     dominantColor{ColorMap::getRandomColor(*dominantColorMap)},
-    rot{ initialStableRotationOffset },
+    rot{ TentaclesWrapper::getStableRotationOffset(0) },
     driver{&colorMaps, screenWidth, screenHeight},
     stats{}
 {
@@ -231,9 +241,6 @@ colorMaps.setWeights(colorGroupWeights);
   driver.startIterating();
 }
 
-const float TentaclesWrapper::initialStableRotationOffset =
-    TentaclesWrapper::getStableRotationOffset(0);
-
 inline void TentaclesWrapper::incCounters()
 {
   countSincePrettyLerpMixMarked++;
@@ -243,6 +250,7 @@ inline void TentaclesWrapper::incCounters()
 
 void TentaclesWrapper::logStats(const StatsLogValueFunc logVal)
 {
+  stats.setLastCycleValue(cycle);
   stats.setLastPrettyLerpMixValue(prettyMoveLerpMix);
   stats.log(logVal);
 }
@@ -358,7 +366,7 @@ void TentaclesWrapper::isPrettyMoveHappeningUpdate(PluginInfo* goomInfo, const f
   }
   else
   {
-    stats.happensReset();
+    stats.prettyMoveHappensReset();
     if (probabilityOfMInN(goomInfo, 199, 200))
     {
       isPrettyMoveHappening = 0;
@@ -371,6 +379,8 @@ void TentaclesWrapper::isPrettyMoveHappeningUpdate(PluginInfo* goomInfo, const f
           goomInfo->getRandInRange(prettyMoveHappeningMin, prettyMoveHappeningMax));
       postPrettyMoveLock = 3 * isPrettyMoveHappening / 2;
       distt2Offset = (1.0 / (1.10 - accelVar)) * goomInfo->getRandInRange(distt2Min, distt2Max);
+      rotAtStartOfPrettyMove = rot;
+      prettyMoveCheckStopMark = isPrettyMoveHappening / 4;
     }
   }
 }
@@ -404,7 +414,7 @@ void TentaclesWrapper::prettyMove(PluginInfo* goomInfo, const float accelVar)
   else
   {
     float currentCycle = cycle;
-    if (probabilityOfMInN(goomInfo, 1, 500))
+    if (probabilityOfMInN(goomInfo, 1, 100))
     {
       doRotation = probabilityOfMInN(goomInfo, 1, 2);
     }
@@ -417,20 +427,25 @@ void TentaclesWrapper::prettyMove(PluginInfo* goomInfo, const float accelVar)
       currentCycle *= -m_pi;
     }
     rotOffset = std::fmod(currentCycle, m_two_pi);
+
     if (rotOffset < 0.0)
     {
       rotOffset += m_two_pi;
     }
+
+    if (isPrettyMoveHappening < prettyMoveCheckStopMark)
+    {
+      // If close enough to initialStableRotationOffset, then stop the happening.
+      if (std::fabs(rot - rotAtStartOfPrettyMove) < 0.1)
+      {
+        isPrettyMoveHappening = 0;
+      }
+    }
+
     if (!(0.0 <= rotOffset && rotOffset <= m_two_pi))
     {
       throw std::logic_error(std20::format(
           "rotOffset {:.3f} not in [0, 2pi]: currentCycle = {:.3f}", rotOffset, currentCycle));
-    }
-
-    // If close enough to initialStableRotationOffset, then stop the happening.
-    if ((rotOffset > initialStableRotationOffset) && rotOffset - initialStableRotationOffset < 0.1)
-    {
-      isPrettyMoveHappening = 0;
     }
   }
 
@@ -486,7 +501,8 @@ inline std::tuple<uint32_t, uint32_t> TentaclesWrapper::getModColors(PluginInfo*
   if ((lig < 6.3f) && probabilityOfMInN(goomInfo, 1, 30))
   {
     stats.changeDominantColor();
-    // TODO - To abrupt color change here may cause flicker - maybe compare 'luma'
+    // TODO - Too abrupt color change here may cause flicker - maybe compare 'luma'
+    //   Tried below but somehow its make color change way less interesting.
     /***
     Pixel oldColor{ .val = dominantColor };
     const float oldLuma = 0.299*oldColor.channels.r + 0.587*oldColor.channels.g + 0.114*oldColor.channels.b;
