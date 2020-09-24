@@ -4,6 +4,7 @@
 #include "goom_graphic.h"
 
 #include <cassert>
+#include <cmath>
 #include <cstdint>
 
 uint32_t getIntColor(const uint8_t r, const uint8_t g, const uint8_t b);
@@ -38,7 +39,7 @@ inline uint8_t getBrighterChannelColor(const uint32_t br, const uint8_t c)
 inline Pixel getBrighterColor(const float brightness, const Pixel& color)
 {
   assert(brightness >= 0.0 && brightness <= 1.0);
-  const uint32_t br = static_cast<uint32_t>(brightness * 255);
+  const uint32_t br = static_cast<uint32_t>(std::round(brightness * 256 + 0.0001f));
   Pixel p;
   p.channels.r = getBrighterChannelColor(br, color.channels.r);
   p.channels.g = getBrighterChannelColor(br, color.channels.g);

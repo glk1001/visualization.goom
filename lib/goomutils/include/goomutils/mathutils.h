@@ -1,15 +1,14 @@
 #ifndef LIB_GOOMUTILS_INCLUDE_GOOMUTILS_MATHUTILS_H_
 #define LIB_GOOMUTILS_INCLUDE_GOOMUTILS_MATHUTILS_H_
 
+#include "goomrand.h"
+
 #include <array>
 #include <cmath>
 #include <cstdlib>
-#include <format>
 #include <memory>
 #include <numbers>
-#include <stdexcept>
 #include <tuple>
-#include <utility>
 #include <vector>
 
 constexpr float m_pi = std::numbers::pi;
@@ -19,20 +18,6 @@ constexpr float m_half_pi = 0.5 * std::numbers::pi;
 constexpr size_t numSinCosAngles = 256;
 extern const std::array<float, numSinCosAngles> sin256;
 extern const std::array<float, numSinCosAngles> cos256;
-
-inline float getFractPart(const float x);
-
-inline float getRandNeg1toPos1();
-
-// Return random sign int, either -1 or +1.
-inline int getRandSignInt();
-// Return random sign float, either -1.0 or +1.0.
-inline float getRandSignFlt();
-
-// Return random int in the range x0 <= n < x1.
-inline size_t getRandInRange(const size_t x0, const size_t x1);
-// Return random float in the range x0 <= n <= x1.
-inline float getRandInRange(const float x0, const float x1);
 
 class VertNum {
 public:
@@ -48,26 +33,6 @@ public:
   }
 private:
   const int xwidth;
-};
-
-template<class E>
-class Weights
-{
-public:
-  Weights() noexcept;
-  explicit Weights(const std::vector<std::pair<E, size_t>>&);
-
-  void setWeight(const E, size_t value);
-  size_t getWeight(const E) const;
-  void clearWeights(const size_t value);
-  size_t getSumOfWeights() const { return sumOfWeights; }
-
-  E getRandomWeighted() const;
-
-private:
-  std::vector<std::pair<E, size_t>> weights;
-  size_t sumOfWeights;
-  static size_t getSumOfWeights(const std::vector<std::pair<E, size_t>>&);
 };
 
 class RangeMapper
@@ -230,20 +195,6 @@ private:
   float x;
 };
 
-class HermitePolynomial : public SequenceFunction
-{
-public:
-  explicit HermitePolynomial(const int degree, const float xStart = 0.0);
-  float getNext() override;
-
-private:
-  int degree;
-  float stepFrac;
-  const float x0;
-  const float x1;
-  float x;
-};
-
 class IncreasingFunction
 {
 public:
@@ -293,112 +244,6 @@ inline RangeMapper::RangeMapper(const double x0, const double x1)
 inline double RangeMapper::operator()(const double r0, const double r1, const double x) const
 {
   return std::lerp(r0, r1, (x - xmin) / xwidth);
-}
-
-inline float getRandNeg1toPos1()
-{
-  return 2.0 * (static_cast<float>(std::rand()) / float(RAND_MAX) - 0.5);
-}
-
-inline int getRandSignInt()
-{
-  return getRandInRange(0ul, 100ul) < 50 ? -1 : +1;
-}
-
-inline float getRandSignFlt()
-{
-  return getRandInRange(0ul, 100ul) < 50 ? -1.0f : +1.0f;
-}
-
-inline float getRandInRange(const float x0, const float x1)
-{
-  return std::lerp(x0, x1, static_cast<float>(std::rand()) / float(RAND_MAX));
-}
-
-inline size_t getRandInRange(const size_t x0, const size_t x1)
-{
-  return x0 + size_t(std::rand()) % (x1 - x0);
-}
-
-template<class E>
-Weights<E>::Weights() noexcept : weights{}, sumOfWeights{0}
-{
-}
-
-template<class E>
-Weights<E>::Weights(const std::vector<std::pair<E, size_t>>& w)
-  : weights{w}, sumOfWeights{getSumOfWeights(w)}
-{
-}
-
-template<class E>
-size_t Weights<E>::getSumOfWeights(const std::vector<std::pair<E, size_t>>& weights)
-{
-  size_t sumOfWeights = 0;
-  for (const auto& [e, w] : weights)
-  {
-    sumOfWeights += w;
-  }
-  return sumOfWeights;
-}
-
-template<class E>
-void Weights<E>::setWeight(const E enumClass, size_t value)
-{
-  for (auto& [e, w] : weights)
-  {
-    if (e == enumClass)
-    {
-      w = value;
-      sumOfWeights = getSumOfWeights(weights);
-      return;
-    }
-  }
-  weights.emplace_back(std::make_pair(enumClass, value));
-  sumOfWeights = getSumOfWeights(weights);
-}
-
-template<class E>
-size_t Weights<E>::getWeight(const E enumClass) const
-{
-  for (const auto& [e, w] : weights)
-  {
-    if (e == enumClass)
-    {
-      return w;
-    }
-  }
-  return 0;
-}
-
-template<class E>
-void Weights<E>::clearWeights(const size_t value)
-{
-  for (auto& [e, w] : weights)
-  {
-    w = value;
-  }
-  sumOfWeights = getSumOfWeights(weights);
-}
-
-template<class E>
-E Weights<E>::getRandomWeighted() const
-{
-  if (weights.empty())
-  {
-    throw std::logic_error("The are no weights set.");
-  }
-
-  size_t randVal = getRandInRange(0, sumOfWeights);
-  for (const auto& [e, w] : weights)
-  {
-    if (randVal < w)
-    {
-      return e;
-    }
-    randVal -= w;
-  }
-  throw std::logic_error(std20::format("Should not get here. randVal = {}.", randVal));
 }
 
 #endif

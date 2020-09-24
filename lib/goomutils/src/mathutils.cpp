@@ -117,22 +117,6 @@ double PiecewiseDampingFunction::operator()(const double x)
   return 0.0;
 }
 
-HermitePolynomial::HermitePolynomial(const int d, const float xStart)
-  : degree(d), stepFrac(1.0 / 16.0), x0(-1.5), x1(+2.5), x(xStart)
-{
-}
-
-float HermitePolynomial::getNext()
-{
-  const float val = 0.01 * std::hermite(degree, x);
-  x += stepFrac;
-  if (x > x1)
-  {
-    x = x0;
-  }
-  return val;
-}
-
 SineWaveMultiplier::SineWaveMultiplier(const float freq,
                                        const float lwr,
                                        const float upr,

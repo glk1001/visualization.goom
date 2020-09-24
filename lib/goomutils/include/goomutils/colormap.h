@@ -2,7 +2,7 @@
 #define LIB_GOOMUTILS_INCLUDE_GOOMUTILS_COLORMAP_H_
 
 #include "goomutils/colormap_enums.h"
-#include "goomutils/mathutils.h"
+#include "goomutils/goomrand.h"
 
 #include <array>
 #include <memory>

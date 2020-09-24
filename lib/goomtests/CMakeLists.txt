@@ -5,11 +5,12 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR})
 message(STATUS "Tests compile features = \"${COMMON_CXX_COMPILE_FEATURES}\".")
 message(STATUS "Tests C++ warnings = \"${COMMON_CXX_WARNINGS}\".")
 
-add_executable(testmain
-    src/testmain.cpp
+add_executable(test_main
+    src/test_main.cpp
+    src/test_colorutils.cpp
 )
 
-target_link_libraries(testmain
+target_link_libraries(test_main
     PRIVATE
         goom
         goomutils
@@ -17,9 +18,10 @@ target_link_libraries(testmain
         pthread
 )
 
-target_include_directories(testmain 
+target_include_directories(test_main 
     PUBLIC 
         "/home/greg/Prj/github/catch2/include"
+        "/home/greg/Prj/github/xbmc/visualization.goom/lib/goom/src"  
 )
 
 # Hacking?????????????????????????
@@ -37,6 +39,6 @@ set_property(TARGET goomutils PROPERTY IMPORTED_LOCATION ${GOOMUTILS_LIB})
 add_library(vivid STATIC IMPORTED)
 set_property(TARGET vivid PROPERTY IMPORTED_LOCATION ${VIVID_LIB})
 
-set_target_properties(testmain PROPERTIES
+set_target_properties(test_main PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${PROJECT_NAME}/bin
 )

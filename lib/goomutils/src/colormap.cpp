@@ -2,7 +2,7 @@
 
 #include "goomutils/colordata/all_maps.h"
 #include "goomutils/colormap_enums.h"
-#include "goomutils/mathutils.h"
+#include "goomutils/goomrand.h"
 
 #include <format>
 #include <string>
@@ -35,7 +35,7 @@ const ColorMap& ColorMaps::getRandomColorMap() const
 
   initColorMaps();
 
-  return colorMaps[getRandInRange(0, colorMaps.size())];
+  return colorMaps[getRandInRange(0u, colorMaps.size())];
 }
 
 const ColorMap& ColorMaps::getRandomColorMap(const ColorMapGroup groupName) const
@@ -49,7 +49,7 @@ const ColorMap& ColorMaps::getRandomColorMap(const ColorMapGroup groupName) cons
   initColorMaps();
 
   const std::vector<ColorMapName>* group = at(groups, groupName);
-  return getColorMap(group->at(getRandInRange(0, group->size())));
+  return getColorMap(group->at(getRandInRange(0u, group->size())));
 }
 
 const ColorMap& ColorMaps::getColorMap(const ColorMapName name) const
