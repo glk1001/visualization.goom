@@ -25,8 +25,8 @@
 #define __STDC_LIMIT_MACROS
 
 #include "CircularBuffer.h"
-#include "goom_core.h"
-#include "goom_config.h"
+#include "goom/goom_config.h"
+#include "goom/goom_core.h"
 
 #include <condition_variable>
 #include <functional>

@@ -1,13 +1,8 @@
 #ifndef AUDIO_DATA_HPP
 #define AUDIO_DATA_HPP
 
-#ifndef DO_TESTING
-#include "goom_core.h"
-#include "goom_config.h"
-#else
-#include "goom/goom_core.h"
 #include "goom/goom_config.h"
-#endif
+#include "goom/goom_core.h"
 
 #include <cstdint>
 

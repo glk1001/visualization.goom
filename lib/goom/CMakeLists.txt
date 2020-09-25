@@ -40,7 +40,7 @@ target_include_directories(${PROJECT_NAME}
         $<INSTALL_INTERFACE:include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/lib/goom/include/goom
         ${CMAKE_SOURCE_DIR}/lib/goomutils/include
         ${CMAKE_SOURCE_DIR}/lib/vivid/include
         ${CMAKE_SOURCE_DIR}/lib/fmt/include

@@ -21,7 +21,7 @@ target_link_libraries(test_main
 target_include_directories(test_main 
     PUBLIC 
         "/home/greg/Prj/github/catch2/include"
-        "/home/greg/Prj/github/xbmc/visualization.goom/lib/goom/src"  
+        "/home/greg/Prj/github/xbmc/visualization.goom/lib/goom/include/goom"  
 )
 
 # Hacking?????????????????????????
