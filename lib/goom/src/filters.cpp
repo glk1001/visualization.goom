@@ -19,7 +19,7 @@
 #include "goom_graphic.h"
 #include "goom_plugin_info.h"
 #include "goom_testing.h"
-#include "goom_tools.h"
+#include "goomutils/goomrand.h"
 #include "goomutils/logging_control.h"
 // #undef NO_LOGGING
 #include "goomutils/logging.h"
@@ -158,11 +158,11 @@ static inline v2g zoomVector(PluginInfo* goomInfo, const float X, const float Y)
   /* Noise */
   if (data->filterData.noisify)
   {
-    //    const float xAmp = 1.0/goomInfo->getRandInRange(50.0f, 200.0f);
-    //    const float yAmp = 1.0/goomInfo->getRandInRange(50.0f, 200.0f);
-    const float amp = 1.0 / goomInfo->getRandInRange(noiseMin, noiseMax);
-    vx += amp * (goomInfo->getRandInRange(0.0f, 1.0f) - 0.5f);
-    vy += amp * (goomInfo->getRandInRange(0.0f, 1.0f) - 0.5f);
+    //    const float xAmp = 1.0/getRandInRange(50.0f, 200.0f);
+    //    const float yAmp = 1.0/getRandInRange(50.0f, 200.0f);
+    const float amp = 1.0 / getRandInRange(noiseMin, noiseMax);
+    vx += amp * (getRandInRange(0.0f, 1.0f) - 0.5f);
+    vy += amp * (getRandInRange(0.0f, 1.0f) - 0.5f);
   }
 
   // Hypercos
@@ -359,18 +359,18 @@ static void c_zoom(Pixel* expix1,
   }
 }
 
-static void generateWaterFXHorizontalBuffer(PluginInfo* goomInfo, FilterDataWrapper* data)
+static void generateWaterFXHorizontalBuffer(FilterDataWrapper* data)
 {
-  int decc = static_cast<int>(goomInfo->getNRand(8) - 4);
-  int spdc = static_cast<int>(goomInfo->getNRand(8) - 4);
-  int accel = static_cast<int>(goomInfo->getNRand(8) - 4);
+  int decc = static_cast<int>(getNRand(8) - 4);
+  int spdc = static_cast<int>(getNRand(8) - 4);
+  int accel = static_cast<int>(getNRand(8) - 4);
 
   for (size_t loopv = data->prevY; loopv != 0;)
   {
     loopv--;
     data->firedec[loopv] = decc;
     decc += spdc / 10;
-    spdc += static_cast<int>(goomInfo->getNRand(3) - goomInfo->getNRand(3));
+    spdc += static_cast<int>(getNRand(3) - getNRand(3));
 
     if (decc > 4)
     {
@@ -383,27 +383,27 @@ static void generateWaterFXHorizontalBuffer(PluginInfo* goomInfo, FilterDataWrap
 
     if (spdc > 30)
     {
-      spdc = spdc - static_cast<int>(goomInfo->getNRand(3)) + accel / 10;
+      spdc = spdc - static_cast<int>(getNRand(3)) + accel / 10;
     }
     if (spdc < -30)
     {
-      spdc = spdc + static_cast<int>(goomInfo->getNRand(3)) + accel / 10;
+      spdc = spdc + static_cast<int>(getNRand(3)) + accel / 10;
     }
 
     if (decc > 8 && spdc > 1)
     {
-      spdc -= static_cast<int>(goomInfo->getNRand(3)) - 2;
+      spdc -= static_cast<int>(getNRand(3)) - 2;
     }
     if (decc < -8 && spdc < -1)
     {
-      spdc += static_cast<int>(goomInfo->getNRand(3)) + 2;
+      spdc += static_cast<int>(getNRand(3)) + 2;
     }
     if (decc > 8 || decc < -8)
     {
       decc = decc * 8 / 9;
     }
 
-    accel += static_cast<int>(goomInfo->getNRand(2) - goomInfo->getNRand(2));
+    accel += static_cast<int>(getNRand(2) - getNRand(2));
     if (accel > 20)
     {
       accel -= 2;
@@ -463,7 +463,7 @@ static void initBuffers(PluginInfo* goomInfo, const uint32_t resx, const uint32_
   data->buffratio = 0;
 
   data->firedec = (int*)malloc(data->prevY * sizeof(int));
-  generateWaterFXHorizontalBuffer(goomInfo, data);
+  generateWaterFXHorizontalBuffer(data);
 
   data->interlaceStart = 0;
   makeZoomBufferStripe(goomInfo, resy);

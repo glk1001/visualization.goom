@@ -40,8 +40,8 @@
 #include "goom_core.h"
 #include "goom_graphic.h"
 #include "goom_testing.h"
-#include "goom_tools.h"
 #include "goomutils/colormap.h"
+#include "goomutils/goomrand.h"
 #include "goomutils/logging_control.h"
 // #undef NO_LOGGING
 #include "goomutils/logging.h"
@@ -57,19 +57,19 @@ struct IFSPoint
   uint32_t y;
 };
 
-inline uint32_t longRand(PluginInfo* goomInfo)
+inline uint32_t longRand()
 {
-  return static_cast<long>(goomInfo->getRand() & 0x7fffffff);
+  return static_cast<long>(getRand() & 0x7fffffff);
 }
 
-inline int nRand(PluginInfo* goomInfo, const size_t n)
+inline int nRand(const size_t n)
 {
-  return static_cast<int>(longRand(goomInfo) % n);
+  return static_cast<int>(longRand() % n);
 }
 
-inline int rand(PluginInfo* goomInfo)
+inline int rand()
 {
-  return static_cast<int>(goomInfo->getRand());
+  return static_cast<int>(getRand());
 }
 
 #if RAND_MAX < 0x10000
@@ -163,26 +163,20 @@ struct IfsData
   bool initialized;
 };
 
-static DBL gaussRand(PluginInfo* goomInfo,
-                     const DBL c,
-                     const DBL S,
-                     const DBL A_mult_1_minus_exp_neg_S)
+static DBL gaussRand(const DBL c, const DBL S, const DBL A_mult_1_minus_exp_neg_S)
 {
-  DBL y = static_cast<DBL>(longRand(goomInfo)) / MAXRAND;
+  DBL y = static_cast<DBL>(longRand()) / MAXRAND;
   y = A_mult_1_minus_exp_neg_S * (1.0 - exp(-y * y * S));
-  if (nRand(goomInfo, 2))
+  if (nRand(2))
   {
     return (c + y);
   }
   return (c - y);
 }
 
-static DBL halfGaussRand(PluginInfo* goomInfo,
-                         const DBL c,
-                         const DBL S,
-                         const DBL A_mult_1_minus_exp_neg_S)
+static DBL halfGaussRand(const DBL c, const DBL S, const DBL A_mult_1_minus_exp_neg_S)
 {
-  DBL y = static_cast<DBL>(longRand(goomInfo)) / MAXRAND;
+  DBL y = static_cast<DBL>(longRand()) / MAXRAND;
   y = A_mult_1_minus_exp_neg_S * (1.0 - exp(-y * y * S));
   return (c + y);
 }
@@ -192,7 +186,7 @@ inline DBL get_1_minus_exp_neg_S(const DBL S)
   return 1.0 - exp(-S);
 }
 
-static void randomSimis(PluginInfo* goomInfo, Fractal* fractal, Similitude* cur, int i)
+static void randomSimis(Fractal* fractal, Similitude* cur, int i)
 {
   static DBL c_AS_factor;
   static DBL r_1_minus_exp_neg_S;
@@ -215,12 +209,12 @@ static void randomSimis(PluginInfo* goomInfo, Fractal* fractal, Similitude* cur,
 
   while (i--)
   {
-    cur->c_x = gaussRand(goomInfo, 0.0, 4.0, c_AS_factor);
-    cur->c_y = gaussRand(goomInfo, 0.0, 4.0, c_AS_factor);
-    cur->r = gaussRand(goomInfo, fractal->rMean, 3.0, r_AS_factor);
-    cur->r2 = halfGaussRand(goomInfo, 0.0, 2.0, r2_AS_factor);
-    cur->A = gaussRand(goomInfo, 0.0, 4.0, A_AS_factor) * (m_pi / 180.0);
-    cur->A2 = gaussRand(goomInfo, 0.0, 4.0, A2_AS_factor) * (m_pi / 180.0);
+    cur->c_x = gaussRand(0.0, 4.0, c_AS_factor);
+    cur->c_y = gaussRand(0.0, 4.0, c_AS_factor);
+    cur->r = gaussRand(fractal->rMean, 3.0, r_AS_factor);
+    cur->r2 = halfGaussRand(0.0, 2.0, r2_AS_factor);
+    cur->A = gaussRand(0.0, 4.0, A_AS_factor) * (m_pi / 180.0);
+    cur->A2 = gaussRand(0.0, 4.0, A2_AS_factor) * (m_pi / 180.0);
     cur->Ct = 0;
     cur->St = 0;
     cur->Ct2 = 0;
@@ -268,7 +262,7 @@ static void initIfs(PluginInfo* goomInfo, IfsData* data)
   Fractal* fractal = data->root;
   freeIfsBuffers(fractal);
 
-  const int numCentres = nRand(goomInfo, 4) + 2;
+  const int numCentres = nRand(4) + 2;
   switch (numCentres)
   {
     case 3:
@@ -327,7 +321,7 @@ static void initIfs(PluginInfo* goomInfo, IfsData* data)
   fractal->lx = (fractal->width - 1) / 2;
   fractal->ly = (fractal->height - 1) / 2;
 
-  randomSimis(goomInfo, fractal, fractal->components, 5 * maxSimi);
+  randomSimis(fractal, fractal->components, 5 * maxSimi);
 
   for (size_t i = 0; i < 5 * maxSimi; i++)
   {
@@ -426,7 +420,7 @@ static void drawFractal(IfsData* data)
   fractal->buffer2 = data->buff;
 }
 
-static IFSPoint* drawIfs(PluginInfo* goomInfo, size_t* numPoints, IfsData* data)
+static IFSPoint* drawIfs(size_t* numPoints, IfsData* data)
 {
   if (data->root == nullptr)
   {
@@ -492,8 +486,8 @@ static IFSPoint* drawIfs(PluginInfo* goomInfo, size_t* numPoints, IfsData* data)
       *S1 = *S4;
     }
 
-    randomSimis(goomInfo, fractal, fractal->components + 3 * fractal->numSimi, fractal->numSimi);
-    randomSimis(goomInfo, fractal, fractal->components + 4 * fractal->numSimi, fractal->numSimi);
+    randomSimis(fractal, fractal->components + 3 * fractal->numSimi, fractal->numSimi);
+    randomSimis(fractal, fractal->components + 4 * fractal->numSimi, fractal->numSimi);
 
     fractal->count = 0;
   }
@@ -562,10 +556,10 @@ inline Int32ChannelArray getChannelArray(const Pixel& p)
   return a;
 }
 
-static void updateColors(PluginInfo*, IfsUpdateData*);
-static void updateColorsModeMer(PluginInfo*, IfsUpdateData*);
-static void updateColorsModeMerver(PluginInfo*, IfsUpdateData*);
-static void updateColorsModeFeu(PluginInfo*, IfsUpdateData*);
+static void updateColors(IfsUpdateData*);
+static void updateColorsModeMer(IfsUpdateData*);
+static void updateColorsModeMerver(IfsUpdateData*);
+static void updateColorsModeFeu(IfsUpdateData*);
 
 static void updatePixelBuffers(PluginInfo* goomInfo,
                                Pixel* frontBuff,
@@ -604,7 +598,7 @@ static void updateIfs(
   }
 
   size_t numPoints;
-  const IFSPoint* points = drawIfs(goomInfo, &numPoints, fx_data);
+  const IFSPoint* points = drawIfs(&numPoints, fx_data);
   numPoints--;
 
   const int cycle10 = (updData.cycle < 40) ? updData.cycle / 10 : 7 - updData.cycle / 10;
@@ -616,7 +610,7 @@ static void updateIfs(
 
   updData.col = getChannelArray(updData.couleur);
 
-  updateColors(goomInfo, &updData);
+  updateColors(&updData);
 
   updData.couleur = getPixel(updData.col);
 
@@ -633,41 +627,41 @@ static void updateIfs(
   logDebug("updData.mode = {}", updData.mode);
 }
 
-static void updateColors(PluginInfo* goomInfo, IfsUpdateData* upd)
+static void updateColors(IfsUpdateData* upd)
 {
   if (upd->mode == MOD_MER)
   {
-    updateColorsModeMer(goomInfo, upd);
+    updateColorsModeMer(upd);
   }
   else if (upd->mode == MOD_MERVER)
   {
-    updateColorsModeMerver(goomInfo, upd);
+    updateColorsModeMerver(upd);
   }
   else if (upd->mode == MOD_FEU)
   {
-    updateColorsModeFeu(goomInfo, upd);
+    updateColorsModeFeu(upd);
   }
 }
 
-static void updateColorsModeMer(PluginInfo* goomInfo, IfsUpdateData* upd)
+static void updateColorsModeMer(IfsUpdateData* upd)
 {
   upd->col[BLEU] += upd->v[BLEU];
   if (upd->col[BLEU] > 255)
   {
     upd->col[BLEU] = 255;
-    upd->v[BLEU] = -(rand(goomInfo) % 4) - 1;
+    upd->v[BLEU] = -(static_cast<int>(getRand()) % 4) - 1;
   }
   if (upd->col[BLEU] < 32)
   {
     upd->col[BLEU] = 32;
-    upd->v[BLEU] = (rand(goomInfo) % 4) + 1;
+    upd->v[BLEU] = (static_cast<int>(getRand()) % 4) + 1;
   }
 
   upd->col[VERT] += upd->v[VERT];
   if (upd->col[VERT] > 200)
   {
     upd->col[VERT] = 200;
-    upd->v[VERT] = -(rand(goomInfo) % 3) - 2;
+    upd->v[VERT] = -(static_cast<int>(getRand()) % 3) - 2;
   }
   if (upd->col[VERT] > upd->col[BLEU])
   {
@@ -677,62 +671,62 @@ static void updateColorsModeMer(PluginInfo* goomInfo, IfsUpdateData* upd)
   if (upd->col[VERT] < 32)
   {
     upd->col[VERT] = 32;
-    upd->v[VERT] = (rand(goomInfo) % 3) + 2;
+    upd->v[VERT] = (static_cast<int>(getRand()) % 3) + 2;
   }
 
   upd->col[ROUGE] += upd->v[ROUGE];
   if (upd->col[ROUGE] > 64)
   {
     upd->col[ROUGE] = 64;
-    upd->v[ROUGE] = -(rand(goomInfo) % 4) - 1;
+    upd->v[ROUGE] = -(static_cast<int>(getRand()) % 4) - 1;
   }
   if (upd->col[ROUGE] < 0)
   {
     upd->col[ROUGE] = 0;
-    upd->v[ROUGE] = (rand(goomInfo) % 4) + 1;
+    upd->v[ROUGE] = (static_cast<int>(getRand()) % 4) + 1;
   }
 
   upd->col[ALPHA] += upd->v[ALPHA];
   if (upd->col[ALPHA] > 0)
   {
     upd->col[ALPHA] = 0;
-    upd->v[ALPHA] = -(rand(goomInfo) % 4) - 1;
+    upd->v[ALPHA] = -(static_cast<int>(getRand()) % 4) - 1;
   }
   if (upd->col[ALPHA] < 0)
   {
     upd->col[ALPHA] = 0;
-    upd->v[ALPHA] = (rand(goomInfo) % 4) + 1;
+    upd->v[ALPHA] = (static_cast<int>(getRand()) % 4) + 1;
   }
 
   if (((upd->col[VERT] > 32) && (upd->col[ROUGE] < upd->col[VERT] + 40) &&
        (upd->col[VERT] < upd->col[ROUGE] + 20) && (upd->col[BLEU] < 64) &&
-       (rand(goomInfo) % 20 == 0)) &&
+       (static_cast<int>(getRand()) % 20 == 0)) &&
       (upd->justChanged < 0))
   {
-    upd->mode = rand(goomInfo) % 3 ? MOD_FEU : MOD_MERVER;
+    upd->mode = static_cast<int>(getRand()) % 3 ? MOD_FEU : MOD_MERVER;
     upd->justChanged = 250;
   }
 }
 
-static void updateColorsModeMerver(PluginInfo* goomInfo, IfsUpdateData* upd)
+static void updateColorsModeMerver(IfsUpdateData* upd)
 {
   upd->col[BLEU] += upd->v[BLEU];
   if (upd->col[BLEU] > 128)
   {
     upd->col[BLEU] = 128;
-    upd->v[BLEU] = -(rand(goomInfo) % 4) - 1;
+    upd->v[BLEU] = -(static_cast<int>(getRand()) % 4) - 1;
   }
   if (upd->col[BLEU] < 16)
   {
     upd->col[BLEU] = 16;
-    upd->v[BLEU] = (rand(goomInfo) % 4) + 1;
+    upd->v[BLEU] = (static_cast<int>(getRand()) % 4) + 1;
   }
 
   upd->col[VERT] += upd->v[VERT];
   if (upd->col[VERT] > 200)
   {
     upd->col[VERT] = 200;
-    upd->v[VERT] = -(rand(goomInfo) % 3) - 2;
+    upd->v[VERT] = -(static_cast<int>(getRand()) % 3) - 2;
   }
   if (upd->col[VERT] > upd->col[ALPHA])
   {
@@ -742,110 +736,110 @@ static void updateColorsModeMerver(PluginInfo* goomInfo, IfsUpdateData* upd)
   if (upd->col[VERT] < 32)
   {
     upd->col[VERT] = 32;
-    upd->v[VERT] = (rand(goomInfo) % 3) + 2;
+    upd->v[VERT] = (static_cast<int>(getRand()) % 3) + 2;
   }
 
   upd->col[ROUGE] += upd->v[ROUGE];
   if (upd->col[ROUGE] > 128)
   {
     upd->col[ROUGE] = 128;
-    upd->v[ROUGE] = -(rand(goomInfo) % 4) - 1;
+    upd->v[ROUGE] = -(static_cast<int>(getRand()) % 4) - 1;
   }
   if (upd->col[ROUGE] < 0)
   {
     upd->col[ROUGE] = 0;
-    upd->v[ROUGE] = (rand(goomInfo) % 4) + 1;
+    upd->v[ROUGE] = (static_cast<int>(getRand()) % 4) + 1;
   }
 
   upd->col[ALPHA] += upd->v[ALPHA];
   if (upd->col[ALPHA] > 255)
   {
     upd->col[ALPHA] = 255;
-    upd->v[ALPHA] = -(rand(goomInfo) % 4) - 1;
+    upd->v[ALPHA] = -(static_cast<int>(getRand()) % 4) - 1;
   }
   if (upd->col[ALPHA] < 0)
   {
     upd->col[ALPHA] = 0;
-    upd->v[ALPHA] = (rand(goomInfo) % 4) + 1;
+    upd->v[ALPHA] = (static_cast<int>(getRand()) % 4) + 1;
   }
 
   if (((upd->col[VERT] > 32) && (upd->col[ROUGE] < upd->col[VERT] + 40) &&
        (upd->col[VERT] < upd->col[ROUGE] + 20) && (upd->col[BLEU] < 64) &&
-       (rand(goomInfo) % 20 == 0)) &&
+       (static_cast<int>(getRand()) % 20 == 0)) &&
       (upd->justChanged < 0))
   {
-    upd->mode = rand(goomInfo) % 3 ? MOD_FEU : MOD_MER;
+    upd->mode = static_cast<int>(getRand()) % 3 ? MOD_FEU : MOD_MER;
     upd->justChanged = 250;
   }
 }
 
-static void updateColorsModeFeu(PluginInfo* goomInfo, IfsUpdateData* upd)
+static void updateColorsModeFeu(IfsUpdateData* upd)
 {
   upd->col[BLEU] += upd->v[BLEU];
   if (upd->col[BLEU] > 64)
   {
     upd->col[BLEU] = 64;
-    upd->v[BLEU] = -(rand(goomInfo) % 4) - 1;
+    upd->v[BLEU] = -(static_cast<int>(getRand()) % 4) - 1;
   }
   if (upd->col[BLEU] < 0)
   {
     upd->col[BLEU] = 0;
-    upd->v[BLEU] = (rand(goomInfo) % 4) + 1;
+    upd->v[BLEU] = (static_cast<int>(getRand()) % 4) + 1;
   }
 
   upd->col[VERT] += upd->v[VERT];
   if (upd->col[VERT] > 200)
   {
     upd->col[VERT] = 200;
-    upd->v[VERT] = -(rand(goomInfo) % 3) - 2;
+    upd->v[VERT] = -(static_cast<int>(getRand()) % 3) - 2;
   }
   if (upd->col[VERT] > upd->col[ROUGE] + 20)
   {
     upd->col[VERT] = upd->col[ROUGE] + 20;
-    upd->v[VERT] = -(rand(goomInfo) % 3) - 2;
-    upd->v[ROUGE] = (rand(goomInfo) % 4) + 1;
-    upd->v[BLEU] = (rand(goomInfo) % 4) + 1;
+    upd->v[VERT] = -(static_cast<int>(getRand()) % 3) - 2;
+    upd->v[ROUGE] = (static_cast<int>(getRand()) % 4) + 1;
+    upd->v[BLEU] = (static_cast<int>(getRand()) % 4) + 1;
   }
   if (upd->col[VERT] < 0)
   {
     upd->col[VERT] = 0;
-    upd->v[VERT] = (rand(goomInfo) % 3) + 2;
+    upd->v[VERT] = (static_cast<int>(getRand()) % 3) + 2;
   }
 
   upd->col[ROUGE] += upd->v[ROUGE];
   if (upd->col[ROUGE] > 255)
   {
     upd->col[ROUGE] = 255;
-    upd->v[ROUGE] = -(rand(goomInfo) % 4) - 1;
+    upd->v[ROUGE] = -(static_cast<int>(getRand()) % 4) - 1;
   }
   if (upd->col[ROUGE] > upd->col[VERT] + 40)
   {
     upd->col[ROUGE] = upd->col[VERT] + 40;
-    upd->v[ROUGE] = -(rand(goomInfo) % 4) - 1;
+    upd->v[ROUGE] = -(static_cast<int>(getRand()) % 4) - 1;
   }
   if (upd->col[ROUGE] < 0)
   {
     upd->col[ROUGE] = 0;
-    upd->v[ROUGE] = (rand(goomInfo) % 4) + 1;
+    upd->v[ROUGE] = (static_cast<int>(getRand()) % 4) + 1;
   }
 
   upd->col[ALPHA] += upd->v[ALPHA];
   if (upd->col[ALPHA] > 0)
   {
     upd->col[ALPHA] = 0;
-    upd->v[ALPHA] = -(rand(goomInfo) % 4) - 1;
+    upd->v[ALPHA] = -(static_cast<int>(getRand()) % 4) - 1;
   }
   if (upd->col[ALPHA] < 0)
   {
     upd->col[ALPHA] = 0;
-    upd->v[ALPHA] = (rand(goomInfo) % 4) + 1;
+    upd->v[ALPHA] = (static_cast<int>(getRand()) % 4) + 1;
   }
 
   if (((upd->col[ROUGE] < 64) && (upd->col[VERT] > 32) && (upd->col[VERT] < upd->col[BLEU]) &&
-       (upd->col[BLEU] > 32) && (rand(goomInfo) % 20 == 0)) &&
+       (upd->col[BLEU] > 32) && (static_cast<int>(getRand()) % 20 == 0)) &&
       (upd->justChanged < 0))
   {
-    upd->mode = rand(goomInfo) % 2 ? MOD_MER : MOD_MERVER;
+    upd->mode = static_cast<int>(getRand()) % 2 ? MOD_MER : MOD_MERVER;
     upd->justChanged = 250;
   }
 }

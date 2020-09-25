@@ -1,6 +1,7 @@
 #include "tentacles_new.h"
 
 #include "goomutils/colormap.h"
+#include "goomutils/goomrand.h"
 #include "goomutils/mathutils.h"
 
 #include <algorithm>
@@ -206,7 +207,7 @@ void Tentacle2D::updateDampedVals(const std::vector<double>& yvals)
   for (size_t i = 1; i < numSmoothNodes; i++)
   {
     const double t = tSmooth(tNext);
-    dampedYVec[i] = std::lerp(dampedYVec[i - 1], double(getDampedVal(i, yvals[i])), t);
+    dampedYVec[i] = std::lerp(dampedYVec[i - 1], static_cast<double>(getDampedVal(i, yvals[i])), t);
     tNext += tStep;
   }
 
@@ -355,7 +356,7 @@ std::tuple<uint32_t, uint32_t> Tentacle3D::getMixedColors(const size_t nodeNum,
   //    return std::make_tuple(specialColor, specialColor);
   //  }
 
-  float t = float(nodeNum + 1) / float(get2DTentacle().getNumNodes());
+  float t = static_cast<float>(nodeNum + 1) / static_cast<float>(get2DTentacle().getNumNodes());
   if (reverseColorMix)
   {
     t = 1 - t;

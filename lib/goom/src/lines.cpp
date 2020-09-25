@@ -6,6 +6,7 @@
 #include "goom_graphic.h"
 #include "goom_plugin_info.h"
 #include "goomutils/colormap.h"
+#include "goomutils/goomrand.h"
 #include "goomutils/mathutils.h"
 
 #include <algorithm>
@@ -85,12 +86,12 @@ static void goomLinesMove(GMLine* l)
   if (l->power < 1.1f)
   {
     l->power = 1.1f;
-    l->powinc = static_cast<float>(l->goomInfo->getNRand(20) + 10) / 300.0f;
+    l->powinc = static_cast<float>(getNRand(20) + 10) / 300.0f;
   }
   if (l->power > 17.5f)
   {
     l->power = 17.5f;
-    l->powinc = -static_cast<float>(l->goomInfo->getNRand(20) + 10) / 300.0f;
+    l->powinc = -static_cast<float>(getNRand(20) + 10) / 300.0f;
   }
 
   l->amplitude = (99.0f * l->amplitude + l->amplitudeF) / 100.0f;
@@ -211,9 +212,9 @@ uint32_t getRedLineColor()
 
 uint32_t getRandomLineColor(PluginInfo* goomInfo)
 {
-  if (goomInfo->getNRand(10) == 0)
+  if (getNRand(10) == 0)
   {
-    return getcouleur(static_cast<int>(goomInfo->getNRand(6)));
+    return getcouleur(static_cast<int>(getNRand(6)));
   }
   return ColorMap::getRandomColor(goomInfo->gmline1->colorMaps->getRandomColorMap());
 }

@@ -5,7 +5,6 @@
 #include "goom_config.h"
 #include "goom_config_param.h"
 #include "goom_graphic.h"
-#include "goom_tools.h"
 #include "goom_visual_fx.h"
 #include "lines.h"
 
@@ -167,34 +166,7 @@ struct PluginInfo
                         const int buffratio,
                         const int precalCoef[16][16]);
   } methods;
-
-  GoomRandom* gRandom;
-  uint32_t getRand() { return goom_random(gRandom); }
-  uint32_t getNRand(uint32_t n) { return goom_irand(gRandom, n); }
-  bool getBoolRand() { return goom_irand(gRandom, 2); }
-  float getRandInRange(const float x0, const float x1)
-  {
-    return std::lerp(x0, x1, static_cast<float>(getRand()) / static_cast<float>(RAND_MAX));
-  }
-  inline size_t getRandInRange(const size_t x0, const size_t x1)
-  {
-    return x0 + size_t(getRand()) % (x1 - x0);
-  }
 };
-
-// Return prob(m/n)
-inline bool probabilityOfMInN(PluginInfo* goomInfo, const uint32_t m, const uint32_t n)
-{
-  if (m == 1)
-  {
-    return goomInfo->getNRand(n) == 0;
-  }
-  if (m == n - 1)
-  {
-    return goomInfo->getNRand(n) > 0;
-  }
-  return goomInfo->getRandInRange(0.0f, 1.0f) <= static_cast<float>(m) / static_cast<float>(n);
-}
 
 void plugin_info_init(PluginInfo* p, size_t nbVisual);
 

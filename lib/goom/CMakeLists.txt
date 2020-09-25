@@ -21,7 +21,6 @@ set (SRCE_FILES
                  src/goom_core.cpp
                  src/goom_plugin_info.cpp
                  src/goom_testing.cpp
-                 src/goom_tools.cpp
                  src/ifs.cpp
                  src/lines.cpp
                  src/sound_tester.cpp

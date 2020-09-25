@@ -16,8 +16,8 @@
 #include "goom_config.h"
 #include "goom_fx.h"
 #include "goom_plugin_info.h"
-#include "goom_tools.h"
 #include "goomutils/colormap.h"
+#include "goomutils/goomrand.h"
 #include "goomutils/logging_control.h"
 #undef NO_LOGGING
 #include "goomutils/logging.h"
@@ -185,12 +185,12 @@ void GoomEvents::setGoomInfo(PluginInfo* info)
 inline bool GoomEvents::happens(const GoomEvent event) const
 {
   const WeightedEvent& weightedEvent = weightedEvents[static_cast<size_t>(event)];
-  return probabilityOfMInN(goomInfo, weightedEvent.m, weightedEvent.outOf);
+  return probabilityOfMInN(weightedEvent.m, weightedEvent.outOf);
 }
 
 inline GoomEvents::GoomFilterEvent GoomEvents::getRandomFilterEvent() const
 {
-/////////////////////////////////////////////return GoomFilterEvent::normalMode;
+  /////////////////////////////////////////////return GoomFilterEvent::normalMode;
 
   GoomEvents::GoomFilterEvent nextEvent = lastReturnedFilterEvent;
   for (size_t i = 0; i < 10; i++)
@@ -232,7 +232,7 @@ private:
     DrawablesState drawables;
   };
   using WeightedStatesArray = std::vector<State>;
-    static const WeightedStatesArray states;
+  static const WeightedStatesArray states;
   static std::vector<std::pair<uint16_t, size_t>> getWeightedStates(const WeightedStatesArray&);
   const Weights<uint16_t> weightedStates;
   size_t currentStateIndex;
@@ -385,8 +385,9 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
   logVal(module, "lastFilterMode", static_cast<uint32_t>(lastFilterMode));
   logVal(module, "numUpdates", numUpdates);
   logVal(module, "totalStateChanges", totalStateChanges);
-  const float avStateDuration = totalStateChanges == 0 ? -1.0 :
-      static_cast<float>(totalStateDurations)/ static_cast<float>(totalStateChanges);
+  const float avStateDuration = totalStateChanges == 0 ? -1.0
+                                                       : static_cast<float>(totalStateDurations) /
+                                                             static_cast<float>(totalStateChanges);
   logVal(module, "averageStateDuration", avStateDuration);
   for (size_t i = 0; i < numStateChanges.size(); i++)
   {
@@ -394,8 +395,10 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
   }
   for (size_t i = 0; i < stateDurations.size(); i++)
   {
-    const float avStateDuration = numStateChanges[i] == 0 ? -1.0 :
-        static_cast<float>(stateDurations[i])/ static_cast<float>(numStateChanges[i]);
+    const float avStateDuration =
+        numStateChanges[i] == 0
+            ? -1.0
+            : static_cast<float>(stateDurations[i]) / static_cast<float>(numStateChanges[i]);
     logVal(module, "averageState_" + std::to_string(i) + "_Duration", avStateDuration);
   }
   logVal(module, "totalFilterModeChanges", totalFilterModeChanges);
@@ -679,9 +682,8 @@ PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
   {
     const uint64_t seedVal =
         seed == 0 ? reinterpret_cast<uint64_t>(goomInfo->pixel) : static_cast<uint64_t>(seed);
-    pcg32_init(seedVal);
+    setRandSeed(seedVal);
   }
-  goomInfo->gRandom = goom_random_init();
 
   goomInfo->star_fx.init(&goomInfo->star_fx, goomInfo);
   goomInfo->zoomFilter_fx.init(&goomInfo->zoomFilter_fx, goomInfo);
@@ -837,8 +839,6 @@ uint32_t* goom_update(PluginInfo* goomInfo,
   // ! calcul du deplacement des petits points ...
 
   logDebug("goomInfo->sound.timeSinceLastGoom = {}", goomInfo->sound.timeSinceLastGoom);
-  logDebug("pcg32_get_last_state = {}", pcg32_get_last_state());
-  logDebug("goomInfo->gRandom->pos = {}", goomInfo->gRandom->pos);
 
   /* ! etude du signal ... */
   evaluate_sound(data, &(goomInfo->sound));
@@ -934,7 +934,6 @@ void goom_close(PluginInfo* goomInfo)
 
   goomInfo->pixel = goomInfo->back = nullptr;
   goomInfo->conv = nullptr;
-  goom_random_free(goomInfo->gRandom);
   goomLinesFree(&goomInfo->gmline1);
   goomLinesFree(&goomInfo->gmline2);
 
@@ -1309,39 +1308,32 @@ static void changeMilieu(PluginInfo* goomInfo)
   switch (planeEffectWeights.getRandomWeighted())
   {
     case PlaneEffectEvents::event1:
-      goomInfo->update.zoomFilterData.vPlaneEffect =
-          static_cast<int>(goomInfo->getNRand(3) - goomInfo->getNRand(3));
-      goomInfo->update.zoomFilterData.hPlaneEffect =
-          static_cast<int>(goomInfo->getNRand(3) - goomInfo->getNRand(3));
+      goomInfo->update.zoomFilterData.vPlaneEffect = static_cast<int>(getNRand(3) - getNRand(3));
+      goomInfo->update.zoomFilterData.hPlaneEffect = static_cast<int>(getNRand(3) - getNRand(3));
       break;
     case PlaneEffectEvents::event2:
       goomInfo->update.zoomFilterData.vPlaneEffect = 0;
-      goomInfo->update.zoomFilterData.hPlaneEffect =
-          static_cast<int>(goomInfo->getNRand(8) - goomInfo->getNRand(8));
+      goomInfo->update.zoomFilterData.hPlaneEffect = static_cast<int>(getNRand(8) - getNRand(8));
       break;
     case PlaneEffectEvents::event3:
-      goomInfo->update.zoomFilterData.vPlaneEffect =
-          static_cast<int>(goomInfo->getNRand(5) - goomInfo->getNRand(5));
+      goomInfo->update.zoomFilterData.vPlaneEffect = static_cast<int>(getNRand(5) - getNRand(5));
       goomInfo->update.zoomFilterData.hPlaneEffect = -goomInfo->update.zoomFilterData.vPlaneEffect;
       break;
     case PlaneEffectEvents::event4:
-      goomInfo->update.zoomFilterData.hPlaneEffect = static_cast<int>(5 + goomInfo->getNRand(8));
+      goomInfo->update.zoomFilterData.hPlaneEffect = static_cast<int>(5 + getNRand(8));
       goomInfo->update.zoomFilterData.vPlaneEffect = -goomInfo->update.zoomFilterData.hPlaneEffect;
       break;
     case PlaneEffectEvents::event5:
-      goomInfo->update.zoomFilterData.vPlaneEffect = static_cast<int>(5 + goomInfo->getNRand(8));
+      goomInfo->update.zoomFilterData.vPlaneEffect = static_cast<int>(5 + getNRand(8));
       goomInfo->update.zoomFilterData.hPlaneEffect = -goomInfo->update.zoomFilterData.hPlaneEffect;
       break;
     case PlaneEffectEvents::event6:
       goomInfo->update.zoomFilterData.hPlaneEffect = 0;
-      goomInfo->update.zoomFilterData.vPlaneEffect =
-          static_cast<int>(goomInfo->getNRand(10) - goomInfo->getNRand(10));
+      goomInfo->update.zoomFilterData.vPlaneEffect = static_cast<int>(getNRand(10) - getNRand(10));
       break;
     case PlaneEffectEvents::event7:
-      goomInfo->update.zoomFilterData.hPlaneEffect =
-          static_cast<int>(goomInfo->getNRand(10) - goomInfo->getNRand(10));
-      goomInfo->update.zoomFilterData.vPlaneEffect =
-          static_cast<int>(goomInfo->getNRand(10) - goomInfo->getNRand(10));
+      goomInfo->update.zoomFilterData.hPlaneEffect = static_cast<int>(getNRand(10) - getNRand(10));
+      goomInfo->update.zoomFilterData.vPlaneEffect = static_cast<int>(getNRand(10) - getNRand(10));
       break;
     case PlaneEffectEvents::event8:
       goomInfo->update.zoomFilterData.vPlaneEffect = 0;
@@ -1438,9 +1430,8 @@ static void bigNormalUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
          (goomInfo->cycle % 3 == 0)) ||
         goomEvent.happens(GoomEvent::filterChangeVitesseAndToggleReverse))
     {
-      goomInfo->update.zoomFilterData.vitesse = stopSpeed -
-                                                static_cast<int32_t>(goomInfo->getNRand(2)) +
-                                                static_cast<int32_t>(goomInfo->getNRand(2));
+      goomInfo->update.zoomFilterData.vitesse =
+          stopSpeed - static_cast<int32_t>(getNRand(2)) + static_cast<int32_t>(getNRand(2));
       goomInfo->update.zoomFilterData.reverse = !goomInfo->update.zoomFilterData.reverse;
     }
     else

@@ -1,9 +1,12 @@
 #ifndef LIB_GOOMUTILS_INCLUDE_GOOMUTILS_GOOMRAND_H_
 #define LIB_GOOMUTILS_INCLUDE_GOOMUTILS_GOOMRAND_H_
 
+#include "goomutils/goomrand.h"
+
 #include <cmath>
 #include <cstdlib>
 #include <format>
+#include <limits>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -18,8 +21,15 @@ inline float getRandSignFlt();
 
 // Return random integer in the range n0 <= n < n1.
 uint32_t getRandInRange(const uint32_t n0, const uint32_t n1);
+// Return random integer in the range 0 <= n < nmax.
+uint32_t getNRand(const uint32_t nmax);
+// Return random integer in the range 0 <= n < numeric_limits<uint32_t>::max().
+uint32_t getRand();
 // Return random float in the range x0 <= n <= x1.
 float getRandInRange(const float x0, const float x1);
+
+// Return prob(m/n)
+inline bool probabilityOfMInN(const uint32_t m, const uint32_t n);
 
 template<class E>
 class Weights
@@ -49,6 +59,29 @@ inline int getRandSignInt()
 inline float getRandSignFlt()
 {
   return getRandInRange(0u, 100u) < 50 ? -1.0f : +1.0f;
+}
+
+inline uint32_t getNRand(const uint32_t nmax)
+{
+  return getRandInRange(0u, nmax);
+}
+
+inline uint32_t getRand()
+{
+  return getRandInRange(0u, std::numeric_limits<uint32_t>::max());
+}
+
+inline bool probabilityOfMInN(const uint32_t m, const uint32_t n)
+{
+  if (m == 1)
+  {
+    return getNRand(n) == 0;
+  }
+  if (m == n - 1)
+  {
+    return getNRand(n) > 0;
+  }
+  return getRandInRange(0.0f, 1.0f) <= static_cast<float>(m) / static_cast<float>(n);
 }
 
 template<class E>

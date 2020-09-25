@@ -1,9 +1,9 @@
 #include "drawmethods.h"
 #include "goom_fx.h"
 #include "goom_plugin_info.h"
-#include "goom_tools.h"
 #include "goomutils/colormap.h"
 #include "goomutils/colormap_enums.h"
+#include "goomutils/goomrand.h"
 #include "goomutils/mathutils.h"
 
 #include <array>
@@ -260,8 +260,7 @@ static void addABomb(FSData* data,
                      const uint32_t my,
                      const float radius,
                      float vage,
-                     const float gravity,
-                     PluginInfo* info)
+                     const float gravity)
 {
   if (data->numStars >= data->maxStars)
   {
@@ -279,9 +278,9 @@ static void addABomb(FSData* data,
   // TODO Get colormap based on current mode.
   data->stars[i].currentColorMap = &data->colorMaps.getRandomColorMap(data->currentColorGroup);
 
-  float ro = radius * static_cast<float>(info->getNRand(100)) / 100.0f;
-  ro *= static_cast<float>(info->getNRand(100)) / 100.0f + 1.0f;
-  const uint32_t theta = info->getNRand(256);
+  float ro = radius * static_cast<float>(getNRand(100)) / 100.0f;
+  ro *= static_cast<float>(getNRand(100)) / 100.0f + 1.0f;
+  const uint32_t theta = getNRand(256);
 
   data->stars[i].vx = ro * cos256[theta];
   data->stars[i].vy = -0.2f + ro * sin256[theta];
@@ -321,12 +320,11 @@ static void fs_sound_event_occured(VisualFX* _this, PluginInfo* goomInfo)
   const uint32_t halfWidth = goomInfo->screen.width / 2;
   const uint32_t halfHeight = goomInfo->screen.height / 2;
   data->currentColorGroup = data->colorMaps.getRandomGroup();
-  data->maxAge = minStarAge + goomInfo->getNRand(maxStarExtraAge);
+  data->maxAge = minStarAge + getNRand(maxStarExtraAge);
 
-  size_t max =
-      100 + static_cast<size_t>((1.0f + goomInfo->sound.goomPower) * goomInfo->getNRand(150));
+  size_t max = 100 + static_cast<size_t>((1.0f + goomInfo->sound.goomPower) * getNRand(150));
   float radius =
-      (1.0f + goomInfo->sound.goomPower) * static_cast<float>(goomInfo->getNRand(150) + 50) / 300.0;
+      (1.0f + goomInfo->sound.goomPower) * static_cast<float>(getNRand(150) + 50) / 300.0;
   float gravity = 0.02f;
 
   uint32_t mx;
@@ -344,8 +342,8 @@ static void fs_sound_event_occured(VisualFX* _this, PluginInfo* goomInfo)
       const double rsq = halfHeight * halfHeight;
       while (true)
       {
-        mx = goomInfo->getNRand(goomInfo->screen.width);
-        my = goomInfo->getNRand(goomInfo->screen.height);
+        mx = getNRand(goomInfo->screen.width);
+        my = getNRand(goomInfo->screen.height);
         const double dx = mx - halfWidth;
         const double dy = my - halfHeight;
         if ((dx * dx) + (dy * dy) >= rsq)
@@ -358,9 +356,9 @@ static void fs_sound_event_occured(VisualFX* _this, PluginInfo* goomInfo)
     break;
     case StarModes::rain:
       stats.rainFxChosen();
-      mx = goomInfo->getNRand(goomInfo->screen.width);
+      mx = getNRand(goomInfo->screen.width);
       mx = (mx <= halfWidth) ? 0 : goomInfo->screen.width;
-      my = -(goomInfo->screen.height / 3) - goomInfo->getNRand(goomInfo->screen.width / 3);
+      my = -(goomInfo->screen.height / 3) - getNRand(goomInfo->screen.width / 3);
       radius *= 1.5;
       vage = 0.002f;
       break;
@@ -387,14 +385,17 @@ static void fs_sound_event_occured(VisualFX* _this, PluginInfo* goomInfo)
 
   for (size_t i = 0; i < max; i++)
   {
-    addABomb(data, mx, my, radius, vage, gravity, goomInfo);
+    addABomb(data, mx, my, radius, vage, gravity);
   }
 }
 
 /**
  * Main methode of the FX.
  */
-static void fs_apply(VisualFX* _this, [[maybe_unused]] Pixel* src, Pixel* dest, PluginInfo* info)
+static void fs_apply(VisualFX* _this,
+                     [[maybe_unused]] Pixel* src,
+                     Pixel* dest,
+                     PluginInfo* goomInfo)
 {
   FSData* data = static_cast<FSData*>(_this->fx_data);
 
@@ -412,13 +413,13 @@ static void fs_apply(VisualFX* _this, [[maybe_unused]] Pixel* src, Pixel* dest, 
   data->fx_mode = static_cast<StarModes>(IVAL(data->fx_mode_p));
 
   // look for events
-  if (info->sound.timeSinceLastGoom < 1)
+  if (goomInfo->sound.timeSinceLastGoom < 1)
   {
-    fs_sound_event_occured(_this, info);
-    if (info->getNRand(20) == 1)
+    fs_sound_event_occured(_this, goomInfo);
+    if (getNRand(20) == 1)
     {
       // Give a slight weight towards noFx mode by using numFX + 2.
-      const uint32_t newVal = info->getNRand(numFx + 2);
+      const uint32_t newVal = getNRand(numFx + 2);
       const StarModes newMode = newVal >= numFx ? StarModes::noFx : static_cast<StarModes>(newVal);
       IVAL(data->fx_mode_p) = static_cast<int>(newMode);
       data->fx_mode_p.change_listener(&data->fx_mode_p);
@@ -456,7 +457,7 @@ static void fs_apply(VisualFX* _this, [[maybe_unused]] Pixel* src, Pixel* dest, 
       const uint32_t col = ColorMap::colorMix(color, colorLow, t);
       const int x2 = x0 - static_cast<int>(data->stars[i].vx * j);
       const int y2 = y0 - static_cast<int>(data->stars[i].vy * j);
-      draw_line(dest, x1, y1, x2, y2, col, info->screen.width, info->screen.height);
+      draw_line(dest, x1, y1, x2, y2, col, goomInfo->screen.width, goomInfo->screen.height);
       x1 = x2;
       y1 = y2;
     }
@@ -465,9 +466,9 @@ static void fs_apply(VisualFX* _this, [[maybe_unused]] Pixel* src, Pixel* dest, 
   // look for dead particules
   for (size_t i = 0; i < data->numStars;)
   {
-    if ((data->stars[i].x > info->screen.width + 64) ||
+    if ((data->stars[i].x > goomInfo->screen.width + 64) ||
         ((data->stars[i].vy >= 0) &&
-         (data->stars[i].y - 16 * data->stars[i].vy > info->screen.height)) ||
+         (data->stars[i].y - 16 * data->stars[i].vy > goomInfo->screen.height)) ||
         (data->stars[i].x < -64) || (data->stars[i].age >= data->maxAge))
     {
       data->stars[i] = data->stars[data->numStars - 1];

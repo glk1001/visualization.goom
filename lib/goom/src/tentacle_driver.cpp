@@ -4,6 +4,7 @@
 #include "drawmethods.h"
 #include "goom_core.h"
 #include "goomutils/colormap.h"
+#include "goomutils/goomrand.h"
 #include "goomutils/logging_control.h"
 //#undef NO_LOGGING
 #include "goomutils/logging.h"
@@ -133,17 +134,20 @@ void TentacleDriver::init()
 TentacleDriver::IterationParams TentacleDriver::IterParamsGroup::getNext(const float t) const
 {
   const float prevYWeight =
-      getRandInRange(0.9f, 1.1f) * std::lerp(float(first.prevYWeight), float(last.prevYWeight), t);
+      getRandInRange(0.9f, 1.1f) *
+      std::lerp(static_cast<float>(first.prevYWeight), static_cast<float>(last.prevYWeight), t);
   IterationParams params{};
   params.length =
-      size_t(getRandInRange(1.0f, 1.1f) * std::lerp(float(first.length), float(last.length), t));
-  params.numNodes = size_t(getRandInRange(0.9f, 1.1f) *
-                           std::lerp(float(first.numNodes), float(last.numNodes), t));
+      size_t(getRandInRange(1.0f, 1.1f) *
+             std::lerp(static_cast<float>(first.length), static_cast<float>(last.length), t));
+  params.numNodes =
+      size_t(getRandInRange(0.9f, 1.1f) *
+             std::lerp(static_cast<float>(first.numNodes), static_cast<float>(last.numNodes), t));
   params.prevYWeight = prevYWeight;
   params.iterZeroYValWave = first.iterZeroYValWave;
   params.iterZeroYValWaveFreq =
-      getRandInRange(0.9f, 1.1f) *
-      std::lerp(float(first.iterZeroYValWaveFreq), float(last.iterZeroYValWaveFreq), t);
+      getRandInRange(0.9f, 1.1f) * std::lerp(static_cast<float>(first.iterZeroYValWaveFreq),
+                                             static_cast<float>(last.iterZeroYValWaveFreq), t);
   return params;
 }
 
@@ -152,7 +156,8 @@ std::unique_ptr<Tentacle2D> TentacleDriver::createNewTentacle2D(const size_t ID,
 {
   logDebug("Creating new tentacle2D {}...", ID);
 
-  const size_t tentacleLen = size_t(getRandInRange(0.99f, 1.01f) * float(params.length));
+  const size_t tentacleLen =
+      size_t(getRandInRange(0.99f, 1.01f) * static_cast<float>(params.length));
   const double tent2d_xmax = tent2d_xmin + tentacleLen;
 
   std::unique_ptr<Tentacle2D> tentacle{
@@ -165,7 +170,7 @@ std::unique_ptr<Tentacle2D> TentacleDriver::createNewTentacle2D(const size_t ID,
 
   tentacle->setPrevYWeight(params.prevYWeight);
   tentacle->setCurrentYWeight(1.0 - params.prevYWeight);
-  tentacle->setNumNodes(size_t(float(params.numNodes) * getRandInRange(0.9f, 1.1f)));
+  tentacle->setNumNodes(size_t(static_cast<float>(params.numNodes) * getRandInRange(0.9f, 1.1f)));
   logDebug("tentacle {:3}:"
            " tentacleLen = {:4}, tent2d_xmin = {:7.2f}, tent2d_xmax = {:5.2f},"
            " prevYWeight = {:5.2f}, curYWeight = {:5.2f}, numNodes = {:5}",

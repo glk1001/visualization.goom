@@ -18,6 +18,8 @@ void setRandSeed(const uint64_t seed)
   randSeed = seed;
 }
 
+// NOTE: C++ std::uniform_int_distribution is too expensive (about double) so we use Xoshiro
+//   and multiplication/shift technique. For timings, see tests/test_goomrand.cpp.
 inline uint32_t randXoshiroFunc(const uint32_t n0, const uint32_t n1)
 {
   // thread_local xoshiro256starstar64 eng { getRandSeed() };
