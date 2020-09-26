@@ -2,7 +2,7 @@
 
 #include "colorutils.h"
 #include "goom_config.h"
-#include "goom_core.h"
+#include "goom_graphic.h"
 #include "goom_plugin_info.h"
 #include "goomutils/colormap.h"
 #include "goomutils/goomrand.h"

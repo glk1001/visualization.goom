@@ -407,7 +407,7 @@ void CVisualizationGoom::Process()
     }
     lk.unlock();
 
-    UpdateGoomBuffer(title, floatAudioData, pixels.get());
+    UpdateGoomBuffer(title, floatAudioData, pixels);
     buffNum++;
 
     lk.lock();
@@ -420,11 +420,11 @@ void CVisualizationGoom::Process()
 
 void CVisualizationGoom::UpdateGoomBuffer(const char* title,
                                           const float floatAudioData[],
-                                          uint32_t* pixels)
+                                          std::shared_ptr<uint32_t>& pixels)
 {
   static int16_t audioData[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN];
   FillAudioDataBuffer(audioData, floatAudioData, m_channels);
-  goom_set_screenbuffer(m_goom, pixels);
+  goom_set_screenbuffer(m_goom, reinterpret_cast<Pixel*>(pixels.get()));
   goom_update(m_goom, audioData, 0, 0.0f, title, "Kodi");
 }
 

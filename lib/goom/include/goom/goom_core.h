@@ -3,6 +3,7 @@
 
 #include "filters.h"
 #include "goom_config.h"
+#include "goom_graphic.h"
 #include "goom_plugin_info.h"
 
 #include <cstdint>
@@ -27,7 +28,7 @@ extern uint32_t* goom_update(PluginInfo*,
                              const char* message);
 
 // returns 0 if the buffer wasn't accepted
-int goom_set_screenbuffer(PluginInfo*, void* buffer);
+int goom_set_screenbuffer(PluginInfo*, Pixel* buffer);
 
 void goom_close(PluginInfo*);
 

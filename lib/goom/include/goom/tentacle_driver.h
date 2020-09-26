@@ -1,7 +1,7 @@
 #ifndef LIBS_GOOM_INCLUDE_GOOM_TENTACLE_DRIVER_H_
 #define LIBS_GOOM_INCLUDE_GOOM_TENTACLE_DRIVER_H_
 
-#include "goom_core.h"
+#include "goom_graphic.h"
 #include "goomutils/colormap.h"
 #include "goomutils/colormap_enums.h"
 #include "tentacles_new.h"

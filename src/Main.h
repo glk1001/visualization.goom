@@ -27,6 +27,7 @@
 #include "CircularBuffer.h"
 #include "goom/goom_config.h"
 #include "goom/goom_core.h"
+#include "goom/goom_graphic.h"
 
 #include <condition_variable>
 #include <functional>
@@ -80,7 +81,7 @@ protected:
   virtual void AudioDataQueueTooBig() {}
   virtual void SkippedAudioData() {}
   virtual void AudioDataIncorrectReadLength() {}
-  virtual void UpdateGoomBuffer(const char* title, const float floatAudioData[], uint32_t* pixels);
+  virtual void UpdateGoomBuffer(const char* title, const float floatAudioData[], std::shared_ptr<uint32_t>& pixels);
 
 private:
   void Process();

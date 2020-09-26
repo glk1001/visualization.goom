@@ -232,7 +232,7 @@ private:
     DrawablesState drawables;
   };
   using WeightedStatesArray = std::vector<State>;
-  static const WeightedStatesArray states;
+    static const WeightedStatesArray states;
   static std::vector<std::pair<uint16_t, size_t>> getWeightedStates(const WeightedStatesArray&);
   const Weights<uint16_t> weightedStates;
   size_t currentStateIndex;
@@ -771,9 +771,9 @@ void goom_set_resolution(PluginInfo* goomInfo, const uint16_t resx, const uint16
       std::unique_ptr<GoomDots>{new GoomDots{goomInfo->screen.width, goomInfo->screen.height}};
 }
 
-int goom_set_screenbuffer(PluginInfo* goomInfo, void* buffer)
+int goom_set_screenbuffer(PluginInfo* goomInfo, Pixel* buffer)
 {
-  goomInfo->outputBuf = static_cast<Pixel*>(buffer);
+  goomInfo->outputBuf = buffer;
   return 1;
 }
 
