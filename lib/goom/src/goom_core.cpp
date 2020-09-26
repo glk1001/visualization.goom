@@ -232,7 +232,7 @@ private:
     DrawablesState drawables;
   };
   using WeightedStatesArray = std::vector<State>;
-  static const WeightedStatesArray states;
+    static const WeightedStatesArray states;
   static std::vector<std::pair<uint16_t, size_t>> getWeightedStates(const WeightedStatesArray&);
   const Weights<uint16_t> weightedStates;
   size_t currentStateIndex;
@@ -266,21 +266,21 @@ inline void GoomStates::doRandomStateChange()
 
 // clang-format off
 const GoomStates::WeightedStatesArray GoomStates::states{ {
+  /**
   { .weight =  60, .drawables = {GD::IFS,                                                 GD::scope, GD::farScope}},
+  **/
   /**
   { .weight =  40, .drawables = {                     GD::tentacles,                                  GD::farScope}},
   **/
-  /**
-  { .weight = 100, .drawables = {GD::IFS, GD::points, GD::stars,                           GD::scope, GD::farScope}},
-  { .weight =  40, .drawables = {GD::IFS,             GD::tentacles, GD::stars,                       GD::farScope}},
-  { .weight =  60, .drawables = {GD::IFS,                            GD::stars, GD::lines, GD::scope, GD::farScope}},
-  { .weight =  60, .drawables = {         GD::points, GD::tentacles, GD::stars, GD::lines, GD::scope, GD::farScope}},
-  { .weight =  70, .drawables = {         GD::points, GD::tentacles, GD::stars,            GD::scope              }},
-  { .weight =  70, .drawables = {         GD::points, GD::tentacles, GD::stars, GD::lines, GD::scope, GD::farScope}},
-  { .weight =  50, .drawables = {                     GD::tentacles, GD::stars, GD::lines,            GD::farScope}},
-  { .weight =  60, .drawables = {                                    GD::stars, GD::lines, GD::scope, GD::farScope}},
-  { .weight =  60, .drawables = {         GD::points,                GD::stars,            GD::scope, GD::farScope}},
-  **/
+  { .weight = 100, .drawables = {GD::IFS, GD::dots, GD::stars,                           GD::scope, GD::farScope}},
+  { .weight =  40, .drawables = {GD::IFS,           GD::tentacles, GD::stars,                       GD::farScope}},
+  { .weight =  60, .drawables = {GD::IFS,                          GD::stars, GD::lines, GD::scope, GD::farScope}},
+  { .weight =  60, .drawables = {         GD::dots, GD::tentacles, GD::stars, GD::lines, GD::scope, GD::farScope}},
+  { .weight =  70, .drawables = {         GD::dots, GD::tentacles, GD::stars,            GD::scope              }},
+  { .weight =  70, .drawables = {         GD::dots, GD::tentacles, GD::stars, GD::lines, GD::scope, GD::farScope}},
+  { .weight =  50, .drawables = {                   GD::tentacles, GD::stars, GD::lines,            GD::farScope}},
+  { .weight =  60, .drawables = {                                  GD::stars, GD::lines, GD::scope, GD::farScope}},
+  { .weight =  60, .drawables = {         GD::dots,                GD::stars,            GD::scope, GD::farScope}},
 }};
 // clang-format on
 

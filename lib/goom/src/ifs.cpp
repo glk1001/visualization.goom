@@ -63,10 +63,12 @@ using Dbl = float;
 using Flt = int;
 
 constexpr int fix = 12;
-constexpr int unit = 1 << fix;
-#define DBL_To_F_PT(x) static_cast<Flt>(static_cast<Dbl>(unit) * (x))
-// Following inline is different to above #define???!!
-// inline F_PT DBL_To_F_PT(const DBL x) { return (F_PT)((DBL)unit * x); }
+
+inline Flt DBL_To_F_PT(const Dbl x)
+{
+  constexpr int unit = 1 << fix;
+  return static_cast<Flt>(static_cast<Dbl>(unit) * x);
+}
 
 inline Flt div_by_unit(const Flt x)
 {
@@ -131,6 +133,7 @@ struct IfsData
 
   const ColorMaps* colorMaps;
   const ColorMap* mixerMap;
+  bool doMegaColorChange;
   bool doMixColors;
   bool reverseMix;
   float mixFactor; // in [0, 1]
@@ -505,6 +508,12 @@ static IfsUpdateData updData{
 };
 // clang-format on
 
+static void changeColormaps(IfsData* fx_data)
+{
+  updData.couleur.val = ColorMap::getRandomColor(fx_data->colorMaps->getRandomColorMap());
+  fx_data->mixerMap = &fx_data->colorMaps->getRandomColorMap();
+}
+
 inline Pixel getPixel(const Int32ChannelArray& col)
 {
   Pixel p;
@@ -561,6 +570,7 @@ static void updatePixelBuffers(PluginInfo* goomInfo,
 
   const float tStep = numPoints == 1 ? 0 : (1.0 - 0.0) / static_cast<float>(numPoints - 1);
   float t = -tStep;
+  bool doneColorChange = !fx_data->doMegaColorChange;
   for (size_t i = 0; i < numPoints; i += static_cast<size_t>(increment))
   {
     t += tStep;
@@ -570,6 +580,12 @@ static void updatePixelBuffers(PluginInfo* goomInfo,
     if ((x >= width) || (y >= height))
     {
       continue;
+    }
+
+    if (!doneColorChange && probabilityOfMInN(1, 5))
+    {
+      changeColormaps(fx_data);
+      doneColorChange = true;
     }
 
     const Pixel finalColor = getMixedcolor(fx_data, color, t);
@@ -1023,8 +1039,8 @@ void ifsRenew(VisualFX* _this)
 {
   IfsData* data = static_cast<IfsData*>(_this->fx_data);
 
-  updData.couleur.val = ColorMap::getRandomColor(data->colorMaps->getRandomColorMap());
-  data->mixerMap = &data->colorMaps->getRandomColorMap();
+  changeColormaps(data);
+  data->doMegaColorChange = probabilityOfMInN(1, 100);
   data->doMixColors = probabilityOfMInN(3, 4);
   data->reverseMix = probabilityOfMInN(1, 2);
   data->mixFactor = getRandInRange(0.3f, 0.7f);

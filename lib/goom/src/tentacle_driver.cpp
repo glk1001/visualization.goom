@@ -86,7 +86,7 @@ void TentacleDriver::init()
   logDebug("Got color maps.");
 
   const size_t numInParamGroup = numTentacles / iterParamsGroups.size();
-  const float tStep = 1.0 / float(numInParamGroup - 1);
+  const float tStep = 1.0 / static_cast<float>(numInParamGroup - 1);
   logDebug("numInTentacleGroup = {}, tStep = {:.2f}.", numInParamGroup, tStep);
 
   size_t paramsIndex = 0;
@@ -397,7 +397,7 @@ void TentacleDriver::beforeIter(const size_t ID,
     **/
   }
 
-  if (iterNum % changeTentacleColorMapEveryNUpdates == 0)
+  if ((iterNum % changeTentacleColorMapEveryNUpdates == 0) || probabilityOfMInN(1, 5))
   {
     colorizers[ID]->resetColorMap(colorMaps->getRandomColorMap(currentColorMapGroup));
   }
@@ -674,12 +674,12 @@ CirclesTentacleLayout::CirclesTentacleLayout(const float radiusMin,
 
   const auto getSamplePoints = [&](const float radius, const size_t numSample,
                                    const float angleStart, const float angleFinish) {
-    const float angleStep = (angleFinish - angleStart) / float(numSample - 1);
+    const float angleStep = (angleFinish - angleStart) / static_cast<float>(numSample - 1);
     float angle = angleStart;
     for (size_t i = 0; i < numSample; i++)
     {
-      const float x = float(radius * cos(angle));
-      const float y = float(radius * sin(angle));
+      const float x = static_cast<float>(radius * cos(angle));
+          const float y = static_cast<float>(radius * sin(angle));
       const V3d point = {x, y, zConst};
       points.push_back(point);
 #ifndef NO_LOGGING
@@ -699,8 +699,8 @@ CirclesTentacleLayout::CirclesTentacleLayout(const float radiusMin,
 
   const float angleOffsetStart = 0.10;
   const float angleOffsetFinish = 0.30;
-  const float offsetStep = (angleOffsetStart - angleOffsetFinish) / float(numCircles - 1);
-  const float radiusStep = (radiusMax - radiusMin) / float(numCircles - 1);
+  const float offsetStep = (angleOffsetStart - angleOffsetFinish) / static_cast<float>(numCircles - 1);
+  const float radiusStep = (radiusMax - radiusMin) / static_cast<float>(numCircles - 1);
   logDebug("Setup: numCircles = {}, radiusStep = {:.2f}, radiusMin = {:.2f}, radiusMax = {:.2f},"
            " offsetStep = {:.2f}, angleOffsetStart = {:.2f}, angleOffsetFinish = {:.2f}",
            numCircles, radiusStep, radiusMin, radiusMax, offsetStep, angleOffsetStart,
