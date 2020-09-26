@@ -109,6 +109,7 @@ void plugin_info_init(PluginInfo* pp, size_t nbVisuals)
       .waveEffect = false,
       .hypercosEffect = false,
       .noisify = false,
+      .noiseFactor = 1,
   };
 
   setOptimizedMethods(pp);

@@ -15,7 +15,7 @@
 enum class GoomDrawable
 {
   IFS = 0,
-  points,
+  dots,
   tentacles,
   stars,
   lines,

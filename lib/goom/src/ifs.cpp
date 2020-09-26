@@ -37,8 +37,8 @@
 
 #include "colorutils.h"
 #include "goom_config.h"
-#include "goom_core.h"
 #include "goom_graphic.h"
+#include "goom_plugin_info.h"
 #include "goom_testing.h"
 #include "goomutils/colormap.h"
 #include "goomutils/goomrand.h"
@@ -48,6 +48,8 @@
 #include "goomutils/mathutils.h"
 
 #include <array>
+#undef NDEBUG
+#include <cassert>
 #include <cmath>
 #include <cstdint>
 
@@ -57,45 +59,20 @@ struct IFSPoint
   uint32_t y;
 };
 
-inline uint32_t longRand()
-{
-  return static_cast<long>(getRand() & 0x7fffffff);
-}
-
-inline int nRand(const size_t n)
-{
-  return static_cast<int>(longRand() % n);
-}
-
-inline int rand()
-{
-  return static_cast<int>(getRand());
-}
-
-#if RAND_MAX < 0x10000
-#define MAXRAND ((static_cast<float>(RAND_MAX < 16) + static_cast<float>(RAND_MAX) + 1.0f) / 127.0f)
-#else
-#define MAXRAND (2147483648.0 / 127.0) /* unsigned 1<<31 / 127.0 (cf goom_tools) as a float */
-#endif
-
-/*****************************************************/
-
 using DBL = float;
 using F_PT = int;
-/* typedef float               F_PT; */
-
-/*****************************************************/
 
 constexpr int fix = 12;
 constexpr int unit = 1 << fix;
-#define DBL_To_F_PT(x) (F_PT)((DBL)(unit) * (x))
+#define DBL_To_F_PT(x) static_cast<F_PT>(static_cast<DBL>(unit) * (x))
 // Following inline is different to above #define???!!
-//static inline F_PT DBL_To_F_PT(const DBL x) { return (F_PT)((DBL)unit * x); }
+// inline F_PT DBL_To_F_PT(const DBL x) { return (F_PT)((DBL)unit * x); }
 
 inline F_PT div_by_unit(const F_PT x)
 {
   return x >> fix;
 }
+
 inline F_PT div_by_2units(const F_PT x)
 {
   return x >> (fix + 1);
@@ -128,20 +105,20 @@ struct Similitude
 
 struct Fractal
 {
-  int numSimi;
+  uint32_t numSimi;
   Similitude components[5 * maxSimi];
   uint32_t depth;
-  int count;
-  int speed;
-  uint16_t width;
-  uint16_t height;
-  uint16_t lx;
-  uint16_t ly;
+  uint32_t count;
+  uint32_t speed;
+  uint32_t width;
+  uint32_t height;
+  uint32_t lx;
+  uint32_t ly;
   DBL rMean;
   DBL drMean;
   DBL dr2Mean;
-  int curPt;
-  int maxPt;
+  uint32_t curPt;
+  uint32_t maxPt;
 
   IFSPoint* buffer1;
   IFSPoint* buffer2;
@@ -169,20 +146,16 @@ struct IfsData
 
 static DBL gaussRand(const DBL c, const DBL S, const DBL A_mult_1_minus_exp_neg_S)
 {
-  DBL y = static_cast<DBL>(longRand()) / MAXRAND;
-  y = A_mult_1_minus_exp_neg_S * (1.0 - exp(-y * y * S));
-  if (nRand(2))
-  {
-    return (c + y);
-  }
-  return (c - y);
+  const DBL x = getRandInRange(0.0f, 1.0f);
+  const DBL y = A_mult_1_minus_exp_neg_S * (1.0 - exp(-x * x * S));
+  return probabilityOfMInN(1, 2) ? c + y : c - y;
 }
 
 static DBL halfGaussRand(const DBL c, const DBL S, const DBL A_mult_1_minus_exp_neg_S)
 {
-  DBL y = static_cast<DBL>(longRand()) / MAXRAND;
-  y = A_mult_1_minus_exp_neg_S * (1.0 - exp(-y * y * S));
-  return (c + y);
+  const DBL x = getRandInRange(0.0f, 1.0f);
+  const DBL y = A_mult_1_minus_exp_neg_S * (1.0 - exp(-x * x * S));
+  return c + y;
 }
 
 inline DBL get_1_minus_exp_neg_S(const DBL S)
@@ -190,7 +163,7 @@ inline DBL get_1_minus_exp_neg_S(const DBL S)
   return 1.0 - exp(-S);
 }
 
-static void randomSimis(Fractal* fractal, Similitude* cur, int i)
+static void randomSimis(Fractal* fractal, Similitude* cur, uint32_t i)
 {
   static DBL c_AS_factor;
   static DBL r_1_minus_exp_neg_S;
@@ -266,7 +239,7 @@ static void initIfs(PluginInfo* goomInfo, IfsData* data)
   Fractal* fractal = data->root;
   freeIfsBuffers(fractal);
 
-  const int numCentres = nRand(4) + 2;
+  const uint32_t numCentres = getNRand(4) + 2;
   switch (numCentres)
   {
     case 3:
@@ -355,13 +328,15 @@ static void trace(Fractal* F, const F_PT xo, const F_PT yo, IfsData* data)
 {
   Similitude* Cur = data->curF->components;
   //	logDebug("data->Cur_F->numSimi = {}, xo = {}, yo = {}", data->Cur_F->numSimi, xo, yo);
-  for (int i = data->curF->numSimi; i; --i, Cur++)
+  for (int i = static_cast<int>(data->curF->numSimi); i; --i, Cur++)
   {
     F_PT x, y;
     transform(Cur, xo, yo, &x, &y);
 
-    data->buff->x = static_cast<uint32_t>(F->lx + div_by_2units(x * F->lx));
-    data->buff->y = static_cast<uint32_t>(F->ly - div_by_2units(y * F->ly));
+    data->buff->x = static_cast<uint32_t>(static_cast<F_PT>(F->lx) +
+                                          div_by_2units(x * static_cast<int>(F->lx)));
+    data->buff->y = static_cast<uint32_t>(static_cast<F_PT>(F->ly) -
+                                          div_by_2units(y * static_cast<int>(F->ly)));
     data->buff++;
 
     data->curPt++;
@@ -380,7 +355,7 @@ static void drawFractal(IfsData* data)
   Fractal* fractal = data->root;
   int i;
   Similitude* Cur;
-  for (Cur = fractal->components, i = fractal->numSimi; i; --i, Cur++)
+  for (Cur = fractal->components, i = static_cast<int>(fractal->numSimi); i; --i, Cur++)
   {
     Cur->Cx = DBL_To_F_PT(Cur->c_x);
     Cur->Cy = DBL_To_F_PT(Cur->c_y);
@@ -398,13 +373,13 @@ static void drawFractal(IfsData* data)
   data->curF = fractal;
   data->buff = fractal->buffer2;
   int j;
-  for (Cur = fractal->components, i = fractal->numSimi; i; --i, Cur++)
+  for (Cur = fractal->components, i = static_cast<int>(fractal->numSimi); i; --i, Cur++)
   {
     const F_PT xo = Cur->Cx;
     const F_PT yo = Cur->Cy;
     logDebug("F->numSimi = {}, xo = {}, yo = {}", fractal->numSimi, xo, yo);
     Similitude* Simi;
-    for (Simi = fractal->components, j = fractal->numSimi; j; --j, Simi++)
+    for (Simi = fractal->components, j = static_cast<int>(fractal->numSimi); j; --j, Simi++)
     {
       if (Simi == Cur)
       {
@@ -454,7 +429,7 @@ static IFSPoint* drawIfs(size_t* numPoints, IfsData* data)
   Similitude* S3 = S2 + fractal->numSimi;
   Similitude* S4 = S3 + fractal->numSimi;
 
-  for (int i = fractal->numSimi; i; --i, S++, S1++, S2++, S3++, S4++)
+  for (int i = static_cast<int>(fractal->numSimi); i; --i, S++, S1++, S2++, S3++, S4++)
   {
     S->c_x = u0 * S1->c_x + u1 * S2->c_x + u2 * S3->c_x + u3 * S4->c_x;
     S->c_y = u0 * S1->c_y + u1 * S2->c_y + u2 * S3->c_y + u3 * S4->c_y;
@@ -478,7 +453,7 @@ static IFSPoint* drawIfs(size_t* numPoints, IfsData* data)
     S3 = S2 + fractal->numSimi;
     S4 = S3 + fractal->numSimi;
 
-    for (int i = fractal->numSimi; i; --i, S++, S1++, S2++, S3++, S4++)
+    for (int i = static_cast<int>(fractal->numSimi); i; --i, S++, S1++, S2++, S3++, S4++)
     {
       S2->c_x = 2.0 * S4->c_x - S3->c_x;
       S2->c_y = 2.0 * S4->c_y - S3->c_y;
@@ -906,21 +881,21 @@ static void ifs_vfx_save(VisualFX* _this, const PluginInfo*, const char* file)
   save_int_setting(f, vfxname, "data.initalized", data->initialized);
 
   Fractal* fractal = data->root;
-  save_int_setting(f, vfxname, "fractal.numSimi", fractal->numSimi);
-  save_int_setting(f, vfxname, "fractal.depth", int(fractal->depth));
-  save_int_setting(f, vfxname, "fractal.count", fractal->count);
-  save_int_setting(f, vfxname, "fractal.speed", fractal->speed);
-  save_int_setting(f, vfxname, "fractal.width", fractal->width);
-  save_int_setting(f, vfxname, "fractal.height", fractal->height);
-  save_int_setting(f, vfxname, "fractal.lx", fractal->lx);
-  save_int_setting(f, vfxname, "fractal.ly", fractal->ly);
+  save_int_setting(f, vfxname, "fractal.numSimi", static_cast<int>(fractal->numSimi));
+  save_int_setting(f, vfxname, "fractal.depth", static_cast<int>(fractal->depth));
+  save_int_setting(f, vfxname, "fractal.count", static_cast<int>(fractal->count));
+  save_int_setting(f, vfxname, "fractal.speed", static_cast<int>(fractal->speed));
+  save_int_setting(f, vfxname, "fractal.width", static_cast<int>(fractal->width));
+  save_int_setting(f, vfxname, "fractal.height", static_cast<int>(fractal->height));
+  save_int_setting(f, vfxname, "fractal.lx", static_cast<int>(fractal->lx));
+  save_int_setting(f, vfxname, "fractal.ly", static_cast<int>(fractal->ly));
   save_float_setting(f, vfxname, "fractal.rMean", fractal->rMean);
   save_float_setting(f, vfxname, "fractal.drMean", fractal->drMean);
   save_float_setting(f, vfxname, "fractal.dr2Mean", fractal->dr2Mean);
-  save_int_setting(f, vfxname, "fractal.curPt", fractal->curPt);
-  save_int_setting(f, vfxname, "fractal.maxPt", fractal->maxPt);
+  save_int_setting(f, vfxname, "fractal.curPt", static_cast<int>(fractal->curPt));
+  save_int_setting(f, vfxname, "fractal.maxPt", static_cast<int>(fractal->maxPt));
 
-  for (int i = 0; i < fractal->numSimi; i++)
+  for (int i = 0; i < static_cast<int>(fractal->numSimi); i++)
   {
     const Similitude* simi = &(fractal->components[i]);
     save_indexed_float_setting(f, vfxname, "simi.c_x", i, simi->c_x);
@@ -969,21 +944,21 @@ static void ifs_vfx_restore(VisualFX* _this, PluginInfo*, const char* file)
   data->initialized = true;
 
   Fractal* fractal = data->root;
-  fractal->numSimi = get_int_setting(f, vfxname, "fractal.numSimi");
-  fractal->depth = uint32_t(get_int_setting(f, vfxname, "fractal.depth"));
-  fractal->count = get_int_setting(f, vfxname, "fractal.count");
-  fractal->speed = get_int_setting(f, vfxname, "fractal.speed");
-  fractal->width = get_int_setting(f, vfxname, "fractal.width");
-  fractal->height = get_int_setting(f, vfxname, "fractal.height");
-  fractal->lx = get_int_setting(f, vfxname, "fractal.lx");
-  fractal->ly = get_int_setting(f, vfxname, "fractal.ly");
+  fractal->numSimi = static_cast<uint32_t>(get_int_setting(f, vfxname, "fractal.numSimi"));
+  fractal->depth = static_cast<uint32_t>(get_int_setting(f, vfxname, "fractal.depth"));
+  fractal->count = static_cast<uint32_t>(get_int_setting(f, vfxname, "fractal.count"));
+  fractal->speed = static_cast<uint32_t>(get_int_setting(f, vfxname, "fractal.speed"));
+  fractal->width = static_cast<uint32_t>(get_int_setting(f, vfxname, "fractal.width"));
+  fractal->height = static_cast<uint32_t>(get_int_setting(f, vfxname, "fractal.height"));
+  fractal->lx = static_cast<uint32_t>(get_int_setting(f, vfxname, "fractal.lx"));
+  fractal->ly = static_cast<uint32_t>(get_int_setting(f, vfxname, "fractal.ly"));
   fractal->rMean = get_float_setting(f, vfxname, "fractal.rMean");
   fractal->drMean = get_float_setting(f, vfxname, "fractal.drMean");
   fractal->dr2Mean = get_float_setting(f, vfxname, "fractal.dr2Mean");
-  fractal->curPt = get_int_setting(f, vfxname, "fractal.curPt");
-  fractal->maxPt = get_int_setting(f, vfxname, "fractal.maxPt");
+  fractal->curPt = static_cast<uint32_t>(get_int_setting(f, vfxname, "fractal.curPt"));
+  fractal->maxPt = static_cast<uint32_t>(get_int_setting(f, vfxname, "fractal.maxPt"));
 
-  for (int i = 0; i < fractal->numSimi; i++)
+  for (int i = 0; i < static_cast<int>(fractal->numSimi); i++)
   {
     Similitude* simi = &(fractal->components[i]);
     simi->c_x = get_indexed_float_setting(f, vfxname, "simi.c_x", i);
@@ -1050,9 +1025,12 @@ VisualFX ifs_visualfx_create(void)
 void ifsRenew(VisualFX* _this)
 {
   IfsData* data = static_cast<IfsData*>(_this->fx_data);
+
   updData.couleur.val = ColorMap::getRandomColor(data->colorMaps->getRandomColorMap());
   data->mixerMap = &data->colorMaps->getRandomColorMap();
   data->doMixColors = probabilityOfMInN(3, 4);
   data->reverseMix = probabilityOfMInN(1, 2);
   data->mixFactor = getRandInRange(0.3f, 0.7f);
+
+  data->root->speed = getRandInRange(2u, 15u);
 }

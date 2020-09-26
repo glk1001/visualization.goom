@@ -633,7 +633,7 @@ class GoomDots
 public:
   GoomDots(const uint32_t screenWidth, const uint32_t screenHeight);
   ~GoomDots() noexcept = default;
-  void drawPoints(PluginInfo*);
+  void drawDots(PluginInfo*);
 
 private:
   const uint32_t screenWidth;
@@ -662,17 +662,17 @@ private:
 
   float getLargeSoundFactor(const SoundInfo*) const;
 
-  void pointFilter(Pixel* pix1,
-                   const std::vector<uint32_t> colors,
-                   const float t1,
-                   const float t2,
-                   const float t3,
-                   const float t4,
-                   const uint32_t cycle,
-                   const uint32_t radius) const;
+  void dotFilter(Pixel* pix1,
+                 const std::vector<uint32_t> colors,
+                 const float t1,
+                 const float t2,
+                 const float t3,
+                 const float t4,
+                 const uint32_t cycle,
+                 const uint32_t radius) const;
 };
 
-static std::unique_ptr<GoomDots> goomPoints{nullptr};
+static std::unique_ptr<GoomDots> goomDots{nullptr};
 
 static uint32_t timeInState = 0;
 
@@ -742,7 +742,7 @@ PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
 
   stats.setStartValues(states.getCurrentStateIndex(), goomInfo->update.zoomFilterData.mode);
 
-  goomPoints =
+  goomDots =
       std::unique_ptr<GoomDots>{new GoomDots{goomInfo->screen.width, goomInfo->screen.height}};
 
   return goomInfo;
@@ -767,7 +767,7 @@ void goom_set_resolution(PluginInfo* goomInfo, const uint16_t resx, const uint16
   goomLinesSetResolution(goomInfo->gmline1, resx, goomInfo->screen.height);
   goomLinesSetResolution(goomInfo->gmline2, resx, goomInfo->screen.height);
 
-  goomPoints =
+  goomDots =
       std::unique_ptr<GoomDots>{new GoomDots{goomInfo->screen.width, goomInfo->screen.height}};
 }
 
@@ -804,7 +804,7 @@ static void applyStarsIfRequired(PluginInfo* goomInfo);
 // Affichage de texte
 void displayText(PluginInfo* goomInfo, const char* songTitle, const char* message, const float fps);
 
-static void drawPointsIfRequired(PluginInfo*);
+static void drawDotsIfRequired(PluginInfo*);
 
 static void chooseGoomLine(PluginInfo* goomInfo,
                            float* param1,
@@ -868,7 +868,7 @@ uint32_t* goom_update(PluginInfo* goomInfo,
 
   applyIfsIfRequired(goomInfo);
 
-  drawPointsIfRequired(goomInfo);
+  drawDotsIfRequired(goomInfo);
 
   /* par défaut pas de changement de zoom */
   ZoomFilterData* pzfd = nullptr;
@@ -1220,6 +1220,9 @@ static void changeFilterMode(PluginInfo* goomInfo)
   }
 
   stats.filterModeChange(goomInfo->update.zoomFilterData.mode);
+
+  ifsRenew(&goomInfo->ifs_fx);
+  stats.ifsRenew();
 }
 
 static void changeState(PluginInfo* goomInfo)
@@ -1545,6 +1548,9 @@ static void changeZoomEffect(PluginInfo* goomInfo, ZoomFilterData* pzfd, const i
     {
       goomInfo->update.switchIncr = 0;
       goomInfo->update.switchMult = goomInfo->update.switchMultAmount;
+
+      ifsRenew(&goomInfo->ifs_fx);
+      stats.ifsRenew();
     }
   }
   else
@@ -1557,6 +1563,8 @@ static void changeZoomEffect(PluginInfo* goomInfo, ZoomFilterData* pzfd, const i
                goomInfo->update.cyclesSinceLastChange, timeBetweenChange);
       pzfd = &goomInfo->update.zoomFilterData;
       goomInfo->update.cyclesSinceLastChange = 0;
+      ifsRenew(&goomInfo->ifs_fx);
+      stats.ifsRenew();
     }
     else
     {
@@ -1900,15 +1908,15 @@ static void stopDecrementingAfterAWhile(PluginInfo* goomInfo, ZoomFilterData** p
   }
 }
 
-static void drawPointsIfRequired(PluginInfo* goomInfo)
+static void drawDotsIfRequired(PluginInfo* goomInfo)
 {
-  if (!goomInfo->curGDrawables.count(GoomDrawable::points))
+  if (!goomInfo->curGDrawables.count(GoomDrawable::dots))
   {
     return;
   }
 
   logDebug("goomInfo->curGDrawables points is set.");
-  goomPoints->drawPoints(goomInfo);
+  goomDots->drawDots(goomInfo);
   logDebug("goomInfo->sound.timeSinceLastGoom = {}", goomInfo->sound.timeSinceLastGoom);
 }
 
@@ -1962,7 +1970,7 @@ std::vector<uint32_t> GoomDots::getColors(const uint32_t color0,
   return colors;
 }
 
-void GoomDots::drawPoints(PluginInfo* goomInfo)
+void GoomDots::drawDots(PluginInfo* goomInfo)
 {
   stats.doPoints();
 
@@ -2038,16 +2046,16 @@ void GoomDots::drawPoints(PluginInfo* goomInfo)
     const float color5_t4 = 74.0f;
     const uint32_t color5_cycle = goomInfo->update.loopvar + i * 500;
 
-    pointFilter(goomInfo->p1, colors1, color1_t1, color1_t2, color1_t3, color1_t4, color1_cycle,
-                radius);
-    pointFilter(goomInfo->p1, colors2, color2_t1, color2_t2, color2_t3, color2_t4, color2_cycle,
-                radius);
-    pointFilter(goomInfo->p1, colors3, color3_t1, color3_t2, color3_t3, color3_t4, color3_cycle,
-                radius);
-    pointFilter(goomInfo->p1, colors4, color4_t1, color4_t2, color4_t3, color4_t4, color4_cycle,
-                radius);
-    pointFilter(goomInfo->p1, colors5, color5_t1, color5_t2, color5_t3, color5_t4, color5_cycle,
-                radius);
+    dotFilter(goomInfo->p1, colors1, color1_t1, color1_t2, color1_t3, color1_t4, color1_cycle,
+              radius);
+    dotFilter(goomInfo->p1, colors2, color2_t1, color2_t2, color2_t3, color2_t4, color2_cycle,
+              radius);
+    dotFilter(goomInfo->p1, colors3, color3_t1, color3_t2, color3_t3, color3_t4, color3_cycle,
+              radius);
+    dotFilter(goomInfo->p1, colors4, color4_t1, color4_t2, color4_t3, color4_t4, color4_cycle,
+              radius);
+    dotFilter(goomInfo->p1, colors5, color5_t1, color5_t2, color5_t3, color5_t4, color5_cycle,
+              radius);
 
     t += t_step;
   }
@@ -2063,14 +2071,14 @@ float GoomDots::getLargeSoundFactor(const SoundInfo* soundInfo) const
   return largefactor;
 }
 
-void GoomDots::pointFilter(Pixel* pixel,
-                           const std::vector<uint32_t> colors,
-                           const float t1,
-                           const float t2,
-                           const float t3,
-                           const float t4,
-                           const uint32_t cycle,
-                           const uint32_t radius) const
+void GoomDots::dotFilter(Pixel* pixel,
+                         const std::vector<uint32_t> colors,
+                         const float t1,
+                         const float t2,
+                         const float t3,
+                         const float t4,
+                         const uint32_t cycle,
+                         const uint32_t radius) const
 {
   const uint32_t xOffset = static_cast<uint32_t>(t1 * cos(static_cast<float>(cycle) / t3));
   const uint32_t yOffset = static_cast<uint32_t>(t2 * sin(static_cast<float>(cycle) / t4));
