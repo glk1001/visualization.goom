@@ -266,9 +266,11 @@ inline void GoomStates::doRandomStateChange()
 
 // clang-format off
 const GoomStates::WeightedStatesArray GoomStates::states{ {
+  { .weight =  60, .drawables = {GD::IFS,                                                 GD::scope, GD::farScope}},
   /**
   { .weight =  40, .drawables = {                     GD::tentacles,                                  GD::farScope}},
   **/
+  /**
   { .weight = 100, .drawables = {GD::IFS, GD::points, GD::stars,                           GD::scope, GD::farScope}},
   { .weight =  40, .drawables = {GD::IFS,             GD::tentacles, GD::stars,                       GD::farScope}},
   { .weight =  60, .drawables = {GD::IFS,                            GD::stars, GD::lines, GD::scope, GD::farScope}},
@@ -278,6 +280,7 @@ const GoomStates::WeightedStatesArray GoomStates::states{ {
   { .weight =  50, .drawables = {                     GD::tentacles, GD::stars, GD::lines,            GD::farScope}},
   { .weight =  60, .drawables = {                                    GD::stars, GD::lines, GD::scope, GD::farScope}},
   { .weight =  60, .drawables = {         GD::points,                GD::stars,            GD::scope, GD::farScope}},
+  **/
 }};
 // clang-format on
 
@@ -317,6 +320,8 @@ public:
   void lastTimeGoomChange();
   void megaLentChange();
   void doNoise();
+  void setLastNoiseFactor(const float val);
+  void ifsRenew();
   void ifsIncrLessThanEqualZero();
   void ifsIncrGreaterThanZero();
   void changeLineColor();
@@ -341,6 +346,8 @@ private:
   uint32_t numLastTimeGoomChanges = 0;
   uint32_t numMegaLentChanges = 0;
   uint32_t numDoNoise = 0;
+  float lastNoiseFactor = 0;
+  uint32_t numIfsRenew = 0;
   uint32_t numIfsIncrLessThanEqualZero = 0;
   uint32_t numIfsIncrGreaterThanZero = 0;
   uint32_t numChangeLineColor = 0;
@@ -369,6 +376,8 @@ void GoomStats::reset()
   numLastTimeGoomChanges = 0;
   numMegaLentChanges = 0;
   numDoNoise = 0;
+  lastNoiseFactor = 0;
+  numIfsRenew = 0;
   numIfsIncrLessThanEqualZero = 0;
   numIfsIncrGreaterThanZero = 0;
   numChangeLineColor = 0;
@@ -415,6 +424,8 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
   logVal(module, "numLastTimeGoomChanges", numLastTimeGoomChanges);
   logVal(module, "numMegaLentChanges", numMegaLentChanges);
   logVal(module, "numDoNoise", numDoNoise);
+  logVal(module, "lastNoiseFactor", lastNoiseFactor);
+  logVal(module, "numIfsRenew", numIfsRenew);
   logVal(module, "numIfsIncrLessThanEqualZero", numIfsIncrLessThanEqualZero);
   logVal(module, "numIfsIncrGreaterThanZero", numIfsIncrGreaterThanZero);
   logVal(module, "numChangeLineColor", numChangeLineColor);
@@ -523,6 +534,16 @@ inline void GoomStats::megaLentChange()
 inline void GoomStats::doNoise()
 {
   numDoNoise++;
+}
+
+inline void GoomStats::setLastNoiseFactor(const float val)
+{
+  lastNoiseFactor = val;
+}
+
+inline void GoomStats::ifsRenew()
+{
+  numIfsRenew++;
 }
 
 inline void GoomStats::ifsIncrLessThanEqualZero()
@@ -914,6 +935,7 @@ uint32_t* goom_update(PluginInfo* goomInfo,
 void goom_close(PluginInfo* goomInfo)
 {
   stats.setLastValues(states.getCurrentStateIndex(), goomInfo->update.zoomFilterData.mode);
+  stats.setLastNoiseFactor(goomInfo->update.zoomFilterData.noiseFactor);
 
   stats.log(logStatsValue);
   tentacle_log_stats(&goomInfo->tentacles_fx, logStatsValue);
@@ -1221,18 +1243,25 @@ static void changeState(PluginInfo* goomInfo)
   stats.stateChange(states.getCurrentStateIndex(), timeInState);
   timeInState = 0;
 
-  if (states.isCurrentlyDrawable(GoomDrawable::IFS) && (goomInfo->update.ifs_incr <= 0))
+  if (states.isCurrentlyDrawable(GoomDrawable::IFS))
   {
-    goomInfo->update.recay_ifs = 5;
-    goomInfo->update.ifs_incr = 11;
-    ifsRenew(&goomInfo->ifs_fx);
-    stats.ifsIncrLessThanEqualZero();
+    if (probabilityOfMInN(2, 3))
+    {
+      ifsRenew(&goomInfo->ifs_fx);
+      stats.ifsRenew();
+    }
+    if (goomInfo->update.ifs_incr <= 0)
+    {
+      goomInfo->update.recay_ifs = 5;
+      goomInfo->update.ifs_incr = 11;
+      stats.ifsIncrLessThanEqualZero();
+      ifsRenew(&goomInfo->ifs_fx);
+      stats.ifsRenew();
+    }
   }
-  if (!states.isCurrentlyDrawable(GoomDrawable::IFS) && (goomInfo->update.ifs_incr > 0) &&
-      (goomInfo->update.decay_ifs <= 0))
+  else if ((goomInfo->update.ifs_incr > 0) && (goomInfo->update.decay_ifs <= 0))
   {
     goomInfo->update.decay_ifs = 100;
-    ifsRenew(&goomInfo->ifs_fx);
     stats.ifsIncrGreaterThanZero();
   }
 
@@ -1396,6 +1425,7 @@ static void bigNormalUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
   else
   {
     goomInfo->update.zoomFilterData.noisify = true;
+    goomInfo->update.zoomFilterData.noiseFactor = 1;
     goomInfo->update.lockvar *= 2;
     stats.lockChange();
     stats.doNoise();

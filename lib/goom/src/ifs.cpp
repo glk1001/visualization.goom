@@ -153,6 +153,10 @@ struct IfsData
   PluginParameters params;
 
   const ColorMaps* colorMaps;
+  const ColorMap* mixerMap;
+  bool doMixColors;
+  bool reverseMix;
+  float mixFactor; // in [0, 1]
 
   Fractal* root;
   Fractal* curF;
@@ -562,6 +566,7 @@ static void updateColorsModeMerver(IfsUpdateData*);
 static void updateColorsModeFeu(IfsUpdateData*);
 
 static void updatePixelBuffers(PluginInfo* goomInfo,
+                               IfsData* fx_data,
                                Pixel* frontBuff,
                                Pixel* backBuff,
                                const size_t numPoints,
@@ -572,6 +577,8 @@ static void updatePixelBuffers(PluginInfo* goomInfo,
   const uint32_t width = goomInfo->screen.width;
   const uint32_t height = goomInfo->screen.height;
 
+  const float tStep = (1.0 - 0.0) / static_cast<float>(numPoints);
+  float t = 0;
   for (size_t i = 0; i < numPoints; i += static_cast<size_t>(increment))
   {
     const uint32_t x = points[i].x & 0x7fffffff;
@@ -579,10 +586,24 @@ static void updatePixelBuffers(PluginInfo* goomInfo,
 
     if ((x < width) && (y < height))
     {
+      Pixel mixedColor = color;
+      if (fx_data->doMixColors)
+      {
+        if (const uint32_t mixColor = fx_data->mixerMap->getColor(t); fx_data->reverseMix)
+        {
+          mixedColor.val = ColorMap::colorMix(mixColor, color.val, fx_data->mixFactor);
+        }
+        else
+        {
+          mixedColor.val = ColorMap::colorMix(color.val, mixColor, fx_data->mixFactor);
+        }
+      }
       const uint32_t pos = x + (y * width);
       Pixel* const p = &frontBuff[pos];
-      *p = getColorAdd(backBuff[pos], color);
+      *p = getColorAdd(backBuff[pos], mixedColor);
     }
+
+    t += tStep;
   }
 }
 
@@ -604,7 +625,7 @@ static void updateIfs(
   const int cycle10 = (updData.cycle < 40) ? updData.cycle / 10 : 7 - updData.cycle / 10;
   const Pixel color = getRightShiftedChannels(updData.couleur, cycle10);
 
-  updatePixelBuffers(goomInfo, frontBuff, backBuff, numPoints, points, increment, color);
+  updatePixelBuffers(goomInfo, fx_data, frontBuff, backBuff, numPoints, points, increment, color);
 
   updData.justChanged--;
 
@@ -1030,4 +1051,8 @@ void ifsRenew(VisualFX* _this)
 {
   IfsData* data = static_cast<IfsData*>(_this->fx_data);
   updData.couleur.val = ColorMap::getRandomColor(data->colorMaps->getRandomColorMap());
+  data->mixerMap = &data->colorMaps->getRandomColorMap();
+  data->doMixColors = probabilityOfMInN(3, 4);
+  data->reverseMix = probabilityOfMInN(1, 2);
+  data->mixFactor = getRandInRange(0.3f, 0.7f);
 }
