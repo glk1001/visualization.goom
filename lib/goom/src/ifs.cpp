@@ -59,21 +59,21 @@ struct IFSPoint
   uint32_t y;
 };
 
-using DBL = float;
-using F_PT = int;
+using Dbl = float;
+using Flt = int;
 
 constexpr int fix = 12;
 constexpr int unit = 1 << fix;
-#define DBL_To_F_PT(x) static_cast<F_PT>(static_cast<DBL>(unit) * (x))
+#define DBL_To_F_PT(x) static_cast<Flt>(static_cast<Dbl>(unit) * (x))
 // Following inline is different to above #define???!!
 // inline F_PT DBL_To_F_PT(const DBL x) { return (F_PT)((DBL)unit * x); }
 
-inline F_PT div_by_unit(const F_PT x)
+inline Flt div_by_unit(const Flt x)
 {
   return x >> fix;
 }
 
-inline F_PT div_by_2units(const F_PT x)
+inline Flt div_by_2units(const Flt x)
 {
   return x >> (fix + 1);
 }
@@ -87,20 +87,20 @@ constexpr size_t maxSimi = 6;
 
 struct Similitude
 {
-  DBL c_x;
-  DBL c_y;
-  DBL r;
-  DBL r2;
-  DBL A;
-  DBL A2;
-  F_PT Ct;
-  F_PT St;
-  F_PT Ct2;
-  F_PT St2;
-  F_PT Cx;
-  F_PT Cy;
-  F_PT R;
-  F_PT R2;
+  Dbl c_x;
+  Dbl c_y;
+  Dbl r;
+  Dbl r2;
+  Dbl A;
+  Dbl A2;
+  Flt Ct;
+  Flt St;
+  Flt Ct2;
+  Flt St2;
+  Flt Cx;
+  Flt Cy;
+  Flt R;
+  Flt R2;
 };
 
 struct Fractal
@@ -114,9 +114,9 @@ struct Fractal
   uint32_t height;
   uint32_t lx;
   uint32_t ly;
-  DBL rMean;
-  DBL drMean;
-  DBL dr2Mean;
+  Dbl rMean;
+  Dbl drMean;
+  Dbl dr2Mean;
   uint32_t curPt;
   uint32_t maxPt;
 
@@ -144,45 +144,35 @@ struct IfsData
   bool initialized;
 };
 
-static DBL gaussRand(const DBL c, const DBL S, const DBL A_mult_1_minus_exp_neg_S)
+static Dbl gaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S)
 {
-  const DBL x = getRandInRange(0.0f, 1.0f);
-  const DBL y = A_mult_1_minus_exp_neg_S * (1.0 - exp(-x * x * S));
+  const Dbl x = getRandInRange(0.0f, 1.0f);
+  const Dbl y = A_mult_1_minus_exp_neg_S * (1.0 - exp(-x * x * S));
   return probabilityOfMInN(1, 2) ? c + y : c - y;
 }
 
-static DBL halfGaussRand(const DBL c, const DBL S, const DBL A_mult_1_minus_exp_neg_S)
+static Dbl halfGaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S)
 {
-  const DBL x = getRandInRange(0.0f, 1.0f);
-  const DBL y = A_mult_1_minus_exp_neg_S * (1.0 - exp(-x * x * S));
+  const Dbl x = getRandInRange(0.0f, 1.0f);
+  const Dbl y = A_mult_1_minus_exp_neg_S * (1.0 - exp(-x * x * S));
   return c + y;
 }
 
-inline DBL get_1_minus_exp_neg_S(const DBL S)
+constexpr Dbl get_1_minus_exp_neg_S(const Dbl S)
 {
   return 1.0 - exp(-S);
 }
 
-static void randomSimis(Fractal* fractal, Similitude* cur, uint32_t i)
+static void randomSimis(const Fractal* fractal, Similitude* cur, uint32_t i)
 {
-  static DBL c_AS_factor;
-  static DBL r_1_minus_exp_neg_S;
-  static DBL r2_1_minus_exp_neg_S;
-  static DBL A_AS_factor;
-  static DBL A2_AS_factor;
+  static constexpr Dbl c_AS_factor = 0.8 * get_1_minus_exp_neg_S(4.0);
+  static constexpr Dbl r_1_minus_exp_neg_S = get_1_minus_exp_neg_S(3.0);
+  static constexpr Dbl r2_1_minus_exp_neg_S = get_1_minus_exp_neg_S(2.0);
+  static constexpr Dbl A_AS_factor = 360.0 * get_1_minus_exp_neg_S(4.0);
+  static constexpr Dbl A2_AS_factor = A_AS_factor;
 
-  static bool doneInit = false;
-  if (!doneInit)
-  {
-    c_AS_factor = 0.8 * get_1_minus_exp_neg_S(4.0);
-    r_1_minus_exp_neg_S = get_1_minus_exp_neg_S(3.0);
-    r2_1_minus_exp_neg_S = get_1_minus_exp_neg_S(2.0);
-    A_AS_factor = 360.0 * get_1_minus_exp_neg_S(4.0);
-    A2_AS_factor = A_AS_factor;
-    doneInit = true;
-  }
-  const DBL r_AS_factor = fractal->drMean * r_1_minus_exp_neg_S;
-  const DBL r2_AS_factor = fractal->dr2Mean * r2_1_minus_exp_neg_S;
+  const Dbl r_AS_factor = fractal->drMean * r_1_minus_exp_neg_S;
+  const Dbl r2_AS_factor = fractal->dr2Mean * r2_1_minus_exp_neg_S;
 
   while (i--)
   {
@@ -308,35 +298,35 @@ static void initIfs(PluginInfo* goomInfo, IfsData* data)
   }
 }
 
-static inline void transform(Similitude* Simi, F_PT xo, F_PT yo, F_PT* x, F_PT* y)
+inline void transform(Similitude* Simi, Flt xo, Flt yo, Flt* x, Flt* y)
 {
   xo = xo - Simi->Cx;
   xo = div_by_unit(xo * Simi->R);
   yo = yo - Simi->Cy;
   yo = div_by_unit(yo * Simi->R);
 
-  F_PT xx = xo - Simi->Cx;
+  Flt xx = xo - Simi->Cx;
   xx = div_by_unit(xx * Simi->R2);
-  F_PT yy = -yo - Simi->Cy;
+  Flt yy = -yo - Simi->Cy;
   yy = div_by_unit(yy * Simi->R2);
 
   *x = div_by_unit(xo * Simi->Ct - yo * Simi->St + xx * Simi->Ct2 - yy * Simi->St2) + Simi->Cx;
   *y = div_by_unit(xo * Simi->St + yo * Simi->Ct + xx * Simi->St2 + yy * Simi->Ct2) + Simi->Cy;
 }
 
-static void trace(Fractal* F, const F_PT xo, const F_PT yo, IfsData* data)
+static void trace(Fractal* F, const Flt xo, const Flt yo, IfsData* data)
 {
   Similitude* Cur = data->curF->components;
   //	logDebug("data->Cur_F->numSimi = {}, xo = {}, yo = {}", data->Cur_F->numSimi, xo, yo);
   for (int i = static_cast<int>(data->curF->numSimi); i; --i, Cur++)
   {
-    F_PT x, y;
+    Flt x, y;
     transform(Cur, xo, yo, &x, &y);
 
-    data->buff->x = static_cast<uint32_t>(static_cast<F_PT>(F->lx) +
-                                          div_by_2units(x * static_cast<int>(F->lx)));
-    data->buff->y = static_cast<uint32_t>(static_cast<F_PT>(F->ly) -
-                                          div_by_2units(y * static_cast<int>(F->ly)));
+    data->buff->x =
+        static_cast<uint32_t>(static_cast<Flt>(F->lx) + div_by_2units(x * static_cast<int>(F->lx)));
+    data->buff->y =
+        static_cast<uint32_t>(static_cast<Flt>(F->ly) - div_by_2units(y * static_cast<int>(F->ly)));
     data->buff++;
 
     data->curPt++;
@@ -375,8 +365,8 @@ static void drawFractal(IfsData* data)
   int j;
   for (Cur = fractal->components, i = static_cast<int>(fractal->numSimi); i; --i, Cur++)
   {
-    const F_PT xo = Cur->Cx;
-    const F_PT yo = Cur->Cy;
+    const Flt xo = Cur->Cx;
+    const Flt yo = Cur->Cy;
     logDebug("F->numSimi = {}, xo = {}, yo = {}", fractal->numSimi, xo, yo);
     Similitude* Simi;
     for (Simi = fractal->components, j = static_cast<int>(fractal->numSimi); j; --j, Simi++)
@@ -385,8 +375,8 @@ static void drawFractal(IfsData* data)
       {
         continue;
       }
-      F_PT x;
-      F_PT y;
+      Flt x;
+      Flt y;
       transform(Simi, xo, yo, &x, &y);
       trace(fractal, x, y, data);
     }
@@ -414,14 +404,14 @@ static IFSPoint* drawIfs(size_t* numPoints, IfsData* data)
     return nullptr;
   }
 
-  const DBL u = static_cast<DBL>(fractal->count) * static_cast<DBL>(fractal->speed) / 1000.0;
-  const DBL uu = u * u;
-  const DBL v = 1.0 - u;
-  const DBL vv = v * v;
-  const DBL u0 = vv * v;
-  const DBL u1 = 3.0 * vv * u;
-  const DBL u2 = 3.0 * v * uu;
-  const DBL u3 = u * uu;
+  const Dbl u = static_cast<Dbl>(fractal->count) * static_cast<Dbl>(fractal->speed) / 1000.0;
+  const Dbl uu = u * u;
+  const Dbl v = 1.0 - u;
+  const Dbl vv = v * v;
+  const Dbl u0 = vv * v;
+  const Dbl u1 = 3.0 * vv * u;
+  const Dbl u2 = 3.0 * v * uu;
+  const Dbl u3 = u * uu;
 
   Similitude* S = fractal->components;
   Similitude* S1 = S + fractal->numSimi;
@@ -540,6 +530,23 @@ static void updateColorsModeMer(IfsUpdateData*);
 static void updateColorsModeMerver(IfsUpdateData*);
 static void updateColorsModeFeu(IfsUpdateData*);
 
+inline Pixel getMixedcolor(const IfsData* fx_data, const Pixel& color, const float tmix)
+{
+  Pixel finalColor = color;
+  if (fx_data->doMixColors)
+  {
+    if (const uint32_t mixColor = fx_data->mixerMap->getColor(tmix); fx_data->reverseMix)
+    {
+      finalColor.val = ColorMap::colorMix(mixColor, color.val, fx_data->mixFactor);
+    }
+    else
+    {
+      finalColor.val = ColorMap::colorMix(color.val, mixColor, fx_data->mixFactor);
+    }
+  }
+  return finalColor;
+}
+
 static void updatePixelBuffers(PluginInfo* goomInfo,
                                IfsData* fx_data,
                                Pixel* frontBuff,
@@ -552,33 +559,23 @@ static void updatePixelBuffers(PluginInfo* goomInfo,
   const uint32_t width = goomInfo->screen.width;
   const uint32_t height = goomInfo->screen.height;
 
-  const float tStep = (1.0 - 0.0) / static_cast<float>(numPoints);
-  float t = 0;
+  const float tStep = numPoints == 1 ? 0 : (1.0 - 0.0) / static_cast<float>(numPoints - 1);
+  float t = -tStep;
   for (size_t i = 0; i < numPoints; i += static_cast<size_t>(increment))
   {
+    t += tStep;
+
     const uint32_t x = points[i].x & 0x7fffffff;
     const uint32_t y = points[i].y & 0x7fffffff;
-
-    if ((x < width) && (y < height))
+    if ((x >= width) || (y >= height))
     {
-      Pixel mixedColor = color;
-      if (fx_data->doMixColors)
-      {
-        if (const uint32_t mixColor = fx_data->mixerMap->getColor(t); fx_data->reverseMix)
-        {
-          mixedColor.val = ColorMap::colorMix(mixColor, color.val, fx_data->mixFactor);
-        }
-        else
-        {
-          mixedColor.val = ColorMap::colorMix(color.val, mixColor, fx_data->mixFactor);
-        }
-      }
-      const uint32_t pos = x + (y * width);
-      Pixel* const p = &frontBuff[pos];
-      *p = getColorAdd(backBuff[pos], mixedColor);
+      continue;
     }
 
-    t += tStep;
+    const Pixel finalColor = getMixedcolor(fx_data, color, t);
+    const uint32_t pos = x + (y * width);
+    Pixel* const p = &frontBuff[pos];
+    *p = getColorAdd(backBuff[pos], finalColor);
   }
 }
 
@@ -645,19 +642,19 @@ static void updateColorsModeMer(IfsUpdateData* upd)
   if (upd->col[BLEU] > 255)
   {
     upd->col[BLEU] = 255;
-    upd->v[BLEU] = -(static_cast<int>(getRand()) % 4) - 1;
+    upd->v[BLEU] = -static_cast<int>(getNRand(4)) - 1;
   }
   if (upd->col[BLEU] < 32)
   {
     upd->col[BLEU] = 32;
-    upd->v[BLEU] = (static_cast<int>(getRand()) % 4) + 1;
+    upd->v[BLEU] = static_cast<int>(getNRand(4)) + 1;
   }
 
   upd->col[VERT] += upd->v[VERT];
   if (upd->col[VERT] > 200)
   {
     upd->col[VERT] = 200;
-    upd->v[VERT] = -(static_cast<int>(getRand()) % 3) - 2;
+    upd->v[VERT] = -static_cast<int>(getNRand(3)) - 2;
   }
   if (upd->col[VERT] > upd->col[BLEU])
   {
@@ -667,39 +664,39 @@ static void updateColorsModeMer(IfsUpdateData* upd)
   if (upd->col[VERT] < 32)
   {
     upd->col[VERT] = 32;
-    upd->v[VERT] = (static_cast<int>(getRand()) % 3) + 2;
+    upd->v[VERT] = static_cast<int>(getNRand(3)) + 2;
   }
 
   upd->col[ROUGE] += upd->v[ROUGE];
   if (upd->col[ROUGE] > 64)
   {
     upd->col[ROUGE] = 64;
-    upd->v[ROUGE] = -(static_cast<int>(getRand()) % 4) - 1;
+    upd->v[ROUGE] = -static_cast<int>(getNRand(4)) - 1;
   }
   if (upd->col[ROUGE] < 0)
   {
     upd->col[ROUGE] = 0;
-    upd->v[ROUGE] = (static_cast<int>(getRand()) % 4) + 1;
+    upd->v[ROUGE] = static_cast<int>(getNRand(4)) + 1;
   }
 
   upd->col[ALPHA] += upd->v[ALPHA];
   if (upd->col[ALPHA] > 0)
   {
     upd->col[ALPHA] = 0;
-    upd->v[ALPHA] = -(static_cast<int>(getRand()) % 4) - 1;
+    upd->v[ALPHA] = -static_cast<int>(getNRand(4)) - 1;
   }
   if (upd->col[ALPHA] < 0)
   {
     upd->col[ALPHA] = 0;
-    upd->v[ALPHA] = (static_cast<int>(getRand()) % 4) + 1;
+    upd->v[ALPHA] = static_cast<int>(getNRand(4)) + 1;
   }
 
   if (((upd->col[VERT] > 32) && (upd->col[ROUGE] < upd->col[VERT] + 40) &&
        (upd->col[VERT] < upd->col[ROUGE] + 20) && (upd->col[BLEU] < 64) &&
-       (static_cast<int>(getRand()) % 20 == 0)) &&
+       probabilityOfMInN(1, 20)) &&
       (upd->justChanged < 0))
   {
-    upd->mode = static_cast<int>(getRand()) % 3 ? MOD_FEU : MOD_MERVER;
+    upd->mode = probabilityOfMInN(2, 3) ? MOD_FEU : MOD_MERVER;
     upd->justChanged = 250;
   }
 }
@@ -710,19 +707,19 @@ static void updateColorsModeMerver(IfsUpdateData* upd)
   if (upd->col[BLEU] > 128)
   {
     upd->col[BLEU] = 128;
-    upd->v[BLEU] = -(static_cast<int>(getRand()) % 4) - 1;
+    upd->v[BLEU] = -static_cast<int>(getNRand(4)) - 1;
   }
   if (upd->col[BLEU] < 16)
   {
     upd->col[BLEU] = 16;
-    upd->v[BLEU] = (static_cast<int>(getRand()) % 4) + 1;
+    upd->v[BLEU] = static_cast<int>(getNRand(4)) + 1;
   }
 
   upd->col[VERT] += upd->v[VERT];
   if (upd->col[VERT] > 200)
   {
     upd->col[VERT] = 200;
-    upd->v[VERT] = -(static_cast<int>(getRand()) % 3) - 2;
+    upd->v[VERT] = -static_cast<int>(getNRand(3)) - 2;
   }
   if (upd->col[VERT] > upd->col[ALPHA])
   {
@@ -732,39 +729,39 @@ static void updateColorsModeMerver(IfsUpdateData* upd)
   if (upd->col[VERT] < 32)
   {
     upd->col[VERT] = 32;
-    upd->v[VERT] = (static_cast<int>(getRand()) % 3) + 2;
+    upd->v[VERT] = static_cast<int>(getNRand(3)) + 2;
   }
 
   upd->col[ROUGE] += upd->v[ROUGE];
   if (upd->col[ROUGE] > 128)
   {
     upd->col[ROUGE] = 128;
-    upd->v[ROUGE] = -(static_cast<int>(getRand()) % 4) - 1;
+    upd->v[ROUGE] = -static_cast<int>(getNRand(4)) - 1;
   }
   if (upd->col[ROUGE] < 0)
   {
     upd->col[ROUGE] = 0;
-    upd->v[ROUGE] = (static_cast<int>(getRand()) % 4) + 1;
+    upd->v[ROUGE] = static_cast<int>(getNRand(4)) + 1;
   }
 
   upd->col[ALPHA] += upd->v[ALPHA];
   if (upd->col[ALPHA] > 255)
   {
     upd->col[ALPHA] = 255;
-    upd->v[ALPHA] = -(static_cast<int>(getRand()) % 4) - 1;
+    upd->v[ALPHA] = -static_cast<int>(getNRand(4)) - 1;
   }
   if (upd->col[ALPHA] < 0)
   {
     upd->col[ALPHA] = 0;
-    upd->v[ALPHA] = (static_cast<int>(getRand()) % 4) + 1;
+    upd->v[ALPHA] = static_cast<int>(getNRand(4)) + 1;
   }
 
   if (((upd->col[VERT] > 32) && (upd->col[ROUGE] < upd->col[VERT] + 40) &&
        (upd->col[VERT] < upd->col[ROUGE] + 20) && (upd->col[BLEU] < 64) &&
-       (static_cast<int>(getRand()) % 20 == 0)) &&
+       probabilityOfMInN(1, 20)) &&
       (upd->justChanged < 0))
   {
-    upd->mode = static_cast<int>(getRand()) % 3 ? MOD_FEU : MOD_MER;
+    upd->mode = probabilityOfMInN(2, 3) ? MOD_FEU : MOD_MER;
     upd->justChanged = 250;
   }
 }
@@ -775,67 +772,67 @@ static void updateColorsModeFeu(IfsUpdateData* upd)
   if (upd->col[BLEU] > 64)
   {
     upd->col[BLEU] = 64;
-    upd->v[BLEU] = -(static_cast<int>(getRand()) % 4) - 1;
+    upd->v[BLEU] = -static_cast<int>(getNRand(4)) - 1;
   }
   if (upd->col[BLEU] < 0)
   {
     upd->col[BLEU] = 0;
-    upd->v[BLEU] = (static_cast<int>(getRand()) % 4) + 1;
+    upd->v[BLEU] = static_cast<int>(getNRand(4)) + 1;
   }
 
   upd->col[VERT] += upd->v[VERT];
   if (upd->col[VERT] > 200)
   {
     upd->col[VERT] = 200;
-    upd->v[VERT] = -(static_cast<int>(getRand()) % 3) - 2;
+    upd->v[VERT] = -static_cast<int>(getNRand(3)) - 2;
   }
   if (upd->col[VERT] > upd->col[ROUGE] + 20)
   {
     upd->col[VERT] = upd->col[ROUGE] + 20;
-    upd->v[VERT] = -(static_cast<int>(getRand()) % 3) - 2;
-    upd->v[ROUGE] = (static_cast<int>(getRand()) % 4) + 1;
-    upd->v[BLEU] = (static_cast<int>(getRand()) % 4) + 1;
+    upd->v[VERT] = -static_cast<int>(getNRand(3)) - 2;
+    upd->v[ROUGE] = static_cast<int>(getNRand(4)) + 1;
+    upd->v[BLEU] = static_cast<int>(getNRand(4)) + 1;
   }
   if (upd->col[VERT] < 0)
   {
     upd->col[VERT] = 0;
-    upd->v[VERT] = (static_cast<int>(getRand()) % 3) + 2;
+    upd->v[VERT] = static_cast<int>(getNRand(3)) + 2;
   }
 
   upd->col[ROUGE] += upd->v[ROUGE];
   if (upd->col[ROUGE] > 255)
   {
     upd->col[ROUGE] = 255;
-    upd->v[ROUGE] = -(static_cast<int>(getRand()) % 4) - 1;
+    upd->v[ROUGE] = -static_cast<int>(getNRand(4)) - 1;
   }
   if (upd->col[ROUGE] > upd->col[VERT] + 40)
   {
     upd->col[ROUGE] = upd->col[VERT] + 40;
-    upd->v[ROUGE] = -(static_cast<int>(getRand()) % 4) - 1;
+    upd->v[ROUGE] = -static_cast<int>(getNRand(4)) - 1;
   }
   if (upd->col[ROUGE] < 0)
   {
     upd->col[ROUGE] = 0;
-    upd->v[ROUGE] = (static_cast<int>(getRand()) % 4) + 1;
+    upd->v[ROUGE] = static_cast<int>(getNRand(4)) + 1;
   }
 
   upd->col[ALPHA] += upd->v[ALPHA];
   if (upd->col[ALPHA] > 0)
   {
     upd->col[ALPHA] = 0;
-    upd->v[ALPHA] = -(static_cast<int>(getRand()) % 4) - 1;
+    upd->v[ALPHA] = -static_cast<int>(getNRand(4)) - 1;
   }
   if (upd->col[ALPHA] < 0)
   {
     upd->col[ALPHA] = 0;
-    upd->v[ALPHA] = (static_cast<int>(getRand()) % 4) + 1;
+    upd->v[ALPHA] = static_cast<int>(getNRand(4)) + 1;
   }
 
   if (((upd->col[ROUGE] < 64) && (upd->col[VERT] > 32) && (upd->col[VERT] < upd->col[BLEU]) &&
-       (upd->col[BLEU] > 32) && (static_cast<int>(getRand()) % 20 == 0)) &&
+       (upd->col[BLEU] > 32) && probabilityOfMInN(1, 20)) &&
       (upd->justChanged < 0))
   {
-    upd->mode = static_cast<int>(getRand()) % 2 ? MOD_MER : MOD_MERVER;
+    upd->mode = probabilityOfMInN(1, 2) ? MOD_MER : MOD_MERVER;
     upd->justChanged = 250;
   }
 }
