@@ -30,7 +30,7 @@
 
 // For noise amplitude, take the reciprocal of these.
 constexpr float noiseMin = 70;
-constexpr float noiseMax = 80;
+constexpr float noiseMax = 120;
 
 constexpr float BUFFPOINTNBF = static_cast<float>(BUFFPOINTNB);
 constexpr int BUFFPOINTMASK = 0xffff;
@@ -158,11 +158,15 @@ static inline v2g zoomVector(PluginInfo* goomInfo, const float X, const float Y)
   /* Noise */
   if (data->filterData.noisify)
   {
-    //    const float xAmp = 1.0/getRandInRange(50.0f, 200.0f);
-    //    const float yAmp = 1.0/getRandInRange(50.0f, 200.0f);
-    const float amp = 1.0 / getRandInRange(noiseMin, noiseMax);
-    vx += amp * (getRandInRange(0.0f, 1.0f) - 0.5f);
-    vy += amp * (getRandInRange(0.0f, 1.0f) - 0.5f);
+    if (data->filterData.noiseFactor > 0.01)
+    {
+      //    const float xAmp = 1.0/getRandInRange(50.0f, 200.0f);
+      //    const float yAmp = 1.0/getRandInRange(50.0f, 200.0f);
+      const float amp = data->filterData.noiseFactor / getRandInRange(noiseMin, noiseMax);
+      data->filterData.noiseFactor *= 0.99;
+      vx += amp * (getRandInRange(0.0f, 1.0f) - 0.5f);
+      vy += amp * (getRandInRange(0.0f, 1.0f) - 0.5f);
+    }
   }
 
   // Hypercos
@@ -734,7 +738,8 @@ static void zoomFilterVisualFXWrapper_init(VisualFX* _this, PluginInfo* info)
   data->filterData.hypercosEffect = false;
   data->filterData.vPlaneEffect = 0;
   data->filterData.hPlaneEffect = 0;
-  data->filterData.noisify = true;
+  data->filterData.noisify = false;
+  data->filterData.noiseFactor = 1;
 
   /** modif by jeko : fixedpoint : buffration = (16:16) (donc 0<=buffration<=2^16) */
   data->buffratio = 0;
