@@ -58,7 +58,7 @@ private:
   LogLevel cutoffHandlersLogLevel = LogLevel::info;
   bool doLogging = false;
   std::string logFile = "";
-  std::vector<std::pair<std::string,HandlerFunc>> handlers{};
+  std::vector<std::pair<std::string, HandlerFunc>> handlers{};
   std::vector<std::string> logEntries{};
   std::mutex mutex{};
   static std::unique_ptr<Logging> logger;

@@ -6,13 +6,12 @@
 #include <cmath>
 #include <cstdlib>
 #include <format>
-#include <limits>
-#include <stdexcept>
 #include <utility>
 #include <vector>
 
 uint64_t getRandSeed();
 void setRandSeed(const uint64_t seed);
+extern const uint32_t randMax;
 
 // Return random sign integer, either -1 or +1.
 inline int getRandSignInt();
@@ -23,7 +22,7 @@ inline float getRandSignFlt();
 uint32_t getRandInRange(const uint32_t n0, const uint32_t n1);
 // Return random integer in the range 0 <= n < nmax.
 uint32_t getNRand(const uint32_t nmax);
-// Return random integer in the range 0 <= n < numeric_limits<uint32_t>::max().
+// Return random integer in the range 0 <= n < randMax.
 uint32_t getRand();
 // Return random float in the range x0 <= n <= x1.
 float getRandInRange(const float x0, const float x1);
@@ -68,7 +67,7 @@ inline uint32_t getNRand(const uint32_t nmax)
 
 inline uint32_t getRand()
 {
-  return getRandInRange(0u, std::numeric_limits<uint32_t>::max());
+  return getRandInRange(0u, randMax);
 }
 
 inline bool probabilityOfMInN(const uint32_t m, const uint32_t n)

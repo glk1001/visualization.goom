@@ -19,18 +19,20 @@ constexpr size_t numSinCosAngles = 256;
 extern const std::array<float, numSinCosAngles> sin256;
 extern const std::array<float, numSinCosAngles> cos256;
 
-class VertNum {
+class VertNum
+{
 public:
-  explicit VertNum(const int xw): xwidth(xw) {}
+  explicit VertNum(const int xw) : xwidth(xw) {}
   int getRowZeroVertNum(const int x) const { return x; }
   int operator()(const int x, const int z) const { return z * xwidth + x; }
-//  int getPrevRowVertNum(const int vertNum) const { return vertNum - xwidth; }
+  //  int getPrevRowVertNum(const int vertNum) const { return vertNum - xwidth; }
   std::tuple<int, int> getXZ(const int vertNum) const
   {
-    const int z = vertNum/xwidth;
+    const int z = vertNum / xwidth;
     const int x = vertNum % xwidth;
     return std::make_tuple(x, z);
   }
+
 private:
   const int xwidth;
 };

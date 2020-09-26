@@ -44,9 +44,7 @@ ExpDampingFunction::ExpDampingFunction(const double amp,
                                        const double yAtStartToRise,
                                        const double xmax,
                                        const double yAtXMax)
-    : k{ 0 },
-      b{ 0 },
-      amplitude(amp)
+  : k{0}, b{0}, amplitude(amp)
 {
   constexpr double minAmp = 0.00001;
   if (std::fabs(amplitude) < minAmp)
@@ -57,7 +55,7 @@ ExpDampingFunction::ExpDampingFunction(const double amp,
   if (yAtStartToRise <= amplitude)
   {
     throw std::runtime_error(std20::format("yAtStartToRise should be > {} = amplitude, not {}.",
-                                            amplitude, yAtStartToRise));
+                                           amplitude, yAtStartToRise));
   }
   if (yAtXMax <= amplitude)
   {
@@ -121,12 +119,7 @@ SineWaveMultiplier::SineWaveMultiplier(const float freq,
                                        const float lwr,
                                        const float upr,
                                        const float x0)
-    : x{ x0 },
-      frequency{ freq },
-      lower{ lwr },
-      upper{ upr },
-      piStepFrac{ 1.0 / 16.0 },
-      rangeMapper{ -1, +1 }
+  : x{x0}, frequency{freq}, lower{lwr}, upper{upr}, piStepFrac{1.0 / 16.0}, rangeMapper{-1, +1}
 {
 }
 
