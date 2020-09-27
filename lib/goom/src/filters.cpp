@@ -28,6 +28,11 @@
 #include <algorithm>
 #include <cstdint>
 
+namespace goom
+{
+
+using namespace goom::utils;
+
 // For noise amplitude, take the reciprocal of these.
 constexpr float noiseMin = 70;
 constexpr float noiseMax = 120;
@@ -784,3 +789,5 @@ VisualFX zoomFilterVisualFXWrapper_create()
   fx.restore = zoomFilterRestore;
   return fx;
 }
+
+} // namespace goom

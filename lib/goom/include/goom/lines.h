@@ -14,6 +14,9 @@
 #include <cstddef>
 #include <cstdint>
 
+namespace goom
+{
+
 struct GMUnitPointer
 {
   float x;
@@ -36,7 +39,7 @@ constexpr size_t numLineTypes = static_cast<size_t>(LineType::_size);
 // tableau de points
 struct GMLine
 {
-  const ColorMaps* colorMaps;
+  const utils::ColorMaps* colorMaps;
 
   GMUnitPointer* points;
   GMUnitPointer* points2;
@@ -84,4 +87,5 @@ uint32_t getRandomLineColor(PluginInfo*);
 
 void drawGoomLines(PluginInfo*, GMLine*, const int16_t data[AUDIO_SAMPLE_LEN], Pixel*);
 
+} // namespace goom
 #endif

@@ -8,6 +8,9 @@
 #include <tuple>
 #include <vector>
 
+namespace goom::utils
+{
+
 ExpIncreasingFunction::ExpIncreasingFunction(const double x0, const double x1, const double _k)
   : IncreasingFunction(x1, x0), k(_k)
 {
@@ -214,3 +217,5 @@ const std::array<float, numSinCosAngles> cos256 = {
      0.995185,   0.99729,      0.998795,   0.999699
 };
 // clang-format on
+
+} // namespace goom::utils

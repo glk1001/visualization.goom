@@ -7,6 +7,9 @@
 #include <cstdint>
 #include <limits>
 
+namespace goom
+{
+
 /* some constants */
 constexpr uint32_t BIG_GOOM_DURATION = 100;
 constexpr float BIG_GOOM_SPEED_LIMIT = 0.1;
@@ -185,3 +188,5 @@ void evaluate_sound(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], Sou
 
   // bigGoomLimit == goomLimit*9/8+7 ?
 }
+
+} // namespace goom

@@ -10,6 +10,9 @@
 
 #include <cstddef>
 
+namespace goom
+{
+
 enum class ParamType
 {
   intVal,
@@ -110,4 +113,5 @@ PluginParameters goom_plugin_parameters(const char* name, unsigned int nb);
 #define set_str_param_value goom_set_str_param_value
 #define plugin_parameters goom_plugin_parameters
 
+} // namespace goom
 #endif

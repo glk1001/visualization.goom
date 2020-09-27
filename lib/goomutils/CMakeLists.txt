@@ -16,6 +16,7 @@ target_include_directories( ${PROJECT_NAME}
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
     PRIVATE
+        ${CMAKE_SOURCE_DIR}/lib/goomutils/include/goomutils
         ${CMAKE_SOURCE_DIR}/lib/vivid/include
         ${CMAKE_SOURCE_DIR}/lib/fmt/include
 )

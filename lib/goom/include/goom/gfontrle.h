@@ -3,6 +3,9 @@
 
 #include <cstdint>
 
+namespace goom
+{
+
 struct TheFont
 {
   uint16_t width;
@@ -14,4 +17,5 @@ struct TheFont
 
 extern const TheFont the_font;
 
+} // namespace goom
 #endif

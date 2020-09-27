@@ -11,6 +11,9 @@
 #include <tuple>
 #include <vector>
 
+namespace goom::utils
+{
+
 constexpr float m_pi = std::numbers::pi;
 constexpr float m_two_pi = 2.0 * std::numbers::pi;
 constexpr float m_half_pi = 0.5 * std::numbers::pi;
@@ -248,4 +251,5 @@ inline double RangeMapper::operator()(const double r0, const double r1, const do
   return std::lerp(r0, r1, (x - xmin) / xwidth);
 }
 
+} // namespace goom::utils
 #endif

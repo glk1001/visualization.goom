@@ -5,6 +5,9 @@
 
 #include <cstdint>
 
+namespace goom
+{
+
 #ifdef COLOR_BGRA
 #define A_CHANNEL 0x000000FF
 #define R_OFFSET 24
@@ -57,4 +60,5 @@ union Pixel
 
 #endif /* COLOR_BGRA */
 
+} // namespace goom
 #endif

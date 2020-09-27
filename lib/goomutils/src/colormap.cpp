@@ -9,6 +9,9 @@
 #include <vector>
 #include <vivid/vivid.h>
 
+namespace goom::utils
+{
+
 std::vector<ColorMap, ColorMap::ColorMapAllocator> ColorMaps::colorMaps{};
 ColorMaps::GroupColorNames ColorMaps::groups{nullptr};
 
@@ -188,3 +191,5 @@ uint32_t ColorMap::getLighterColor(const uint32_t color, const int incPercent)
 
   return vivid::Color(col).rgb32();
 }
+
+} // namespace goom::utils

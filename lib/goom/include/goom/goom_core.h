@@ -3,13 +3,15 @@
 
 #include "filters.h"
 #include "goom_config.h"
-#include "goom_graphic.h"
 #include "goom_plugin_info.h"
 
 #include <cstdint>
 
-extern PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed);
-extern void goom_set_resolution(PluginInfo*, const uint16_t resx, const uint16_t resy);
+namespace goom
+{
+
+PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed);
+void goom_set_resolution(PluginInfo*, const uint16_t resx, const uint16_t resy);
 
 /*
  * forceMode == 0 : do nothing
@@ -20,16 +22,17 @@ extern void goom_set_resolution(PluginInfo*, const uint16_t resx, const uint16_t
  *      - NULL if it is not the start of the song
  *      - only have a value at the start of the song
  */
-extern uint32_t* goom_update(PluginInfo*,
-                             const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
-                             const int forceMode,
-                             const float fps,
-                             const char* songTitle,
-                             const char* message);
+void goom_update(PluginInfo*,
+                 const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
+                 const int forceMode,
+                 const float fps,
+                 const char* songTitle,
+                 const char* message);
 
 // returns 0 if the buffer wasn't accepted
-int goom_set_screenbuffer(PluginInfo*, Pixel* buffer);
+int goom_set_screenbuffer(PluginInfo*, uint32_t* buffer);
 
 void goom_close(PluginInfo*);
 
+} // namespace goom
 #endif

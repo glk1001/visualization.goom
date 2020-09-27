@@ -12,6 +12,9 @@
 #include <cstdint>
 #include <unordered_set>
 
+namespace goom
+{
+
 enum class GoomDrawable
 {
   IFS = 0,
@@ -173,4 +176,5 @@ void plugin_info_init(PluginInfo* p, size_t nbVisual);
 // i = [0..p->nbVisual-1]
 void plugin_info_add_visual(PluginInfo* p, size_t i, VisualFX* visual);
 
+} // namespace goom
 #endif

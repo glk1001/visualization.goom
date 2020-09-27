@@ -15,6 +15,11 @@
 #include <stdexcept>
 #include <tuple>
 
+namespace goom
+{
+
+using namespace goom::utils;
+
 static void generateLine(
     const LineType id, const float param, GMUnitPointer* l, const uint32_t rx, const uint32_t ry)
 {
@@ -277,3 +282,5 @@ void drawGoomLines(PluginInfo* goomInfo,
 
   goomLinesMove(line);
 }
+
+} // namespace goom

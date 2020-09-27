@@ -16,6 +16,10 @@
 #include <utility>
 #include <vector>
 
+namespace goom
+{
+
+using namespace goom::utils;
 
 TentacleTweaker::TentacleTweaker(std::unique_ptr<DampingFunction> dampingFun,
                                  BeforeIterFunction beforeIterFun,
@@ -466,3 +470,5 @@ void SpecialNodes::incNodes()
     i = static_cast<size_t>(static_cast<long>(i) + incDirection * static_cast<long>(incAmount));
   }
 }
+
+} // namespace goom

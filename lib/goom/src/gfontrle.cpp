@@ -1,5 +1,8 @@
 #include "gfontrle.h"
 
+namespace goom
+{
+
 /* RGBA C-Source image dump (with zRLE compression) */
 
 // clang-format off
@@ -2633,3 +2636,5 @@ const TheFont the_font = {
 /* Created by MiniCompress.. an iOS RLE compressor.
  * Compress Rate : 46.36 %
  */
+
+} // namespace goom

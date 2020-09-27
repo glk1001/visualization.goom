@@ -6,6 +6,9 @@
 #include <cmath>
 #include <cstdint>
 
+namespace goom
+{
+
 struct ConvData
 {
   PluginParam light;
@@ -110,3 +113,5 @@ VisualFX convolve_create(void)
   vfx.fx_data = 0;
   return vfx;
 }
+
+} // namespace goom

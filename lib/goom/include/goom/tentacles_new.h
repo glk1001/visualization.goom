@@ -11,12 +11,14 @@
 #include <vector>
 #include <vivid/vivid.h>
 
+namespace goom
+{
 
 class TentacleColorizer
 {
 public:
   virtual ~TentacleColorizer() {}
-  virtual void resetColorMap(const ColorMap& colorMap) = 0;
+  virtual void resetColorMap(const utils::ColorMap& colorMap) = 0;
   virtual uint32_t getColor(size_t nodeNum) const = 0;
 };
 
@@ -36,10 +38,10 @@ public:
                                                      const float currentY)>;
 
 public:
-  explicit TentacleTweaker(std::unique_ptr<DampingFunction> dampingFunc,
+  explicit TentacleTweaker(std::unique_ptr<utils::DampingFunction> dampingFunc,
                            BeforeIterFunction beforeIterFunc,
-                           SequenceFunction* prevYWeightFunc,
-                           SequenceFunction* currentYWeightFunc,
+                           utils::SequenceFunction* prevYWeightFunc,
+                           utils::SequenceFunction* currentYWeightFunc,
                            WeightFunctionsResetter weightFuncsReset,
                            WeightFunctionsAdjuster weightFuncsAdjuster);
   TentacleTweaker(const TentacleTweaker&) = delete;
@@ -63,15 +65,15 @@ public:
   double getNextPrevYWeight();
   double getNextCurrentYWeight();
 
-  void setDampingFunc(DampingFunction& dampingFunc);
-  void setCurrentYWeightFunc(SequenceFunction& weightFunc);
+  void setDampingFunc(utils::DampingFunction& dampingFunc);
+  void setCurrentYWeightFunc(utils::SequenceFunction& weightFunc);
   void setCurrentYWeightFuncAdjuster(WeightFunctionsAdjuster& weightFuncAdjuster);
 
 private:
-  std::unique_ptr<DampingFunction> dampingFunc;
+  std::unique_ptr<utils::DampingFunction> dampingFunc;
   BeforeIterFunction beforeIterFunc;
-  SequenceFunction* prevYWeightFunc;
-  SequenceFunction* currentYWeightFunc;
+  utils::SequenceFunction* prevYWeightFunc;
+  utils::SequenceFunction* currentYWeightFunc;
   WeightFunctionsResetter weightFuncsReset;
   WeightFunctionsAdjuster weightFuncsAdjuster;
   static constexpr auto emptyErrorAdjuster = [](const size_t, const size_t) {};
@@ -227,7 +229,7 @@ public:
   Tentacle3D(const Tentacle3D&) = delete;
   Tentacle3D& operator=(const Tentacle3D&) = delete;
 
-  void setSpecialColorNodes(const ColorMap&, const std::vector<size_t>& nodes);
+  void setSpecialColorNodes(const utils::ColorMap&, const std::vector<size_t>& nodes);
   void incSpecialColorNodes() { specialColorNodes.incNodes(); }
 
   Tentacle2D& get2DTentacle() { return *tentacle; }
@@ -252,7 +254,7 @@ private:
   std::unique_ptr<Tentacle2D> tentacle;
   const TentacleColorizer* const colorizer;
   SpecialNodes specialColorNodes;
-  const ColorMap* specialNodesColorMap;
+  const utils::ColorMap* specialNodesColorMap;
   const uint32_t headColor;
   const uint32_t headColorLow;
   V3d head;
@@ -518,4 +520,5 @@ inline Tentacle3D& Tentacles3D::Iter::operator*() const
   return (*tentacles)[pos];
 }
 
+} // namespace goom
 #endif

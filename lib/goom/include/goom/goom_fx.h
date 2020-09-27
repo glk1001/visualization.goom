@@ -8,6 +8,9 @@
 #include <cstddef>
 #include <cstdint>
 
+namespace goom
+{
+
 VisualFX convolve_create();
 
 VisualFX flying_star_create(void);
@@ -24,4 +27,5 @@ extern void zoom_filter_c(const uint16_t sizeX,
                           const int buffratio,
                           const int precalCoef[BUFFPOINTNB][BUFFPOINTNB]);
 
+} // namespace goom
 #endif

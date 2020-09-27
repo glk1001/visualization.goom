@@ -21,6 +21,11 @@
 #include <stdexcept>
 #include <tuple>
 
+namespace goom
+{
+
+using namespace goom::utils;
+
 class TentacleStats
 {
 public:
@@ -583,3 +588,5 @@ void tentacle_free(TentacleFXData* data)
 {
   delete data->tentacles;
 }
+
+} // namespace goom

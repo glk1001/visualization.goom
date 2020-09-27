@@ -9,6 +9,9 @@
 #include <utility>
 #include <vector>
 
+namespace goom::utils
+{
+
 uint64_t getRandSeed();
 void setRandSeed(const uint64_t seed);
 extern const uint32_t randMax;
@@ -164,4 +167,5 @@ E Weights<E>::getRandomWeighted() const
   throw std::logic_error(std20::format("Should not get here. randVal = {}.", randVal));
 }
 
+} // namespace goom::utils
 #endif

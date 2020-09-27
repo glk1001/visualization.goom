@@ -11,6 +11,8 @@
 #include <vector>
 #include <vivid/vivid.h>
 
+namespace goom::utils
+{
 
 class ColorMap
 {
@@ -128,4 +130,5 @@ private:
   bool weightsActive;
 };
 
+} // namespace goom::utils
 #endif /* LIBS_GOOMUTILS_INCLUDE_GOOMUTILS_COLORMAP_H_ */

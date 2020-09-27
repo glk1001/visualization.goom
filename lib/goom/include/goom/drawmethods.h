@@ -6,6 +6,9 @@
 #include <cstdint>
 #include <vector>
 
+namespace goom
+{
+
 void draw_line(const size_t n,
                Pixel* buffs[],
                const std::vector<Pixel>& colors,
@@ -40,4 +43,6 @@ void filledCircle(Pixel* buff,
                   const std::vector<uint32_t> colors,
                   const uint32_t screenWidth,
                   const uint32_t screenHeight);
+
+} // namespace goom
 #endif

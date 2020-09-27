@@ -5,6 +5,8 @@
 
 #include <algorithm>
 
+using namespace goom;
+
 TEST_CASE( "Color channels are added", "[color-channel-add]" )
 {
   REQUIRE( colorChannelAdd(100, 120) == 220 );

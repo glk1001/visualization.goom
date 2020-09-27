@@ -53,6 +53,11 @@
 #include <cmath>
 #include <cstdint>
 
+namespace goom
+{
+
+using namespace goom::utils;
+
 struct IFSPoint
 {
   uint32_t x;
@@ -168,11 +173,13 @@ constexpr Dbl get_1_minus_exp_neg_S(const Dbl S)
 
 static void randomSimis(const Fractal* fractal, Similitude* cur, uint32_t i)
 {
-  static constexpr Dbl c_AS_factor = 0.8 * get_1_minus_exp_neg_S(4.0);
-  static constexpr Dbl r_1_minus_exp_neg_S = get_1_minus_exp_neg_S(3.0);
-  static constexpr Dbl r2_1_minus_exp_neg_S = get_1_minus_exp_neg_S(2.0);
-  static constexpr Dbl A_AS_factor = 360.0 * get_1_minus_exp_neg_S(4.0);
-  static constexpr Dbl A2_AS_factor = A_AS_factor;
+  // @formatter:off  TODO MAYBE TURN cevelop formatter OFF
+  static const constinit Dbl c_AS_factor = 0.8 * get_1_minus_exp_neg_S(4.0);
+  static const constinit Dbl r_1_minus_exp_neg_S = get_1_minus_exp_neg_S(3.0);
+  static const constinit Dbl r2_1_minus_exp_neg_S = get_1_minus_exp_neg_S(2.0);
+  static const constinit Dbl A_AS_factor = 360.0 * get_1_minus_exp_neg_S(4.0);
+  static const constinit Dbl A2_AS_factor = A_AS_factor;
+  // @formatter:on
 
   const Dbl r_AS_factor = fractal->drMean * r_1_minus_exp_neg_S;
   const Dbl r2_AS_factor = fractal->dr2Mean * r2_1_minus_exp_neg_S;
@@ -1047,3 +1054,5 @@ void ifsRenew(VisualFX* _this)
 
   data->root->speed = getRandInRange(2u, 15u);
 }
+
+} // namespace goom

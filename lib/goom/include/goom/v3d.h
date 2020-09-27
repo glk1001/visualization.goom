@@ -1,6 +1,9 @@
 #ifndef _V3D_H
 #define _V3D_H
 
+namespace goom
+{
+
 struct v3d
 {
   float x = 0;
@@ -21,4 +24,5 @@ struct v2g
   double y;
 };
 
+} // namespace goom
 #endif

@@ -9,6 +9,9 @@
 #include <string>
 #include <utility>
 
+namespace goom::utils
+{
+
 std::unique_ptr<Logging> Logging::logger(new Logging());
 
 Logging::Logging() noexcept
@@ -113,3 +116,5 @@ void Logging::doFlush()
 
   logEntries.clear();
 }
+
+} // namespace goom::utils

@@ -12,6 +12,9 @@
 #include <utility>
 #include <vector>
 
+namespace goom::utils
+{
+
 class Logging
 {
 public:
@@ -164,4 +167,5 @@ inline void Logging::vlog(const LogLevel lvl,
   Logging::getLogger().log(Logging::LogLevel::error, __LINE__, __func__, __VA_ARGS__)
 #endif
 
+} // namespace goom::utils
 #endif

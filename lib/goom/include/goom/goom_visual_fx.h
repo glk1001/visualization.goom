@@ -13,6 +13,9 @@
 #include "goom_config_param.h"
 #include "goom_graphic.h"
 
+namespace goom
+{
+
 struct PluginInfo;
 
 struct VisualFX
@@ -27,4 +30,5 @@ struct VisualFX
   PluginParameters* params;
 };
 
+} // namespace goom
 #endif

@@ -9,6 +9,9 @@
 #include <cstddef>
 #include <limits>
 
+namespace goom
+{
+
 static void setOptimizedMethods(PluginInfo* p)
 {
   /* set default methods */
@@ -142,3 +145,5 @@ void plugin_info_add_visual(PluginInfo* p, size_t i, VisualFX* visual)
     }
   }
 }
+
+} // namespace goom

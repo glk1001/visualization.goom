@@ -16,6 +16,9 @@
 #include <cstddef>
 #include <string.h>
 
+namespace goom
+{
+
 /* TODO: Ajouter goom_ devant ces fonctions */
 
 static void empty_fct(PluginParam*)
@@ -112,3 +115,5 @@ void goom_set_str_param_value(PluginParam* p, const char* str)
   }
   memcpy(SVAL(*p), str, len + 1);
 }
+
+} // namespace goom

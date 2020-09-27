@@ -26,6 +26,8 @@
 #undef NO_LOGGING
 #include "goomutils/logging.h"
 
+using goom::utils::Logging;
+
 CVisualizationGoom::CVisualizationGoom()
 {
   switch (kodi::GetSettingInt("quality"))
@@ -334,7 +336,7 @@ void CVisualizationGoom::Process()
 {
   constexpr int seed = 0; // goom will supply a random seed
   // constexpr int seed = 1; // goom will use same random sequence
-  m_goom = goom_init(m_tex_width, m_tex_height, seed);
+  m_goom = goom::goom_init(m_tex_width, m_tex_height, seed);
   if (!m_goom)
   {
     kodi::Log(ADDON_LOG_FATAL, "CVisualizationGoom: Goom could not be initialized!");
@@ -415,7 +417,7 @@ void CVisualizationGoom::Process()
     lk.unlock();
   }
 
-  goom_close(m_goom);
+  goom::goom_close(m_goom);
 }
 
 void CVisualizationGoom::UpdateGoomBuffer(const char* title,
@@ -424,8 +426,8 @@ void CVisualizationGoom::UpdateGoomBuffer(const char* title,
 {
   static int16_t audioData[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN];
   FillAudioDataBuffer(audioData, floatAudioData, m_channels);
-  goom_set_screenbuffer(m_goom, reinterpret_cast<Pixel*>(pixels.get()));
-  goom_update(m_goom, audioData, 0, 0.0f, title, "Kodi");
+  goom::goom_set_screenbuffer(m_goom, pixels.get());
+  goom::goom_update(m_goom, audioData, 0, 0.0f, title, "Kodi");
 }
 
 void CVisualizationGoom::InitQuadData()

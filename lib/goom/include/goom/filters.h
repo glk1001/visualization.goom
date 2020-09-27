@@ -6,6 +6,9 @@
 
 #include <cstdint>
 
+namespace goom
+{
+
 enum class ZoomFilterMode
 {
   normalMode = 0,
@@ -64,4 +67,5 @@ void zoomFilterFastRGB(PluginInfo*,
                        const int switchIncr,
                        const float switchMult);
 
+} // namespace goom
 #endif

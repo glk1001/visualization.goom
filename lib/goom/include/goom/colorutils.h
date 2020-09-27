@@ -7,6 +7,9 @@
 #include <cmath>
 #include <cstdint>
 
+namespace goom
+{
+
 uint32_t getIntColor(const uint8_t r, const uint8_t g, const uint8_t b);
 
 inline uint8_t colorChannelAdd(const uint8_t c1, const uint8_t c2)
@@ -74,5 +77,7 @@ inline void setPixelRGB(
 
   *(buff + (x + (y * screenWidth))) = p;
 }
+
+} // namespace goom
 
 #endif

@@ -1,5 +1,8 @@
 #pragma once
 
+namespace goom::utils
+{
+
 enum class ColorMapName
 {
   Accent,
@@ -92,3 +95,5 @@ enum class ColorMapName
   YlOrBr,
   YlOrRd,
 };
+
+}

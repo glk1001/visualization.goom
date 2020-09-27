@@ -9,6 +9,9 @@
 #include <algorithm>
 #include <cstdint>
 
+namespace goom
+{
+
 class TentaclesWrapper;
 
 struct TentacleFXData
@@ -28,4 +31,5 @@ inline float getRapport(const float accelvar)
   return std::min(1.12f, 1.2f * (1.0f + 2.0f * (accelvar - 1.0f)));
 }
 
+} // namespace goom
 #endif

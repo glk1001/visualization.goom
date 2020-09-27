@@ -12,6 +12,8 @@
 #include <stack>
 #include <vector>
 
+namespace goom
+{
 
 class IterTimer
 {
@@ -35,10 +37,10 @@ private:
 class SimpleWeightHandler
 {
 public:
-  explicit SimpleWeightHandler(ConstantSequenceFunction& prevYWeightFunc,
-                               ConstantSequenceFunction& currentYWeightFunc);
-  ConstantSequenceFunction& getPrevYWeightFunc() const { return *prevYWeightFunc; }
-  ConstantSequenceFunction& getCurrentYWeightFunc() const { return *currentYWeightFunc; }
+  explicit SimpleWeightHandler(utils::ConstantSequenceFunction& prevYWeightFunc,
+                               utils::ConstantSequenceFunction& currentYWeightFunc);
+  utils::ConstantSequenceFunction& getPrevYWeightFunc() const { return *prevYWeightFunc; }
+  utils::ConstantSequenceFunction& getCurrentYWeightFunc() const { return *currentYWeightFunc; }
   void weightsReset(const size_t ID,
                     const size_t numNodes,
                     const float basePrevYWeight,
@@ -50,8 +52,8 @@ public:
                      const float currentY);
 
 private:
-  ConstantSequenceFunction* prevYWeightFunc;
-  ConstantSequenceFunction* currentYWeightFunc;
+  utils::ConstantSequenceFunction* prevYWeightFunc;
+  utils::ConstantSequenceFunction* currentYWeightFunc;
   float basePrevYWeight = 0;
   float baseCurrentYWeight = 0;
 };
@@ -59,12 +61,12 @@ private:
 class RandWeightHandler
 {
 public:
-  explicit RandWeightHandler(RandSequenceFunction& prevYWeightFunc,
-                             RandSequenceFunction& currentYWeightFunc,
+  explicit RandWeightHandler(utils::RandSequenceFunction& prevYWeightFunc,
+                             utils::RandSequenceFunction& currentYWeightFunc,
                              const float r0,
                              const float r1);
-  RandSequenceFunction& getPrevYWeightFunc() const { return *prevYWeightFunc; }
-  RandSequenceFunction& getCurrentYWeightFunc() const { return *currentYWeightFunc; }
+  utils::RandSequenceFunction& getPrevYWeightFunc() const { return *prevYWeightFunc; }
+  utils::RandSequenceFunction& getCurrentYWeightFunc() const { return *currentYWeightFunc; }
   void weightsReset(const size_t ID,
                     const size_t numIters,
                     const size_t numNodes,
@@ -77,8 +79,8 @@ public:
                      const float currentY);
 
 private:
-  RandSequenceFunction* prevYWeightFunc;
-  RandSequenceFunction* currentYWeightFunc;
+  utils::RandSequenceFunction* prevYWeightFunc;
+  utils::RandSequenceFunction* currentYWeightFunc;
   const float r0;
   const float r1;
 };
@@ -94,7 +96,7 @@ public:
 class TentacleDriver
 {
 public:
-  explicit TentacleDriver(const ColorMaps*,
+  explicit TentacleDriver(const utils::ColorMaps*,
                           const uint32_t screenWidth,
                           const uint32_t screenHeight);
   TentacleDriver(const TentacleDriver&) = delete;
@@ -124,7 +126,7 @@ private:
     size_t numNodes = 200;
     float prevYWeight = 0.770;
     float iterZeroYValWaveFreq = 1.0;
-    SineWaveMultiplier iterZeroYValWave{};
+    utils::SineWaveMultiplier iterZeroYValWave{};
     float length = 50;
   };
   struct IterParamsGroup
@@ -137,11 +139,11 @@ private:
 
   const uint32_t screenWidth;
   const uint32_t screenHeight;
-  const ColorMaps* colorMaps;
-  ColorMapGroup currentColorMapGroup;
+  const utils::ColorMaps* colorMaps;
+  utils::ColorMapGroup currentColorMapGroup;
   std::vector<std::unique_ptr<TentacleColorizer>> colorizers;
-  ConstantSequenceFunction constPrevYWeightFunc;
-  ConstantSequenceFunction constCurrentYWeightFunc;
+  utils::ConstantSequenceFunction constPrevYWeightFunc;
+  utils::ConstantSequenceFunction constCurrentYWeightFunc;
   SimpleWeightHandler weightsHandler;
   // RandWeightHandler weightsHandler;
   TentacleTweaker::WeightFunctionsResetter weightsReset;
@@ -157,18 +159,18 @@ private:
   IterTimer glitchTimer;
   static constexpr size_t doGlitchEveryNUpdates = 30;
   static constexpr size_t glitchIterLength = 10;
-  const ColorMap* glitchColorGroup;
+  const utils::ColorMap* glitchColorGroup;
   float glitchLower = -1.5;
   float glitchUpper = +1.5;
   std::unique_ptr<Tentacle2D> createNewTentacle2D(const size_t ID, const IterationParams&);
-  std::unique_ptr<TentacleTweaker> createNewTweaker(const IterationParams& params,
-                                                    std::unique_ptr<DampingFunction> dampingFunc);
-  std::unique_ptr<DampingFunction> createNewDampingFunction(const IterationParams&,
-                                                            const size_t tentacleLen) const;
-  std::unique_ptr<DampingFunction> createNewExpDampingFunction(const IterationParams&,
-                                                               const size_t tentacleLen) const;
-  std::unique_ptr<DampingFunction> createNewLinearDampingFunction(const IterationParams&,
-                                                                  const size_t tentacleLen) const;
+  std::unique_ptr<TentacleTweaker> createNewTweaker(
+      const IterationParams& params, std::unique_ptr<utils::DampingFunction> dampingFunc);
+  std::unique_ptr<utils::DampingFunction> createNewDampingFunction(const IterationParams&,
+                                                                   const size_t tentacleLen) const;
+  std::unique_ptr<utils::DampingFunction> createNewExpDampingFunction(
+      const IterationParams&, const size_t tentacleLen) const;
+  std::unique_ptr<utils::DampingFunction> createNewLinearDampingFunction(
+      const IterationParams&, const size_t tentacleLen) const;
   void beforeIter(const size_t ID,
                   const size_t iterNum,
                   const std::vector<double>& xvec,
@@ -192,20 +194,20 @@ private:
 class TentacleColorMapColorizer : public TentacleColorizer
 {
 public:
-  explicit TentacleColorMapColorizer(const ColorMap& colorMap, const size_t numNodes);
+  explicit TentacleColorMapColorizer(const utils::ColorMap& colorMap, const size_t numNodes);
   TentacleColorMapColorizer(const TentacleColorMapColorizer&) = delete;
   TentacleColorMapColorizer& operator=(const TentacleColorMapColorizer&) = delete;
 
-  void resetColorMap(const ColorMap& colorMap) override;
-  void pushColorMap(const ColorMap& colorMap);
+  void resetColorMap(const utils::ColorMap& colorMap) override;
+  void pushColorMap(const utils::ColorMap& colorMap);
   void popColorMap();
 
   uint32_t getColor(size_t nodeNum) const override;
 
 private:
-  const ColorMap* origColorMap;
-  const ColorMap* colorMap;
-  std::stack<const ColorMap*> colorStack;
+  const utils::ColorMap* origColorMap;
+  const utils::ColorMap* colorMap;
+  std::stack<const utils::ColorMap*> colorStack;
   const size_t numNodes;
 };
 
@@ -242,4 +244,5 @@ private:
   std::vector<V3d> points;
 };
 
+} // namespace goom
 #endif

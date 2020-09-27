@@ -7,6 +7,9 @@
 #include <cstdint>
 #include <stdlib.h>
 
+namespace goom
+{
+
 static Pixel*** font_chars;
 static int* font_width;
 static int* font_height;
@@ -284,3 +287,5 @@ void goom_draw_text(Pixel* buf,
     str++;
   }
 }
+
+} // namespace goom

@@ -6,7 +6,11 @@
 
 #include <cstdint>
 
+namespace goom
+{
+
 // change les donnees du SoundInfo
 void evaluate_sound(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN], SoundInfo* sndInfo);
 
+} // namespace goom
 #endif

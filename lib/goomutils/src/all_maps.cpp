@@ -1,95 +1,101 @@
-#include "../include/goomutils/colordata/all_maps.h"
+#include "colordata/all_maps.h"
 
-#include "../include/goomutils/colordata/Accent.h"
-#include "../include/goomutils/colordata/Blues.h"
-#include "../include/goomutils/colordata/BrBG.h"
-#include "../include/goomutils/colordata/BuGn.h"
-#include "../include/goomutils/colordata/BuPu.h"
-#include "../include/goomutils/colordata/CMRmap.h"
-#include "../include/goomutils/colordata/Dark2.h"
-#include "../include/goomutils/colordata/GnBu.h"
-#include "../include/goomutils/colordata/Greens.h"
-#include "../include/goomutils/colordata/Greys.h"
-#include "../include/goomutils/colordata/OrRd.h"
-#include "../include/goomutils/colordata/Oranges.h"
-#include "../include/goomutils/colordata/PRGn.h"
-#include "../include/goomutils/colordata/Paired.h"
-#include "../include/goomutils/colordata/Pastel1.h"
-#include "../include/goomutils/colordata/Pastel2.h"
-#include "../include/goomutils/colordata/PiYG.h"
-#include "../include/goomutils/colordata/PuBu.h"
-#include "../include/goomutils/colordata/PuBuGn.h"
-#include "../include/goomutils/colordata/PuOr.h"
-#include "../include/goomutils/colordata/PuRd.h"
-#include "../include/goomutils/colordata/Purples.h"
-#include "../include/goomutils/colordata/RdBu.h"
-#include "../include/goomutils/colordata/RdGy.h"
-#include "../include/goomutils/colordata/RdPu.h"
-#include "../include/goomutils/colordata/RdYlBu.h"
-#include "../include/goomutils/colordata/RdYlGn.h"
-#include "../include/goomutils/colordata/Reds.h"
-#include "../include/goomutils/colordata/Set1.h"
-#include "../include/goomutils/colordata/Set2.h"
-#include "../include/goomutils/colordata/Set3.h"
-#include "../include/goomutils/colordata/Spectral.h"
-#include "../include/goomutils/colordata/Wistia.h"
-#include "../include/goomutils/colordata/YlGn.h"
-#include "../include/goomutils/colordata/YlGnBu.h"
-#include "../include/goomutils/colordata/YlOrBr.h"
-#include "../include/goomutils/colordata/YlOrRd.h"
-#include "../include/goomutils/colordata/afmhot.h"
-#include "../include/goomutils/colordata/autumn.h"
-#include "../include/goomutils/colordata/binary.h"
-#include "../include/goomutils/colordata/bone.h"
-#include "../include/goomutils/colordata/brg.h"
-#include "../include/goomutils/colordata/bwr.h"
-#include "../include/goomutils/colordata/cividis.h"
-#include "../include/goomutils/colordata/cool.h"
-#include "../include/goomutils/colordata/coolwarm.h"
-#include "../include/goomutils/colordata/copper.h"
-#include "../include/goomutils/colordata/cubehelix.h"
-#include "../include/goomutils/colordata/flag.h"
-#include "../include/goomutils/colordata/gist_earth.h"
-#include "../include/goomutils/colordata/gist_gray.h"
-#include "../include/goomutils/colordata/gist_heat.h"
-#include "../include/goomutils/colordata/gist_ncar.h"
-#include "../include/goomutils/colordata/gist_rainbow.h"
-#include "../include/goomutils/colordata/gist_stern.h"
-#include "../include/goomutils/colordata/gist_yarg.h"
-#include "../include/goomutils/colordata/gnuplot.h"
-#include "../include/goomutils/colordata/gnuplot2.h"
-#include "../include/goomutils/colordata/gray.h"
-#include "../include/goomutils/colordata/hot.h"
-#include "../include/goomutils/colordata/hsv.h"
-#include "../include/goomutils/colordata/inferno.h"
-#include "../include/goomutils/colordata/jet.h"
-#include "../include/goomutils/colordata/magma.h"
-#include "../include/goomutils/colordata/nipy_spectral.h"
-#include "../include/goomutils/colordata/ocean.h"
-#include "../include/goomutils/colordata/pink.h"
-#include "../include/goomutils/colordata/pink_black_green_w3c_.h"
-#include "../include/goomutils/colordata/plasma.h"
-#include "../include/goomutils/colordata/prism.h"
-#include "../include/goomutils/colordata/rainbow.h"
-#include "../include/goomutils/colordata/red_black_blue.h"
-#include "../include/goomutils/colordata/red_black_green.h"
-#include "../include/goomutils/colordata/red_black_orange.h"
-#include "../include/goomutils/colordata/red_black_sky.h"
-#include "../include/goomutils/colordata/seismic.h"
-#include "../include/goomutils/colordata/spring.h"
-#include "../include/goomutils/colordata/summer.h"
-#include "../include/goomutils/colordata/tab10.h"
-#include "../include/goomutils/colordata/tab20.h"
-#include "../include/goomutils/colordata/tab20b.h"
-#include "../include/goomutils/colordata/tab20c.h"
-#include "../include/goomutils/colordata/terrain.h"
-#include "../include/goomutils/colordata/twilight.h"
-#include "../include/goomutils/colordata/twilight_shifted.h"
-#include "../include/goomutils/colordata/viridis.h"
-#include "../include/goomutils/colordata/winter.h"
-#include "../include/goomutils/colordata/yellow_black_blue.h"
-#include "../include/goomutils/colordata/yellow_black_sky.h"
-#include "goomutils/colormap_enums.h"
+// TODO -  temporary - fix generator to add namespace.
+namespace goom::utils
+{
+
+#include "colordata/Accent.h"
+#include "colordata/Blues.h"
+#include "colordata/BrBG.h"
+#include "colordata/BuGn.h"
+#include "colordata/BuPu.h"
+#include "colordata/CMRmap.h"
+#include "colordata/Dark2.h"
+#include "colordata/GnBu.h"
+#include "colordata/Greens.h"
+#include "colordata/Greys.h"
+#include "colordata/OrRd.h"
+#include "colordata/Oranges.h"
+#include "colordata/PRGn.h"
+#include "colordata/Paired.h"
+#include "colordata/Pastel1.h"
+#include "colordata/Pastel2.h"
+#include "colordata/PiYG.h"
+#include "colordata/PuBu.h"
+#include "colordata/PuBuGn.h"
+#include "colordata/PuOr.h"
+#include "colordata/PuRd.h"
+#include "colordata/Purples.h"
+#include "colordata/RdBu.h"
+#include "colordata/RdGy.h"
+#include "colordata/RdPu.h"
+#include "colordata/RdYlBu.h"
+#include "colordata/RdYlGn.h"
+#include "colordata/Reds.h"
+#include "colordata/Set1.h"
+#include "colordata/Set2.h"
+#include "colordata/Set3.h"
+#include "colordata/Spectral.h"
+#include "colordata/Wistia.h"
+#include "colordata/YlGn.h"
+#include "colordata/YlGnBu.h"
+#include "colordata/YlOrBr.h"
+#include "colordata/YlOrRd.h"
+#include "colordata/afmhot.h"
+#include "colordata/autumn.h"
+#include "colordata/binary.h"
+#include "colordata/bone.h"
+#include "colordata/brg.h"
+#include "colordata/bwr.h"
+#include "colordata/cividis.h"
+#include "colordata/cool.h"
+#include "colordata/coolwarm.h"
+#include "colordata/copper.h"
+#include "colordata/cubehelix.h"
+#include "colordata/flag.h"
+#include "colordata/gist_earth.h"
+#include "colordata/gist_gray.h"
+#include "colordata/gist_heat.h"
+#include "colordata/gist_ncar.h"
+#include "colordata/gist_rainbow.h"
+#include "colordata/gist_stern.h"
+#include "colordata/gist_yarg.h"
+#include "colordata/gnuplot.h"
+#include "colordata/gnuplot2.h"
+#include "colordata/gray.h"
+#include "colordata/hot.h"
+#include "colordata/hsv.h"
+#include "colordata/inferno.h"
+#include "colordata/jet.h"
+#include "colordata/magma.h"
+#include "colordata/nipy_spectral.h"
+#include "colordata/ocean.h"
+#include "colordata/pink.h"
+#include "colordata/pink_black_green_w3c_.h"
+#include "colordata/plasma.h"
+#include "colordata/prism.h"
+#include "colordata/rainbow.h"
+#include "colordata/red_black_blue.h"
+#include "colordata/red_black_green.h"
+#include "colordata/red_black_orange.h"
+#include "colordata/red_black_sky.h"
+#include "colordata/seismic.h"
+#include "colordata/spring.h"
+#include "colordata/summer.h"
+#include "colordata/tab10.h"
+#include "colordata/tab20.h"
+#include "colordata/tab20b.h"
+#include "colordata/tab20c.h"
+#include "colordata/terrain.h"
+#include "colordata/twilight.h"
+#include "colordata/twilight_shifted.h"
+#include "colordata/viridis.h"
+#include "colordata/winter.h"
+#include "colordata/yellow_black_blue.h"
+#include "colordata/yellow_black_sky.h"
+} // namespace goom::utils
+
+#include "colormap_enums.h"
 #include "vivid/types.h"
 
 #include <array>
@@ -97,98 +103,99 @@
 #include <utility>
 #include <vector>
 
-namespace colordata
+namespace goom::utils::colordata
 {
+
 const std::array<std::pair<std::string, std::vector<vivid::srgb_t>>, 89> allMaps = {
-    std::make_pair("Accent", colordata::Accent),
-    std::make_pair("afmhot", colordata::afmhot),
-    std::make_pair("autumn", colordata::autumn),
-    std::make_pair("binary", colordata::binary),
-    std::make_pair("Blues", colordata::Blues),
-    std::make_pair("bone", colordata::bone),
-    std::make_pair("BrBG", colordata::BrBG),
-    std::make_pair("brg", colordata::brg),
-    std::make_pair("BuGn", colordata::BuGn),
-    std::make_pair("BuPu", colordata::BuPu),
-    std::make_pair("bwr", colordata::bwr),
-    std::make_pair("cividis", colordata::cividis),
-    std::make_pair("CMRmap", colordata::CMRmap),
-    std::make_pair("cool", colordata::cool),
-    std::make_pair("coolwarm", colordata::coolwarm),
-    std::make_pair("copper", colordata::copper),
-    std::make_pair("cubehelix", colordata::cubehelix),
-    std::make_pair("Dark2", colordata::Dark2),
-    std::make_pair("flag", colordata::flag),
-    std::make_pair("gist_earth", colordata::gist_earth),
-    std::make_pair("gist_gray", colordata::gist_gray),
-    std::make_pair("gist_heat", colordata::gist_heat),
-    std::make_pair("gist_ncar", colordata::gist_ncar),
-    std::make_pair("gist_rainbow", colordata::gist_rainbow),
-    std::make_pair("gist_stern", colordata::gist_stern),
-    std::make_pair("gist_yarg", colordata::gist_yarg),
-    std::make_pair("GnBu", colordata::GnBu),
-    std::make_pair("gnuplot", colordata::gnuplot),
-    std::make_pair("gnuplot2", colordata::gnuplot2),
-    std::make_pair("gray", colordata::gray),
-    std::make_pair("Greens", colordata::Greens),
-    std::make_pair("Greys", colordata::Greys),
-    std::make_pair("hot", colordata::hot),
-    std::make_pair("hsv", colordata::hsv),
-    std::make_pair("inferno", colordata::inferno),
-    std::make_pair("jet", colordata::jet),
-    std::make_pair("magma", colordata::magma),
-    std::make_pair("nipy_spectral", colordata::nipy_spectral),
-    std::make_pair("ocean", colordata::ocean),
-    std::make_pair("Oranges", colordata::Oranges),
-    std::make_pair("OrRd", colordata::OrRd),
-    std::make_pair("Paired", colordata::Paired),
-    std::make_pair("Pastel1", colordata::Pastel1),
-    std::make_pair("Pastel2", colordata::Pastel2),
-    std::make_pair("pink", colordata::pink),
-    std::make_pair("pink_black_green_w3c_", colordata::pink_black_green_w3c_),
-    std::make_pair("PiYG", colordata::PiYG),
-    std::make_pair("plasma", colordata::plasma),
-    std::make_pair("PRGn", colordata::PRGn),
-    std::make_pair("prism", colordata::prism),
-    std::make_pair("PuBu", colordata::PuBu),
-    std::make_pair("PuBuGn", colordata::PuBuGn),
-    std::make_pair("PuOr", colordata::PuOr),
-    std::make_pair("PuRd", colordata::PuRd),
-    std::make_pair("Purples", colordata::Purples),
-    std::make_pair("rainbow", colordata::rainbow),
-    std::make_pair("RdBu", colordata::RdBu),
-    std::make_pair("RdGy", colordata::RdGy),
-    std::make_pair("RdPu", colordata::RdPu),
-    std::make_pair("RdYlBu", colordata::RdYlBu),
-    std::make_pair("RdYlGn", colordata::RdYlGn),
-    std::make_pair("red_black_blue", colordata::red_black_blue),
-    std::make_pair("red_black_green", colordata::red_black_green),
-    std::make_pair("red_black_orange", colordata::red_black_orange),
-    std::make_pair("red_black_sky", colordata::red_black_sky),
-    std::make_pair("Reds", colordata::Reds),
-    std::make_pair("seismic", colordata::seismic),
-    std::make_pair("Set1", colordata::Set1),
-    std::make_pair("Set2", colordata::Set2),
-    std::make_pair("Set3", colordata::Set3),
-    std::make_pair("Spectral", colordata::Spectral),
-    std::make_pair("spring", colordata::spring),
-    std::make_pair("summer", colordata::summer),
-    std::make_pair("tab10", colordata::tab10),
-    std::make_pair("tab20", colordata::tab20),
-    std::make_pair("tab20b", colordata::tab20b),
-    std::make_pair("tab20c", colordata::tab20c),
-    std::make_pair("terrain", colordata::terrain),
-    std::make_pair("twilight", colordata::twilight),
-    std::make_pair("twilight_shifted", colordata::twilight_shifted),
-    std::make_pair("viridis", colordata::viridis),
-    std::make_pair("winter", colordata::winter),
-    std::make_pair("Wistia", colordata::Wistia),
-    std::make_pair("yellow_black_blue", colordata::yellow_black_blue),
-    std::make_pair("yellow_black_sky", colordata::yellow_black_sky),
-    std::make_pair("YlGn", colordata::YlGn),
-    std::make_pair("YlGnBu", colordata::YlGnBu),
-    std::make_pair("YlOrBr", colordata::YlOrBr),
-    std::make_pair("YlOrRd", colordata::YlOrRd),
+    std::make_pair("Accent", Accent),
+    std::make_pair("afmhot", afmhot),
+    std::make_pair("autumn", autumn),
+    std::make_pair("binary", binary),
+    std::make_pair("Blues", Blues),
+    std::make_pair("bone", bone),
+    std::make_pair("BrBG", BrBG),
+    std::make_pair("brg", brg),
+    std::make_pair("BuGn", BuGn),
+    std::make_pair("BuPu", BuPu),
+    std::make_pair("bwr", bwr),
+    std::make_pair("cividis", cividis),
+    std::make_pair("CMRmap", CMRmap),
+    std::make_pair("cool", cool),
+    std::make_pair("coolwarm", coolwarm),
+    std::make_pair("copper", copper),
+    std::make_pair("cubehelix", cubehelix),
+    std::make_pair("Dark2", Dark2),
+    std::make_pair("flag", flag),
+    std::make_pair("gist_earth", gist_earth),
+    std::make_pair("gist_gray", gist_gray),
+    std::make_pair("gist_heat", gist_heat),
+    std::make_pair("gist_ncar", gist_ncar),
+    std::make_pair("gist_rainbow", gist_rainbow),
+    std::make_pair("gist_stern", gist_stern),
+    std::make_pair("gist_yarg", gist_yarg),
+    std::make_pair("GnBu", GnBu),
+    std::make_pair("gnuplot", gnuplot),
+    std::make_pair("gnuplot2", gnuplot2),
+    std::make_pair("gray", gray),
+    std::make_pair("Greens", Greens),
+    std::make_pair("Greys", Greys),
+    std::make_pair("hot", hot),
+    std::make_pair("hsv", hsv),
+    std::make_pair("inferno", inferno),
+    std::make_pair("jet", jet),
+    std::make_pair("magma", magma),
+    std::make_pair("nipy_spectral", nipy_spectral),
+    std::make_pair("ocean", ocean),
+    std::make_pair("Oranges", Oranges),
+    std::make_pair("OrRd", OrRd),
+    std::make_pair("Paired", Paired),
+    std::make_pair("Pastel1", Pastel1),
+    std::make_pair("Pastel2", Pastel2),
+    std::make_pair("pink", pink),
+    std::make_pair("pink_black_green_w3c_", pink_black_green_w3c_),
+    std::make_pair("PiYG", PiYG),
+    std::make_pair("plasma", plasma),
+    std::make_pair("PRGn", PRGn),
+    std::make_pair("prism", prism),
+    std::make_pair("PuBu", PuBu),
+    std::make_pair("PuBuGn", PuBuGn),
+    std::make_pair("PuOr", PuOr),
+    std::make_pair("PuRd", PuRd),
+    std::make_pair("Purples", Purples),
+    std::make_pair("rainbow", rainbow),
+    std::make_pair("RdBu", RdBu),
+    std::make_pair("RdGy", RdGy),
+    std::make_pair("RdPu", RdPu),
+    std::make_pair("RdYlBu", RdYlBu),
+    std::make_pair("RdYlGn", RdYlGn),
+    std::make_pair("red_black_blue", red_black_blue),
+    std::make_pair("red_black_green", red_black_green),
+    std::make_pair("red_black_orange", red_black_orange),
+    std::make_pair("red_black_sky", red_black_sky),
+    std::make_pair("Reds", Reds),
+    std::make_pair("seismic", seismic),
+    std::make_pair("Set1", Set1),
+    std::make_pair("Set2", Set2),
+    std::make_pair("Set3", Set3),
+    std::make_pair("Spectral", Spectral),
+    std::make_pair("spring", spring),
+    std::make_pair("summer", summer),
+    std::make_pair("tab10", tab10),
+    std::make_pair("tab20", tab20),
+    std::make_pair("tab20b", tab20b),
+    std::make_pair("tab20c", tab20c),
+    std::make_pair("terrain", terrain),
+    std::make_pair("twilight", twilight),
+    std::make_pair("twilight_shifted", twilight_shifted),
+    std::make_pair("viridis", viridis),
+    std::make_pair("winter", winter),
+    std::make_pair("Wistia", Wistia),
+    std::make_pair("yellow_black_blue", yellow_black_blue),
+    std::make_pair("yellow_black_sky", yellow_black_sky),
+    std::make_pair("YlGn", YlGn),
+    std::make_pair("YlGnBu", YlGnBu),
+    std::make_pair("YlOrBr", YlOrBr),
+    std::make_pair("YlOrRd", YlOrRd),
 };
 
 // clang-format off
@@ -308,4 +315,4 @@ const std::vector<ColorMapName> cyclicMaps =
 };
 // clang-format on
 
-} // namespace colordata
+} // namespace goom::utils::colordata

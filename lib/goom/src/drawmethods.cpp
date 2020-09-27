@@ -10,6 +10,9 @@
 #include <functional>
 #include <vector>
 
+namespace goom
+{
+
 // Bresenhams midpoint circle algorithm from
 //   "https://rosettacode.org/wiki/Bitmap/Midpoint_circle_algorithm".
 //
@@ -263,3 +266,5 @@ static void WuDrawLine(float x0, float y0, float x1, float y1, const PlotFunc& p
     }
   }
 }
+
+} // namespace goom

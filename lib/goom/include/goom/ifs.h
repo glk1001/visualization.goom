@@ -7,7 +7,11 @@
 
 #include "goom_visual_fx.h"
 
+namespace goom
+{
+
 VisualFX ifs_visualfx_create(void);
 void ifsRenew(VisualFX* _this);
 
+} // namespace goom
 #endif

@@ -5,6 +5,9 @@
 
 #include <cstdint>
 
+namespace goom
+{
+
 extern void gfont_load(void);
 
 extern void goom_draw_text(Pixel* buf,
@@ -16,4 +19,5 @@ extern void goom_draw_text(Pixel* buf,
                            const float charspace,
                            const int center);
 
+} // namespace goom
 #endif

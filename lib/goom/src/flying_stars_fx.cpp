@@ -11,6 +11,11 @@
 #include <cstdint>
 #include <stdexcept>
 
+namespace goom
+{
+
+using namespace goom::utils;
+
 class StarsStats
 {
 public:
@@ -497,3 +502,5 @@ void flying_star_log_stats(VisualFX*, const StatsLogValueFunc logVal)
 {
   stats.log(logVal);
 }
+
+} // namespace goom

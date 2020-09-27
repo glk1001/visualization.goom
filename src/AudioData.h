@@ -8,12 +8,18 @@
 
 static inline int16_t FloatToInt16(float f)
 {
-  if (f >= 1.0f)
+  if (f >= 1.0f) 
+  {
     return INT16_MAX;
+  }  
   else if (f < -1.0f)
+  {
     return -INT16_MAX;
+  }  
   else
+  {
     return static_cast<int16_t>((f * static_cast<float>(INT16_MAX)));
+  }  
 }
 
 static inline void FillAudioDataBuffer(

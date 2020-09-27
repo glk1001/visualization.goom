@@ -6,6 +6,9 @@
 #include <string>
 #include <variant>
 
+namespace goom
+{
+
 using StatsLogValueFunc = std::function<void(const std::string& module,
                                              const std::string& name,
                                              const std::variant<uint32_t, float>& value)>;
@@ -19,4 +22,5 @@ using StatsLogValueFunc = std::function<void(const std::string& module,
 #define COLOR_BGRA
 #endif
 
+} // namespace goom
 #endif

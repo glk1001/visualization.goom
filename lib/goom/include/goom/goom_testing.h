@@ -3,6 +3,9 @@
 
 #include <stdio.h>
 
+namespace goom
+{
+
 #define GOOM_VER_NAME "Goom Library"
 #define GOOM_VER_DESCRIPTION "Tentacle Mods"
 #define GOOM_VER_MAJOR 1
@@ -126,4 +129,5 @@ static inline void saveIndexedFloatSetting(FILE* f,
   saveFloatSetting(f, parent, indexedSettingName, value, srceFilename, lineNum);
 }
 
+} // namespace goom
 #endif

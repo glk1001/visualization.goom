@@ -15,6 +15,7 @@
 #include "gfontlib.h"
 #include "goom_config.h"
 #include "goom_fx.h"
+#include "goom_graphic.h"
 #include "goom_plugin_info.h"
 #include "goomutils/colormap.h"
 #include "goomutils/goomrand.h"
@@ -37,6 +38,11 @@
 #include <utility>
 #include <variant>
 #include <vector>
+
+namespace goom
+{
+
+using namespace goom::utils;
 
 class GoomEvents
 {
@@ -232,7 +238,7 @@ private:
     DrawablesState drawables;
   };
   using WeightedStatesArray = std::vector<State>;
-    static const WeightedStatesArray states;
+  static const WeightedStatesArray states;
   static std::vector<std::pair<uint16_t, size_t>> getWeightedStates(const WeightedStatesArray&);
   const Weights<uint16_t> weightedStates;
   size_t currentStateIndex;
@@ -771,9 +777,9 @@ void goom_set_resolution(PluginInfo* goomInfo, const uint16_t resx, const uint16
       std::unique_ptr<GoomDots>{new GoomDots{goomInfo->screen.width, goomInfo->screen.height}};
 }
 
-int goom_set_screenbuffer(PluginInfo* goomInfo, Pixel* buffer)
+int goom_set_screenbuffer(PluginInfo* goomInfo, uint32_t* buffer)
 {
-  goomInfo->outputBuf = buffer;
+  goomInfo->outputBuf = reinterpret_cast<Pixel*>(buffer);
   return 1;
 }
 
@@ -845,12 +851,12 @@ static void bigBreak(PluginInfo* goomInfo, ZoomFilterData** pzfd);
 
 static void update_message(PluginInfo* goomInfo, const char* message);
 
-uint32_t* goom_update(PluginInfo* goomInfo,
-                      const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
-                      const int forceMode,
-                      const float fps,
-                      const char* songTitle,
-                      const char* message)
+void goom_update(PluginInfo* goomInfo,
+                 const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
+                 const int forceMode,
+                 const float fps,
+                 const char* songTitle,
+                 const char* message)
 {
   stats.updateChange();
 
@@ -925,8 +931,6 @@ uint32_t* goom_update(PluginInfo* goomInfo,
   goomInfo->convolve_fx.apply(&goomInfo->convolve_fx, returnVal, goomInfo->outputBuf, goomInfo);
 
   logDebug("About to return.");
-
-  return reinterpret_cast<uint32_t*>(goomInfo->outputBuf);
 }
 
 /****************************************
@@ -2102,3 +2106,5 @@ void GoomDots::dotFilter(Pixel* pixel,
   setPixelRGB(pixel, static_cast<uint32_t>(xmid), static_cast<uint32_t>(ymid), screenWidth,
               middleColor);
 }
+
+} // namespace goom

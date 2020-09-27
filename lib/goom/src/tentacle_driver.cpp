@@ -24,6 +24,10 @@
 #include <utility>
 #include <vector>
 
+namespace goom
+{
+
+using namespace goom::utils;
 
 TentacleDriver::TentacleDriver(const ColorMaps* cm, const uint32_t screenW, const uint32_t screenH)
   : iterParamsGroups{},
@@ -679,7 +683,7 @@ CirclesTentacleLayout::CirclesTentacleLayout(const float radiusMin,
     for (size_t i = 0; i < numSample; i++)
     {
       const float x = static_cast<float>(radius * cos(angle));
-          const float y = static_cast<float>(radius * sin(angle));
+      const float y = static_cast<float>(radius * sin(angle));
       const V3d point = {x, y, zConst};
       points.push_back(point);
 #ifndef NO_LOGGING
@@ -699,7 +703,8 @@ CirclesTentacleLayout::CirclesTentacleLayout(const float radiusMin,
 
   const float angleOffsetStart = 0.10;
   const float angleOffsetFinish = 0.30;
-  const float offsetStep = (angleOffsetStart - angleOffsetFinish) / static_cast<float>(numCircles - 1);
+  const float offsetStep =
+      (angleOffsetStart - angleOffsetFinish) / static_cast<float>(numCircles - 1);
   const float radiusStep = (radiusMax - radiusMin) / static_cast<float>(numCircles - 1);
   logDebug("Setup: numCircles = {}, radiusStep = {:.2f}, radiusMin = {:.2f}, radiusMax = {:.2f},"
            " offsetStep = {:.2f}, angleOffsetStart = {:.2f}, angleOffsetFinish = {:.2f}",
@@ -785,3 +790,5 @@ void RandWeightHandler::weightsAdjust([[maybe_unused]] const size_t ID,
                                       [[maybe_unused]] const float currentY)
 {
 }
+
+} // namespace goom
