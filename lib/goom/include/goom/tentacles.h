@@ -1,5 +1,5 @@
-#ifndef LIBS_GOOM_INCLUDE_GOOM_TENTACLES_NEW_H_
-#define LIBS_GOOM_INCLUDE_GOOM_TENTACLES_NEW_H_
+#ifndef LIBS_GOOM_INCLUDE_GOOM_TENTACLES_H_
+#define LIBS_GOOM_INCLUDE_GOOM_TENTACLES_H_
 
 #include "goomutils/colormap.h"
 #include "goomutils/mathutils.h"

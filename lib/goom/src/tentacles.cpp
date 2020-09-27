@@ -1,4 +1,4 @@
-#include "tentacles_new.h"
+#include "tentacles.h"
 
 #include "goomutils/colormap.h"
 #include "goomutils/goomrand.h"

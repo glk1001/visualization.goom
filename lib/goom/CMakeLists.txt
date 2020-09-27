@@ -24,9 +24,9 @@ set (SRCE_FILES
                  src/ifs.cpp
                  src/lines.cpp
                  src/sound_tester.cpp
-                 src/tentacle_driver.cpp
                  src/tentacle3d.cpp
-                 src/tentacles_new.cpp
+                 src/tentacles_driver.cpp
+                 src/tentacles.cpp
 )
 
 add_library(${PROJECT_NAME} STATIC
