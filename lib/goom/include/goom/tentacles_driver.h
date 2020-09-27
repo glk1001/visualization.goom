@@ -186,9 +186,9 @@ private:
               const float distance2,
               Pixel* frontBuff,
               Pixel* backBuff);
-  void project_v3d_to_v2d(const std::vector<V3d>& v3, std::vector<v2d>& v2, const float distance);
-  static void y_rotate_v3d(const V3d& vi, V3d& vf, const float sina, const float cosa);
-  static void translate_v3d(const V3d& vsrc, V3d& vdest);
+  std::vector<v2d> projectV3dOntoV2d(const std::vector<V3d>& v3, const float distance);
+  static void rotateV3dAboutYAxis(const float sina, const float cosa, const V3d& vsrc, V3d& vdest);
+  static void translateV3d(const V3d& vadd, V3d& vinOut);
 };
 
 class TentacleColorMapColorizer : public TentacleColorizer

@@ -241,6 +241,10 @@ public:
   std::tuple<uint32_t, uint32_t> getMixedColors(const size_t nodeNum,
                                                 const uint32_t color,
                                                 const uint32_t colorLow) const;
+  std::tuple<uint32_t, uint32_t> getMixedColors(const size_t nodeNum,
+                                                const uint32_t color,
+                                                const uint32_t colorLow,
+                                                const float brightness) const;
 
   bool getReverseColorMix() const { return reverseColorMix; }
   void setReverseColorMix(const bool val) { reverseColorMix = val; }

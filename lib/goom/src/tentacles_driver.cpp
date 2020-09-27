@@ -21,6 +21,7 @@
 #include <numeric>
 #include <stack>
 #include <stdexcept>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -481,42 +482,58 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
   for (size_t i = 0; i < n; i++)
   {
     logDebug("v3[{}]  = ({:.2f}, {:.2f}, {:.2f}).", i, v3[i].x, v3[i].y, v3[i].z);
-    y_rotate_v3d(v3[i], v3[i], sina, cosa);
-    translate_v3d(cam, v3[i]);
+    rotateV3dAboutYAxis(sina, cosa, v3[i], v3[i]);
+    translateV3d(cam, v3[i]);
     logDebug("v3[{}]+ = ({:.2f}, {:.2f}, {:.2f}).", i, v3[i].x, v3[i].y, v3[i].z);
   }
 
-  std::vector<v2d> v2(n);
-  project_v3d_to_v2d(v3, v2, distance);
+  const std::vector<v2d> v2 = projectV3dOntoV2d(v3, distance);
 
-  for (size_t i = 0; i < v2.size() - 1; i++)
+  // Faraway tentacles get smaller and draw_line adds them together making them look
+  // very white and over-exposed. If we reduce the brightness, then all the combined
+  // tentacles look less bright and white and more colors show through.
+  using GetMixedColorsFunc = std::function<std::tuple<uint32_t, uint32_t>(const size_t nodeNum)>;
+  GetMixedColorsFunc getMixedColors = [&](const size_t nodeNum) {
+    return tentacle.getMixedColors(nodeNum, dominantColor, dominantColorLow);
+  };
+  if (distance2 > 50)
   {
-    const int ix0 = static_cast<int>(v2[i].x);
-    const int ix1 = static_cast<int>(v2[i + 1].x);
-    const int iy0 = static_cast<int>(v2[i].y);
-    const int iy1 = static_cast<int>(v2[i + 1].y);
+    const float randBrightness = getRandInRange(0.1f, 0.5f);
+    const float brightness = std::max(randBrightness, 50.0f / distance2);
+    getMixedColors = [&, brightness](const size_t nodeNum) {
+      return tentacle.getMixedColors(nodeNum, dominantColor, dominantColorLow, brightness);
+    };
+  }
+
+  for (size_t nodeNum = 0; nodeNum < v2.size() - 1; nodeNum++)
+  {
+    const int ix0 = static_cast<int>(v2[nodeNum].x);
+    const int ix1 = static_cast<int>(v2[nodeNum + 1].x);
+    const int iy0 = static_cast<int>(v2[nodeNum].y);
+    const int iy1 = static_cast<int>(v2[nodeNum + 1].y);
 
     if (((ix0 == coordIgnoreVal) && (iy0 == coordIgnoreVal)) ||
         ((ix1 == coordIgnoreVal) && (iy1 == coordIgnoreVal)))
     {
-      logDebug("Skipping draw ignore vals {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}.", i, ix0, iy0,
-               ix1, iy1);
+      logDebug("Skipping draw ignore vals {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}.", nodeNum,
+               ix0, iy0, ix1, iy1);
     }
     else if ((ix0 == ix1) && (iy0 == iy1))
     {
-      logDebug("Skipping draw equal points {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}.", i, ix0,
-               iy0, ix1, iy1);
+      logDebug("Skipping draw equal points {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}.", nodeNum,
+               ix0, iy0, ix1, iy1);
     }
     else
     {
-      logDebug("draw_line {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}.", i, ix0, iy0, ix1, iy1);
+      logDebug("draw_line {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}.", nodeNum, ix0, iy0, ix1,
+               iy1);
 
-      const auto [color, colorLow] = tentacle.getMixedColors(i, dominantColor, dominantColorLow);
+      const auto [color, colorLow] = getMixedColors(nodeNum);
       const std::vector<Pixel> colors = {{.val = color}, {.val = colorLow}};
 
-      logInfo("draw_line {}: dominantColor = {:#x}, dominantColorLow = {:#x}.", i, dominantColor,
-              dominantColorLow);
-      logInfo("draw_line {}: color = {:#x}, colorLow = {:#x}.", i, color, colorLow);
+      logInfo("draw_line {}: dominantColor = {:#x}, dominantColorLow = {:#x}.", nodeNum,
+              dominantColor, dominantColorLow);
+      logInfo("draw_line {}: color = {:#x}, colorLow = {:#x}.", nodeNum, color, colorLow);
 
       Pixel* buffs[2] = {frontBuff, backBuff};
       // TODO - Control brightness because of back buff??
@@ -527,10 +544,10 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
   }
 }
 
-void TentacleDriver::project_v3d_to_v2d(const std::vector<V3d>& v3,
-                                        std::vector<v2d>& v2,
-                                        const float distance)
+std::vector<v2d> TentacleDriver::projectV3dOntoV2d(const std::vector<V3d>& v3, const float distance)
 {
+  std::vector<v2d> v2(v3.size());
+
   for (size_t i = 0; i < v3.size(); ++i)
   {
     logDebug("project_v3d_to_v2d {}: v3[i].x = {:.2f}, v3[i].y = {:.2f}, v2[i].z = {:.2f}.", i,
@@ -550,22 +567,27 @@ void TentacleDriver::project_v3d_to_v2d(const std::vector<V3d>& v3,
       logDebug("project_v3d_to_v2d {}: v2[i].x = {}, v2[i].y = {}.", i, v2[i].x, v2[i].y);
     }
   }
+
+  return v2;
 }
 
-inline void TentacleDriver::y_rotate_v3d(const V3d& vi, V3d& vf, const float sina, const float cosa)
+inline void TentacleDriver::rotateV3dAboutYAxis(const float sina,
+                                                const float cosa,
+                                                const V3d& vsrc,
+                                                V3d& vdest)
 {
-  const float vi_x = vi.x;
-  const float vi_z = vi.z;
-  vf.x = vi_x * cosa - vi_z * sina;
-  vf.z = vi_x * sina + vi_z * cosa;
-  vf.y = vi.y;
+  const float vi_x = vsrc.x;
+  const float vi_z = vsrc.z;
+  vdest.x = vi_x * cosa - vi_z * sina;
+  vdest.z = vi_x * sina + vi_z * cosa;
+  vdest.y = vsrc.y;
 }
 
-inline void TentacleDriver::translate_v3d(const V3d& vsrc, V3d& vdest)
+inline void TentacleDriver::translateV3d(const V3d& vadd, V3d& vinOut)
 {
-  vdest.x += vsrc.x;
-  vdest.y += vsrc.y;
-  vdest.z += vsrc.z;
+  vinOut.x += vadd.x;
+  vinOut.y += vadd.y;
+  vinOut.z += vadd.z;
 }
 
 TentacleColorMapColorizer::TentacleColorMapColorizer(const ColorMap& cm, const size_t nNodes)

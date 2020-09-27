@@ -1,5 +1,7 @@
 #include "tentacles.h"
 
+#include "colorutils.h"
+#include "goom_graphic.h"
 #include "goomutils/colormap.h"
 #include "goomutils/goomrand.h"
 #include "goomutils/mathutils.h"
@@ -360,17 +362,9 @@ std::tuple<uint32_t, uint32_t> Tentacle3D::getMixedColors(const size_t nodeNum,
   //    return std::make_tuple(specialColor, specialColor);
   //  }
 
-  float t = static_cast<float>(nodeNum + 1) / static_cast<float>(get2DTentacle().getNumNodes());
-  if (reverseColorMix)
-  {
-    t = 1 - t;
-  }
-  const uint32_t segmentColor = getColor(nodeNum);
-  const uint32_t mixedColor = ColorMap::colorMix(color, segmentColor, t);
-  const uint32_t mixedColorLow = ColorMap::colorMix(colorLow, segmentColor, t);
-
   if (nodeNum < Tentacle2D::minNumNodes)
   {
+    // Color the tentacle head
     const float t = 0.5 * (1.0 + static_cast<float>(nodeNum + 1) /
                                      static_cast<float>(Tentacle2D::minNumNodes + 1));
     const uint32_t mixedHeadColor = ColorMap::colorMix(headColor, color, t);
@@ -378,7 +372,33 @@ std::tuple<uint32_t, uint32_t> Tentacle3D::getMixedColors(const size_t nodeNum,
     return std::make_tuple(mixedHeadColor, mixedHeadColorLow);
   }
 
+  float t = static_cast<float>(nodeNum + 1) / static_cast<float>(get2DTentacle().getNumNodes());
+  if (reverseColorMix)
+  {
+    t = 1 - t;
+  }
+
+  const uint32_t segmentColor = getColor(nodeNum);
+  const uint32_t mixedColor = ColorMap::colorMix(color, segmentColor, t);
+  const uint32_t mixedColorLow = ColorMap::colorMix(colorLow, segmentColor, t);
   return std::make_tuple(mixedColor, mixedColorLow);
+}
+
+std::tuple<uint32_t, uint32_t> Tentacle3D::getMixedColors(const size_t nodeNum,
+                                                          const uint32_t color,
+                                                          const uint32_t colorLow,
+                                                          const float brightness) const
+{
+  if (nodeNum < Tentacle2D::minNumNodes)
+  {
+    return getMixedColors(nodeNum, color, colorLow);
+  }
+
+  const auto [mixedColor, mixedColorLow] = getMixedColors(nodeNum, color, colorLow);
+  const Pixel mixedColorPixel{.val = mixedColor};
+  const Pixel mixedColorLowPixel{.val = mixedColorLow};
+  return std::make_tuple(getBrighterColor(brightness, mixedColorPixel).val,
+                         getBrighterColor(brightness, mixedColorLowPixel).val);
 }
 
 double getMin(const std::vector<double>& vec)
