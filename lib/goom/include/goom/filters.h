@@ -44,7 +44,7 @@ struct ZoomFilterData
   bool hypercosEffect; // applique une "surcouche de hypercos effect
 
   bool noisify; // ajoute un bruit a la transformation
-  float noiseFactor; // in range [0, 1]
+  double noiseFactor; // in range [0, 1]
 };
 
 VisualFX zoomFilterVisualFXWrapper_create();

@@ -168,7 +168,7 @@ static inline v2g zoomVector(PluginInfo* goomInfo, const float X, const float Y)
       //    const float xAmp = 1.0/getRandInRange(50.0f, 200.0f);
       //    const float yAmp = 1.0/getRandInRange(50.0f, 200.0f);
       const float amp = data->filterData.noiseFactor / getRandInRange(noiseMin, noiseMax);
-      data->filterData.noiseFactor *= 0.99;
+      data->filterData.noiseFactor *= 0.999;
       vx += amp * (getRandInRange(0.0f, 1.0f) - 0.5f);
       vy += amp * (getRandInRange(0.0f, 1.0f) - 0.5f);
     }
