@@ -358,6 +358,10 @@ void TentaclesWrapper::isPrettyMoveHappeningUpdate(const float accelVar)
   if (isPrettyMoveHappening)
   {
     isPrettyMoveHappening -= 1;
+    if (isPrettyMoveHappening == 0)
+    {
+      driver.setRoughTentacles(false);
+    }
   }
   else if (postPrettyMoveLock != 0)
   {
@@ -381,6 +385,7 @@ void TentaclesWrapper::isPrettyMoveHappeningUpdate(const float accelVar)
       distt2Offset = (1.0 / (1.10 - accelVar)) * getRandInRange(distt2Min, distt2Max);
       rotAtStartOfPrettyMove = rot;
       prettyMoveCheckStopMark = isPrettyMoveHappening / 4;
+      driver.setRoughTentacles(true);
     }
   }
 }

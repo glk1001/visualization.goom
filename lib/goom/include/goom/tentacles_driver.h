@@ -116,6 +116,7 @@ public:
               Pixel* frontBuff,
               Pixel* backBuff);
 
+  void setRoughTentacles(const bool val);
   void setGlitchValues(const float lower, const float upper);
   void setReverseColorMix(const bool val);
   void multiplyIterZeroYValWaveFreq(const float val);
@@ -146,8 +147,6 @@ private:
   utils::ConstantSequenceFunction constCurrentYWeightFunc;
   SimpleWeightHandler weightsHandler;
   // RandWeightHandler weightsHandler;
-  TentacleTweaker::WeightFunctionsResetter weightsReset;
-  TentacleTweaker::WeightFunctionsAdjuster weightsAdjust;
 
   size_t updateNum = 0;
   Tentacles3D tentacles;
@@ -156,12 +155,18 @@ private:
   std::vector<IterationParams> tentacleParams;
   static constexpr size_t changeCurrentColorMapGroupEveryNUpdates = 500;
   static constexpr size_t changeTentacleColorMapEveryNUpdates = 100;
+
+  IterTimer roughenTimer;
+  static constexpr size_t roughenEveryNUpdates = 30000000;
+  static constexpr size_t roughenIterLength = 10;
+
   IterTimer glitchTimer;
   static constexpr size_t doGlitchEveryNUpdates = 30;
   static constexpr size_t glitchIterLength = 10;
   const utils::ColorMap* glitchColorGroup;
   float glitchLower = -1.5;
   float glitchUpper = +1.5;
+
   std::unique_ptr<Tentacle2D> createNewTentacle2D(const size_t ID, const IterationParams&);
   std::unique_ptr<TentacleTweaker> createNewTweaker(
       const IterationParams& params, std::unique_ptr<utils::DampingFunction> dampingFunc);

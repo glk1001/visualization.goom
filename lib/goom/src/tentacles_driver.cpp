@@ -40,13 +40,12 @@ TentacleDriver::TentacleDriver(const ColorMaps* cm, const uint32_t screenW, cons
     constPrevYWeightFunc(),
     constCurrentYWeightFunc(),
     weightsHandler{constPrevYWeightFunc, constCurrentYWeightFunc},
-    weightsReset{nullptr},
-    weightsAdjust{nullptr},
     tentacles{},
     tentacleParams{},
+    roughenTimer{roughenIterLength},
     glitchTimer{glitchIterLength},
     glitchColorGroup{&colorMaps->getColorMap(ColorMapName::magma)},
-    iterTimers{&glitchTimer}
+    iterTimers{&glitchTimer, &roughenTimer}
 {
   const IterParamsGroup iter1 = {
       {100, 0.500, 1.0, {1.5, -10.0, +10.0, m_pi}, 70.0},
@@ -342,9 +341,33 @@ void TentacleDriver::updateIterTimers()
   }
 }
 
+void TentacleDriver::setRoughTentacles(const bool val)
+{
+  for (auto& tentacle : tentacles)
+  {
+    tentacle.get2DTentacle().setDoPrevYWeightAdjust(val);
+    tentacle.get2DTentacle().setDoCurrentYWeightAdjust(val);
+  }
+}
+
 void TentacleDriver::checkForTimerEvents()
 {
   //  logDebug("Update num = {}: checkForTimerEvents", updateNum);
+
+  if (updateNum % changeCurrentColorMapGroupEveryNUpdates == 0)
+  {
+    currentColorMapGroup = colorMaps->getRandomGroup();
+  }
+
+  if (roughenTimer.getCurrentCount() == 0)
+  {
+    setRoughTentacles(false);
+  }
+  if (updateNum % roughenEveryNUpdates == 0) {
+    //  logDebug("Update num = {}: starting roughenTimer.", updateNum);
+    roughenTimer.start();
+    setRoughTentacles(true);
+  }
 
   /**
   if (updateNum % doGlitchEveryNUpdates == 0) {
@@ -419,11 +442,6 @@ void TentacleDriver::update(const bool doDraw,
 {
   updateNum++;
   logInfo("Doing update {}.", updateNum);
-
-  if (updateNum % changeCurrentColorMapGroupEveryNUpdates == 0)
-  {
-    currentColorMapGroup = colorMaps->getRandomGroup();
-  }
 
   updateIterTimers();
   checkForTimerEvents();
@@ -781,7 +799,7 @@ void SimpleWeightHandler::weightsAdjust([[maybe_unused]] const size_t ID,
                                         [[maybe_unused]] const float prevY,
                                         [[maybe_unused]] const float currentY)
 {
-  prevYWeightFunc->setConstVal(basePrevYWeight * getRandInRange(0.8f, 1.2f));
+  prevYWeightFunc->setConstVal(basePrevYWeight * getRandInRange(0.7f, 1.4f));
   currentYWeightFunc->setConstVal(1.0 - prevYWeightFunc->getConstVal());
 }
 
