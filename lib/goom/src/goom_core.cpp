@@ -238,7 +238,7 @@ private:
     DrawablesState drawables;
   };
   using WeightedStatesArray = std::vector<State>;
-  static const WeightedStatesArray states;
+    static const WeightedStatesArray states;
   static std::vector<std::pair<uint16_t, size_t>> getWeightedStates(const WeightedStatesArray&);
   const Weights<uint16_t> weightedStates;
   size_t currentStateIndex;
@@ -251,7 +251,7 @@ GoomStates::GoomStates() noexcept : weightedStates{getWeightedStates(states)}, c
 
 inline bool GoomStates::isCurrentlyDrawable(const GoomDrawable drawable) const
 {
-  return states[currentStateIndex].drawables.count(drawable);
+  return states[currentStateIndex].drawables.contains(drawable);
 }
 
 inline size_t GoomStates::getCurrentStateIndex() const
@@ -1603,7 +1603,7 @@ static void changeZoomEffect(PluginInfo* goomInfo, ZoomFilterData* pzfd, const i
 
 static void applyTentaclesIfRequired(PluginInfo* goomInfo)
 {
-  if (!goomInfo->curGDrawables.count(GoomDrawable::tentacles))
+  if (!goomInfo->curGDrawables.contains(GoomDrawable::tentacles))
   {
     return;
   }
@@ -1615,7 +1615,7 @@ static void applyTentaclesIfRequired(PluginInfo* goomInfo)
 
 static void applyStarsIfRequired(PluginInfo* goomInfo)
 {
-  if (!goomInfo->curGDrawables.count(GoomDrawable::stars))
+  if (!goomInfo->curGDrawables.contains(GoomDrawable::stars))
   {
     return;
   }
@@ -1666,8 +1666,8 @@ void displayText(PluginInfo* goomInfo, const char* songTitle, const char* messag
 static void stopRequest(PluginInfo* goomInfo)
 {
   logDebug("goomInfo->update.stop_lines = {},"
-           " goomInfo->curGDrawables.count(GoomDrawable::scope) = {}",
-           goomInfo->update.stop_lines, goomInfo->curGDrawables.count(GoomDrawable::scope));
+           " goomInfo->curGDrawables.contains(GoomDrawable::scope) = {}",
+           goomInfo->update.stop_lines, goomInfo->curGDrawables.contains(GoomDrawable::scope));
 
   float param1 = 0;
   float param2 = 0;
@@ -1702,7 +1702,7 @@ static void stopRandomLineChangeMode(PluginInfo* goomInfo)
   }
 
   if ((goomInfo->cycle % 120 == 0) && goomEvent.happens(GoomEvent::updateLineMode) &&
-      goomInfo->curGDrawables.count(GoomDrawable::scope))
+      goomInfo->curGDrawables.contains(GoomDrawable::scope))
   {
     if (goomInfo->update.lineMode == 0)
     {
@@ -1742,7 +1742,7 @@ static void stopRandomLineChangeMode(PluginInfo* goomInfo)
 static void displayLines(PluginInfo* goomInfo,
                          const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN])
 {
-  if (!goomInfo->curGDrawables.count(GoomDrawable::lines))
+  if (!goomInfo->curGDrawables.contains(GoomDrawable::lines))
   {
     return;
   }
@@ -1933,7 +1933,7 @@ static void stopDecrementingAfterAWhile(PluginInfo* goomInfo, ZoomFilterData** p
 
 static void drawDotsIfRequired(PluginInfo* goomInfo)
 {
-  if (!goomInfo->curGDrawables.count(GoomDrawable::dots))
+  if (!goomInfo->curGDrawables.contains(GoomDrawable::dots))
   {
     return;
   }
