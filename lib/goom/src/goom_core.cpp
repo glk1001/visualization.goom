@@ -1227,6 +1227,15 @@ static void changeFilterMode(PluginInfo* goomInfo)
 
   ifsRenew(&goomInfo->ifs_fx);
   stats.ifsRenew();
+
+  if (goomInfo->update.zoomFilterData.mode == ZoomFilterMode::amuletteMode)
+  {
+    goomInfo->curGDrawables.erase(GoomDrawable::tentacles);
+  }
+  else
+  {
+    goomInfo->curGDrawables = states.getCurrentDrawables();
+  }
 }
 
 static void changeState(PluginInfo* goomInfo)
@@ -1281,41 +1290,17 @@ static void changeState(PluginInfo* goomInfo)
     goomInfo->update.stop_lines = 0;
     goomInfo->update.lineMode = goomInfo->update.drawLinesDuration;
   }
+
+  // Tentacles and amulet don't look so good together.
+  if (states.isCurrentlyDrawable(GoomDrawable::tentacles) &&
+      (goomInfo->update.zoomFilterData.mode == ZoomFilterMode::amuletteMode))
+  {
+    changeFilterMode(goomInfo);
+  }
 }
 
 static void changeMilieu(PluginInfo* goomInfo)
 {
-  // clang-format off
-  // @formatter:off
-  enum class MiddlePointEvents { event1, event2, event3, event4 };
-  static const Weights<MiddlePointEvents> middlePointWeights{{
-    { MiddlePointEvents::event1,  3 },
-    { MiddlePointEvents::event2,  2 },
-    { MiddlePointEvents::event3,  2 },
-    { MiddlePointEvents::event4, 18 },
-  }};
-  // @formatter:on
-  // clang-format on
-
-  switch (middlePointWeights.getRandomWeighted())
-  {
-    case MiddlePointEvents::event1:
-      goomInfo->update.zoomFilterData.middleY = goomInfo->screen.height - 1;
-      goomInfo->update.zoomFilterData.middleX = goomInfo->screen.width / 2;
-      break;
-    case MiddlePointEvents::event2:
-      goomInfo->update.zoomFilterData.middleX = goomInfo->screen.width - 1;
-      break;
-    case MiddlePointEvents::event3:
-      goomInfo->update.zoomFilterData.middleX = 1;
-      break;
-    case MiddlePointEvents::event4:
-      goomInfo->update.zoomFilterData.middleY = goomInfo->screen.height / 2;
-      goomInfo->update.zoomFilterData.middleX = goomInfo->screen.width / 2;
-      break;
-    default:
-      throw std::logic_error("Unknown MiddlePointEvents enum.");
-  }
 
   if ((goomInfo->update.zoomFilterData.mode == ZoomFilterMode::waterMode) ||
       (goomInfo->update.zoomFilterData.mode == ZoomFilterMode::yOnlyMode) ||
@@ -1323,6 +1308,40 @@ static void changeMilieu(PluginInfo* goomInfo)
   {
     goomInfo->update.zoomFilterData.middleX = goomInfo->screen.width / 2;
     goomInfo->update.zoomFilterData.middleY = goomInfo->screen.height / 2;
+  }
+  else
+  {
+    // clang-format off
+    // @formatter:off
+    enum class MiddlePointEvents { event1, event2, event3, event4 };
+    static const Weights<MiddlePointEvents> middlePointWeights{{
+      { MiddlePointEvents::event1,  3 },
+      { MiddlePointEvents::event2,  2 },
+      { MiddlePointEvents::event3,  2 },
+      { MiddlePointEvents::event4, 18 },
+    }};
+    // @formatter:on
+    // clang-format on
+
+    switch (middlePointWeights.getRandomWeighted())
+    {
+      case MiddlePointEvents::event1:
+        goomInfo->update.zoomFilterData.middleY = goomInfo->screen.height - 1;
+        goomInfo->update.zoomFilterData.middleX = goomInfo->screen.width / 2;
+        break;
+      case MiddlePointEvents::event2:
+        goomInfo->update.zoomFilterData.middleX = goomInfo->screen.width - 1;
+        break;
+      case MiddlePointEvents::event3:
+        goomInfo->update.zoomFilterData.middleX = 1;
+        break;
+      case MiddlePointEvents::event4:
+        goomInfo->update.zoomFilterData.middleY = goomInfo->screen.height / 2;
+        goomInfo->update.zoomFilterData.middleX = goomInfo->screen.width / 2;
+        break;
+      default:
+        throw std::logic_error("Unknown MiddlePointEvents enum.");
+    }
   }
 
   // clang-format off
@@ -1356,11 +1375,11 @@ static void changeMilieu(PluginInfo* goomInfo)
       goomInfo->update.zoomFilterData.hPlaneEffect = -goomInfo->update.zoomFilterData.vPlaneEffect;
       break;
     case PlaneEffectEvents::event4:
-      goomInfo->update.zoomFilterData.hPlaneEffect = static_cast<int>(5 + getNRand(8));
+      goomInfo->update.zoomFilterData.hPlaneEffect = static_cast<int>(getRandInRange(5u, 13u));
       goomInfo->update.zoomFilterData.vPlaneEffect = -goomInfo->update.zoomFilterData.hPlaneEffect;
       break;
     case PlaneEffectEvents::event5:
-      goomInfo->update.zoomFilterData.vPlaneEffect = static_cast<int>(5 + getNRand(8));
+      goomInfo->update.zoomFilterData.vPlaneEffect = static_cast<int>(getRandInRange(5u, 13u));
       goomInfo->update.zoomFilterData.hPlaneEffect = -goomInfo->update.zoomFilterData.hPlaneEffect;
       break;
     case PlaneEffectEvents::event6:
@@ -1442,7 +1461,7 @@ static void bigNormalUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
   {
     goomInfo->update.zoomFilterData.vPlaneEffect = 0;
     goomInfo->update.zoomFilterData.hPlaneEffect = 0;
-    goomInfo->update.zoomFilterData.noisify = false;
+    //    goomInfo->update.zoomFilterData.noisify = false;
   }
 
   if ((goomInfo->update.zoomFilterData.middleX == 1) ||
@@ -1533,16 +1552,16 @@ static void changeZoomEffect(PluginInfo* goomInfo, ZoomFilterData* pzfd, const i
     goomInfo->update.cyclesSinceLastChange = 0;
     goomInfo->update.switchIncr = goomInfo->update.switchIncrAmount;
 
-    int dif = static_cast<int>(goomInfo->update.zoomFilterData.vitesse -
-                               goomInfo->update.previousZoomSpeed);
-    if (dif < 0)
+    int diff = static_cast<int>(goomInfo->update.zoomFilterData.vitesse -
+                                goomInfo->update.previousZoomSpeed);
+    if (diff < 0)
     {
-      dif = -dif;
+      diff = -diff;
     }
 
-    if (dif > 2)
+    if (diff > 2)
     {
-      goomInfo->update.switchIncr *= (dif + 2) / 2;
+      goomInfo->update.switchIncr *= (diff + 2) / 2;
     }
     goomInfo->update.previousZoomSpeed = goomInfo->update.zoomFilterData.vitesse;
     goomInfo->update.switchMult = 1.0f;
