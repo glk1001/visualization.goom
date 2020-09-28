@@ -363,7 +363,8 @@ void TentacleDriver::checkForTimerEvents()
   {
     setRoughTentacles(false);
   }
-  if (updateNum % roughenEveryNUpdates == 0) {
+  if (updateNum % roughenEveryNUpdates == 0)
+  {
     //  logDebug("Update num = {}: starting roughenTimer.", updateNum);
     roughenTimer.start();
     setRoughTentacles(true);
