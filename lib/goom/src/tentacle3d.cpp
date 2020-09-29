@@ -36,6 +36,7 @@ public:
   void changeDominantColorMap();
   void changeDominantColor();
   void updateWithDraw();
+  void updateWithNoDraw();
   void updateWithPrettyMove1();
   void updateWithPrettyMove2();
   void lowToMediumAcceleration();
@@ -51,6 +52,7 @@ private:
   uint32_t numDominantColorMapChanges = 0;
   uint32_t numDominantColorChanges = 0;
   uint32_t numUpdatesWithDraw = 0;
+  uint32_t numUpdatesWithNoDraw = 0;
   uint32_t numUpdatesWithPrettyMove1 = 0;
   uint32_t numUpdatesWithPrettyMove2 = 0;
   uint32_t numLowToMediumAcceleration = 0;
@@ -58,8 +60,6 @@ private:
   uint32_t numCycleResets = 0;
   float lastCycleValue = 0;
   uint32_t numPrettyMoveHappensResets = 0;
-  uint32_t numLowerPrettyLerpMixChanges = 0;
-  uint32_t numHigherPrettyLerpMixChanges = 0;
   float lastPrettyLerpMixValue = 0;
 };
 
@@ -70,6 +70,7 @@ void TentacleStats::log(const StatsLogValueFunc logVal) const
   logVal(module, "numDominantColorMapChanges", numDominantColorMapChanges);
   logVal(module, "numDominantColorChanges", numDominantColorChanges);
   logVal(module, "numUpdatesWithDraw", numUpdatesWithDraw);
+  logVal(module, "numUpdatesWithNoDraw", numUpdatesWithNoDraw);
   logVal(module, "numUpdatesWithPrettyMove1", numUpdatesWithPrettyMove1);
   logVal(module, "numUpdatesWithPrettyMove2", numUpdatesWithPrettyMove2);
   logVal(module, "numLowToMediumAcceleration", numLowToMediumAcceleration);
@@ -77,8 +78,6 @@ void TentacleStats::log(const StatsLogValueFunc logVal) const
   logVal(module, "numCycleResets", numCycleResets);
   logVal(module, "lastCycleValue", lastCycleValue);
   logVal(module, "numPrettyMoveHappensResets", numPrettyMoveHappensResets);
-  logVal(module, "numLowerPrettyLerpMixChanges", numLowerPrettyLerpMixChanges);
-  logVal(module, "numHigherPrettyLerpMixChanges", numHigherPrettyLerpMixChanges);
   logVal(module, "lastPrettyLerpMixValue", lastPrettyLerpMixValue);
 }
 
@@ -87,6 +86,7 @@ void TentacleStats::reset()
   numDominantColorMapChanges = 0;
   numDominantColorChanges = 0;
   numUpdatesWithDraw = 0;
+  numUpdatesWithNoDraw = 0;
   numUpdatesWithPrettyMove1 = 0;
   numUpdatesWithPrettyMove2 = 0;
   numLowToMediumAcceleration = 0;
@@ -94,8 +94,6 @@ void TentacleStats::reset()
   numCycleResets = 0;
   lastCycleValue = 0;
   numPrettyMoveHappensResets = 0;
-  numLowerPrettyLerpMixChanges = 0;
-  numHigherPrettyLerpMixChanges = 0;
   lastPrettyLerpMixValue = 0;
 }
 
@@ -112,6 +110,11 @@ inline void TentacleStats::changeDominantColor()
 inline void TentacleStats::updateWithDraw()
 {
   numUpdatesWithDraw++;
+}
+
+inline void TentacleStats::updateWithNoDraw()
+{
+  numUpdatesWithNoDraw++;
 }
 
 inline void TentacleStats::updateWithPrettyMove1()
@@ -149,16 +152,6 @@ inline void TentacleStats::prettyMoveHappensReset()
   numPrettyMoveHappensResets++;
 }
 
-inline void TentacleStats::changePrettyLerpMixLower()
-{
-  numLowerPrettyLerpMixChanges++;
-}
-
-inline void TentacleStats::changePrettyLerpMixHigher()
-{
-  numHigherPrettyLerpMixChanges++;
-}
-
 inline void TentacleStats::setLastPrettyLerpMixValue(const float value)
 {
   lastPrettyLerpMixValue = value;
@@ -175,6 +168,7 @@ public:
               const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
               const float accelVar,
               const bool doDraw);
+  void updateWithNoDraw(PluginInfo*);
   void logStats(const StatsLogValueFunc logVal);
 
 private:
@@ -203,7 +197,6 @@ private:
   static constexpr uint32_t prettyMoveHappeningMax = 200;
   int32_t postPrettyMoveLock = 0;
   float prettyMoveLerpMix = 1.0 / 16.0; // original goom value
-  static constexpr size_t changePrettyLerpMixMark = 1000000; // big number means never change
   void isPrettyMoveHappeningUpdate(const float accelVar);
   void prettyMoveStarted(const float accelVar);
   void prettyMoveFinished();
@@ -211,7 +204,6 @@ private:
   void prettyMove(const float accelVar);
   std::tuple<uint32_t, uint32_t> getModColors();
 
-  size_t countSincePrettyLerpMixMarked = 0;
   size_t countSinceHighAccelLastMarked = 0;
   size_t countSinceColorChangeLastMarked = 0;
   void incCounters();
@@ -252,7 +244,6 @@ colorMaps.setWeights(colorGroupWeights);
 
 inline void TentaclesWrapper::incCounters()
 {
-  countSincePrettyLerpMixMarked++;
   countSinceHighAccelLastMarked++;
   countSinceColorChangeLastMarked++;
 }
@@ -262,6 +253,15 @@ void TentaclesWrapper::logStats(const StatsLogValueFunc logVal)
   stats.setLastCycleValue(cycle);
   stats.setLastPrettyLerpMixValue(prettyMoveLerpMix);
   stats.log(logVal);
+}
+
+void TentaclesWrapper::updateWithNoDraw(PluginInfo*)
+{
+  stats.updateWithNoDraw();
+  if (ligs > 0.0f)
+  {
+    ligs = -ligs;
+  }
 }
 
 void TentaclesWrapper::update(PluginInfo* goomInfo,
@@ -275,10 +275,6 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
 
   incCounters();
 
-  if (!doDraw && (ligs > 0.0f))
-  {
-    ligs = -ligs;
-  }
   lig += ligs;
 
   if (lig <= 1.01f)
@@ -308,16 +304,9 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
 
     const auto [modColor, modColorLow] = getModColors();
 
-    if (goomInfo->sound.timeSinceLastBigGoom != 0)
+    if (goomInfo->sound.timeSinceLastGoom != 0)
     {
       stats.lowToMediumAcceleration();
-      if (countSincePrettyLerpMixMarked > changePrettyLerpMixMark)
-      {
-        // TODO Make random?
-        prettyMoveLerpMix = 1.0 / 16.0; // original goom value
-        stats.changePrettyLerpMixLower();
-        countSincePrettyLerpMixMarked = 0;
-      }
     }
     else
     {
@@ -331,14 +320,6 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
           dominantColor = ColorMap::getRandomColor(*dominantColorMap);
           countSinceColorChangeLastMarked = 0;
         }
-      }
-      if (countSincePrettyLerpMixMarked > changePrettyLerpMixMark)
-      {
-        // TODO Make random?
-        // 0.5 is magic - gives star mode - not sure why.
-        prettyMoveLerpMix = 0.5;
-        stats.changePrettyLerpMixHigher();
-        countSincePrettyLerpMixMarked = 0;
       }
     }
 
@@ -547,6 +528,15 @@ void tentacle_fx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* goo
   {
     data->tentacles->update(goomInfo, dest, src, goomInfo->sound.samples, goomInfo->sound.accelvar,
                             goomInfo->curGDrawables.count(GoomDrawable::tentacles));
+  }
+}
+
+void tentacle_fx_update_no_draw(VisualFX* _this, PluginInfo* goomInfo)
+{
+  TentacleFXData* data = static_cast<TentacleFXData*>(_this->fx_data);
+  if (BVAL(data->enabled_bp))
+  {
+    data->tentacles->updateWithNoDraw(goomInfo);
   }
 }
 

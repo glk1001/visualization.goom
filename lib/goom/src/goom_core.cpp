@@ -1635,6 +1635,7 @@ static void applyTentaclesIfRequired(PluginInfo* goomInfo)
 {
   if (!goomInfo->curGDrawables.contains(GoomDrawable::tentacles))
   {
+    tentacle_fx_update_no_draw(&goomInfo->tentacles_fx, goomInfo);
     return;
   }
 
