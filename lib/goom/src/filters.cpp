@@ -105,14 +105,14 @@ struct FilterDataWrapper
   int precalCoef[BUFFPOINTNB][BUFFPOINTNB];
 };
 
-static inline v2g zoomVector(PluginInfo* goomInfo, const float X, const float Y)
+inline v2g zoomVector(PluginInfo* goomInfo, const float x, const float y)
 {
   FilterDataWrapper* data = static_cast<FilterDataWrapper*>(goomInfo->zoomFilter_fx.fx_data);
 
-  const float sq_dist = X * X + Y * Y;
+  const float sq_dist = x * x + y * y;
 
-  /* sx = (X < 0.0f) ? -1.0f : 1.0f;
-     sy = (Y < 0.0f) ? -1.0f : 1.0f;
+  /* sx = (x < 0.0f) ? -1.0f : 1.0f;
+     sy = (y < 0.0f) ? -1.0f : 1.0f;
    */
   float coefVitesse = (1.0f + data->generalSpeed) / 50.0f;
 
@@ -140,7 +140,7 @@ static inline v2g zoomVector(PluginInfo* goomInfo, const float X, const float Y)
       //case ZoomFilterMode::YONLY_MODE:
       break;
     case ZoomFilterMode::speedwayMode:
-      coefVitesse *= 4.0f * Y;
+      coefVitesse *= 4.0f * y;
       break;
     default:
       break;
@@ -148,8 +148,8 @@ static inline v2g zoomVector(PluginInfo* goomInfo, const float X, const float Y)
 
   coefVitesse = std::clamp(coefVitesse, -2.01f, +2.01f);
 
-  float vx = coefVitesse * X;
-  float vy = coefVitesse * Y;
+  float vx = coefVitesse * x;
+  float vy = coefVitesse * y;
 
   /* Amulette 2 */
   // vx = X * tan(dist);
@@ -177,20 +177,20 @@ static inline v2g zoomVector(PluginInfo* goomInfo, const float X, const float Y)
   // Hypercos
   if (data->filterData.hypercosEffect)
   {
-    vx += sin(Y * 10.0f) / 120.0f;
-    vy += sin(X * 10.0f) / 120.0f;
+    vx += sin(y * 10.0f) / 120.0f;
+    vy += sin(x * 10.0f) / 120.0f;
   }
 
   // H Plane
   if (data->filterData.hPlaneEffect)
   {
-    vx += Y * 0.0025f * data->filterData.hPlaneEffect;
+    vx += y * 0.0025f * data->filterData.hPlaneEffect;
   }
 
   // V Plane
   if (data->filterData.vPlaneEffect)
   {
-    vy += X * 0.0025f * data->filterData.vPlaneEffect;
+    vy += x * 0.0025f * data->filterData.vPlaneEffect;
   }
 
   /* TODO : Water Mode */
@@ -344,13 +344,9 @@ static void c_zoom(Pixel* expix1,
     const uint32_t py = static_cast<uint32_t>(
         brutSmypos + (((brutD[myPos2] - brutSmypos) * buffratio) >> BUFFPOINTNB));
 
-    uint32_t coeffs;
-    uint32_t pos;
-    if ((py >= ay) || (px >= ax))
-    {
-      pos = coeffs = 0;
-    }
-    else
+    uint32_t pos = 0;
+    uint32_t coeffs = 0;
+    if ((px < ax) && (py < ay))
     {
       pos = ((px >> PERTEDEC) + prevX * (py >> PERTEDEC));
       // coef en modulo 15
