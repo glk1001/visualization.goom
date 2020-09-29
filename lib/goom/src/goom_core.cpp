@@ -54,7 +54,7 @@ public:
   enum class GoomEvent
   {
     changeFilterMode = 0,
-    changeFilterFromNormalMode,
+    changeFilterFromAmuletteMode,
     changeState,
     changeNoiseState,
     changeToMegaLentMode,
@@ -121,7 +121,7 @@ private:
   // clang-format off
   static constexpr std::array<WeightedEvent, numGoomEvents> weightedEvents{ {
     { .event = GoomEvent::changeFilterMode,                    .m = 1, .outOf =  16 },
-    { .event = GoomEvent::changeFilterFromNormalMode,          .m = 1, .outOf =   5 },
+    { .event = GoomEvent::changeFilterFromAmuletteMode,        .m = 1, .outOf =   5 },
     { .event = GoomEvent::changeState,                         .m = 2, .outOf =   3 },
     { .event = GoomEvent::changeNoiseState,                    .m = 4, .outOf =   5 },
     { .event = GoomEvent::changeToMegaLentMode,                .m = 1, .outOf = 700 },
@@ -196,7 +196,7 @@ inline bool GoomEvents::happens(const GoomEvent event) const
 
 inline GoomEvents::GoomFilterEvent GoomEvents::getRandomFilterEvent() const
 {
-  /////////////////////////////////////////////return GoomFilterEvent::normalMode;
+//////////////////////////////////////return GoomFilterEvent::amuletteMode;
 
   GoomEvents::GoomFilterEvent nextEvent = lastReturnedFilterEvent;
   for (size_t i = 0; i < 10; i++)
@@ -307,7 +307,7 @@ class GoomStats
 public:
   GoomStats() noexcept = default;
   void setStartValues(const uint32_t stateIndex, const ZoomFilterMode filterMode);
-  void setLastValues(const uint32_t stateIndex, const ZoomFilterMode filterMode);
+  void setLastValues(const uint32_t stateIndex, const ZoomFilterData* filterData);
   void reset();
   void log(const StatsLogValueFunc) const;
   void updateChange();
@@ -322,6 +322,7 @@ public:
   void switchLines();
   void doStars();
   void doTentacles();
+  void tentaclesDisabled();
   void doBigUpdate();
   void lastTimeGoomChange();
   void megaLentChange();
@@ -336,7 +337,8 @@ private:
   uint32_t startingState = 0;
   ZoomFilterMode startingFilterMode = ZoomFilterMode::_size;
   uint32_t lastState = 0;
-  ZoomFilterMode lastFilterMode = ZoomFilterMode::_size;
+
+  const ZoomFilterData* lastZoomFilterData;
 
   uint32_t numUpdates = 0;
   uint32_t totalStateChanges = 0;
@@ -348,11 +350,11 @@ private:
   uint32_t numDoLines = 0;
   uint32_t numDoStars = 0;
   uint32_t numDoTentacles = 0;
+  uint32_t numDisabledTentacles = 0;
   uint32_t numBigUpdates = 0;
   uint32_t numLastTimeGoomChanges = 0;
   uint32_t numMegaLentChanges = 0;
   uint32_t numDoNoise = 0;
-  float lastNoiseFactor = 0;
   uint32_t numIfsRenew = 0;
   uint32_t numIfsIncrLessThanEqualZero = 0;
   uint32_t numIfsIncrGreaterThanZero = 0;
@@ -365,6 +367,12 @@ private:
 
 void GoomStats::reset()
 {
+  startingState = 0;
+  startingFilterMode = ZoomFilterMode::_size;
+  lastState = 0;
+
+  lastZoomFilterData = nullptr;
+
   numUpdates = 0;
   totalStateChanges = 0;
   totalStateDurations = 0;
@@ -378,11 +386,11 @@ void GoomStats::reset()
   numDoLines = 0;
   numDoStars = 0;
   numDoTentacles = 0;
+  numDisabledTentacles = 0;
   numBigUpdates = 0;
   numLastTimeGoomChanges = 0;
   numMegaLentChanges = 0;
   numDoNoise = 0;
-  lastNoiseFactor = 0;
   numIfsRenew = 0;
   numIfsIncrLessThanEqualZero = 0;
   numIfsIncrGreaterThanZero = 0;
@@ -395,9 +403,29 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
   const constexpr char* module = "goom_core";
 
   logVal(module, "startingState", startingState);
-  logVal(module, "startingFilterMode", static_cast<uint32_t>(lastFilterMode));
+  logVal(module, "startingFilterMode", static_cast<uint32_t>(startingFilterMode));
   logVal(module, "lastState", startingState);
-  logVal(module, "lastFilterMode", static_cast<uint32_t>(lastFilterMode));
+
+  if (!lastZoomFilterData)
+  {
+    logVal(module, "lastZoomFilterData", 0u);
+  }
+  else
+  {
+    logVal(module, "lastZoomFilterData->mode", static_cast<uint32_t>(lastZoomFilterData->mode));
+    logVal(module, "lastZoomFilterData->hPlaneEffect", static_cast<uint32_t>(lastZoomFilterData->hPlaneEffect));
+    logVal(module, "lastZoomFilterData->vPlaneEffect", static_cast<uint32_t>(lastZoomFilterData->vPlaneEffect));
+    logVal(module, "lastZoomFilterData->hypercosEffect", static_cast<uint32_t>(lastZoomFilterData->hypercosEffect));
+    logVal(module, "lastZoomFilterData->middleX", static_cast<uint32_t>(lastZoomFilterData->middleX));
+    logVal(module, "lastZoomFilterData->middleY", static_cast<uint32_t>(lastZoomFilterData->middleY));
+    logVal(module, "lastZoomFilterData->noiseFactor", static_cast<uint32_t>(lastZoomFilterData->noiseFactor));
+    logVal(module, "lastZoomFilterData->noisify", static_cast<uint32_t>(lastZoomFilterData->noisify));
+    logVal(module, "lastZoomFilterData->pertedec", static_cast<uint32_t>(lastZoomFilterData->pertedec));
+    logVal(module, "lastZoomFilterData->reverse", static_cast<uint32_t>(lastZoomFilterData->reverse));
+    logVal(module, "lastZoomFilterData->vitesse", static_cast<uint32_t>(lastZoomFilterData->vitesse));
+    logVal(module, "lastZoomFilterData->waveEffect", static_cast<uint32_t>(lastZoomFilterData->waveEffect));
+  }
+
   logVal(module, "numUpdates", numUpdates);
   logVal(module, "totalStateChanges", totalStateChanges);
   const float avStateDuration = totalStateChanges == 0 ? -1.0
@@ -427,10 +455,10 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
   logVal(module, "numDoLines", numDoLines);
   logVal(module, "numDoStars", numDoStars);
   logVal(module, "numDoTentacles", numDoTentacles);
+  logVal(module, "numDisabledTentacles", numDisabledTentacles);
   logVal(module, "numLastTimeGoomChanges", numLastTimeGoomChanges);
   logVal(module, "numMegaLentChanges", numMegaLentChanges);
   logVal(module, "numDoNoise", numDoNoise);
-  logVal(module, "lastNoiseFactor", lastNoiseFactor);
   logVal(module, "numIfsRenew", numIfsRenew);
   logVal(module, "numIfsIncrLessThanEqualZero", numIfsIncrLessThanEqualZero);
   logVal(module, "numIfsIncrGreaterThanZero", numIfsIncrGreaterThanZero);
@@ -444,10 +472,10 @@ void GoomStats::setStartValues(const uint32_t stateIndex, const ZoomFilterMode f
   startingFilterMode = filterMode;
 }
 
-void GoomStats::setLastValues(const uint32_t stateIndex, const ZoomFilterMode filterMode)
+void GoomStats::setLastValues(const uint32_t stateIndex, const ZoomFilterData* filterData)
 {
   lastState = stateIndex;
-  lastFilterMode = filterMode;
+  lastZoomFilterData = filterData;
 }
 
 inline void GoomStats::updateChange()
@@ -522,6 +550,11 @@ inline void GoomStats::doTentacles()
   numDoTentacles++;
 }
 
+inline void GoomStats::tentaclesDisabled()
+{
+  numDisabledTentacles++;
+}
+
 inline void GoomStats::doBigUpdate()
 {
   numBigUpdates++;
@@ -540,11 +573,6 @@ inline void GoomStats::megaLentChange()
 inline void GoomStats::doNoise()
 {
   numDoNoise++;
-}
-
-inline void GoomStats::setLastNoiseFactor(const float val)
-{
-  lastNoiseFactor = val;
 }
 
 inline void GoomStats::ifsRenew()
@@ -624,11 +652,13 @@ static void logStatsValue(const std::string& module,
 
 inline bool changeFilterModeEventHappens(PluginInfo* goomInfo)
 {
-  // If we're in normal mode, then get out with a different probability.
-  // (Rationale: the other modes are more interesting.)
-  if (goomInfo->update.zoomFilterData.mode == ZoomFilterMode::normalMode)
+  // If we're in amulette mode and the state contains tentacles,
+  // then get out with a different probability.
+  // (Rationale: get tentacles going earlier with another mode.)
+  if ((goomInfo->update.zoomFilterData.mode == ZoomFilterMode::amuletteMode) &&
+      states.getCurrentDrawables().contains(GoomDrawable::tentacles))
   {
-    return goomEvent.happens(GoomEvent::changeFilterFromNormalMode);
+    return goomEvent.happens(GoomEvent::changeFilterFromAmuletteMode);
   }
 
   return goomEvent.happens(GoomEvent::changeFilterMode);
@@ -938,8 +968,7 @@ void goom_update(PluginInfo* goomInfo,
 ****************************************/
 void goom_close(PluginInfo* goomInfo)
 {
-  stats.setLastValues(states.getCurrentStateIndex(), goomInfo->update.zoomFilterData.mode);
-  stats.setLastNoiseFactor(goomInfo->update.zoomFilterData.noiseFactor);
+  stats.setLastValues(states.getCurrentStateIndex(), &goomInfo->update.zoomFilterData);
 
   stats.log(logStatsValue);
   tentacle_log_stats(&goomInfo->tentacles_fx, logStatsValue);
@@ -1231,6 +1260,7 @@ static void changeFilterMode(PluginInfo* goomInfo)
   if (goomInfo->update.zoomFilterData.mode == ZoomFilterMode::amuletteMode)
   {
     goomInfo->curGDrawables.erase(GoomDrawable::tentacles);
+    stats.tentaclesDisabled();
   }
   else
   {
@@ -1291,7 +1321,7 @@ static void changeState(PluginInfo* goomInfo)
     goomInfo->update.lineMode = goomInfo->update.drawLinesDuration;
   }
 
-  // Tentacles and amulet don't look so good together.
+  // Tentacles and amulette don't look so good together.
   if (states.isCurrentlyDrawable(GoomDrawable::tentacles) &&
       (goomInfo->update.zoomFilterData.mode == ZoomFilterMode::amuletteMode))
   {
