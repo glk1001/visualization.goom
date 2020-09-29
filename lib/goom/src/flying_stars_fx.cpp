@@ -183,6 +183,8 @@ struct FSData
   float min_age;
   float max_age;
 
+  bool useSingleBufferOnly;
+
   PluginParam min_age_p;
   PluginParam max_age_p;
   PluginParam nbStars_p;
@@ -206,6 +208,7 @@ static void fs_init(VisualFX* _this, PluginInfo*)
   data->maxStars = 6000;
   data->stars = new Star[data->maxStars];
   data->numStars = 0;
+  data->useSingleBufferOnly = true;
 
   data->max_age_p = secure_i_param("Fireworks Smallest Bombs");
   IVAL(data->max_age_p) = 80;
@@ -326,6 +329,7 @@ static void fs_sound_event_occured(VisualFX* _this, PluginInfo* goomInfo)
   const uint32_t halfHeight = goomInfo->screen.height / 2;
   data->currentColorGroup = data->colorMaps.getRandomGroup();
   data->maxAge = minStarAge + getNRand(maxStarExtraAge);
+  data->useSingleBufferOnly = probabilityOfMInN(1, 3);
 
   size_t max = 100 + static_cast<size_t>((1.0f + goomInfo->sound.goomPower) * getNRand(150));
   float radius =
@@ -462,7 +466,19 @@ static void fs_apply(VisualFX* _this,
       const uint32_t col = ColorMap::colorMix(color, colorLow, t);
       const int x2 = x0 - static_cast<int>(data->stars[i].vx * j);
       const int y2 = y0 - static_cast<int>(data->stars[i].vy * j);
-      draw_line(dest, x1, y1, x2, y2, col, goomInfo->screen.width, goomInfo->screen.height);
+
+      if (data->useSingleBufferOnly)
+      {
+        draw_line(dest, x1, y1, x2, y2, col, goomInfo->screen.width, goomInfo->screen.height);
+      }
+      else
+      {
+        const std::vector<Pixel> colors = {{.val = col}, {.val = colorLow}};
+        Pixel* buffs[2] = {dest, src};
+        draw_line(std::size(buffs), buffs, colors, x1, y1, x2, y2, goomInfo->screen.width,
+                  goomInfo->screen.height);
+      }
+
       x1 = x2;
       y1 = y2;
     }

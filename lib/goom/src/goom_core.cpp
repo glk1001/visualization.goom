@@ -196,7 +196,7 @@ inline bool GoomEvents::happens(const GoomEvent event) const
 
 inline GoomEvents::GoomFilterEvent GoomEvents::getRandomFilterEvent() const
 {
-//////////////////////////////////////return GoomFilterEvent::amuletteMode;
+  //////////////////////////////////////return GoomFilterEvent::amuletteMode;
 
   GoomEvents::GoomFilterEvent nextEvent = lastReturnedFilterEvent;
   for (size_t i = 0; i < 10; i++)
@@ -238,7 +238,7 @@ private:
     DrawablesState drawables;
   };
   using WeightedStatesArray = std::vector<State>;
-    static const WeightedStatesArray states;
+  static const WeightedStatesArray states;
   static std::vector<std::pair<uint16_t, size_t>> getWeightedStates(const WeightedStatesArray&);
   const Weights<uint16_t> weightedStates;
   size_t currentStateIndex;
@@ -413,17 +413,28 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
   else
   {
     logVal(module, "lastZoomFilterData->mode", static_cast<uint32_t>(lastZoomFilterData->mode));
-    logVal(module, "lastZoomFilterData->hPlaneEffect", static_cast<uint32_t>(lastZoomFilterData->hPlaneEffect));
-    logVal(module, "lastZoomFilterData->vPlaneEffect", static_cast<uint32_t>(lastZoomFilterData->vPlaneEffect));
-    logVal(module, "lastZoomFilterData->hypercosEffect", static_cast<uint32_t>(lastZoomFilterData->hypercosEffect));
-    logVal(module, "lastZoomFilterData->middleX", static_cast<uint32_t>(lastZoomFilterData->middleX));
-    logVal(module, "lastZoomFilterData->middleY", static_cast<uint32_t>(lastZoomFilterData->middleY));
-    logVal(module, "lastZoomFilterData->noiseFactor", static_cast<uint32_t>(lastZoomFilterData->noiseFactor));
-    logVal(module, "lastZoomFilterData->noisify", static_cast<uint32_t>(lastZoomFilterData->noisify));
-    logVal(module, "lastZoomFilterData->pertedec", static_cast<uint32_t>(lastZoomFilterData->pertedec));
-    logVal(module, "lastZoomFilterData->reverse", static_cast<uint32_t>(lastZoomFilterData->reverse));
-    logVal(module, "lastZoomFilterData->vitesse", static_cast<uint32_t>(lastZoomFilterData->vitesse));
-    logVal(module, "lastZoomFilterData->waveEffect", static_cast<uint32_t>(lastZoomFilterData->waveEffect));
+    logVal(module, "lastZoomFilterData->hPlaneEffect",
+           static_cast<uint32_t>(lastZoomFilterData->hPlaneEffect));
+    logVal(module, "lastZoomFilterData->vPlaneEffect",
+           static_cast<uint32_t>(lastZoomFilterData->vPlaneEffect));
+    logVal(module, "lastZoomFilterData->hypercosEffect",
+           static_cast<uint32_t>(lastZoomFilterData->hypercosEffect));
+    logVal(module, "lastZoomFilterData->middleX",
+           static_cast<uint32_t>(lastZoomFilterData->middleX));
+    logVal(module, "lastZoomFilterData->middleY",
+           static_cast<uint32_t>(lastZoomFilterData->middleY));
+    logVal(module, "lastZoomFilterData->noiseFactor",
+           static_cast<uint32_t>(lastZoomFilterData->noiseFactor));
+    logVal(module, "lastZoomFilterData->noisify",
+           static_cast<uint32_t>(lastZoomFilterData->noisify));
+    logVal(module, "lastZoomFilterData->pertedec",
+           static_cast<uint32_t>(lastZoomFilterData->pertedec));
+    logVal(module, "lastZoomFilterData->reverse",
+           static_cast<uint32_t>(lastZoomFilterData->reverse));
+    logVal(module, "lastZoomFilterData->vitesse",
+           static_cast<uint32_t>(lastZoomFilterData->vitesse));
+    logVal(module, "lastZoomFilterData->waveEffect",
+           static_cast<uint32_t>(lastZoomFilterData->waveEffect));
   }
 
   logVal(module, "numUpdates", numUpdates);
