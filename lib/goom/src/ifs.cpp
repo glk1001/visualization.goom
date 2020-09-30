@@ -665,19 +665,19 @@ static void updateColorsModeMer(IfsUpdateData* upd)
   if (upd->col[BLEU] > 255)
   {
     upd->col[BLEU] = 255;
-    upd->v[BLEU] = -static_cast<int>(getNRand(4)) - 1;
+    upd->v[BLEU] = -getRandInRange(1, 5);
   }
   if (upd->col[BLEU] < 32)
   {
     upd->col[BLEU] = 32;
-    upd->v[BLEU] = static_cast<int>(getNRand(4)) + 1;
+    upd->v[BLEU] = getRandInRange(1, 5);
   }
 
   upd->col[VERT] += upd->v[VERT];
   if (upd->col[VERT] > 200)
   {
     upd->col[VERT] = 200;
-    upd->v[VERT] = -static_cast<int>(getNRand(3)) - 2;
+    upd->v[VERT] = -getRandInRange(2, 5);
   }
   if (upd->col[VERT] > upd->col[BLEU])
   {
@@ -687,31 +687,31 @@ static void updateColorsModeMer(IfsUpdateData* upd)
   if (upd->col[VERT] < 32)
   {
     upd->col[VERT] = 32;
-    upd->v[VERT] = static_cast<int>(getNRand(3)) + 2;
+    upd->v[VERT] = getRandInRange(2, 5);
   }
 
   upd->col[ROUGE] += upd->v[ROUGE];
   if (upd->col[ROUGE] > 64)
   {
     upd->col[ROUGE] = 64;
-    upd->v[ROUGE] = -static_cast<int>(getNRand(4)) - 1;
+    upd->v[ROUGE] = -getRandInRange(1, 5);
   }
   if (upd->col[ROUGE] < 0)
   {
     upd->col[ROUGE] = 0;
-    upd->v[ROUGE] = static_cast<int>(getNRand(4)) + 1;
+    upd->v[ROUGE] = getRandInRange(1, 5);
   }
 
   upd->col[ALPHA] += upd->v[ALPHA];
   if (upd->col[ALPHA] > 0)
   {
     upd->col[ALPHA] = 0;
-    upd->v[ALPHA] = -static_cast<int>(getNRand(4)) - 1;
+    upd->v[ALPHA] = -getRandInRange(1, 5);
   }
   if (upd->col[ALPHA] < 0)
   {
     upd->col[ALPHA] = 0;
-    upd->v[ALPHA] = static_cast<int>(getNRand(4)) + 1;
+    upd->v[ALPHA] = getRandInRange(1, 5);
   }
 
   if (((upd->col[VERT] > 32) && (upd->col[ROUGE] < upd->col[VERT] + 40) &&
@@ -730,19 +730,19 @@ static void updateColorsModeMerver(IfsUpdateData* upd)
   if (upd->col[BLEU] > 128)
   {
     upd->col[BLEU] = 128;
-    upd->v[BLEU] = -static_cast<int>(getNRand(4)) - 1;
+    upd->v[BLEU] = -getRandInRange(1, 5);
   }
   if (upd->col[BLEU] < 16)
   {
     upd->col[BLEU] = 16;
-    upd->v[BLEU] = static_cast<int>(getNRand(4)) + 1;
+    upd->v[BLEU] = getRandInRange(1, 5);
   }
 
   upd->col[VERT] += upd->v[VERT];
   if (upd->col[VERT] > 200)
   {
     upd->col[VERT] = 200;
-    upd->v[VERT] = -static_cast<int>(getNRand(3)) - 2;
+    upd->v[VERT] = -getRandInRange(2, 5);
   }
   if (upd->col[VERT] > upd->col[ALPHA])
   {
@@ -752,31 +752,31 @@ static void updateColorsModeMerver(IfsUpdateData* upd)
   if (upd->col[VERT] < 32)
   {
     upd->col[VERT] = 32;
-    upd->v[VERT] = static_cast<int>(getNRand(3)) + 2;
+    upd->v[VERT] = getRandInRange(2, 5);
   }
 
   upd->col[ROUGE] += upd->v[ROUGE];
   if (upd->col[ROUGE] > 128)
   {
     upd->col[ROUGE] = 128;
-    upd->v[ROUGE] = -static_cast<int>(getNRand(4)) - 1;
+    upd->v[ROUGE] = -getRandInRange(1, 5);
   }
   if (upd->col[ROUGE] < 0)
   {
     upd->col[ROUGE] = 0;
-    upd->v[ROUGE] = static_cast<int>(getNRand(4)) + 1;
+    upd->v[ROUGE] = getRandInRange(1, 5);
   }
 
   upd->col[ALPHA] += upd->v[ALPHA];
   if (upd->col[ALPHA] > 255)
   {
     upd->col[ALPHA] = 255;
-    upd->v[ALPHA] = -static_cast<int>(getNRand(4)) - 1;
+    upd->v[ALPHA] = -getRandInRange(1, 5);
   }
   if (upd->col[ALPHA] < 0)
   {
     upd->col[ALPHA] = 0;
-    upd->v[ALPHA] = static_cast<int>(getNRand(4)) + 1;
+    upd->v[ALPHA] = getRandInRange(1, 5);
   }
 
   if (((upd->col[VERT] > 32) && (upd->col[ROUGE] < upd->col[VERT] + 40) &&
@@ -795,60 +795,60 @@ static void updateColorsModeFeu(IfsUpdateData* upd)
   if (upd->col[BLEU] > 64)
   {
     upd->col[BLEU] = 64;
-    upd->v[BLEU] = -static_cast<int>(getNRand(4)) - 1;
+    upd->v[BLEU] = -getRandInRange(1, 5);
   }
   if (upd->col[BLEU] < 0)
   {
     upd->col[BLEU] = 0;
-    upd->v[BLEU] = static_cast<int>(getNRand(4)) + 1;
+    upd->v[BLEU] = getRandInRange(1, 5);
   }
 
   upd->col[VERT] += upd->v[VERT];
   if (upd->col[VERT] > 200)
   {
     upd->col[VERT] = 200;
-    upd->v[VERT] = -static_cast<int>(getNRand(3)) - 2;
+    upd->v[VERT] = -getRandInRange(2, 5);
   }
   if (upd->col[VERT] > upd->col[ROUGE] + 20)
   {
     upd->col[VERT] = upd->col[ROUGE] + 20;
-    upd->v[VERT] = -static_cast<int>(getNRand(3)) - 2;
-    upd->v[ROUGE] = static_cast<int>(getNRand(4)) + 1;
-    upd->v[BLEU] = static_cast<int>(getNRand(4)) + 1;
+    upd->v[VERT] = -getRandInRange(2, 5);
+    upd->v[ROUGE] = getRandInRange(1, 5);
+    upd->v[BLEU] = getRandInRange(1, 5);
   }
   if (upd->col[VERT] < 0)
   {
     upd->col[VERT] = 0;
-    upd->v[VERT] = static_cast<int>(getNRand(3)) + 2;
+    upd->v[VERT] = getRandInRange(2, 5);
   }
 
   upd->col[ROUGE] += upd->v[ROUGE];
   if (upd->col[ROUGE] > 255)
   {
     upd->col[ROUGE] = 255;
-    upd->v[ROUGE] = -static_cast<int>(getNRand(4)) - 1;
+    upd->v[ROUGE] = -getRandInRange(1, 5);
   }
   if (upd->col[ROUGE] > upd->col[VERT] + 40)
   {
     upd->col[ROUGE] = upd->col[VERT] + 40;
-    upd->v[ROUGE] = -static_cast<int>(getNRand(4)) - 1;
+    upd->v[ROUGE] = -getRandInRange(1, 5);
   }
   if (upd->col[ROUGE] < 0)
   {
     upd->col[ROUGE] = 0;
-    upd->v[ROUGE] = static_cast<int>(getNRand(4)) + 1;
+    upd->v[ROUGE] = getRandInRange(1, 5);
   }
 
   upd->col[ALPHA] += upd->v[ALPHA];
   if (upd->col[ALPHA] > 0)
   {
     upd->col[ALPHA] = 0;
-    upd->v[ALPHA] = -static_cast<int>(getNRand(4)) - 1;
+    upd->v[ALPHA] = -getRandInRange(1, 5);
   }
   if (upd->col[ALPHA] < 0)
   {
     upd->col[ALPHA] = 0;
-    upd->v[ALPHA] = static_cast<int>(getNRand(4)) + 1;
+    upd->v[ALPHA] = getRandInRange(1, 5);
   }
 
   if (((upd->col[ROUGE] < 64) && (upd->col[VERT] > 32) && (upd->col[VERT] < upd->col[BLEU]) &&

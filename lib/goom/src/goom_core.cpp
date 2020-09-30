@@ -238,7 +238,7 @@ private:
     DrawablesState drawables;
   };
   using WeightedStatesArray = std::vector<State>;
-  static const WeightedStatesArray states;
+    static const WeightedStatesArray states;
   static std::vector<std::pair<uint16_t, size_t>> getWeightedStates(const WeightedStatesArray&);
   const Weights<uint16_t> weightedStates;
   size_t currentStateIndex;
@@ -338,7 +338,7 @@ private:
   ZoomFilterMode startingFilterMode = ZoomFilterMode::_size;
   uint32_t lastState = 0;
 
-  const ZoomFilterData* lastZoomFilterData;
+  const ZoomFilterData* lastZoomFilterData = nullptr;
 
   uint32_t numUpdates = 0;
   uint32_t totalStateChanges = 0;
@@ -413,26 +413,20 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
   else
   {
     logVal(module, "lastZoomFilterData->mode", static_cast<uint32_t>(lastZoomFilterData->mode));
-    logVal(module, "lastZoomFilterData->hPlaneEffect",
-           static_cast<uint32_t>(lastZoomFilterData->hPlaneEffect));
-    logVal(module, "lastZoomFilterData->vPlaneEffect",
-           static_cast<uint32_t>(lastZoomFilterData->vPlaneEffect));
-    logVal(module, "lastZoomFilterData->hypercosEffect",
-           static_cast<uint32_t>(lastZoomFilterData->hypercosEffect));
-    logVal(module, "lastZoomFilterData->middleX",
-           static_cast<uint32_t>(lastZoomFilterData->middleX));
-    logVal(module, "lastZoomFilterData->middleY",
-           static_cast<uint32_t>(lastZoomFilterData->middleY));
+    logVal(module, "lastZoomFilterData->hPlaneEffect", lastZoomFilterData->hPlaneEffect);
+    logVal(module, "lastZoomFilterData->vPlaneEffect", lastZoomFilterData->vPlaneEffect);
+    logVal(module, "lastZoomFilterData->hypercosEffect", lastZoomFilterData->hypercosEffect);
+    logVal(module, "lastZoomFilterData->middleX", lastZoomFilterData->middleX);
+    logVal(module, "lastZoomFilterData->middleY", lastZoomFilterData->middleY);
     logVal(module, "lastZoomFilterData->noiseFactor",
-           static_cast<uint32_t>(lastZoomFilterData->noiseFactor));
+           static_cast<float>(lastZoomFilterData->noiseFactor));
     logVal(module, "lastZoomFilterData->noisify",
            static_cast<uint32_t>(lastZoomFilterData->noisify));
     logVal(module, "lastZoomFilterData->pertedec",
            static_cast<uint32_t>(lastZoomFilterData->pertedec));
     logVal(module, "lastZoomFilterData->reverse",
            static_cast<uint32_t>(lastZoomFilterData->reverse));
-    logVal(module, "lastZoomFilterData->vitesse",
-           static_cast<uint32_t>(lastZoomFilterData->vitesse));
+    logVal(module, "lastZoomFilterData->vitesse", lastZoomFilterData->vitesse);
     logVal(module, "lastZoomFilterData->waveEffect",
            static_cast<uint32_t>(lastZoomFilterData->waveEffect));
   }
@@ -651,12 +645,13 @@ struct LogStatsVisitor
   const std::string& module;
   const std::string& name;
   void operator()(const uint32_t i) const { logInfo("{}.{} = {}", module, name, i); }
+  void operator()(const int32_t i) const { logInfo("{}.{} = {}", module, name, i); }
   void operator()(const float f) const { logInfo("{}.{} = {:.3}", module, name, f); }
 };
 
 static void logStatsValue(const std::string& module,
                           const std::string& name,
-                          const std::variant<uint32_t, float>& value)
+                          const std::variant<uint32_t, int32_t, float>& value)
 {
   std::visit(LogStatsVisitor{module, name}, value);
 }
@@ -707,7 +702,7 @@ private:
                                          const uint32_t color1,
                                          const size_t numPts);
 
-  float getLargeSoundFactor(const SoundInfo*) const;
+  float getLargeSoundFactor(const SoundInfo&) const;
 
   void dotFilter(Pixel* pix1,
                  const std::vector<uint32_t> colors,
@@ -1404,15 +1399,15 @@ static void changeMilieu(PluginInfo* goomInfo)
   switch (planeEffectWeights.getRandomWeighted())
   {
     case PlaneEffectEvents::event1:
-      goomInfo->update.zoomFilterData.vPlaneEffect = static_cast<int>(getNRand(3) - getNRand(3));
-      goomInfo->update.zoomFilterData.hPlaneEffect = static_cast<int>(getNRand(3) - getNRand(3));
+      goomInfo->update.zoomFilterData.vPlaneEffect = getRandInRange(-2, +3);
+      goomInfo->update.zoomFilterData.hPlaneEffect = getRandInRange(-2, +3);
       break;
     case PlaneEffectEvents::event2:
       goomInfo->update.zoomFilterData.vPlaneEffect = 0;
-      goomInfo->update.zoomFilterData.hPlaneEffect = static_cast<int>(getNRand(8) - getNRand(8));
+      goomInfo->update.zoomFilterData.hPlaneEffect = getRandInRange(-7, +8);
       break;
     case PlaneEffectEvents::event3:
-      goomInfo->update.zoomFilterData.vPlaneEffect = static_cast<int>(getNRand(5) - getNRand(5));
+      goomInfo->update.zoomFilterData.vPlaneEffect = getRandInRange(-5, +6);
       goomInfo->update.zoomFilterData.hPlaneEffect = -goomInfo->update.zoomFilterData.vPlaneEffect;
       break;
     case PlaneEffectEvents::event4:
@@ -1425,11 +1420,11 @@ static void changeMilieu(PluginInfo* goomInfo)
       break;
     case PlaneEffectEvents::event6:
       goomInfo->update.zoomFilterData.hPlaneEffect = 0;
-      goomInfo->update.zoomFilterData.vPlaneEffect = static_cast<int>(getNRand(10) - getNRand(10));
+      goomInfo->update.zoomFilterData.vPlaneEffect = getRandInRange(-9, +10);
       break;
     case PlaneEffectEvents::event7:
-      goomInfo->update.zoomFilterData.hPlaneEffect = static_cast<int>(getNRand(10) - getNRand(10));
-      goomInfo->update.zoomFilterData.vPlaneEffect = static_cast<int>(getNRand(10) - getNRand(10));
+      goomInfo->update.zoomFilterData.hPlaneEffect = getRandInRange(-9, +10);
+      goomInfo->update.zoomFilterData.vPlaneEffect = getRandInRange(-9, +10);
       break;
     case PlaneEffectEvents::event8:
       goomInfo->update.zoomFilterData.vPlaneEffect = 0;
@@ -1593,8 +1588,7 @@ static void changeZoomEffect(PluginInfo* goomInfo, ZoomFilterData* pzfd, const i
     goomInfo->update.cyclesSinceLastChange = 0;
     goomInfo->update.switchIncr = goomInfo->update.switchIncrAmount;
 
-    int diff = static_cast<int>(goomInfo->update.zoomFilterData.vitesse -
-                                goomInfo->update.previousZoomSpeed);
+    int diff = goomInfo->update.zoomFilterData.vitesse - goomInfo->update.previousZoomSpeed;
     if (diff < 0)
     {
       diff = -diff;
@@ -2015,7 +2009,7 @@ void GoomDots::changeColors()
   colorMap3 = &colorMaps.getRandomColorMap();
   colorMap4 = &colorMaps.getRandomColorMap();
   colorMap5 = &colorMaps.getRandomColorMap();
-  middleColor = ColorMap::getRandomColor(colorMaps.getRandomColorMap(ColorMapGroup::misc), 0.7, 1);
+  middleColor = ColorMap::getRandomColor(colorMaps.getRandomColorMap(ColorMapGroup::misc), 0.1, 1);
 }
 
 std::vector<uint32_t> GoomDots::getColors(const uint32_t color0,
@@ -2046,7 +2040,7 @@ void GoomDots::drawDots(PluginInfo* goomInfo)
     radius = 5;
   }
 
-  const float largeFactor = getLargeSoundFactor(&goomInfo->sound);
+  const float largeFactor = getLargeSoundFactor(goomInfo->sound);
   const uint32_t speedvarMult80Plus15 = goomInfo->sound.speedvar * 80 + 15;
   const uint32_t speedvarMult50Plus1 = goomInfo->sound.speedvar * 50 + 1;
   logDebug("speedvarMult80Plus15 = {}", speedvarMult80Plus15);
@@ -2126,9 +2120,9 @@ void GoomDots::drawDots(PluginInfo* goomInfo)
   }
 }
 
-float GoomDots::getLargeSoundFactor(const SoundInfo* soundInfo) const
+float GoomDots::getLargeSoundFactor(const SoundInfo& soundInfo) const
 {
-  float largefactor = soundInfo->speedvar / 150.0f + soundInfo->volume / 1.5f;
+  float largefactor = soundInfo.speedvar / 150.0f + soundInfo.volume / 1.5f;
   if (largefactor > 1.5f)
   {
     largefactor = 1.5f;

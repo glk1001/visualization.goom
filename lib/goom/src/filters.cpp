@@ -366,16 +366,16 @@ static void c_zoom(Pixel* expix1,
 
 static void generateWaterFXHorizontalBuffer(FilterDataWrapper* data)
 {
-  int decc = static_cast<int>(getNRand(8) - 4);
-  int spdc = static_cast<int>(getNRand(8) - 4);
-  int accel = static_cast<int>(getNRand(8) - 4);
+  int decc = getRandInRange(-4, +4);
+  int spdc = getRandInRange(-4, +4);
+  int accel = getRandInRange(-4, +4);
 
   for (size_t loopv = data->prevY; loopv != 0;)
   {
     loopv--;
     data->firedec[loopv] = decc;
     decc += spdc / 10;
-    spdc += static_cast<int>(getNRand(3) - getNRand(3));
+    spdc += getRandInRange(-2, +3);
 
     if (decc > 4)
     {
@@ -397,7 +397,7 @@ static void generateWaterFXHorizontalBuffer(FilterDataWrapper* data)
 
     if (decc > 8 && spdc > 1)
     {
-      spdc -= static_cast<int>(getNRand(3)) - 2;
+      spdc -= getRandInRange(-2, +1);
     }
     if (decc < -8 && spdc < -1)
     {
@@ -408,7 +408,7 @@ static void generateWaterFXHorizontalBuffer(FilterDataWrapper* data)
       decc = decc * 8 / 9;
     }
 
-    accel += static_cast<int>(getNRand(2) - getNRand(2));
+    accel += getRandInRange(-1, +2);
     if (accel > 20)
     {
       accel -= 2;

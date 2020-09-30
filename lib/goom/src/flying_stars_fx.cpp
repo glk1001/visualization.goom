@@ -329,7 +329,7 @@ static void fs_sound_event_occured(VisualFX* _this, PluginInfo* goomInfo)
   const uint32_t halfHeight = goomInfo->screen.height / 2;
   data->currentColorGroup = data->colorMaps.getRandomGroup();
   data->maxAge = minStarAge + getNRand(maxStarExtraAge);
-  data->useSingleBufferOnly = probabilityOfMInN(1, 3);
+  data->useSingleBufferOnly = probabilityOfMInN(1, 10);
 
   size_t max = 100 + static_cast<size_t>((1.0f + goomInfo->sound.goomPower) * getNRand(150));
   float radius =

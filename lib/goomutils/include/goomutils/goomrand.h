@@ -21,12 +21,14 @@ inline int getRandSignInt();
 // Return random sign float, either -1.0 or +1.0.
 inline float getRandSignFlt();
 
-// Return random integer in the range n0 <= n < n1.
+// Return random positive integer in the range n0 <= n < n1.
 uint32_t getRandInRange(const uint32_t n0, const uint32_t n1);
 // Return random integer in the range 0 <= n < nmax.
 uint32_t getNRand(const uint32_t nmax);
 // Return random integer in the range 0 <= n < randMax.
 uint32_t getRand();
+// Return random integer in the range n0 <= n < n1.
+int32_t getRandInRange(const int32_t n0, const int32_t n1);
 // Return random float in the range x0 <= n <= x1.
 float getRandInRange(const float x0, const float x1);
 

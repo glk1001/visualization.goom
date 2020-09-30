@@ -3,9 +3,12 @@
 #include "goomutils/splitmix.hpp"
 #include "goomutils/xoshiro.hpp"
 
+#undef NDEBUG
+
 #include <cmath>
 #include <limits>
 #include <random>
+#include <stdexcept>
 
 namespace goom::utils
 {
@@ -47,11 +50,43 @@ inline uint32_t randSplitmixFunc(const uint32_t n0, const uint32_t n1)
 
 uint32_t getRandInRange(const uint32_t n0, const uint32_t n1)
 {
+#ifndef NDEBUG
+  if (n0 >= n1)
+  {
+    throw std::logic_error("uint n0 >= n1");
+  }
+#endif
   return randXoshiroFunc(n0, n1);
+}
+
+int32_t getRandInRange(const int32_t n0, const int32_t n1)
+{
+  if ((n0 < 0) && (n1 < 0))
+  {
+    return -static_cast<int32_t>(
+        getRandInRange(static_cast<uint32_t>(-n1), static_cast<uint32_t>(-n0)));
+  }
+  if ((n0 >= 0) && (n1 >= 0))
+  {
+    return static_cast<int32_t>(
+        getRandInRange(static_cast<uint32_t>(n0), static_cast<uint32_t>(n1)));
+  }
+  if (n0 >= n1)
+  {
+    throw std::logic_error("int n0 >= n1");
+  }
+  return n0 + static_cast<int32_t>(getNRand(static_cast<uint32_t>(n1)));
 }
 
 float getRandInRange(const float x0, const float x1)
 {
+#ifndef NDEBUG
+  if (x0 >= x1)
+  {
+    throw std::logic_error("float x0 >= x1");
+  }
+#endif
+
   thread_local xoshiro256plus64 eng{std::random_device{}()};
   static const float eng_max = static_cast<float>(eng.max());
   const float t = static_cast<float>(eng()) / eng_max;

@@ -11,7 +11,7 @@ namespace goom
 
 using StatsLogValueFunc = std::function<void(const std::string& module,
                                              const std::string& name,
-                                             const std::variant<uint32_t, float>& value)>;
+                                             const std::variant<uint32_t, int32_t, float>& value)>;
 
 #define NUM_AUDIO_SAMPLES 2
 #define AUDIO_SAMPLE_LEN 512
