@@ -29,6 +29,7 @@
 #include "tentacle3d.h"
 
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <format>
@@ -242,7 +243,7 @@ private:
     DrawablesState drawables;
   };
   using WeightedStatesArray = std::vector<State>;
-  static const WeightedStatesArray states;
+    static const WeightedStatesArray states;
   static std::vector<std::pair<uint16_t, size_t>> getWeightedStates(const WeightedStatesArray&);
   const Weights<uint16_t> weightedStates;
   size_t currentStateIndex;
@@ -345,6 +346,10 @@ private:
   const ZoomFilterData* lastZoomFilterData = nullptr;
 
   uint32_t numUpdates = 0;
+  uint64_t totalTimeInUpdatesMs = 0;
+  uint32_t minTimeInUpdatesMs = 0;
+  uint32_t maxTimeInUpdatesMs = 0;
+  std::chrono::high_resolution_clock::time_point timeNowHiRes{};
   uint32_t totalStateChanges = 0;
   uint64_t totalStateDurations = 0;
   uint32_t totalFilterModeChanges = 0;
@@ -378,6 +383,10 @@ void GoomStats::reset()
   lastZoomFilterData = nullptr;
 
   numUpdates = 0;
+  totalTimeInUpdatesMs = 0;
+  minTimeInUpdatesMs = std::numeric_limits<uint32_t>::max();
+  maxTimeInUpdatesMs = 0;
+  timeNowHiRes = std::chrono::high_resolution_clock::now();
   totalStateChanges = 0;
   totalStateDurations = 0;
   std::fill(numStateChanges.begin(), numStateChanges.end(), 0);
@@ -436,6 +445,10 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
   }
 
   logVal(module, "numUpdates", numUpdates);
+  const int32_t avTimeinUpdateMs = std::lround(numUpdates == 0 ? -1.0 : static_cast<float>(totalTimeInUpdatesMs) / static_cast<float>(numUpdates));
+  logVal(module, "avTimeinUpdateMs", avTimeinUpdateMs);
+  logVal(module, "minTimeInUpdatesMs", minTimeInUpdatesMs);
+  logVal(module, "maxTimeInUpdatesMs", maxTimeInUpdatesMs);
   logVal(module, "totalStateChanges", totalStateChanges);
   const float avStateDuration = totalStateChanges == 0 ? -1.0
                                                        : static_cast<float>(totalStateDurations) /
@@ -489,6 +502,24 @@ void GoomStats::setLastValues(const uint32_t stateIndex, const ZoomFilterData* f
 
 inline void GoomStats::updateChange()
 {
+  const auto timeNow = std::chrono::high_resolution_clock::now();
+  if (numUpdates > 0)
+  {
+    using ms = std::chrono::milliseconds;
+    const ms diff = std::chrono::duration_cast<ms>(timeNow - timeNowHiRes);
+    const uint32_t timeInUpdateMs = static_cast<uint32_t>(diff.count());
+    if (timeInUpdateMs < minTimeInUpdatesMs)
+    {
+      minTimeInUpdatesMs = timeInUpdateMs;
+    }
+    else if (timeInUpdateMs > maxTimeInUpdatesMs)
+    {
+      maxTimeInUpdatesMs = timeInUpdateMs;
+    }
+    totalTimeInUpdatesMs += timeInUpdateMs;
+  }
+  timeNowHiRes = timeNow;
+
   numUpdates++;
 }
 
