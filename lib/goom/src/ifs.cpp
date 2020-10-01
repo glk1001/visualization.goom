@@ -556,14 +556,14 @@ static void updateColorsModeFeu(IfsUpdateData*);
 
 inline Pixel getMixedcolor(const IfsData* fx_data, const Pixel& color, const float tmix)
 {
-  constexpr float maxColFactor = 1.0 / ((~A_CHANNEL) & std::numeric_limits<uint32_t>::max());
+  constexpr float maxChannelVal = 255;
 
   switch (fx_data->colorMode)
   {
     case IfsData::ColorMode::mapColors:
     case IfsData::ColorMode::megaColorChange:
     {
-      const float t = maxColFactor * static_cast<float>(color.val & ~A_CHANNEL);
+      const float t = getLuma(color)/maxChannelVal;
       return Pixel{.val = fx_data->mixerMap->getColor(t)};
     }
     break;

@@ -78,6 +78,37 @@ inline void setPixelRGB(
   *(buff + (x + (y * screenWidth))) = p;
 }
 
+
+// RGB -> Luma conversion formula.
+//
+// Photometric/digital ITU BT.709:
+//
+//     Y = 0.2126 R + 0.7152 G + 0.0722 B
+//
+// Digital ITU BT.601 (gives more weight to the R and B components):
+//
+//     Y = 0.299 R + 0.587 G + 0.114 B
+//
+// If you are willing to trade accuracy for perfomance, there are two approximation formulas for this one:
+//
+//     Y = 0.33 R + 0.5 G + 0.16 B
+//
+//     Y = 0.375 R + 0.5 G + 0.125 B
+//
+// These can be calculated quickly as
+//
+//     Y = (R+R+B+G+G+G)/6
+//
+//     Y = (R+R+R+B+G+G+G+G)>>3
+
+inline uint32_t getLuma(const Pixel& color)
+{
+  const uint32_t r = color.channels.r;
+  const uint32_t g = color.channels.g;
+  const uint32_t b = color.channels.b;
+  return (r + r + b + g + g +g) >> 3;
+}
+
 } // namespace goom
 
 #endif
