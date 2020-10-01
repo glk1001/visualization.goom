@@ -427,7 +427,7 @@ void CVisualizationGoom::UpdateGoomBuffer(const char* title,
   static int16_t audioData[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN];
   FillAudioDataBuffer(audioData, floatAudioData, m_channels);
   goom::goom_set_screenbuffer(m_goom, pixels.get());
-  goom::goom_update(m_goom, audioData, 0, 0.0f, title, "Kodi");
+  goom::goom_update(m_goom, audioData, 0, 0.0f, title, "");
 }
 
 void CVisualizationGoom::InitQuadData()

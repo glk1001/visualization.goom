@@ -31,13 +31,17 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <format>
 #include <memory>
+#include <ranges>
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
 #include <utility>
 #include <variant>
 #include <vector>
+
+//#define SHOW_STATE_TEXT_ON_SCREEN
 
 namespace goom
 {
@@ -238,7 +242,7 @@ private:
     DrawablesState drawables;
   };
   using WeightedStatesArray = std::vector<State>;
-    static const WeightedStatesArray states;
+  static const WeightedStatesArray states;
   static std::vector<std::pair<uint16_t, size_t>> getWeightedStates(const WeightedStatesArray&);
   const Weights<uint16_t> weightedStates;
   size_t currentStateIndex;
@@ -844,7 +848,14 @@ static void applyTentaclesIfRequired(PluginInfo* goomInfo);
 static void applyStarsIfRequired(PluginInfo* goomInfo);
 
 // Affichage de texte
-void displayText(PluginInfo* goomInfo, const char* songTitle, const char* message, const float fps);
+static void displayText(PluginInfo* goomInfo,
+                        const char* songTitle,
+                        const char* message,
+                        const float fps);
+
+#ifdef SHOW_STATE_TEXT_ON_SCREEN
+static void displayStateText(PluginInfo* goomInfo);
+#endif
 
 static void drawDotsIfRequired(PluginInfo*);
 
@@ -885,7 +896,7 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd);
 static void bigBreakIfMusicIsCalm(PluginInfo* goomInfo, ZoomFilterData** pzfd);
 static void bigBreak(PluginInfo* goomInfo, ZoomFilterData** pzfd);
 
-static void update_message(PluginInfo* goomInfo, const char* message);
+static void updateMessage(PluginInfo* goomInfo, const char* message);
 
 void goom_update(PluginInfo* goomInfo,
                  const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
@@ -953,6 +964,9 @@ void goom_update(PluginInfo* goomInfo,
 
   applyStarsIfRequired(goomInfo);
 
+#ifdef SHOW_STATE_TEXT_ON_SCREEN
+  displayStateText(goomInfo);
+#endif
   displayText(goomInfo, songTitle, message, fps);
 
   // Gestion du Scope - Scope management
@@ -1079,79 +1093,6 @@ static void chooseGoomLine(PluginInfo* goomInfo,
 
   stats.changeLineColor();
   *couleur = getRandomLineColor(goomInfo);
-}
-
-constexpr float ECART_VARIATION = 1.5;
-constexpr float POS_VARIATION = 3.0;
-constexpr int SCROLLING_SPEED = 80;
-
-/*
- * Met a jour l'affichage du message defilant
- */
-static void update_message(PluginInfo* goomInfo, const char* message)
-{
-  int fin = 0;
-
-  if (message)
-  {
-    strcpy(goomInfo->update_message.message, message);
-    uint32_t i = 1;
-    for (size_t j = 0; goomInfo->update_message.message[j]; j++)
-    {
-      if (goomInfo->update_message.message[j] == '\n')
-      {
-        i++;
-      }
-    }
-    goomInfo->update_message.numberOfLinesInMessage = i;
-    goomInfo->update_message.affiche =
-        goomInfo->screen.height + goomInfo->update_message.numberOfLinesInMessage * 25 + 105;
-    goomInfo->update_message.longueur = strlen(goomInfo->update_message.message);
-  }
-  if (goomInfo->update_message.affiche)
-  {
-    uint32_t i = 0;
-    char* msg = (char*)malloc((size_t)goomInfo->update_message.longueur + 1);
-    char* ptr = msg;
-    message = msg;
-    strcpy(msg, goomInfo->update_message.message);
-
-    while (!fin)
-    {
-      while (1)
-      {
-        if (*ptr == 0)
-        {
-          fin = 1;
-          break;
-        }
-        if (*ptr == '\n')
-        {
-          *ptr = 0;
-          break;
-        }
-        ++ptr;
-      }
-      uint32_t pos = goomInfo->update_message.affiche -
-                     (goomInfo->update_message.numberOfLinesInMessage - i) * 25;
-      pos += POS_VARIATION * (cos(static_cast<double>(pos) / 20.0));
-      pos -= SCROLLING_SPEED;
-      const float ecart = (ECART_VARIATION * sin(static_cast<double>(pos) / 20.0));
-      if ((fin) && (2 * pos < goomInfo->screen.height))
-      {
-        pos = goomInfo->screen.height / 2;
-      }
-      pos += 7;
-
-      goom_draw_text(goomInfo->p1, goomInfo->screen.width, goomInfo->screen.height,
-                     static_cast<int>(goomInfo->screen.width / 2), static_cast<int>(pos), message,
-                     ecart, 1);
-      message = ++ptr;
-      i++;
-    }
-    goomInfo->update_message.affiche--;
-    free(msg);
-  }
 }
 
 static void changeFilterModeIfMusicChanges(PluginInfo* goomInfo, const int forceMode)
@@ -1661,10 +1602,37 @@ static void applyStarsIfRequired(PluginInfo* goomInfo)
   goomInfo->star_fx.apply(&goomInfo->star_fx, goomInfo->p2, goomInfo->p1, goomInfo);
 }
 
-void displayText(PluginInfo* goomInfo, const char* songTitle, const char* message, const float fps)
+#ifdef SHOW_STATE_TEXT_ON_SCREEN
+
+static void displayStateText(PluginInfo* goomInfo)
 {
-  // Le message
-  update_message(goomInfo, message);
+  std::string message = "";
+
+  message += std20::format("State: {}\n", states.getCurrentStateIndex());
+  message += std20::format("Filter: {}\n", static_cast<int>(goomInfo->update.zoomFilterData.mode));
+  message += std20::format("hPlaneEffect: {}\n", goomInfo->update.zoomFilterData.hPlaneEffect);
+  message += std20::format("vPlaneEffect: {}\n", goomInfo->update.zoomFilterData.vPlaneEffect);
+  message += std20::format("hypercosEffect: {}\n", goomInfo->update.zoomFilterData.hypercosEffect);
+  message += std20::format("middleX: {}\n", goomInfo->update.zoomFilterData.middleX);
+  message += std20::format("middleY: {}\n", goomInfo->update.zoomFilterData.middleY);
+  message += std20::format("noisify: {}\n", goomInfo->update.zoomFilterData.noisify);
+  message += std20::format("noiseFactor: {}\n", goomInfo->update.zoomFilterData.noiseFactor);
+  message += std20::format("cyclesSinceLastChange: {}\n", goomInfo->update.cyclesSinceLastChange);
+  message += std20::format("lineMode: {}\n", goomInfo->update.lineMode);
+  message += std20::format("lockvar: {}\n", goomInfo->update.lockvar);
+  message += std20::format("stop_lines: {}\n", goomInfo->update.stop_lines);
+
+  updateMessage(goomInfo, message.c_str());
+}
+
+#endif
+
+static void displayText(PluginInfo* goomInfo,
+                        const char* songTitle,
+                        const char* message,
+                        const float fps)
+{
+  updateMessage(goomInfo, message);
 
   if (fps > 0)
   {
@@ -1674,7 +1642,6 @@ void displayText(PluginInfo* goomInfo, const char* songTitle, const char* messag
                    0);
   }
 
-  // Le titre
   if (songTitle)
   {
     strncpy(goomInfo->update.titleText, songTitle, 1023);
@@ -1696,6 +1663,50 @@ void displayText(PluginInfo* goomInfo, const char* songTitle, const char* messag
                      static_cast<int>(goomInfo->screen.height / 2 + 7), goomInfo->update.titleText,
                      static_cast<float>(190 - goomInfo->update.timeOfTitleDisplay) / 10.0f, 1);
     }
+  }
+}
+
+/*
+ * Met a jour l'affichage du message defilant
+ */
+
+static std::vector<std::string> splitString(const std::string& str, const std::string& delim)
+{
+  auto parts = str | std::views::split(delim);
+  std::vector<std::string> vec;
+  for (auto part : parts)
+  {
+    std::string s = "";
+    for (auto c : part)
+    {
+      s += c;
+    }
+    vec.emplace_back(s);
+  }
+  return vec;
+}
+
+static void updateMessage(PluginInfo* goomInfo, const char* message)
+{
+  if (message)
+  {
+    goomInfo->update_message.message = message;
+    const std::vector<std::string> msgLines = splitString(goomInfo->update_message.message, "\n");
+    goomInfo->update_message.numberOfLinesInMessage = msgLines.size();
+    goomInfo->update_message.affiche = 100 + 25 * goomInfo->update_message.numberOfLinesInMessage;
+  }
+  if (goomInfo->update_message.affiche)
+  {
+    const std::vector<std::string> msgLines = splitString(goomInfo->update_message.message, "\n");
+    for (size_t i = 0; i < msgLines.size(); i++)
+    {
+      const uint32_t ypos = 10 + goomInfo->update_message.affiche -
+                            (goomInfo->update_message.numberOfLinesInMessage - i) * 25;
+
+      goom_draw_text(goomInfo->p1, goomInfo->screen.width, goomInfo->screen.height, 50,
+                     static_cast<int>(ypos), msgLines[i].c_str(), 1, 0);
+    }
+    goomInfo->update_message.affiche--;
   }
 }
 

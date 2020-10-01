@@ -36,6 +36,7 @@ void circle(Pixel* buff,
             const uint32_t screenWidth,
             const uint32_t screenHeight);
 
+// colors.size() == radius
 void filledCircle(Pixel* buff,
                   const int x0,
                   const int y0,

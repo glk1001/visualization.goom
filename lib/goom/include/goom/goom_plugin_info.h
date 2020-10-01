@@ -144,10 +144,9 @@ struct PluginInfo
 
   struct
   {
+    std::string message;
     uint32_t numberOfLinesInMessage;
-    char message[0x800];
     uint32_t affiche;
-    uint32_t longueur;
   } update_message;
 
   struct

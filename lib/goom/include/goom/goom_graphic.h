@@ -9,16 +9,16 @@ namespace goom
 {
 
 #ifdef COLOR_BGRA
-#define A_CHANNEL 0x000000FF
-#define R_OFFSET 24
-#define G_OFFSET 16
-#define B_OFFSET 8
-#define A_OFFSET 0
+#define A_CHANNEL 0x000000FFu
+#define R_OFFSET 24u
+#define G_OFFSET 16u
+#define B_OFFSET 8u
+#define A_OFFSET 0u
 
-#define ALPHA 3
-#define BLEU 2
-#define VERT 1
-#define ROUGE 0
+#define ALPHA 3u
+#define BLEU 2u
+#define VERT 1u
+#define ROUGE 0u
 
 union Pixel
 {
@@ -34,16 +34,16 @@ union Pixel
 };
 
 #else // not COLOR_BGRA
-#define A_CHANNEL 0xFF000000
-#define A_OFFSET 24
-#define R_OFFSET 16
-#define G_OFFSET 8
-#define B_OFFSET 0
+#define A_CHANNEL 0xFF000000u
+#define A_OFFSET 24u
+#define R_OFFSET 16u
+#define G_OFFSET 8u
+#define B_OFFSET 0u
 
-#define BLEU 3
-#define VERT 2
-#define ROUGE 1
-#define ALPHA 0
+#define BLEU 3u
+#define VERT 2u
+#define ROUGE 1u
+#define ALPHA 0u
 
 union Pixel
 {
