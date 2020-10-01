@@ -138,9 +138,17 @@ struct IfsData
 
   const ColorMaps* colorMaps;
   const ColorMap* mixerMap;
-  bool doMegaColorChange;
-  bool doMixColors;
-  bool reverseMix;
+
+  enum class ColorMode
+  {
+    mapColors,
+    mixColors,
+    reverseMixColors,
+    megaColorChange,
+    mixedMegaColorChange,
+    singleColors,
+  };
+  ColorMode colorMode;
   float mixFactor; // in [0, 1]
 
   Fractal* root;
@@ -548,19 +556,35 @@ static void updateColorsModeFeu(IfsUpdateData*);
 
 inline Pixel getMixedcolor(const IfsData* fx_data, const Pixel& color, const float tmix)
 {
-  Pixel finalColor = color;
-  if (fx_data->doMixColors)
+  constexpr float maxColFactor = 1.0 / ((~A_CHANNEL) & std::numeric_limits<uint32_t>::max());
+
+  switch (fx_data->colorMode)
   {
-    if (const uint32_t mixColor = fx_data->mixerMap->getColor(tmix); fx_data->reverseMix)
+    case IfsData::ColorMode::mapColors:
+    case IfsData::ColorMode::megaColorChange:
     {
-      finalColor.val = ColorMap::colorMix(mixColor, color.val, fx_data->mixFactor);
+      const float t = maxColFactor * static_cast<float>(color.val & ~A_CHANNEL);
+      return Pixel{.val = fx_data->mixerMap->getColor(t)};
     }
-    else
+    break;
+    case IfsData::ColorMode::mixColors:
+    case IfsData::ColorMode::mixedMegaColorChange:
     {
-      finalColor.val = ColorMap::colorMix(color.val, mixColor, fx_data->mixFactor);
+      const uint32_t mixColor = fx_data->mixerMap->getColor(tmix);
+      return {.val = ColorMap::colorMix(mixColor, color.val, fx_data->mixFactor)};
     }
+    break;
+    case IfsData::ColorMode::reverseMixColors:
+    {
+      const uint32_t mixColor = fx_data->mixerMap->getColor(tmix);
+      return Pixel{.val = ColorMap::colorMix(color.val, mixColor, fx_data->mixFactor)};
+    }
+    break;
+    case IfsData::ColorMode::singleColors:
+      return color;
+    default:
+      throw std::logic_error("Unknown ColorMode");
   }
-  return finalColor;
 }
 
 static void updatePixelBuffers(PluginInfo* goomInfo,
@@ -577,7 +601,8 @@ static void updatePixelBuffers(PluginInfo* goomInfo,
 
   const float tStep = numPoints == 1 ? 0 : (1.0 - 0.0) / static_cast<float>(numPoints - 1);
   float t = -tStep;
-  bool doneColorChange = !fx_data->doMegaColorChange;
+  bool doneColorChange = fx_data->colorMode != IfsData::ColorMode::megaColorChange &&
+                         fx_data->colorMode != IfsData::ColorMode::mixedMegaColorChange;
   for (size_t i = 0; i < numPoints; i += static_cast<size_t>(increment))
   {
     t += tStep;
@@ -589,7 +614,7 @@ static void updatePixelBuffers(PluginInfo* goomInfo,
       continue;
     }
 
-    if (!doneColorChange && probabilityOfMInN(1, 5))
+    if (!doneColorChange && probabilityOfMInN(1, 10))
     {
       changeColormaps(fx_data);
       doneColorChange = true;
@@ -1042,15 +1067,30 @@ VisualFX ifs_visualfx_create(void)
   return vfx;
 }
 
+inline IfsData::ColorMode getColorMode()
+{
+  // clang-format off
+  // @formatter:off
+  static const Weights<IfsData::ColorMode> colorModeWeights{{
+    { IfsData::ColorMode::mapColors,  2 },
+    { IfsData::ColorMode::mixColors,  5 },
+    { IfsData::ColorMode::reverseMixColors,  5 },
+    { IfsData::ColorMode::megaColorChange,  20 },
+    { IfsData::ColorMode::mixedMegaColorChange,  2 },
+    { IfsData::ColorMode::singleColors, 1 },
+  }};
+  // @formatter:on
+  // clang-format on
+
+  return colorModeWeights.getRandomWeighted();
+}
+
 void ifsRenew(VisualFX* _this)
 {
   IfsData* data = static_cast<IfsData*>(_this->fx_data);
 
   changeColormaps(data);
-  data->doMegaColorChange = probabilityOfMInN(1, 100);
-  data->doMixColors = probabilityOfMInN(3, 4);
-  data->reverseMix = probabilityOfMInN(1, 2);
-  data->mixFactor = getRandInRange(0.3f, 0.7f);
+  data->colorMode = getColorMode();
 
   data->root->speed = getRandInRange(2u, 15u);
 }
