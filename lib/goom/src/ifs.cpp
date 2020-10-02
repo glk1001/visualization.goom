@@ -138,6 +138,7 @@ struct IfsData
 
   const ColorMaps* colorMaps;
   const ColorMap* mixerMap;
+  ColorMapGroup currentColorMapGroup;
 
   enum class ColorMode
   {
@@ -525,8 +526,12 @@ static IfsUpdateData updData{
 
 static void changeColormaps(IfsData* fx_data)
 {
+  if (probabilityOfMInN(1, 10))
+  {
+    fx_data->currentColorMapGroup = fx_data->colorMaps->getRandomGroup();
+  }
   updData.couleur.val = ColorMap::getRandomColor(fx_data->colorMaps->getRandomColorMap());
-  fx_data->mixerMap = &fx_data->colorMaps->getRandomColorMap();
+  fx_data->mixerMap = &fx_data->colorMaps->getRandomColorMap(fx_data->currentColorMapGroup);
 }
 
 inline Pixel getPixel(const Int32ChannelArray& col)
@@ -1036,6 +1041,7 @@ static void ifs_vfx_init(VisualFX* _this, PluginInfo* goomInfo)
   data->params.params[0] = &data->enabled_bp;
 
   data->colorMaps = new ColorMaps{};
+  data->currentColorMapGroup = data->colorMaps->getRandomGroup();
 
   data->root = nullptr;
   data->initialized = false;
