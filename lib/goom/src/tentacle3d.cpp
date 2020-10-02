@@ -397,10 +397,8 @@ inline float TentaclesWrapper::getStableRotationOffset(const float cycleVal)
   return (1.5 + sin(cycleVal) / 32.0) * m_pi;
 }
 
-// TODO - Make this prettier
 void TentaclesWrapper::prettyMove(const float accelVar)
 {
-  /* many magic numbers here... I don't really like that. */
   isPrettyMoveHappeningUpdate(accelVar);
 
   distt2 = std::lerp(distt2, distt2Offset, prettyMoveLerpMix);

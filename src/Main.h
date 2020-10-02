@@ -80,7 +80,9 @@ protected:
   virtual void AudioDataQueueTooBig() {}
   virtual void SkippedAudioData() {}
   virtual void AudioDataIncorrectReadLength() {}
-  virtual void UpdateGoomBuffer(const char* title, const float floatAudioData[], std::shared_ptr<uint32_t>& pixels);
+  virtual void UpdateGoomBuffer(const char* title,
+                                const float floatAudioData[],
+                                std::shared_ptr<uint32_t>& pixels);
 
 private:
   void Process();

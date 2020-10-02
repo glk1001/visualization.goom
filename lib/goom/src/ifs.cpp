@@ -568,7 +568,7 @@ inline Pixel getMixedcolor(const IfsData* fx_data, const Pixel& color, const flo
     case IfsData::ColorMode::mapColors:
     case IfsData::ColorMode::megaColorChange:
     {
-      const float t = getLuma(color)/maxChannelVal;
+      const float t = getLuma(color) / maxChannelVal;
       return Pixel{.val = fx_data->mixerMap->getColor(t)};
     }
     break;

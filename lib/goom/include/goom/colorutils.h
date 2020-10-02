@@ -106,7 +106,7 @@ inline uint32_t getLuma(const Pixel& color)
   const uint32_t r = color.channels.r;
   const uint32_t g = color.channels.g;
   const uint32_t b = color.channels.b;
-  return (r + r + b + g + g +g) >> 3;
+  return (r + r + b + g + g + g) >> 3;
 }
 
 } // namespace goom

@@ -90,15 +90,15 @@ bool CVisualizationGoom::Start(int iChannels,
     return true;
   }
 
-  static const auto f_kodi_log = [](const Logging::LogLevel lvl, const std::string& s) 
-  {
-    AddonLog kodiLvl = static_cast<AddonLog>(static_cast<size_t>(lvl) + 1); // map 'info' to 'notice'
+  static const auto f_kodi_log = [](const Logging::LogLevel lvl, const std::string& s) {
+    AddonLog kodiLvl =
+        static_cast<AddonLog>(static_cast<size_t>(lvl) + 1); // map 'info' to 'notice'
     kodi::Log(kodiLvl, s.c_str());
   };
   addLogHandler("kodi-logger", f_kodi_log);
   setLogFile("/tmp/kodi_goom.log");
   setLogLevelForFiles(Logging::LogLevel::info);
-//  setLogLevelForFiles(Logging::LogLevel::debug);
+  //  setLogLevelForFiles(Logging::LogLevel::debug);
   logStart();
   logInfo("Visualization start. SongName = \"{}\".", szSongName);
 

@@ -243,7 +243,7 @@ private:
     DrawablesState drawables;
   };
   using WeightedStatesArray = std::vector<State>;
-    static const WeightedStatesArray states;
+  static const WeightedStatesArray states;
   static std::vector<std::pair<uint16_t, size_t>> getWeightedStates(const WeightedStatesArray&);
   const Weights<uint16_t> weightedStates;
   size_t currentStateIndex;
@@ -445,7 +445,9 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
   }
 
   logVal(module, "numUpdates", numUpdates);
-  const int32_t avTimeinUpdateMs = std::lround(numUpdates == 0 ? -1.0 : static_cast<float>(totalTimeInUpdatesMs) / static_cast<float>(numUpdates));
+  const int32_t avTimeinUpdateMs = std::lround(
+      numUpdates == 0 ? -1.0
+                      : static_cast<float>(totalTimeInUpdatesMs) / static_cast<float>(numUpdates));
   logVal(module, "avTimeinUpdateMs", avTimeinUpdateMs);
   logVal(module, "minTimeInUpdatesMs", minTimeInUpdatesMs);
   logVal(module, "maxTimeInUpdatesMs", maxTimeInUpdatesMs);
