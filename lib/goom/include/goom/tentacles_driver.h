@@ -107,8 +107,7 @@ public:
 
   void startIterating();
   void stopIterating();
-  void update(const bool doDraw,
-              const float angle,
+  void update(const float angle,
               const float distance,
               const float distance2,
               const uint32_t color,

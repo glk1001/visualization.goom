@@ -165,9 +165,7 @@ public:
   void update(PluginInfo*,
               Pixel* frontBuff,
               Pixel* backBuff,
-              const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
-              const float accelVar,
-              const bool doDraw);
+              const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN]);
   void updateWithNoDraw(PluginInfo*);
   void logStats(const StatsLogValueFunc logVal);
 
@@ -202,6 +200,7 @@ private:
   void prettyMoveFinished();
   void prettyMoveUnlocked();
   void prettyMove(const float accelVar);
+  void prettyMoveWithNoDraw(PluginInfo*);
   std::tuple<uint32_t, uint32_t> getModColors();
 
   size_t countSinceHighAccelLastMarked = 0;
@@ -255,21 +254,46 @@ void TentaclesWrapper::logStats(const StatsLogValueFunc logVal)
   stats.log(logVal);
 }
 
-void TentaclesWrapper::updateWithNoDraw(PluginInfo*)
+void TentaclesWrapper::updateWithNoDraw(PluginInfo* goomInfo)
 {
   stats.updateWithNoDraw();
   if (ligs > 0.0f)
   {
     ligs = -ligs;
   }
+
+  lig += ligs;
+
+  if (lig <= 1.01f)
+  {
+    prettyMoveWithNoDraw(goomInfo);
+  }
+}
+
+void TentaclesWrapper::prettyMoveWithNoDraw(PluginInfo* goomInfo)
+{
+  lig = 1.05f;
+  if (ligs < 0.0f)
+  {
+    ligs = -ligs;
+  }
+
+  logDebug("Starting pretty_move 1.");
+  stats.updateWithPrettyMove1();
+  prettyMove(goomInfo->sound.accelvar);
+
+  cycle += 0.1f;
+  if (cycle > 1000)
+  {
+    stats.cycleReset();
+    cycle = 0;
+  }
 }
 
 void TentaclesWrapper::update(PluginInfo* goomInfo,
                               Pixel* frontBuff,
                               Pixel* backBuff,
-                              const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
-                              const float accelVar,
-                              const bool doDraw)
+                              const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN])
 {
   logDebug("Starting update.");
 
@@ -279,28 +303,13 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
 
   if (lig <= 1.01f)
   {
-    lig = 1.05f;
-    if (ligs < 0.0f)
-    {
-      ligs = -ligs;
-    }
-
-    logDebug("Starting pretty_move 1.");
-    stats.updateWithPrettyMove1();
-    prettyMove(accelVar);
-
-    cycle += 0.1f;
-    if (cycle > 1000)
-    {
-      stats.cycleReset();
-      cycle = 0;
-    }
+    prettyMoveWithNoDraw(goomInfo);
   }
   else
   {
     logDebug("Starting pretty_move 2.");
     stats.updateWithPrettyMove2();
-    prettyMove(accelVar);
+    prettyMove(goomInfo->sound.accelvar);
 
     const auto [modColor, modColorLow] = getModColors();
 
@@ -324,17 +333,13 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
     }
 
     // Higher sound acceleration increases tentacle wave frequency.
-    driver.multiplyIterZeroYValWaveFreq(1.0 / (1.10 - accelVar));
+    driver.multiplyIterZeroYValWaveFreq(1.0 / (1.10 - goomInfo->sound.accelvar));
 
     cycle += 0.01f;
 
-    if (doDraw)
-    {
-      stats.updateWithDraw();
-    }
+    stats.updateWithDraw();
 
-    driver.update(doDraw, m_half_pi - rot, distt, distt2, modColor, modColorLow, frontBuff,
-                  backBuff);
+    driver.update(m_half_pi - rot, distt, distt2, modColor, modColorLow, frontBuff, backBuff);
   }
 }
 
@@ -526,8 +531,7 @@ void tentacle_fx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* goo
   TentacleFXData* data = static_cast<TentacleFXData*>(_this->fx_data);
   if (BVAL(data->enabled_bp))
   {
-    data->tentacles->update(goomInfo, dest, src, goomInfo->sound.samples, goomInfo->sound.accelvar,
-                            goomInfo->curGDrawables.count(GoomDrawable::tentacles));
+    data->tentacles->update(goomInfo, dest, src, goomInfo->sound.samples);
   }
 }
 

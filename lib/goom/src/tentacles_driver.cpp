@@ -432,8 +432,7 @@ void TentacleDriver::beforeIter(const size_t ID,
   }
 }
 
-void TentacleDriver::update(const bool doDraw,
-                            const float angle,
+void TentacleDriver::update(const float angle,
                             const float distance,
                             const float distance2,
                             const uint32_t color,
@@ -465,10 +464,8 @@ void TentacleDriver::update(const bool doDraw,
     logDebug("Update num = {}, tentacle = {}, doing plot with angle = {}, "
              "distance = {}, distance2 = {}, color = {} and colorLow = {}, doDraw = {}.",
              updateNum, tentacle2D.getID(), angle, distance, distance2, color, colorLow, doDraw);
-    if (doDraw)
-    {
-      plot3D(tentacle, color, colorLow, angle, distance, distance2, frontBuff, backBuff);
-    }
+
+    plot3D(tentacle, color, colorLow, angle, distance, distance2, frontBuff, backBuff);
   }
 }
 
