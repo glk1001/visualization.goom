@@ -84,6 +84,8 @@ public:
     updateLineMode,
     changeLineToBlack,
     changeGoomLine,
+    changeDotColors,
+    ifsRenew,
     _size // must be last - gives number of enums
   };
 
@@ -151,6 +153,8 @@ private:
     { .event = GoomEvent::updateLineMode,                      .m = 1, .outOf =   4 },
     { .event = GoomEvent::changeLineToBlack,                   .m = 1, .outOf =   2 },
     { .event = GoomEvent::changeGoomLine,                      .m = 1, .outOf =   3 },
+    { .event = GoomEvent::changeDotColors,                     .m = 1, .outOf =   3 },
+    { .event = GoomEvent::ifsRenew,                            .m = 2, .outOf =   3 },
   } };
 
   static constexpr std::array<std::pair<GoomFilterEvent, size_t>, numGoomFilterEvents> weightedFilterEvents{ {
@@ -1271,7 +1275,7 @@ static void changeState(PluginInfo* goomInfo)
 
   if (states.isCurrentlyDrawable(GoomDrawable::IFS))
   {
-    if (probabilityOfMInN(2, 3))
+    if (goomEvent.happens(GoomEvent::ifsRenew))
     {
       ifsRenew(&goomInfo->ifs_fx);
       stats.ifsRenew();
@@ -2078,7 +2082,7 @@ void GoomDots::drawDots(PluginInfo* goomInfo)
   stats.doPoints();
 
   uint32_t radius = 3;
-  if (goomInfo->sound.timeSinceLastGoom == 0)
+  if ((goomInfo->sound.timeSinceLastGoom == 0) || goomEvent.happens(GoomEvent::changeDotColors))
   {
     changeColors();
     radius = 5;
