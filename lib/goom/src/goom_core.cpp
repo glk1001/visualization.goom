@@ -127,7 +127,7 @@ private:
   static constexpr std::array<WeightedEvent, numGoomEvents> weightedEvents{ {
     { .event = GoomEvent::changeFilterMode,                    .m = 1, .outOf =  16 },
     { .event = GoomEvent::changeFilterFromAmuletteMode,        .m = 1, .outOf =   5 },
-    { .event = GoomEvent::changeState,                         .m = 2, .outOf =   3 },
+    { .event = GoomEvent::changeState,                         .m = 1, .outOf =   2 },
     { .event = GoomEvent::changeNoiseState,                    .m = 4, .outOf =   5 },
     { .event = GoomEvent::changeToMegaLentMode,                .m = 1, .outOf = 700 },
     { .event = GoomEvent::changeLineCircleAmplitude,           .m = 1, .outOf =   3 },
