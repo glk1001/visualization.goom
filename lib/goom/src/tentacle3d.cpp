@@ -26,6 +26,32 @@ namespace goom
 
 using namespace goom::utils;
 
+inline bool startPrettyMoveEvent()
+{
+  return probabilityOfMInN(1, 300);
+}
+
+inline bool changeRotationEvent()
+{
+  return probabilityOfMInN(1, 100);
+}
+
+inline bool turnRotationOnEvent()
+{
+  return probabilityOfMInN(1, 2);
+}
+
+inline bool changeDominantColorMapEvent()
+{
+  return probabilityOfMInN(1, 50);
+}
+
+// IMPORTANT. Very delicate here - 1 in 30 seems just right
+inline bool changeDominantColorEvent()
+{
+  return probabilityOfMInN(1, 30);
+}
+
 class TentacleStats
 {
 public:
@@ -174,7 +200,11 @@ private:
   const ColorMap* dominantColorMap;
   uint32_t dominantColor = 0;
 
+  bool updatingWithDraw = true;
   float cycle = 0;
+  static constexpr float cycleIncMin = 0.01;
+  static constexpr float cycleIncMax = 0.05;
+  float cycleInc = cycleIncMin;
   float lig = 1.15;
   float ligs = 0.1;
   float distt = 10;
@@ -254,40 +284,26 @@ void TentaclesWrapper::logStats(const StatsLogValueFunc logVal)
   stats.log(logVal);
 }
 
-void TentaclesWrapper::updateWithNoDraw(PluginInfo* goomInfo)
+void TentaclesWrapper::updateWithNoDraw(PluginInfo*)
 {
   stats.updateWithNoDraw();
+
+  if (!updatingWithDraw)
+  {
+    // already in tentacle no draw state
+    return;
+  }
+
+  updatingWithDraw = false;
+
   if (ligs > 0.0f)
   {
     ligs = -ligs;
   }
-
   lig += ligs;
 
-  if (lig <= 1.01f)
-  {
-    prettyMoveWithNoDraw(goomInfo);
-  }
-}
-
-void TentaclesWrapper::prettyMoveWithNoDraw(PluginInfo* goomInfo)
-{
-  lig = 1.05f;
-  if (ligs < 0.0f)
-  {
-    ligs = -ligs;
-  }
-
-  logDebug("Starting pretty_move 1.");
-  stats.updateWithPrettyMove1();
-  prettyMove(goomInfo->sound.accelvar);
-
-  cycle += 0.1f;
-  if (cycle > 1000)
-  {
-    stats.cycleReset();
-    cycle = 0;
-  }
+  stats.changeDominantColor();
+  dominantColor = ColorMap::getRandomColor(*dominantColorMap);
 }
 
 void TentaclesWrapper::update(PluginInfo* goomInfo,
@@ -299,17 +315,66 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
 
   incCounters();
 
+  updatingWithDraw = true;
   lig += ligs;
 
   if (lig <= 1.01f)
   {
-    prettyMoveWithNoDraw(goomInfo);
+    lig = 1.05f;
+    if (ligs < 0.0f)
+    {
+      ligs = -ligs;
+    }
+
+    logDebug("Starting pretty_move without draw.");
+    stats.updateWithPrettyMove1();
+    prettyMove(goomInfo->sound.accelvar);
+
+    cycle += 10.0 * cycleInc;
+    if (cycle > 1000)
+    {
+      stats.cycleReset();
+      cycle = 0;
+    }
   }
   else
   {
-    logDebug("Starting pretty_move 2.");
+    if ((lig > 10.0f) || (lig < 1.1f))
+    {
+      ligs = -ligs;
+    }
+
+    logDebug("Starting pretty_move and draw.");
     stats.updateWithPrettyMove2();
     prettyMove(goomInfo->sound.accelvar);
+    cycle += cycleInc;
+
+    if (isPrettyMoveHappening || changeDominantColorMapEvent())
+    {
+      // IMPORTANT. Very delicate here - seems the right time to change maps.
+      stats.changeDominantColorMap();
+      dominantColorMap = &colorMaps.getRandomColorMap();
+    }
+
+    if ((isPrettyMoveHappening || (lig < 6.3f)) && changeDominantColorMapEvent())
+    {
+      // TODO - Too abrupt color change here may cause flicker - maybe compare 'luma'
+      //   Tried below but somehow its make color change way less interesting.
+      /***
+      Pixel oldColor{ .val = dominantColor };
+      const float oldLuma = 0.299*oldColor.channels.r + 0.587*oldColor.channels.g + 0.114*oldColor.channels.b;
+      dominantColor = ColorMap::getRandomColor(*dominantColorMap);
+      Pixel pix{ .val = dominantColor };
+      const float luma = 0.299*pix.channels.r + 0.587*pix.channels.g + 0.114*pix.channels.b;
+      pix.channels.r = (oldLuma/luma)*pix.channels.r;
+      pix.channels.g = (oldLuma/luma)*pix.channels.g;
+      pix.channels.b = (oldLuma/luma)*pix.channels.b;
+      dominantColor = pix.val;
+      **/
+      stats.changeDominantColor();
+      dominantColor = ColorMap::getRandomColor(*dominantColorMap);
+      countSinceColorChangeLastMarked = 0;
+    }
 
     const auto [modColor, modColorLow] = getModColors();
 
@@ -335,8 +400,6 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
     // Higher sound acceleration increases tentacle wave frequency.
     driver.multiplyIterZeroYValWaveFreq(1.0 / (1.10 - goomInfo->sound.accelvar));
 
-    cycle += 0.01f;
-
     stats.updateWithDraw();
 
     driver.update(m_half_pi - rot, distt, distt2, modColor, modColorLow, frontBuff, backBuff);
@@ -352,6 +415,7 @@ void TentaclesWrapper::prettyMoveStarted(const float accelVar)
 
   distt2Offset = (1.0 / (1.10 - accelVar)) * getRandInRange(distt2Min, distt2Max);
   rotAtStartOfPrettyMove = rot;
+  cycleInc = getRandInRange(cycleIncMin, cycleIncMax);
   driver.setRoughTentacles(true);
 }
 
@@ -381,7 +445,7 @@ void TentaclesWrapper::isPrettyMoveHappeningUpdate(const float accelVar)
   {
     postPrettyMoveLock--;
   }
-  else if (probabilityOfMInN(1, 200))
+  else if (startPrettyMoveEvent())
   {
     isPrettyMoveHappening = true;
     prettyMoveStarted(accelVar);
@@ -419,9 +483,9 @@ void TentaclesWrapper::prettyMove(const float accelVar)
   else
   {
     float currentCycle = cycle;
-    if (probabilityOfMInN(1, 100))
+    if (changeRotationEvent())
     {
-      doRotation = probabilityOfMInN(1, 2);
+      doRotation = turnRotationOnEvent();
     }
     if (doRotation)
     {
@@ -464,39 +528,6 @@ void TentaclesWrapper::prettyMove(const float accelVar)
 
 inline std::tuple<uint32_t, uint32_t> TentaclesWrapper::getModColors()
 {
-  if (isPrettyMoveHappening)
-  {
-    // IMPORTANT. Very delicate here - seems the right time to change maps.
-    stats.changeDominantColorMap();
-    dominantColorMap = &colorMaps.getRandomColorMap();
-  }
-
-  if ((lig > 10.0f) || (lig < 1.1f))
-  {
-    ligs = -ligs;
-  }
-
-  // IMPORTANT. Very delicate here - 1 in 30 seems just right
-  if ((lig < 6.3f) && probabilityOfMInN(1, 30))
-  {
-    stats.changeDominantColor();
-    // TODO - Too abrupt color change here may cause flicker - maybe compare 'luma'
-    //   Tried below but somehow its make color change way less interesting.
-    /***
-    Pixel oldColor{ .val = dominantColor };
-    const float oldLuma = 0.299*oldColor.channels.r + 0.587*oldColor.channels.g + 0.114*oldColor.channels.b;
-    dominantColor = ColorMap::getRandomColor(*dominantColorMap);
-    Pixel pix{ .val = dominantColor };
-    const float luma = 0.299*pix.channels.r + 0.587*pix.channels.g + 0.114*pix.channels.b;
-    pix.channels.r = (oldLuma/luma)*pix.channels.r;
-    pix.channels.g = (oldLuma/luma)*pix.channels.g;
-    pix.channels.b = (oldLuma/luma)*pix.channels.b;
-    dominantColor = pix.val;
-    **/
-    dominantColor = ColorMap::getRandomColor(*dominantColorMap);
-    countSinceColorChangeLastMarked = 0;
-  }
-
   // IMPORTANT. getEvolvedColor works just right - not sure why
   dominantColor = getEvolvedColor(dominantColor);
 
@@ -506,7 +537,7 @@ inline std::tuple<uint32_t, uint32_t> TentaclesWrapper::getModColors()
   return std::make_tuple(modColor, modColorLow);
 }
 
-/* 
+/*
  * VisualFX wrapper for the tentacles
  */
 

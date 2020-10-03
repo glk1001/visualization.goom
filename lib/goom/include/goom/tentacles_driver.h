@@ -152,8 +152,8 @@ private:
   const float iterZeroYVal = 10.0;
   size_t numTentacles = 0;
   std::vector<IterationParams> tentacleParams;
-  static constexpr size_t changeCurrentColorMapGroupEveryNUpdates = 500;
-  static constexpr size_t changeTentacleColorMapEveryNUpdates = 100;
+  static const size_t changeCurrentColorMapGroupEveryNUpdates;
+  static const size_t changeTentacleColorMapEveryNUpdates;
 
   IterTimer roughenTimer;
   static constexpr size_t roughenEveryNUpdates = 30000000;

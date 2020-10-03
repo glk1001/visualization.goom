@@ -30,6 +30,14 @@ namespace goom
 
 using namespace goom::utils;
 
+inline bool changeCurrentColorMapEvent()
+{
+  return probabilityOfMInN(1, 5);
+}
+
+const size_t TentacleDriver::changeCurrentColorMapGroupEveryNUpdates = 400;
+const size_t TentacleDriver::changeTentacleColorMapEveryNUpdates = 100;
+
 TentacleDriver::TentacleDriver(const ColorMaps* cm, const uint32_t screenW, const uint32_t screenH)
   : iterParamsGroups{},
     screenWidth{screenW},
@@ -426,7 +434,7 @@ void TentacleDriver::beforeIter(const size_t ID,
     **/
   }
 
-  if ((iterNum % changeTentacleColorMapEveryNUpdates == 0) || probabilityOfMInN(1, 5))
+  if ((iterNum % changeTentacleColorMapEveryNUpdates == 0) || changeCurrentColorMapEvent())
   {
     colorizers[ID]->resetColorMap(colorMaps->getRandomColorMap(currentColorMapGroup));
   }
