@@ -43,7 +43,7 @@
 #include <variant>
 #include <vector>
 
-#define SHOW_STATE_TEXT_ON_SCREEN
+//#define SHOW_STATE_TEXT_ON_SCREEN
 
 namespace goom
 {
@@ -299,9 +299,9 @@ const GoomStates::WeightedStatesArray GoomStates::states{ {
   { .weight =  40, .drawables = {GD::IFS,           GD::tentacles, GD::stars,                       GD::farScope}},
   { .weight =  60, .drawables = {GD::IFS,                          GD::stars, GD::lines, GD::scope, GD::farScope}},
   { .weight =  60, .drawables = {         GD::dots, GD::tentacles, GD::stars, GD::lines, GD::scope, GD::farScope}},
-  { .weight =  70, .drawables = {         GD::dots, GD::tentacles, GD::stars,            GD::scope              }},
+  { .weight = 100, .drawables = {         GD::dots, GD::tentacles, GD::stars,            GD::scope              }},
   { .weight =  70, .drawables = {         GD::dots, GD::tentacles, GD::stars, GD::lines, GD::scope, GD::farScope}},
-  { .weight =  50, .drawables = {                   GD::tentacles, GD::stars, GD::lines,            GD::farScope}},
+  { .weight = 100, .drawables = {                   GD::tentacles, GD::stars, GD::lines,            GD::farScope}},
   { .weight =  60, .drawables = {                                  GD::stars, GD::lines, GD::scope, GD::farScope}},
   { .weight =  60, .drawables = {         GD::dots,                GD::stars,            GD::scope, GD::farScope}},
 }};

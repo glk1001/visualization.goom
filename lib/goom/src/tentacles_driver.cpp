@@ -81,15 +81,10 @@ constexpr double tent2d_xmin = 0.0;
 constexpr double tent2d_ymin = 0.065736;
 constexpr double tent2d_ymax = 10000;
 
-void TentacleDriver::init()
+void TentacleDriver::init(const TentacleLayout& layout)
 {
   logDebug("Starting driver init.");
 
-  // const CirclesTentacleLayout layout{10, 60, {15, 10, 7, 3, 2}, 0};
-  // const CirclesTentacleLayout layout{10, 80, {30, 20, 14, 6, 4}, 0};
-  // const CirclesTentacleLayout layout{10, 100, {60, 40, 28, 12, 8}, 0};
-  const CirclesTentacleLayout layout{10, 100, {40, 30, 26, 20, 12, 8}, 0};
-  //  const GridTentacleLayout layout{ -100, 100, xRowLen, -100, 100, numXRows, 0 };
   numTentacles = layout.getNumPoints();
   logDebug("numTentacles = {}.", numTentacles);
 

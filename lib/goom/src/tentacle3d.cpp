@@ -18,8 +18,10 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <memory>
 #include <stdexcept>
 #include <tuple>
+#include <vector>
 
 namespace goom
 {
@@ -63,8 +65,8 @@ public:
   void changeDominantColor();
   void updateWithDraw();
   void updateWithNoDraw();
-  void updateWithPrettyMove1();
-  void updateWithPrettyMove2();
+  void updateWithPrettyMoveNoDraw();
+  void updateWithPrettyMoveDraw();
   void lowToMediumAcceleration();
   void highAcceleration();
   void cycleReset();
@@ -79,8 +81,8 @@ private:
   uint32_t numDominantColorChanges = 0;
   uint32_t numUpdatesWithDraw = 0;
   uint32_t numUpdatesWithNoDraw = 0;
-  uint32_t numUpdatesWithPrettyMove1 = 0;
-  uint32_t numUpdatesWithPrettyMove2 = 0;
+  uint32_t numUpdatesWithPrettyMoveNoDraw = 0;
+  uint32_t numUpdatesWithPrettyMoveDraw = 0;
   uint32_t numLowToMediumAcceleration = 0;
   uint32_t numHighAcceleration = 0;
   uint32_t numCycleResets = 0;
@@ -97,9 +99,9 @@ void TentacleStats::log(const StatsLogValueFunc logVal) const
   logVal(module, "numDominantColorChanges", numDominantColorChanges);
   logVal(module, "numUpdatesWithDraw", numUpdatesWithDraw);
   logVal(module, "numUpdatesWithNoDraw", numUpdatesWithNoDraw);
-  logVal(module, "numUpdatesWithPrettyMove1", numUpdatesWithPrettyMove1);
-  logVal(module, "numUpdatesWithPrettyMove2", numUpdatesWithPrettyMove2);
-  logVal(module, "numLowToMediumAcceleration", numLowToMediumAcceleration);
+  logVal(module, "numUpdatesWithPrettyMoveNoDraw", numUpdatesWithPrettyMoveNoDraw);
+  logVal(module, "numUpdatesWithPrettyMove2", numUpdatesWithPrettyMoveDraw);
+  logVal(module, "numUpdatesWithPrettyMoveDraw", numLowToMediumAcceleration);
   logVal(module, "numHighAcceleration", numHighAcceleration);
   logVal(module, "numCycleResets", numCycleResets);
   logVal(module, "lastCycleValue", lastCycleValue);
@@ -113,8 +115,8 @@ void TentacleStats::reset()
   numDominantColorChanges = 0;
   numUpdatesWithDraw = 0;
   numUpdatesWithNoDraw = 0;
-  numUpdatesWithPrettyMove1 = 0;
-  numUpdatesWithPrettyMove2 = 0;
+  numUpdatesWithPrettyMoveNoDraw = 0;
+  numUpdatesWithPrettyMoveDraw = 0;
   numLowToMediumAcceleration = 0;
   numHighAcceleration = 0;
   numCycleResets = 0;
@@ -143,14 +145,14 @@ inline void TentacleStats::updateWithNoDraw()
   numUpdatesWithNoDraw++;
 }
 
-inline void TentacleStats::updateWithPrettyMove1()
+inline void TentacleStats::updateWithPrettyMoveNoDraw()
 {
-  numUpdatesWithPrettyMove1++;
+  numUpdatesWithPrettyMoveNoDraw++;
 }
 
-inline void TentacleStats::updateWithPrettyMove2()
+inline void TentacleStats::updateWithPrettyMoveDraw()
 {
-  numUpdatesWithPrettyMove2++;
+  numUpdatesWithPrettyMoveDraw++;
 }
 
 inline void TentacleStats::lowToMediumAcceleration()
@@ -238,7 +240,8 @@ private:
   void incCounters();
 
   static constexpr float highAcceleration = 0.7;
-  TentacleDriver driver;
+  std::vector<std::unique_ptr<TentacleDriver>> drivers;
+  TentacleDriver* currentDriver = nullptr;
   TentacleStats stats;
 };
 
@@ -256,7 +259,7 @@ TentaclesWrapper::TentaclesWrapper(const uint32_t screenWidth, const uint32_t sc
     dominantColorMap{&colorMaps.getRandomColorMap()},
     dominantColor{ColorMap::getRandomColor(*dominantColorMap)},
     rot{TentaclesWrapper::getStableRotationOffset(0)},
-    driver{&colorMaps, screenWidth, screenHeight},
+    drivers{},
     stats{}
 {
   /**
@@ -266,9 +269,31 @@ colorGroupWeights.clearWeights(1);
 colorGroupWeights.setWeight(ColorMapGroup::misc, 30000);
 colorMaps.setWeights(colorGroupWeights);
 ***/
+  constexpr size_t numDrivers = 4;
+  for (size_t i = 0; i < numDrivers; i++)
+  {
+    drivers.emplace_back(new TentacleDriver{&colorMaps, screenWidth, screenHeight});
+  }
+  const std::vector<CirclesTentacleLayout> layouts{
+      {10, 60, {15, 10, 7, 3, 2}, 0},
+      {10, 80, {30, 20, 14, 6, 4}, 0},
+      {10, 100, {60, 40, 28, 12, 8}, 0},
+      {10, 100, {40, 30, 26, 20, 12, 8}, 0},
+  };
+  // const GridTentacleLayout layout{ -100, 100, xRowLen, -100, 100, numXRows, 0 };
+  if (numDrivers != layouts.size())
+  {
+    throw std::logic_error("numDrivers != layouts.size()");
+  }
 
-  driver.init();
-  driver.startIterating();
+  for (size_t i = 0; i < numDrivers; i++)
+  {
+    drivers[i]->init(layouts[i]);
+    drivers[i]->startIterating();
+  }
+
+  currentDriver = drivers[1].get();
+  currentDriver->startIterating();
 }
 
 inline void TentaclesWrapper::incCounters()
@@ -327,7 +352,7 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
     }
 
     logDebug("Starting pretty_move without draw.");
-    stats.updateWithPrettyMove1();
+    stats.updateWithPrettyMoveNoDraw();
     prettyMove(goomInfo->sound.accelvar);
 
     cycle += 10.0 * cycleInc;
@@ -345,7 +370,7 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
     }
 
     logDebug("Starting pretty_move and draw.");
-    stats.updateWithPrettyMove2();
+    stats.updateWithPrettyMoveDraw();
     prettyMove(goomInfo->sound.accelvar);
     cycle += cycleInc;
 
@@ -398,11 +423,12 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
     }
 
     // Higher sound acceleration increases tentacle wave frequency.
-    driver.multiplyIterZeroYValWaveFreq(1.0 / (1.10 - goomInfo->sound.accelvar));
+    currentDriver->multiplyIterZeroYValWaveFreq(1.0 / (1.10 - goomInfo->sound.accelvar));
 
     stats.updateWithDraw();
 
-    driver.update(m_half_pi - rot, distt, distt2, modColor, modColorLow, frontBuff, backBuff);
+    currentDriver->update(m_half_pi - rot, distt, distt2, modColor, modColorLow, frontBuff,
+                          backBuff);
   }
 }
 
@@ -413,10 +439,12 @@ void TentaclesWrapper::prettyMoveStarted(const float accelVar)
   prettyMoveCheckStopMark = prettyMoveHappeningTimer / 4;
   postPrettyMoveLock = 3 * prettyMoveHappeningTimer / 2;
 
+  currentDriver = drivers[getRandInRange(0u, drivers.size())].get();
+
   distt2Offset = (1.0 / (1.10 - accelVar)) * getRandInRange(distt2Min, distt2Max);
   rotAtStartOfPrettyMove = rot;
   cycleInc = getRandInRange(cycleIncMin, cycleIncMax);
-  driver.setRoughTentacles(true);
+  currentDriver->setRoughTentacles(true);
 }
 
 void TentaclesWrapper::prettyMoveFinished()
@@ -424,7 +452,7 @@ void TentaclesWrapper::prettyMoveFinished()
   stats.prettyMoveHappensReset();
   prettyMoveHappeningTimer = 0;
   distt2Offset = 0;
-  driver.setRoughTentacles(false);
+  currentDriver->setRoughTentacles(false);
 }
 
 void TentaclesWrapper::isPrettyMoveHappeningUpdate(const float accelVar)

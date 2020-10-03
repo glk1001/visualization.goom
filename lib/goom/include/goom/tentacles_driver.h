@@ -102,8 +102,7 @@ public:
   TentacleDriver(const TentacleDriver&) = delete;
   TentacleDriver& operator=(const TentacleDriver&) = delete;
 
-  void init();
-  void updateTentaclesLayout(const TentacleLayout&);
+  void init(const TentacleLayout&);
 
   void startIterating();
   void stopIterating();
@@ -136,6 +135,8 @@ private:
     IterationParams getNext(const float t) const;
   };
   std::vector<IterParamsGroup> iterParamsGroups;
+
+  void updateTentaclesLayout(const TentacleLayout&);
 
   const uint32_t screenWidth;
   const uint32_t screenHeight;
