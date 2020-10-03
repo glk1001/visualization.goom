@@ -44,6 +44,7 @@ target_include_directories(${PROJECT_NAME}
         ${CMAKE_SOURCE_DIR}/lib/goomutils/include
         ${CMAKE_SOURCE_DIR}/lib/vivid/include
         ${CMAKE_SOURCE_DIR}/lib/fmt/include
+        ${CMAKE_SOURCE_DIR}/lib/magic_enum/include
 )
 
 message(STATUS "Goom compile features = \"${COMMON_C_COMPILE_FEATURES}\".")

@@ -33,6 +33,7 @@
 #include <cmath>
 #include <cstdint>
 #include <format>
+#include <magic_enum.hpp>
 #include <memory>
 #include <ranges>
 #include <stdexcept>
@@ -42,12 +43,19 @@
 #include <variant>
 #include <vector>
 
-//#define SHOW_STATE_TEXT_ON_SCREEN
+#define SHOW_STATE_TEXT_ON_SCREEN
 
 namespace goom
 {
 
 using namespace goom::utils;
+
+// TODO Put in utils
+template<class E>
+std::string enumToString(const E e)
+{
+  return std::string(magic_enum::enum_name(e));
+}
 
 class GoomEvents
 {
@@ -420,7 +428,7 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
   const constexpr char* module = "goom_core";
 
   logVal(module, "startingState", startingState);
-  logVal(module, "startingFilterMode", static_cast<uint32_t>(startingFilterMode));
+  logVal(module, "startingFilterMode", enumToString(startingFilterMode));
   logVal(module, "lastState", startingState);
 
   if (!lastZoomFilterData)
@@ -429,7 +437,7 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
   }
   else
   {
-    logVal(module, "lastZoomFilterData->mode", static_cast<uint32_t>(lastZoomFilterData->mode));
+    logVal(module, "lastZoomFilterData->mode", enumToString(lastZoomFilterData->mode));
     logVal(module, "lastZoomFilterData->hPlaneEffect", lastZoomFilterData->hPlaneEffect);
     logVal(module, "lastZoomFilterData->vPlaneEffect", lastZoomFilterData->vPlaneEffect);
     logVal(module, "lastZoomFilterData->hypercosEffect", lastZoomFilterData->hypercosEffect);
@@ -475,7 +483,8 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
   logVal(module, "totalFilterModeChanges", totalFilterModeChanges);
   for (size_t i = 0; i < numFilterModeChanges.size(); i++)
   {
-    logVal(module, "numFilterMode_" + std::to_string(i) + "_Changes", numFilterModeChanges[i]);
+    logVal(module, "numFilterMode_" + enumToString(static_cast<ZoomFilterMode>(i)) + "_Changes",
+           numFilterModeChanges[i]);
   }
   logVal(module, "numLockChanges", numLockChanges);
   logVal(module, "numDoIFS", numDoIFS);
@@ -685,6 +694,7 @@ struct LogStatsVisitor
   LogStatsVisitor(const std::string& m, const std::string& n) : module{m}, name{n} {}
   const std::string& module;
   const std::string& name;
+  void operator()(const std::string& s) const { logInfo("{}.{} = '{}'", module, name, s); }
   void operator()(const uint32_t i) const { logInfo("{}.{} = {}", module, name, i); }
   void operator()(const int32_t i) const { logInfo("{}.{} = {}", module, name, i); }
   void operator()(const float f) const { logInfo("{}.{} = {:.3}", module, name, f); }
@@ -692,7 +702,7 @@ struct LogStatsVisitor
 
 static void logStatsValue(const std::string& module,
                           const std::string& name,
-                          const std::variant<uint32_t, int32_t, float>& value)
+                          const StatsLogValue& value)
 {
   std::visit(LogStatsVisitor{module, name}, value);
 }
@@ -1646,7 +1656,7 @@ static void displayStateText(PluginInfo* goomInfo)
   std::string message = "";
 
   message += std20::format("State: {}\n", states.getCurrentStateIndex());
-  message += std20::format("Filter: {}\n", static_cast<int>(goomInfo->update.zoomFilterData.mode));
+  message += std20::format("Filter: {}\n", enumToString(goomInfo->update.zoomFilterData.mode));
   message += std20::format("hPlaneEffect: {}\n", goomInfo->update.zoomFilterData.hPlaneEffect);
   message += std20::format("vPlaneEffect: {}\n", goomInfo->update.zoomFilterData.vPlaneEffect);
   message += std20::format("hypercosEffect: {}\n", goomInfo->update.zoomFilterData.hypercosEffect);
