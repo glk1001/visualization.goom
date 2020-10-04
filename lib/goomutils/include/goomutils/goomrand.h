@@ -42,9 +42,11 @@ public:
   Weights() noexcept;
   explicit Weights(const std::vector<std::pair<E, size_t>>&);
 
+  void clearWeights(const size_t value);
+  size_t getNumElements() const;
   void setWeight(const E, size_t value);
   size_t getWeight(const E) const;
-  void clearWeights(const size_t value);
+
   size_t getSumOfWeights() const { return sumOfWeights; }
 
   E getRandomWeighted() const;
@@ -108,6 +110,12 @@ size_t Weights<E>::getSumOfWeights(const std::vector<std::pair<E, size_t>>& weig
     sumOfWeights += w;
   }
   return sumOfWeights;
+}
+
+template<class E>
+size_t Weights<E>::getNumElements() const
+{
+  return weights.size();
 }
 
 template<class E>

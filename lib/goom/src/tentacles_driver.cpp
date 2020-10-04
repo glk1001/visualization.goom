@@ -77,6 +77,11 @@ TentacleDriver::TentacleDriver(const ColorMaps* cm, const uint32_t screenW, cons
   logDebug("Constructed TentacleDriver.");
 }
 
+size_t TentacleDriver::getNumTentacles() const
+{
+  return numTentacles;
+}
+
 constexpr double tent2d_xmin = 0.0;
 constexpr double tent2d_ymin = 0.065736;
 constexpr double tent2d_ymax = 10000;
@@ -698,15 +703,14 @@ CirclesTentacleLayout::CirclesTentacleLayout(const float radiusMin,
   const size_t numCircles = numCircleSamples.size();
   if (numCircles < 2)
   {
-    std::runtime_error(
-        std20::format("There must be >= 2 circle sample numbers not {}.", numCircles));
+    std::logic_error(std20::format("There must be >= 2 circle sample numbers not {}.", numCircles));
   }
   for (const auto numSample : numCircleSamples)
   {
     if (numSample % 2 != 0)
     {
       // Perspective looks bad with odd because of x=0 tentacle.
-      std::runtime_error(std20::format("Circle sample num must be even not {}.", numSample));
+      std::logic_error(std20::format("Circle sample num must be even not {}.", numSample));
     }
   }
 

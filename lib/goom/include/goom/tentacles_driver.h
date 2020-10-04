@@ -103,6 +103,7 @@ public:
   TentacleDriver& operator=(const TentacleDriver&) = delete;
 
   void init(const TentacleLayout&);
+  size_t getNumTentacles() const;
 
   void startIterating();
   void stopIterating();
