@@ -51,6 +51,11 @@ inline Pixel getBrighterColor(const float brightness, const Pixel& color)
   return p;
 }
 
+inline uint32_t getBrighterColor(const float brightness, const uint32_t color)
+{
+  return getBrighterColor(brightness, Pixel{.val = color}).val;
+}
+
 inline Pixel getRightShiftedChannels(const Pixel& color, const int value)
 {
   Pixel p = color;

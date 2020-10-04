@@ -1,3 +1,4 @@
+#include "colorutils.h"
 #include "drawmethods.h"
 #include "goom_fx.h"
 #include "goom_plugin_info.h"
@@ -132,14 +133,6 @@ constexpr uint32_t minStarAge = 10;
 constexpr uint32_t maxStarExtraAge = 40;
 
 /* TODO:-- FAIRE PROPREMENT... BOAH... */
-// clang-format off
-constexpr size_t numLowColors = 15;
-constexpr std::array<uint32_t, numLowColors> starLowColors{
-  0x1416181a, 0x1419181a, 0x141f181a, 0x1426181a, 0x142a181a,
-  0x142f181a, 0x1436181a, 0x142f1819, 0x14261615, 0x13201411,
-  0x111a100a, 0x0c180508, 0x08100304, 0x00050101, 0x0
-};
-// clang-format on
 
 // The different modes of the visual FX.
 enum class StarModes
@@ -163,6 +156,7 @@ struct Star
   float age;
   float vage;
   const ColorMap* currentColorMap = nullptr;
+  const ColorMap* currentLowColorMap = nullptr;
 };
 
 struct FSData
@@ -171,6 +165,16 @@ struct FSData
 
   ColorMaps colorMaps;
   ColorMapGroup currentColorGroup;
+  const WeightedColorMaps lowColorMaps{Weights<ColorMapGroup>{{
+      {ColorMapGroup::perceptuallyUniformSequential, 0},
+      {ColorMapGroup::sequential, 0},
+      {ColorMapGroup::sequential2, 0},
+      {ColorMapGroup::cyclic, 5},
+      {ColorMapGroup::diverging, 10},
+      {ColorMapGroup::diverging_black, 20},
+      {ColorMapGroup::qualitative, 1},
+      {ColorMapGroup::misc, 1},
+  }}};
 
   uint32_t maxAge = 15;
 
@@ -285,6 +289,7 @@ static void addABomb(FSData* data,
 
   // TODO Get colormap based on current mode.
   data->stars[i].currentColorMap = &data->colorMaps.getRandomColorMap(data->currentColorGroup);
+  data->stars[i].currentLowColorMap = &data->lowColorMaps.getRandomColorMap();
 
   float ro = radius * static_cast<float>(getNRand(100)) / 100.0f;
   ro *= static_cast<float>(getNRand(100)) / 100.0f + 1.0f;
@@ -401,6 +406,26 @@ static void fs_sound_event_occured(VisualFX* _this, PluginInfo* goomInfo)
 /**
  * Main methode of the FX.
  */
+
+inline uint32_t getLowColor(const FSData* data, const size_t starNum, const float tmix)
+{
+  if (probabilityOfMInN(1, 2))
+  {
+    // clang-format off
+    static constexpr size_t numLowColors = 15;
+    static constexpr std::array<uint32_t, numLowColors> starLowColors{
+      0x1416181a, 0x1419181a, 0x141f181a, 0x1426181a, 0x142a181a,
+      0x142f181a, 0x1436181a, 0x142f1819, 0x14261615, 0x13201411,
+      0x111a100a, 0x0c180508, 0x08100304, 0x00050101, 0x0
+    };
+    // clang-format on
+    return starLowColors[size_t(tmix * static_cast<float>(numLowColors - 1))];
+  }
+
+  const float brightness = getRandInRange(0.4f, 1.0f);
+  return getBrighterColor(brightness, data->stars[starNum].currentLowColorMap->getColor(tmix));
+}
+
 static void fs_apply(VisualFX* _this,
                      [[maybe_unused]] Pixel* src,
                      Pixel* dest,
@@ -452,7 +477,7 @@ static void fs_apply(VisualFX* _this,
     // choose the color of the particule
     const float t = data->stars[i].age / static_cast<float>(data->maxAge);
     const uint32_t color = data->stars[i].currentColorMap->getColor(t);
-    const uint32_t colorLow = starLowColors[size_t(t * static_cast<float>(numLowColors - 1))];
+    const uint32_t lowColor = getLowColor(data, i, t);
 
     // draws the particule
     const int x0 = static_cast<int>(data->stars[i].x);
@@ -463,17 +488,18 @@ static void fs_apply(VisualFX* _this,
     for (size_t j = 1; j <= numParts; j++)
     {
       const float t = static_cast<float>(j - 1) / static_cast<float>(numParts - 1);
-      const uint32_t col = ColorMap::colorMix(color, colorLow, t);
+      const uint32_t mixedColor = ColorMap::colorMix(color, lowColor, t);
       const int x2 = x0 - static_cast<int>(data->stars[i].vx * j);
       const int y2 = y0 - static_cast<int>(data->stars[i].vy * j);
 
       if (data->useSingleBufferOnly)
       {
-        draw_line(dest, x1, y1, x2, y2, col, goomInfo->screen.width, goomInfo->screen.height);
+        draw_line(dest, x1, y1, x2, y2, mixedColor, goomInfo->screen.width,
+                  goomInfo->screen.height);
       }
       else
       {
-        const std::vector<Pixel> colors = {{.val = col}, {.val = colorLow}};
+        const std::vector<Pixel> colors = {{.val = mixedColor}, {.val = lowColor}};
         Pixel* buffs[2] = {dest, src};
         draw_line(std::size(buffs), buffs, colors, x1, y1, x2, y2, goomInfo->screen.width,
                   goomInfo->screen.height);
