@@ -422,7 +422,7 @@ inline uint32_t getLowColor(const FSData* data, const size_t starNum, const floa
     return starLowColors[size_t(tmix * static_cast<float>(numLowColors - 1))];
   }
 
-  const float brightness = getRandInRange(0.4f, 1.0f);
+  const float brightness = getRandInRange(0.2f, 0.8f);
   return getBrighterColor(brightness, data->stars[starNum].currentLowColorMap->getColor(tmix));
 }
 

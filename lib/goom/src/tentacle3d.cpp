@@ -332,10 +332,10 @@ colorMaps.setWeights(colorGroupWeights);
 
   // clang-format off
   const std::vector<CirclesTentacleLayout> layouts{
-      {10,  60, {15, 10,  7,  3,  2},    0},
-      {10,  80, {30, 20, 14,  6,  4},    0},
-      {10,  90, {40, 26, 20, 14, 10, 6}, 0},
-      {10, 100, {60, 40, 28, 16, 10, 4}, 0},
+      {10,  60, {15, 10,  7,  3, 2}, 0},
+      {10,  80, {30, 20, 14,  6, 4}, 0},
+      {10,  90, {40, 26, 20, 12, 6}, 0},
+      {10, 100, {50, 36, 26, 16, 8}, 0},
   };
   // clang-format on
   // const GridTentacleLayout layout{ -100, 100, xRowLen, -100, 100, numXRows, 0 };
@@ -400,8 +400,13 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
   incCounters();
 
   stats.updateWithDraw();
-  updatingWithDraw = true;
   lig += ligs;
+
+  if (!updatingWithDraw)
+  {
+    updatingWithDraw = true;
+    currentDriver->freshStart();
+  }
 
   if (lig <= 1.01f)
   {

@@ -107,6 +107,8 @@ public:
 
   void startIterating();
   void stopIterating();
+
+  void freshStart();
   void update(const float angle,
               const float distance,
               const float distance2,

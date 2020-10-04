@@ -443,6 +443,15 @@ void TentacleDriver::beforeIter(const size_t ID,
   }
 }
 
+void TentacleDriver::freshStart()
+{
+  currentColorMapGroup = colorMaps->getRandomGroup();
+  for (auto& c : colorizers)
+  {
+    c->resetColorMap(colorMaps->getRandomColorMap(currentColorMapGroup));
+  }
+}
+
 void TentacleDriver::update(const float angle,
                             const float distance,
                             const float distance2,

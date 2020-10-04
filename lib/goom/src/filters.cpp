@@ -486,11 +486,11 @@ void zoomFilterInitData(PluginInfo* goomInfo)
 
 /**
  * Main work for the dynamic displacement map.
- * 
+ *
  * Reads data from pix1, write to pix2.
  *
  * Useful datas for this FX are stored in ZoomFilterData.
- * 
+ *
  * If you think that this is a strange function name, let me say that a long time ago,
  *  there has been a slow version and a gray-level only one. Then came these function,
  *  fast and workin in RGB colorspace ! nice but it only was applying a zoom to the image.

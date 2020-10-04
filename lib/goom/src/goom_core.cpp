@@ -1657,6 +1657,14 @@ static void displayStateText(PluginInfo* goomInfo)
 
   message += std20::format("State: {}\n", states.getCurrentStateIndex());
   message += std20::format("Filter: {}\n", enumToString(goomInfo->update.zoomFilterData.mode));
+  message += std20::format("switchIncr: {}\n", goomInfo->update.switchIncr);
+  message += std20::format("switchIncrAmount: {}\n", goomInfo->update.switchIncrAmount);
+  message += std20::format("switchMult: {}\n", goomInfo->update.switchMult);
+  message += std20::format("switchMultAmount: {}\n", goomInfo->update.switchMultAmount);
+  message += std20::format("previousZoomSpeed: {}\n", goomInfo->update.previousZoomSpeed);
+  message += std20::format("vitesse: {}\n", goomInfo->update.zoomFilterData.vitesse);
+  message += std20::format("pertedec: {}\n", goomInfo->update.zoomFilterData.pertedec);
+  message += std20::format("reverse: {}\n", goomInfo->update.zoomFilterData.reverse);
   message += std20::format("hPlaneEffect: {}\n", goomInfo->update.zoomFilterData.hPlaneEffect);
   message += std20::format("vPlaneEffect: {}\n", goomInfo->update.zoomFilterData.vPlaneEffect);
   message += std20::format("hypercosEffect: {}\n", goomInfo->update.zoomFilterData.hypercosEffect);
