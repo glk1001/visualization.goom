@@ -19,6 +19,7 @@
 #include <cmath>
 #include <cstdint>
 #include <memory>
+#include <numeric>
 #include <stdexcept>
 #include <string>
 #include <tuple>
@@ -31,7 +32,7 @@ using namespace goom::utils;
 
 inline bool startPrettyMoveEvent()
 {
-  return probabilityOfMInN(1, 300);
+  return probabilityOfMInN(1, 400);
 }
 
 inline bool changeRotationEvent()
@@ -72,7 +73,7 @@ public:
   void highAcceleration();
   void cycleReset();
   void setLastCycleValue(const float val);
-  void prettyMoveHappensReset();
+  void prettyMoveHappens();
   void changePrettyLerpMixLower();
   void changePrettyLerpMixHigher();
   void setLastPrettyLerpMixValue(const float value);
@@ -90,7 +91,7 @@ private:
   uint32_t numHighAcceleration = 0;
   uint32_t numCycleResets = 0;
   float lastCycleValue = 0;
-  uint32_t numPrettyMoveHappensResets = 0;
+  uint32_t numPrettyMoveHappens = 0;
   float lastPrettyLerpMixValue = 0;
   uint32_t numTentacleDrivers = 0;
   std::vector<uint32_t> numDriverTentacles{};
@@ -111,7 +112,7 @@ void TentacleStats::log(const StatsLogValueFunc logVal) const
   logVal(module, "numHighAcceleration", numHighAcceleration);
   logVal(module, "numCycleResets", numCycleResets);
   logVal(module, "lastCycleValue", lastCycleValue);
-  logVal(module, "numPrettyMoveHappensResets", numPrettyMoveHappensResets);
+  logVal(module, "numPrettyMoveHappens", numPrettyMoveHappens);
   logVal(module, "lastPrettyLerpMixValue", lastPrettyLerpMixValue);
   logVal(module, "numTentacleDrivers", numTentacleDrivers);
   // TODO Make this a string util function
@@ -143,7 +144,7 @@ void TentacleStats::reset()
   numHighAcceleration = 0;
   numCycleResets = 0;
   lastCycleValue = 0;
-  numPrettyMoveHappensResets = 0;
+  numPrettyMoveHappens = 0;
   lastPrettyLerpMixValue = 0;
   std::fill(numDriverChanges.begin(), numDriverChanges.end(), 0);
 }
@@ -198,9 +199,9 @@ inline void TentacleStats::setLastCycleValue(const float val)
   lastCycleValue = val;
 }
 
-inline void TentacleStats::prettyMoveHappensReset()
+inline void TentacleStats::prettyMoveHappens()
 {
-  numPrettyMoveHappensResets++;
+  numPrettyMoveHappens++;
 }
 
 inline void TentacleStats::setLastPrettyLerpMixValue(const float value)
@@ -264,8 +265,12 @@ private:
   bool isPrettyMoveHappening = false;
   int32_t prettyMoveHappeningTimer = 0;
   int32_t prettyMoveCheckStopMark = 0;
-  static constexpr uint32_t prettyMoveHappeningMin = 130;
+  static constexpr uint32_t prettyMoveHappeningMin = 100;
   static constexpr uint32_t prettyMoveHappeningMax = 200;
+  int32_t prePrettyMoveLock = 0;
+  bool prettyMoveReadyToStart = false;
+  static constexpr int32_t minPrePrettyMoveLock = 200;
+  static constexpr int32_t maxPrePrettyMoveLock = 500;
   int32_t postPrettyMoveLock = 0;
   float prettyMoveLerpMix = 1.0 / 16.0; // original goom value
   void isPrettyMoveHappeningUpdate(const float accelVar);
@@ -302,16 +307,30 @@ TentaclesWrapper::TentaclesWrapper(const uint32_t screenWidth, const uint32_t sc
     }}},
     dominantColorMap{&colorMaps.getRandomColorMap()},
     dominantColor{ColorMap::getRandomColor(*dominantColorMap)},
-    rot{TentaclesWrapper::getStableRotationOffset(0)},
+    rot{getStableRotationOffset(0)},
     drivers{},
     driverWeights{{
         {0, 5},
         {1, 15},
-        {2, 10},
-        {3, 1},
+        {2, 15},
+        {3, 5},
     }},
     stats{}
 {
+  // clang-format off
+  const std::vector<CirclesTentacleLayout> layouts{
+      {10,  60, {16, 10,  6,  4, 2}, 0},
+      {10,  60, {20, 16, 10,  4, 2}, 0},
+      {10,  80, {30, 20, 14,  6, 4}, 0},
+      {10,  90, {40, 26, 20, 12, 6}, 0},
+  };
+  // clang-format on
+  // const GridTentacleLayout layout{ -100, 100, xRowLen, -100, 100, numXRows, 0 };
+  if (numDrivers != layouts.size())
+  {
+    throw std::logic_error("numDrivers != layouts.size()");
+  }
+
   /**
 // Temp hack of weights
 Weights<ColorMapGroup> colorGroupWeights = colorMaps.getWeights();
@@ -328,20 +347,6 @@ colorMaps.setWeights(colorGroupWeights);
   if (numDrivers != driverWeights.getNumElements())
   {
     throw std::logic_error("numDrivers != driverWeights.getNumElements()");
-  }
-
-  // clang-format off
-  const std::vector<CirclesTentacleLayout> layouts{
-      {10,  60, {15, 10,  7,  3, 2}, 0},
-      {10,  80, {30, 20, 14,  6, 4}, 0},
-      {10,  90, {40, 26, 20, 12, 6}, 0},
-      {10, 100, {50, 36, 26, 16, 8}, 0},
-  };
-  // clang-format on
-  // const GridTentacleLayout layout{ -100, 100, xRowLen, -100, 100, numXRows, 0 };
-  if (numDrivers != layouts.size())
-  {
-    throw std::logic_error("numDrivers != layouts.size()");
   }
 
   for (size_t i = 0; i < numDrivers; i++)
@@ -405,6 +410,16 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
   if (!updatingWithDraw)
   {
     updatingWithDraw = true;
+    distt = std::midpoint(disttMin, disttMax);
+    distt2 = 0;
+    distt2Offset = 0;
+    rot = getStableRotationOffset(0);
+    prettyMoveReadyToStart = false;
+    prePrettyMoveLock = 0;
+    postPrettyMoveLock = 0;
+    isPrettyMoveHappening = false;
+    prettyMoveHappeningTimer = 0;
+    currentDriver->setRoughTentacles(false);
     currentDriver->freshStart();
   }
 
@@ -484,6 +499,8 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
 
 void TentaclesWrapper::prettyMoveStarted(const float accelVar)
 {
+  stats.prettyMoveHappens();
+
   prettyMoveHappeningTimer =
       static_cast<int>(getRandInRange(prettyMoveHappeningMin, prettyMoveHappeningMax));
   prettyMoveCheckStopMark = prettyMoveHappeningTimer / 4;
@@ -497,7 +514,6 @@ void TentaclesWrapper::prettyMoveStarted(const float accelVar)
 
 void TentaclesWrapper::prettyMoveFinished()
 {
-  stats.prettyMoveHappensReset();
   prettyMoveHappeningTimer = 0;
   distt2Offset = 0;
   currentDriver->setRoughTentacles(false);
@@ -505,6 +521,7 @@ void TentaclesWrapper::prettyMoveFinished()
 
 void TentaclesWrapper::isPrettyMoveHappeningUpdate(const float accelVar)
 {
+  // Are we in a prettyMove?
   if (prettyMoveHappeningTimer > 0)
   {
     prettyMoveHappeningTimer -= 1;
@@ -516,19 +533,39 @@ void TentaclesWrapper::isPrettyMoveHappeningUpdate(const float accelVar)
   {
     isPrettyMoveHappening = false;
     prettyMoveFinished();
+    return;
   }
-  else if (postPrettyMoveLock != 0)
+
+  // Are we locked after prettyMove finished?
+  if (postPrettyMoveLock != 0)
   {
     postPrettyMoveLock--;
+    return;
   }
-  else if (startPrettyMoveEvent())
+
+  // Are we locked after prettyMove start signal?
+  if (prePrettyMoveLock != 0)
   {
+    prePrettyMoveLock--;
+    return;
+  }
+
+  // Are we ready to start a prettyMove?
+  if (prettyMoveReadyToStart)
+  {
+    prettyMoveReadyToStart = false;
     isPrettyMoveHappening = true;
     prettyMoveStarted(accelVar);
+    return;
   }
-  else
+
+  // Are we ready to signal a prettyMove start?
+  if (startPrettyMoveEvent())
   {
-    postPrettyMoveLock = 0;
+    prettyMoveReadyToStart = true;
+    prePrettyMoveLock = getRandInRange(minPrePrettyMoveLock, maxPrePrettyMoveLock);
+    distt2Offset = (1.0 / (1.10 - accelVar)) * getRandInRange(distt2Min, distt2Max);
+    return;
   }
 }
 
