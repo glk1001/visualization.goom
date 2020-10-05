@@ -148,26 +148,6 @@ struct PluginInfo
     uint32_t numberOfLinesInMessage;
     uint32_t affiche;
   } update_message;
-
-  struct
-  {
-    void (*draw_line)(Pixel* data,
-                      int x1,
-                      int y1,
-                      int x2,
-                      int y2,
-                      const uint32_t color,
-                      const uint32_t screenx,
-                      const uint32_t screeny);
-    void (*zoom_filter)(const uint16_t sizeX,
-                        const uint16_t sizeY,
-                        Pixel* src,
-                        Pixel* dest,
-                        const int* brutS,
-                        const int* brutD,
-                        const int buffratio,
-                        const int precalCoef[16][16]);
-  } methods;
 };
 
 void plugin_info_init(PluginInfo* p, size_t nbVisual);

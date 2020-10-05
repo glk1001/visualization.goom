@@ -1,6 +1,5 @@
 #include "goom_plugin_info.h"
 
-#include "drawmethods.h"
 #include "goom_fx.h"
 #include "goomutils/logging_control.h"
 // #undef NO_LOGGING
@@ -11,13 +10,6 @@
 
 namespace goom
 {
-
-static void setOptimizedMethods(PluginInfo* p)
-{
-  /* set default methods */
-  p->methods.draw_line = draw_line;
-  p->methods.zoom_filter = zoom_filter_c;
-}
 
 void plugin_info_init(PluginInfo* pp, size_t nbVisuals)
 {
@@ -113,9 +105,8 @@ void plugin_info_init(PluginInfo* pp, size_t nbVisuals)
       .hypercosEffect = false,
       .noisify = false,
       .noiseFactor = 1,
+      .blockyWavy = false,
   };
-
-  setOptimizedMethods(pp);
 }
 
 void plugin_info_add_visual(PluginInfo* p, size_t i, VisualFX* visual)

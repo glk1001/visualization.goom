@@ -45,6 +45,8 @@ struct ZoomFilterData
 
   bool noisify; // ajoute un bruit a la transformation
   double noiseFactor; // in range [0, 1]
+
+  bool blockyWavy;
 };
 
 VisualFX zoomFilterVisualFXWrapper_create();

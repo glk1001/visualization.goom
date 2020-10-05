@@ -37,39 +37,28 @@ using namespace goom::utils;
 constexpr float noiseMin = 70;
 constexpr float noiseMax = 120;
 
+constexpr size_t BUFFPOINTNB = 16;
 constexpr float BUFFPOINTNBF = static_cast<float>(BUFFPOINTNB);
 constexpr int BUFFPOINTMASK = 0xffff;
 
-constexpr int sqrtperte = 16;
+constexpr uint32_t sqrtperte = 16;
 // faire : a % sqrtperte <=> a & pertemask
-constexpr uint32_t PERTEMASK = 0xf;
+constexpr uint32_t perteMask = 0xf;
 // faire : a / sqrtperte <=> a >> PERTEDEC
-constexpr int PERTEDEC = 4;
-
-// pure c version of the zoom filter
-static void c_zoom(Pixel* expix1,
-                   Pixel* expix2,
-                   const uint16_t prevX,
-                   const uint16_t prevY,
-                   const int* brutS,
-                   const int* brutD,
-                   const int buffratio,
-                   const int precalCoef[BUFFPOINTNB][BUFFPOINTNB]);
-
-// simple wrapper to give it the same proto than the others
-void zoom_filter_c(const uint16_t sizeX,
-                   const uint16_t sizeY,
-                   Pixel* src,
-                   Pixel* dest,
-                   const int* brutS,
-                   const int* brutD,
-                   const int buffratio,
-                   const int precalCoef[BUFFPOINTNB][BUFFPOINTNB])
+constexpr uint32_t perteDec = 4;
+using CoeffArray = union
 {
-  c_zoom(src, dest, sizeX, sizeY, brutS, brutD, buffratio, precalCoef);
-}
+  struct
+  {
+    uint8_t c1;
+    uint8_t c2;
+    uint8_t c3;
+    uint8_t c4;
+  } vals;
+  uint32_t intVal = 0;
+};
 
-static void generatePrecalCoef(int precalCoef[BUFFPOINTNB][BUFFPOINTNB]);
+static void generatePrecalCoef(uint32_t precalCoef[BUFFPOINTNB][BUFFPOINTNB]);
 
 // TODO repeated fields in here
 struct FilterDataWrapper
@@ -102,8 +91,11 @@ struct FilterDataWrapper
   int* firedec;
 
   // modif d'optim by Jeko : precalcul des 4 coefs resultant des 2 pos
-  int precalCoef[BUFFPOINTNB][BUFFPOINTNB];
+  uint32_t precalCoef[BUFFPOINTNB][BUFFPOINTNB];
 };
+
+// pure c version of the zoom filter
+static void c_zoom(Pixel* expix1, Pixel* expix2, const FilterDataWrapper*);
 
 inline v2g zoomVector(PluginInfo* goomInfo, const float x, const float y)
 {
@@ -263,16 +255,21 @@ static void makeZoomBufferStripe(PluginInfo* goomInfo, const uint32_t INTERLACE_
   }
 }
 
-inline Pixel getMixedColor(const uint32_t coeffs,
+inline Pixel getMixedColor(const CoeffArray& coeffs,
                            const Pixel& col1,
                            const Pixel& col2,
                            const Pixel& col3,
                            const Pixel& col4)
 {
-  const uint32_t c1 = coeffs & 0xff;
-  const uint32_t c2 = (coeffs >> 8) & 0xff;
-  const uint32_t c3 = (coeffs >> 16) & 0xff;
-  const uint32_t c4 = (coeffs >> 24) & 0xff;
+  if (coeffs.intVal == 0)
+  {
+    return Pixel{.val = 0};
+  }
+
+  const uint32_t c1 = coeffs.vals.c1;
+  const uint32_t c2 = coeffs.vals.c2;
+  const uint32_t c3 = coeffs.vals.c3;
+  const uint32_t c4 = coeffs.vals.c4;
 
   uint32_t r =
       col1.channels.r * c1 + col2.channels.r * c2 + col3.channels.r * c3 + col4.channels.r * c4;
@@ -304,6 +301,17 @@ inline Pixel getMixedColor(const uint32_t coeffs,
                             .a = 0xff}};
 }
 
+inline Pixel getBlockyMixedColor(const CoeffArray& coeffs,
+                                 const Pixel& col1,
+                                 const Pixel& col2,
+                                 const Pixel& col3,
+                                 const Pixel& col4)
+{
+  // Changing the color order gives a strange blocky, wavy look.
+  // The order col1, col3, col2, col1 gave a black tear - no so good.
+  return getMixedColor(coeffs, col1, col3, col2, col4);
+}
+
 inline Pixel getPixelRGB(const Pixel* buffer, const uint32_t x)
 {
   return *(buffer + x);
@@ -314,17 +322,16 @@ inline void setPixelRGB(Pixel* buffer, const uint32_t x, const Pixel& p)
   buffer[x] = p;
 }
 
-static void c_zoom(Pixel* expix1,
-                   Pixel* expix2,
-                   const uint16_t prevX,
-                   const uint16_t prevY,
-                   const int* brutS,
-                   const int* brutD,
-                   const int buffratio,
-                   const int precalCoef[BUFFPOINTNB][BUFFPOINTNB])
+static void c_zoom(Pixel* expix1, Pixel* expix2, const FilterDataWrapper* data)
 {
-  const uint32_t ax = static_cast<uint32_t>((prevX - 1) << PERTEDEC);
-  const uint32_t ay = static_cast<uint32_t>((prevY - 1) << PERTEDEC);
+  const uint16_t prevX = data->prevX;
+  const uint16_t prevY = data->prevY;
+  const int* brutS = data->brutS;
+  const int* brutD = data->brutD;
+  const int buffratio = data->buffratio;
+
+  const uint32_t ax = static_cast<uint32_t>((prevX - 1) << perteDec);
+  const uint32_t ay = static_cast<uint32_t>((prevY - 1) << perteDec);
 
   const uint32_t bufsize = static_cast<uint32_t>(prevX * prevY * 2);
   const uint32_t bufwidth = prevX;
@@ -335,6 +342,7 @@ static void c_zoom(Pixel* expix1,
   uint32_t myPos2;
   for (uint32_t myPos = 0; myPos < bufsize; myPos += 2)
   {
+    const uint32_t x = static_cast<uint32_t>(myPos >> 1);
     myPos2 = myPos + 1;
 
     int brutSmypos = brutS[myPos];
@@ -344,23 +352,28 @@ static void c_zoom(Pixel* expix1,
     const uint32_t py = static_cast<uint32_t>(
         brutSmypos + (((brutD[myPos2] - brutSmypos) * buffratio) >> BUFFPOINTNB));
 
-    uint32_t pos = 0;
-    uint32_t coeffs = 0;
-    if ((px < ax) && (py < ay))
+    if ((px >= ax) || (py >= ay))
     {
-      pos = ((px >> PERTEDEC) + prevX * (py >> PERTEDEC));
-      // coef en modulo 15
-      coeffs = static_cast<uint32_t>(precalCoef[px & PERTEMASK][py & PERTEMASK]);
+      setPixelRGB(expix2, x, Pixel{.val = 0});
     }
+    else
+    {
+      // coeff en modulo 15
+      const CoeffArray coeffs{.intVal = data->precalCoef[px & perteMask][py & perteMask]};
 
-    const Pixel col1 = getPixelRGB(expix1, pos);
-    const Pixel col2 = getPixelRGB(expix1, pos + 1);
-    const Pixel col3 = getPixelRGB(expix1, pos + bufwidth);
-    const Pixel col4 = getPixelRGB(expix1, pos + bufwidth + 1);
+      const uint32_t pos = ((px >> perteDec) + prevX * (py >> perteDec));
+      const Pixel col1 = getPixelRGB(expix1, pos);
+      const Pixel col2 = getPixelRGB(expix1, pos + 1);
+      const Pixel col3 = getPixelRGB(expix1, pos + bufwidth);
+      const Pixel col4 = getPixelRGB(expix1, pos + bufwidth + 1);
 
-    const Pixel newColor = getMixedColor(coeffs, col1, col2, col3, col4);
+      const Pixel newColor = data->filterData.blockyWavy
+                                 ? getBlockyMixedColor(coeffs, col1, col2, col3, col4)
+                                 : getMixedColor(coeffs, col1, col2, col3, col4);
+      //      const Pixel newColor = getMixedColor(coeffs, col1, col2, col3, col4);
 
-    setPixelRGB(expix2, static_cast<uint32_t>(myPos >> 1), newColor);
+      setPixelRGB(expix2, x, newColor);
+    }
   }
 }
 
@@ -599,30 +612,28 @@ void zoomFilterFastRGB(PluginInfo* goomInfo,
 
   data->zoomWidth = data->prevX;
 
-  goomInfo->methods.zoom_filter(data->prevX, data->prevY, pix1, pix2, data->brutS, data->brutD,
-                                data->buffratio, data->precalCoef);
+  c_zoom(pix1, pix2, data);
 }
 
-static void generatePrecalCoef(int precalCoef[16][16])
+static void generatePrecalCoef(uint32_t precalCoef[16][16])
 {
-  for (int coefh = 0; coefh < 16; coefh++)
+  for (uint32_t coefh = 0; coefh < 16; coefh++)
   {
-    for (int coefv = 0; coefv < 16; coefv++)
+    for (uint32_t coefv = 0; coefv < 16; coefv++)
     {
-      const int diffcoeffh = sqrtperte - coefh;
-      const int diffcoeffv = sqrtperte - coefv;
+      const uint32_t diffcoeffh = sqrtperte - coefh;
+      const uint32_t diffcoeffv = sqrtperte - coefv;
 
-      int i;
       if (!(coefh || coefv))
       {
-        i = 255;
+        precalCoef[coefh][coefv] = 255;
       }
       else
       {
-        int i1 = diffcoeffh * diffcoeffv;
-        int i2 = coefh * diffcoeffv;
-        int i3 = diffcoeffh * coefv;
-        int i4 = coefh * coefv;
+        uint32_t i1 = diffcoeffh * diffcoeffv;
+        uint32_t i2 = coefh * diffcoeffv;
+        uint32_t i3 = diffcoeffh * coefv;
+        uint32_t i4 = coefh * coefv;
 
         // TODO: faire mieux...
         if (i1)
@@ -642,9 +653,14 @@ static void generatePrecalCoef(int precalCoef[16][16])
           i4--;
         }
 
-        i = (i1) | (i2 << 8) | (i3 << 16) | (i4 << 24);
+        precalCoef[coefh][coefv] = CoeffArray{
+            .vals{
+                .c1 = static_cast<uint8_t>(i1),
+                .c2 = static_cast<uint8_t>(i2),
+                .c3 = static_cast<uint8_t>(i3),
+                .c4 = static_cast<uint8_t>(i4),
+            }}.intVal;
       }
-      precalCoef[coefh][coefv] = i;
     }
   }
 }
@@ -741,6 +757,7 @@ static void zoomFilterVisualFXWrapper_init(VisualFX* _this, PluginInfo* info)
   data->filterData.hPlaneEffect = 0;
   data->filterData.noisify = false;
   data->filterData.noiseFactor = 1;
+  data->filterData.blockyWavy = false;
 
   /** modif by jeko : fixedpoint : buffration = (16:16) (donc 0<=buffration<=2^16) */
   data->buffratio = 0;

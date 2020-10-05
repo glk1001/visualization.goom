@@ -94,6 +94,7 @@ public:
     changeGoomLine,
     changeDotColors,
     ifsRenew,
+    changeBlockyWavyToOn,
     _size // must be last - gives number of enums
   };
 
@@ -163,6 +164,7 @@ private:
     { .event = GoomEvent::changeGoomLine,                      .m = 1, .outOf =   3 },
     { .event = GoomEvent::changeDotColors,                     .m = 1, .outOf =   3 },
     { .event = GoomEvent::ifsRenew,                            .m = 2, .outOf =   3 },
+    { .event = GoomEvent::changeBlockyWavyToOn,                .m = 1, .outOf = 100 },
   } };
 
   static constexpr std::array<std::pair<GoomFilterEvent, size_t>, numGoomFilterEvents> weightedFilterEvents{ {
@@ -1481,6 +1483,8 @@ static void bigNormalUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
     stats.doNoise();
   }
 
+  goomInfo->update.zoomFilterData.blockyWavy = goomEvent.happens(GoomEvent::changeBlockyWavyToOn);
+
   if (goomInfo->update.zoomFilterData.mode == ZoomFilterMode::amuletteMode)
   {
     goomInfo->update.zoomFilterData.vPlaneEffect = 0;
@@ -1569,6 +1573,8 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
  */
 static void changeZoomEffect(PluginInfo* goomInfo, ZoomFilterData* pzfd, const int forceMode)
 {
+  goomInfo->update.zoomFilterData.blockyWavy = goomEvent.happens(GoomEvent::changeBlockyWavyToOn);
+
   if (pzfd)
   {
     logDebug("pzfd != nullptr");
