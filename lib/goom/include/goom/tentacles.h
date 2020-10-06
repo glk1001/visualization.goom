@@ -18,8 +18,10 @@ class TentacleColorizer
 {
 public:
   virtual ~TentacleColorizer() {}
-  virtual void resetColorMap(const utils::ColorMap& colorMap) = 0;
-  virtual uint32_t getColor(size_t nodeNum) const = 0;
+  virtual utils::ColorMapGroup getColorMapGroup() const = 0;
+  virtual void setColorMapGroup(const utils::ColorMapGroup) = 0;
+  virtual void changeColorMap() = 0;
+  virtual uint32_t getColor(const size_t nodeNum) const = 0;
 };
 
 class TentacleTweaker

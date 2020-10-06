@@ -164,7 +164,7 @@ private:
     { .event = GoomEvent::changeGoomLine,                      .m = 1, .outOf =   3 },
     { .event = GoomEvent::changeDotColors,                     .m = 1, .outOf =   3 },
     { .event = GoomEvent::ifsRenew,                            .m = 2, .outOf =   3 },
-    { .event = GoomEvent::changeBlockyWavyToOn,                .m = 1, .outOf = 100 },
+    { .event = GoomEvent::changeBlockyWavyToOn,                .m = 1, .outOf =  50 },
   } };
 
   static constexpr std::array<std::pair<GoomFilterEvent, size_t>, numGoomFilterEvents> weightedFilterEvents{ {
@@ -184,9 +184,9 @@ private:
   } };
 
   static constexpr std::array<std::pair<LineType, size_t>, numLineTypes> weightedLineEvents{ {
-    { LineType::circle, 4 },
+    { LineType::circle, 8 },
     { LineType::hline,  2 },
-    { LineType::vline,  1 },
+    { LineType::vline,  2 },
   } };
   // clang-format on
   const Weights<GoomFilterEvent> filterWeights;

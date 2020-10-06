@@ -144,7 +144,6 @@ private:
   const uint32_t screenWidth;
   const uint32_t screenHeight;
   const utils::ColorMaps* colorMaps;
-  utils::ColorMapGroup currentColorMapGroup;
   std::vector<std::unique_ptr<TentacleColorizer>> colorizers;
   utils::ConstantSequenceFunction constPrevYWeightFunc;
   utils::ConstantSequenceFunction constCurrentYWeightFunc;
@@ -202,20 +201,25 @@ private:
 class TentacleColorMapColorizer : public TentacleColorizer
 {
 public:
-  explicit TentacleColorMapColorizer(const utils::ColorMap& colorMap, const size_t numNodes);
+  explicit TentacleColorMapColorizer(const utils::ColorMaps&,
+                                     const utils::ColorMapGroup,
+                                     const size_t numNodes);
   TentacleColorMapColorizer(const TentacleColorMapColorizer&) = delete;
   TentacleColorMapColorizer& operator=(const TentacleColorMapColorizer&) = delete;
 
-  void resetColorMap(const utils::ColorMap& colorMap) override;
-  void pushColorMap(const utils::ColorMap& colorMap);
-  void popColorMap();
-
-  uint32_t getColor(size_t nodeNum) const override;
+  utils::ColorMapGroup getColorMapGroup() const override;
+  void setColorMapGroup(const utils::ColorMapGroup) override;
+  void changeColorMap() override;
+  uint32_t getColor(const size_t nodeNum) const override;
 
 private:
-  const utils::ColorMap* origColorMap;
+  const utils::ColorMaps* colorMaps;
+  utils::ColorMapGroup currentColorMapGroup;
   const utils::ColorMap* colorMap;
-  std::stack<const utils::ColorMap*> colorStack;
+  const utils::ColorMap* prevColorMap;
+  static constexpr uint32_t maxCountSinceColormapChange = 100;
+  static constexpr float mixColorStep = 1.0 / static_cast<float>(maxCountSinceColormapChange);
+  mutable float tmix;
   const size_t numNodes;
 };
 

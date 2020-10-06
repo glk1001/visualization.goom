@@ -43,7 +43,6 @@ TentacleDriver::TentacleDriver(const ColorMaps* cm, const uint32_t screenW, cons
     screenWidth{screenW},
     screenHeight{screenH},
     colorMaps{cm},
-    currentColorMapGroup{colorMaps->getRandomGroup()},
     colorizers{},
     constPrevYWeightFunc(),
     constCurrentYWeightFunc(),
@@ -104,6 +103,8 @@ void TentacleDriver::init(const TentacleLayout& layout)
   const float tStep = 1.0 / static_cast<float>(numInParamGroup - 1);
   logDebug("numInTentacleGroup = {}, tStep = {:.2f}.", numInParamGroup, tStep);
 
+  const utils::ColorMapGroup initialColorMapGroup = colorMaps->getRandomGroup();
+
   size_t paramsIndex = 0;
   float t = 0;
   for (size_t i = 0; i < numTentacles; i++)
@@ -121,8 +122,8 @@ void TentacleDriver::init(const TentacleLayout& layout)
     t += tStep;
     tentacleParams[i] = params;
 
-    std::unique_ptr<TentacleColorMapColorizer> colorizer{new TentacleColorMapColorizer{
-        colorMaps->getRandomColorMap(currentColorMapGroup), params.numNodes}};
+    std::unique_ptr<TentacleColorMapColorizer> colorizer{
+        new TentacleColorMapColorizer{*colorMaps, initialColorMapGroup, params.numNodes}};
     colorizers.push_back(std::move(colorizer));
 
     std::unique_ptr<Tentacle2D> tentacle2D{createNewTentacle2D(i, params)};
@@ -367,7 +368,11 @@ void TentacleDriver::checkForTimerEvents()
 
   if (updateNum % changeCurrentColorMapGroupEveryNUpdates == 0)
   {
-    currentColorMapGroup = colorMaps->getRandomGroup();
+    const utils::ColorMapGroup nextColorMapGroup = colorMaps->getRandomGroup();
+    for (auto& c : colorizers)
+    {
+      c->setColorMapGroup(nextColorMapGroup);
+    }
   }
 
   if (roughenTimer.getCurrentCount() == 0)
@@ -439,16 +444,17 @@ void TentacleDriver::beforeIter(const size_t ID,
 
   if ((iterNum % changeTentacleColorMapEveryNUpdates == 0) || changeCurrentColorMapEvent())
   {
-    colorizers[ID]->resetColorMap(colorMaps->getRandomColorMap(currentColorMapGroup));
+    colorizers[ID]->changeColorMap();
   }
 }
 
 void TentacleDriver::freshStart()
 {
-  currentColorMapGroup = colorMaps->getRandomGroup();
+  const utils::ColorMapGroup nextColorMapGroup = colorMaps->getRandomGroup();
   for (auto& c : colorizers)
   {
-    c->resetColorMap(colorMaps->getRandomColorMap(currentColorMapGroup));
+    c->setColorMapGroup(nextColorMapGroup);
+    c->changeColorMap();
   }
 }
 
@@ -626,38 +632,49 @@ inline void TentacleDriver::translateV3d(const V3d& vadd, V3d& vinOut)
   vinOut.z += vadd.z;
 }
 
-TentacleColorMapColorizer::TentacleColorMapColorizer(const ColorMap& cm, const size_t nNodes)
-  : origColorMap{&cm}, colorMap{&cm}, colorStack(), numNodes{nNodes}
+TentacleColorMapColorizer::TentacleColorMapColorizer(const ColorMaps& cm,
+                                                     const utils::ColorMapGroup cmg,
+                                                     const size_t nNodes)
+  : colorMaps{&cm},
+    currentColorMapGroup{cmg},
+    colorMap{&colorMaps->getRandomColorMap(currentColorMapGroup)},
+    prevColorMap{colorMap},
+    tmix{0},
+    numNodes{nNodes}
 {
 }
 
-void TentacleColorMapColorizer::resetColorMap(const ColorMap& cm)
+utils::ColorMapGroup TentacleColorMapColorizer::getColorMapGroup() const
 {
-  origColorMap = &cm;
-  colorMap = &cm;
-  colorStack = std::stack<const ColorMap*>{};
+  return currentColorMapGroup;
 }
 
-void TentacleColorMapColorizer::pushColorMap(const ColorMap& cm)
+void TentacleColorMapColorizer::setColorMapGroup(const utils::ColorMapGroup val)
 {
-  colorStack.push(colorMap);
-  colorMap = &cm;
+  currentColorMapGroup = val;
 }
 
-void TentacleColorMapColorizer::TentacleColorMapColorizer::popColorMap()
+void TentacleColorMapColorizer::changeColorMap()
 {
-  if (colorStack.empty())
-  {
-    return;
-  }
-  colorMap = colorStack.top();
-  colorStack.pop();
+  // Save the current color map to do smooth transitions to next color map.
+  prevColorMap = colorMap;
+  tmix = 1.0;
+  colorMap = &colorMaps->getRandomColorMap(currentColorMapGroup);
 }
 
-uint32_t TentacleColorMapColorizer::getColor(size_t nodeNum) const
+uint32_t TentacleColorMapColorizer::getColor(const size_t nodeNum) const
 {
   const float t = static_cast<float>(nodeNum) / static_cast<float>(numNodes);
-  return colorMap->getColor(t);
+  uint32_t nextColor = colorMap->getColor(t);
+
+  // Keep going with the smooth transition until tmix runs out.
+  if (tmix > 0.0)
+  {
+    nextColor = ColorMap::colorMix(nextColor, prevColorMap->getColor(t), tmix);
+    tmix -= mixColorStep;
+  }
+
+  return nextColor;
 }
 
 GridTentacleLayout::GridTentacleLayout(const float xmin,
