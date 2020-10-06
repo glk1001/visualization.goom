@@ -268,15 +268,16 @@ private:
   static constexpr uint32_t prettyMoveHappeningMin = 100;
   static constexpr uint32_t prettyMoveHappeningMax = 200;
   int32_t prePrettyMoveLock = 0;
+  float distt2OffsetPreStep = 0;
   bool prettyMoveReadyToStart = false;
   static constexpr int32_t minPrePrettyMoveLock = 200;
   static constexpr int32_t maxPrePrettyMoveLock = 500;
   int32_t postPrettyMoveLock = 0;
   float prettyMoveLerpMix = 1.0 / 16.0; // original goom value
   void isPrettyMoveHappeningUpdate(const float accelVar);
-  void prettyMoveStarted(const float accelVar);
-  void prettyMoveFinished();
-  void prettyMoveUnlocked();
+  void prettyMovePreStart();
+  void prettyMoveStart(const float accelVar);
+  void prettyMoveFinish();
   void prettyMove(const float accelVar);
   void prettyMoveWithNoDraw(PluginInfo*);
   std::tuple<uint32_t, uint32_t> getModColors();
@@ -497,7 +498,15 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
   }
 }
 
-void TentaclesWrapper::prettyMoveStarted(const float accelVar)
+void TentaclesWrapper::prettyMovePreStart()
+{
+  prePrettyMoveLock = getRandInRange(minPrePrettyMoveLock, maxPrePrettyMoveLock);
+  distt2OffsetPreStep =
+      std::lerp(distt2Min, distt2Max, 0.2f) / static_cast<float>(prePrettyMoveLock);
+  distt2Offset = 0;
+}
+
+void TentaclesWrapper::prettyMoveStart(const float accelVar)
 {
   stats.prettyMoveHappens();
 
@@ -512,7 +521,7 @@ void TentaclesWrapper::prettyMoveStarted(const float accelVar)
   currentDriver->setRoughTentacles(true);
 }
 
-void TentaclesWrapper::prettyMoveFinished()
+void TentaclesWrapper::prettyMoveFinish()
 {
   prettyMoveHappeningTimer = 0;
   distt2Offset = 0;
@@ -532,7 +541,7 @@ void TentaclesWrapper::isPrettyMoveHappeningUpdate(const float accelVar)
   if (isPrettyMoveHappening)
   {
     isPrettyMoveHappening = false;
-    prettyMoveFinished();
+    prettyMoveFinish();
     return;
   }
 
@@ -547,6 +556,7 @@ void TentaclesWrapper::isPrettyMoveHappeningUpdate(const float accelVar)
   if (prePrettyMoveLock != 0)
   {
     prePrettyMoveLock--;
+    distt2Offset += distt2OffsetPreStep;
     return;
   }
 
@@ -555,7 +565,7 @@ void TentaclesWrapper::isPrettyMoveHappeningUpdate(const float accelVar)
   {
     prettyMoveReadyToStart = false;
     isPrettyMoveHappening = true;
-    prettyMoveStarted(accelVar);
+    prettyMoveStart(accelVar);
     return;
   }
 
@@ -563,8 +573,7 @@ void TentaclesWrapper::isPrettyMoveHappeningUpdate(const float accelVar)
   if (startPrettyMoveEvent())
   {
     prettyMoveReadyToStart = true;
-    prePrettyMoveLock = getRandInRange(minPrePrettyMoveLock, maxPrePrettyMoveLock);
-    distt2Offset = (1.0 / (1.10 - accelVar)) * getRandInRange(distt2Min, distt2Max);
+    prettyMovePreStart();
     return;
   }
 }
@@ -632,7 +641,7 @@ void TentaclesWrapper::prettyMove(const float accelVar)
       if (std::fabs(rot - rotAtStartOfPrettyMove) < 0.1)
       {
         isPrettyMoveHappening = false;
-        prettyMoveFinished();
+        prettyMoveFinish();
       }
     }
 
