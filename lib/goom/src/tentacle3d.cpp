@@ -243,6 +243,7 @@ private:
   WeightedColorMaps colorMaps;
   const ColorMap* dominantColorMap;
   uint32_t dominantColor = 0;
+  void changeDominantColor();
 
   bool updatingWithDraw = true;
   float cycle = 0;
@@ -392,8 +393,7 @@ void TentaclesWrapper::updateWithNoDraw(PluginInfo*)
   }
   lig += ligs;
 
-  stats.changeDominantColor();
-  dominantColor = ColorMap::getRandomColor(*dominantColorMap);
+  changeDominantColor();
 }
 
 void TentaclesWrapper::update(PluginInfo* goomInfo,
@@ -464,8 +464,7 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
 
     if ((isPrettyMoveHappening || (lig < 6.3f)) && changeDominantColorEvent())
     {
-      stats.changeDominantColor();
-      dominantColor = ColorMap::getRandomColor(*dominantColorMap);
+      changeDominantColor();
       countSinceColorChangeLastMarked = 0;
     }
 
@@ -483,8 +482,7 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
         countSinceHighAccelLastMarked = 0;
         if (countSinceColorChangeLastMarked > 100)
         {
-          stats.changeDominantColor();
-          dominantColor = ColorMap::getRandomColor(*dominantColorMap);
+          changeDominantColor();
           countSinceColorChangeLastMarked = 0;
         }
       }
@@ -496,6 +494,24 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
     currentDriver->update(m_half_pi - rot, distt, distt2, modColor, modColorLow, frontBuff,
                           backBuff);
   }
+}
+
+void TentaclesWrapper::changeDominantColor()
+{
+  stats.changeDominantColor();
+  const uint32_t newColor = ColorMap::getRandomColor(*dominantColorMap);
+  dominantColor = ColorMap::colorMix(dominantColor, newColor, 0.7);
+}
+
+inline std::tuple<uint32_t, uint32_t> TentaclesWrapper::getModColors()
+{
+  // IMPORTANT. getEvolvedColor works just right - not sure why
+  dominantColor = getEvolvedColor(dominantColor);
+
+  const uint32_t modColor = getLightenedColor(dominantColor, lig * 2.0f + 2.0f);
+  const uint32_t modColorLow = getLightenedColor(modColor, (lig / 2.0f) + 0.67f);
+
+  return std::make_tuple(modColor, modColorLow);
 }
 
 void TentaclesWrapper::prettyMovePreStart()
@@ -658,17 +674,6 @@ void TentaclesWrapper::prettyMove(const float accelVar)
           "lerpMix = {:.03f}, cycle = {:.03f}, doRotation = {}",
           prettyMoveHappeningTimer, postPrettyMoveLock, oldRot, rot, rotOffset, prettyMoveLerpMix,
           cycle, doRotation);
-}
-
-inline std::tuple<uint32_t, uint32_t> TentaclesWrapper::getModColors()
-{
-  // IMPORTANT. getEvolvedColor works just right - not sure why
-  dominantColor = getEvolvedColor(dominantColor);
-
-  const uint32_t modColor = getLightenedColor(dominantColor, lig * 2.0f + 2.0f);
-  const uint32_t modColorLow = getLightenedColor(modColor, (lig / 2.0f) + 0.67f);
-
-  return std::make_tuple(modColor, modColorLow);
 }
 
 /*
