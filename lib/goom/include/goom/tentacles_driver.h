@@ -157,6 +157,7 @@ private:
   std::vector<IterationParams> tentacleParams;
   static const size_t changeCurrentColorMapGroupEveryNUpdates;
   static const size_t changeTentacleColorMapEveryNUpdates;
+  std::vector<utils::ColorMapGroup> getNextColorMapGroups() const;
 
   IterTimer roughenTimer;
   static constexpr size_t roughenEveryNUpdates = 30000000;

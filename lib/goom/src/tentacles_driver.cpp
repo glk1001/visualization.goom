@@ -362,16 +362,46 @@ void TentacleDriver::setRoughTentacles(const bool val)
   }
 }
 
+std::vector<utils::ColorMapGroup> TentacleDriver::getNextColorMapGroups() const
+{
+  const size_t numDifferentGroups =
+      probabilityOfMInN(1, 2) ? 1 : getRandInRange(1u, colorizers.size());
+  std::vector<utils::ColorMapGroup> groups(numDifferentGroups);
+  for (size_t i = 0; i < numDifferentGroups; i++)
+  {
+    groups[i] = colorMaps->getRandomGroup();
+  }
+
+  std::vector<utils::ColorMapGroup> nextColorMapGroups(colorizers.size());
+  const size_t numPerGroup = nextColorMapGroups.size() / numDifferentGroups;
+  size_t n = 0;
+  for (size_t i = 0; i < nextColorMapGroups.size(); i++)
+  {
+    nextColorMapGroups[i] = groups[n];
+    if ((i % numPerGroup == 0) && (n < numDifferentGroups - 1))
+    {
+      n++;
+    }
+  }
+
+  if (probabilityOfMInN(1, 2))
+  {
+    std::random_shuffle(nextColorMapGroups.begin(), nextColorMapGroups.end());
+  }
+
+  return nextColorMapGroups;
+}
+
 void TentacleDriver::checkForTimerEvents()
 {
   //  logDebug("Update num = {}: checkForTimerEvents", updateNum);
 
   if (updateNum % changeCurrentColorMapGroupEveryNUpdates == 0)
   {
-    const utils::ColorMapGroup nextColorMapGroup = colorMaps->getRandomGroup();
-    for (auto& c : colorizers)
+    const std::vector<utils::ColorMapGroup> nextGroups = getNextColorMapGroups();
+    for (size_t i = 0; i < colorizers.size(); i++)
     {
-      c->setColorMapGroup(nextColorMapGroup);
+      colorizers[i]->setColorMapGroup(nextGroups[i]);
     }
   }
 
