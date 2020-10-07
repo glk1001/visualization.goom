@@ -16,7 +16,7 @@ namespace goom::utils
 const uint32_t randMax = (xoshiro256plus64::max() > std::numeric_limits<uint32_t>::max())
                              ? std::numeric_limits<uint32_t>::max()
                              : xoshiro256plus64::max();
-static uint64_t randSeed = std::random_device{}();
+thread_local uint64_t randSeed = std::random_device{}();
 
 uint64_t getRandSeed()
 {

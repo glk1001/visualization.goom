@@ -217,17 +217,17 @@ inline GoomEvents::GoomFilterEvent GoomEvents::getRandomFilterEvent() const
 {
   //////////////////////////////////////return GoomFilterEvent::amuletteMode;
 
-  GoomEvents::GoomFilterEvent nextEvent = lastReturnedFilterEvent;
+  GoomEvents::GoomFilterEvent nextEvent = filterWeights.getRandomWeighted();
   for (size_t i = 0; i < 10; i++)
   {
-    nextEvent = filterWeights.getRandomWeighted();
     if (nextEvent != lastReturnedFilterEvent)
     {
       break;
     }
+    nextEvent = filterWeights.getRandomWeighted();
   }
-
   lastReturnedFilterEvent = nextEvent;
+
   return nextEvent;
 }
 
@@ -325,8 +325,12 @@ class GoomStats
 {
 public:
   GoomStats() noexcept = default;
-  void setStartValues(const uint32_t stateIndex, const ZoomFilterMode filterMode);
-  void setLastValues(const uint32_t stateIndex, const ZoomFilterData* filterData);
+  void setStateStartValue(const uint32_t stateIndex);
+  void setZoomFilterStartValue(const ZoomFilterMode filterMode);
+  void setSeedStartValue(const uint64_t seed);
+  void setStateLastValue(const uint32_t stateIndex);
+  void setZoomFilterLastValue(const ZoomFilterData* filterData);
+  void setSeedLastValue(const uint64_t seed);
   void reset();
   void log(const StatsLogValueFunc) const;
   void updateChange();
@@ -355,9 +359,10 @@ public:
 private:
   uint32_t startingState = 0;
   ZoomFilterMode startingFilterMode = ZoomFilterMode::_size;
+  uint64_t startingSeed = 0;
   uint32_t lastState = 0;
-
   const ZoomFilterData* lastZoomFilterData = nullptr;
+  uint64_t lastSeed = 0;
 
   uint32_t numUpdates = 0;
   uint64_t totalTimeInUpdatesMs = 0;
@@ -392,9 +397,10 @@ void GoomStats::reset()
 {
   startingState = 0;
   startingFilterMode = ZoomFilterMode::_size;
+  startingSeed = 0;
   lastState = 0;
-
   lastZoomFilterData = nullptr;
+  lastSeed = 0;
 
   numUpdates = 0;
   totalTimeInUpdatesMs = 0;
@@ -431,7 +437,9 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
 
   logVal(module, "startingState", startingState);
   logVal(module, "startingFilterMode", enumToString(startingFilterMode));
-  logVal(module, "lastState", startingState);
+  logVal(module, "startingSeed", startingSeed);
+  logVal(module, "lastState", lastState);
+  logVal(module, "lastSeed", lastSeed);
 
   if (!lastZoomFilterData)
   {
@@ -505,16 +513,34 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
   logVal(module, "numSwitchLines", numSwitchLines);
 }
 
-void GoomStats::setStartValues(const uint32_t stateIndex, const ZoomFilterMode filterMode)
+void GoomStats::setStateStartValue(const uint32_t stateIndex)
 {
   startingState = stateIndex;
+}
+
+void GoomStats::setZoomFilterStartValue(const ZoomFilterMode filterMode)
+{
   startingFilterMode = filterMode;
 }
 
-void GoomStats::setLastValues(const uint32_t stateIndex, const ZoomFilterData* filterData)
+void GoomStats::setSeedStartValue(const uint64_t seed)
+{
+  startingSeed = seed;
+}
+
+void GoomStats::setStateLastValue(const uint32_t stateIndex)
 {
   lastState = stateIndex;
+}
+
+void GoomStats::setZoomFilterLastValue(const ZoomFilterData* filterData)
+{
   lastZoomFilterData = filterData;
+}
+
+void GoomStats::setSeedLastValue(const uint64_t seed)
+{
+  lastSeed = seed;
 }
 
 inline void GoomStats::updateChange()
@@ -699,6 +725,7 @@ struct LogStatsVisitor
   void operator()(const std::string& s) const { logInfo("{}.{} = '{}'", module, name, s); }
   void operator()(const uint32_t i) const { logInfo("{}.{} = {}", module, name, i); }
   void operator()(const int32_t i) const { logInfo("{}.{} = {}", module, name, i); }
+  void operator()(const uint64_t i) const { logInfo("{}.{} = {}", module, name, i); }
   void operator()(const float f) const { logInfo("{}.{} = {:.3}", module, name, f); }
 };
 
@@ -794,11 +821,9 @@ PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
 
   init_buffers(goomInfo, goomInfo->screen.size);
 
-  if (seed >= 0)
+  if (seed > 0)
   {
-    const uint64_t seedVal =
-        seed == 0 ? reinterpret_cast<uint64_t>(goomInfo->pixel) : static_cast<uint64_t>(seed);
-    setRandSeed(seedVal);
+    setRandSeed(static_cast<uint64_t>(seed));
   }
 
   goomInfo->star_fx.init(&goomInfo->star_fx, goomInfo);
@@ -835,7 +860,9 @@ PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
   changeFilterMode(goomInfo);
   zoomFilterInitData(goomInfo);
 
-  stats.setStartValues(states.getCurrentStateIndex(), goomInfo->update.zoomFilterData.mode);
+  stats.setStateStartValue(states.getCurrentStateIndex());
+  stats.setZoomFilterStartValue(goomInfo->update.zoomFilterData.mode);
+  stats.setSeedStartValue(getRandSeed());
 
   goomDots =
       std::unique_ptr<GoomDots>{new GoomDots{goomInfo->screen.width, goomInfo->screen.height}};
@@ -1037,7 +1064,9 @@ void goom_update(PluginInfo* goomInfo,
 ****************************************/
 void goom_close(PluginInfo* goomInfo)
 {
-  stats.setLastValues(states.getCurrentStateIndex(), &goomInfo->update.zoomFilterData);
+  stats.setStateLastValue(states.getCurrentStateIndex());
+  stats.setZoomFilterLastValue(&goomInfo->update.zoomFilterData);
+  stats.setSeedLastValue(getRandSeed());
 
   stats.log(logStatsValue);
   tentacle_log_stats(&goomInfo->tentacles_fx, logStatsValue);
@@ -1267,11 +1296,9 @@ static void changeFilterMode(PluginInfo* goomInfo)
 static void changeState(PluginInfo* goomInfo)
 {
   const size_t oldStateIndex = states.getCurrentStateIndex();
-
   for (size_t numTry = 0; numTry < 10; numTry++)
   {
     states.doRandomStateChange();
-
     if (oldStateIndex != states.getCurrentStateIndex())
     {
       // Only pick a different state.

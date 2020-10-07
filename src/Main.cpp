@@ -162,7 +162,7 @@ void CVisualizationGoom::Stop()
   if (m_workerThread.joinable())
     m_workerThread.join();
 
-  kodi::Log(ADDON_LOG_DEBUG, "Stop: Processed buffers thread stopped.");
+  kodi::Log(ADDON_LOG_NOTICE, "Stop: Processed buffers thread stopped.");
 
   glDeleteTextures(1, &m_textureId);
   m_textureId = 0;
