@@ -106,6 +106,17 @@ void plugin_info_init(PluginInfo* pp, size_t nbVisuals)
       .noisify = false,
       .noiseFactor = 1,
       .blockyWavy = false,
+      .waveFreqFactor = ZoomFilterData::defaultWaveFreqFactor,
+      .waveAmplitude = ZoomFilterData::defaultWaveAmplitude,
+      .waveEffectType = ZoomFilterData::defaultWaveEffectType,
+      .scrunchAmplitude = ZoomFilterData::defaultScrunchAmplitude,
+      .speedwayAmplitude = ZoomFilterData::defaultSpeedwayAmplitude,
+      .amuletteAmplitude = ZoomFilterData::defaultAmuletteAmplitude,
+      .crystalBallAmplitude = ZoomFilterData::defaultCrystalBallAmplitude,
+      .hypercosFreq = ZoomFilterData::defaultHypercosFreq,
+      .hypercosAmplitude = ZoomFilterData::defaultHypercosAmplitude,
+      .hPlaneEffectAmplitude = ZoomFilterData::defaultHPlaneEffectAmplitude,
+      .vPlaneEffectAmplitude = ZoomFilterData::defaultVPlaneEffectAmplitude,
   };
 }
 

@@ -22,6 +22,11 @@ constexpr size_t numSinCosAngles = 256;
 extern const std::array<float, numSinCosAngles> sin256;
 extern const std::array<float, numSinCosAngles> cos256;
 
+constexpr float sq_distance(const float x, const float y)
+{
+  return x * x + y * y;
+}
+
 class VertNum
 {
 public:
