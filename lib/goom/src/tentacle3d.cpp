@@ -19,7 +19,6 @@
 #include <cmath>
 #include <cstdint>
 #include <memory>
-#include <numeric>
 #include <stdexcept>
 #include <string>
 #include <tuple>
@@ -72,13 +71,32 @@ public:
   void lowToMediumAcceleration();
   void highAcceleration();
   void cycleReset();
-  void setLastCycleValue(const float val);
   void prettyMoveHappens();
   void changePrettyLerpMixLower();
   void changePrettyLerpMixHigher();
-  void setLastPrettyLerpMixValue(const float value);
   void setNumTentacleDrivers(const std::vector<std::unique_ptr<TentacleDriver>>&);
   void changeTentacleDriver(const uint32_t driverIndex);
+
+  void setLastNumTentacles(const size_t val);
+  void setLastUpdatingWithDraw(const bool val);
+  void setLastCycle(const float val);
+  void setLastCycleInc(const float val);
+  void setLastLig(const float val);
+  void setLastLigs(const float val);
+  void setLastDistt(const float val);
+  void setLastDistt2(const float val);
+  void setLastDistt2Offset(const float val);
+  void setLastRot(const float val);
+  void setLastRotAtStartOfPrettyMove(const float val);
+  void setLastDoRotation(const bool val);
+  void setLastIsPrettyMoveHappening(const bool val);
+  void setLastPrettyMoveHappeningTimer(const int32_t val);
+  void setLastPrettyMoveCheckStopMark(const int32_t val);
+  void setLastPrePrettyMoveLock(const int32_t val);
+  void setLastDistt2OffsetPreStep(const float val);
+  void setLastPrettyMoveReadyToStart(const bool val);
+  void setLastPostPrettyMoveLock(const int32_t val);
+  void setLastPrettyLerpMixValue(const float val);
 
 private:
   uint32_t numDominantColorMapChanges = 0;
@@ -90,17 +108,57 @@ private:
   uint32_t numLowToMediumAcceleration = 0;
   uint32_t numHighAcceleration = 0;
   uint32_t numCycleResets = 0;
-  float lastCycleValue = 0;
   uint32_t numPrettyMoveHappens = 0;
-  float lastPrettyLerpMixValue = 0;
   uint32_t numTentacleDrivers = 0;
   std::vector<uint32_t> numDriverTentacles{};
   std::vector<uint32_t> numDriverChanges{};
+
+  size_t lastNumTentacles;
+  bool lastUpdatingWithDraw = false;
+  float lastCycle = 0;
+  float lastCycleInc = 0;
+  float lastLig = 0;
+  float lastLigs = 0;
+  float lastDistt = 0;
+  float lastDistt2 = 0;
+  float lastDistt2Offset = 0;
+  float lastRot = 0;
+  float lastRotAtStartOfPrettyMove = 0;
+  bool lastDoRotation = false;
+  bool lastIsPrettyMoveHappening = false;
+  int32_t lastPrettyMoveHappeningTimer = 0;
+  int32_t lastPrettyMoveCheckStopMark = 0;
+  int32_t lastPrePrettyMoveLock = 0;
+  float lastDistt2OffsetPreStep = 0;
+  bool lastPrettyMoveReadyToStart = false;
+  int32_t lastPostPrettyMoveLock = 0;
+  float lastPrettyLerpMixValue = 0;
 };
 
 void TentacleStats::log(const StatsLogValueFunc logVal) const
 {
   const constexpr char* module = "Tentacles";
+
+  logVal(module, "lastNumTentacles", lastNumTentacles);
+  logVal(module, "lastUpdatingWithDraw", lastUpdatingWithDraw);
+  logVal(module, "lastCycle", lastCycle);
+  logVal(module, "lastCycleInc", lastCycleInc);
+  logVal(module, "lastLig", lastLig);
+  logVal(module, "lastLigs", lastLigs);
+  logVal(module, "lastDistt", lastDistt);
+  logVal(module, "lastDistt2", lastDistt2);
+  logVal(module, "lastDistt2Offset", lastDistt2Offset);
+  logVal(module, "lastRot", lastRot);
+  logVal(module, "lastRotAtStartOfPrettyMove", lastRotAtStartOfPrettyMove);
+  logVal(module, "lastDoRotation", lastDoRotation);
+  logVal(module, "lastIsPrettyMoveHappening", lastIsPrettyMoveHappening);
+  logVal(module, "lastPrettyMoveHappeningTimer", lastPrettyMoveHappeningTimer);
+  logVal(module, "lastPrettyMoveCheckStopMark", lastPrettyMoveCheckStopMark);
+  logVal(module, "lastPrePrettyMoveLock", lastPrePrettyMoveLock);
+  logVal(module, "lastDistt2OffsetPreStep", lastDistt2OffsetPreStep);
+  logVal(module, "lastPrettyMoveReadyToStart", lastPrettyMoveReadyToStart);
+  logVal(module, "lastPostPrettyMoveLock", lastPostPrettyMoveLock);
+  logVal(module, "lastPrettyLerpMixValue", lastPrettyLerpMixValue);
 
   logVal(module, "numDominantColorMapChanges", numDominantColorMapChanges);
   logVal(module, "numDominantColorChanges", numDominantColorChanges);
@@ -111,9 +169,7 @@ void TentacleStats::log(const StatsLogValueFunc logVal) const
   logVal(module, "numLowToMediumAcceleration", numLowToMediumAcceleration);
   logVal(module, "numHighAcceleration", numHighAcceleration);
   logVal(module, "numCycleResets", numCycleResets);
-  logVal(module, "lastCycleValue", lastCycleValue);
   logVal(module, "numPrettyMoveHappens", numPrettyMoveHappens);
-  logVal(module, "lastPrettyLerpMixValue", lastPrettyLerpMixValue);
   logVal(module, "numTentacleDrivers", numTentacleDrivers);
   // TODO Make this a string util function
   std::string numTentaclesStr = "";
@@ -143,9 +199,7 @@ void TentacleStats::reset()
   numLowToMediumAcceleration = 0;
   numHighAcceleration = 0;
   numCycleResets = 0;
-  lastCycleValue = 0;
   numPrettyMoveHappens = 0;
-  lastPrettyLerpMixValue = 0;
   std::fill(numDriverChanges.begin(), numDriverChanges.end(), 0);
 }
 
@@ -194,19 +248,109 @@ inline void TentacleStats::cycleReset()
   numCycleResets++;
 }
 
-inline void TentacleStats::setLastCycleValue(const float val)
-{
-  lastCycleValue = val;
-}
-
 inline void TentacleStats::prettyMoveHappens()
 {
   numPrettyMoveHappens++;
 }
 
-inline void TentacleStats::setLastPrettyLerpMixValue(const float value)
+inline void TentacleStats::setLastNumTentacles(const size_t val)
 {
-  lastPrettyLerpMixValue = value;
+  lastNumTentacles = val;
+}
+
+inline void TentacleStats::setLastUpdatingWithDraw(const bool val)
+{
+  lastUpdatingWithDraw = val;
+}
+
+inline void TentacleStats::setLastCycle(const float val)
+{
+  lastCycle = val;
+}
+
+inline void TentacleStats::setLastCycleInc(const float val)
+{
+  lastCycleInc = val;
+}
+
+inline void TentacleStats::setLastLig(const float val)
+{
+  lastLig = val;
+}
+
+inline void TentacleStats::setLastLigs(const float val)
+{
+  lastLigs = val;
+}
+
+inline void TentacleStats::setLastDistt(const float val)
+{
+  lastDistt = val;
+}
+
+inline void TentacleStats::setLastDistt2(const float val)
+{
+  lastDistt2 = val;
+}
+
+inline void TentacleStats::setLastDistt2Offset(const float val)
+{
+  lastDistt2Offset = val;
+}
+
+inline void TentacleStats::setLastRot(const float val)
+{
+  lastRot = val;
+}
+
+inline void TentacleStats::setLastRotAtStartOfPrettyMove(const float val)
+{
+  lastRotAtStartOfPrettyMove = val;
+}
+
+inline void TentacleStats::setLastDoRotation(const bool val)
+{
+  lastDoRotation = val;
+}
+
+inline void TentacleStats::setLastIsPrettyMoveHappening(const bool val)
+{
+  lastIsPrettyMoveHappening = val;
+}
+
+inline void TentacleStats::setLastPrettyMoveHappeningTimer(const int32_t val)
+{
+  lastPrettyMoveHappeningTimer = val;
+}
+
+inline void TentacleStats::setLastPrettyMoveCheckStopMark(const int32_t val)
+{
+  lastPrettyMoveCheckStopMark = val;
+}
+
+inline void TentacleStats::setLastPrePrettyMoveLock(const int32_t val)
+{
+  lastPrePrettyMoveLock = val;
+}
+
+inline void TentacleStats::setLastDistt2OffsetPreStep(const float val)
+{
+  lastDistt2OffsetPreStep = val;
+}
+
+inline void TentacleStats::setLastPrettyMoveReadyToStart(const bool val)
+{
+  lastPrettyMoveReadyToStart = val;
+}
+
+inline void TentacleStats::setLastPostPrettyMoveLock(const int32_t val)
+{
+  lastPostPrettyMoveLock = val;
+}
+
+inline void TentacleStats::setLastPrettyLerpMixValue(const float val)
+{
+  lastPrettyLerpMixValue = val;
 }
 
 void TentacleStats::setNumTentacleDrivers(
@@ -245,7 +389,7 @@ private:
   uint32_t dominantColor = 0;
   void changeDominantColor();
 
-  bool updatingWithDraw = true;
+  bool updatingWithDraw = false;
   float cycle = 0;
   static constexpr float cycleIncMin = 0.01;
   static constexpr float cycleIncMax = 0.05;
@@ -293,14 +437,15 @@ private:
   TentacleDriver* getNextDriver() const;
   const Weights<size_t> driverWeights;
 
+  void init();
   mutable TentacleStats stats;
 };
 
 TentaclesWrapper::TentaclesWrapper(const uint32_t screenWidth, const uint32_t screenHeight)
   : colorMaps{Weights<ColorMapGroup>{{
         {ColorMapGroup::perceptuallyUniformSequential, 10},
-        {ColorMapGroup::sequential, 5},
-        {ColorMapGroup::sequential2, 5},
+        {ColorMapGroup::sequential, 10},
+        {ColorMapGroup::sequential2, 10},
         {ColorMapGroup::cyclic, 10},
         {ColorMapGroup::diverging, 20},
         {ColorMapGroup::diverging_black, 20},
@@ -360,6 +505,7 @@ colorMaps.setWeights(colorGroupWeights);
 
   currentDriver = getNextDriver();
   currentDriver->startIterating();
+  init();
 }
 
 inline void TentaclesWrapper::incCounters()
@@ -370,8 +516,27 @@ inline void TentaclesWrapper::incCounters()
 
 void TentaclesWrapper::logStats(const StatsLogValueFunc logVal)
 {
-  stats.setLastCycleValue(cycle);
+  stats.setLastNumTentacles(currentDriver->getNumTentacles());
+  stats.setLastUpdatingWithDraw(updatingWithDraw);
+  stats.setLastCycle(cycle);
+  stats.setLastCycleInc(cycleInc);
+  stats.setLastLig(lig);
+  stats.setLastLigs(ligs);
+  stats.setLastDistt(distt);
+  stats.setLastDistt2(distt2);
+  stats.setLastDistt2Offset(distt2Offset);
+  stats.setLastRot(rot);
+  stats.setLastRotAtStartOfPrettyMove(rotAtStartOfPrettyMove);
+  stats.setLastDoRotation(doRotation);
+  stats.setLastIsPrettyMoveHappening(isPrettyMoveHappening);
+  stats.setLastPrettyMoveHappeningTimer(prettyMoveHappeningTimer);
+  stats.setLastPrettyMoveCheckStopMark(prettyMoveCheckStopMark);
+  stats.setLastPrePrettyMoveLock(prePrettyMoveLock);
+  stats.setLastDistt2OffsetPreStep(distt2OffsetPreStep);
+  stats.setLastPrettyMoveReadyToStart(prettyMoveReadyToStart);
+  stats.setLastPostPrettyMoveLock(postPrettyMoveLock);
   stats.setLastPrettyLerpMixValue(prettyMoveLerpMix);
+
   stats.log(logVal);
 }
 
@@ -396,6 +561,21 @@ void TentaclesWrapper::updateWithNoDraw(PluginInfo*)
   changeDominantColor();
 }
 
+void TentaclesWrapper::init()
+{
+  distt = std::lerp(disttMin, disttMax, 0.3);
+  distt2 = distt2Min;
+  distt2Offset = 0;
+  rot = getStableRotationOffset(0);
+  prettyMoveReadyToStart = false;
+  prePrettyMoveLock = 0;
+  postPrettyMoveLock = 0;
+  isPrettyMoveHappening = false;
+  prettyMoveHappeningTimer = 0;
+  currentDriver->setRoughTentacles(false);
+  currentDriver->freshStart();
+}
+
 void TentaclesWrapper::update(PluginInfo* goomInfo,
                               Pixel* frontBuff,
                               Pixel* backBuff,
@@ -411,17 +591,7 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
   if (!updatingWithDraw)
   {
     updatingWithDraw = true;
-    distt = std::midpoint(disttMin, disttMax);
-    distt2 = 0;
-    distt2Offset = 0;
-    rot = getStableRotationOffset(0);
-    prettyMoveReadyToStart = false;
-    prePrettyMoveLock = 0;
-    postPrettyMoveLock = 0;
-    isPrettyMoveHappening = false;
-    prettyMoveHappeningTimer = 0;
-    currentDriver->setRoughTentacles(false);
-    currentDriver->freshStart();
+    init();
   }
 
   if (lig <= 1.01f)
@@ -489,7 +659,9 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
     }
 
     // Higher sound acceleration increases tentacle wave frequency.
-    currentDriver->multiplyIterZeroYValWaveFreq(1.0 / (1.10 - goomInfo->sound.accelvar));
+    const float tentacleWaveFreq =
+        goomInfo->sound.accelvar < 0.3 ? 1.25 : 1.0 / (1.10 - goomInfo->sound.accelvar);
+    currentDriver->multiplyIterZeroYValWaveFreq(tentacleWaveFreq);
 
     currentDriver->update(m_half_pi - rot, distt, distt2, modColor, modColorLow, frontBuff,
                           backBuff);
