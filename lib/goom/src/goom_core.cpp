@@ -333,6 +333,7 @@ class GoomStats
 {
 public:
   GoomStats() noexcept = default;
+  void setSongTitle(const std::string& songTitle);
   void setStateStartValue(const uint32_t stateIndex);
   void setZoomFilterStartValue(const ZoomFilterMode filterMode);
   void setSeedStartValue(const uint64_t seed);
@@ -365,6 +366,7 @@ public:
   void changeLineColor();
 
 private:
+  std::string songTitle;
   uint32_t startingState = 0;
   ZoomFilterMode startingFilterMode = ZoomFilterMode::_size;
   uint64_t startingSeed = 0;
@@ -448,6 +450,7 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
 {
   const constexpr char* module = "goom_core";
 
+  logVal(module, "songTitle", songTitle);
   logVal(module, "startingState", startingState);
   logVal(module, "startingFilterMode", enumToString(startingFilterMode));
   logVal(module, "startingSeed", startingSeed);
@@ -528,6 +531,11 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
   logVal(module, "numIfsIncrGreaterThanZero", numIfsIncrGreaterThanZero);
   logVal(module, "numChangeLineColor", numChangeLineColor);
   logVal(module, "numSwitchLines", numSwitchLines);
+}
+
+void GoomStats::setSongTitle(const std::string& s)
+{
+  songTitle = s;
 }
 
 void GoomStats::setStateStartValue(const uint32_t stateIndex)
@@ -1802,6 +1810,7 @@ static void displayText(PluginInfo* goomInfo,
 
   if (songTitle)
   {
+    stats.setSongTitle(songTitle);
     strncpy(goomInfo->update.titleText, songTitle, 1023);
     goomInfo->update.titleText[1023] = 0;
     goomInfo->update.timeOfTitleDisplay = 200;
