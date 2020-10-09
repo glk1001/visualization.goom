@@ -37,17 +37,17 @@ TEST_CASE("Colors are brightened", "[color-bright]")
 {
   const Pixel c{.channels{.r = 100, .g = 50, .b = 20}};
 
-  Pixel cb = getBrighterColor(1.0, c);
+  Pixel cb = getBrighterColor(1.0f, c);
   REQUIRE(cb.channels.r == 100);
   REQUIRE(cb.channels.g == 50);
   REQUIRE(cb.channels.b == 20);
 
-  cb = getBrighterColor(0.5, c);
+  cb = getBrighterColor(0.5f, c);
   REQUIRE(cb.channels.r == 50);
   REQUIRE(cb.channels.g == 25);
   REQUIRE(cb.channels.b == 10);
 
-  cb = getBrighterColor(0.01, c);
+  cb = getBrighterColor(0.01f, c);
   REQUIRE(cb.channels.r == 1);
   REQUIRE(cb.channels.g == 0);
   REQUIRE(cb.channels.b == 0);

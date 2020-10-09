@@ -644,69 +644,73 @@ inline Pixel getBlockyMixedColor(const CoeffArray& coeffs,
   return getMixedColor(coeffs, col1, col3, col2, col4);
 }
 
-inline Pixel getPixelRGB(const Pixel* buffer, const uint32_t x)
+inline Pixel getPixelColor(const Pixel* buffer, const uint32_t pos)
 {
-  return *(buffer + x);
+  return buffer[pos];
 }
 
-inline void setPixelRGB(Pixel* buffer, const uint32_t x, const Pixel& p)
+inline void setPixelColor(Pixel* buffer, const uint32_t pos, const Pixel& p)
 {
-  buffer[x] = p;
+  buffer[pos] = p;
 }
 
 static void c_zoom(Pixel* expix1, Pixel* expix2, const FilterDataWrapper* data)
 {
   stats.doCZoom();
 
-  const uint16_t prevX = data->prevX;
-  const uint16_t prevY = data->prevY;
+  const uint32_t prevX = data->prevX;
+  const uint32_t prevY = data->prevY;
   const int* brutS = data->brutS;
   const int* brutD = data->brutD;
   const int buffratio = data->buffratio;
 
-  const uint32_t ax = static_cast<uint32_t>((prevX - 1) << perteDec);
-  const uint32_t ay = static_cast<uint32_t>((prevY - 1) << perteDec);
+  const uint32_t ax = (prevX - 1) << perteDec;
+  const uint32_t ay = (prevY - 1) << perteDec;
 
-  const uint32_t bufsize = static_cast<uint32_t>(prevX * prevY * 2);
+  const uint32_t bufsize = prevX * prevY * 2;
   const uint32_t bufwidth = prevX;
 
-  expix1[0].val = expix1[prevX - 1].val = expix1[prevX * prevY - 1].val =
-      expix1[prevX * prevY - prevX].val = 0;
+  expix1[0].val = 0;
+  expix1[prevX - 1].val = 0;
+  expix1[prevX * prevY - 1].val = 0;
+  expix1[prevX * prevY - prevX].val = 0;
 
   uint32_t myPos2;
   for (uint32_t myPos = 0; myPos < bufsize; myPos += 2)
   {
-    const uint32_t x = static_cast<uint32_t>(myPos >> 1);
     myPos2 = myPos + 1;
 
     const int brutSmypos = brutS[myPos];
     const uint32_t px = static_cast<uint32_t>(
         brutSmypos + (((brutD[myPos] - brutSmypos) * buffratio) >> BUFFPOINTNB));
+
     const int brutSmypos2 = brutS[myPos2];
     const uint32_t py = static_cast<uint32_t>(
         brutSmypos2 + (((brutD[myPos2] - brutSmypos2) * buffratio) >> BUFFPOINTNB));
 
+    const uint32_t pix2Pos = static_cast<uint32_t>(myPos >> 1);
+
     if ((px >= ax) || (py >= ay))
     {
-      setPixelRGB(expix2, x, Pixel{.val = 0});
+      setPixelColor(expix2, pix2Pos, Pixel{.val = 0});
     }
     else
     {
       // coeff en modulo 15
       const CoeffArray coeffs{.intVal = data->precalCoef[px & perteMask][py & perteMask]};
 
-      const uint32_t pos = (px >> perteDec) + prevX * (py >> perteDec);
-      const Pixel col1 = getPixelRGB(expix1, pos);
-      const Pixel col2 = getPixelRGB(expix1, pos + 1);
-      const Pixel col3 = getPixelRGB(expix1, pos + bufwidth);
-      const Pixel col4 = getPixelRGB(expix1, pos + bufwidth + 1);
+      const uint32_t pix1Pos = (px >> perteDec) + prevX * (py >> perteDec);
+      const Pixel col1 = getPixelColor(expix1, pix1Pos);
+      const Pixel col2 = getPixelColor(expix1, pix1Pos + 1);
+      const Pixel col3 = getPixelColor(expix1, pix1Pos + bufwidth);
+      const Pixel col4 = getPixelColor(expix1, pix1Pos + bufwidth + 1);
 
       const Pixel newColor = data->filterData.blockyWavy
                                  ? getBlockyMixedColor(coeffs, col1, col2, col3, col4)
                                  : getMixedColor(coeffs, col1, col2, col3, col4);
       //      const Pixel newColor = getMixedColor(coeffs, col1, col2, col3, col4);
 
-      setPixelRGB(expix2, x, newColor);
+      setPixelColor(expix2, pix2Pos, newColor);
     }
   }
 }

@@ -34,21 +34,27 @@ inline Pixel getColorAdd(const Pixel& color1, const Pixel& color2)
   return p;
 }
 
-inline uint8_t getBrighterChannelColor(const uint32_t br, const uint8_t c)
+inline uint8_t getBrighterChannelColor(const uint32_t brightness, const uint8_t c)
 {
-  return static_cast<uint8_t>((br * static_cast<uint32_t>(c)) >> 8);
+  const uint32_t newColor = (brightness * static_cast<uint32_t>(c)) >> 8;
+  return (newColor & 0xffffff00) ? 0xff : static_cast<uint8_t>(newColor);
+}
+
+inline Pixel getBrighterColor(const uint32_t brightness, const Pixel& color)
+{
+  return Pixel{.channels{
+      .r = getBrighterChannelColor(brightness, color.channels.r),
+      .g = getBrighterChannelColor(brightness, color.channels.g),
+      .b = getBrighterChannelColor(brightness, color.channels.b),
+      .a = getBrighterChannelColor(brightness, color.channels.a),
+  }};
 }
 
 inline Pixel getBrighterColor(const float brightness, const Pixel& color)
 {
   assert(brightness >= 0.0 && brightness <= 1.0);
   const uint32_t br = static_cast<uint32_t>(std::round(brightness * 256 + 0.0001f));
-  Pixel p;
-  p.channels.r = getBrighterChannelColor(br, color.channels.r);
-  p.channels.g = getBrighterChannelColor(br, color.channels.g);
-  p.channels.b = getBrighterChannelColor(br, color.channels.b);
-  p.channels.a = color.channels.a;
-  return p;
+  return getBrighterColor(br, color);
 }
 
 inline uint32_t getBrighterColor(const float brightness, const uint32_t color)
