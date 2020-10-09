@@ -81,6 +81,16 @@ size_t TentacleDriver::getNumTentacles() const
   return numTentacles;
 }
 
+TentacleDriver::ColorModes TentacleDriver::getColorMode() const
+{
+  return colorMode;
+}
+
+void TentacleDriver::setColorMode(const ColorModes c)
+{
+  colorMode = c;
+}
+
 constexpr double tent2d_xmin = 0.0;
 constexpr double tent2d_ymin = 0.065736;
 constexpr double tent2d_ymax = 10000;
@@ -365,7 +375,10 @@ void TentacleDriver::setRoughTentacles(const bool val)
 std::vector<utils::ColorMapGroup> TentacleDriver::getNextColorMapGroups() const
 {
   const size_t numDifferentGroups =
-      probabilityOfMInN(1, 2) ? 1 : getRandInRange(1u, colorizers.size());
+      (colorMode == ColorModes::minimal || colorMode == ColorModes::oneGroupForAll ||
+       probabilityOfMInN(1, 2))
+          ? 1
+          : getRandInRange(1u, colorizers.size());
   std::vector<utils::ColorMapGroup> groups(numDifferentGroups);
   for (size_t i = 0; i < numDifferentGroups; i++)
   {
@@ -472,7 +485,8 @@ void TentacleDriver::beforeIter(const size_t ID,
     **/
   }
 
-  if ((iterNum % changeTentacleColorMapEveryNUpdates == 0) || changeCurrentColorMapEvent())
+  if ((colorMode != ColorModes::minimal) &&
+      (iterNum % changeTentacleColorMapEveryNUpdates == 0 || changeCurrentColorMapEvent()))
   {
     colorizers[ID]->changeColorMap();
   }
@@ -484,7 +498,10 @@ void TentacleDriver::freshStart()
   for (auto& c : colorizers)
   {
     c->setColorMapGroup(nextColorMapGroup);
-    c->changeColorMap();
+    if (colorMode != ColorModes::minimal)
+    {
+      c->changeColorMap();
+    }
   }
 }
 

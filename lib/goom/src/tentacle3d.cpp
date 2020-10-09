@@ -574,6 +574,9 @@ void TentaclesWrapper::init()
   prettyMoveHappeningTimer = 0;
   currentDriver->setRoughTentacles(false);
   currentDriver->freshStart();
+  //  currentDriver->setColorMode(static_cast<TentacleDriver::ColorModes>(getRandInRange(0u, 2u)));
+  currentDriver->setColorMode(static_cast<TentacleDriver::ColorModes>(getRandInRange(1u, 2u)));
+  currentDriver->setReverseColorMix(probabilityOfMInN(1, 2));
 }
 
 void TentaclesWrapper::update(PluginInfo* goomInfo,

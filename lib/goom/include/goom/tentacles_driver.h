@@ -96,6 +96,13 @@ public:
 class TentacleDriver
 {
 public:
+  enum class ColorModes
+  {
+    minimal,
+    oneGroupForAll,
+    multiGroups,
+  };
+
   explicit TentacleDriver(const utils::ColorMaps*,
                           const uint32_t screenWidth,
                           const uint32_t screenHeight);
@@ -104,6 +111,9 @@ public:
 
   void init(const TentacleLayout&);
   size_t getNumTentacles() const;
+
+  ColorModes getColorMode() const;
+  void setColorMode(const ColorModes);
 
   void startIterating();
   void stopIterating();
@@ -123,6 +133,7 @@ public:
   void multiplyIterZeroYValWaveFreq(const float val);
 
 private:
+  ColorModes colorMode = ColorModes::multiGroups;
   struct IterationParams
   {
     size_t numNodes = 200;
