@@ -2,6 +2,8 @@
 
 #include "colorutils.h"
 
+#include <algorithm>
+
 #undef NDEBUG
 #include <cassert>
 #include <cmath>
@@ -92,24 +94,42 @@ static void draw_wuline(const size_t n,
                         const uint32_t screenx,
                         const uint32_t screeny);
 
+constexpr int LINE_THICKNESS_MIDDLE = 0;
+constexpr int LINE_THICKNESS_DRAW_CLOCKWISE = 1;
+constexpr int LINE_THICKNESS_DRAW_COUNTERCLOCKWISE = 2;
+
+static void drawThickLine(const size_t n,
+                          Pixel* buffs[],
+                          const std::vector<Pixel>& colors,
+                          int x0,
+                          int y0,
+                          int x1,
+                          int y1,
+                          const uint8_t thickness,
+                          const uint8_t thicknessMode,
+                          const uint32_t screenWidth,
+                          const uint32_t screenHeight);
+
 void draw_line(Pixel* buff,
                const int x1,
                const int y1,
                const int x2,
                const int y2,
                const uint32_t color,
+               const uint8_t thickness,
                const uint32_t screenx,
                const uint32_t screeny)
 {
   Pixel* buffs[] = {buff};
   std::vector<Pixel> colors(1);
   colors[0].val = color;
-  draw_line(1, buffs, colors, x1, y1, x2, y2, screenx, screeny);
+  draw_line(1, buffs, colors, thickness, x1, y1, x2, y2, screenx, screeny);
 }
 
 void draw_line(const size_t n,
                Pixel* buffs[],
                const std::vector<Pixel>& colors,
+               const uint8_t thickness,
                int x1,
                int y1,
                int x2,
@@ -117,7 +137,16 @@ void draw_line(const size_t n,
                const uint32_t screenx,
                const uint32_t screeny)
 {
-  draw_wuline(n, buffs, colors, x1, y1, x2, y2, screenx, screeny);
+  if (thickness == 1)
+  {
+    draw_wuline(n, buffs, colors, x1, y1, x2, y2, screenx, screeny);
+  }
+  else
+  {
+    drawThickLine(n, buffs, colors, x1, y1, x2, y2, thickness, LINE_THICKNESS_MIDDLE, screenx,
+                  screeny);
+    // plotLineWidth(n, buffs, colors, x1, y1, x2, y2, 1.0, screenx, screeny);
+  }
 }
 
 using PlotFunc = const std::function<void(int x, int y, float brightess)>;
@@ -135,6 +164,94 @@ inline void draw_pixels(const size_t n,
   }
 }
 
+/** Doesn't work
+static void plotLineWidth(const size_t n,
+                          Pixel* buffs[],
+                          const std::vector<Pixel>& colors,
+                          int x0,
+                          int y0,
+                          int x1,
+                          int y1,
+                          float wd,
+                          const uint32_t screenWidth,
+                          const uint32_t screenHeight)
+{
+  std::vector<Pixel> tempColors = colors;
+  const auto plot = [&](const int x, const int y, const uint32_t brightness) -> void {
+    if (uint16_t(x) >= screenWidth || uint16_t(y) >= screenHeight)
+    {
+      return;
+    }
+    if (brightness == 0)
+    {
+      return;
+    }
+    const int pos = y * static_cast<int>(screenWidth) + x;
+    if (brightness >= 255)
+    {
+      draw_pixels(n, buffs, colors, pos);
+    }
+    else
+    {
+      for (size_t i = 0; i < colors.size(); i++)
+      {
+        tempColors[i] = getBrighterColor(brightness, colors[i]);
+      }
+      draw_pixels(n, buffs, tempColors, pos);
+    }
+  };
+
+  // plot an anti-aliased line of width wd
+  const int dx = std::abs(x1 - x0);
+  const int sx = x0 < x1 ? 1 : -1;
+  const int dy = std::abs(y1 - y0);
+  const int sy = y0 < y1 ? 1 : -1;
+  int err = dx - dy;
+  int e2; // error value e_xy
+  int x2;
+  int y2;
+  const float ed =
+      dx + dy == 0 ? 1 : std::sqrt(static_cast<float>(dx * dx) + static_cast<float>(dy * dy));
+
+  for (wd = (wd + 1) / 2;;)
+  { // pixel loop
+    plot(x0, y0,
+         std::max(0.0f, 255.0f * (std::fabs(static_cast<float>(err - dx + dy)) / ed - wd + 1.0f)));
+    e2 = err;
+    x2 = x0;
+    if (2 * e2 >= -dx)
+    { // x step
+      for (e2 += dy, y2 = y0; e2 < ed * wd && (y1 != y2 || dx > dy); e2 += dx)
+      {
+        y2 += sy;
+        plot(x0, y2, std::max(0.0f, 255.0f * (std::fabs(static_cast<float>(e2)) / ed - wd + 1.0f)));
+      }
+      if (x0 == x1)
+      {
+        break;
+      }
+      e2 = err;
+      err -= dy;
+      x0 += sx;
+    }
+    if (2 * e2 <= dy)
+    { // y step
+      for (e2 = dx - e2; e2 < ed * wd && (x1 != x2 || dx < dy); e2 += dy)
+      {
+        x2 += sx;
+        plot(x2, y0, std::max(0.0f, 255.0f * (std::fabs(static_cast<float>(e2)) / ed - wd + 1.0f)));
+      }
+      if (y0 == y1)
+      {
+        break;
+      }
+      err += dx;
+      y0 += sy;
+    }
+  }
+}
+***/
+
 static void draw_wuline(const size_t n,
                         Pixel* buffs[],
                         const std::vector<Pixel>& colors,
@@ -142,12 +259,12 @@ static void draw_wuline(const size_t n,
                         const int y1,
                         const int x2,
                         const int y2,
-                        const uint32_t screenx,
-                        const uint32_t screeny)
+                        const uint32_t screenWidth,
+                        const uint32_t screenHeight)
 {
-  if ((y1 < 0) || (y2 < 0) || (x1 < 0) || (x2 < 0) || (y1 >= static_cast<int>(screeny)) ||
-      (y2 >= static_cast<int>(screeny)) || (x1 >= static_cast<int>(screenx)) ||
-      (x2 >= static_cast<int>(screenx)))
+  if ((y1 < 0) || (y2 < 0) || (x1 < 0) || (x2 < 0) || (y1 >= static_cast<int>(screenHeight)) ||
+      (y2 >= static_cast<int>(screenHeight)) || (x1 >= static_cast<int>(screenWidth)) ||
+      (x2 >= static_cast<int>(screenWidth)))
   {
     return;
   }
@@ -155,7 +272,7 @@ static void draw_wuline(const size_t n,
   assert(n == colors.size());
   std::vector<Pixel> tempColors = colors;
   auto plot = [&](const int x, const int y, const float brightness) -> void {
-    if (uint16_t(x) >= screenx || uint16_t(y) >= screeny)
+    if (uint16_t(x) >= screenWidth || uint16_t(y) >= screenHeight)
     {
       return;
     }
@@ -163,7 +280,7 @@ static void draw_wuline(const size_t n,
     {
       return;
     }
-    const int pos = y * static_cast<int>(screenx) + x;
+    const int pos = y * static_cast<int>(screenWidth) + x;
     if (brightness >= 0.999)
     {
       draw_pixels(n, buffs, colors, pos);
@@ -263,6 +380,369 @@ static void WuDrawLine(float x0, float y0, float x1, float y1, const PlotFunc& p
       plot(x, ipart(intery), rfpart(intery));
       plot(x, ipart(intery) + 1, fpart(intery));
       intery += gradient;
+    }
+  }
+}
+
+/**
+ * Modified Bresenham draw(line) with optional overlap. Required for drawThickLine().
+ * Overlap draws additional pixel when changing minor direction. For standard bresenham overlap, choose LINE_OVERLAP_NONE (0).
+ *
+ *  Sample line:
+ *
+ *    00+
+ *     -0000+
+ *         -0000+
+ *             -00
+ *
+ *  0 pixels are drawn for normal line without any overlap
+ *  + pixels are drawn if LINE_OVERLAP_MAJOR
+ *  - pixels are drawn if LINE_OVERLAP_MINOR
+ */
+
+constexpr int LINE_OVERLAP_NONE = 0;
+constexpr int LINE_OVERLAP_MAJOR = 1;
+constexpr int LINE_OVERLAP_MINOR = 2;
+
+static void drawLineOverlap(const size_t n,
+                            Pixel* buffs[],
+                            const std::vector<Pixel>& colors,
+                            const float brightness,
+                            int x0,
+                            int y0,
+                            int x1,
+                            int y1,
+                            const uint8_t overlap,
+                            const uint32_t screenWidth,
+                            const uint32_t screenHeight)
+{
+  if ((y0 < 0) || (y1 < 0) || (x0 < 0) || (x1 < 0) || (y0 >= static_cast<int>(screenHeight)) ||
+      (y1 >= static_cast<int>(screenHeight)) || (x0 >= static_cast<int>(screenWidth)) ||
+      (x1 >= static_cast<int>(screenWidth)))
+  {
+    return;
+  }
+
+  assert(n == colors.size());
+  std::vector<Pixel> tempColors = colors;
+  auto plot = [&](const int x, const int y) -> void {
+    if (uint16_t(x) >= screenWidth || uint16_t(y) >= screenHeight)
+    {
+      return;
+    }
+    const int pos = y * static_cast<int>(screenWidth) + x;
+    if (brightness >= 0.999)
+    {
+      draw_pixels(n, buffs, colors, pos);
+    }
+    else
+    {
+      for (size_t i = 0; i < colors.size(); i++)
+      {
+        tempColors[i] = getBrighterColor(brightness, colors[i]);
+      }
+      draw_pixels(n, buffs, tempColors, pos);
+    }
+  };
+
+  if ((x0 == x1) || (y0 == y1))
+  {
+    //horizontal or vertical line -> fillRect() is faster than drawLine()
+    //        LocalDisplay.fillRect(aXStart, aYStart, aXEnd, aYEnd, aColor);
+    // ????????????????????????????????????????????????????????????????????????????????????????????
+    draw_wuline(n, buffs, colors, x0, y0, x1, y1, screenWidth, screenHeight);
+  }
+  else
+  {
+    int16_t error;
+    int16_t stepX;
+    int16_t stepY;
+
+    // Calculate direction.
+    int16_t deltaX = x1 - x0;
+    int16_t deltaY = y1 - y0;
+    if (deltaX < 0)
+    {
+      deltaX = -deltaX;
+      stepX = -1;
+    }
+    else
+    {
+      stepX = +1;
+    }
+    if (deltaY < 0)
+    {
+      deltaY = -deltaY;
+      stepY = -1;
+    }
+    else
+    {
+      stepY = +1;
+    }
+
+    const int16_t deltaXTimes2 = deltaX << 1;
+    const int16_t deltaYTimes2 = deltaY << 1;
+
+    // Draw start pixel.
+    plot(x0, y0);
+    if (deltaX > deltaY)
+    {
+      // Start value represents a half step in Y direction.
+      error = deltaYTimes2 - deltaX;
+      while (x0 != x1)
+      {
+        // Step in main direction.
+        x0 += stepX;
+        if (error >= 0)
+        {
+          if (overlap == LINE_OVERLAP_MAJOR)
+          {
+            // Draw pixel in main direction before changing.
+            plot(x0, y0);
+          }
+          // change Y
+          y0 += stepY;
+          if (overlap == LINE_OVERLAP_MINOR)
+          {
+            // Draw pixel in minor direction before changing.
+            plot(x0 - stepX, y0);
+          }
+          error -= deltaXTimes2;
+        }
+        error += deltaYTimes2;
+        plot(x0, y0);
+      }
+    }
+    else
+    {
+      error = deltaXTimes2 - deltaY;
+      while (y0 != y1)
+      {
+        y0 += stepY;
+        if (error >= 0)
+        {
+          if (overlap == LINE_OVERLAP_MAJOR)
+          {
+            // Draw pixel in main direction before changing.
+            plot(x0, y0);
+          }
+          x0 += stepX;
+          if (overlap == LINE_OVERLAP_MINOR)
+          {
+            // Draw pixel in minor direction before changing.
+            plot(x0, y0 - stepY);
+          }
+          error -= deltaYTimes2;
+        }
+        error += deltaXTimes2;
+        plot(x0, y0);
+      }
+    }
+  }
+}
+
+/**
+ * Bresenham with thickness.
+ * No pixel missed and every pixel only drawn once!
+ * thicknessMode can be one of LINE_THICKNESS_MIDDLE, LINE_THICKNESS_DRAW_CLOCKWISE,
+ *   LINE_THICKNESS_DRAW_COUNTERCLOCKWISE
+ */
+
+static void drawThickLine(const size_t n,
+                          Pixel* buffs[],
+                          const std::vector<Pixel>& colors,
+                          int x0,
+                          int y0,
+                          int x1,
+                          int y1,
+                          const uint8_t thickness,
+                          const uint8_t thicknessMode,
+                          const uint32_t screenWidth,
+                          const uint32_t screenHeight)
+{
+  if ((y0 < 0) || (y1 < 0) || (x0 < 0) || (x1 < 0) || (y0 >= static_cast<int>(screenHeight)) ||
+      (y1 >= static_cast<int>(screenHeight)) || (x0 >= static_cast<int>(screenWidth)) ||
+      (x1 >= static_cast<int>(screenWidth)))
+  {
+    return;
+  }
+
+  if (thickness <= 1)
+  {
+    drawLineOverlap(n, buffs, colors, 1.0, x0, y0, x1, y1, 0, screenWidth, screenHeight);
+  }
+
+  const float brightness = 0.8 * 2.0 / thickness;
+
+  /**
+    * For coordinate system with 0.0 top left
+    * Swap X and Y delta and calculate clockwise (new delta X inverted)
+    * or counterclockwise (new delta Y inverted) rectangular direction.
+    * The right rectangular direction for LINE_OVERLAP_MAJOR toggles with each octant.
+  */
+
+  int16_t error;
+  int16_t stepX;
+  int16_t stepY;
+  int16_t deltaY = x1 - x0;
+  int16_t deltaX = y1 - y0;
+
+  // Mirror 4 quadrants to one and adjust deltas and stepping direction.
+  bool swap = true; // count effective mirroring
+  if (deltaX < 0)
+  {
+    deltaX = -deltaX;
+    stepX = -1;
+    swap = !swap;
+  }
+  else
+  {
+    stepX = +1;
+  }
+  if (deltaY < 0)
+  {
+    deltaY = -deltaY;
+    stepY = -1;
+    swap = !swap;
+  }
+  else
+  {
+    stepY = +1;
+  }
+
+  const int deltaXTimes2 = deltaX << 1;
+  const int deltaYTimes2 = deltaY << 1;
+
+  bool overlap;
+  // Adjust for right direction of thickness from line origin.
+  int drawStartAdjustCount = thickness / 2;
+  if (thicknessMode == LINE_THICKNESS_DRAW_COUNTERCLOCKWISE)
+  {
+    drawStartAdjustCount = thickness - 1;
+  }
+  else if (thicknessMode == LINE_THICKNESS_DRAW_CLOCKWISE)
+  {
+    drawStartAdjustCount = 0;
+  }
+
+  // Which octant are we now?
+  if (deltaX >= deltaY)
+  {
+    if (swap)
+    {
+      drawStartAdjustCount = (thickness - 1) - drawStartAdjustCount;
+      stepY = -stepY;
+    }
+    else
+    {
+      stepX = -stepX;
+    }
+    /*
+     * Vector for draw direction of start of lines is rectangular and counterclockwise to
+     * main line direction. Therefore no pixel will be missed if LINE_OVERLAP_MAJOR is used
+     * on change in minor rectangular direction.
+     */
+    // adjust draw start point
+    error = deltaYTimes2 - deltaX;
+    for (int i = drawStartAdjustCount; i > 0; i--)
+    {
+      // change X (main direction here)
+      x0 -= stepX;
+      x1 -= stepX;
+      if (error >= 0)
+      {
+        // change Y
+        y0 -= stepY;
+        y1 -= stepY;
+        error -= deltaXTimes2;
+      }
+      error += deltaYTimes2;
+    }
+    //draw start line
+    drawLineOverlap(n, buffs, colors, brightness, x0, y0, x1, y1, 1, screenWidth, screenHeight);
+    // draw 'thickness' number of lines
+    error = deltaYTimes2 - deltaX;
+    for (int i = thickness; i > 1; i--)
+    {
+      // change X (main direction here)
+      x0 += stepX;
+      x1 += stepX;
+      overlap = LINE_OVERLAP_NONE;
+      if (error >= 0)
+      {
+        // change Y
+        y0 += stepY;
+        y1 += stepY;
+        error -= deltaXTimes2;
+        /*
+         * Change minor direction reverse to line (main) direction because of choosing
+         * the right (counter)clockwise draw vector. Use LINE_OVERLAP_MAJOR to fill all pixels.
+         *
+         * EXAMPLE:
+         * 1,2 = Pixel of first 2 lines
+         * 3 = Pixel of third line in normal line mode
+         * - = Pixel which will additionally be drawn in LINE_OVERLAP_MAJOR mode
+         *           33
+         *       3333-22
+         *   3333-222211
+         *   33-22221111
+         *  221111                     /\
+         *  11                          Main direction of start of lines draw vector
+         *  -> Line main direction
+         *  <- Minor direction of counterclockwise of start of lines draw vector
+         */
+        overlap = LINE_OVERLAP_MAJOR;
+      }
+      error += deltaYTimes2;
+      drawLineOverlap(n, buffs, colors, brightness, x0, y0, x1, y1, overlap, screenWidth,
+                      screenHeight);
+    }
+  }
+  else
+  {
+    // the other octant
+    if (swap)
+    {
+      stepX = -stepX;
+    }
+    else
+    {
+      drawStartAdjustCount = (thickness - 1) - drawStartAdjustCount;
+      stepY = -stepY;
+    }
+    // adjust draw start point
+    error = deltaXTimes2 - deltaY;
+    for (int i = drawStartAdjustCount; i > 0; i--)
+    {
+      y0 -= stepY;
+      y1 -= stepY;
+      if (error >= 0)
+      {
+        x0 -= stepX;
+        x1 -= stepX;
+        error -= deltaYTimes2;
+      }
+      error += deltaXTimes2;
+    }
+    // draw start line
+    drawLineOverlap(n, buffs, colors, brightness, x0, y0, x1, y1, 0, screenWidth, screenHeight);
+    // draw 'thickness' number of lines
+    error = deltaXTimes2 - deltaY;
+    for (int i = thickness; i > 1; i--)
+    {
+      y0 += stepY;
+      y1 += stepY;
+      overlap = LINE_OVERLAP_NONE;
+      if (error >= 0)
+      {
+        x0 += stepX;
+        x1 += stepX;
+        error -= deltaYTimes2;
+        overlap = LINE_OVERLAP_MAJOR;
+      }
+      error += deltaXTimes2;
+      drawLineOverlap(n, buffs, colors, brightness, x0, y0, x1, y1, overlap, screenWidth,
+                      screenHeight);
     }
   }
 }

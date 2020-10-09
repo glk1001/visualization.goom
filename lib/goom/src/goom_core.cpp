@@ -296,18 +296,24 @@ const GoomStates::WeightedStatesArray GoomStates::states{ {
   { .weight =  60, .drawables = {GD::IFS,                                                 GD::scope, GD::farScope}},
   **/
   /**
+//  { .weight =  40, .drawables = {GD::IFS,             GD::tentacles,                      GD::scope, GD::farScope}},
   { .weight =  40, .drawables = {                     GD::tentacles,                      GD::scope, GD::farScope}},
+  { .weight =  40, .drawables = {                     GD::tentacles,                                 GD::farScope}},
+  { .weight =  40, .drawables = {                     GD::tentacles,                      GD::scope              }},
+  { .weight =  40, .drawables = {                     GD::tentacles,                                             }},
   **/
   { .weight = 100, .drawables = {GD::IFS, GD::dots, GD::stars,                           GD::scope, GD::farScope}},
   { .weight =  40, .drawables = {GD::IFS,           GD::tentacles, GD::stars,                       GD::farScope}},
   { .weight =  60, .drawables = {GD::IFS,                          GD::stars, GD::lines, GD::scope, GD::farScope}},
   { .weight =  70, .drawables = {GD::IFS,           GD::tentacles,                       GD::scope, GD::farScope}},
   { .weight =  60, .drawables = {         GD::dots, GD::tentacles, GD::stars, GD::lines, GD::scope, GD::farScope}},
+  { .weight =  60, .drawables = {         GD::dots, GD::tentacles,            GD::lines, GD::scope, GD::farScope}},
   { .weight = 100, .drawables = {         GD::dots, GD::tentacles, GD::stars,            GD::scope              }},
-  { .weight =  70, .drawables = {         GD::dots, GD::tentacles, GD::stars, GD::lines, GD::scope, GD::farScope}},
+  { .weight =  70, .drawables = {         GD::dots, GD::tentacles,                       GD::scope, GD::farScope}},
   { .weight = 100, .drawables = {                   GD::tentacles, GD::stars, GD::lines,            GD::farScope}},
   { .weight =  60, .drawables = {                                  GD::stars, GD::lines, GD::scope, GD::farScope}},
   { .weight =  60, .drawables = {         GD::dots,                GD::stars,            GD::scope, GD::farScope}},
+  { .weight =  60, .drawables = {         GD::dots,                           GD::lines, GD::scope, GD::farScope}},
 }};
 // clang-format on
 

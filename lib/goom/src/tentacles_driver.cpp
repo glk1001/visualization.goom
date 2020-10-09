@@ -611,7 +611,8 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
       // TODO - Control brightness because of back buff??
       // One buff may be better????? Make lighten more aggressive over whole tentacle??
       // draw_line(frontBuff, ix0, iy0, ix1, iy1, color, 1280, 720);
-      draw_line(std::size(buffs), buffs, colors, ix0, iy0, ix1, iy1, 1280, 720);
+      constexpr uint8_t thickness = 1;
+      draw_line(std::size(buffs), buffs, colors, thickness, ix0, iy0, ix1, iy1, 1280, 720);
     }
   }
 }

@@ -7,6 +7,7 @@
 #include "goomutils/goomrand.h"
 #include "goomutils/mathutils.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -475,9 +476,9 @@ static void fs_apply(VisualFX* _this,
     }
 
     // choose the color of the particule
-    const float t = data->stars[i].age / static_cast<float>(data->maxAge);
-    const uint32_t color = data->stars[i].currentColorMap->getColor(t);
-    const uint32_t lowColor = getLowColor(data, i, t);
+    const float tAge = data->stars[i].age / static_cast<float>(data->maxAge);
+    const uint32_t color = data->stars[i].currentColorMap->getColor(tAge);
+    const uint32_t lowColor = getLowColor(data, i, tAge);
 
     // draws the particule
     const int x0 = static_cast<int>(data->stars[i].x);
@@ -491,18 +492,20 @@ static void fs_apply(VisualFX* _this,
       const uint32_t mixedColor = ColorMap::colorMix(color, lowColor, t);
       const int x2 = x0 - static_cast<int>(data->stars[i].vx * j);
       const int y2 = y0 - static_cast<int>(data->stars[i].vy * j);
+      const uint8_t thickness =
+          static_cast<uint8_t>(std::clamp(tAge * getRandInRange(1.0f, 5.0f), 1.0f, 5.0f));
 
       if (data->useSingleBufferOnly)
       {
-        draw_line(dest, x1, y1, x2, y2, mixedColor, goomInfo->screen.width,
+        draw_line(dest, x1, y1, x2, y2, mixedColor, thickness, goomInfo->screen.width,
                   goomInfo->screen.height);
       }
       else
       {
         const std::vector<Pixel> colors = {{.val = mixedColor}, {.val = lowColor}};
         Pixel* buffs[2] = {dest, src};
-        draw_line(std::size(buffs), buffs, colors, x1, y1, x2, y2, goomInfo->screen.width,
-                  goomInfo->screen.height);
+        draw_line(std::size(buffs), buffs, colors, thickness, x1, y1, x2, y2,
+                  goomInfo->screen.width, goomInfo->screen.height);
       }
 
       x1 = x2;

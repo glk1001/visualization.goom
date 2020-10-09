@@ -12,6 +12,7 @@ namespace goom
 void draw_line(const size_t n,
                Pixel* buffs[],
                const std::vector<Pixel>& colors,
+               const uint8_t thickness,
                const int x1,
                const int y1,
                const int x2,
@@ -25,6 +26,7 @@ void draw_line(Pixel* buff,
                int x2,
                int y2,
                const uint32_t color,
+               const uint8_t thickness,
                const uint32_t screenx,
                const uint32_t screeny);
 
