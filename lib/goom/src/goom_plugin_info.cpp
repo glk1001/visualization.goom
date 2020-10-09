@@ -71,7 +71,6 @@ void plugin_info_init(PluginInfo* pp, size_t nbVisuals)
 
   /* data for the update loop */
   pp->update.lockvar = 0;
-  pp->update.goomvar = 0;
   pp->update.loopvar = 0;
   pp->update.stop_lines = 0;
   pp->update.ifs_incr = 1; /* dessiner l'ifs (0 = non: > = increment) */

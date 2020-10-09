@@ -121,7 +121,6 @@ struct PluginInfo
   struct GoomUpdate
   {
     int lockvar; // pour empecher de nouveaux changements
-    int goomvar; // boucle des gooms
     uint32_t loopvar; // mouvement des points
     int stop_lines;
     int ifs_incr; // dessiner l'ifs (0 = non: > = increment)

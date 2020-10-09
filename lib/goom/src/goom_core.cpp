@@ -1527,8 +1527,6 @@ static void changeMilieu(PluginInfo* goomInfo)
 
 static void bigNormalUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
 {
-  goomInfo->update.goomvar++;
-
   if (goomInfo->update.stateSelectionBlocker)
   {
     goomInfo->update.stateSelectionBlocker--;
@@ -1640,7 +1638,6 @@ static void megaLentUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
   *pzfd = &goomInfo->update.zoomFilterData;
   goomInfo->update.zoomFilterData.vitesse = stopSpeed - 1;
   goomInfo->update.zoomFilterData.pertedec = 8;
-  goomInfo->update.goomvar = 1;
   goomInfo->update.lockvar += 50;
   stats.lockChange();
   goomInfo->update.switchIncr = goomInfo->update.switchIncrAmount;
@@ -2009,7 +2006,6 @@ static void bigBreak(PluginInfo* goomInfo, ZoomFilterData** pzfd)
   *pzfd = &goomInfo->update.zoomFilterData;
   goomInfo->update.zoomFilterData.vitesse += 3;
   goomInfo->update.zoomFilterData.pertedec = 8;
-  goomInfo->update.goomvar = 0;
 }
 
 static void forceFilterMode(PluginInfo* goomInfo, const int forceMode, ZoomFilterData** pzfd)

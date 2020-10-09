@@ -366,7 +366,6 @@ struct FilterDataWrapper
   int* brutT;
   int* freebrutT; // temp (en cours de generation)
 
-  uint32_t zoomWidth;
   uint32_t prevX;
   uint32_t prevY;
 
@@ -955,8 +954,6 @@ void zoomFilterFastRGB(PluginInfo* goomInfo,
                                        static_cast<float>(data->buffratio) * switchMult);
   }
 
-  data->zoomWidth = data->prevX;
-
   c_zoom(pix1, pix2, data);
 }
 
@@ -1020,7 +1017,6 @@ static void zoomFilterSave(VisualFX* _this, const PluginInfo*, const char* file)
 
   FilterDataWrapper* data = static_cast<FilterDataWrapper*>(_this->fx_data);
 
-  save_int_setting(f, vfxname, "data->zoomWidth", static_cast<int>(data->zoomWidth));
   save_int_setting(f, vfxname, "data->prevX", static_cast<int>(data->prevX));
   save_int_setting(f, vfxname, "data->prevY", static_cast<int>(data->prevY));
   save_float_setting(f, vfxname, "data->generalSpeed", data->generalSpeed);
@@ -1053,7 +1049,6 @@ static void zoomFilterRestore(VisualFX* _this, PluginInfo*, const char* file)
 
   FilterDataWrapper* data = static_cast<FilterDataWrapper*>(_this->fx_data);
 
-  data->zoomWidth = static_cast<uint32_t>(get_int_setting(f, vfxname, "data->zoomWidth"));
   data->prevX = static_cast<uint32_t>(get_int_setting(f, vfxname, "data->prevX"));
   data->prevY = static_cast<uint32_t>(get_int_setting(f, vfxname, "data->prevY"));
   data->generalSpeed = get_float_setting(f, vfxname, "data->generalSpeed");
