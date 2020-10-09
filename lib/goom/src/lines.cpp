@@ -249,7 +249,7 @@ void drawGoomLines(PluginInfo* goomInfo,
   }
 
   // This factor gives height to the audio samples lines. This value seems pleasing.
-  constexpr float maxNormalizedPeak = 70000;
+  constexpr float maxNormalizedPeak = 90000;
   const auto getNormalizedData = [&](const int16_t data) {
     return maxNormalizedPeak * static_cast<float>(data - goomInfo->sound.allTimesMin) / audioRange;
   };
@@ -268,7 +268,7 @@ void drawGoomLines(PluginInfo* goomInfo,
   };
 
   auto [x1, y1, modColor] = getNextPoint(pt, data[0]);
-  const uint8_t thickness = static_cast<uint8_t>(getRandInRange(1u, 3u));
+  constexpr uint8_t thickness = 1;
 
   for (size_t i = 1; i < AUDIO_SAMPLE_LEN; i++)
   {

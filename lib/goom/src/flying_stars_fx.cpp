@@ -493,7 +493,7 @@ static void fs_apply(VisualFX* _this,
       const int x2 = x0 - static_cast<int>(data->stars[i].vx * j);
       const int y2 = y0 - static_cast<int>(data->stars[i].vy * j);
       const uint8_t thickness =
-          static_cast<uint8_t>(std::clamp(tAge * getRandInRange(1.0f, 5.0f), 1.0f, 5.0f));
+          static_cast<uint8_t>(std::clamp(t * getRandInRange(1.0f, 5.0f), 1.0f, 5.0f));
 
       if (data->useSingleBufferOnly)
       {
