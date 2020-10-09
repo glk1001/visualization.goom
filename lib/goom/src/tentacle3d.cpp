@@ -782,7 +782,7 @@ void TentaclesWrapper::prettyMove(const float accelVar)
 {
   isPrettyMoveHappeningUpdate(accelVar);
 
-  if (prettyMoveHappeningTimer == prettyMoveCheckStopMark)
+  if (isPrettyMoveHappening && (prettyMoveHappeningTimer == prettyMoveCheckStopMark))
   {
     currentDriver = getNextDriver();
   }
