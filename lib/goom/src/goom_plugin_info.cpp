@@ -20,7 +20,7 @@ void plugin_info_init(PluginInfo* pp, size_t nbVisuals)
 
   pp->nbParams = 0;
   pp->nbVisuals = nbVisuals;
-  pp->visuals = (VisualFX**)malloc(sizeof(VisualFX*) * (size_t)nbVisuals);
+  pp->visuals = new VisualFX*[nbVisuals];
 
   /* data for the update loop */
   pp->update.lockvar = 0;

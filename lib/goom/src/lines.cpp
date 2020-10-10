@@ -125,14 +125,14 @@ GMLine* goomLinesInit(PluginInfo* goomInfo,
                       const float paramD,
                       const uint32_t destColor)
 {
-  GMLine* l = (GMLine*)malloc(sizeof(GMLine));
+  GMLine* l = new GMLine{};
 
   l->goomInfo = goomInfo;
 
   l->colorMaps = new ColorMaps{};
 
-  l->points = (GMUnitPointer*)malloc(AUDIO_SAMPLE_LEN * sizeof(GMUnitPointer));
-  l->points2 = (GMUnitPointer*)malloc(AUDIO_SAMPLE_LEN * sizeof(GMUnitPointer));
+  l->points = new GMUnitPointer[AUDIO_SAMPLE_LEN];
+  l->points2 = new GMUnitPointer[AUDIO_SAMPLE_LEN];
   l->nbPoints = AUDIO_SAMPLE_LEN;
 
   l->IDdest = IDdest;
@@ -161,9 +161,11 @@ void goomLinesFree(GMLine** l)
 {
   delete (*l)->colorMaps;
 
-  free((*l)->points);
-  free((*l)->points2);
-  free(*l);
+  delete[](*l)->points;
+  delete[](*l)->points2;
+
+  delete (*l);
+
   l = nullptr;
 }
 

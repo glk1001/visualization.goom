@@ -60,8 +60,8 @@ using namespace goom::utils;
 
 struct IFSPoint
 {
-  uint32_t x;
-  uint32_t y;
+  uint32_t x = 0;
+  uint32_t y = 0;
 };
 
 using Dbl = float;
@@ -337,23 +337,18 @@ static void randomSimis(const Fractal* fractal, Similitude* cur, uint32_t i)
   }
 }
 
-static void freeIfsBuffers(Fractal* fractal)
+static void deleteIfsBuffers(Fractal* fractal)
 {
   if (fractal->buffer1)
   {
-    free(fractal->buffer1);
+    delete[] fractal->buffer1;
     fractal->buffer1 = nullptr;
   }
   if (fractal->buffer2)
   {
-    free(fractal->buffer2);
+    delete[] fractal->buffer2;
     fractal->buffer2 = nullptr;
   }
-}
-
-static void freeIfs(Fractal* fractal)
-{
-  freeIfsBuffers(fractal);
 }
 
 static void initIfs(PluginInfo* goomInfo, IfsData* data)
@@ -362,7 +357,7 @@ static void initIfs(PluginInfo* goomInfo, IfsData* data)
 
   if (!data->root)
   {
-    data->root = (Fractal*)malloc(sizeof(Fractal));
+    data->root = new Fractal{};
     if (!data->root)
       return;
     data->root->buffer1 = nullptr;
@@ -370,7 +365,7 @@ static void initIfs(PluginInfo* goomInfo, IfsData* data)
   }
 
   Fractal* fractal = data->root;
-  freeIfsBuffers(fractal);
+  deleteIfsBuffers(fractal);
 
   const uint32_t numCentres = getNRand(4) + 2;
   switch (numCentres)
@@ -412,14 +407,16 @@ static void initIfs(PluginInfo* goomInfo, IfsData* data)
     fractal->maxPt *= fractal->numSimi;
   }
 
-  if ((fractal->buffer1 = (IFSPoint*)calloc((size_t)fractal->maxPt, sizeof(IFSPoint))) == nullptr)
+  fractal->buffer1 = new IFSPoint[fractal->maxPt]{};
+  if (!fractal->buffer1)
   {
-    freeIfs(fractal);
+    deleteIfsBuffers(fractal);
     return;
   }
-  if ((fractal->buffer2 = (IFSPoint*)calloc((size_t)fractal->maxPt, sizeof(IFSPoint))) == nullptr)
+  fractal->buffer2 = new IFSPoint[fractal->maxPt]{};
+  if (!fractal->buffer2)
   {
-    freeIfs(fractal);
+    deleteIfsBuffers(fractal);
     return;
   }
 
@@ -613,8 +610,8 @@ static void releaseIfs(IfsData* data)
 {
   if (data->root)
   {
-    freeIfs(data->root);
-    free(data->root);
+    deleteIfsBuffers(data->root);
+    delete data->root;
     data->root = nullptr;
   }
 }
@@ -1144,7 +1141,9 @@ static void ifs_vfx_init(VisualFX* _this, PluginInfo* goomInfo)
 static void ifs_vfx_free(VisualFX* _this)
 {
   IfsData* data = static_cast<IfsData*>(_this->fx_data);
+
   releaseIfs(data);
+
   delete data;
 }
 

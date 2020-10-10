@@ -260,8 +260,10 @@ static void fs_init(VisualFX* _this, PluginInfo*)
 static void fs_free(VisualFX* _this)
 {
   FSData* data = static_cast<FSData*>(_this->fx_data);
+
   delete[] data->stars;
   free(data->params.params);
+
   delete data;
 }
 

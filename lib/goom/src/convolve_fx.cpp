@@ -20,7 +20,7 @@ struct ConvData
 
 static void convolve_init(VisualFX* _this, PluginInfo*)
 {
-  ConvData* data = (ConvData*)malloc(sizeof(ConvData));
+  ConvData* data = new ConvData{};
   _this->fx_data = data;
 
   data->light = secure_f_param("Screen Brightness");
@@ -49,7 +49,7 @@ static void convolve_free(VisualFX* _this)
 {
   ConvData* data = static_cast<ConvData*>(_this->fx_data);
   free(data->params.params);
-  free(data);
+  delete data;
 }
 
 static void createOutputWithBrightness(const Pixel* src,

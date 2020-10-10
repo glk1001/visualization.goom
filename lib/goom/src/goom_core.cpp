@@ -1139,7 +1139,7 @@ void goom_close(PluginInfo* goomInfo)
   free(goomInfo->params);
 
   // Release PluginInfo
-  free(goomInfo->visuals);
+  delete[] goomInfo->visuals;
 
   delete goomInfo;
 }

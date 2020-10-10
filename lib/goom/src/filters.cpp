@@ -783,43 +783,43 @@ static void initBuffers(PluginInfo* goomInfo, const uint32_t resx, const uint32_
 
     if (data->brutS)
     {
-      free(data->freebrutS);
+      delete[] data->freebrutS;
     }
-    data->brutS = 0;
+    data->brutS = nullptr;
     if (data->brutD)
     {
-      free(data->freebrutD);
+      delete[] data->freebrutD;
     }
-    data->brutD = 0;
+    data->brutD = nullptr;
     if (data->brutT)
     {
-      free(data->freebrutT);
+      delete[] data->freebrutT;
     }
-    data->brutT = 0;
+    data->brutT = nullptr;
 
     data->filterData.middleX = resx / 2;
     data->filterData.middleY = resy / 2;
     data->mustInitBuffers = 1;
     if (data->firedec)
     {
-      free(data->firedec);
+      delete[] data->firedec;
     }
-    data->firedec = 0;
+    data->firedec = nullptr;
   }
 
   data->mustInitBuffers = 0;
-  data->freebrutS = (int*)calloc(resx * resy * 2 + 128, sizeof(int));
-  data->brutS = (int32_t*)((1 + (uintptr_t((data->freebrutS))) / 128) * 128);
+  data->freebrutS = new int[resx * resy * 2 + 128]{};
+  data->brutS = (int*)((1 + (uintptr_t((data->freebrutS))) / 128) * 128);
 
-  data->freebrutD = (int*)calloc(resx * resy * 2 + 128, sizeof(int));
-  data->brutD = (int32_t*)((1 + (uintptr_t((data->freebrutD))) / 128) * 128);
+  data->freebrutD = new int[resx * resy * 2 + 128]{};
+  data->brutD = (int*)((1 + (uintptr_t((data->freebrutD))) / 128) * 128);
 
-  data->freebrutT = (int*)calloc(resx * resy * 2 + 128, sizeof(int));
+  data->freebrutT = new int[resx * resy * 2 + 128]{};
   data->brutT = (int32_t*)((1 + (uintptr_t((data->freebrutT))) / 128) * 128);
 
   data->buffratio = 0;
 
-  data->firedec = (int*)malloc(data->prevY * sizeof(int));
+  data->firedec = new int[data->prevY];
   generateWaterFXHorizontalBuffer(data);
 
   data->interlaceStart = 0;
@@ -1072,7 +1072,7 @@ static void zoomFilterRestore(VisualFX* _this, PluginInfo*, const char* file)
 
 static void zoomFilterVisualFXWrapper_init(VisualFX* _this, PluginInfo* info)
 {
-  FilterDataWrapper* data = (FilterDataWrapper*)(malloc(sizeof(FilterDataWrapper)));
+  FilterDataWrapper* data = new FilterDataWrapper{};
 
   data->coeffs = 0;
   data->freecoeffs = 0;
@@ -1093,7 +1093,7 @@ static void zoomFilterVisualFXWrapper_init(VisualFX* _this, PluginInfo* info)
 
   /** modif by jeko : fixedpoint : buffration = (16:16) (donc 0<=buffration<=2^16) */
   data->buffratio = 0;
-  data->firedec = 0;
+  data->firedec = nullptr;
 
   data->enabled_bp = secure_b_param("Enabled", 1);
 
@@ -1112,12 +1112,14 @@ static void zoomFilterVisualFXWrapper_init(VisualFX* _this, PluginInfo* info)
 static void zoomFilterVisualFXWrapper_free(VisualFX* _this)
 {
   FilterDataWrapper* data = static_cast<FilterDataWrapper*>(_this->fx_data);
-  free(data->freebrutS);
-  free(data->freebrutD);
-  free(data->freebrutT);
-  free(data->firedec);
+
+  delete[] data->freebrutS;
+  delete[] data->freebrutD;
+  delete[] data->freebrutT;
+  delete[] data->firedec;
   free(data->params.params);
-  free(_this->fx_data);
+
+  delete data;
 }
 
 static void zoomFilterVisualFXWrapper_apply(VisualFX*, Pixel*, Pixel*, PluginInfo*)

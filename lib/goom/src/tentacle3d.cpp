@@ -869,7 +869,7 @@ void TentaclesWrapper::prettyMove(const float acceleration)
 
 void tentacle_fx_init(VisualFX* _this, PluginInfo* info)
 {
-  TentacleFXData* data = (TentacleFXData*)malloc(sizeof(TentacleFXData));
+  TentacleFXData* data = new TentacleFXData{};
 
   data->tentacles = new TentaclesWrapper{info->screen.width, info->screen.height};
 
@@ -908,9 +908,11 @@ void tentacle_log_stats(VisualFX* _this, const StatsLogValueFunc logVal)
 void tentacle_fx_free(VisualFX* _this)
 {
   TentacleFXData* data = static_cast<TentacleFXData*>(_this->fx_data);
+
   free(data->params.params);
   tentacle_free(data);
-  free(_this->fx_data);
+
+  delete data;
 }
 
 VisualFX tentacle_fx_create(void)
