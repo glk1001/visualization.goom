@@ -163,7 +163,7 @@ private:
     { .event = GoomEvent::changeGoomLine,                      .m = 1, .outOf =   3 },
     { .event = GoomEvent::changeDotColors,                     .m = 1, .outOf =   3 },
     { .event = GoomEvent::ifsRenew,                            .m = 2, .outOf =   3 },
-    { .event = GoomEvent::changeBlockyWavyToOn,                .m = 1, .outOf =  50 },
+    { .event = GoomEvent::changeBlockyWavyToOn,                .m = 1, .outOf =   5 },
   } };
 
   static constexpr std::array<std::pair<GoomFilterEvent, size_t>, numGoomFilterEvents> weightedFilterEvents{ {
@@ -363,6 +363,7 @@ public:
   void ifsIncrLessThanEqualZero();
   void ifsIncrGreaterThanZero();
   void changeLineColor();
+  void doBlockyWavy();
 
 private:
   std::string songTitle;
@@ -402,6 +403,7 @@ private:
   uint32_t numIfsIncrGreaterThanZero = 0;
   uint32_t numChangeLineColor = 0;
   uint32_t numSwitchLines = 0;
+  uint32_t numBlockyWavy = 0;
   std::array<uint32_t, static_cast<size_t>(ZoomFilterMode::_size)> numFilterModeChanges{0};
   std::vector<uint32_t> numStateChanges;
   std::vector<uint64_t> stateDurations;
@@ -443,6 +445,7 @@ void GoomStats::reset()
   numIfsIncrGreaterThanZero = 0;
   numChangeLineColor = 0;
   numSwitchLines = 0;
+  numBlockyWavy = 0;
 }
 
 void GoomStats::log(const StatsLogValueFunc logVal) const
@@ -530,6 +533,7 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
   logVal(module, "numIfsIncrGreaterThanZero", numIfsIncrGreaterThanZero);
   logVal(module, "numChangeLineColor", numChangeLineColor);
   logVal(module, "numSwitchLines", numSwitchLines);
+  logVal(module, "numBlockyWavy", numBlockyWavy);
 }
 
 void GoomStats::setSongTitle(const std::string& s)
@@ -710,6 +714,11 @@ inline void GoomStats::changeLineColor()
 inline void GoomStats::switchLines()
 {
   numSwitchLines++;
+}
+
+inline void GoomStats::doBlockyWavy()
+{
+  numBlockyWavy++;
 }
 
 constexpr int32_t stopSpeed = 128;
@@ -1588,7 +1597,15 @@ static void bigNormalUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
     stats.doNoise();
   }
 
-  goomInfo->update.zoomFilterData.blockyWavy = goomEvent.happens(GoomEvent::changeBlockyWavyToOn);
+  if (!goomEvent.happens(GoomEvent::changeBlockyWavyToOn))
+  {
+    goomInfo->update.zoomFilterData.blockyWavy = false;
+  }
+  else
+  {
+    stats.doBlockyWavy();
+    goomInfo->update.zoomFilterData.blockyWavy = true;
+  }
 
   if (goomInfo->update.zoomFilterData.mode == ZoomFilterMode::amuletteMode)
   {
@@ -1677,7 +1694,15 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
  */
 static void changeZoomEffect(PluginInfo* goomInfo, ZoomFilterData* pzfd, const int forceMode)
 {
-  goomInfo->update.zoomFilterData.blockyWavy = goomEvent.happens(GoomEvent::changeBlockyWavyToOn);
+  if (!goomEvent.happens(GoomEvent::changeBlockyWavyToOn))
+  {
+    goomInfo->update.zoomFilterData.blockyWavy = false;
+  }
+  else
+  {
+    goomInfo->update.zoomFilterData.blockyWavy = true;
+    stats.doBlockyWavy();
+  }
 
   if (pzfd)
   {
