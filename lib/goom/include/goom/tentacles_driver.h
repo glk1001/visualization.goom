@@ -230,8 +230,8 @@ private:
   const utils::ColorMap* colorMap;
   const utils::ColorMap* prevColorMap;
   static constexpr uint32_t maxCountSinceColormapChange = 100;
-  static constexpr float mixColorStep = 1.0 / static_cast<float>(maxCountSinceColormapChange);
-  mutable float tmix;
+  static constexpr float transitionStep = 1.0 / static_cast<float>(maxCountSinceColormapChange);
+  mutable float tTransition;
   const size_t numNodes;
 };
 

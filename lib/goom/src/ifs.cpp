@@ -131,15 +131,9 @@ struct Fractal
   IFSPoint* buffer2;
 };
 
-struct IfsData
+class Colorizer
 {
-  PluginParam enabled_bp;
-  PluginParameters params;
-
-  const ColorMaps* colorMaps;
-  const ColorMap* mixerMap;
-  ColorMapGroup currentColorMapGroup;
-
+public:
   enum class ColorMode
   {
     mapColors,
@@ -149,8 +143,138 @@ struct IfsData
     mixedMegaColorChange,
     singleColors,
   };
+
+  Colorizer() noexcept;
+  Colorizer(const Colorizer&) = delete;
+  Colorizer& operator=(const Colorizer&) = delete;
+
+  const ColorMaps& getColorMaps() const;
+
+  ColorMode getColorMode() const;
+  void changeColorMode();
+
+  void changeColorMaps();
+
+  Pixel getMixedColor(const Pixel& color, const float tmix);
+
+private:
+  const ColorMaps colorMaps;
+  ColorMapGroup currentColorMapGroup;
+  const ColorMap* mixerMap;
+  const ColorMap* prevMixerMap;
+  mutable uint32_t countSinceColorMapChange = 0;
+  static constexpr uint32_t minColorMapChangeCompleted = 100;
+  static constexpr uint32_t maxColorMapChangeCompleted = 10000;
+  uint32_t colorMapChangeCompleted = minColorMapChangeCompleted;
+
   ColorMode colorMode;
   float mixFactor; // in [0, 1]
+  static ColorMode getNextColorMode();
+  Pixel getNextMixerMapColor(const float t) const;
+};
+
+Colorizer::Colorizer() noexcept
+  : colorMaps{},
+    currentColorMapGroup{colorMaps.getRandomGroup()},
+    mixerMap{&colorMaps.getRandomColorMap(currentColorMapGroup)},
+    prevMixerMap{mixerMap},
+    colorMode{ColorMode::mapColors},
+    mixFactor{0.5}
+{
+}
+
+inline const ColorMaps& Colorizer::getColorMaps() const
+{
+  return colorMaps;
+}
+
+inline Colorizer::ColorMode Colorizer::getColorMode() const
+{
+  return colorMode;
+}
+
+void Colorizer::changeColorMode()
+{
+  colorMode = getNextColorMode();
+}
+
+Colorizer::ColorMode Colorizer::getNextColorMode()
+{
+  // clang-format off
+  static const Weights<Colorizer::ColorMode> colorModeWeights{{
+    { Colorizer::ColorMode::mapColors,  10 },
+    { Colorizer::ColorMode::mixColors,  5 },
+    { Colorizer::ColorMode::reverseMixColors,  5 },
+    { Colorizer::ColorMode::megaColorChange,  50 },
+    { Colorizer::ColorMode::mixedMegaColorChange,  5 },
+    { Colorizer::ColorMode::singleColors, 1 },
+  }};
+  // clang-format on
+
+  return colorModeWeights.getRandomWeighted();
+}
+
+void Colorizer::changeColorMaps()
+{
+  if (probabilityOfMInN(1, 10))
+  {
+    currentColorMapGroup = colorMaps.getRandomGroup();
+  }
+  prevMixerMap = mixerMap;
+  mixerMap = &colorMaps.getRandomColorMap(currentColorMapGroup);
+  colorMapChangeCompleted = getRandInRange(minColorMapChangeCompleted, maxColorMapChangeCompleted);
+  countSinceColorMapChange = colorMapChangeCompleted;
+}
+
+inline Pixel Colorizer::getNextMixerMapColor(const float t) const
+{
+  const Pixel nextColor = Pixel{.val = mixerMap->getColor(t)};
+  if (countSinceColorMapChange == 0)
+  {
+    return nextColor;
+  }
+  const float tTransition =
+      static_cast<float>(countSinceColorMapChange) / static_cast<float>(colorMapChangeCompleted);
+  countSinceColorMapChange--;
+  return Pixel{.val = ColorMap::colorMix(nextColor.val, prevMixerMap->getColor(t), tTransition)};
+}
+
+inline Pixel Colorizer::getMixedColor(const Pixel& color, const float tmix)
+{
+  constexpr float maxChannelVal = 255;
+
+  switch (colorMode)
+  {
+    case ColorMode::mapColors:
+    case ColorMode::megaColorChange:
+    {
+      const float t = getLuma(color) / maxChannelVal;
+      return getNextMixerMapColor(t);
+    }
+    case ColorMode::mixColors:
+    case ColorMode::mixedMegaColorChange:
+    {
+      const uint32_t mixColor = getNextMixerMapColor(tmix).val;
+      return {.val = ColorMap::colorMix(mixColor, color.val, mixFactor)};
+    }
+    case ColorMode::reverseMixColors:
+    {
+      const uint32_t mixColor = getNextMixerMapColor(tmix).val;
+      return Pixel{.val = ColorMap::colorMix(color.val, mixColor, mixFactor)};
+    }
+    case ColorMode::singleColors:
+      return color;
+    default:
+      throw std::logic_error("Unknown ColorMode");
+  }
+}
+
+struct IfsData
+{
+  PluginParam enabled_bp;
+  PluginParameters params;
+
+  Colorizer colorizer;
 
   Fractal* root;
   Fractal* curF;
@@ -526,12 +650,9 @@ static IfsUpdateData updData{
 
 static void changeColormaps(IfsData* fx_data)
 {
-  if (probabilityOfMInN(1, 10))
-  {
-    fx_data->currentColorMapGroup = fx_data->colorMaps->getRandomGroup();
-  }
-  updData.couleur.val = ColorMap::getRandomColor(fx_data->colorMaps->getRandomColorMap());
-  fx_data->mixerMap = &fx_data->colorMaps->getRandomColorMap(fx_data->currentColorMapGroup);
+  fx_data->colorizer.changeColorMaps();
+  updData.couleur.val =
+      ColorMap::getRandomColor(fx_data->colorizer.getColorMaps().getRandomColorMap());
 }
 
 inline Pixel getPixel(const Int32ChannelArray& col)
@@ -559,39 +680,6 @@ static void updateColorsModeMer(IfsUpdateData*);
 static void updateColorsModeMerver(IfsUpdateData*);
 static void updateColorsModeFeu(IfsUpdateData*);
 
-inline Pixel getMixedcolor(const IfsData* fx_data, const Pixel& color, const float tmix)
-{
-  constexpr float maxChannelVal = 255;
-
-  switch (fx_data->colorMode)
-  {
-    case IfsData::ColorMode::mapColors:
-    case IfsData::ColorMode::megaColorChange:
-    {
-      const float t = getLuma(color) / maxChannelVal;
-      return Pixel{.val = fx_data->mixerMap->getColor(t)};
-    }
-    break;
-    case IfsData::ColorMode::mixColors:
-    case IfsData::ColorMode::mixedMegaColorChange:
-    {
-      const uint32_t mixColor = fx_data->mixerMap->getColor(tmix);
-      return {.val = ColorMap::colorMix(mixColor, color.val, fx_data->mixFactor)};
-    }
-    break;
-    case IfsData::ColorMode::reverseMixColors:
-    {
-      const uint32_t mixColor = fx_data->mixerMap->getColor(tmix);
-      return Pixel{.val = ColorMap::colorMix(color.val, mixColor, fx_data->mixFactor)};
-    }
-    break;
-    case IfsData::ColorMode::singleColors:
-      return color;
-    default:
-      throw std::logic_error("Unknown ColorMode");
-  }
-}
-
 static void updatePixelBuffers(PluginInfo* goomInfo,
                                IfsData* fx_data,
                                Pixel* frontBuff,
@@ -606,8 +694,9 @@ static void updatePixelBuffers(PluginInfo* goomInfo,
 
   const float tStep = numPoints == 1 ? 0 : (1.0 - 0.0) / static_cast<float>(numPoints - 1);
   float t = -tStep;
-  bool doneColorChange = fx_data->colorMode != IfsData::ColorMode::megaColorChange &&
-                         fx_data->colorMode != IfsData::ColorMode::mixedMegaColorChange;
+  bool doneColorChange =
+      fx_data->colorizer.getColorMode() != Colorizer::ColorMode::megaColorChange &&
+      fx_data->colorizer.getColorMode() != Colorizer::ColorMode::mixedMegaColorChange;
   for (size_t i = 0; i < numPoints; i += static_cast<size_t>(increment))
   {
     t += tStep;
@@ -625,7 +714,7 @@ static void updatePixelBuffers(PluginInfo* goomInfo,
       doneColorChange = true;
     }
 
-    const Pixel finalColor = getMixedcolor(fx_data, color, t);
+    const Pixel finalColor = fx_data->colorizer.getMixedColor(color, t);
     const uint32_t pos = x + (y * width);
     Pixel* const p = &frontBuff[pos];
     *p = getColorAdd(backBuff[pos], finalColor);
@@ -1034,14 +1123,11 @@ static void ifs_vfx_restore(VisualFX* _this, PluginInfo*, const char* file)
 
 static void ifs_vfx_init(VisualFX* _this, PluginInfo* goomInfo)
 {
-  IfsData* data = (IfsData*)malloc(sizeof(IfsData));
+  IfsData* data = new IfsData{};
 
   data->enabled_bp = secure_b_param("Enabled", 1);
   data->params = plugin_parameters("Ifs", 1);
   data->params.params[0] = &data->enabled_bp;
-
-  data->colorMaps = new ColorMaps{};
-  data->currentColorMapGroup = data->colorMaps->getRandomGroup();
 
   data->root = nullptr;
   data->initialized = false;
@@ -1059,7 +1145,7 @@ static void ifs_vfx_free(VisualFX* _this)
 {
   IfsData* data = static_cast<IfsData*>(_this->fx_data);
   releaseIfs(data);
-  free(data);
+  delete data;
 }
 
 VisualFX ifs_visualfx_create(void)
@@ -1073,30 +1159,12 @@ VisualFX ifs_visualfx_create(void)
   return vfx;
 }
 
-inline IfsData::ColorMode getColorMode()
-{
-  // clang-format off
-  // @formatter:off
-  static const Weights<IfsData::ColorMode> colorModeWeights{{
-    { IfsData::ColorMode::mapColors,  2 },
-    { IfsData::ColorMode::mixColors,  5 },
-    { IfsData::ColorMode::reverseMixColors,  5 },
-    { IfsData::ColorMode::megaColorChange,  20 },
-    { IfsData::ColorMode::mixedMegaColorChange,  2 },
-    { IfsData::ColorMode::singleColors, 1 },
-  }};
-  // @formatter:on
-  // clang-format on
-
-  return colorModeWeights.getRandomWeighted();
-}
-
 void ifsRenew(VisualFX* _this)
 {
   IfsData* data = static_cast<IfsData*>(_this->fx_data);
 
   changeColormaps(data);
-  data->colorMode = getColorMode();
+  data->colorizer.changeColorMode();
 
   data->root->speed = getRandInRange(2u, 15u);
 }

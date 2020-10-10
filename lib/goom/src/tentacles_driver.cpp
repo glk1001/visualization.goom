@@ -687,7 +687,7 @@ TentacleColorMapColorizer::TentacleColorMapColorizer(const ColorMaps& cm,
     currentColorMapGroup{cmg},
     colorMap{&colorMaps->getRandomColorMap(currentColorMapGroup)},
     prevColorMap{colorMap},
-    tmix{0},
+    tTransition{0},
     numNodes{nNodes}
 {
 }
@@ -706,7 +706,7 @@ void TentacleColorMapColorizer::changeColorMap()
 {
   // Save the current color map to do smooth transitions to next color map.
   prevColorMap = colorMap;
-  tmix = 1.0;
+  tTransition = 1.0;
   colorMap = &colorMaps->getRandomColorMap(currentColorMapGroup);
 }
 
@@ -716,10 +716,10 @@ uint32_t TentacleColorMapColorizer::getColor(const size_t nodeNum) const
   uint32_t nextColor = colorMap->getColor(t);
 
   // Keep going with the smooth transition until tmix runs out.
-  if (tmix > 0.0)
+  if (tTransition > 0.0)
   {
-    nextColor = ColorMap::colorMix(nextColor, prevColorMap->getColor(t), tmix);
-    tmix -= mixColorStep;
+    nextColor = ColorMap::colorMix(nextColor, prevColorMap->getColor(t), tTransition);
+    tTransition -= transitionStep;
   }
 
   return nextColor;
