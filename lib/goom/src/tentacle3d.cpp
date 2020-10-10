@@ -418,7 +418,7 @@ private:
   float prettyMoveLerpMix = 1.0 / 16.0; // original goom value
   void isPrettyMoveHappeningUpdate(const float acceleration);
   void prettyMovePreStart();
-  void prettyMoveStart(const float acceleration);
+  void prettyMoveStart(const float acceleration, const int32_t timerVal = -1);
   void prettyMoveFinish();
   void prettyMove(const float acceleration);
   void prettyMoveWithNoDraw(PluginInfo*);
@@ -560,20 +560,30 @@ void TentaclesWrapper::updateWithNoDraw(PluginInfo*)
 
 void TentaclesWrapper::init()
 {
-  distt = std::lerp(disttMin, disttMax, 0.3);
-  distt2 = distt2Min;
-  distt2Offset = 0;
-  rot = getStableRotationOffset(0);
-  prettyMoveReadyToStart = false;
-  prePrettyMoveLock = 0;
-  postPrettyMoveLock = 0;
-  isPrettyMoveHappening = false;
-  prettyMoveHappeningTimer = 0;
   currentDriver->setRoughTentacles(false);
   currentDriver->freshStart();
   //  currentDriver->setColorMode(static_cast<TentacleDriver::ColorModes>(getRandInRange(0u, 2u)));
   currentDriver->setColorMode(static_cast<TentacleDriver::ColorModes>(getRandInRange(1u, 2u)));
   currentDriver->setReverseColorMix(probabilityOfMInN(1, 2));
+
+  distt = std::lerp(disttMin, disttMax, 0.3);
+  distt2 = distt2Min;
+  distt2Offset = 0;
+  rot = getStableRotationOffset(0);
+
+  prePrettyMoveLock = 0;
+  postPrettyMoveLock = 0;
+  prettyMoveReadyToStart = false;
+  if (probabilityOfMInN(1, 5))
+  {
+    isPrettyMoveHappening = false;
+    prettyMoveHappeningTimer = 0;
+  }
+  else
+  {
+    isPrettyMoveHappening = true;
+    prettyMoveStart(1.0, prettyMoveHappeningMin / 2);
+  }
 }
 
 void TentaclesWrapper::update(PluginInfo* goomInfo, Pixel* frontBuff, Pixel* backBuff)
@@ -692,12 +702,19 @@ void TentaclesWrapper::prettyMovePreStart()
   distt2Offset = 0;
 }
 
-void TentaclesWrapper::prettyMoveStart(const float acceleration)
+void TentaclesWrapper::prettyMoveStart(const float acceleration, const int32_t timerVal)
 {
   stats.prettyMoveHappens();
 
-  prettyMoveHappeningTimer =
-      static_cast<int>(getRandInRange(prettyMoveHappeningMin, prettyMoveHappeningMax));
+  if (timerVal != -1)
+  {
+    prettyMoveHappeningTimer = timerVal;
+  }
+  else
+  {
+    prettyMoveHappeningTimer =
+        static_cast<int>(getRandInRange(prettyMoveHappeningMin, prettyMoveHappeningMax));
+  }
   prettyMoveCheckStopMark = prettyMoveHappeningTimer / 4;
   postPrettyMoveLock = 3 * prettyMoveHappeningTimer / 2;
 
