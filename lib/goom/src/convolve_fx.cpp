@@ -77,9 +77,9 @@ static void convolve_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo*
   constexpr float increaseRate = 1.3;
   constexpr float decayRate = 0.955;
 
-  if (goomInfo->sound.timeSinceLastGoom == 0)
+  if (goomInfo->sound->getTimeSinceLastGoom() == 0)
   {
-    FVAL(data->factor_p) += FVAL(goomInfo->sound.goom_power_p) * increaseRate;
+    FVAL(data->factor_p) += goomInfo->sound->getGoomPower() * increaseRate;
   }
   FVAL(data->factor_p) *= decayRate;
 

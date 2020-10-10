@@ -376,10 +376,7 @@ class TentaclesWrapper
 public:
   explicit TentaclesWrapper(const uint32_t screenWidth, const uint32_t screenHeight);
   ~TentaclesWrapper() noexcept = default;
-  void update(PluginInfo*,
-              Pixel* frontBuff,
-              Pixel* backBuff,
-              const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN]);
+  void update(PluginInfo*, Pixel* frontBuff, Pixel* backBuff);
   void updateWithNoDraw(PluginInfo*);
   void logStats(const StatsLogValueFunc logVal);
 
@@ -419,11 +416,11 @@ private:
   static constexpr int32_t maxPrePrettyMoveLock = 500;
   int32_t postPrettyMoveLock = 0;
   float prettyMoveLerpMix = 1.0 / 16.0; // original goom value
-  void isPrettyMoveHappeningUpdate(const float accelVar);
+  void isPrettyMoveHappeningUpdate(const float acceleration);
   void prettyMovePreStart();
-  void prettyMoveStart(const float accelVar);
+  void prettyMoveStart(const float acceleration);
   void prettyMoveFinish();
-  void prettyMove(const float accelVar);
+  void prettyMove(const float acceleration);
   void prettyMoveWithNoDraw(PluginInfo*);
   std::tuple<uint32_t, uint32_t> getModColors();
 
@@ -579,10 +576,7 @@ void TentaclesWrapper::init()
   currentDriver->setReverseColorMix(probabilityOfMInN(1, 2));
 }
 
-void TentaclesWrapper::update(PluginInfo* goomInfo,
-                              Pixel* frontBuff,
-                              Pixel* backBuff,
-                              const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN])
+void TentaclesWrapper::update(PluginInfo* goomInfo, Pixel* frontBuff, Pixel* backBuff)
 {
   logDebug("Starting update.");
 
@@ -607,7 +601,7 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
 
     logDebug("Starting pretty_move without draw.");
     stats.updateWithPrettyMoveNoDraw();
-    prettyMove(goomInfo->sound.accelvar);
+    prettyMove(goomInfo->sound->getAcceleration());
 
     cycle += 10.0 * cycleInc;
     if (cycle > 1000)
@@ -625,7 +619,7 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
 
     logDebug("Starting pretty_move and draw.");
     stats.updateWithPrettyMoveDraw();
-    prettyMove(goomInfo->sound.accelvar);
+    prettyMove(goomInfo->sound->getAcceleration());
     cycle += cycleInc;
 
     if (isPrettyMoveHappening || changeDominantColorMapEvent())
@@ -643,7 +637,7 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
 
     const auto [modColor, modColorLow] = getModColors();
 
-    if (goomInfo->sound.timeSinceLastGoom != 0)
+    if (goomInfo->sound->getTimeSinceLastGoom() != 0)
     {
       stats.lowToMediumAcceleration();
     }
@@ -662,8 +656,9 @@ void TentaclesWrapper::update(PluginInfo* goomInfo,
     }
 
     // Higher sound acceleration increases tentacle wave frequency.
-    const float tentacleWaveFreq =
-        goomInfo->sound.accelvar < 0.3 ? 1.25 : 1.0 / (1.10 - goomInfo->sound.accelvar);
+    const float tentacleWaveFreq = goomInfo->sound->getAcceleration() < 0.3
+                                       ? 1.25
+                                       : 1.0 / (1.10 - goomInfo->sound->getAcceleration());
     currentDriver->multiplyIterZeroYValWaveFreq(tentacleWaveFreq);
 
     currentDriver->update(m_half_pi - rot, distt, distt2, modColor, modColorLow, frontBuff,
@@ -697,7 +692,7 @@ void TentaclesWrapper::prettyMovePreStart()
   distt2Offset = 0;
 }
 
-void TentaclesWrapper::prettyMoveStart(const float accelVar)
+void TentaclesWrapper::prettyMoveStart(const float acceleration)
 {
   stats.prettyMoveHappens();
 
@@ -706,7 +701,7 @@ void TentaclesWrapper::prettyMoveStart(const float accelVar)
   prettyMoveCheckStopMark = prettyMoveHappeningTimer / 4;
   postPrettyMoveLock = 3 * prettyMoveHappeningTimer / 2;
 
-  distt2Offset = (1.0 / (1.10 - accelVar)) * getRandInRange(distt2Min, distt2Max);
+  distt2Offset = (1.0 / (1.10 - acceleration)) * getRandInRange(distt2Min, distt2Max);
   rotAtStartOfPrettyMove = rot;
   cycleInc = getRandInRange(cycleIncMin, cycleIncMax);
   currentDriver->setRoughTentacles(true);
@@ -719,7 +714,7 @@ void TentaclesWrapper::prettyMoveFinish()
   currentDriver->setRoughTentacles(false);
 }
 
-void TentaclesWrapper::isPrettyMoveHappeningUpdate(const float accelVar)
+void TentaclesWrapper::isPrettyMoveHappeningUpdate(const float acceleration)
 {
   // Are we in a prettyMove?
   if (prettyMoveHappeningTimer > 0)
@@ -756,7 +751,7 @@ void TentaclesWrapper::isPrettyMoveHappeningUpdate(const float accelVar)
   {
     prettyMoveReadyToStart = false;
     isPrettyMoveHappening = true;
-    prettyMoveStart(accelVar);
+    prettyMoveStart(acceleration);
     return;
   }
 
@@ -781,9 +776,9 @@ inline float TentaclesWrapper::getStableRotationOffset(const float cycleVal)
   return (1.5 + sin(cycleVal) / 32.0) * m_pi;
 }
 
-void TentaclesWrapper::prettyMove(const float accelVar)
+void TentaclesWrapper::prettyMove(const float acceleration)
 {
-  isPrettyMoveHappeningUpdate(accelVar);
+  isPrettyMoveHappeningUpdate(acceleration);
 
   if (isPrettyMoveHappening && (prettyMoveHappeningTimer == prettyMoveCheckStopMark))
   {
@@ -874,7 +869,7 @@ void tentacle_fx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* goo
   TentacleFXData* data = static_cast<TentacleFXData*>(_this->fx_data);
   if (BVAL(data->enabled_bp))
   {
-    data->tentacles->update(goomInfo, dest, src, goomInfo->sound.samples);
+    data->tentacles->update(goomInfo, dest, src);
   }
 }
 

@@ -23,7 +23,7 @@ set (SRCE_FILES
                  src/goom_testing.cpp
                  src/ifs.cpp
                  src/lines.cpp
-                 src/sound_tester.cpp
+                 src/sound_info.cpp
                  src/tentacle3d.cpp
                  src/tentacles_driver.cpp
                  src/tentacles.cpp

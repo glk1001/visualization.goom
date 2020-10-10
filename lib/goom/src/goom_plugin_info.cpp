@@ -2,11 +2,12 @@
 
 #include "goom_fx.h"
 #include "goomutils/logging_control.h"
+#include "sound_info.h"
 // #undef NO_LOGGING
 #include "goomutils/logging.h"
 
 #include <cstddef>
-#include <limits>
+#include <memory>
 
 namespace goom
 {
@@ -15,59 +16,11 @@ void plugin_info_init(PluginInfo* pp, size_t nbVisuals)
 {
   logDebug("Starting plugin_info_init.");
 
-  pp->sound.timeSinceLastBigGoom = 0;
-  pp->sound.timeSinceLastGoom = 0;
-  pp->sound.goomPower = 0;
-  pp->sound.volume = 0;
-
-  pp->sound.goom_limit = 1;
-  pp->sound.bigGoomLimit = 1;
-  pp->sound.accelvar = 0;
-  pp->sound.speedvar = 0;
-  pp->sound.allTimesMax = std::numeric_limits<int16_t>::min();
-  pp->sound.allTimesMin = std::numeric_limits<int16_t>::max();
-  pp->sound.allTimesPositiveMax = 1;
-  pp->sound.totalgoom = 0;
-  pp->sound.prov_max = 0;
-  pp->sound.cycle = 0;
-
-  pp->sound.volume_p = secure_f_feedback("Sound Volume");
-  pp->sound.accel_p = secure_f_feedback("Sound Acceleration");
-  pp->sound.speed_p = secure_f_feedback("Sound Speed");
-  pp->sound.goom_limit_p = secure_f_feedback("Goom Limit");
-  pp->sound.last_goom_p = secure_f_feedback("Goom Detection");
-  pp->sound.last_biggoom_p = secure_f_feedback("Big Goom Detection");
-  pp->sound.goom_power_p = secure_f_feedback("Goom Power");
-
-  pp->sound.biggoom_speed_limit_p = secure_i_param("Big Goom Speed Limit");
-  IVAL(pp->sound.biggoom_speed_limit_p) = 10;
-  IMIN(pp->sound.biggoom_speed_limit_p) = 0;
-  IMAX(pp->sound.biggoom_speed_limit_p) = 100;
-  ISTEP(pp->sound.biggoom_speed_limit_p) = 1;
-
-  pp->sound.biggoom_factor_p = secure_i_param("Big Goom Factor");
-  IVAL(pp->sound.biggoom_factor_p) = 10;
-  IMIN(pp->sound.biggoom_factor_p) = 0;
-  IMAX(pp->sound.biggoom_factor_p) = 100;
-  ISTEP(pp->sound.biggoom_factor_p) = 1;
-
-  pp->sound.params = plugin_parameters("Sound", 11);
+  pp->sound = std::make_unique<SoundInfo>();
 
   pp->nbParams = 0;
   pp->nbVisuals = nbVisuals;
   pp->visuals = (VisualFX**)malloc(sizeof(VisualFX*) * (size_t)nbVisuals);
-
-  pp->sound.params.params[0] = &pp->sound.biggoom_speed_limit_p;
-  pp->sound.params.params[1] = &pp->sound.biggoom_factor_p;
-  pp->sound.params.params[2] = 0;
-  pp->sound.params.params[3] = &pp->sound.volume_p;
-  pp->sound.params.params[4] = &pp->sound.accel_p;
-  pp->sound.params.params[5] = &pp->sound.speed_p;
-  pp->sound.params.params[6] = 0;
-  pp->sound.params.params[7] = &pp->sound.goom_limit_p;
-  pp->sound.params.params[8] = &pp->sound.goom_power_p;
-  pp->sound.params.params[9] = &pp->sound.last_goom_p;
-  pp->sound.params.params[10] = &pp->sound.last_biggoom_p;
 
   /* data for the update loop */
   pp->update.lockvar = 0;
@@ -136,7 +89,7 @@ void plugin_info_add_visual(PluginInfo* p, size_t i, VisualFX* visual)
     p->params = (PluginParameters*)malloc(sizeof(PluginParameters) * p->nbParams);
     i = p->nbVisuals;
     p->nbParams = 1;
-    p->params[0] = p->sound.params;
+    p->params[0] = p->sound->getParams();
     while (i--)
     {
       if (p->visuals[i]->params)

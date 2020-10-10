@@ -7,9 +7,12 @@
 #include "goom_graphic.h"
 #include "goom_visual_fx.h"
 #include "lines.h"
+#include "sound_info.h"
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
+#include <string>
 #include <unordered_set>
 
 namespace goom
@@ -24,47 +27,7 @@ enum class GoomDrawable
   lines,
   scope,
   farScope,
-  _size // must be last - gives number of enums
-};
-
-/**
- * Gives information about the sound.
- */
-struct SoundInfo
-{
-  // Note: a Goom is just a sound event...
-  int16_t samples[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN];
-
-  uint32_t timeSinceLastBigGoom; // >= 0
-  uint32_t timeSinceLastGoom; // >= 0
-  float goomPower; // power of the last Goom [0..1]
-  float volume; // [0..1]
-
-  // other "internal" data for the sound_tester
-  float goom_limit; // auto-updated limit of goom_detection
-  float bigGoomLimit;
-  float accelvar; // acceleration of the sound - [0..1]
-  float speedvar; // speed of the sound - [0..100]
-  int16_t allTimesMax;
-  int16_t allTimesMin;
-  int16_t allTimesPositiveMax;
-  uint32_t totalgoom; // number of goom since last reset (a reset every 64 cycles)
-
-  float prov_max; // accel max since last reset
-  int cycle;
-
-  // private data
-  PluginParam volume_p;
-  PluginParam speed_p;
-  PluginParam accel_p;
-  PluginParam goom_limit_p;
-  PluginParam goom_power_p;
-  PluginParam last_goom_p;
-  PluginParam last_biggoom_p;
-  PluginParam biggoom_speed_limit_p;
-  PluginParam biggoom_factor_p;
-
-  PluginParameters params; // contains the previously defined parameters.
+  _size
 };
 
 /**
@@ -85,7 +48,7 @@ struct PluginInfo
   };
   Screen screen;
 
-  SoundInfo sound;
+  std::unique_ptr<SoundInfo> sound;
 
   size_t nbVisuals;
   VisualFX** visuals; // pointers on all the visual fx

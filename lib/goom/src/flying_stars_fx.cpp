@@ -337,9 +337,9 @@ static void fs_sound_event_occured(VisualFX* _this, PluginInfo* goomInfo)
   data->maxAge = minStarAge + getNRand(maxStarExtraAge);
   data->useSingleBufferOnly = probabilityOfMInN(1, 10);
 
-  size_t max = 100 + static_cast<size_t>((1.0f + goomInfo->sound.goomPower) * getNRand(150));
+  size_t max = 100 + static_cast<size_t>((1.0f + goomInfo->sound->getGoomPower()) * getNRand(150));
   float radius =
-      (1.0f + goomInfo->sound.goomPower) * static_cast<float>(getNRand(150) + 50) / 300.0;
+      (1.0f + goomInfo->sound->getGoomPower()) * static_cast<float>(getNRand(150) + 50) / 300.0;
   float gravity = 0.02f;
 
   uint32_t mx;
@@ -366,7 +366,7 @@ static void fs_sound_event_occured(VisualFX* _this, PluginInfo* goomInfo)
           break;
         }
       }
-      vage = data->max_age * (1.0f - goomInfo->sound.goomPower);
+      vage = data->max_age * (1.0f - goomInfo->sound->getGoomPower());
     }
     break;
     case StarModes::rain:
@@ -392,7 +392,7 @@ static void fs_sound_event_occured(VisualFX* _this, PluginInfo* goomInfo)
 
   radius *= goomInfo->screen.height / 200.0f; // Why 200 ? Because the FX was developed on 320x200.
   max *= goomInfo->screen.height / 200.0f;
-  if (goomInfo->sound.timeSinceLastBigGoom < 1)
+  if (goomInfo->sound->getTimeSinceLastBigGoom() < 1)
   {
     radius *= 1.5;
     max *= 2;
@@ -427,10 +427,7 @@ inline uint32_t getLowColor(const FSData* data, const size_t starNum, const floa
   return getBrighterColor(brightness, data->stars[starNum].currentLowColorMap->getColor(tmix));
 }
 
-static void fs_apply(VisualFX* _this,
-                     [[maybe_unused]] Pixel* src,
-                     Pixel* dest,
-                     PluginInfo* goomInfo)
+static void fs_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* goomInfo)
 {
   FSData* data = static_cast<FSData*>(_this->fx_data);
 
@@ -448,7 +445,7 @@ static void fs_apply(VisualFX* _this,
   data->fx_mode = static_cast<StarModes>(IVAL(data->fx_mode_p));
 
   // look for events
-  if (goomInfo->sound.timeSinceLastGoom < 1)
+  if (goomInfo->sound->getTimeSinceLastGoom() < 1)
   {
     fs_sound_event_occured(_this, goomInfo);
     if (getNRand(20) == 1)

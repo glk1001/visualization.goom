@@ -237,8 +237,8 @@ void drawGoomLines(PluginInfo* goomInfo,
   const GMUnitPointer* pt = &(line->points[0]);
   const uint32_t color = getLightenedColor(line->color, line->power);
 
-  const float audioRange =
-      static_cast<float>(goomInfo->sound.allTimesMax - goomInfo->sound.allTimesMin);
+  const float audioRange = static_cast<float>(goomInfo->sound->getAllTimesMaxVolume() -
+                                              goomInfo->sound->getAllTimesMinVolume());
   if (audioRange < 0.0001)
   {
     // No range - flatline audio
@@ -251,7 +251,8 @@ void drawGoomLines(PluginInfo* goomInfo,
   // This factor gives height to the audio samples lines. This value seems pleasing.
   constexpr float maxNormalizedPeak = 90000;
   const auto getNormalizedData = [&](const int16_t data) {
-    return maxNormalizedPeak * static_cast<float>(data - goomInfo->sound.allTimesMin) / audioRange;
+    return maxNormalizedPeak * static_cast<float>(data - goomInfo->sound->getAllTimesMinVolume()) /
+           audioRange;
   };
 
   const uint32_t randColor = getRandomLineColor(goomInfo);

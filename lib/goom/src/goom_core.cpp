@@ -25,7 +25,6 @@
 #include "goomutils/mathutils.h"
 #include "ifs.h"
 #include "lines.h"
-#include "sound_tester.h"
 #include "tentacle3d.h"
 
 #include <array>
@@ -1018,10 +1017,10 @@ void goom_update(PluginInfo* goomInfo,
   // elargissement de l'intervalle d'évolution des points
   // ! calcul du deplacement des petits points ...
 
-  logDebug("goomInfo->sound.timeSinceLastGoom = {}", goomInfo->sound.timeSinceLastGoom);
+  logDebug("goomInfo->sound->getTimeSinceLastGoom() = {}", goomInfo->sound->getTimeSinceLastGoom());
 
   /* ! etude du signal ... */
-  evaluate_sound(data, &(goomInfo->sound));
+  goomInfo->sound->processSample(data);
 
   updateDecayRecay(goomInfo);
 
@@ -1129,7 +1128,6 @@ void goom_close(PluginInfo* goomInfo)
 
   // Release info visual
   free(goomInfo->params);
-  free(goomInfo->sound.params.params);
 
   // Release PluginInfo
   free(goomInfo->visuals);
@@ -1212,9 +1210,10 @@ static void changeFilterModeIfMusicChanges(PluginInfo* goomInfo, const int force
     return;
   }
 
-  logDebug("goomInfo->sound.timeSinceLastGoom = {}, goomInfo->update.cyclesSinceLastChange = {}",
-           goomInfo->sound.timeSinceLastGoom, goomInfo->update.cyclesSinceLastChange);
-  if ((goomInfo->sound.timeSinceLastGoom == 0) ||
+  logDebug(
+      "goomInfo->sound->getTimeSinceLastGoom() = {}, goomInfo->update.cyclesSinceLastChange = {}",
+      goomInfo->sound->getTimeSinceLastGoom(), goomInfo->update.cyclesSinceLastChange);
+  if ((goomInfo->sound->getTimeSinceLastGoom() == 0) ||
       (goomInfo->update.cyclesSinceLastChange > timeBetweenChange) || (forceMode > 0))
   {
     logDebug("Try to change the filter mode.");
@@ -1223,7 +1222,7 @@ static void changeFilterModeIfMusicChanges(PluginInfo* goomInfo, const int force
       changeFilterMode(goomInfo);
     }
   }
-  logDebug("goomInfo->sound.timeSinceLastGoom = {}", goomInfo->sound.timeSinceLastGoom);
+  logDebug("goomInfo->sound->getTimeSinceLastGoom() = {}", goomInfo->sound->getTimeSinceLastGoom());
 }
 
 static void setNextFilterMode(PluginInfo* goomInfo)
@@ -1548,7 +1547,7 @@ static void bigNormalUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
   goomInfo->update.lockvar = 50;
   stats.lockChange();
   const int32_t newvit =
-      stopSpeed + 1 - static_cast<int32_t>(3.5f * log10(goomInfo->sound.speedvar * 60 + 1));
+      stopSpeed + 1 - static_cast<int32_t>(3.5f * log10(goomInfo->sound->getSpeed() * 60 + 1));
   // retablir le zoom avant..
   if ((goomInfo->update.zoomFilterData.reverse) && (!(goomInfo->cycle % 13)) &&
       goomEvent.happens(GoomEvent::filterReverseOffAndStopSpeed))
@@ -1658,10 +1657,10 @@ static void bigUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
 
   // reperage de goom (acceleration forte de l'acceleration du volume)
   //   -> coup de boost de la vitesse si besoin..
-  logDebug("goomInfo->sound.timeSinceLastGoom = {}", goomInfo->sound.timeSinceLastGoom);
-  if (goomInfo->sound.timeSinceLastGoom == 0)
+  logDebug("goomInfo->sound->getTimeSinceLastGoom() = {}", goomInfo->sound->getTimeSinceLastGoom());
+  if (goomInfo->sound->getTimeSinceLastGoom() == 0)
   {
-    logDebug("goomInfo->sound.timeSinceLastGoom = 0.");
+    logDebug("goomInfo->sound->getTimeSinceLastGoom() = 0.");
     stats.lastTimeGoomChange();
     bigNormalUpdate(goomInfo, pzfd);
   }
@@ -1700,7 +1699,7 @@ static void changeZoomEffect(PluginInfo* goomInfo, ZoomFilterData* pzfd, const i
     goomInfo->update.previousZoomSpeed = goomInfo->update.zoomFilterData.vitesse;
     goomInfo->update.switchMult = 1.0f;
 
-    if (((goomInfo->sound.timeSinceLastGoom == 0) && (goomInfo->sound.totalgoom < 2)) ||
+    if (((goomInfo->sound->getTimeSinceLastGoom() == 0) && (goomInfo->sound->getTotalGoom() < 2)) ||
         (forceMode > 0))
     {
       goomInfo->update.switchIncr = 0;
@@ -1999,13 +1998,13 @@ static void displayLines(PluginInfo* goomInfo,
 
 static void bigBreakIfMusicIsCalm(PluginInfo* goomInfo, ZoomFilterData** pzfd)
 {
-  logDebug("goomInfo->sound.speedvar = {:.2}, goomInfo->update.zoomFilterData.vitesse = {}, "
+  logDebug("goomInfo->sound->getSpeed() = {:.2}, goomInfo->update.zoomFilterData.vitesse = {}, "
            "goomInfo->cycle = {}",
-           goomInfo->sound.speedvar, goomInfo->update.zoomFilterData.vitesse, goomInfo->cycle);
-  if ((goomInfo->sound.speedvar < 0.01f) &&
+           goomInfo->sound->getSpeed(), goomInfo->update.zoomFilterData.vitesse, goomInfo->cycle);
+  if ((goomInfo->sound->getSpeed() < 0.01f) &&
       (goomInfo->update.zoomFilterData.vitesse < (stopSpeed - 4)) && (goomInfo->cycle % 16 == 0))
   {
-    logDebug("goomInfo->sound.speedvar = {:.2}", goomInfo->sound.speedvar);
+    logDebug("goomInfo->sound->getSpeed() = {:.2}", goomInfo->sound->getSpeed());
     bigBreak(goomInfo, pzfd);
   }
 }
@@ -2066,7 +2065,7 @@ static void bigUpdateIfNotLocked(PluginInfo* goomInfo, ZoomFilterData** pzfd)
     logDebug("goomInfo->update.lockvar = 0");
     bigUpdate(goomInfo, pzfd);
   }
-  logDebug("goomInfo->sound.timeSinceLastGoom = {}", goomInfo->sound.timeSinceLastGoom);
+  logDebug("goomInfo->sound->getTimeSinceLastGoom() = {}", goomInfo->sound->getTimeSinceLastGoom());
 }
 
 static void forceFilterModeIfSet(PluginInfo* goomInfo, ZoomFilterData** pzfd, const int forceMode)
@@ -2098,12 +2097,13 @@ static void stopIfRequested(PluginInfo* goomInfo)
 static void displayLinesIfInAGoom(PluginInfo* goomInfo,
                                   const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN])
 {
-  logDebug("goomInfo->update.lineMode = {} != 0 || goomInfo->sound.timeSinceLastGoom = {}",
-           goomInfo->update.lineMode, goomInfo->sound.timeSinceLastGoom);
-  if ((goomInfo->update.lineMode != 0) || (goomInfo->sound.timeSinceLastGoom < 5))
+  logDebug("goomInfo->update.lineMode = {} != 0 || goomInfo->sound->getTimeSinceLastGoom() = {}",
+           goomInfo->update.lineMode, goomInfo->sound->getTimeSinceLastGoom());
+  if ((goomInfo->update.lineMode != 0) || (goomInfo->sound->getTimeSinceLastGoom() < 5))
   {
-    logDebug("goomInfo->update.lineMode = {} != 0 || goomInfo->sound.timeSinceLastGoom = {} < 5",
-             goomInfo->update.lineMode, goomInfo->sound.timeSinceLastGoom);
+    logDebug(
+        "goomInfo->update.lineMode = {} != 0 || goomInfo->sound->getTimeSinceLastGoom() = {} < 5",
+        goomInfo->update.lineMode, goomInfo->sound->getTimeSinceLastGoom());
 
     displayLines(goomInfo, data);
   }
@@ -2156,7 +2156,7 @@ static void drawDotsIfRequired(PluginInfo* goomInfo)
 
   logDebug("goomInfo->curGDrawables points is set.");
   goomDots->drawDots(goomInfo);
-  logDebug("goomInfo->sound.timeSinceLastGoom = {}", goomInfo->sound.timeSinceLastGoom);
+  logDebug("goomInfo->sound->getTimeSinceLastGoom() = {}", goomInfo->sound->getTimeSinceLastGoom());
 }
 
 GoomDots::GoomDots(const uint32_t screenW, const uint32_t screenH)
@@ -2214,15 +2214,16 @@ void GoomDots::drawDots(PluginInfo* goomInfo)
   stats.doPoints();
 
   uint32_t radius = 3;
-  if ((goomInfo->sound.timeSinceLastGoom == 0) || goomEvent.happens(GoomEvent::changeDotColors))
+  if ((goomInfo->sound->getTimeSinceLastGoom() == 0) ||
+      goomEvent.happens(GoomEvent::changeDotColors))
   {
     changeColors();
     radius = 5;
   }
 
-  const float largeFactor = getLargeSoundFactor(goomInfo->sound);
-  const uint32_t speedvarMult80Plus15 = goomInfo->sound.speedvar * 80 + 15;
-  const uint32_t speedvarMult50Plus1 = goomInfo->sound.speedvar * 50 + 1;
+  const float largeFactor = getLargeSoundFactor(*(goomInfo->sound));
+  const uint32_t speedvarMult80Plus15 = goomInfo->sound->getSpeed() * 80 + 15;
+  const uint32_t speedvarMult50Plus1 = goomInfo->sound->getSpeed() * 50 + 1;
   logDebug("speedvarMult80Plus15 = {}", speedvarMult80Plus15);
   logDebug("speedvarMult50Plus1 = {}", speedvarMult50Plus1);
 
@@ -2302,7 +2303,7 @@ void GoomDots::drawDots(PluginInfo* goomInfo)
 
 float GoomDots::getLargeSoundFactor(const SoundInfo& soundInfo) const
 {
-  float largefactor = soundInfo.speedvar / 150.0f + soundInfo.volume / 1.5f;
+  float largefactor = soundInfo.getSpeed() / 150.0f + soundInfo.getVolume() / 1.5f;
   if (largefactor > 1.5f)
   {
     largefactor = 1.5f;
