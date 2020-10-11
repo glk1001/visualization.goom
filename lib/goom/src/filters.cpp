@@ -499,14 +499,16 @@ inline v2g zoomVector(PluginInfo* goomInfo, const float x, const float y)
   {
     stats.doZoomVectorHPlaneEffect();
 
-    vx += y * data->filterData.hPlaneEffectAmplitude * data->filterData.hPlaneEffect;
+    vx += y * data->filterData.hPlaneEffectAmplitude *
+          static_cast<float>(data->filterData.hPlaneEffect);
   }
 
   // V Plane
   if (data->filterData.vPlaneEffect)
   {
     stats.doZoomVectorVPlaneEffect();
-    vy += x * data->filterData.vPlaneEffectAmplitude * data->filterData.vPlaneEffect;
+    vy += x * data->filterData.vPlaneEffectAmplitude *
+          static_cast<float>(data->filterData.vPlaneEffect);
   }
 
   /* TODO : Water Mode */

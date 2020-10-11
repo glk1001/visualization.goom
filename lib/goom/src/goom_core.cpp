@@ -230,7 +230,7 @@ class GoomStates
 public:
   using DrawablesState = std::unordered_set<GoomDrawable>;
 
-  GoomStates() noexcept;
+  GoomStates();
 
   bool isCurrentlyDrawable(const GoomDrawable) const;
   size_t getCurrentStateIndex() const;
@@ -252,7 +252,7 @@ private:
   size_t currentStateIndex;
 };
 
-GoomStates::GoomStates() noexcept : weightedStates{getWeightedStates(states)}, currentStateIndex{0}
+GoomStates::GoomStates() : weightedStates{getWeightedStates(states)}, currentStateIndex{0}
 {
   doRandomStateChange();
 }
@@ -483,7 +483,7 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
   logVal(module, "stateAtMax", stateAtMax);
   logVal(module, "filterModeAtMax", enumToString(filterModeAtMax));
   logVal(module, "totalStateChanges", totalStateChanges);
-  const float avStateDuration = totalStateChanges == 0 ? -1.0
+  const float avStateDuration = totalStateChanges == 0 ? -1.0F
                                                        : static_cast<float>(totalStateDurations) /
                                                              static_cast<float>(totalStateChanges);
   logVal(module, "averageStateDuration", avStateDuration);
@@ -495,7 +495,7 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
   {
     const float avStateDuration =
         numStateChanges[i] == 0
-            ? -1.0
+            ? -1.0F
             : static_cast<float>(stateDurations[i]) / static_cast<float>(numStateChanges[i]);
     logVal(module, "averageState_" + std::to_string(i) + "_Duration", avStateDuration);
   }
@@ -1119,14 +1119,14 @@ static void chooseGoomLine(PluginInfo* goomInfo,
       }
       else
       {
-        *param1 = *param2 = goomInfo->screen.height * 0.35;
+        *param1 = *param2 = goomInfo->screen.height * 0.35F;
       }
       break;
     case LineType::hline:
       if (goomEvent.happens(GoomEvent::changeHLineParams) || far)
       {
-        *param1 = goomInfo->screen.height / 7;
-        *param2 = 6.0f * goomInfo->screen.height / 7.0f;
+        *param1 = goomInfo->screen.height / 7.0F;
+        *param2 = 6.0f * goomInfo->screen.height / 7.0F;
       }
       else
       {

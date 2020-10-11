@@ -301,18 +301,16 @@ static Dbl halfGaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_
 
 constexpr Dbl get_1_minus_exp_neg_S(const Dbl S)
 {
-  return 1.0 - exp(-S);
+  return 1.0 - std::exp(-S);
 }
 
 static void randomSimis(const Fractal* fractal, Similitude* cur, uint32_t i)
 {
-  // @formatter:off  TODO MAYBE TURN cevelop formatter OFF
-  static const constinit Dbl c_AS_factor = 0.8 * get_1_minus_exp_neg_S(4.0);
+  static const constinit Dbl c_AS_factor = 0.8f * get_1_minus_exp_neg_S(4.0);
   static const constinit Dbl r_1_minus_exp_neg_S = get_1_minus_exp_neg_S(3.0);
   static const constinit Dbl r2_1_minus_exp_neg_S = get_1_minus_exp_neg_S(2.0);
-  static const constinit Dbl A_AS_factor = 360.0 * get_1_minus_exp_neg_S(4.0);
+  static const constinit Dbl A_AS_factor = 360.0F * get_1_minus_exp_neg_S(4.0);
   static const constinit Dbl A2_AS_factor = A_AS_factor;
-  // @formatter:on
 
   const Dbl r_AS_factor = fractal->drMean * r_1_minus_exp_neg_S;
   const Dbl r2_AS_factor = fractal->dr2Mean * r2_1_minus_exp_neg_S;
@@ -689,7 +687,7 @@ static void updatePixelBuffers(PluginInfo* goomInfo,
   const uint32_t width = goomInfo->screen.width;
   const uint32_t height = goomInfo->screen.height;
 
-  const float tStep = numPoints == 1 ? 0 : (1.0 - 0.0) / static_cast<float>(numPoints - 1);
+  const float tStep = numPoints == 1 ? 0.0F : (1.0F - 0.0F) / static_cast<float>(numPoints - 1);
   float t = -tStep;
   bool doneColorChange =
       fx_data->colorizer.getColorMode() != Colorizer::ColorMode::megaColorChange &&

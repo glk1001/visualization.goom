@@ -110,7 +110,7 @@ void TentacleDriver::init(const TentacleLayout& layout)
   logDebug("Got color maps.");
 
   const size_t numInParamGroup = numTentacles / iterParamsGroups.size();
-  const float tStep = 1.0 / static_cast<float>(numInParamGroup - 1);
+  const float tStep = 1.0F / static_cast<float>(numInParamGroup - 1);
   logDebug("numInTentacleGroup = {}, tStep = {:.2f}.", numInParamGroup, tStep);
 
   const utils::ColorMapGroup initialColorMapGroup = colorMaps->getRandomGroup();
@@ -357,7 +357,7 @@ void TentacleDriver::setReverseColorMix(const bool val)
 
 void TentacleDriver::updateIterTimers()
 {
-  for (auto t : iterTimers)
+  for (auto* t : iterTimers)
   {
     t->next();
   }

@@ -192,7 +192,7 @@ void SoundInfo::processSample(const int16_t soundData[NUM_AUDIO_SAMPLES][AUDIO_S
     }
     if (totalGoom == 0)
     {
-      goomLimit = maxAccelSinceLastReset - 0.02;
+      goomLimit = maxAccelSinceLastReset - 0.02F;
     }
     if ((totalGoom == 1) && (goomLimit > 0.02))
     {
@@ -215,9 +215,9 @@ void SoundInfo::processSample(const int16_t soundData[NUM_AUDIO_SAMPLES][AUDIO_S
   goom_limit_p.change_listener(&goom_limit_p);
   FVAL(goom_power_p) = goomPower;
   goom_power_p.change_listener(&goom_power_p);
-  FVAL(last_goom_p) = 1.0 - static_cast<float>(timeSinceLastGoom) / 20.0f;
+  FVAL(last_goom_p) = 1.0F - static_cast<float>(timeSinceLastGoom) / 20.0F;
   last_goom_p.change_listener(&last_goom_p);
-  FVAL(last_biggoom_p) = 1.0 - static_cast<float>(timeSinceLastBigGoom) / 40.0f;
+  FVAL(last_biggoom_p) = 1.0F - static_cast<float>(timeSinceLastBigGoom) / 40.0F;
   last_biggoom_p.change_listener(&last_biggoom_p);
 
   // bigGoomLimit == goomLimit*9/8+7 ?

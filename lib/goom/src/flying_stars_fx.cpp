@@ -341,7 +341,7 @@ static void fs_sound_event_occured(VisualFX* _this, PluginInfo* goomInfo)
 
   size_t max = 100 + static_cast<size_t>((1.0f + goomInfo->sound->getGoomPower()) * getNRand(150));
   float radius =
-      (1.0f + goomInfo->sound->getGoomPower()) * static_cast<float>(getNRand(150) + 50) / 300.0;
+      (1.0f + goomInfo->sound->getGoomPower()) * static_cast<float>(getNRand(150) + 50) / 300.0F;
   float gravity = 0.02f;
 
   uint32_t mx;
@@ -515,7 +515,7 @@ static void fs_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* goomI
   // look for dead particules
   for (size_t i = 0; i < data->numStars;)
   {
-    if ((data->stars[i].x > goomInfo->screen.width + 64) ||
+    if ((data->stars[i].x > static_cast<float>(goomInfo->screen.width + 64)) ||
         ((data->stars[i].vy >= 0) &&
          (data->stars[i].y - 16 * data->stars[i].vy > goomInfo->screen.height)) ||
         (data->stars[i].x < -64) || (data->stars[i].age >= data->maxAge))

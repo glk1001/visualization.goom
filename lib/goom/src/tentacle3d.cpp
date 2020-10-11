@@ -613,7 +613,7 @@ void TentaclesWrapper::update(PluginInfo* goomInfo, Pixel* frontBuff, Pixel* bac
     stats.updateWithPrettyMoveNoDraw();
     prettyMove(goomInfo->sound->getAcceleration());
 
-    cycle += 10.0 * cycleInc;
+    cycle += 10.0F * cycleInc;
     if (cycle > 1000)
     {
       stats.cycleReset();
@@ -667,8 +667,8 @@ void TentaclesWrapper::update(PluginInfo* goomInfo, Pixel* frontBuff, Pixel* bac
 
     // Higher sound acceleration increases tentacle wave frequency.
     const float tentacleWaveFreq = goomInfo->sound->getAcceleration() < 0.3
-                                       ? 1.25
-                                       : 1.0 / (1.10 - goomInfo->sound->getAcceleration());
+                                       ? 1.25F
+                                       : 1.0F / (1.10F - goomInfo->sound->getAcceleration());
     currentDriver->multiplyIterZeroYValWaveFreq(tentacleWaveFreq);
 
     currentDriver->update(m_half_pi - rot, distt, distt2, modColor, modColorLow, frontBuff,
@@ -718,7 +718,7 @@ void TentaclesWrapper::prettyMoveStart(const float acceleration, const int32_t t
   prettyMoveCheckStopMark = prettyMoveHappeningTimer / 4;
   postPrettyMoveLock = 3 * prettyMoveHappeningTimer / 2;
 
-  distt2Offset = (1.0 / (1.10 - acceleration)) * getRandInRange(distt2Min, distt2Max);
+  distt2Offset = (1.0F / (1.10F - acceleration)) * getRandInRange(distt2Min, distt2Max);
   rotAtStartOfPrettyMove = rot;
   cycleInc = getRandInRange(cycleIncMin, cycleIncMax);
   currentDriver->setRoughTentacles(true);
@@ -790,7 +790,7 @@ inline TentacleDriver* TentaclesWrapper::getNextDriver() const
 
 inline float TentaclesWrapper::getStableRotationOffset(const float cycleVal)
 {
-  return (1.5 + sin(cycleVal) / 32.0) * m_pi;
+  return (1.5F + sin(cycleVal) / 32.0F) * m_pi;
 }
 
 void TentaclesWrapper::prettyMove(const float acceleration)
@@ -805,10 +805,10 @@ void TentaclesWrapper::prettyMove(const float acceleration)
   distt2 = std::lerp(distt2, distt2Offset, prettyMoveLerpMix);
 
   // Bigger offset here means tentacles start further back behind screen.
-  float disttOffset = std::lerp(disttMin, disttMax, 0.5 * (1.0 - sin(cycle * 19.0 / 20.0)));
+  float disttOffset = std::lerp(disttMin, disttMax, 0.5F * (1.0F - sin(cycle * 19.0 / 20.0)));
   if (isPrettyMoveHappening)
   {
-    disttOffset *= 0.6f;
+    disttOffset *= 0.6F;
   }
   distt = std::lerp(distt, disttOffset, 4.0f * prettyMoveLerpMix);
 
