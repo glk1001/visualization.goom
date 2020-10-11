@@ -24,6 +24,7 @@ target_include_directories(test_main
         "/home/greg/Prj/github/catch2/include"
         "/home/greg/Prj/github/xbmc/visualization.goom/lib/goom/include/goom"  
         "/home/greg/Prj/github/xbmc/visualization.goom/lib/goomutils/include/goomutils"  
+        ${CMAKE_SOURCE_DIR}/lib/magic_enum/include
 )
 
 # Hacking?????????????????????????

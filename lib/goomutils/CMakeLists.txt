@@ -20,6 +20,7 @@ target_include_directories( ${PROJECT_NAME}
         ${CMAKE_SOURCE_DIR}/lib/goomutils/include/goomutils
         ${CMAKE_SOURCE_DIR}/lib/vivid/include
         ${CMAKE_SOURCE_DIR}/lib/fmt/include
+        ${CMAKE_SOURCE_DIR}/lib/magic_enum/include
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)

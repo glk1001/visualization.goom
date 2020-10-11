@@ -33,3 +33,26 @@ TEST_CASE("splitString", "[splitString]")
   REQUIRE(test4[2] == "word3 ");
   REQUIRE(test4[3] == "word4 ");
 }
+
+TEST_CASE("enumToString", "[enumToString]")
+{
+  enum class EnumTester
+  {
+    _null = -1,
+    test1,
+    test2,
+    test3,
+    _size
+  };
+
+  EnumTester test = EnumTester::_null;
+  REQUIRE(enumToString(test) == "_null");
+  test = EnumTester::test1;
+  REQUIRE(enumToString(test) == "test1");
+  test = EnumTester::test2;
+  REQUIRE(enumToString(test) == "test2");
+  test = EnumTester::_size;
+  REQUIRE(enumToString(test) == "_size");
+
+  REQUIRE(enumToString(EnumTester::test3) == "test3");
+}

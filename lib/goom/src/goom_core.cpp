@@ -32,7 +32,6 @@
 #include <cmath>
 #include <cstdint>
 #include <format>
-#include <magic_enum.hpp>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -47,13 +46,6 @@ namespace goom
 {
 
 using namespace goom::utils;
-
-// TODO Put in utils
-template<class E>
-std::string enumToString(const E e)
-{
-  return std::string(magic_enum::enum_name(e));
-}
 
 class GoomEvents
 {
