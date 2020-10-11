@@ -1,6 +1,7 @@
+#include "flying_stars_fx.h"
+
 #include "colorutils.h"
 #include "drawmethods.h"
-#include "goom_fx.h"
 #include "goom_plugin_info.h"
 #include "goomutils/colormap.h"
 #include "goomutils/colormap_enums.h"
@@ -491,8 +492,7 @@ static void fs_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* goomI
       const uint32_t mixedColor = ColorMap::colorMix(color, lowColor, t);
       const int x2 = x0 - static_cast<int>(data->stars[i].vx * j);
       const int y2 = y0 - static_cast<int>(data->stars[i].vy * j);
-      const uint8_t thickness =
-          static_cast<uint8_t>(std::clamp(t * getRandInRange(1.0f, 5.0f), 1.0f, 5.0f));
+      const uint8_t thickness = static_cast<uint8_t>(getRandInRange(1u, 5u));
 
       if (data->useSingleBufferOnly)
       {

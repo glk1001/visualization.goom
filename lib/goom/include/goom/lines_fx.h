@@ -1,5 +1,5 @@
-#ifndef _LINES_H
-#define _LINES_H
+#ifndef _LINES_FX_H
+#define _LINES_FX_H
 
 /*
  *  lines.h

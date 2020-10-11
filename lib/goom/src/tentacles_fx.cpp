@@ -1,4 +1,4 @@
-#include "tentacle3d.h"
+#include "tentacles_fx.h"
 
 #include "colorutils.h"
 #include "goom_config.h"
@@ -11,8 +11,8 @@
 //#undef NO_LOGGING
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
+#include "tentacle_driver.h"
 #include "tentacles.h"
-#include "tentacles_driver.h"
 #include "v3d.h"
 
 #include <algorithm>

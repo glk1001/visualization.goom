@@ -1,4 +1,4 @@
-#include "goom_dots.h"
+#include "goom_dots_fx.h"
 
 #include "colorutils.h"
 #include "drawmethods.h"

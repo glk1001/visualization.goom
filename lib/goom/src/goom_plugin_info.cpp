@@ -1,6 +1,5 @@
 #include "goom_plugin_info.h"
 
-#include "goom_fx.h"
 #include "goomutils/logging_control.h"
 #include "sound_info.h"
 // #undef NO_LOGGING

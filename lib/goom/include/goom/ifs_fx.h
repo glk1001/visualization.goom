@@ -1,5 +1,5 @@
-#ifndef IFS_H
-#define IFS_H
+#ifndef IFS_FX_H
+#define IFS_FX_H
 
 /*
  * File created 11 april 2002 by JeKo <jeko@free.fr>

@@ -1,6 +1,7 @@
+#include "convolve_fx.h"
+
 #include "colorutils.h"
 #include "goom_config.h"
-#include "goom_fx.h"
 #include "goom_plugin_info.h"
 #include "goomutils/mathutils.h"
 

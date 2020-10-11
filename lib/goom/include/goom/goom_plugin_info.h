@@ -6,7 +6,7 @@
 #include "goom_config_param.h"
 #include "goom_graphic.h"
 #include "goom_visual_fx.h"
-#include "lines.h"
+#include "lines_fx.h"
 #include "sound_info.h"
 
 #include <cstddef>

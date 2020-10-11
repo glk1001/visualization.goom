@@ -1,5 +1,5 @@
-#ifndef LIBS_GOOM_INCLUDE_GOOM_TENTACLES_DRIVER_H_
-#define LIBS_GOOM_INCLUDE_GOOM_TENTACLES_DRIVER_H_
+#ifndef LIBS_GOOM_INCLUDE_GOOM_TENTACLE_DRIVER_H_
+#define LIBS_GOOM_INCLUDE_GOOM_TENTACLE_DRIVER_H_
 
 #include "goom_graphic.h"
 #include "goomutils/colormap.h"

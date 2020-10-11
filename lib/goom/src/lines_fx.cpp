@@ -1,4 +1,4 @@
-#include "lines.h"
+#include "lines_fx.h"
 
 #include "colorutils.h"
 #include "drawmethods.h"

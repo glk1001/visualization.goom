@@ -9,11 +9,12 @@
 
 #include "goom_core.h"
 
+#include "convolve_fx.h"
 #include "filters.h"
+#include "flying_stars_fx.h"
 #include "gfontlib.h"
 #include "goom_config.h"
-#include "goom_dots.h"
-#include "goom_fx.h"
+#include "goom_dots_fx.h"
 #include "goom_graphic.h"
 #include "goom_plugin_info.h"
 #include "goomutils/goomrand.h"
@@ -22,9 +23,9 @@
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
 #include "goomutils/strutils.h"
-#include "ifs.h"
-#include "lines.h"
-#include "tentacle3d.h"
+#include "ifs_fx.h"
+#include "lines_fx.h"
+#include "tentacles_fx.h"
 
 #include <algorithm>
 #include <array>
@@ -152,7 +153,7 @@ private:
     { .event = GoomEvent::changeLineToBlack,                   .m = 1, .outOf =   2 },
     { .event = GoomEvent::changeGoomLine,                      .m = 1, .outOf =   3 },
     { .event = GoomEvent::ifsRenew,                            .m = 2, .outOf =   3 },
-    { .event = GoomEvent::changeBlockyWavyToOn,                .m = 1, .outOf =   5 },
+    { .event = GoomEvent::changeBlockyWavyToOn,                .m = 1, .outOf =  10 },
   }};
 
   static constexpr std::array<std::pair<GoomFilterEvent, size_t>, numGoomFilterEvents> weightedFilterEvents{{
@@ -453,22 +454,24 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
   else
   {
     logVal(module, "lastZoomFilterData->mode", enumToString(lastZoomFilterData->mode));
-    logVal(module, "lastZoomFilterData->hPlaneEffect", lastZoomFilterData->hPlaneEffect);
-    logVal(module, "lastZoomFilterData->vPlaneEffect", lastZoomFilterData->vPlaneEffect);
-    logVal(module, "lastZoomFilterData->hypercosEffect", lastZoomFilterData->hypercosEffect);
-    logVal(module, "lastZoomFilterData->middleX", lastZoomFilterData->middleX);
-    logVal(module, "lastZoomFilterData->middleY", lastZoomFilterData->middleY);
-    logVal(module, "lastZoomFilterData->noiseFactor",
-           static_cast<float>(lastZoomFilterData->noiseFactor));
-    logVal(module, "lastZoomFilterData->noisify",
-           static_cast<uint32_t>(lastZoomFilterData->noisify));
+    logVal(module, "lastZoomFilterData->vitesse", lastZoomFilterData->vitesse);
     logVal(module, "lastZoomFilterData->pertedec",
            static_cast<uint32_t>(lastZoomFilterData->pertedec));
+    logVal(module, "lastZoomFilterData->middleX", lastZoomFilterData->middleX);
+    logVal(module, "lastZoomFilterData->middleY", lastZoomFilterData->middleY);
     logVal(module, "lastZoomFilterData->reverse",
            static_cast<uint32_t>(lastZoomFilterData->reverse));
-    logVal(module, "lastZoomFilterData->vitesse", lastZoomFilterData->vitesse);
+    logVal(module, "lastZoomFilterData->hPlaneEffect", lastZoomFilterData->hPlaneEffect);
+    logVal(module, "lastZoomFilterData->vPlaneEffect", lastZoomFilterData->vPlaneEffect);
     logVal(module, "lastZoomFilterData->waveEffect",
            static_cast<uint32_t>(lastZoomFilterData->waveEffect));
+    logVal(module, "lastZoomFilterData->hypercosEffect", lastZoomFilterData->hypercosEffect);
+    logVal(module, "lastZoomFilterData->noisify",
+           static_cast<uint32_t>(lastZoomFilterData->noisify));
+    logVal(module, "lastZoomFilterData->noiseFactor",
+           static_cast<float>(lastZoomFilterData->noiseFactor));
+    logVal(module, "lastZoomFilterData->blockyWavy",
+           static_cast<uint32_t>(lastZoomFilterData->blockyWavy));
     logVal(module, "lastZoomFilterData->waveFreqFactor", lastZoomFilterData->waveFreqFactor);
     logVal(module, "lastZoomFilterData->waveAmplitude", lastZoomFilterData->waveAmplitude);
     logVal(module, "lastZoomFilterData->waveEffectType",

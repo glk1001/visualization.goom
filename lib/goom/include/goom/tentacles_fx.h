@@ -1,5 +1,5 @@
-#ifndef _TENTACLE3D_H
-#define _TENTACLE3D_H
+#ifndef _TENTACLES_FX_H
+#define _TENTACLES_FX_H
 
 #include "goom_config_param.h"
 #include "goom_graphic.h"

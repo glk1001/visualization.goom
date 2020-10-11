@@ -1,5 +1,5 @@
-#ifndef LIBS_GOOM_INCLUDE_GOOM_GOOM_DOTS_H_
-#define LIBS_GOOM_INCLUDE_GOOM_GOOM_DOTS_H_
+#ifndef LIBS_GOOM_INCLUDE_GOOM_GOOM_DOTS_FX_H_
+#define LIBS_GOOM_INCLUDE_GOOM_GOOM_DOTS_FX_H_
 
 #include "goom_graphic.h"
 #include "goomutils/colormap.h"
@@ -59,4 +59,4 @@ private:
 
 } // namespace goom
 
-#endif /* LIBS_GOOM_INCLUDE_GOOM_GOOM_DOTS_H_ */
+#endif /* LIBS_GOOM_INCLUDE_GOOM_GOOM_DOTS_FX_H_ */

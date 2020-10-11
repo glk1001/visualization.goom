@@ -19,14 +19,14 @@ set (SRCE_FILES
                  src/gfontrle.cpp
                  src/goom_config_param.cpp
                  src/goom_core.cpp
-                 src/goom_dots.cpp
+                 src/goom_dots_fx.cpp
                  src/goom_plugin_info.cpp
                  src/goom_testing.cpp
-                 src/ifs.cpp
-                 src/lines.cpp
+                 src/ifs_fx.cpp
+                 src/lines_fx.cpp
                  src/sound_info.cpp
-                 src/tentacle3d.cpp
-                 src/tentacles_driver.cpp
+                 src/tentacles_fx.cpp
+                 src/tentacle_driver.cpp
                  src/tentacles.cpp
 )
 

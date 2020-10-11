@@ -32,8 +32,7 @@
  */
 
 /* #ifdef STANDALONE */
-
-#include "ifs.h"
+#include "ifs_fx.h"
 
 #include "colorutils.h"
 #include "goom_config.h"
@@ -48,6 +47,7 @@
 #include "goomutils/mathutils.h"
 
 #include <array>
+
 #undef NDEBUG
 #include <cassert>
 #include <cmath>
