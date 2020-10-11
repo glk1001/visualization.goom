@@ -8,6 +8,7 @@ message(STATUS "Tests C++ warnings = \"${COMMON_CXX_WARNINGS}\".")
 add_executable(test_main
     src/test_main.cpp
     src/test_colorutils.cpp
+    src/test_strutils.cpp
 )
 
 target_link_libraries(test_main
@@ -22,6 +23,7 @@ target_include_directories(test_main
     PUBLIC 
         "/home/greg/Prj/github/catch2/include"
         "/home/greg/Prj/github/xbmc/visualization.goom/lib/goom/include/goom"  
+        "/home/greg/Prj/github/xbmc/visualization.goom/lib/goomutils/include/goomutils"  
 )
 
 # Hacking?????????????????????????

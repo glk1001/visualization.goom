@@ -7,6 +7,7 @@ add_library( ${PROJECT_NAME} STATIC
     src/goomrand.cpp
     src/logging.cpp
     src/mathutils.cpp
+    src/strutils.cpp
 )
 
 add_library(libs::vivid ALIAS ${PROJECT_NAME})

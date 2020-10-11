@@ -23,6 +23,7 @@
 #undef NO_LOGGING
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
+#include "goomutils/strutils.h"
 #include "ifs.h"
 #include "lines.h"
 #include "tentacle3d.h"
@@ -34,7 +35,6 @@
 #include <format>
 #include <magic_enum.hpp>
 #include <memory>
-#include <ranges>
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
@@ -731,11 +731,11 @@ static void changeFilterMode(PluginInfo*);
 static void init_buffers(PluginInfo* goomInfo, const uint32_t buffsize)
 {
   goomInfo->pixel = (uint32_t*)malloc(buffsize * sizeof(uint32_t) + 128);
-  bzero(goomInfo->pixel, buffsize * sizeof(uint32_t) + 128);
+  memset(goomInfo->pixel, 0, buffsize * sizeof(uint32_t) + 128);
   goomInfo->back = (uint32_t*)malloc(buffsize * sizeof(uint32_t) + 128);
-  bzero(goomInfo->back, buffsize * sizeof(uint32_t) + 128);
+  memset(goomInfo->back, 0, buffsize * sizeof(uint32_t) + 128);
   goomInfo->conv = (Pixel*)malloc(buffsize * sizeof(uint32_t) + 128);
-  bzero(goomInfo->conv, buffsize * sizeof(uint32_t) + 128);
+  memset(goomInfo->conv, 0, buffsize * sizeof(uint32_t) + 128);
 
   goomInfo->outputBuf = goomInfo->conv;
 
@@ -1860,22 +1860,6 @@ static void displayText(PluginInfo* goomInfo,
 /*
  * Met a jour l'affichage du message defilant
  */
-
-static std::vector<std::string> splitString(const std::string& str, const std::string& delim)
-{
-  auto parts = str | std::views::split(delim);
-  std::vector<std::string> vec;
-  for (auto part : parts)
-  {
-    std::string s = "";
-    for (auto c : part)
-    {
-      s += c;
-    }
-    vec.emplace_back(s);
-  }
-  return vec;
-}
 
 static void updateMessage(PluginInfo* goomInfo, const char* message)
 {
