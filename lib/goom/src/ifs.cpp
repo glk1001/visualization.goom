@@ -168,7 +168,7 @@ private:
   uint32_t colorMapChangeCompleted = minColorMapChangeCompleted;
 
   ColorMode colorMode;
-  float mixFactor; // in [0, 1]
+  float tBetweenColors; // in [0, 1]
   static ColorMode getNextColorMode();
   Pixel getNextMixerMapColor(const float t) const;
 };
@@ -179,7 +179,7 @@ Colorizer::Colorizer() noexcept
     mixerMap{&colorMaps.getRandomColorMap(currentColorMapGroup)},
     prevMixerMap{mixerMap},
     colorMode{ColorMode::mapColors},
-    mixFactor{0.5}
+    tBetweenColors{0.5}
 {
 }
 
@@ -223,6 +223,7 @@ void Colorizer::changeColorMaps()
   prevMixerMap = mixerMap;
   mixerMap = &colorMaps.getRandomColorMap(currentColorMapGroup);
   colorMapChangeCompleted = getRandInRange(minColorMapChangeCompleted, maxColorMapChangeCompleted);
+  tBetweenColors = getRandInRange(0.2F, 0.8F);
   countSinceColorMapChange = colorMapChangeCompleted;
 }
 
@@ -248,19 +249,19 @@ inline Pixel Colorizer::getMixedColor(const Pixel& color, const float tmix)
     case ColorMode::mapColors:
     case ColorMode::megaColorChange:
     {
-      const float t = getLuma(color) / maxChannelVal;
-      return getNextMixerMapColor(t);
+      const float tBright = getLuma(color) / maxChannelVal;
+      return getNextMixerMapColor(tBright);
     }
     case ColorMode::mixColors:
     case ColorMode::mixedMegaColorChange:
     {
       const uint32_t mixColor = getNextMixerMapColor(tmix).val;
-      return {.val = ColorMap::colorMix(mixColor, color.val, mixFactor)};
+      return {.val = ColorMap::colorMix(mixColor, color.val, tBetweenColors)};
     }
     case ColorMode::reverseMixColors:
     {
       const uint32_t mixColor = getNextMixerMapColor(tmix).val;
-      return Pixel{.val = ColorMap::colorMix(color.val, mixColor, mixFactor)};
+      return Pixel{.val = ColorMap::colorMix(color.val, mixColor, tBetweenColors)};
     }
     case ColorMode::singleColors:
       return color;
