@@ -574,7 +574,7 @@ static void makeZoomBufferStripe(PluginInfo* goomInfo, const uint32_t INTERLACE_
   }
 }
 
-static Pixel getMixedColor(const CoeffArray& coeffs,
+inline Pixel getMixedColor(const CoeffArray& coeffs,
                            const Pixel& col1,
                            const Pixel& col2,
                            const Pixel& col3,
@@ -614,9 +614,9 @@ static Pixel getMixedColor(const CoeffArray& coeffs,
   }
   b >>= 8;
 
-  return Pixel{.channels = {.r = static_cast<uint8_t>(r),
-                            .g = static_cast<uint8_t>(g),
-                            .b = static_cast<uint8_t>(b),
+  return Pixel{.channels = {.r = static_cast<uint8_t>((r & 0xffffff00) ? 0xff : r),
+                            .g = static_cast<uint8_t>((g & 0xffffff00) ? 0xff : g),
+                            .b = static_cast<uint8_t>((b & 0xffffff00) ? 0xff : b),
                             .a = 0xff}};
 }
 
