@@ -19,6 +19,7 @@ set (SRCE_FILES
                  src/gfontrle.cpp
                  src/goom_config_param.cpp
                  src/goom_core.cpp
+                 src/goom_dots.cpp
                  src/goom_plugin_info.cpp
                  src/goom_testing.cpp
                  src/ifs.cpp

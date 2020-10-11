@@ -9,15 +9,13 @@
 
 #include "goom_core.h"
 
-#include "colorutils.h"
-#include "drawmethods.h"
 #include "filters.h"
 #include "gfontlib.h"
 #include "goom_config.h"
+#include "goom_dots.h"
 #include "goom_fx.h"
 #include "goom_graphic.h"
 #include "goom_plugin_info.h"
-#include "goomutils/colormap.h"
 #include "goomutils/goomrand.h"
 #include "goomutils/logging_control.h"
 #undef NO_LOGGING
@@ -28,6 +26,7 @@
 #include "lines.h"
 #include "tentacle3d.h"
 
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <cmath>
@@ -91,7 +90,6 @@ public:
     updateLineMode,
     changeLineToBlack,
     changeGoomLine,
-    changeDotColors,
     ifsRenew,
     changeBlockyWavyToOn,
     _size // must be last - gives number of enums
@@ -134,7 +132,7 @@ private:
     uint32_t outOf;
   };
   // clang-format off
-  static constexpr std::array<WeightedEvent, numGoomEvents> weightedEvents{ {
+  static constexpr std::array<WeightedEvent, numGoomEvents> weightedEvents{{
     { .event = GoomEvent::changeFilterMode,                    .m = 1, .outOf =  16 },
     { .event = GoomEvent::changeFilterFromAmuletteMode,        .m = 1, .outOf =   5 },
     { .event = GoomEvent::changeState,                         .m = 1, .outOf =   2 },
@@ -161,12 +159,11 @@ private:
     { .event = GoomEvent::updateLineMode,                      .m = 1, .outOf =   4 },
     { .event = GoomEvent::changeLineToBlack,                   .m = 1, .outOf =   2 },
     { .event = GoomEvent::changeGoomLine,                      .m = 1, .outOf =   3 },
-    { .event = GoomEvent::changeDotColors,                     .m = 1, .outOf =   3 },
     { .event = GoomEvent::ifsRenew,                            .m = 2, .outOf =   3 },
     { .event = GoomEvent::changeBlockyWavyToOn,                .m = 1, .outOf =   5 },
-  } };
+  }};
 
-  static constexpr std::array<std::pair<GoomFilterEvent, size_t>, numGoomFilterEvents> weightedFilterEvents{ {
+  static constexpr std::array<std::pair<GoomFilterEvent, size_t>, numGoomFilterEvents> weightedFilterEvents{{
     { GoomFilterEvent::waveModeWithHyperCosEffect,  2 },
     { GoomFilterEvent::waveMode,                    3 },
     { GoomFilterEvent::crystalBallMode,             1 },
@@ -182,11 +179,11 @@ private:
     { GoomFilterEvent::normalMode,                  2 },
   } };
 
-  static constexpr std::array<std::pair<LineType, size_t>, numLineTypes> weightedLineEvents{ {
+  static constexpr std::array<std::pair<LineType, size_t>, numLineTypes> weightedLineEvents{{
     { LineType::circle, 8 },
     { LineType::hline,  2 },
     { LineType::vline,  2 },
-  } };
+  }};
   // clang-format on
   const Weights<GoomFilterEvent> filterWeights;
   const Weights<LineType> lineTypeWeights;
@@ -283,7 +280,6 @@ inline const GoomStates::DrawablesState& GoomStates::getCurrentDrawables() const
   return states[currentStateIndex].drawables;
 }
 
-
 inline void GoomStates::doRandomStateChange()
 {
   currentStateIndex = static_cast<size_t>(weightedStates.getRandomWeighted());
@@ -292,27 +288,27 @@ inline void GoomStates::doRandomStateChange()
 // clang-format off
 const GoomStates::WeightedStatesArray GoomStates::states{ {
   /**
-  { .weight =  60, .drawables = {GD::IFS,                                                 GD::scope, GD::farScope}},
+  { .weight =  60, .drawables = { GD::IFS,                                                 GD::scope, GD::farScope }},
   **/
   /**
-//  { .weight =  40, .drawables = {GD::IFS,             GD::tentacles,                      GD::scope, GD::farScope}},
-  { .weight =  40, .drawables = {                     GD::tentacles,                      GD::scope, GD::farScope}},
-  { .weight =  40, .drawables = {                     GD::tentacles,                                 GD::farScope}},
-  { .weight =  40, .drawables = {                     GD::tentacles,                      GD::scope              }},
-  { .weight =  40, .drawables = {                     GD::tentacles,                                             }},
+//  { .weight =  40, .drawables = { GD::IFS,             GD::tentacles,                      GD::scope, GD::farScope }},
+  { .weight =  40, .drawables = {                      GD::tentacles,                      GD::scope, GD::farScope }},
+  { .weight =  40, .drawables = {                      GD::tentacles,                                 GD::farScope }},
+  { .weight =  40, .drawables = {                      GD::tentacles,                      GD::scope               }},
+  { .weight =  40, .drawables = {                      GD::tentacles,                                              }},
   **/
-  { .weight = 100, .drawables = {GD::IFS, GD::dots, GD::stars,                           GD::scope, GD::farScope}},
-  { .weight =  40, .drawables = {GD::IFS,           GD::tentacles, GD::stars,                       GD::farScope}},
-  { .weight =  60, .drawables = {GD::IFS,                          GD::stars, GD::lines, GD::scope, GD::farScope}},
-  { .weight =  70, .drawables = {GD::IFS,           GD::tentacles,                       GD::scope, GD::farScope}},
-  { .weight =  60, .drawables = {         GD::dots, GD::tentacles, GD::stars, GD::lines, GD::scope, GD::farScope}},
-  { .weight =  60, .drawables = {         GD::dots, GD::tentacles,            GD::lines, GD::scope, GD::farScope}},
-  { .weight = 100, .drawables = {         GD::dots, GD::tentacles, GD::stars,            GD::scope              }},
-  { .weight =  70, .drawables = {         GD::dots, GD::tentacles,                       GD::scope, GD::farScope}},
-  { .weight = 100, .drawables = {                   GD::tentacles, GD::stars, GD::lines,            GD::farScope}},
-  { .weight =  60, .drawables = {                                  GD::stars, GD::lines, GD::scope, GD::farScope}},
-  { .weight =  60, .drawables = {         GD::dots,                GD::stars,            GD::scope, GD::farScope}},
-  { .weight =  60, .drawables = {         GD::dots,                           GD::lines, GD::scope, GD::farScope}},
+  { .weight = 100, .drawables = { GD::IFS, GD::dots, GD::stars,                           GD::scope, GD::farScope }},
+  { .weight =  40, .drawables = { GD::IFS,           GD::tentacles, GD::stars,                       GD::farScope }},
+  { .weight =  60, .drawables = { GD::IFS,                          GD::stars, GD::lines, GD::scope, GD::farScope }},
+  { .weight =  70, .drawables = { GD::IFS,           GD::tentacles,                       GD::scope, GD::farScope }},
+  { .weight =  60, .drawables = {          GD::dots, GD::tentacles, GD::stars, GD::lines, GD::scope, GD::farScope }},
+  { .weight =  60, .drawables = {          GD::dots, GD::tentacles,            GD::lines, GD::scope, GD::farScope }},
+  { .weight = 100, .drawables = {          GD::dots, GD::tentacles, GD::stars,            GD::scope               }},
+  { .weight =  70, .drawables = {          GD::dots, GD::tentacles,                       GD::scope, GD::farScope }},
+  { .weight = 100, .drawables = {                    GD::tentacles, GD::stars, GD::lines,            GD::farScope }},
+  { .weight =  60, .drawables = {                                   GD::stars, GD::lines, GD::scope, GD::farScope }},
+  { .weight =  60, .drawables = {          GD::dots,                GD::stars,            GD::scope, GD::farScope }},
+  { .weight =  60, .drawables = {          GD::dots,                           GD::lines, GD::scope, GD::farScope }},
 }};
 // clang-format on
 
@@ -326,7 +322,6 @@ std::vector<std::pair<uint16_t, size_t>> GoomStates::getWeightedStates(
   }
   return weightedVals;
 }
-
 
 class GoomStats
 {
@@ -348,7 +343,7 @@ public:
   void filterModeChange(const ZoomFilterMode);
   void lockChange();
   void doIFS();
-  void doPoints();
+  void doDots();
   void doLines();
   void switchLines();
   void doStars();
@@ -389,7 +384,7 @@ private:
   uint32_t totalFilterModeChanges = 0;
   uint32_t numLockChanges = 0;
   uint32_t numDoIFS = 0;
-  uint32_t numDoPoints = 0;
+  uint32_t numDoDots = 0;
   uint32_t numDoLines = 0;
   uint32_t numDoStars = 0;
   uint32_t numDoTentacles = 0;
@@ -431,7 +426,7 @@ void GoomStats::reset()
   numFilterModeChanges.fill(0);
   numLockChanges = 0;
   numDoIFS = 0;
-  numDoPoints = 0;
+  numDoDots = 0;
   numDoLines = 0;
   numDoStars = 0;
   numDoTentacles = 0;
@@ -520,7 +515,7 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
   }
   logVal(module, "numLockChanges", numLockChanges);
   logVal(module, "numDoIFS", numDoIFS);
-  logVal(module, "numDoPoints", numDoPoints);
+  logVal(module, "numDoDots", numDoDots);
   logVal(module, "numDoLines", numDoLines);
   logVal(module, "numDoStars", numDoStars);
   logVal(module, "numDoTentacles", numDoTentacles);
@@ -646,9 +641,9 @@ inline void GoomStats::doIFS()
   numDoIFS++;
 }
 
-inline void GoomStats::doPoints()
+inline void GoomStats::doDots()
 {
-  numDoPoints++;
+  numDoDots++;
 }
 
 inline void GoomStats::doLines()
@@ -728,7 +723,7 @@ constexpr int32_t timeBetweenChange = 300;
 static void changeState(PluginInfo*);
 static void changeFilterMode(PluginInfo*);
 
-static void init_buffers(PluginInfo* goomInfo, const uint32_t buffsize)
+static void initBuffers(PluginInfo* goomInfo, const uint32_t buffsize)
 {
   goomInfo->pixel = (uint32_t*)malloc(buffsize * sizeof(uint32_t) + 128);
   memset(goomInfo->pixel, 0, buffsize * sizeof(uint32_t) + 128);
@@ -788,50 +783,6 @@ inline bool changeFilterModeEventHappens(PluginInfo* goomInfo)
   return goomEvent.happens(GoomEvent::changeFilterMode);
 }
 
-class GoomDots
-{
-public:
-  GoomDots(const uint32_t screenWidth, const uint32_t screenHeight);
-  ~GoomDots() noexcept = default;
-  void drawDots(PluginInfo*);
-
-private:
-  const uint32_t screenWidth;
-  const uint32_t screenHeight;
-  const uint32_t pointWidth;
-  const uint32_t pointHeight;
-
-  const float pointWidthDiv2;
-  const float pointHeightDiv2;
-  const float pointWidthDiv3;
-  const float pointHeightDiv3;
-
-  WeightedColorMaps colorMaps;
-  const ColorMap* colorMap1 = nullptr;
-  const ColorMap* colorMap2 = nullptr;
-  const ColorMap* colorMap3 = nullptr;
-  const ColorMap* colorMap4 = nullptr;
-  const ColorMap* colorMap5 = nullptr;
-  uint32_t middleColor = 0;
-
-  void changeColors();
-
-  static std::vector<uint32_t> getColors(const uint32_t color0,
-                                         const uint32_t color1,
-                                         const size_t numPts);
-
-  float getLargeSoundFactor(const SoundInfo&) const;
-
-  void dotFilter(Pixel* pix1,
-                 const std::vector<uint32_t> colors,
-                 const float t1,
-                 const float t2,
-                 const float t3,
-                 const float t4,
-                 const uint32_t cycle,
-                 const uint32_t radius) const;
-};
-
 static void setNextFilterMode(PluginInfo*);
 
 static std::unique_ptr<GoomDots> goomDots{nullptr};
@@ -859,7 +810,7 @@ PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
   goomInfo->screen.height = resy;
   goomInfo->screen.size = resx * resy;
 
-  init_buffers(goomInfo, goomInfo->screen.size);
+  initBuffers(goomInfo, goomInfo->screen.size);
 
   if (seed > 0)
   {
@@ -922,7 +873,7 @@ void goom_set_resolution(PluginInfo* goomInfo, const uint16_t resx, const uint16
   goomInfo->screen.height = resy;
   goomInfo->screen.size = resx * resy;
 
-  init_buffers(goomInfo, goomInfo->screen.size);
+  initBuffers(goomInfo, goomInfo->screen.size);
 
   /* init_ifs (goomInfo, resx, goomInfo->screen.height); */
   goomInfo->ifs_fx.free(&goomInfo->ifs_fx);
@@ -2164,192 +2115,9 @@ static void drawDotsIfRequired(PluginInfo* goomInfo)
   }
 
   logDebug("goomInfo->curGDrawables points is set.");
+  stats.doDots();
   goomDots->drawDots(goomInfo);
   logDebug("goomInfo->sound->getTimeSinceLastGoom() = {}", goomInfo->sound->getTimeSinceLastGoom());
-}
-
-GoomDots::GoomDots(const uint32_t screenW, const uint32_t screenH)
-  : screenWidth{screenW},
-    screenHeight{screenH},
-    pointWidth{(screenWidth * 2) / 5},
-    pointHeight{(screenHeight * 2) / 5},
-    pointWidthDiv2{static_cast<float>(pointWidth / 2)},
-    pointHeightDiv2{static_cast<float>(pointHeight / 2)},
-    pointWidthDiv3{static_cast<float>(pointWidth / 3)},
-    pointHeightDiv3{static_cast<float>(pointHeight / 3)},
-    colorMaps{Weights<ColorMapGroup>{{
-        {ColorMapGroup::perceptuallyUniformSequential, 10},
-        {ColorMapGroup::sequential, 20},
-        {ColorMapGroup::sequential2, 20},
-        {ColorMapGroup::cyclic, 0},
-        {ColorMapGroup::diverging, 0},
-        {ColorMapGroup::diverging_black, 0},
-        {ColorMapGroup::qualitative, 0},
-        {ColorMapGroup::misc, 0},
-    }}}
-{
-  changeColors();
-}
-
-void GoomDots::changeColors()
-{
-  colorMap1 = &colorMaps.getRandomColorMap();
-  colorMap2 = &colorMaps.getRandomColorMap();
-  colorMap3 = &colorMaps.getRandomColorMap();
-  colorMap4 = &colorMaps.getRandomColorMap();
-  colorMap5 = &colorMaps.getRandomColorMap();
-  middleColor = ColorMap::getRandomColor(colorMaps.getRandomColorMap(ColorMapGroup::misc), 0.1, 1);
-}
-
-std::vector<uint32_t> GoomDots::getColors(const uint32_t color0,
-                                          const uint32_t color1,
-                                          const size_t numPts)
-{
-  std::vector<uint32_t> colors(numPts);
-  constexpr float t_min = 0.0;
-  constexpr float t_max = 1.0;
-  const float t_step = (t_max - t_min) / static_cast<float>(numPts);
-  float t = t_min;
-  for (size_t i = 0; i < numPts; i++)
-  {
-    colors[i] = ColorMap::colorMix(color0, color1, t);
-    t += t_step;
-  }
-  return colors;
-}
-
-void GoomDots::drawDots(PluginInfo* goomInfo)
-{
-  stats.doPoints();
-
-  uint32_t radius = 3;
-  if ((goomInfo->sound->getTimeSinceLastGoom() == 0) ||
-      goomEvent.happens(GoomEvent::changeDotColors))
-  {
-    changeColors();
-    radius = 5;
-  }
-
-  const float largeFactor = getLargeSoundFactor(*(goomInfo->sound));
-  const uint32_t speedvarMult80Plus15 = goomInfo->sound->getSpeed() * 80 + 15;
-  const uint32_t speedvarMult50Plus1 = goomInfo->sound->getSpeed() * 50 + 1;
-  logDebug("speedvarMult80Plus15 = {}", speedvarMult80Plus15);
-  logDebug("speedvarMult50Plus1 = {}", speedvarMult50Plus1);
-
-  const float pointWidthDiv2MultLarge = pointWidthDiv2 * largeFactor;
-  const float pointHeightDiv2MultLarge = pointHeightDiv2 * largeFactor;
-  const float pointWidthDiv3MultLarge = (pointWidthDiv3 + 5.0f) * largeFactor;
-  const float pointHeightDiv3MultLarge = (pointHeightDiv3 + 5.0f) * largeFactor;
-  const float pointWidthMultLarge = pointWidth * largeFactor;
-  const float pointHeightMultLarge = pointHeight * largeFactor;
-
-  const float color1_t1 = (pointWidth - 6.0f) * largeFactor + 5.0f;
-  const float color1_t2 = (pointHeight - 6.0f) * largeFactor + 5.0f;
-  const float color4_t1 = pointHeightDiv3 * largeFactor + 20.0f;
-  const float color4_t2 = color4_t1;
-
-  constexpr float t_min = 0.5;
-  constexpr float t_max = 1.0;
-  const float t_step = (t_max - t_min) / static_cast<float>(speedvarMult80Plus15);
-
-  const size_t numColors = radius;
-
-  logDebug("goomInfo->update.loopvar = {}", goomInfo->update.loopvar);
-  float t = t_min;
-  for (uint32_t i = 1; i * 15 <= speedvarMult80Plus15; i++)
-  {
-    goomInfo->update.loopvar += speedvarMult50Plus1;
-    logDebug("goomInfo->update.loopvar = {}", goomInfo->update.loopvar);
-
-    const uint32_t loopvar_div_i = goomInfo->update.loopvar / i;
-    const float i_mult_10 = 10.0f * i;
-
-    const std::vector<uint32_t> colors1 = getColors(middleColor, colorMap1->getColor(t), numColors);
-    const float color1_t3 = i * 152.0f;
-    const float color1_t4 = 128.0f;
-    const uint32_t color1_cycle = goomInfo->update.loopvar + i * 2032;
-
-    const std::vector<uint32_t> colors2 = getColors(middleColor, colorMap2->getColor(t), numColors);
-    const float color2_t1 = pointWidthDiv2MultLarge / i + i_mult_10;
-    const float color2_t2 = pointHeightDiv2MultLarge / i + i_mult_10;
-    const float color2_t3 = 96.0f;
-    const float color2_t4 = i * 80.0f;
-    const uint32_t color2_cycle = loopvar_div_i;
-
-    const std::vector<uint32_t> colors3 = getColors(middleColor, colorMap3->getColor(t), numColors);
-    const float color3_t1 = pointWidthDiv3MultLarge / i + i_mult_10;
-    const float color3_t2 = pointHeightDiv3MultLarge / i + i_mult_10;
-    const float color3_t3 = i + 122.0f;
-    const float color3_t4 = 134.0f;
-    const uint32_t color3_cycle = loopvar_div_i;
-
-    const std::vector<uint32_t> colors4 = getColors(middleColor, colorMap4->getColor(t), numColors);
-    const float color4_t3 = 58.0f;
-    const float color4_t4 = i * 66.0f;
-    const uint32_t color4_cycle = loopvar_div_i;
-
-    const std::vector<uint32_t> colors5 = getColors(middleColor, colorMap5->getColor(t), numColors);
-    const float color5_t1 = (pointWidthMultLarge + i_mult_10) / i;
-    const float color5_t2 = (pointHeightMultLarge + i_mult_10) / i;
-    const float color5_t3 = 66.0f;
-    const float color5_t4 = 74.0f;
-    const uint32_t color5_cycle = goomInfo->update.loopvar + i * 500;
-
-    dotFilter(goomInfo->p1, colors1, color1_t1, color1_t2, color1_t3, color1_t4, color1_cycle,
-              radius);
-    dotFilter(goomInfo->p1, colors2, color2_t1, color2_t2, color2_t3, color2_t4, color2_cycle,
-              radius);
-    dotFilter(goomInfo->p1, colors3, color3_t1, color3_t2, color3_t3, color3_t4, color3_cycle,
-              radius);
-    dotFilter(goomInfo->p1, colors4, color4_t1, color4_t2, color4_t3, color4_t4, color4_cycle,
-              radius);
-    dotFilter(goomInfo->p1, colors5, color5_t1, color5_t2, color5_t3, color5_t4, color5_cycle,
-              radius);
-
-    t += t_step;
-  }
-}
-
-float GoomDots::getLargeSoundFactor(const SoundInfo& soundInfo) const
-{
-  float largefactor = soundInfo.getSpeed() / 150.0f + soundInfo.getVolume() / 1.5f;
-  if (largefactor > 1.5f)
-  {
-    largefactor = 1.5f;
-  }
-  return largefactor;
-}
-
-void GoomDots::dotFilter(Pixel* pixel,
-                         const std::vector<uint32_t> colors,
-                         const float t1,
-                         const float t2,
-                         const float t3,
-                         const float t4,
-                         const uint32_t cycle,
-                         const uint32_t radius) const
-{
-  const uint32_t xOffset = static_cast<uint32_t>(t1 * cos(static_cast<float>(cycle) / t3));
-  const uint32_t yOffset = static_cast<uint32_t>(t2 * sin(static_cast<float>(cycle) / t4));
-  const int x0 = static_cast<int>(screenWidth / 2 + xOffset);
-  const int y0 = static_cast<int>(screenHeight / 2 + yOffset);
-
-  const uint32_t diameter = 2 * radius;
-  const int screenWidthLessDiameter = static_cast<int>(screenWidth - diameter);
-  const int screenHeightLessDiameter = static_cast<int>(screenHeight - diameter);
-
-  if ((x0 < static_cast<int>(diameter)) || (y0 < static_cast<int>(diameter)) ||
-      (x0 >= screenWidthLessDiameter) || (y0 >= screenHeightLessDiameter))
-  {
-    return;
-  }
-
-  const int xmid = x0 + static_cast<int>(radius);
-  const int ymid = y0 + static_cast<int>(radius);
-  filledCircle(pixel, xmid, ymid, static_cast<int>(radius), colors, screenWidth, screenHeight);
-
-  setPixelRGB(pixel, static_cast<uint32_t>(xmid), static_cast<uint32_t>(ymid), screenWidth,
-              middleColor);
 }
 
 } // namespace goom
