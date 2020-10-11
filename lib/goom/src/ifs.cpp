@@ -256,7 +256,7 @@ inline Pixel Colorizer::getMixedColor(const Pixel& color, const float tmix)
     case ColorMode::mixedMegaColorChange:
     {
       const uint32_t mixColor = getNextMixerMapColor(tmix).val;
-      return {.val = ColorMap::colorMix(mixColor, color.val, tBetweenColors)};
+      return Pixel{.val = ColorMap::colorMix(mixColor, color.val, tBetweenColors)};
     }
     case ColorMode::reverseMixColors:
     {

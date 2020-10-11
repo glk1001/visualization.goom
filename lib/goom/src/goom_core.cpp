@@ -469,6 +469,21 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
     logVal(module, "lastZoomFilterData->vitesse", lastZoomFilterData->vitesse);
     logVal(module, "lastZoomFilterData->waveEffect",
            static_cast<uint32_t>(lastZoomFilterData->waveEffect));
+    logVal(module, "lastZoomFilterData->waveFreqFactor", lastZoomFilterData->waveFreqFactor);
+    logVal(module, "lastZoomFilterData->waveAmplitude", lastZoomFilterData->waveAmplitude);
+    logVal(module, "lastZoomFilterData->waveEffectType",
+           enumToString(lastZoomFilterData->waveEffectType));
+    logVal(module, "lastZoomFilterData->scrunchAmplitude", lastZoomFilterData->scrunchAmplitude);
+    logVal(module, "lastZoomFilterData->speedwayAmplitude", lastZoomFilterData->speedwayAmplitude);
+    logVal(module, "lastZoomFilterData->amuletteAmplitude", lastZoomFilterData->amuletteAmplitude);
+    logVal(module, "lastZoomFilterData->crystalBallAmplitude",
+           lastZoomFilterData->crystalBallAmplitude);
+    logVal(module, "lastZoomFilterData->hypercosFreq", lastZoomFilterData->hypercosFreq);
+    logVal(module, "lastZoomFilterData->hypercosAmplitude", lastZoomFilterData->hypercosAmplitude);
+    logVal(module, "lastZoomFilterData->hPlaneEffectAmplitude",
+           lastZoomFilterData->hPlaneEffectAmplitude);
+    logVal(module, "lastZoomFilterData->vPlaneEffectAmplitude",
+           lastZoomFilterData->vPlaneEffectAmplitude);
   }
 
   logVal(module, "numUpdates", numUpdates);

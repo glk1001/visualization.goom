@@ -57,7 +57,6 @@ public:
   void doZoomVectorVPlaneEffect();
   void doMakeZoomBufferStripe();
   void doGetMixedColor();
-  void doGetMixedColorZero();
   void doGetBlockyMixedColor();
   void doCZoom();
   void doGenerateWaterFXHorizontalBuffer();
@@ -89,7 +88,6 @@ private:
   uint64_t numZoomVectorVPlaneEffect = 0;
   uint64_t numMakeZoomBufferStripe = 0;
   uint64_t numGetMixedColor = 0;
-  uint64_t numGetMixedColorZero = 0;
   uint64_t numGetBlockyMixedColor = 0;
   uint64_t numCZoom = 0;
   uint64_t numGenerateWaterFXHorizontalBuffer = 0;
@@ -131,7 +129,6 @@ void FilterStats::log(const StatsLogValueFunc logVal) const
   logVal(module, "numZoomVectorVPlaneEffect", numZoomVectorVPlaneEffect);
   logVal(module, "numMakeZoomBufferStripe", numMakeZoomBufferStripe);
   logVal(module, "numGetMixedColor", numGetMixedColor);
-  logVal(module, "numGetMixedColorZero", numGetMixedColorZero);
   logVal(module, "numGetBlockyMixedColor", numGetBlockyMixedColor);
   logVal(module, "numCZoom", numCZoom);
   logVal(module, "numGenerateWaterFXHorizontalBuffer", numGenerateWaterFXHorizontalBuffer);
@@ -161,7 +158,6 @@ void FilterStats::reset()
   numZoomVectorVPlaneEffect = 0;
   numMakeZoomBufferStripe = 0;
   numGetMixedColor = 0;
-  numGetMixedColorZero = 0;
   numGetBlockyMixedColor = 0;
   numCZoom = 0;
   numGenerateWaterFXHorizontalBuffer = 0;
@@ -243,11 +239,6 @@ inline void FilterStats::doGetMixedColor()
   numGetMixedColor++;
 }
 
-inline void FilterStats::doGetMixedColorZero()
-{
-  numGetMixedColorZero++;
-}
-
 inline void FilterStats::doGetBlockyMixedColor()
 {
   numGetBlockyMixedColor++;
@@ -318,8 +309,6 @@ void FilterStats::setLastBuffratio(const int val)
   lastBuffratio = val;
 }
 
-static FilterStats stats;
-
 // For noise amplitude, take the reciprocal of these.
 constexpr float noiseMin = 70;
 constexpr float noiseMax = 120;
@@ -350,6 +339,8 @@ static void generatePrecalCoef(uint32_t precalCoef[BUFFPOINTNB][BUFFPOINTNB]);
 // TODO repeated fields in here
 struct FilterDataWrapper
 {
+  mutable FilterStats stats;
+
   ZoomFilterData filterData;
   float generalSpeed;
 
@@ -385,9 +376,9 @@ static void c_zoom(Pixel* expix1, Pixel* expix2, const FilterDataWrapper*);
 
 inline v2g zoomVector(PluginInfo* goomInfo, const float x, const float y)
 {
-  stats.doZoomVector();
-
   FilterDataWrapper* data = static_cast<FilterDataWrapper*>(goomInfo->zoomFilter_fx.fx_data);
+
+  data->stats.doZoomVector();
 
   /* sx = (x < 0.0f) ? -1.0f : 1.0f;
      sy = (y < 0.0f) ? -1.0f : 1.0f;
@@ -401,19 +392,19 @@ inline v2g zoomVector(PluginInfo* goomInfo, const float x, const float y)
   {
     case ZoomFilterMode::crystalBallMode:
     {
-      stats.doZoomVectorCrystalBallMode();
+      data->stats.doZoomVectorCrystalBallMode();
       coefVitesse -= data->filterData.crystalBallAmplitude * (sq_distance(x, y) - 0.3f);
       break;
     }
     case ZoomFilterMode::amuletteMode:
     {
-      stats.doZoomVectorAmuletteMode();
+      data->stats.doZoomVectorAmuletteMode();
       coefVitesse += data->filterData.amuletteAmplitude * sq_distance(x, y);
       break;
     }
     case ZoomFilterMode::waveMode:
     {
-      stats.doZoomVectorWaveMode();
+      data->stats.doZoomVectorWaveMode();
       const float angle = sq_distance(x, y) * data->filterData.waveFreqFactor;
       float periodicPart;
       switch (data->filterData.waveEffectType)
@@ -435,7 +426,7 @@ inline v2g zoomVector(PluginInfo* goomInfo, const float x, const float y)
     }
     case ZoomFilterMode::scrunchMode:
     {
-      stats.doZoomVectorScrunchMode();
+      data->stats.doZoomVectorScrunchMode();
       coefVitesse += data->filterData.scrunchAmplitude * sq_distance(x, y);
       break;
     }
@@ -447,12 +438,12 @@ inline v2g zoomVector(PluginInfo* goomInfo, const float x, const float y)
       //break;
     case ZoomFilterMode::speedwayMode:
     {
-      stats.doZoomVectorSpeedwayMode();
+      data->stats.doZoomVectorSpeedwayMode();
       coefVitesse *= data->filterData.speedwayAmplitude * y;
       break;
     }
     default:
-      stats.doZoomVectorDefaultMode();
+      data->stats.doZoomVectorDefaultMode();
       break;
   }
 
@@ -473,10 +464,10 @@ inline v2g zoomVector(PluginInfo* goomInfo, const float x, const float y)
   /* Noise */
   if (data->filterData.noisify)
   {
-    stats.doZoomVectorNoisify();
+    data->stats.doZoomVectorNoisify();
     if (data->filterData.noiseFactor > 0.01)
     {
-      stats.doZoomVectorNoiseFactor();
+      data->stats.doZoomVectorNoiseFactor();
       //    const float xAmp = 1.0/getRandInRange(50.0f, 200.0f);
       //    const float yAmp = 1.0/getRandInRange(50.0f, 200.0f);
       const float amp = data->filterData.noiseFactor / getRandInRange(noiseMin, noiseMax);
@@ -489,7 +480,7 @@ inline v2g zoomVector(PluginInfo* goomInfo, const float x, const float y)
   // Hypercos
   if (data->filterData.hypercosEffect)
   {
-    stats.doZoomVectorHypercosEffect();
+    data->stats.doZoomVectorHypercosEffect();
     vx += data->filterData.hypercosAmplitude * sin(data->filterData.hypercosFreq * y);
     vy += data->filterData.hypercosAmplitude * sin(data->filterData.hypercosFreq * x);
   }
@@ -497,7 +488,7 @@ inline v2g zoomVector(PluginInfo* goomInfo, const float x, const float y)
   // H Plane
   if (data->filterData.hPlaneEffect)
   {
-    stats.doZoomVectorHPlaneEffect();
+    data->stats.doZoomVectorHPlaneEffect();
 
     vx += y * data->filterData.hPlaneEffectAmplitude *
           static_cast<float>(data->filterData.hPlaneEffect);
@@ -506,7 +497,7 @@ inline v2g zoomVector(PluginInfo* goomInfo, const float x, const float y)
   // V Plane
   if (data->filterData.vPlaneEffect)
   {
-    stats.doZoomVectorVPlaneEffect();
+    data->stats.doZoomVectorVPlaneEffect();
     vy += x * data->filterData.vPlaneEffectAmplitude *
           static_cast<float>(data->filterData.vPlaneEffect);
   }
@@ -526,9 +517,9 @@ inline v2g zoomVector(PluginInfo* goomInfo, const float x, const float y)
  */
 static void makeZoomBufferStripe(PluginInfo* goomInfo, const uint32_t INTERLACE_INCR)
 {
-  stats.doMakeZoomBufferStripe();
-
   FilterDataWrapper* data = static_cast<FilterDataWrapper*>(goomInfo->zoomFilter_fx.fx_data);
+
+  data->stats.doMakeZoomBufferStripe();
 
   // Ratio from pixmap to normalized coordinates
   const float ratio = 2.0f / static_cast<float>(data->prevX);
@@ -589,11 +580,8 @@ static Pixel getMixedColor(const CoeffArray& coeffs,
                            const Pixel& col3,
                            const Pixel& col4)
 {
-  stats.doGetMixedColor();
-
   if (coeffs.intVal == 0)
   {
-    stats.doGetMixedColorZero();
     return Pixel{.val = 0};
   }
 
@@ -638,8 +626,6 @@ inline Pixel getBlockyMixedColor(const CoeffArray& coeffs,
                                  const Pixel& col3,
                                  const Pixel& col4)
 {
-  stats.doGetBlockyMixedColor();
-
   // Changing the color order gives a strange blocky, wavy look.
   // The order col1, col3, col2, col1 gave a black tear - no so good.
   return getMixedColor(coeffs, col1, col3, col2, col4);
@@ -657,7 +643,7 @@ inline void setPixelColor(Pixel* buffer, const uint32_t pos, const Pixel& p)
 
 static void c_zoom(Pixel* expix1, Pixel* expix2, const FilterDataWrapper* data)
 {
-  stats.doCZoom();
+  data->stats.doCZoom();
 
   const uint32_t prevX = data->prevX;
   const uint32_t prevY = data->prevY;
@@ -706,19 +692,25 @@ static void c_zoom(Pixel* expix1, Pixel* expix2, const FilterDataWrapper* data)
       const Pixel col3 = getPixelColor(expix1, pix1Pos + bufwidth);
       const Pixel col4 = getPixelColor(expix1, pix1Pos + bufwidth + 1);
 
-      const Pixel newColor = data->filterData.blockyWavy
-                                 ? getBlockyMixedColor(coeffs, col1, col2, col3, col4)
-                                 : getMixedColor(coeffs, col1, col2, col3, col4);
-      //      const Pixel newColor = getMixedColor(coeffs, col1, col2, col3, col4);
-
-      setPixelColor(expix2, pix2Pos, newColor);
+      if (data->filterData.blockyWavy)
+      {
+        data->stats.doGetBlockyMixedColor();
+        const Pixel newColor = getBlockyMixedColor(coeffs, col1, col2, col3, col4);
+        setPixelColor(expix2, pix2Pos, newColor);
+      }
+      else
+      {
+        data->stats.doGetMixedColor();
+        const Pixel newColor = getMixedColor(coeffs, col1, col2, col3, col4);
+        setPixelColor(expix2, pix2Pos, newColor);
+      }
     }
   }
 }
 
 static void generateWaterFXHorizontalBuffer(FilterDataWrapper* data)
 {
-  stats.doGenerateWaterFXHorizontalBuffer();
+  data->stats.doGenerateWaterFXHorizontalBuffer();
 
   int decc = getRandInRange(-4, +4);
   int spdc = getRandInRange(-4, +4);
@@ -854,12 +846,12 @@ void zoomFilterFastRGB(PluginInfo* goomInfo,
                        const int switchIncr,
                        const float switchMult)
 {
-  stats.doZoomFilterFastRGB();
-
   logDebug("resx = {}, resy = {}, switchIncr = {}, switchMult = {:.2}", resx, resy, switchIncr,
            switchMult);
 
   FilterDataWrapper* data = static_cast<FilterDataWrapper*>(goomInfo->zoomFilter_fx.fx_data);
+
+  data->stats.doZoomFilterFastRGB();
 
   if (!BVAL(data->enabled_bp))
   {
@@ -882,7 +874,7 @@ void zoomFilterFastRGB(PluginInfo* goomInfo,
   // changement de config
   if (zf)
   {
-    stats.doZoomFilterFastRGBChangeConfig();
+    data->stats.doZoomFilterFastRGBChangeConfig();
     data->filterData = *zf;
     data->generalSpeed = static_cast<float>(zf->vitesse - 128) / 128.0f;
     if (data->filterData.reverse)
@@ -896,7 +888,7 @@ void zoomFilterFastRGB(PluginInfo* goomInfo,
   logDebug("data->interlaceStart = {}", data->interlaceStart);
   if (data->interlaceStart == -1)
   {
-    stats.doZoomFilterFastRGBInterlaceStartEqualMinus1_1();
+    data->stats.doZoomFilterFastRGBInterlaceStartEqualMinus1_1();
     /* sauvegarde de l'etat actuel dans la nouvelle source
      * TODO: write that in MMX (has been done in previous version, but did not follow
      * some new fonctionnalities) */
@@ -918,7 +910,7 @@ void zoomFilterFastRGB(PluginInfo* goomInfo,
   logDebug("data->interlaceStart = {}", data->interlaceStart);
   if (data->interlaceStart == -1)
   {
-    stats.doZoomFilterFastRGBInterlaceStartEqualMinus1_2();
+    data->stats.doZoomFilterFastRGBInterlaceStartEqualMinus1_2();
     int* tmp = data->brutD;
     data->brutD = data->brutT;
     data->brutT = tmp;
@@ -937,7 +929,7 @@ void zoomFilterFastRGB(PluginInfo* goomInfo,
 
   if (switchIncr != 0)
   {
-    stats.doZoomFilterFastRGBSwitchIncrNotZero();
+    data->stats.doZoomFilterFastRGBSwitchIncrNotZero();
 
     data->buffratio += switchIncr;
     if (data->buffratio > BUFFPOINTMASK)
@@ -950,7 +942,7 @@ void zoomFilterFastRGB(PluginInfo* goomInfo,
   //  if (std::fabs(1.0f - switchMult) < 0.0001)
   if (std::fabs(1.0f - switchMult) > 0.0001)
   {
-    stats.doZoomFilterFastRGBSwitchIncrNotEqual1();
+    data->stats.doZoomFilterFastRGBSwitchIncrNotEqual1();
 
     data->buffratio = static_cast<int>(static_cast<float>(BUFFPOINTMASK) * (1.0f - switchMult) +
                                        static_cast<float>(data->buffratio) * switchMult);
@@ -1142,12 +1134,12 @@ VisualFX zoomFilterVisualFXWrapper_create()
 void filter_log_stats(VisualFX* _this, const StatsLogValueFunc logVal)
 {
   FilterDataWrapper* data = static_cast<FilterDataWrapper*>(_this->fx_data);
-  stats.setLastGeneralSpeed(data->generalSpeed);
-  stats.setLastPrevX(data->prevX);
-  stats.setLastPrevY(data->prevY);
-  stats.setLastInterlaceStart(data->interlaceStart);
-  stats.setLastBuffratio(data->buffratio);
-  stats.log(logVal);
+  data->stats.setLastGeneralSpeed(data->generalSpeed);
+  data->stats.setLastPrevX(data->prevX);
+  data->stats.setLastPrevY(data->prevY);
+  data->stats.setLastInterlaceStart(data->interlaceStart);
+  data->stats.setLastBuffratio(data->buffratio);
+  data->stats.log(logVal);
 }
 
 } // namespace goom
