@@ -589,33 +589,38 @@ inline Pixel getMixedColor(const CoeffArray& coeffs,
   const uint32_t c3 = coeffs.vals.c3;
   const uint32_t c4 = coeffs.vals.c4;
 
-  uint32_t r =
+  uint32_t newR =
       col1.channels.r * c1 + col2.channels.r * c2 + col3.channels.r * c3 + col4.channels.r * c4;
-  if (r > 5)
-  {
-    r -= 5;
-  }
-  r >>= 8;
+  newR >>= 8;
+  uint32_t maxVal = newR;
 
-  uint32_t g =
+  uint32_t newG =
       col1.channels.g * c1 + col2.channels.g * c2 + col3.channels.g * c3 + col4.channels.g * c4;
-  if (g > 5)
+  newG >>= 8;
+  if (newG > maxVal)
   {
-    g -= 5;
+    maxVal = newG;
   }
-  g >>= 8;
 
-  uint32_t b =
+  uint32_t newB =
       col1.channels.b * c1 + col2.channels.b * c2 + col3.channels.b * c3 + col4.channels.b * c4;
-  if (b > 5)
+  newB >>= 8;
+  if (newB > maxVal)
   {
-    b -= 5;
+    maxVal = newB;
   }
-  b >>= 8;
 
-  return Pixel{.channels = {.r = static_cast<uint8_t>((r & 0xffffff00) ? 0xff : r),
-                            .g = static_cast<uint8_t>((g & 0xffffff00) ? 0xff : g),
-                            .b = static_cast<uint8_t>((b & 0xffffff00) ? 0xff : b),
+  if (maxVal > 255)
+  {
+    // scale all channels back
+    newR = (newR << 8) / maxVal;
+    newG = (newG << 8) / maxVal;
+    newB = (newB << 8) / maxVal;
+  }
+
+  return Pixel{.channels = {.r = static_cast<uint8_t>((newR & 0xffffff00) ? 0xff : newR),
+                            .g = static_cast<uint8_t>((newG & 0xffffff00) ? 0xff : newG),
+                            .b = static_cast<uint8_t>((newB & 0xffffff00) ? 0xff : newB),
                             .a = 0xff}};
 }
 

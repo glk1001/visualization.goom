@@ -32,19 +32,45 @@ inline Pixel getColorAdd(const Pixel& color1, const Pixel& color2)
   }};
 }
 
-inline uint8_t getBrighterChannelColor(const uint32_t brightness, const uint8_t c)
+inline uint32_t getBrighterChannelColor(const uint32_t brightness, const uint8_t channelVal)
 {
-  const uint32_t newColor = (brightness * static_cast<uint32_t>(c)) >> 8;
-  return (newColor & 0xffffff00) ? 0xff : static_cast<uint8_t>(newColor);
+  return (brightness * static_cast<uint32_t>(channelVal)) >> 8;
 }
 
-inline Pixel getBrighterColor(const uint32_t brightness, const Pixel& color)
+inline Pixel getBrighterColor(const uint32_t brightness,
+                              const Pixel& color,
+                              const bool allowOverexposed = false)
 {
+  uint32_t newR = getBrighterChannelColor(brightness, color.channels.r);
+  uint32_t maxVal = newR;
+
+  uint32_t newG = getBrighterChannelColor(brightness, color.channels.g);
+  if (newG > maxVal)
+  {
+    maxVal = newG;
+  }
+
+  uint32_t newB = getBrighterChannelColor(brightness, color.channels.b);
+  if (newB > maxVal)
+  {
+    maxVal = newB;
+  }
+
+  if (!allowOverexposed && maxVal > 255)
+  {
+    // scale all channels back
+    newR = (newR << 8) / maxVal;
+    newG = (newG << 8) / maxVal;
+    newB = (newB << 8) / maxVal;
+  }
+
+  const uint32_t newA = getBrighterChannelColor(brightness, color.channels.a);
+
   return Pixel{.channels{
-      .r = getBrighterChannelColor(brightness, color.channels.r),
-      .g = getBrighterChannelColor(brightness, color.channels.g),
-      .b = getBrighterChannelColor(brightness, color.channels.b),
-      .a = getBrighterChannelColor(brightness, color.channels.a),
+      .r = static_cast<uint8_t>((newR & 0xffffff00) ? 0xff : newR),
+      .g = static_cast<uint8_t>((newG & 0xffffff00) ? 0xff : newG),
+      .b = static_cast<uint8_t>((newB & 0xffffff00) ? 0xff : newB),
+      .a = static_cast<uint8_t>((newA & 0xffffff00) ? 0xff : newA),
   }};
 }
 
@@ -79,10 +105,13 @@ inline Pixel getHalfIntensityColor(const Pixel& color)
 uint32_t getLightenedColor(const uint32_t oldColor, const float power);
 uint32_t getEvolvedColor(const uint32_t baseColor);
 
-inline void setPixelRGB(
-    Pixel* buff, const uint32_t x, const uint32_t y, const uint32_t screenWidth, const uint32_t col)
+inline void setPixelRGB(Pixel* buff,
+                        const uint32_t x,
+                        const uint32_t y,
+                        const uint32_t screenWidth,
+                        const uint32_t color)
 {
-  buff[x + (y * screenWidth)].val = col;
+  buff[x + (y * screenWidth)].val = color;
 }
 
 
