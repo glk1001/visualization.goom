@@ -54,6 +54,7 @@
 #include <cmath>
 #include <cstdint>
 #include <memory>
+#include <stdexcept>
 
 namespace goom
 {
@@ -172,7 +173,7 @@ public:
 
   void changeColorMaps();
 
-  Pixel getMixedColor(const Pixel& existingColor, const Pixel& color, const float tmix);
+  Pixel getMixedColor(const Pixel& baseColor, const float tmix);
 
 private:
   const ColorMaps colorMaps;
@@ -188,11 +189,6 @@ private:
   float tBetweenColors; // in [0, 1]
   static ColorMode getNextColorMode();
   Pixel getNextMixerMapColor(const float t) const;
-
-  bool allowOverexposed = false;
-  uint32_t countSinceOverexposed = 0;
-  static constexpr uint32_t maxCountSinceOverexposed = 100;
-  void updateAllowOverexposed();
 };
 
 Colorizer::Colorizer() noexcept
@@ -247,11 +243,92 @@ void Colorizer::changeColorMaps()
   colorMapChangeCompleted = getRandInRange(minColorMapChangeCompleted, maxColorMapChangeCompleted);
   tBetweenColors = getRandInRange(0.2F, 0.8F);
   countSinceColorMapChange = colorMapChangeCompleted;
-
-  updateAllowOverexposed();
 }
 
-void Colorizer::updateAllowOverexposed()
+inline Pixel Colorizer::getNextMixerMapColor(const float t) const
+{
+  const Pixel nextColor = Pixel{.val = mixerMap->getColor(t)};
+  if (countSinceColorMapChange == 0)
+  {
+    return nextColor;
+  }
+  const float tTransition =
+      static_cast<float>(countSinceColorMapChange) / static_cast<float>(colorMapChangeCompleted);
+  countSinceColorMapChange--;
+  return Pixel{.val = ColorMap::colorMix(nextColor.val, prevMixerMap->getColor(t), tTransition)};
+}
+
+inline Pixel Colorizer::getMixedColor(const Pixel& baseColor, const float tmix)
+{
+  switch (colorMode)
+  {
+    case ColorMode::mapColors:
+    case ColorMode::megaMapColorChange:
+    {
+      const float tBright = static_cast<float>(getLuma(baseColor)) / channel_limits<float>::max();
+      return getNextMixerMapColor(tBright);
+    }
+    case ColorMode::mixColors:
+    case ColorMode::megaMixColorChange:
+    {
+      const uint32_t mixColor = getNextMixerMapColor(tmix).val;
+      return Pixel{.val = ColorMap::colorMix(mixColor, baseColor.val, tBetweenColors)};
+    }
+    case ColorMode::reverseMixColors:
+    {
+      const uint32_t mixColor = getNextMixerMapColor(tmix).val;
+      return Pixel{.val = ColorMap::colorMix(baseColor.val, mixColor, tBetweenColors)};
+    }
+    case ColorMode::singleColors:
+    {
+      return baseColor;
+    }
+    default:
+      throw std::logic_error("Unknown ColorMode");
+  }
+}
+
+struct IfsData
+{
+  PluginParam enabled_bp;
+  PluginParameters params;
+
+  std::unique_ptr<GoomDraw> draw;
+  Colorizer colorizer;
+  void drawPixel(Pixel* frontBuff,
+                 Pixel* backBuff,
+                 const uint32_t x,
+                 const uint32_t y,
+                 const Pixel& ifsColor,
+                 const float tmix);
+  bool allowOverexposed = false;
+  uint32_t countSinceOverexposed = 0;
+  static constexpr uint32_t maxCountSinceOverexposed = 100;
+  void updateAllowOverexposed();
+
+  Fractal* root;
+  Fractal* curF;
+
+  /* Used by the Trace recursive method */
+  IFSPoint* buff;
+  size_t curPt;
+  bool initialized;
+};
+
+inline void IfsData::drawPixel(Pixel* frontBuff,
+                               Pixel* backBuff,
+                               const uint32_t x,
+                               const uint32_t y,
+                               const Pixel& ifsColor,
+                               const float tmix)
+{
+  const Pixel backBuffColor = draw->getPixelRGB(backBuff, x, y);
+  const Pixel mixedColor = colorizer.getMixedColor(ifsColor, tmix);
+  const Pixel finalColor = getColorAdd(backBuffColor, mixedColor, allowOverexposed);
+  draw->setPixelRGB(frontBuff, x, y, finalColor);
+}
+
+void IfsData::updateAllowOverexposed()
 {
   allowOverexposed = true;
   return;
@@ -272,86 +349,6 @@ void Colorizer::updateAllowOverexposed()
     allowOverexposed = true;
     countSinceOverexposed = maxCountSinceOverexposed;
   }
-}
-
-inline Pixel Colorizer::getNextMixerMapColor(const float t) const
-{
-  const Pixel nextColor = Pixel{.val = mixerMap->getColor(t)};
-  if (countSinceColorMapChange == 0)
-  {
-    return nextColor;
-  }
-  const float tTransition =
-      static_cast<float>(countSinceColorMapChange) / static_cast<float>(colorMapChangeCompleted);
-  countSinceColorMapChange--;
-  return Pixel{.val = ColorMap::colorMix(nextColor.val, prevMixerMap->getColor(t), tTransition)};
-}
-
-inline Pixel Colorizer::getMixedColor(const Pixel& existingColor,
-                                      const Pixel& color,
-                                      const float tmix)
-{
-  switch (colorMode)
-  {
-    case ColorMode::mapColors:
-    case ColorMode::megaMapColorChange:
-    {
-      const float tBright = getLuma(color) / channel_limits<float>::max();
-      return getColorAdd(existingColor, getNextMixerMapColor(tBright), allowOverexposed);
-    }
-    case ColorMode::mixColors:
-    case ColorMode::megaMixColorChange:
-    {
-      const uint32_t mixColor = getNextMixerMapColor(tmix).val;
-      const Pixel inbetweenColor{.val = ColorMap::colorMix(mixColor, color.val, tBetweenColors)};
-      return getColorAdd(existingColor, inbetweenColor, allowOverexposed);
-    }
-    case ColorMode::reverseMixColors:
-    {
-      const uint32_t mixColor = getNextMixerMapColor(tmix).val;
-      const Pixel reverseInbetweenColor{
-          .val = ColorMap::colorMix(color.val, mixColor, tBetweenColors)};
-      return getColorAdd(existingColor, reverseInbetweenColor, allowOverexposed);
-    }
-    case ColorMode::singleColors:
-      return getColorAdd(existingColor, color, allowOverexposed);
-    default:
-      throw std::logic_error("Unknown ColorMode");
-  }
-}
-
-struct IfsData
-{
-  PluginParam enabled_bp;
-  PluginParameters params;
-
-  std::unique_ptr<GoomDraw> draw;
-  Colorizer colorizer;
-  void drawPixel(Pixel* frontBuff,
-                 Pixel* backBuff,
-                 const uint32_t x,
-                 const uint32_t y,
-                 const Pixel& ifsColor,
-                 const float tmix);
-
-  Fractal* root;
-  Fractal* curF;
-
-  /* Used by the Trace recursive method */
-  IFSPoint* buff;
-  size_t curPt;
-  bool initialized;
-};
-
-inline void IfsData::drawPixel(Pixel* frontBuff,
-                               Pixel* backBuff,
-                               const uint32_t x,
-                               const uint32_t y,
-                               const Pixel& ifsColor,
-                               const float tmix)
-{
-  const Pixel backBuffColor = draw->getPixelRGB(backBuff, x, y);
-  draw->setPixelRGB(frontBuff, x, y, colorizer.getMixedColor(backBuffColor, ifsColor, tmix));
 }
 
 static Dbl gaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S)
@@ -746,10 +743,10 @@ static void updateColorsModeMer(IfsUpdateData*);
 static void updateColorsModeMerver(IfsUpdateData*);
 static void updateColorsModeFeu(IfsUpdateData*);
 
-static void updatePixelBuffers(PluginInfo* goomInfo,
-                               IfsData* fx_data,
+static void updatePixelBuffers(IfsData* fx_data,
                                Pixel* frontBuff,
                                Pixel* backBuff,
+                               PluginInfo* goomInfo,
                                const size_t numPoints,
                                const IFSPoint* points,
                                const int increment,
@@ -781,9 +778,12 @@ static void updatePixelBuffers(PluginInfo* goomInfo,
   }
 }
 
-static void updateIfs(
-    PluginInfo* goomInfo, Pixel* frontBuff, Pixel* backBuff, int increment, IfsData* fx_data)
+static void updateIfs(Pixel* frontBuff, Pixel* backBuff, PluginInfo* goomInfo, IfsData* fx_data)
 {
+  // TODO: trouver meilleur soluce pour increment (mettre le code de gestion de l'ifs dans ce fichier)
+  //       find the best solution for increment (put the management code of the ifs in this file)
+  const int increment = goomInfo->update.ifs_incr;
+
   logDebug("increment = {}", increment);
 
   updData.cycle++;
@@ -799,7 +799,7 @@ static void updateIfs(
   const int cycle10 = (updData.cycle < 40) ? updData.cycle / 10 : 7 - updData.cycle / 10;
   const Pixel color = getRightShiftedChannels(updData.couleur, cycle10);
 
-  updatePixelBuffers(goomInfo, fx_data, frontBuff, backBuff, numPoints, points, increment, color);
+  updatePixelBuffers(fx_data, frontBuff, backBuff, goomInfo, numPoints, points, increment, color);
 
   updData.justChanged--;
 
@@ -1051,9 +1051,7 @@ static void ifs_vfx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* 
   {
     return;
   }
-  updateIfs(goomInfo, dest, src, goomInfo->update.ifs_incr, data);
-
-  /*TODO: trouver meilleur soluce pour increment (mettre le code de gestion de l'ifs dans ce fichier: ifs_vfx_apply) */
+  updateIfs(dest, src, goomInfo, data);
 }
 
 static const char* const vfxname = "Ifs";
@@ -1225,6 +1223,7 @@ void ifsRenew(VisualFX* _this, const SoundInfo& soundInfo)
 
   changeColormaps(data);
   data->colorizer.changeColorMode();
+  data->updateAllowOverexposed();
 
   data->root->speed =
       static_cast<uint32_t>(getRandInRange(1.11F, 5.1F) / (1.1F - soundInfo.getAcceleration()));
