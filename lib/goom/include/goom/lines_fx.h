@@ -8,11 +8,13 @@
  */
 
 #include "goom_config.h"
+#include "goom_draw.h"
 #include "goom_graphic.h"
 #include "goomutils/colormap.h"
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 
 namespace goom
 {
@@ -39,6 +41,7 @@ constexpr size_t numLineTypes = static_cast<size_t>(LineType::_size);
 // tableau de points
 struct GMLine
 {
+  std::unique_ptr<GoomDraw> draw;
   const utils::ColorMaps* colorMaps;
 
   GMUnitPointer* points;

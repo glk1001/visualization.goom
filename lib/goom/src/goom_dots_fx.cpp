@@ -1,7 +1,7 @@
 #include "goom_dots_fx.h"
 
 #include "colorutils.h"
-#include "drawmethods.h"
+#include "goom_draw.h"
 #include "goom_graphic.h"
 #include "goom_plugin_info.h"
 #include "goomutils/colormap.h"
@@ -31,6 +31,7 @@ GoomDots::GoomDots(const uint32_t screenW, const uint32_t screenH)
     pointHeightDiv2{static_cast<float>(pointHeight / 2.0F)},
     pointWidthDiv3{static_cast<float>(pointWidth / 3.0F)},
     pointHeightDiv3{static_cast<float>(pointHeight / 3.0F)},
+    draw{screenWidth, screenHeight},
     colorMaps{Weights<ColorMapGroup>{{
         {ColorMapGroup::perceptuallyUniformSequential, 10},
         {ColorMapGroup::sequential, 20},
@@ -172,13 +173,13 @@ float GoomDots::getLargeSoundFactor(const SoundInfo& soundInfo) const
 }
 
 void GoomDots::dotFilter(Pixel* pixel,
-                         const std::vector<uint32_t> colors,
+                         const std::vector<uint32_t>& colors,
                          const float t1,
                          const float t2,
                          const float t3,
                          const float t4,
                          const uint32_t cycle,
-                         const uint32_t radius) const
+                         const uint32_t radius)
 {
   const uint32_t xOffset = static_cast<uint32_t>(t1 * cos(static_cast<float>(cycle) / t3));
   const uint32_t yOffset = static_cast<uint32_t>(t2 * sin(static_cast<float>(cycle) / t4));
@@ -197,10 +198,10 @@ void GoomDots::dotFilter(Pixel* pixel,
 
   const int xmid = x0 + static_cast<int>(radius);
   const int ymid = y0 + static_cast<int>(radius);
-  filledCircle(pixel, xmid, ymid, static_cast<int>(radius), colors, screenWidth, screenHeight);
+  draw.filledCircle(pixel, xmid, ymid, static_cast<int>(radius), colors);
 
-  setPixelRGB(pixel, static_cast<uint32_t>(xmid), static_cast<uint32_t>(ymid), screenWidth,
-              middleColor);
+  draw.setPixelRGB(pixel, static_cast<uint32_t>(xmid), static_cast<uint32_t>(ymid),
+                   Pixel{.val = middleColor});
 }
 
 } // namespace goom

@@ -1,8 +1,8 @@
 #include "tentacle_driver.h"
 
 #include "colorutils.h"
-#include "drawmethods.h"
 #include "goom_core.h"
+#include "goom_draw.h"
 #include "goomutils/colormap.h"
 #include "goomutils/goomrand.h"
 #include "goomutils/logging_control.h"
@@ -42,6 +42,7 @@ TentacleDriver::TentacleDriver(const ColorMaps* cm, const uint32_t screenW, cons
   : iterParamsGroups{},
     screenWidth{screenW},
     screenHeight{screenH},
+    draw{screenWidth, screenHeight},
     colorMaps{cm},
     colorizers{},
     constPrevYWeightFunc(),
@@ -629,7 +630,7 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
       // One buff may be better????? Make lighten more aggressive over whole tentacle??
       // draw_line(frontBuff, ix0, iy0, ix1, iy1, color, 1280, 720);
       constexpr uint8_t thickness = 1;
-      draw_line(std::size(buffs), buffs, colors, thickness, ix0, iy0, ix1, iy1, 1280, 720);
+      draw.line(std::size(buffs), buffs, ix0, iy0, ix1, iy1, colors, thickness);
     }
   }
 }

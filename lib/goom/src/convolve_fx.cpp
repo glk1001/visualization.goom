@@ -113,6 +113,10 @@ static void convolve_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo*
     data->allowOverexposed = true;
   }
 
+
+  data->allowOverexposed = true;
+
+
   if (std::fabs(1.0 - ff) < 0.02)
   {
     memcpy(dest, src, goomInfo->screen.size * sizeof(Pixel));

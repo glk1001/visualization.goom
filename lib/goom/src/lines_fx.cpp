@@ -1,8 +1,8 @@
 #include "lines_fx.h"
 
 #include "colorutils.h"
-#include "drawmethods.h"
 #include "goom_config.h"
+#include "goom_draw.h"
 #include "goom_graphic.h"
 #include "goom_plugin_info.h"
 #include "goomutils/colormap.h"
@@ -127,6 +127,8 @@ GMLine* goomLinesInit(PluginInfo* goomInfo,
 {
   GMLine* l = new GMLine{};
 
+  l->draw = std::make_unique<GoomDraw>(goomInfo->screen.width, goomInfo->screen.height);
+
   l->goomInfo = goomInfo;
 
   l->colorMaps = new ColorMaps{};
@@ -244,8 +246,7 @@ void drawGoomLines(PluginInfo* goomInfo,
   if (audioRange < 0.0001)
   {
     // No range - flatline audio
-    draw_line(p, pt->x, pt->y, pt->x + AUDIO_SAMPLE_LEN, pt->y, color, 1, line->screenX,
-              line->screenY);
+    line->draw->line(p, pt->x, pt->y, pt->x + AUDIO_SAMPLE_LEN, pt->y, color, 1);
     goomLinesMove(line);
     return;
   }
@@ -278,7 +279,7 @@ void drawGoomLines(PluginInfo* goomInfo,
     const GMUnitPointer* const pt = &(line->points[i]);
     const auto [x2, y2, modColor] = getNextPoint(pt, data[i]);
 
-    draw_line(p, x1, y1, x2, y2, modColor, thickness, line->screenX, line->screenY);
+    line->draw->line(p, x1, y1, x2, y2, modColor, thickness);
 
     x1 = x2;
     y1 = y2;

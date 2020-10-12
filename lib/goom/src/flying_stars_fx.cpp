@@ -1,7 +1,7 @@
 #include "flying_stars_fx.h"
 
 #include "colorutils.h"
-#include "drawmethods.h"
+#include "goom_draw.h"
 #include "goom_plugin_info.h"
 #include "goomutils/colormap.h"
 #include "goomutils/colormap_enums.h"
@@ -12,7 +12,7 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
-#include <cstdint>
+#include <memory>
 #include <stdexcept>
 #include <vector>
 
@@ -192,6 +192,7 @@ struct FSData
   float max_age;
 
   bool useSingleBufferOnly;
+  std::unique_ptr<GoomDraw> draw;
 
   PluginParam min_age_p;
   PluginParam max_age_p;
@@ -204,7 +205,7 @@ struct FSData
 
 static StarsStats stats{};
 
-static void fs_init(VisualFX* _this, PluginInfo*)
+static void fs_init(VisualFX* _this, PluginInfo* goomInfo)
 {
   stats.reset();
 
@@ -217,6 +218,7 @@ static void fs_init(VisualFX* _this, PluginInfo*)
   data->stars = new Star[data->maxStars];
   data->numStars = 0;
   data->useSingleBufferOnly = true;
+  data->draw = std::make_unique<GoomDraw>(goomInfo->screen.width, goomInfo->screen.height);
 
   data->max_age_p = secure_i_param("Fireworks Smallest Bombs");
   IVAL(data->max_age_p) = 80;
@@ -501,15 +503,13 @@ static void fs_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* goomI
 
       if (data->useSingleBufferOnly)
       {
-        draw_line(dest, x1, y1, x2, y2, mixedColor, thickness, goomInfo->screen.width,
-                  goomInfo->screen.height);
+        data->draw->line(dest, x1, y1, x2, y2, mixedColor, thickness);
       }
       else
       {
         const std::vector<Pixel> colors = {{.val = mixedColor}, {.val = lowColor}};
         Pixel* buffs[2] = {dest, src};
-        draw_line(std::size(buffs), buffs, colors, thickness, x1, y1, x2, y2,
-                  goomInfo->screen.width, goomInfo->screen.height);
+        data->draw->line(std::size(buffs), buffs, x1, y1, x2, y2, colors, thickness);
       }
 
       x1 = x2;

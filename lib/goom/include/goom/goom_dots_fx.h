@@ -1,6 +1,7 @@
 #ifndef LIBS_GOOM_INCLUDE_GOOM_GOOM_DOTS_FX_H_
 #define LIBS_GOOM_INCLUDE_GOOM_GOOM_DOTS_FX_H_
 
+#include "goom_draw.h"
 #include "goom_graphic.h"
 #include "goomutils/colormap.h"
 
@@ -31,6 +32,8 @@ private:
   const float pointWidthDiv3;
   const float pointHeightDiv3;
 
+  GoomDraw draw;
+
   utils::WeightedColorMaps colorMaps;
   const utils::ColorMap* colorMap1 = nullptr;
   const utils::ColorMap* colorMap2 = nullptr;
@@ -48,13 +51,13 @@ private:
   float getLargeSoundFactor(const SoundInfo&) const;
 
   void dotFilter(Pixel* pix1,
-                 const std::vector<uint32_t> colors,
+                 const std::vector<uint32_t>& colors,
                  const float t1,
                  const float t2,
                  const float t3,
                  const float t4,
                  const uint32_t cycle,
-                 const uint32_t radius) const;
+                 const uint32_t radius);
 };
 
 } // namespace goom

@@ -3,6 +3,7 @@
 
 #include "goom_graphic.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <cstdint>
@@ -26,12 +27,6 @@ Pixel getHalfIntensityColor(const Pixel& color);
 uint32_t getLightenedColor(const uint32_t oldColor, const float power);
 uint32_t getEvolvedColor(const uint32_t baseColor);
 
-void setPixelRGB(Pixel* buff,
-                 const uint32_t x,
-                 const uint32_t y,
-                 const uint32_t screenWidth,
-                 const uint32_t color);
-
 uint32_t getLuma(const Pixel& color);
 
 
@@ -43,29 +38,21 @@ inline uint32_t colorChannelAdd(const uint8_t c1, const uint8_t c2)
 inline Pixel getColorAdd(const Pixel& color1, const Pixel& color2, const bool allowOverexposed)
 {
   uint32_t newR = colorChannelAdd(color1.channels.r, color2.channels.r);
-  uint32_t maxVal = newR;
-
   uint32_t newG = colorChannelAdd(color1.channels.g, color2.channels.g);
-  if (newG > maxVal)
-  {
-    maxVal = newG;
-  }
-
   uint32_t newB = colorChannelAdd(color1.channels.b, color2.channels.b);
-  if (newB > maxVal)
-  {
-    maxVal = newB;
-  }
-
-  if (!allowOverexposed && maxVal > 255)
-  {
-    // scale all channels back
-    newR = (newR << 8) / maxVal;
-    newG = (newG << 8) / maxVal;
-    newB = (newB << 8) / maxVal;
-  }
-
   const uint32_t newA = colorChannelAdd(color1.channels.a, color2.channels.a);
+
+  if (!allowOverexposed)
+  {
+    const uint32_t maxVal = std::max({newR, newG, newB});
+    if (maxVal > 255)
+    {
+      // scale all channels back
+      newR = (newR << 8) / maxVal;
+      newG = (newG << 8) / maxVal;
+      newB = (newB << 8) / maxVal;
+    }
+  }
 
   return Pixel{.channels{
       .r = static_cast<uint8_t>((newR & 0xffffff00) ? 0xff : newR),
@@ -86,29 +73,21 @@ inline Pixel getBrighterColor(const uint32_t brightness,
                               const bool allowOverexposed)
 {
   uint32_t newR = getBrighterChannelColor(brightness, color.channels.r);
-  uint32_t maxVal = newR;
-
   uint32_t newG = getBrighterChannelColor(brightness, color.channels.g);
-  if (newG > maxVal)
-  {
-    maxVal = newG;
-  }
-
   uint32_t newB = getBrighterChannelColor(brightness, color.channels.b);
-  if (newB > maxVal)
-  {
-    maxVal = newB;
-  }
-
-  if (!allowOverexposed && maxVal > 255)
-  {
-    // scale all channels back
-    newR = (newR << 8) / maxVal;
-    newG = (newG << 8) / maxVal;
-    newB = (newB << 8) / maxVal;
-  }
-
   const uint32_t newA = getBrighterChannelColor(brightness, color.channels.a);
+
+  if (!allowOverexposed)
+  {
+    const uint32_t maxVal = std::max({newR, newG, newB});
+    if (maxVal > 255)
+    {
+      // scale all channels back
+      newR = (newR << 8) / maxVal;
+      newG = (newG << 8) / maxVal;
+      newB = (newB << 8) / maxVal;
+    }
+  }
 
   return Pixel{.channels{
       .r = static_cast<uint8_t>((newR & 0xffffff00) ? 0xff : newR),
@@ -147,16 +126,6 @@ inline Pixel getRightShiftedChannels(const Pixel& color, const int value)
 inline Pixel getHalfIntensityColor(const Pixel& color)
 {
   return getRightShiftedChannels(color, 1);
-}
-
-
-inline void setPixelRGB(Pixel* buff,
-                        const uint32_t x,
-                        const uint32_t y,
-                        const uint32_t screenWidth,
-                        const uint32_t color)
-{
-  buff[x + (y * screenWidth)].val = color;
 }
 
 

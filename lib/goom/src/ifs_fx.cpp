@@ -36,6 +36,7 @@
 
 #include "colorutils.h"
 #include "goom_config.h"
+#include "goom_draw.h"
 #include "goom_graphic.h"
 #include "goom_plugin_info.h"
 #include "goom_testing.h"
@@ -52,6 +53,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstdint>
+#include <memory>
 
 namespace goom
 {
@@ -251,6 +253,9 @@ void Colorizer::changeColorMaps()
 
 void Colorizer::updateAllowOverexposed()
 {
+  allowOverexposed = true;
+  return;
+
   if (allowOverexposed)
   {
     if (countSinceOverexposed == 0)
@@ -322,7 +327,14 @@ struct IfsData
   PluginParam enabled_bp;
   PluginParameters params;
 
+  std::unique_ptr<GoomDraw> draw;
   Colorizer colorizer;
+  void drawPixel(Pixel* frontBuff,
+                 Pixel* backBuff,
+                 const uint32_t x,
+                 const uint32_t y,
+                 const Pixel& ifsColor,
+                 const float tmix);
 
   Fractal* root;
   Fractal* curF;
@@ -332,6 +344,17 @@ struct IfsData
   size_t curPt;
   bool initialized;
 };
+
+inline void IfsData::drawPixel(Pixel* frontBuff,
+                               Pixel* backBuff,
+                               const uint32_t x,
+                               const uint32_t y,
+                               const Pixel& ifsColor,
+                               const float tmix)
+{
+  const Pixel backBuffColor = draw->getPixelRGB(backBuff, x, y);
+  draw->setPixelRGB(frontBuff, x, y, colorizer.getMixedColor(backBuffColor, ifsColor, tmix));
+}
 
 static Dbl gaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S)
 {
@@ -400,6 +423,8 @@ static void deleteIfsBuffers(Fractal* fractal)
 static void initIfs(PluginInfo* goomInfo, IfsData* data)
 {
   data->enabled_bp = secure_b_param("Enabled", 1);
+
+  data->draw = std::make_unique<GoomDraw>(goomInfo->screen.width, goomInfo->screen.height);
 
   if (!data->root)
   {
@@ -732,9 +757,6 @@ static void updatePixelBuffers(PluginInfo* goomInfo,
                                const int increment,
                                const Pixel& color)
 {
-  const uint32_t width = goomInfo->screen.width;
-  const uint32_t height = goomInfo->screen.height;
-
   const float tStep = numPoints == 1 ? 0.0F : (1.0F - 0.0F) / static_cast<float>(numPoints - 1);
   float t = -tStep;
   bool doneColorChange =
@@ -746,7 +768,7 @@ static void updatePixelBuffers(PluginInfo* goomInfo,
 
     const uint32_t x = points[i].x & 0x7fffffff;
     const uint32_t y = points[i].y & 0x7fffffff;
-    if ((x >= width) || (y >= height))
+    if ((x >= goomInfo->screen.width) || (y >= goomInfo->screen.height))
     {
       continue;
     }
@@ -757,9 +779,7 @@ static void updatePixelBuffers(PluginInfo* goomInfo,
       doneColorChange = true;
     }
 
-    const uint32_t pos = x + (y * width);
-    Pixel* const p = &frontBuff[pos];
-    *p = fx_data->colorizer.getMixedColor(backBuff[pos], color, t);
+    fx_data->drawPixel(frontBuff, backBuff, x, y, color, t);
   }
 }
 

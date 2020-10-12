@@ -12,7 +12,7 @@ endif()
 set (SRCE_FILES
                  src/colorutils.cpp
                  src/convolve_fx.cpp
-                 src/drawmethods.cpp
+                 src/draw_methods.cpp
                  src/filters.cpp
                  src/flying_stars_fx.cpp
                  src/gfontlib.cpp
@@ -20,6 +20,7 @@ set (SRCE_FILES
                  src/goom_config_param.cpp
                  src/goom_core.cpp
                  src/goom_dots_fx.cpp
+                 src/goom_draw.cpp
                  src/goom_plugin_info.cpp
                  src/goom_testing.cpp
                  src/ifs_fx.cpp

@@ -1,8 +1,7 @@
-#include "drawmethods.h"
+#include "draw_methods.h"
 
 #include "colorutils.h"
-
-#include <algorithm>
+#include "goom_graphic.h"
 
 #undef NDEBUG
 #include <cassert>
@@ -18,13 +17,15 @@ namespace goom
 // Bresenhams midpoint circle algorithm from
 //   "https://rosettacode.org/wiki/Bitmap/Midpoint_circle_algorithm".
 //
-void circle(Pixel* buff,
-            const int x0,
-            const int y0,
-            const int radius,
-            const uint32_t color,
-            const uint32_t screenWidth,
-            const uint32_t screenHeight)
+void drawCircle(Pixel* buff,
+                const int x0,
+                const int y0,
+                const int radius,
+                const uint32_t color,
+                const uint32_t buffIntensity,
+                const bool allowOverExposure,
+                const uint32_t screenWidth,
+                const uint32_t screenHeight)
 {
   const Pixel pixColor{.val = color};
   const auto plot = [&](const int x, const int y) -> void {
@@ -32,9 +33,10 @@ void circle(Pixel* buff,
     {
       return;
     }
+    const Pixel brighterPixColor = getBrighterColor(buffIntensity, pixColor, allowOverExposure);
     const int pos = y * static_cast<int>(screenWidth) + x;
     Pixel* const p = &(buff[pos]);
-    *p = getColorAdd(*p, getHalfIntensityColor(pixColor));
+    *p = getColorAdd(*p, brighterPixColor, allowOverExposure);
   };
 
   int f = 1 - radius;
@@ -70,29 +72,34 @@ void circle(Pixel* buff,
   }
 }
 
-void filledCircle(Pixel* buff,
-                  const int x0,
-                  const int y0,
-                  const int radius,
-                  const std::vector<uint32_t> colors,
-                  const uint32_t screenWidth,
-                  const uint32_t screenHeight)
+void drawFilledCircle(Pixel* buff,
+                      const int x0,
+                      const int y0,
+                      const int radius,
+                      const std::vector<uint32_t> colors,
+                      const uint32_t buffIntensity,
+                      const bool allowOverExposure,
+                      const uint32_t screenWidth,
+                      const uint32_t screenHeight)
 {
   for (int i = 1; i <= radius; i++)
   {
-    circle(buff, x0, y0, i, colors.at(static_cast<size_t>(i - 1)), screenWidth, screenHeight);
+    drawCircle(buff, x0, y0, i, colors.at(static_cast<size_t>(i - 1)), buffIntensity,
+               allowOverExposure, screenWidth, screenHeight);
   }
 }
 
-static void draw_wuline(const size_t n,
-                        Pixel* buffs[],
-                        const std::vector<Pixel>& colors,
-                        const int x1,
-                        const int y1,
-                        const int x2,
-                        const int y2,
-                        const uint32_t screenx,
-                        const uint32_t screeny);
+static void drawWuLine(const size_t n,
+                       Pixel* buffs[],
+                       const int x1,
+                       const int y1,
+                       const int x2,
+                       const int y2,
+                       const std::vector<Pixel>& colors,
+                       const uint32_t buffIntensity,
+                       const bool allowOverExposure,
+                       const uint32_t screenx,
+                       const uint32_t screeny);
 
 constexpr int LINE_THICKNESS_MIDDLE = 0;
 constexpr int LINE_THICKNESS_DRAW_CLOCKWISE = 1;
@@ -100,167 +107,92 @@ constexpr int LINE_THICKNESS_DRAW_COUNTERCLOCKWISE = 2;
 
 static void drawThickLine(const size_t n,
                           Pixel* buffs[],
-                          const std::vector<Pixel>& colors,
                           int x0,
                           int y0,
                           int x1,
                           int y1,
+                          const std::vector<Pixel>& colors,
+                          const uint32_t buffIntensity,
+                          const bool allowOverExposure,
                           const uint8_t thickness,
                           const uint8_t thicknessMode,
                           const uint32_t screenWidth,
                           const uint32_t screenHeight);
 
-void draw_line(Pixel* buff,
-               const int x1,
-               const int y1,
-               const int x2,
-               const int y2,
-               const uint32_t color,
-               const uint8_t thickness,
-               const uint32_t screenx,
-               const uint32_t screeny)
+void drawLine(Pixel* buff,
+              const int x1,
+              const int y1,
+              const int x2,
+              const int y2,
+              const uint32_t color,
+              const uint32_t buffIntensity,
+              const bool allowOverExposure,
+              const uint8_t thickness,
+              const uint32_t screenx,
+              const uint32_t screeny)
 {
   Pixel* buffs[] = {buff};
   std::vector<Pixel> colors(1);
   colors[0].val = color;
-  draw_line(1, buffs, colors, thickness, x1, y1, x2, y2, screenx, screeny);
+  drawLine(1, buffs, x1, y1, x2, y2, colors, buffIntensity, allowOverExposure, thickness, screenx,
+           screeny);
 }
 
-void draw_line(const size_t n,
-               Pixel* buffs[],
-               const std::vector<Pixel>& colors,
-               const uint8_t thickness,
-               int x1,
-               int y1,
-               int x2,
-               int y2,
-               const uint32_t screenx,
-               const uint32_t screeny)
+void drawLine(const size_t n,
+              Pixel* buffs[],
+              int x1,
+              int y1,
+              int x2,
+              int y2,
+              const std::vector<Pixel>& colors,
+              const uint32_t buffIntensity,
+              const bool allowOverExposure,
+              const uint8_t thickness,
+              const uint32_t screenx,
+              const uint32_t screeny)
 {
   if (thickness == 1)
   {
-    draw_wuline(n, buffs, colors, x1, y1, x2, y2, screenx, screeny);
+    drawWuLine(n, buffs, x1, y1, x2, y2, colors, buffIntensity, allowOverExposure, screenx,
+               screeny);
   }
   else
   {
-    drawThickLine(n, buffs, colors, x1, y1, x2, y2, thickness, LINE_THICKNESS_MIDDLE, screenx,
-                  screeny);
+    drawThickLine(n, buffs, x1, y1, x2, y2, colors, buffIntensity, allowOverExposure, thickness,
+                  LINE_THICKNESS_MIDDLE, screenx, screeny);
     // plotLineWidth(n, buffs, colors, x1, y1, x2, y2, 1.0, screenx, screeny);
   }
 }
 
 using PlotFunc = const std::function<void(int x, int y, float brightess)>;
-static void WuDrawLine(float x0, float y0, float x1, float y1, const PlotFunc&);
+static void wuLine(float x0, float y0, float x1, float y1, const PlotFunc&);
 
-inline void draw_pixels(const size_t n,
-                        Pixel* buffs[],
-                        const std::vector<Pixel>& colors,
-                        const int pos)
+inline void drawPixels(const size_t n,
+                       Pixel* buffs[],
+                       const std::vector<Pixel>& pixColors,
+                       const uint32_t buffIntensity,
+                       const bool allowOverExposure,
+                       const int pos)
 {
   for (size_t i = 0; i < n; i++)
   {
+    const Pixel brighterPixColor = getBrighterColor(buffIntensity, pixColors[i], allowOverExposure);
     Pixel* const p = &(buffs[i][pos]);
-    *p = getColorAdd(*p, getHalfIntensityColor(colors[i]));
+    *p = getColorAdd(*p, brighterPixColor, allowOverExposure);
   }
 }
 
-/** Doesn't work
-static void plotLineWidth(const size_t n,
-                          Pixel* buffs[],
-                          const std::vector<Pixel>& colors,
-                          int x0,
-                          int y0,
-                          int x1,
-                          int y1,
-                          float wd,
-                          const uint32_t screenWidth,
-                          const uint32_t screenHeight)
-{
-  std::vector<Pixel> tempColors = colors;
-  const auto plot = [&](const int x, const int y, const uint32_t brightness) -> void {
-    if (uint16_t(x) >= screenWidth || uint16_t(y) >= screenHeight)
-    {
-      return;
-    }
-    if (brightness == 0)
-    {
-      return;
-    }
-    const int pos = y * static_cast<int>(screenWidth) + x;
-    if (brightness >= 255)
-    {
-      draw_pixels(n, buffs, colors, pos);
-    }
-    else
-    {
-      for (size_t i = 0; i < colors.size(); i++)
-      {
-        tempColors[i] = getBrighterColor(brightness, colors[i]);
-      }
-      draw_pixels(n, buffs, tempColors, pos);
-    }
-  };
-
-  // plot an anti-aliased line of width wd
-  const int dx = std::abs(x1 - x0);
-  const int sx = x0 < x1 ? 1 : -1;
-  const int dy = std::abs(y1 - y0);
-  const int sy = y0 < y1 ? 1 : -1;
-  int err = dx - dy;
-  int e2; // error value e_xy
-  int x2;
-  int y2;
-  const float ed =
-      dx + dy == 0 ? 1 : std::sqrt(static_cast<float>(dx * dx) + static_cast<float>(dy * dy));
-
-  for (wd = (wd + 1) / 2;;)
-  { // pixel loop
-    plot(x0, y0,
-         std::max(0.0f, 255.0f * (std::fabs(static_cast<float>(err - dx + dy)) / ed - wd + 1.0f)));
-    e2 = err;
-    x2 = x0;
-    if (2 * e2 >= -dx)
-    { // x step
-      for (e2 += dy, y2 = y0; e2 < ed * wd && (y1 != y2 || dx > dy); e2 += dx)
-      {
-        y2 += sy;
-        plot(x0, y2, std::max(0.0f, 255.0f * (std::fabs(static_cast<float>(e2)) / ed - wd + 1.0f)));
-      }
-      if (x0 == x1)
-      {
-        break;
-      }
-      e2 = err;
-      err -= dy;
-      x0 += sx;
-    }
-    if (2 * e2 <= dy)
-    { // y step
-      for (e2 = dx - e2; e2 < ed * wd && (x1 != x2 || dx < dy); e2 += dy)
-      {
-        x2 += sx;
-        plot(x2, y0, std::max(0.0f, 255.0f * (std::fabs(static_cast<float>(e2)) / ed - wd + 1.0f)));
-      }
-      if (y0 == y1)
-      {
-        break;
-      }
-      err += dx;
-      y0 += sy;
-    }
-  }
-}
-***/
-
-static void draw_wuline(const size_t n,
-                        Pixel* buffs[],
-                        const std::vector<Pixel>& colors,
-                        const int x1,
-                        const int y1,
-                        const int x2,
-                        const int y2,
-                        const uint32_t screenWidth,
-                        const uint32_t screenHeight)
+static void drawWuLine(const size_t n,
+                       Pixel* buffs[],
+                       const int x1,
+                       const int y1,
+                       const int x2,
+                       const int y2,
+                       const std::vector<Pixel>& colors,
+                       const uint32_t buffIntensity,
+                       const bool allowOverExposure,
+                       const uint32_t screenWidth,
+                       const uint32_t screenHeight)
 {
   if ((y1 < 0) || (y2 < 0) || (x1 < 0) || (x2 < 0) || (y1 >= static_cast<int>(screenHeight)) ||
       (y2 >= static_cast<int>(screenHeight)) || (x1 >= static_cast<int>(screenWidth)) ||
@@ -283,7 +215,7 @@ static void draw_wuline(const size_t n,
     const int pos = y * static_cast<int>(screenWidth) + x;
     if (brightness >= 0.999)
     {
-      draw_pixels(n, buffs, colors, pos);
+      drawPixels(n, buffs, colors, buffIntensity, allowOverExposure, pos);
     }
     else
     {
@@ -291,17 +223,17 @@ static void draw_wuline(const size_t n,
       {
         tempColors[i] = getBrighterColor(brightness, colors[i]);
       }
-      draw_pixels(n, buffs, tempColors, pos);
+      drawPixels(n, buffs, tempColors, buffIntensity, allowOverExposure, pos);
     }
   };
 
-  WuDrawLine(x1, y1, x2, y2, plot);
+  wuLine(x1, y1, x2, y2, plot);
 }
 
 // The Xiaolin Wu anti-aliased draw line.
 // From https://rosettacode.org/wiki/Xiaolin_Wu%27s_line_algorithm#C.2B.2B
 //
-static void WuDrawLine(float x0, float y0, float x1, float y1, const PlotFunc& plot)
+static void wuLine(float x0, float y0, float x1, float y1, const PlotFunc& plot)
 {
   const auto ipart = [](const float x) -> int { return static_cast<int>(std::floor(x)); };
   const auto round = [](const float x) -> float { return std::round(x); };
@@ -406,12 +338,14 @@ constexpr int LINE_OVERLAP_MINOR = 2;
 
 static void drawLineOverlap(const size_t n,
                             Pixel* buffs[],
-                            const std::vector<Pixel>& colors,
-                            const float brightness,
                             int x0,
                             int y0,
                             int x1,
                             int y1,
+                            const std::vector<Pixel>& colors,
+                            const uint32_t buffIntensity,
+                            const bool allowOverExposure,
+                            const float brightness,
                             const uint8_t overlap,
                             const uint32_t screenWidth,
                             const uint32_t screenHeight)
@@ -433,7 +367,7 @@ static void drawLineOverlap(const size_t n,
     const int pos = y * static_cast<int>(screenWidth) + x;
     if (brightness >= 0.999)
     {
-      draw_pixels(n, buffs, colors, pos);
+      drawPixels(n, buffs, colors, buffIntensity, allowOverExposure, pos);
     }
     else
     {
@@ -441,7 +375,7 @@ static void drawLineOverlap(const size_t n,
       {
         tempColors[i] = getBrighterColor(brightness, colors[i]);
       }
-      draw_pixels(n, buffs, tempColors, pos);
+      drawPixels(n, buffs, tempColors, buffIntensity, allowOverExposure, pos);
     }
   };
 
@@ -450,7 +384,8 @@ static void drawLineOverlap(const size_t n,
     //horizontal or vertical line -> fillRect() is faster than drawLine()
     //        LocalDisplay.fillRect(aXStart, aYStart, aXEnd, aYEnd, aColor);
     // ????????????????????????????????????????????????????????????????????????????????????????????
-    draw_wuline(n, buffs, colors, x0, y0, x1, y1, screenWidth, screenHeight);
+    drawWuLine(n, buffs, x0, y0, x1, y1, colors, buffIntensity, allowOverExposure, screenWidth,
+               screenHeight);
   }
   else
   {
@@ -550,11 +485,13 @@ static void drawLineOverlap(const size_t n,
 
 static void drawThickLine(const size_t n,
                           Pixel* buffs[],
-                          const std::vector<Pixel>& colors,
                           int x0,
                           int y0,
                           int x1,
                           int y1,
+                          const std::vector<Pixel>& colors,
+                          const uint32_t buffIntensity,
+                          const bool allowOverExposure,
                           const uint8_t thickness,
                           const uint8_t thicknessMode,
                           const uint32_t screenWidth,
@@ -569,7 +506,8 @@ static void drawThickLine(const size_t n,
 
   if (thickness <= 1)
   {
-    drawLineOverlap(n, buffs, colors, 1.0, x0, y0, x1, y1, 0, screenWidth, screenHeight);
+    drawLineOverlap(n, buffs, x0, y0, x1, y1, colors, buffIntensity, allowOverExposure, 1.0, 0,
+                    screenWidth, screenHeight);
   }
 
   const float brightness = 0.8 * 2.0 / thickness;
@@ -659,7 +597,8 @@ static void drawThickLine(const size_t n,
       error += deltaYTimes2;
     }
     //draw start line
-    drawLineOverlap(n, buffs, colors, brightness, x0, y0, x1, y1, 1, screenWidth, screenHeight);
+    drawLineOverlap(n, buffs, x0, y0, x1, y1, colors, buffIntensity, allowOverExposure, brightness,
+                    1, screenWidth, screenHeight);
     // draw 'thickness' number of lines
     error = deltaYTimes2 - deltaX;
     for (int i = thickness; i > 1; i--)
@@ -694,8 +633,8 @@ static void drawThickLine(const size_t n,
         overlap = LINE_OVERLAP_MAJOR;
       }
       error += deltaYTimes2;
-      drawLineOverlap(n, buffs, colors, brightness, x0, y0, x1, y1, overlap, screenWidth,
-                      screenHeight);
+      drawLineOverlap(n, buffs, x0, y0, x1, y1, colors, buffIntensity, allowOverExposure,
+                      brightness, overlap, screenWidth, screenHeight);
     }
   }
   else
@@ -725,7 +664,8 @@ static void drawThickLine(const size_t n,
       error += deltaXTimes2;
     }
     // draw start line
-    drawLineOverlap(n, buffs, colors, brightness, x0, y0, x1, y1, 0, screenWidth, screenHeight);
+    drawLineOverlap(n, buffs, x0, y0, x1, y1, colors, buffIntensity, allowOverExposure, brightness,
+                    0, screenWidth, screenHeight);
     // draw 'thickness' number of lines
     error = deltaXTimes2 - deltaY;
     for (int i = thickness; i > 1; i--)
@@ -741,8 +681,8 @@ static void drawThickLine(const size_t n,
         overlap = LINE_OVERLAP_MAJOR;
       }
       error += deltaXTimes2;
-      drawLineOverlap(n, buffs, colors, brightness, x0, y0, x1, y1, overlap, screenWidth,
-                      screenHeight);
+      drawLineOverlap(n, buffs, x0, y0, x1, y1, colors, buffIntensity, allowOverExposure,
+                      brightness, overlap, screenWidth, screenHeight);
     }
   }
 }

@@ -1,6 +1,7 @@
 #ifndef LIBS_GOOM_INCLUDE_GOOM_TENTACLE_DRIVER_H_
 #define LIBS_GOOM_INCLUDE_GOOM_TENTACLE_DRIVER_H_
 
+#include "goom_draw.h"
 #include "goom_graphic.h"
 #include "goomutils/colormap.h"
 #include "goomutils/colormap_enums.h"
@@ -154,6 +155,7 @@ private:
 
   const uint32_t screenWidth;
   const uint32_t screenHeight;
+  GoomDraw draw;
   const utils::ColorMaps* colorMaps;
   std::vector<std::unique_ptr<TentacleColorizer>> colorizers;
   utils::ConstantSequenceFunction constPrevYWeightFunc;

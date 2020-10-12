@@ -590,27 +590,20 @@ inline Pixel getMixedColor(const CoeffArray& coeffs,
   const uint32_t c4 = coeffs.vals.c4;
 
   uint32_t newR =
-      col1.channels.r * c1 + col2.channels.r * c2 + col3.channels.r * c3 + col4.channels.r * c4;
-  newR >>= 8;
-  uint32_t maxVal = newR;
+      (col1.channels.r * c1 + col2.channels.r * c2 + col3.channels.r * c3 + col4.channels.r * c4) >>
+      8;
 
   uint32_t newG =
-      col1.channels.g * c1 + col2.channels.g * c2 + col3.channels.g * c3 + col4.channels.g * c4;
-  newG >>= 8;
-  if (newG > maxVal)
-  {
-    maxVal = newG;
-  }
+      (col1.channels.g * c1 + col2.channels.g * c2 + col3.channels.g * c3 + col4.channels.g * c4) >>
+      8;
 
   uint32_t newB =
-      col1.channels.b * c1 + col2.channels.b * c2 + col3.channels.b * c3 + col4.channels.b * c4;
-  newB >>= 8;
-  if (newB > maxVal)
-  {
-    maxVal = newB;
-  }
+      (col1.channels.b * c1 + col2.channels.b * c2 + col3.channels.b * c3 + col4.channels.b * c4) >>
+      8;
 
-  if (maxVal > 255)
+  // TODO Fix this!!
+  const uint32_t maxVal = std::max({newR, newG, newB});
+  if (maxVal > 25555) // DISABLED!!!
   {
     // scale all channels back
     newR = (newR << 8) / maxVal;
