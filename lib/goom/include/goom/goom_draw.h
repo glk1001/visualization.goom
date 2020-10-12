@@ -58,7 +58,7 @@ private:
   const uint32_t screenHeight;
   bool allowOverexposure = false;
   float buffIntensity = 1;
-  uint32_t intBuffIntensity = 255;
+  uint32_t intBuffIntensity = channel_limits<uint32_t>::max();
 };
 
 inline Pixel GoomDraw::getPixelRGB(Pixel* buff, const uint32_t x, const uint32_t y)
@@ -102,7 +102,7 @@ inline float GoomDraw::getBuffIntensity() const
 inline void GoomDraw::setBuffIntensity(const float val)
 {
   buffIntensity = val;
-  intBuffIntensity = static_cast<uint32_t>(255.0F * buffIntensity);
+  intBuffIntensity = static_cast<uint32_t>(channel_limits<float>::max() * buffIntensity);
 }
 
 } // namespace goom

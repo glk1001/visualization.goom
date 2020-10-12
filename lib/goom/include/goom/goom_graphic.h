@@ -20,6 +20,37 @@ namespace goom
 #define VERT 1u
 #define ROUGE 0u
 
+template<class T>
+struct channel_limits
+{
+  static constexpr T min() noexcept { return T(); }
+  static constexpr T max() noexcept { return T(); }
+};
+template<>
+struct channel_limits<uint8_t>
+{
+  static constexpr uint8_t min() noexcept { return 0; }
+  static constexpr uint8_t max() noexcept { return 255; }
+};
+template<>
+struct channel_limits<uint32_t>
+{
+  static constexpr uint32_t min() noexcept { return channel_limits<uint8_t>::min(); }
+  static constexpr uint32_t max() noexcept { return channel_limits<uint8_t>::max(); }
+};
+template<>
+struct channel_limits<int32_t>
+{
+  static constexpr int32_t min() noexcept { return channel_limits<uint8_t>::min(); }
+  static constexpr int32_t max() noexcept { return channel_limits<uint8_t>::max(); }
+};
+template<>
+struct channel_limits<float>
+{
+  static constexpr float min() noexcept { return channel_limits<uint8_t>::min(); }
+  static constexpr float max() noexcept { return channel_limits<uint8_t>::max(); }
+};
+
 union Pixel
 {
   struct

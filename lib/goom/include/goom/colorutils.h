@@ -45,7 +45,7 @@ inline Pixel getColorAdd(const Pixel& color1, const Pixel& color2, const bool al
   if (!allowOverexposed)
   {
     const uint32_t maxVal = std::max({newR, newG, newB});
-    if (maxVal > 255)
+    if (maxVal > channel_limits<uint32_t>::max())
     {
       // scale all channels back
       newR = (newR << 8) / maxVal;
@@ -80,7 +80,7 @@ inline Pixel getBrighterColor(const uint32_t brightness,
   if (!allowOverexposed)
   {
     const uint32_t maxVal = std::max({newR, newG, newB});
-    if (maxVal > 255)
+    if (maxVal > channel_limits<uint32_t>::max())
     {
       // scale all channels back
       newR = (newR << 8) / maxVal;

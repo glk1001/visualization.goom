@@ -2,6 +2,7 @@
 
 #include "goom_graphic.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 
@@ -22,17 +23,8 @@ inline uint8_t lighten(const uint8_t value, const float power)
     return 0;
   }
 
-  int val = static_cast<int>(t); /* (32.0f * log (t)); */
-  if (val > 255)
-  {
-    val = 255;
-  }
-  else if (val < 0)
-  {
-    val = 0;
-  }
-
-  return val;
+  // (32.0f * log (t));
+  return std::clamp(channel_limits<int>::min(), channel_limits<int>::max(), static_cast<int>(t));
 }
 
 uint32_t getLightenedColor(const uint32_t oldColor, const float power)

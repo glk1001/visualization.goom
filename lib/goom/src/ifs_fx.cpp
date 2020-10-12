@@ -291,14 +291,12 @@ inline Pixel Colorizer::getMixedColor(const Pixel& existingColor,
                                       const Pixel& color,
                                       const float tmix)
 {
-  constexpr float maxChannelVal = 255;
-
   switch (colorMode)
   {
     case ColorMode::mapColors:
     case ColorMode::megaMapColorChange:
     {
-      const float tBright = getLuma(color) / maxChannelVal;
+      const float tBright = getLuma(color) / channel_limits<float>::max();
       return getColorAdd(existingColor, getNextMixerMapColor(tBright), allowOverexposed);
     }
     case ColorMode::mixColors:
@@ -843,9 +841,9 @@ static void updateColors(IfsUpdateData* upd)
 static void updateColorsModeMer(IfsUpdateData* upd)
 {
   upd->col[BLEU] += upd->v[BLEU];
-  if (upd->col[BLEU] > 255)
+  if (upd->col[BLEU] > channel_limits<int32_t>::max())
   {
-    upd->col[BLEU] = 255;
+    upd->col[BLEU] = channel_limits<int32_t>::max();
     upd->v[BLEU] = -getRandInRange(1, 5);
   }
   if (upd->col[BLEU] < 32)
@@ -949,9 +947,9 @@ static void updateColorsModeMerver(IfsUpdateData* upd)
   }
 
   upd->col[ALPHA] += upd->v[ALPHA];
-  if (upd->col[ALPHA] > 255)
+  if (upd->col[ALPHA] > channel_limits<int32_t>::max())
   {
-    upd->col[ALPHA] = 255;
+    upd->col[ALPHA] = channel_limits<int32_t>::max();
     upd->v[ALPHA] = -getRandInRange(1, 5);
   }
   if (upd->col[ALPHA] < 0)
@@ -1004,9 +1002,9 @@ static void updateColorsModeFeu(IfsUpdateData* upd)
   }
 
   upd->col[ROUGE] += upd->v[ROUGE];
-  if (upd->col[ROUGE] > 255)
+  if (upd->col[ROUGE] > channel_limits<int32_t>::max())
   {
-    upd->col[ROUGE] = 255;
+    upd->col[ROUGE] = channel_limits<int32_t>::max();
     upd->v[ROUGE] = -getRandInRange(1, 5);
   }
   if (upd->col[ROUGE] > upd->col[VERT] + 40)
