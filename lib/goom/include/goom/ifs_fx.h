@@ -6,12 +6,13 @@
  */
 
 #include "goom_visual_fx.h"
+#include "sound_info.h"
 
 namespace goom
 {
 
 VisualFX ifs_visualfx_create(void);
-void ifsRenew(VisualFX* _this);
+void ifsRenew(VisualFX* _this, const SoundInfo&);
 
 } // namespace goom
 #endif

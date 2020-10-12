@@ -1335,7 +1335,7 @@ static void changeFilterMode(PluginInfo* goomInfo)
 
   stats.filterModeChange(goomInfo->update.zoomFilterData.mode);
 
-  ifsRenew(&goomInfo->ifs_fx);
+  ifsRenew(&goomInfo->ifs_fx, *goomInfo->sound);
   stats.ifsRenew();
 }
 
@@ -1362,7 +1362,7 @@ static void changeState(PluginInfo* goomInfo)
   {
     if (goomEvent.happens(GoomEvent::ifsRenew))
     {
-      ifsRenew(&goomInfo->ifs_fx);
+      ifsRenew(&goomInfo->ifs_fx, *goomInfo->sound);
       stats.ifsRenew();
     }
     if (goomInfo->update.ifs_incr <= 0)
@@ -1370,7 +1370,7 @@ static void changeState(PluginInfo* goomInfo)
       goomInfo->update.recay_ifs = 5;
       goomInfo->update.ifs_incr = 11;
       stats.ifsIncrLessThanEqualZero();
-      ifsRenew(&goomInfo->ifs_fx);
+      ifsRenew(&goomInfo->ifs_fx, *goomInfo->sound);
       stats.ifsRenew();
     }
   }
@@ -1691,7 +1691,7 @@ static void changeZoomEffect(PluginInfo* goomInfo, ZoomFilterData* pzfd, const i
       goomInfo->update.switchIncr = 0;
       goomInfo->update.switchMult = goomInfo->update.switchMultAmount;
 
-      ifsRenew(&goomInfo->ifs_fx);
+      ifsRenew(&goomInfo->ifs_fx, *goomInfo->sound);
       stats.ifsRenew();
     }
   }
@@ -1705,7 +1705,7 @@ static void changeZoomEffect(PluginInfo* goomInfo, ZoomFilterData* pzfd, const i
                goomInfo->update.cyclesSinceLastChange, timeBetweenChange);
       pzfd = &goomInfo->update.zoomFilterData;
       goomInfo->update.cyclesSinceLastChange = 0;
-      ifsRenew(&goomInfo->ifs_fx);
+      ifsRenew(&goomInfo->ifs_fx, *goomInfo->sound);
       stats.ifsRenew();
     }
     else

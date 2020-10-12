@@ -58,6 +58,21 @@ namespace goom
 
 using namespace goom::utils;
 
+inline bool changeCurrentColorMapEvent()
+{
+  return probabilityOfMInN(1, 10);
+}
+
+inline bool megaChangeColorMapEvent()
+{
+  return probabilityOfMInN(1, 10);
+}
+
+inline bool allowOverexposedEvent()
+{
+  return probabilityOfMInN(1, 50);
+}
+
 struct IFSPoint
 {
   uint32_t x = 0;
@@ -139,8 +154,8 @@ public:
     mapColors,
     mixColors,
     reverseMixColors,
-    megaColorChange,
-    mixedMegaColorChange,
+    megaMapColorChange,
+    megaMixColorChange,
     singleColors,
   };
 
@@ -155,7 +170,7 @@ public:
 
   void changeColorMaps();
 
-  Pixel getMixedColor(const Pixel& color, const float tmix);
+  Pixel getMixedColor(const Pixel& existingColor, const Pixel& color, const float tmix);
 
 private:
   const ColorMaps colorMaps;
@@ -171,6 +186,11 @@ private:
   float tBetweenColors; // in [0, 1]
   static ColorMode getNextColorMode();
   Pixel getNextMixerMapColor(const float t) const;
+
+  bool allowOverexposed = false;
+  uint32_t countSinceOverexposed = 0;
+  static constexpr uint32_t maxCountSinceOverexposed = 100;
+  void updateAllowOverexposed();
 };
 
 Colorizer::Colorizer() noexcept
@@ -202,12 +222,12 @@ Colorizer::ColorMode Colorizer::getNextColorMode()
 {
   // clang-format off
   static const Weights<Colorizer::ColorMode> colorModeWeights{{
-    { Colorizer::ColorMode::mapColors,  10 },
-    { Colorizer::ColorMode::mixColors,  5 },
-    { Colorizer::ColorMode::reverseMixColors,  5 },
-    { Colorizer::ColorMode::megaColorChange,  50 },
-    { Colorizer::ColorMode::mixedMegaColorChange,  5 },
-    { Colorizer::ColorMode::singleColors, 1 },
+    { Colorizer::ColorMode::mapColors,           15 },
+    { Colorizer::ColorMode::megaMapColorChange,  70 },
+    { Colorizer::ColorMode::mixColors,           10 },
+    { Colorizer::ColorMode::megaMixColorChange,  10 },
+    { Colorizer::ColorMode::reverseMixColors,    10 },
+    { Colorizer::ColorMode::singleColors,         1 },
   }};
   // clang-format on
 
@@ -216,7 +236,7 @@ Colorizer::ColorMode Colorizer::getNextColorMode()
 
 void Colorizer::changeColorMaps()
 {
-  if (probabilityOfMInN(1, 10))
+  if (changeCurrentColorMapEvent())
   {
     currentColorMapGroup = colorMaps.getRandomGroup();
   }
@@ -225,6 +245,28 @@ void Colorizer::changeColorMaps()
   colorMapChangeCompleted = getRandInRange(minColorMapChangeCompleted, maxColorMapChangeCompleted);
   tBetweenColors = getRandInRange(0.2F, 0.8F);
   countSinceColorMapChange = colorMapChangeCompleted;
+
+  updateAllowOverexposed();
+}
+
+void Colorizer::updateAllowOverexposed()
+{
+  if (allowOverexposed)
+  {
+    if (countSinceOverexposed == 0)
+    {
+      allowOverexposed = false;
+    }
+    else
+    {
+      countSinceOverexposed--;
+    }
+  }
+  else if (allowOverexposedEvent())
+  {
+    allowOverexposed = true;
+    countSinceOverexposed = maxCountSinceOverexposed;
+  }
 }
 
 inline Pixel Colorizer::getNextMixerMapColor(const float t) const
@@ -240,31 +282,36 @@ inline Pixel Colorizer::getNextMixerMapColor(const float t) const
   return Pixel{.val = ColorMap::colorMix(nextColor.val, prevMixerMap->getColor(t), tTransition)};
 }
 
-inline Pixel Colorizer::getMixedColor(const Pixel& color, const float tmix)
+inline Pixel Colorizer::getMixedColor(const Pixel& existingColor,
+                                      const Pixel& color,
+                                      const float tmix)
 {
   constexpr float maxChannelVal = 255;
 
   switch (colorMode)
   {
     case ColorMode::mapColors:
-    case ColorMode::megaColorChange:
+    case ColorMode::megaMapColorChange:
     {
       const float tBright = getLuma(color) / maxChannelVal;
-      return getNextMixerMapColor(tBright);
+      return getColorAdd(existingColor, getNextMixerMapColor(tBright), allowOverexposed);
     }
     case ColorMode::mixColors:
-    case ColorMode::mixedMegaColorChange:
+    case ColorMode::megaMixColorChange:
     {
       const uint32_t mixColor = getNextMixerMapColor(tmix).val;
-      return Pixel{.val = ColorMap::colorMix(mixColor, color.val, tBetweenColors)};
+      const Pixel inbetweenColor{.val = ColorMap::colorMix(mixColor, color.val, tBetweenColors)};
+      return getColorAdd(existingColor, inbetweenColor, allowOverexposed);
     }
     case ColorMode::reverseMixColors:
     {
       const uint32_t mixColor = getNextMixerMapColor(tmix).val;
-      return Pixel{.val = ColorMap::colorMix(color.val, mixColor, tBetweenColors)};
+      const Pixel reverseInbetweenColor{
+          .val = ColorMap::colorMix(color.val, mixColor, tBetweenColors)};
+      return getColorAdd(existingColor, reverseInbetweenColor, allowOverexposed);
     }
     case ColorMode::singleColors:
-      return color;
+      return getColorAdd(existingColor, color, allowOverexposed);
     default:
       throw std::logic_error("Unknown ColorMode");
   }
@@ -691,8 +738,8 @@ static void updatePixelBuffers(PluginInfo* goomInfo,
   const float tStep = numPoints == 1 ? 0.0F : (1.0F - 0.0F) / static_cast<float>(numPoints - 1);
   float t = -tStep;
   bool doneColorChange =
-      fx_data->colorizer.getColorMode() != Colorizer::ColorMode::megaColorChange &&
-      fx_data->colorizer.getColorMode() != Colorizer::ColorMode::mixedMegaColorChange;
+      fx_data->colorizer.getColorMode() != Colorizer::ColorMode::megaMapColorChange &&
+      fx_data->colorizer.getColorMode() != Colorizer::ColorMode::megaMixColorChange;
   for (size_t i = 0; i < numPoints; i += static_cast<size_t>(increment))
   {
     t += tStep;
@@ -704,16 +751,15 @@ static void updatePixelBuffers(PluginInfo* goomInfo,
       continue;
     }
 
-    if (!doneColorChange && probabilityOfMInN(1, 10))
+    if (!doneColorChange && megaChangeColorMapEvent())
     {
       changeColormaps(fx_data);
       doneColorChange = true;
     }
 
-    const Pixel finalColor = fx_data->colorizer.getMixedColor(color, t);
     const uint32_t pos = x + (y * width);
     Pixel* const p = &frontBuff[pos];
-    *p = getColorAdd(backBuff[pos], finalColor);
+    *p = fx_data->colorizer.getMixedColor(backBuff[pos], color, t);
   }
 }
 
@@ -1133,8 +1179,6 @@ static void ifs_vfx_init(VisualFX* _this, PluginInfo* goomInfo)
 
   initIfs(goomInfo, data);
   data->initialized = true;
-
-  ifsRenew(_this);
 }
 
 static void ifs_vfx_free(VisualFX* _this)
@@ -1157,14 +1201,15 @@ VisualFX ifs_visualfx_create(void)
   return vfx;
 }
 
-void ifsRenew(VisualFX* _this)
+void ifsRenew(VisualFX* _this, const SoundInfo& soundInfo)
 {
   IfsData* data = static_cast<IfsData*>(_this->fx_data);
 
   changeColormaps(data);
   data->colorizer.changeColorMode();
 
-  data->root->speed = getRandInRange(2u, 15u);
+  data->root->speed =
+      static_cast<uint32_t>(getRandInRange(1.11F, 5.1F) / (1.1F - soundInfo.getAcceleration()));
 }
 
 } // namespace goom
