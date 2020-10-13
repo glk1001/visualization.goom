@@ -11,8 +11,7 @@ namespace goom
 
 uint32_t getIntColor(const uint8_t r, const uint8_t g, const uint8_t b)
 {
-  const Pixel p{.channels = {.r = r, .g = g, .b = b, .a = 0xff}};
-  return p.val;
+  return Pixel{.channels = {.r = r, .g = g, .b = b, .a = 0xff}}.val;
 }
 
 inline uint8_t lighten(const uint8_t value, const float power)

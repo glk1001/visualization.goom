@@ -235,16 +235,23 @@ public:
 
   bool isCurrentlyDrawable(const GoomDrawable) const;
   size_t getCurrentStateIndex() const;
-  const DrawablesState& getCurrentDrawables() const;
+  const DrawablesState getCurrentDrawables() const;
 
   void doRandomStateChange();
 
 private:
   using GD = GoomDrawable;
+  struct DrawableInfo
+  {
+    GoomDrawable fx;
+    uint32_t buffIntensity;
+    bool allowOverexposed;
+  };
+  using DrawableInfoArray = std::vector<DrawableInfo>;
   struct State
   {
     uint32_t weight;
-    DrawablesState drawables;
+    const DrawableInfoArray drawables;
   };
   using WeightedStatesArray = std::vector<State>;
   static const WeightedStatesArray states;
@@ -260,7 +267,7 @@ GoomStates::GoomStates() : weightedStates{getWeightedStates(states)}, currentSta
 
 inline bool GoomStates::isCurrentlyDrawable(const GoomDrawable drawable) const
 {
-  return states[currentStateIndex].drawables.contains(drawable);
+  return getCurrentDrawables().contains(drawable);
 }
 
 inline size_t GoomStates::getCurrentStateIndex() const
@@ -268,9 +275,14 @@ inline size_t GoomStates::getCurrentStateIndex() const
   return currentStateIndex;
 }
 
-inline const GoomStates::DrawablesState& GoomStates::getCurrentDrawables() const
+inline const GoomStates::DrawablesState GoomStates::getCurrentDrawables() const
 {
-  return states[currentStateIndex].drawables;
+  GoomStates::DrawablesState currentDrawables{};
+  for (const auto d : states[currentStateIndex].drawables)
+  {
+    currentDrawables.insert(d.fx);
+  }
+  return currentDrawables;
 }
 
 inline void GoomStates::doRandomStateChange()
@@ -279,7 +291,112 @@ inline void GoomStates::doRandomStateChange()
 }
 
 // clang-format off
-const GoomStates::WeightedStatesArray GoomStates::states{ {
+const GoomStates::WeightedStatesArray GoomStates::states{{
+  {
+    .weight = 100,
+    .drawables {{
+      { .fx = GoomDrawable::IFS,       .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::dots,      .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::stars,     .buffIntensity = 200, .allowOverexposed = true  },
+    }},
+  },
+  {
+    .weight = 40,
+    .drawables {{
+      { .fx = GoomDrawable::IFS,       .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::tentacles, .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::stars,     .buffIntensity = 200, .allowOverexposed = true  },
+    }},
+  },
+  {
+    .weight = 60,
+    .drawables {{
+      { .fx = GoomDrawable::IFS,       .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::stars,     .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::lines,     .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::scope,     .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::farScope,  .buffIntensity = 200, .allowOverexposed = true  },
+    }},
+  },
+  {
+    .weight = 70,
+    .drawables {{
+      { .fx = GoomDrawable::IFS,       .buffIntensity = 125, .allowOverexposed = false  },
+      { .fx = GoomDrawable::tentacles, .buffIntensity = 200, .allowOverexposed = false  },
+    }},
+  },
+  {
+    .weight = 60,
+    .drawables {{
+      { .fx = GoomDrawable::dots,      .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::tentacles, .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::stars,     .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::lines,     .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::scope,     .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::farScope,  .buffIntensity = 200, .allowOverexposed = true  },
+    }},
+  },
+  {
+    .weight = 60,
+    .drawables {{
+      { .fx = GoomDrawable::dots,      .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::tentacles, .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::lines,     .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::scope,     .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::farScope,  .buffIntensity = 200, .allowOverexposed = true  },
+    }},
+  },
+  {
+    .weight = 100,
+    .drawables {{
+      { .fx = GoomDrawable::dots,      .buffIntensity = 150, .allowOverexposed = true  },
+      { .fx = GoomDrawable::tentacles, .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::stars,     .buffIntensity = 100, .allowOverexposed = true  },
+    }},
+  },
+  {
+    .weight = 70,
+    .drawables {{
+      { .fx = GoomDrawable::dots,      .buffIntensity = 100, .allowOverexposed = true  },
+      { .fx = GoomDrawable::tentacles, .buffIntensity = 200, .allowOverexposed = true  },
+    }},
+  },
+  {
+    .weight = 100,
+    .drawables {{
+      { .fx = GoomDrawable::tentacles, .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::stars,     .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::lines,     .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::farScope,  .buffIntensity = 200, .allowOverexposed = true  },
+    }},
+  },
+  {
+    .weight = 60,
+    .drawables {{
+      { .fx = GoomDrawable::stars,     .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::lines,     .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::scope,     .buffIntensity = 200, .allowOverexposed = false },
+      { .fx = GoomDrawable::farScope,  .buffIntensity = 200, .allowOverexposed = true  },
+    }},
+  },
+  {
+    .weight = 60,
+    .drawables {{
+      { .fx = GoomDrawable::dots,      .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::stars,     .buffIntensity = 150, .allowOverexposed = true  },
+    }},
+  },
+  {
+    .weight = 60,
+    .drawables {{
+      { .fx = GoomDrawable::dots,      .buffIntensity = 200, .allowOverexposed = true },
+      { .fx = GoomDrawable::lines,     .buffIntensity = 200, .allowOverexposed = true },
+      { .fx = GoomDrawable::scope,     .buffIntensity = 200, .allowOverexposed = true },
+      { .fx = GoomDrawable::farScope,  .buffIntensity = 200, .allowOverexposed = true },
+    }},
+  },
+}};
+
   /**
   { .weight =  60, .drawables = { GD::IFS,                                                 GD::scope, GD::farScope }},
   **/
@@ -290,19 +407,6 @@ const GoomStates::WeightedStatesArray GoomStates::states{ {
   { .weight =  40, .drawables = {                      GD::tentacles,                      GD::scope               }},
   { .weight =  40, .drawables = {                      GD::tentacles,                                              }},
   **/
-  { .weight = 100, .drawables = { GD::IFS, GD::dots, GD::stars,                           GD::scope, GD::farScope }},
-  { .weight =  40, .drawables = { GD::IFS,           GD::tentacles, GD::stars,                       GD::farScope }},
-  { .weight =  60, .drawables = { GD::IFS,                          GD::stars, GD::lines, GD::scope, GD::farScope }},
-  { .weight =  70, .drawables = { GD::IFS,           GD::tentacles,                       GD::scope, GD::farScope }},
-  { .weight =  60, .drawables = {          GD::dots, GD::tentacles, GD::stars, GD::lines, GD::scope, GD::farScope }},
-  { .weight =  60, .drawables = {          GD::dots, GD::tentacles,            GD::lines, GD::scope, GD::farScope }},
-  { .weight = 100, .drawables = {          GD::dots, GD::tentacles, GD::stars,            GD::scope               }},
-  { .weight =  70, .drawables = {          GD::dots, GD::tentacles,                       GD::scope, GD::farScope }},
-  { .weight = 100, .drawables = {                    GD::tentacles, GD::stars, GD::lines,            GD::farScope }},
-  { .weight =  60, .drawables = {                                   GD::stars, GD::lines, GD::scope, GD::farScope }},
-  { .weight =  60, .drawables = {          GD::dots,                GD::stars,            GD::scope, GD::farScope }},
-  { .weight =  60, .drawables = {          GD::dots,                           GD::lines, GD::scope, GD::farScope }},
-}};
 // clang-format on
 
 std::vector<std::pair<uint16_t, size_t>> GoomStates::getWeightedStates(
