@@ -78,7 +78,7 @@ static void createOutputWithBrightness(const Pixel* src,
   {
     for (uint32_t x = 0; x < goomInfo->screen.width; x++)
     {
-      dest[i] = getBrighterColor(iff, src[i], allowOverexposed);
+      dest[i] = getBrighterColorInt(iff, src[i], allowOverexposed);
       i++;
     }
   }

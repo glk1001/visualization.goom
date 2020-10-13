@@ -397,8 +397,10 @@ std::tuple<uint32_t, uint32_t> Tentacle3D::getMixedColors(const size_t nodeNum,
   const auto [mixedColor, mixedColorLow] = getMixedColors(nodeNum, color, colorLow);
   const Pixel mixedColorPixel{.val = mixedColor};
   const Pixel mixedColorLowPixel{.val = mixedColorLow};
-  return std::make_tuple(getBrighterColor(brightness, mixedColorPixel).val,
-                         getBrighterColor(brightness, mixedColorLowPixel).val);
+  // TODO FIX THIS
+  constexpr bool allowOverexposed = true;
+  return std::make_tuple(getBrighterColor(brightness, mixedColorPixel, allowOverexposed).val,
+                         getBrighterColor(brightness, mixedColorLowPixel, allowOverexposed).val);
 }
 
 double getMin(const std::vector<double>& vec)

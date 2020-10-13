@@ -24,7 +24,7 @@ inline uint8_t lighten(const uint8_t value, const float power)
   }
 
   // (32.0f * log (t));
-  return std::clamp(channel_limits<int>::min(), channel_limits<int>::max(), static_cast<int>(t));
+  return std::clamp(static_cast<int>(t), channel_limits<int>::min(), channel_limits<int>::max());
 }
 
 uint32_t getLightenedColor(const uint32_t oldColor, const float power)

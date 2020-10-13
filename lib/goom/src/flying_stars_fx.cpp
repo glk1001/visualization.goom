@@ -431,7 +431,10 @@ inline uint32_t getLowColor(const FSData* data, const size_t starNum, const floa
   }
 
   const float brightness = getRandInRange(0.2f, 0.8f);
-  return getBrighterColor(brightness, data->stars[starNum].currentLowColorMap->getColor(tmix));
+  // TODO FIX THIS
+  constexpr bool allowOverexposed = true;
+  return getBrighterColor(brightness, data->stars[starNum].currentLowColorMap->getColor(tmix),
+                          allowOverexposed);
 }
 
 static void fs_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* goomInfo)

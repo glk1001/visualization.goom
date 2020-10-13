@@ -6,6 +6,18 @@
 
 using namespace goom;
 
+TEST_CASE("Test max channels", "[channels-max]")
+{
+  REQUIRE(channel_limits<uint8_t>::min() == 0);
+  REQUIRE(channel_limits<uint8_t>::max() == 255);
+  REQUIRE(channel_limits<uint32_t>::min() == 0);
+  REQUIRE(channel_limits<uint32_t>::max() == 255);
+  REQUIRE(channel_limits<int>::min() == 0);
+  REQUIRE(channel_limits<int>::max() == 255);
+  REQUIRE(channel_limits<float>::min() == 0);
+  REQUIRE(channel_limits<float>::max() == 255.0F);
+}
+
 TEST_CASE("Color channels are added", "[color-channel-add]")
 {
   REQUIRE(colorChannelAdd(100, 120) == 220);
@@ -18,11 +30,11 @@ TEST_CASE("Colors are added", "[color-add]")
 {
   const Pixel c1{.channels{.r = 100, .g = 50, .b = 20}};
   const Pixel c2{.channels{.r = 120, .g = 250, .b = 70}};
-  const Pixel c3 = getColorAdd(c1, c2);
+  const Pixel c3 = getColorAdd(c1, c2, false);
 
-  REQUIRE(c3.channels.r == 220);
-  REQUIRE(c3.channels.g == 255);
-  REQUIRE(c3.channels.b == 90);
+  REQUIRE(static_cast<uint32_t>(c3.channels.r) == 220);
+  REQUIRE(static_cast<uint32_t>(c3.channels.g) == 255);
+  REQUIRE(static_cast<uint32_t>(c3.channels.b) == 90);
 }
 
 TEST_CASE("Color channels are brightened", "[color-channel-bright]")
@@ -37,17 +49,17 @@ TEST_CASE("Colors are brightened", "[color-bright]")
 {
   const Pixel c{.channels{.r = 100, .g = 50, .b = 20}};
 
-  Pixel cb = getBrighterColor(1.0f, c);
+  Pixel cb = getBrighterColor(1.0f, c, false);
   REQUIRE(cb.channels.r == 100);
   REQUIRE(cb.channels.g == 50);
   REQUIRE(cb.channels.b == 20);
 
-  cb = getBrighterColor(0.5f, c);
+  cb = getBrighterColor(0.5f, c, false);
   REQUIRE(cb.channels.r == 50);
   REQUIRE(cb.channels.g == 25);
   REQUIRE(cb.channels.b == 10);
 
-  cb = getBrighterColor(0.01f, c);
+  cb = getBrighterColor(0.01f, c, false);
   REQUIRE(cb.channels.r == 1);
   REQUIRE(cb.channels.g == 0);
   REQUIRE(cb.channels.b == 0);
@@ -61,6 +73,17 @@ TEST_CASE("Half intensity color", "[color-half-intensity]")
   REQUIRE(ch.channels.r == 50);
   REQUIRE(ch.channels.g == 25);
   REQUIRE(ch.channels.b == 10);
+}
+
+TEST_CASE("Lighten", "[color-lighten]")
+{
+  const Pixel c{.channels{.r = 100, .g = 0, .b = 0}};
+  Pixel cl;
+
+  cl.val = getLightenedColor(c.val, 10.0);
+  REQUIRE(static_cast<uint32_t>(cl.channels.r) == 50);
+  REQUIRE(static_cast<uint32_t>(cl.channels.g) == 0);
+  REQUIRE(static_cast<uint32_t>(cl.channels.b) == 0);
 }
 
 TEST_CASE("Lightened color", "[color-half-lightened]")
