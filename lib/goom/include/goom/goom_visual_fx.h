@@ -22,7 +22,7 @@ struct VisualFX
 {
   void (*init)(struct VisualFX* _this, PluginInfo* info);
   void (*free)(struct VisualFX* _this);
-  void (*apply)(struct VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* info);
+  void (*apply)(struct VisualFX* _this, PluginInfo* info, Pixel* src, Pixel* dest);
   void (*save)(struct VisualFX* _this, const PluginInfo* info, const char* file);
   void (*restore)(struct VisualFX* _this, PluginInfo* info, const char* file);
   void* fx_data;

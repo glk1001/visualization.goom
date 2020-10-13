@@ -1053,7 +1053,7 @@ void goom_update(PluginInfo* goomInfo,
   Pixel* returnVal = goomInfo->p1;
   swapBuffers(goomInfo);
   goomInfo->cycle++;
-  goomInfo->convolve_fx.apply(&goomInfo->convolve_fx, returnVal, goomInfo->outputBuf, goomInfo);
+  goomInfo->convolve_fx.apply(&goomInfo->convolve_fx, goomInfo, returnVal, goomInfo->outputBuf);
 
   logDebug("About to return.");
 }
@@ -1730,7 +1730,7 @@ static void applyTentaclesIfRequired(PluginInfo* goomInfo)
 
   logDebug("goomInfo->curGDrawables tentacles is set.");
   stats.doTentacles();
-  goomInfo->tentacles_fx.apply(&goomInfo->tentacles_fx, goomInfo->p2, goomInfo->p1, goomInfo);
+  goomInfo->tentacles_fx.apply(&goomInfo->tentacles_fx, goomInfo, goomInfo->p2, goomInfo->p1);
 }
 
 static void applyStarsIfRequired(PluginInfo* goomInfo)
@@ -1742,7 +1742,7 @@ static void applyStarsIfRequired(PluginInfo* goomInfo)
 
   logDebug("goomInfo->curGDrawables stars is set.");
   stats.doStars();
-  goomInfo->star_fx.apply(&goomInfo->star_fx, goomInfo->p2, goomInfo->p1, goomInfo);
+  goomInfo->star_fx.apply(&goomInfo->star_fx, goomInfo, goomInfo->p2, goomInfo->p1);
 }
 
 #ifdef SHOW_STATE_TEXT_ON_SCREEN
@@ -2090,7 +2090,7 @@ static void applyIfsIfRequired(PluginInfo* goomInfo)
   logDebug("goomInfo->update.ifs_incr = {} > 0 and goomInfo->curGDrawables IFS is set",
            goomInfo->update.ifs_incr);
   stats.doIFS();
-  goomInfo->ifs_fx.apply(&goomInfo->ifs_fx, goomInfo->p2, goomInfo->p1, goomInfo);
+  goomInfo->ifs_fx.apply(&goomInfo->ifs_fx, goomInfo, goomInfo->p2, goomInfo->p1);
 }
 
 static void regularlyLowerTheSpeed(PluginInfo* goomInfo, ZoomFilterData** pzfd)

@@ -84,7 +84,7 @@ static void createOutputWithBrightness(const Pixel* src,
   }
 }
 
-static void convolve_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* goomInfo)
+static void convolve_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* src, Pixel* dest)
 {
   ConvData* data = static_cast<ConvData*>(_this->fx_data);
 

@@ -1113,7 +1113,7 @@ static void zoomFilterVisualFXWrapper_free(VisualFX* _this)
   delete data;
 }
 
-static void zoomFilterVisualFXWrapper_apply(VisualFX*, Pixel*, Pixel*, PluginInfo*)
+static void zoomFilterVisualFXWrapper_apply(VisualFX*, PluginInfo*, Pixel*, Pixel*)
 {
 }
 

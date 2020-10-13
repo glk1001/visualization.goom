@@ -1039,7 +1039,7 @@ static void updateColorsModeFeu(IfsUpdateData* upd)
   }
 }
 
-static void ifs_vfx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* goomInfo)
+static void ifs_vfx_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* src, Pixel* dest)
 {
   IfsData* data = static_cast<IfsData*>(_this->fx_data);
   if (!data->initialized)

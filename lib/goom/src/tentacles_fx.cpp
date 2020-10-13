@@ -881,7 +881,7 @@ void tentacle_fx_init(VisualFX* _this, PluginInfo* info)
   _this->fx_data = data;
 }
 
-void tentacle_fx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* goomInfo)
+void tentacle_fx_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* src, Pixel* dest)
 {
   TentacleFXData* data = static_cast<TentacleFXData*>(_this->fx_data);
   if (BVAL(data->enabled_bp))

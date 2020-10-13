@@ -437,7 +437,7 @@ inline uint32_t getLowColor(const FSData* data, const size_t starNum, const floa
                           allowOverexposed);
 }
 
-static void fs_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo* goomInfo)
+static void fs_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* src, Pixel* dest)
 {
   FSData* data = static_cast<FSData*>(_this->fx_data);
 

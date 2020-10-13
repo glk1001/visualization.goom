@@ -23,7 +23,7 @@ struct TentacleFXData
 
 VisualFX tentacle_fx_create();
 void tentacle_free(TentacleFXData*);
-void tentacle_fx_apply(VisualFX* _this, Pixel* src, Pixel* dest, PluginInfo*);
+void tentacle_fx_apply(VisualFX* _this, PluginInfo*, Pixel* src, Pixel* dest);
 void tentacle_fx_update_no_draw(VisualFX* _this, PluginInfo* goomInfo);
 void tentacle_log_stats(VisualFX* _this, const StatsLogValueFunc);
 
