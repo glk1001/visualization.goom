@@ -3,6 +3,7 @@
 
 #include "goom_draw.h"
 #include "goom_graphic.h"
+#include "goom_visual_fx.h"
 #include "goomutils/colormap.h"
 #include "goomutils/colormap_enums.h"
 #include "tentacles.h"
@@ -10,7 +11,6 @@
 
 #include <cstdint>
 #include <memory>
-#include <stack>
 #include <vector>
 
 namespace goom
@@ -113,6 +113,8 @@ public:
   void init(const TentacleLayout&);
   size_t getNumTentacles() const;
 
+  void setBuffSettings(const FXBuffSettings&);
+
   ColorModes getColorMode() const;
   void setColorMode(const ColorModes);
 
@@ -156,6 +158,7 @@ private:
   const uint32_t screenWidth;
   const uint32_t screenHeight;
   GoomDraw draw;
+  FXBuffSettings buffSettings;
   const utils::ColorMaps* colorMaps;
   std::vector<std::unique_ptr<TentacleColorizer>> colorizers;
   utils::ConstantSequenceFunction constPrevYWeightFunc;

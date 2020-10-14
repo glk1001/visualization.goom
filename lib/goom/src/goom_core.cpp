@@ -17,6 +17,7 @@
 #include "goom_dots_fx.h"
 #include "goom_graphic.h"
 #include "goom_plugin_info.h"
+#include "goom_visual_fx.h"
 #include "goomutils/goomrand.h"
 #include "goomutils/logging_control.h"
 #undef NO_LOGGING
@@ -235,7 +236,8 @@ public:
 
   bool isCurrentlyDrawable(const GoomDrawable) const;
   size_t getCurrentStateIndex() const;
-  const DrawablesState getCurrentDrawables() const;
+  DrawablesState getCurrentDrawables() const;
+  const FXBuffSettings& getCurrentBuffSettings(const GoomDrawable) const;
 
   void doRandomStateChange();
 
@@ -244,8 +246,7 @@ private:
   struct DrawableInfo
   {
     GoomDrawable fx;
-    uint32_t buffIntensity;
-    bool allowOverexposed;
+    FXBuffSettings buffSettings;
   };
   using DrawableInfoArray = std::vector<DrawableInfo>;
   struct State
@@ -275,7 +276,7 @@ inline size_t GoomStates::getCurrentStateIndex() const
   return currentStateIndex;
 }
 
-inline const GoomStates::DrawablesState GoomStates::getCurrentDrawables() const
+inline GoomStates::DrawablesState GoomStates::getCurrentDrawables() const
 {
   GoomStates::DrawablesState currentDrawables{};
   for (const auto d : states[currentStateIndex].drawables)
@@ -283,6 +284,18 @@ inline const GoomStates::DrawablesState GoomStates::getCurrentDrawables() const
     currentDrawables.insert(d.fx);
   }
   return currentDrawables;
+}
+
+const FXBuffSettings& GoomStates::getCurrentBuffSettings(const GoomDrawable theFx) const
+{
+  for (const auto& d : states[currentStateIndex].drawables)
+  {
+    if (d.fx == theFx)
+    {
+      return d.buffSettings;
+    }
+  }
+  return defaultFXBuffSettings;
 }
 
 inline void GoomStates::doRandomStateChange()
@@ -295,104 +308,111 @@ const GoomStates::WeightedStatesArray GoomStates::states{{
   {
     .weight = 100,
     .drawables {{
-      { .fx = GoomDrawable::IFS,       .buffIntensity = 200, .allowOverexposed = true  },
-      { .fx = GoomDrawable::dots,      .buffIntensity = 200, .allowOverexposed = true  },
-      { .fx = GoomDrawable::stars,     .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::IFS,       .buffSettings = { .buffIntensity = 0.6, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::dots,      .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = false } },
+      { .fx = GoomDrawable::stars,     .buffSettings = { .buffIntensity = 0.4, .allowOverexposed = true  } },
     }},
   },
   {
     .weight = 40,
     .drawables {{
-      { .fx = GoomDrawable::IFS,       .buffIntensity = 200, .allowOverexposed = true  },
-      { .fx = GoomDrawable::tentacles, .buffIntensity = 200, .allowOverexposed = true  },
-      { .fx = GoomDrawable::stars,     .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::IFS,       .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = false } },
+      { .fx = GoomDrawable::tentacles, .buffSettings = { .buffIntensity = 0.3, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::stars,     .buffSettings = { .buffIntensity = 0.4, .allowOverexposed = true  } },
     }},
   },
   {
     .weight = 60,
     .drawables {{
-      { .fx = GoomDrawable::IFS,       .buffIntensity = 200, .allowOverexposed = true  },
-      { .fx = GoomDrawable::stars,     .buffIntensity = 200, .allowOverexposed = true  },
-      { .fx = GoomDrawable::lines,     .buffIntensity = 200, .allowOverexposed = true  },
-      { .fx = GoomDrawable::scope,     .buffIntensity = 200, .allowOverexposed = true  },
-      { .fx = GoomDrawable::farScope,  .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::IFS,       .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::stars,     .buffSettings = { .buffIntensity = 0.3, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::lines,     .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::scope,     .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::farScope,  .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
     }},
   },
   {
     .weight = 70,
     .drawables {{
-      { .fx = GoomDrawable::IFS,       .buffIntensity = 125, .allowOverexposed = false  },
-      { .fx = GoomDrawable::tentacles, .buffIntensity = 200, .allowOverexposed = false  },
-    }},
-  },
-  {
-    .weight = 60,
-    .drawables {{
-      { .fx = GoomDrawable::dots,      .buffIntensity = 200, .allowOverexposed = true  },
-      { .fx = GoomDrawable::tentacles, .buffIntensity = 200, .allowOverexposed = true  },
-      { .fx = GoomDrawable::stars,     .buffIntensity = 200, .allowOverexposed = true  },
-      { .fx = GoomDrawable::lines,     .buffIntensity = 200, .allowOverexposed = true  },
-      { .fx = GoomDrawable::scope,     .buffIntensity = 200, .allowOverexposed = true  },
-      { .fx = GoomDrawable::farScope,  .buffIntensity = 200, .allowOverexposed = true  },
-    }},
-  },
-  {
-    .weight = 60,
-    .drawables {{
-      { .fx = GoomDrawable::dots,      .buffIntensity = 200, .allowOverexposed = true  },
-      { .fx = GoomDrawable::tentacles, .buffIntensity = 200, .allowOverexposed = true  },
-      { .fx = GoomDrawable::lines,     .buffIntensity = 200, .allowOverexposed = true  },
-      { .fx = GoomDrawable::scope,     .buffIntensity = 200, .allowOverexposed = true  },
-      { .fx = GoomDrawable::farScope,  .buffIntensity = 200, .allowOverexposed = true  },
-    }},
-  },
-  {
-    .weight = 100,
-    .drawables {{
-      { .fx = GoomDrawable::dots,      .buffIntensity = 150, .allowOverexposed = true  },
-      { .fx = GoomDrawable::tentacles, .buffIntensity = 200, .allowOverexposed = true  },
-      { .fx = GoomDrawable::stars,     .buffIntensity = 100, .allowOverexposed = true  },
+      { .fx = GoomDrawable::IFS,       .buffSettings = { .buffIntensity = 0.3, .allowOverexposed = true } },
+      { .fx = GoomDrawable::tentacles, .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = false } },
     }},
   },
   {
     .weight = 70,
     .drawables {{
-      { .fx = GoomDrawable::dots,      .buffIntensity = 100, .allowOverexposed = true  },
-      { .fx = GoomDrawable::tentacles, .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::IFS,       .buffSettings = { .buffIntensity = 0.3, .allowOverexposed = true } },
+      { .fx = GoomDrawable::tentacles, .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true } },
+    }},
+  },
+  {
+    .weight = 60,
+    .drawables {{
+      { .fx = GoomDrawable::dots,      .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true } },
+      { .fx = GoomDrawable::tentacles, .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true } },
+      { .fx = GoomDrawable::stars,     .buffSettings = { .buffIntensity = 0.4, .allowOverexposed = true } },
+      { .fx = GoomDrawable::lines,     .buffSettings = { .buffIntensity = 0.4, .allowOverexposed = true } },
+      { .fx = GoomDrawable::scope,     .buffSettings = { .buffIntensity = 0.4, .allowOverexposed = true } },
+      { .fx = GoomDrawable::farScope,  .buffSettings = { .buffIntensity = 0.4, .allowOverexposed = true } },
+    }},
+  },
+  {
+    .weight = 60,
+    .drawables {{
+      { .fx = GoomDrawable::dots,      .buffSettings = { .buffIntensity = 0.4, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::tentacles, .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::lines,     .buffSettings = { .buffIntensity = 0.4, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::scope,     .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::farScope,  .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
     }},
   },
   {
     .weight = 100,
     .drawables {{
-      { .fx = GoomDrawable::tentacles, .buffIntensity = 200, .allowOverexposed = true  },
-      { .fx = GoomDrawable::stars,     .buffIntensity = 200, .allowOverexposed = true  },
-      { .fx = GoomDrawable::lines,     .buffIntensity = 200, .allowOverexposed = true  },
-      { .fx = GoomDrawable::farScope,  .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::dots,      .buffSettings = { .buffIntensity = 0.8, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::tentacles, .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::stars,     .buffSettings = { .buffIntensity = 0.4, .allowOverexposed = true  } },
+    }},
+  },
+  {
+    .weight = 70,
+    .drawables {{
+      { .fx = GoomDrawable::dots,      .buffSettings = { .buffIntensity = 0.4, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::tentacles, .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
+    }},
+  },
+  {
+    .weight = 100,
+    .drawables {{
+      { .fx = GoomDrawable::tentacles, .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::stars,     .buffSettings = { .buffIntensity = 0.4, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::lines,     .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::farScope,  .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
     }},
   },
   {
     .weight = 60,
     .drawables {{
-      { .fx = GoomDrawable::stars,     .buffIntensity = 200, .allowOverexposed = true  },
-      { .fx = GoomDrawable::lines,     .buffIntensity = 200, .allowOverexposed = true  },
-      { .fx = GoomDrawable::scope,     .buffIntensity = 200, .allowOverexposed = false },
-      { .fx = GoomDrawable::farScope,  .buffIntensity = 200, .allowOverexposed = true  },
+      { .fx = GoomDrawable::stars,     .buffSettings = { .buffIntensity = 0.4, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::lines,     .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::scope,     .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::farScope,  .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
     }},
   },
   {
     .weight = 60,
     .drawables {{
-      { .fx = GoomDrawable::dots,      .buffIntensity = 200, .allowOverexposed = true  },
-      { .fx = GoomDrawable::stars,     .buffIntensity = 150, .allowOverexposed = true  },
+      { .fx = GoomDrawable::dots,      .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::stars,     .buffSettings = { .buffIntensity = 0.6, .allowOverexposed = true  } },
     }},
   },
   {
     .weight = 60,
     .drawables {{
-      { .fx = GoomDrawable::dots,      .buffIntensity = 200, .allowOverexposed = true },
-      { .fx = GoomDrawable::lines,     .buffIntensity = 200, .allowOverexposed = true },
-      { .fx = GoomDrawable::scope,     .buffIntensity = 200, .allowOverexposed = true },
-      { .fx = GoomDrawable::farScope,  .buffIntensity = 200, .allowOverexposed = true },
+      { .fx = GoomDrawable::dots,      .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::lines,     .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::scope,     .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::farScope,  .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
     }},
   },
 }};
@@ -1834,6 +1854,8 @@ static void applyTentaclesIfRequired(PluginInfo* goomInfo)
 
   logDebug("goomInfo->curGDrawables tentacles is set.");
   stats.doTentacles();
+  goomInfo->tentacles_fx.setBuffSettings(&goomInfo->tentacles_fx,
+                                         states.getCurrentBuffSettings(GoomDrawable::tentacles));
   goomInfo->tentacles_fx.apply(&goomInfo->tentacles_fx, goomInfo, goomInfo->p2, goomInfo->p1);
 }
 
@@ -1846,6 +1868,8 @@ static void applyStarsIfRequired(PluginInfo* goomInfo)
 
   logDebug("goomInfo->curGDrawables stars is set.");
   stats.doStars();
+  goomInfo->star_fx.setBuffSettings(&goomInfo->star_fx,
+                                    states.getCurrentBuffSettings(GoomDrawable::stars));
   goomInfo->star_fx.apply(&goomInfo->star_fx, goomInfo, goomInfo->p2, goomInfo->p1);
 }
 
@@ -2194,6 +2218,8 @@ static void applyIfsIfRequired(PluginInfo* goomInfo)
   logDebug("goomInfo->update.ifs_incr = {} > 0 and goomInfo->curGDrawables IFS is set",
            goomInfo->update.ifs_incr);
   stats.doIFS();
+  goomInfo->ifs_fx.setBuffSettings(&goomInfo->ifs_fx,
+                                   states.getCurrentBuffSettings(GoomDrawable::IFS));
   goomInfo->ifs_fx.apply(&goomInfo->ifs_fx, goomInfo, goomInfo->p2, goomInfo->p1);
 }
 

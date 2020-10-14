@@ -40,6 +40,7 @@
 #include "goom_graphic.h"
 #include "goom_plugin_info.h"
 #include "goom_testing.h"
+#include "goom_visual_fx.h"
 #include "goomutils/colormap.h"
 #include "goomutils/goomrand.h"
 #include "goomutils/logging_control.h"
@@ -301,7 +302,8 @@ struct IfsData
                  const uint32_t y,
                  const Pixel& ifsColor,
                  const float tmix);
-  bool allowOverexposed = false;
+  FXBuffSettings buffSettings;
+  bool allowOverexposed = true;
   uint32_t countSinceOverexposed = 0;
   static constexpr uint32_t maxCountSinceOverexposed = 100;
   void updateAllowOverexposed();
@@ -309,7 +311,7 @@ struct IfsData
   Fractal* root;
   Fractal* curF;
 
-  /* Used by the Trace recursive method */
+  // Used by the Trace recursive method
   IFSPoint* buff;
   size_t curPt;
   bool initialized;
@@ -330,8 +332,10 @@ inline void IfsData::drawPixel(Pixel* frontBuff,
 
 void IfsData::updateAllowOverexposed()
 {
-  allowOverexposed = true;
-  return;
+  if (buffSettings.allowOverexposed)
+  {
+    return;
+  }
 
   if (allowOverexposed)
   {
@@ -420,6 +424,7 @@ static void initIfs(PluginInfo* goomInfo, IfsData* data)
   data->enabled_bp = secure_b_param("Enabled", 1);
 
   data->draw = std::make_unique<GoomDraw>(goomInfo->screen.width, goomInfo->screen.height);
+  data->buffSettings = defaultFXBuffSettings;
 
   if (!data->root)
   {
@@ -1206,15 +1211,22 @@ static void ifs_vfx_free(VisualFX* _this)
   delete data;
 }
 
+static void ifs_vfx_setBuffSettings(VisualFX* _this, const FXBuffSettings& settings)
+{
+  IfsData* data = static_cast<IfsData*>(_this->fx_data);
+  data->buffSettings = settings;
+}
+
 VisualFX ifs_visualfx_create(void)
 {
-  VisualFX vfx;
-  vfx.init = ifs_vfx_init;
-  vfx.free = ifs_vfx_free;
-  vfx.apply = ifs_vfx_apply;
-  vfx.save = ifs_vfx_save;
-  vfx.restore = ifs_vfx_restore;
-  return vfx;
+  VisualFX fx;
+  fx.init = ifs_vfx_init;
+  fx.setBuffSettings = ifs_vfx_setBuffSettings;
+  fx.free = ifs_vfx_free;
+  fx.apply = ifs_vfx_apply;
+  fx.save = ifs_vfx_save;
+  fx.restore = ifs_vfx_restore;
+  return fx;
 }
 
 void ifsRenew(VisualFX* _this, const SoundInfo& soundInfo)

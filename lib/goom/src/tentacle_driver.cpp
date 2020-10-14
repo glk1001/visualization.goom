@@ -43,6 +43,7 @@ TentacleDriver::TentacleDriver(const ColorMaps* cm, const uint32_t screenW, cons
     screenWidth{screenW},
     screenHeight{screenH},
     draw{screenWidth, screenHeight},
+    buffSettings{defaultFXBuffSettings},
     colorMaps{cm},
     colorizers{},
     constPrevYWeightFunc(),
@@ -75,6 +76,14 @@ TentacleDriver::TentacleDriver(const ColorMaps* cm, const uint32_t screenW, cons
   };
 
   logDebug("Constructed TentacleDriver.");
+}
+
+void TentacleDriver::setBuffSettings(const FXBuffSettings& settings)
+{
+  buffSettings = settings;
+  draw.setBuffIntensity(buffSettings.buffIntensity);
+  draw.setAllowOverexposed(buffSettings.allowOverexposed);
+  tentacles.setAllowOverexposed(buffSettings.allowOverexposed);
 }
 
 size_t TentacleDriver::getNumTentacles() const

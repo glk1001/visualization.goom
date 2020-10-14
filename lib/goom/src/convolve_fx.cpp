@@ -3,6 +3,7 @@
 #include "colorutils.h"
 #include "goom_config.h"
 #include "goom_plugin_info.h"
+#include "goom_visual_fx.h"
 #include "goomutils/goomrand.h"
 #include "goomutils/mathutils.h"
 
@@ -21,6 +22,7 @@ inline bool allowOverexposedEvent()
 
 struct ConvData
 {
+  FXBuffSettings buffSettings;
   bool allowOverexposed = false;
   uint32_t countSinceOverexposed = 0;
   static constexpr uint32_t maxCountSinceOverexposed = 100;
@@ -35,6 +37,7 @@ static void convolve_init(VisualFX* _this, PluginInfo*)
   ConvData* data = new ConvData{};
   _this->fx_data = data;
 
+  data->buffSettings = defaultFXBuffSettings;
   data->allowOverexposed = false;
   data->countSinceOverexposed = 0;
 
@@ -127,16 +130,23 @@ static void convolve_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* src, Pi
   }
 }
 
+static void convolve_setBuffSettings(VisualFX* _this, const FXBuffSettings& settings)
+{
+  ConvData* data = static_cast<ConvData*>(_this->fx_data);
+  data->buffSettings = settings;
+}
+
 VisualFX convolve_create(void)
 {
-  VisualFX vfx;
-  vfx.init = convolve_init;
-  vfx.free = convolve_free;
-  vfx.apply = convolve_apply;
-  vfx.save = NULL;
-  vfx.restore = NULL;
-  vfx.fx_data = 0;
-  return vfx;
+  VisualFX fx;
+  fx.init = convolve_init;
+  fx.free = convolve_free;
+  fx.setBuffSettings = convolve_setBuffSettings;
+  fx.apply = convolve_apply;
+  fx.save = nullptr;
+  fx.restore = nullptr;
+  fx.fx_data = 0;
+  return fx;
 }
 
 } // namespace goom

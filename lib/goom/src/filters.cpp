@@ -18,6 +18,7 @@
 #include "goom_graphic.h"
 #include "goom_plugin_info.h"
 #include "goom_testing.h"
+#include "goom_visual_fx.h"
 #include "goomutils/goomrand.h"
 #include "goomutils/logging_control.h"
 #include "goomutils/mathutils.h"
@@ -1117,11 +1118,16 @@ static void zoomFilterVisualFXWrapper_apply(VisualFX*, PluginInfo*, Pixel*, Pixe
 {
 }
 
+static void zoomFilterVisualWrapper_setBuffSettings(VisualFX*, const FXBuffSettings&)
+{
+}
+
 VisualFX zoomFilterVisualFXWrapper_create()
 {
   VisualFX fx;
   fx.init = zoomFilterVisualFXWrapper_init;
   fx.free = zoomFilterVisualFXWrapper_free;
+  fx.setBuffSettings = zoomFilterVisualWrapper_setBuffSettings;
   fx.apply = zoomFilterVisualFXWrapper_apply;
   fx.save = zoomFilterSave;
   fx.restore = zoomFilterRestore;

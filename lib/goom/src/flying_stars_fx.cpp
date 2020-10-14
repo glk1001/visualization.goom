@@ -3,6 +3,7 @@
 #include "colorutils.h"
 #include "goom_draw.h"
 #include "goom_plugin_info.h"
+#include "goom_visual_fx.h"
 #include "goomutils/colormap.h"
 #include "goomutils/colormap_enums.h"
 #include "goomutils/goomrand.h"
@@ -191,6 +192,7 @@ struct FSData
   float min_age;
   float max_age;
 
+  FXBuffSettings buffSettings;
   bool useSingleBufferOnly;
   std::unique_ptr<GoomDraw> draw;
 
@@ -217,6 +219,7 @@ static void fs_init(VisualFX* _this, PluginInfo* goomInfo)
   data->maxStars = 6000;
   data->stars = new Star[data->maxStars];
   data->numStars = 0;
+  data->buffSettings = defaultFXBuffSettings;
   data->useSingleBufferOnly = true;
   data->draw = std::make_unique<GoomDraw>(goomInfo->screen.width, goomInfo->screen.height);
 
@@ -431,10 +434,8 @@ inline uint32_t getLowColor(const FSData* data, const size_t starNum, const floa
   }
 
   const float brightness = getRandInRange(0.2f, 0.8f);
-  // TODO FIX THIS
-  constexpr bool allowOverexposed = true;
   return getBrighterColor(brightness, data->stars[starNum].currentLowColorMap->getColor(tmix),
-                          allowOverexposed);
+                          data->buffSettings.allowOverexposed);
 }
 
 static void fs_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* src, Pixel* dest)
@@ -539,10 +540,19 @@ static void fs_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* src, Pixel* d
   }
 }
 
+static void fs_setBuffSettings(VisualFX* _this, const FXBuffSettings& settings)
+{
+  FSData* data = static_cast<FSData*>(_this->fx_data);
+  data->buffSettings = settings;
+  data->draw->setBuffIntensity(data->buffSettings.buffIntensity);
+  data->draw->setAllowOverexposed(data->buffSettings.allowOverexposed);
+}
+
 VisualFX flying_star_create(void)
 {
   return VisualFX{.init = fs_init,
                   .free = fs_free,
+                  .setBuffSettings = fs_setBuffSettings,
                   .apply = fs_apply,
                   .save = nullptr,
                   .restore = nullptr,

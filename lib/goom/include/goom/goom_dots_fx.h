@@ -3,6 +3,7 @@
 
 #include "goom_draw.h"
 #include "goom_graphic.h"
+#include "goom_visual_fx.h"
 #include "goomutils/colormap.h"
 
 #include <cstdint>
@@ -19,6 +20,9 @@ class GoomDots
 public:
   GoomDots(const uint32_t screenWidth, const uint32_t screenHeight);
   ~GoomDots() noexcept = default;
+
+  void setBuffSettings(const FXBuffSettings&);
+
   void drawDots(PluginInfo*);
 
 private:
@@ -33,6 +37,7 @@ private:
   const float pointHeightDiv3;
 
   GoomDraw draw;
+  FXBuffSettings buffSettings;
 
   utils::WeightedColorMaps colorMaps;
   const utils::ColorMap* colorMap1 = nullptr;

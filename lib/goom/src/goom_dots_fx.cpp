@@ -4,6 +4,7 @@
 #include "goom_draw.h"
 #include "goom_graphic.h"
 #include "goom_plugin_info.h"
+#include "goom_visual_fx.h"
 #include "goomutils/colormap.h"
 #include "goomutils/logging_control.h"
 #undef NO_LOGGING
@@ -32,6 +33,7 @@ GoomDots::GoomDots(const uint32_t screenW, const uint32_t screenH)
     pointWidthDiv3{static_cast<float>(pointWidth / 3.0F)},
     pointHeightDiv3{static_cast<float>(pointHeight / 3.0F)},
     draw{screenWidth, screenHeight},
+    buffSettings{defaultFXBuffSettings},
     colorMaps{Weights<ColorMapGroup>{{
         {ColorMapGroup::perceptuallyUniformSequential, 10},
         {ColorMapGroup::sequential, 20},
@@ -44,6 +46,13 @@ GoomDots::GoomDots(const uint32_t screenW, const uint32_t screenH)
     }}}
 {
   changeColors();
+}
+
+void GoomDots::setBuffSettings(const FXBuffSettings& settings)
+{
+  buffSettings = settings;
+  draw.setBuffIntensity(buffSettings.buffIntensity);
+  draw.setAllowOverexposed(buffSettings.allowOverexposed);
 }
 
 void GoomDots::changeColors()

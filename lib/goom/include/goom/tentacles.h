@@ -251,6 +251,9 @@ public:
   bool getReverseColorMix() const { return reverseColorMix; }
   void setReverseColorMix(const bool val) { reverseColorMix = val; }
 
+  bool getAllowOverexposed() const { return allowOverexposed; }
+  void setAllowOverexposed(const bool val) { allowOverexposed = val; }
+
   const V3d& getHead() const { return head; }
   void setHead(const V3d& val) { head = val; }
 
@@ -265,6 +268,7 @@ private:
   const uint32_t headColorLow;
   V3d head;
   bool reverseColorMix = false;
+  bool allowOverexposed = true;
 };
 
 class Tentacles3D
@@ -297,6 +301,8 @@ public:
 
   const Tentacle3D& operator[](const size_t i) const { return tentacles.at(i); }
   Tentacle3D& operator[](const size_t i) { return tentacles.at(i); }
+
+  void setAllowOverexposed(const bool val);
 
 private:
   std::vector<Tentacle3D> tentacles;

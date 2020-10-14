@@ -4,6 +4,7 @@
 #include "goom_config.h"
 #include "goom_graphic.h"
 #include "goom_plugin_info.h"
+#include "goom_visual_fx.h"
 #include "goomutils/colormap.h"
 #include "goomutils/goomrand.h"
 #include "goomutils/logging_control.h"
@@ -376,8 +377,12 @@ class TentaclesWrapper
 public:
   explicit TentaclesWrapper(const uint32_t screenWidth, const uint32_t screenHeight);
   ~TentaclesWrapper() noexcept = default;
+
+  void setBuffSettings(const FXBuffSettings&);
+
   void update(PluginInfo*, Pixel* frontBuff, Pixel* backBuff);
   void updateWithNoDraw(PluginInfo*);
+
   void logStats(const StatsLogValueFunc logVal);
 
 private:
@@ -503,6 +508,11 @@ colorMaps.setWeights(colorGroupWeights);
   currentDriver = getNextDriver();
   currentDriver->startIterating();
   init();
+}
+
+inline void TentaclesWrapper::setBuffSettings(const FXBuffSettings& settings)
+{
+  currentDriver->setBuffSettings(settings);
 }
 
 inline void TentaclesWrapper::incCounters()
@@ -915,10 +925,17 @@ void tentacle_fx_free(VisualFX* _this)
   delete data;
 }
 
+static void tentacle_fx_setBuffSettings(VisualFX* _this, const FXBuffSettings& settings)
+{
+  TentacleFXData* data = static_cast<TentacleFXData*>(_this->fx_data);
+  data->tentacles->setBuffSettings(settings);
+}
+
 VisualFX tentacle_fx_create(void)
 {
   VisualFX fx;
   fx.init = tentacle_fx_init;
+  fx.setBuffSettings = tentacle_fx_setBuffSettings;
   fx.apply = tentacle_fx_apply;
   fx.free = tentacle_fx_free;
   fx.save = nullptr;

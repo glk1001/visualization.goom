@@ -397,8 +397,6 @@ std::tuple<uint32_t, uint32_t> Tentacle3D::getMixedColors(const size_t nodeNum,
   const auto [mixedColor, mixedColorLow] = getMixedColors(nodeNum, color, colorLow);
   const Pixel mixedColorPixel{.val = mixedColor};
   const Pixel mixedColorLowPixel{.val = mixedColorLow};
-  // TODO FIX THIS
-  constexpr bool allowOverexposed = true;
   return std::make_tuple(getBrighterColor(brightness, mixedColorPixel, allowOverexposed).val,
                          getBrighterColor(brightness, mixedColorLowPixel, allowOverexposed).val);
 }
@@ -444,6 +442,14 @@ Tentacles3D::Tentacles3D() : tentacles()
 void Tentacles3D::addTentacle(Tentacle3D&& t)
 {
   tentacles.push_back(std::move(t));
+}
+
+void Tentacles3D::setAllowOverexposed(const bool val)
+{
+  for (auto& t : tentacles)
+  {
+    t.setAllowOverexposed(val);
+  }
 }
 
 SpecialNodes::SpecialNodes(const size_t v0, const size_t v1, const std::vector<size_t>& nods)

@@ -19,8 +19,8 @@ public:
   uint32_t getScreenWidth() const;
   uint32_t getScreenHeight() const;
 
-  bool getAllowOverexposure() const;
-  void setAllowOverexposure(const bool val);
+  bool getAllowOverexposed() const;
+  void setAllowOverexposed(const bool val);
 
   float getBuffIntensity() const;
   void setBuffIntensity(const float val);
@@ -56,7 +56,7 @@ public:
 private:
   const uint32_t screenWidth;
   const uint32_t screenHeight;
-  bool allowOverexposure = false;
+  bool allowOverexposed = false;
   float buffIntensity = 1;
   uint32_t intBuffIntensity = channel_limits<uint32_t>::max();
 };
@@ -84,14 +84,14 @@ inline uint32_t GoomDraw::getScreenHeight() const
   return screenHeight;
 }
 
-inline bool GoomDraw::getAllowOverexposure() const
+inline bool GoomDraw::getAllowOverexposed() const
 {
-  return allowOverexposure;
+  return allowOverexposed;
 }
 
-inline void GoomDraw::setAllowOverexposure(const bool val)
+inline void GoomDraw::setAllowOverexposed(const bool val)
 {
-  allowOverexposure = val;
+  allowOverexposed = val;
 }
 
 inline float GoomDraw::getBuffIntensity() const
