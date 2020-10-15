@@ -438,7 +438,7 @@ inline uint32_t getLowColor(const FSData* data, const size_t starNum, const floa
                           data->buffSettings.allowOverexposed);
 }
 
-static void fs_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* src, Pixel* dest)
+static void fs_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* prevBuff, Pixel* currentBuff)
 {
   FSData* data = static_cast<FSData*>(_this->fx_data);
 
@@ -507,12 +507,12 @@ static void fs_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* src, Pixel* d
 
       if (data->useSingleBufferOnly)
       {
-        data->draw->line(dest, x1, y1, x2, y2, mixedColor, thickness);
+        data->draw->line(currentBuff, x1, y1, x2, y2, mixedColor, thickness);
       }
       else
       {
         const std::vector<Pixel> colors = {{.val = mixedColor}, {.val = lowColor}};
-        std::vector<Pixel*> buffs{dest, src};
+        std::vector<Pixel*> buffs{currentBuff, prevBuff};
         data->draw->line(buffs, x1, y1, x2, y2, colors, thickness);
       }
 

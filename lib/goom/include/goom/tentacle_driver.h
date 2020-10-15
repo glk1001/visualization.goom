@@ -127,8 +127,8 @@ public:
               const float distance2,
               const uint32_t color,
               const uint32_t colorLow,
-              Pixel* frontBuff,
-              Pixel* backBuff);
+              Pixel* prevBuff,
+              Pixel* currentBuff);
 
   void setRoughTentacles(const bool val);
   void setGlitchValues(const float lower, const float upper);
@@ -208,8 +208,8 @@ private:
               const float angle,
               const float distance,
               const float distance2,
-              Pixel* frontBuff,
-              Pixel* backBuff);
+              Pixel* prevBuff,
+              Pixel* currentBuff);
   std::vector<v2d> projectV3dOntoV2d(const std::vector<V3d>& v3, const float distance);
   static void rotateV3dAboutYAxis(const float sina, const float cosa, const V3d& vsrc, V3d& vdest);
   static void translateV3d(const V3d& vadd, V3d& vinOut);

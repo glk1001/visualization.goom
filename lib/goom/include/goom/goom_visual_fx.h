@@ -37,7 +37,7 @@ struct VisualFX
   void (*init)(VisualFX* _this, PluginInfo* info);
   void (*free)(VisualFX* _this);
   void (*setBuffSettings)(VisualFX* _this, const FXBuffSettings&);
-  void (*apply)(VisualFX* _this, PluginInfo* info, Pixel* src, Pixel* dest);
+  void (*apply)(VisualFX* _this, PluginInfo* info, Pixel* prevBuff, Pixel* currentBuff);
   void (*save)(VisualFX* _this, const PluginInfo* info, const char* file);
   void (*restore)(VisualFX* _this, PluginInfo* info, const char* file);
   void* fx_data;

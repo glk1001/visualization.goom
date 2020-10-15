@@ -341,8 +341,8 @@ const GoomStates::WeightedStatesArray GoomStates::states{{
   {
     .weight = 70,
     .drawables {{
-      { .fx = GoomDrawable::IFS,       .buffSettings = { .buffIntensity = 0.3, .allowOverexposed = true } },
-      { .fx = GoomDrawable::tentacles, .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true } },
+      { .fx = GoomDrawable::IFS,       .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true } },
+      { .fx = GoomDrawable::tentacles, .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true } },
     }},
   },
   {
@@ -863,20 +863,11 @@ static void initBuffers(PluginInfo* goomInfo, const uint32_t buffsize)
   memset(goomInfo->pixel, 0, buffsize * sizeof(uint32_t) + 128);
   goomInfo->back = (uint32_t*)malloc(buffsize * sizeof(uint32_t) + 128);
   memset(goomInfo->back, 0, buffsize * sizeof(uint32_t) + 128);
-  goomInfo->conv = (Pixel*)malloc(buffsize * sizeof(uint32_t) + 128);
-  memset(goomInfo->conv, 0, buffsize * sizeof(uint32_t) + 128);
 
-  goomInfo->outputBuf = goomInfo->conv;
+  goomInfo->outputBuf = nullptr;
 
   goomInfo->p1 = (Pixel*)((1 + ((uintptr_t)(goomInfo->pixel)) / 128) * 128);
   goomInfo->p2 = (Pixel*)((1 + ((uintptr_t)(goomInfo->back)) / 128) * 128);
-}
-
-static void swapBuffers(PluginInfo* goomInfo)
-{
-  Pixel* tmp = goomInfo->p1;
-  goomInfo->p1 = goomInfo->p2;
-  goomInfo->p2 = tmp;
 }
 
 // TODO make these non-static
@@ -1001,7 +992,6 @@ void goom_set_resolution(PluginInfo* goomInfo, const uint16_t resx, const uint16
 {
   free(goomInfo->pixel);
   free(goomInfo->back);
-  free(goomInfo->conv);
 
   goomInfo->screen.width = resx;
   goomInfo->screen.height = resy;
@@ -1174,10 +1164,9 @@ void goom_update(PluginInfo* goomInfo,
   displayLinesIfInAGoom(goomInfo, data);
 
   // affichage et swappage des buffers...
-  Pixel* returnVal = goomInfo->p1;
-  swapBuffers(goomInfo);
+  goomInfo->convolve_fx.apply(&goomInfo->convolve_fx, goomInfo, goomInfo->p1, goomInfo->outputBuf);
+  std::swap(goomInfo->p1, goomInfo->p2);
   goomInfo->cycle++;
-  goomInfo->convolve_fx.apply(&goomInfo->convolve_fx, goomInfo, returnVal, goomInfo->outputBuf);
 
   logDebug("About to return.");
 }
@@ -1204,13 +1193,8 @@ void goom_close(PluginInfo* goomInfo)
   {
     free(goomInfo->back);
   }
-  if (goomInfo->conv)
-  {
-    free(goomInfo->conv);
-  }
 
   goomInfo->pixel = goomInfo->back = nullptr;
-  goomInfo->conv = nullptr;
   goomLinesFree(&goomInfo->gmline1);
   goomLinesFree(&goomInfo->gmline2);
 
@@ -1622,8 +1606,12 @@ static void changeMilieu(PluginInfo* goomInfo)
   }
   goomInfo->update.zoomFilterData.hPlaneEffectAmplitude = getRandInRange(
       ZoomFilterData::minHPlaneEffectAmplitude, ZoomFilterData::maxHPlaneEffectAmplitude);
-  goomInfo->update.zoomFilterData.vPlaneEffectAmplitude = getRandInRange(
-      ZoomFilterData::minVPlaneEffectAmplitude, ZoomFilterData::maxVPlaneEffectAmplitude);
+  // I think 'vPlaneEffectAmplitude' has to be the same as 'hPlaneEffectAmplitude' otherwise
+  //   buffer breaking effects occur.
+  goomInfo->update.zoomFilterData.vPlaneEffectAmplitude =
+      goomInfo->update.zoomFilterData.hPlaneEffectAmplitude + getRandInRange(-0.0009F, 0.0009F);
+  //  goomInfo->update.zoomFilterData.vPlaneEffectAmplitude = getRandInRange(
+  //      ZoomFilterData::minVPlaneEffectAmplitude, ZoomFilterData::maxVPlaneEffectAmplitude);
 }
 
 static void bigNormalUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
@@ -2256,7 +2244,7 @@ static void drawDotsIfRequired(PluginInfo* goomInfo)
 
   logDebug("goomInfo->curGDrawables points is set.");
   stats.doDots();
-  goomDots->drawDots(goomInfo);
+  goomDots->drawDots(goomInfo, goomInfo->p2, goomInfo->p1);
   logDebug("goomInfo->sound->getTimeSinceLastGoom() = {}", goomInfo->sound->getTimeSinceLastGoom());
 }
 

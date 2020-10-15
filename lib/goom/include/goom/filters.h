@@ -99,13 +99,13 @@ struct ZoomFilterData
 
   float hPlaneEffectAmplitude;
   static constexpr float defaultHPlaneEffectAmplitude = 0.0025;
-  static constexpr float minHPlaneEffectAmplitude = 0.002;
-  static constexpr float maxHPlaneEffectAmplitude = 0.003;
+  static constexpr float minHPlaneEffectAmplitude = 0.0015;
+  static constexpr float maxHPlaneEffectAmplitude = 0.0035;
 
   float vPlaneEffectAmplitude;
   static constexpr float defaultVPlaneEffectAmplitude = 0.0025;
-  static constexpr float minVPlaneEffectAmplitude = 0.002;
-  static constexpr float maxVPlaneEffectAmplitude = 0.003;
+  static constexpr float minVPlaneEffectAmplitude = 0.0015;
+  static constexpr float maxVPlaneEffectAmplitude = 0.0035;
 };
 
 VisualFX zoomFilterVisualFXWrapper_create();

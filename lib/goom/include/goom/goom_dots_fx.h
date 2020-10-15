@@ -23,7 +23,7 @@ public:
 
   void setBuffSettings(const FXBuffSettings&);
 
-  void drawDots(PluginInfo*);
+  void drawDots(PluginInfo*, Pixel* prevBuff, Pixel* currentBuff);
 
 private:
   const uint32_t screenWidth;
@@ -55,7 +55,7 @@ private:
 
   float getLargeSoundFactor(const SoundInfo&) const;
 
-  void dotFilter(Pixel* pix1,
+  void dotFilter(Pixel* currentBuff,
                  const std::vector<uint32_t>& colors,
                  const float t1,
                  const float t2,

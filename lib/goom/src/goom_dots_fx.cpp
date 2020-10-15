@@ -82,7 +82,7 @@ std::vector<uint32_t> GoomDots::getColors(const uint32_t color0,
   return colors;
 }
 
-void GoomDots::drawDots(PluginInfo* goomInfo)
+void GoomDots::drawDots(PluginInfo* goomInfo, Pixel* prevBuff, Pixel* currentBuff)
 {
   uint32_t radius = 3;
   if ((goomInfo->sound->getTimeSinceLastGoom() == 0) || changeDotColorsEvent())
@@ -156,15 +156,15 @@ void GoomDots::drawDots(PluginInfo* goomInfo)
     const float color5_t4 = 74.0f;
     const uint32_t color5_cycle = goomInfo->update.loopvar + i * 500;
 
-    dotFilter(goomInfo->p1, colors1, color1_t1, color1_t2, color1_t3, color1_t4, color1_cycle,
+    dotFilter(currentBuff, colors1, color1_t1, color1_t2, color1_t3, color1_t4, color1_cycle,
               radius);
-    dotFilter(goomInfo->p1, colors2, color2_t1, color2_t2, color2_t3, color2_t4, color2_cycle,
+    dotFilter(currentBuff, colors2, color2_t1, color2_t2, color2_t3, color2_t4, color2_cycle,
               radius);
-    dotFilter(goomInfo->p1, colors3, color3_t1, color3_t2, color3_t3, color3_t4, color3_cycle,
+    dotFilter(currentBuff, colors3, color3_t1, color3_t2, color3_t3, color3_t4, color3_cycle,
               radius);
-    dotFilter(goomInfo->p1, colors4, color4_t1, color4_t2, color4_t3, color4_t4, color4_cycle,
+    dotFilter(currentBuff, colors4, color4_t1, color4_t2, color4_t3, color4_t4, color4_cycle,
               radius);
-    dotFilter(goomInfo->p1, colors5, color5_t1, color5_t2, color5_t3, color5_t4, color5_cycle,
+    dotFilter(currentBuff, colors5, color5_t1, color5_t2, color5_t3, color5_t4, color5_cycle,
               radius);
 
     t += t_step;
@@ -181,7 +181,7 @@ float GoomDots::getLargeSoundFactor(const SoundInfo& soundInfo) const
   return largefactor;
 }
 
-void GoomDots::dotFilter(Pixel* pixel,
+void GoomDots::dotFilter(Pixel* currentBuff,
                          const std::vector<uint32_t>& colors,
                          const float t1,
                          const float t2,
@@ -207,9 +207,9 @@ void GoomDots::dotFilter(Pixel* pixel,
 
   const int xmid = x0 + static_cast<int>(radius);
   const int ymid = y0 + static_cast<int>(radius);
-  draw.filledCircle(pixel, xmid, ymid, static_cast<int>(radius), colors);
+  draw.filledCircle(currentBuff, xmid, ymid, static_cast<int>(radius), colors);
 
-  draw.setPixelRGB(pixel, static_cast<uint32_t>(xmid), static_cast<uint32_t>(ymid),
+  draw.setPixelRGB(currentBuff, static_cast<uint32_t>(xmid), static_cast<uint32_t>(ymid),
                    Pixel{.val = middleColor});
 }
 

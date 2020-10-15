@@ -297,8 +297,8 @@ struct IfsData
 
   std::unique_ptr<GoomDraw> draw;
   Colorizer colorizer;
-  void drawPixel(Pixel* frontBuff,
-                 Pixel* backBuff,
+  void drawPixel(Pixel* prevBuff,
+                 Pixel* currentBuff,
                  const uint32_t x,
                  const uint32_t y,
                  const Pixel& ifsColor,
@@ -319,8 +319,8 @@ struct IfsData
   bool initialized;
 };
 
-inline void IfsData::drawPixel(Pixel* frontBuff,
-                               Pixel* backBuff,
+inline void IfsData::drawPixel(Pixel* prevBuff,
+                               Pixel* currentBuff,
                                const uint32_t x,
                                const uint32_t y,
                                const Pixel& ifsColor,
@@ -328,15 +328,15 @@ inline void IfsData::drawPixel(Pixel* frontBuff,
 {
   if (useOldStyleDrawPixel)
   {
-    const Pixel backBuffColor = draw->getPixelRGB(backBuff, x, y);
+    const Pixel prevBuffColor = draw->getPixelRGB(prevBuff, x, y);
     const Pixel mixedColor = colorizer.getMixedColor(ifsColor, tmix);
-    const Pixel finalColor = getColorAdd(backBuffColor, mixedColor, allowOverexposed);
-    draw->setPixelRGBNoBlend(frontBuff, x, y, finalColor);
+    const Pixel finalColor = getColorAdd(prevBuffColor, mixedColor, allowOverexposed);
+    draw->setPixelRGBNoBlend(currentBuff, x, y, finalColor);
   }
   else
   {
     // TODO buff right way around ??????????????????????????????????????????????????????????????
-    std::vector<Pixel*> buffs{frontBuff, backBuff};
+    std::vector<Pixel*> buffs{currentBuff, prevBuff};
     const std::vector<Pixel> colors{colorizer.getMixedColor(ifsColor, tmix), ifsColor};
     draw->setPixelRGB(buffs, x, y, colors);
   }
@@ -761,9 +761,9 @@ static void updateColorsModeMerver(IfsUpdateData*);
 static void updateColorsModeFeu(IfsUpdateData*);
 
 static void updatePixelBuffers(IfsData* fx_data,
-                               Pixel* frontBuff,
-                               Pixel* backBuff,
                                PluginInfo* goomInfo,
+                               Pixel* prevBuff,
+                               Pixel* currentBuff,
                                const size_t numPoints,
                                const IFSPoint* points,
                                const int increment,
@@ -791,16 +791,16 @@ static void updatePixelBuffers(IfsData* fx_data,
       doneColorChange = true;
     }
 
-    fx_data->drawPixel(frontBuff, backBuff, x, y, color, t);
+    fx_data->drawPixel(prevBuff, currentBuff, x, y, color, t);
   }
 }
 
-static void updateIfs(Pixel* frontBuff, Pixel* backBuff, PluginInfo* goomInfo, IfsData* fx_data)
+static void updateIfs(IfsData* fx_data, PluginInfo* goomInfo, Pixel* prevBuff, Pixel* currentBuff)
 {
   // TODO: trouver meilleur soluce pour increment (mettre le code de gestion de l'ifs dans ce fichier)
   //       find the best solution for increment (put the management code of the ifs in this file)
   const int increment = goomInfo->update.ifs_incr;
-  fx_data->useOldStyleDrawPixel = probabilityOfMInN(0, 4);
+  fx_data->useOldStyleDrawPixel = probabilityOfMInN(1, 4);
 
   logDebug("increment = {}", increment);
 
@@ -817,7 +817,7 @@ static void updateIfs(Pixel* frontBuff, Pixel* backBuff, PluginInfo* goomInfo, I
   const int cycle10 = (updData.cycle < 40) ? updData.cycle / 10 : 7 - updData.cycle / 10;
   const Pixel color = getRightShiftedChannels(updData.couleur, cycle10);
 
-  updatePixelBuffers(fx_data, frontBuff, backBuff, goomInfo, numPoints, points, increment, color);
+  updatePixelBuffers(fx_data, goomInfo, prevBuff, currentBuff, numPoints, points, increment, color);
 
   updData.justChanged--;
 
@@ -1057,7 +1057,10 @@ static void updateColorsModeFeu(IfsUpdateData* upd)
   }
 }
 
-static void ifs_vfx_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* src, Pixel* dest)
+static void ifs_vfx_apply(VisualFX* _this,
+                          PluginInfo* goomInfo,
+                          Pixel* prevBuff,
+                          Pixel* currentBuff)
 {
   IfsData* data = static_cast<IfsData*>(_this->fx_data);
   if (!data->initialized)
@@ -1069,7 +1072,7 @@ static void ifs_vfx_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* src, Pix
   {
     return;
   }
-  updateIfs(dest, src, goomInfo, data);
+  updateIfs(data, goomInfo, prevBuff, currentBuff);
 }
 
 static const char* const vfxname = "Ifs";

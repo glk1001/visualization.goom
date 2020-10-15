@@ -65,7 +65,6 @@ struct PluginInfo
   uint32_t* back;
   Pixel* p1;
   Pixel* p2;
-  Pixel* conv;
   Pixel* outputBuf;
 
   // state of goom

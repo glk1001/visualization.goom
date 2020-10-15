@@ -380,7 +380,7 @@ public:
 
   void setBuffSettings(const FXBuffSettings&);
 
-  void update(PluginInfo*, Pixel* frontBuff, Pixel* backBuff);
+  void update(PluginInfo*, Pixel* prevBuff, Pixel* currentBuff);
   void updateWithNoDraw(PluginInfo*);
 
   void logStats(const StatsLogValueFunc logVal);
@@ -596,7 +596,7 @@ void TentaclesWrapper::init()
   }
 }
 
-void TentaclesWrapper::update(PluginInfo* goomInfo, Pixel* frontBuff, Pixel* backBuff)
+void TentaclesWrapper::update(PluginInfo* goomInfo, Pixel* prevBuff, Pixel* currentBuff)
 {
   logDebug("Starting update.");
 
@@ -681,8 +681,8 @@ void TentaclesWrapper::update(PluginInfo* goomInfo, Pixel* frontBuff, Pixel* bac
                                        : 1.0F / (1.10F - goomInfo->sound->getAcceleration());
     currentDriver->multiplyIterZeroYValWaveFreq(tentacleWaveFreq);
 
-    currentDriver->update(m_half_pi - rot, distt, distt2, modColor, modColorLow, frontBuff,
-                          backBuff);
+    currentDriver->update(m_half_pi - rot, distt, distt2, modColor, modColorLow, prevBuff,
+                          currentBuff);
   }
 }
 
@@ -891,12 +891,12 @@ void tentacle_fx_init(VisualFX* _this, PluginInfo* info)
   _this->fx_data = data;
 }
 
-void tentacle_fx_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* src, Pixel* dest)
+void tentacle_fx_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* prevBuff, Pixel* currentBuff)
 {
   TentacleFXData* data = static_cast<TentacleFXData*>(_this->fx_data);
   if (BVAL(data->enabled_bp))
   {
-    data->tentacles->update(goomInfo, dest, src);
+    data->tentacles->update(goomInfo, prevBuff, currentBuff);
   }
 }
 

@@ -520,8 +520,8 @@ void TentacleDriver::update(const float angle,
                             const float distance2,
                             const uint32_t color,
                             const uint32_t colorLow,
-                            Pixel* frontBuff,
-                            Pixel* backBuff)
+                            Pixel* prevBuff,
+                            Pixel* currentBuff)
 {
   updateNum++;
   logInfo("Doing update {}.", updateNum);
@@ -548,7 +548,7 @@ void TentacleDriver::update(const float angle,
              "distance = {}, distance2 = {}, color = {} and colorLow = {}, doDraw = {}.",
              updateNum, tentacle2D.getID(), angle, distance, distance2, color, colorLow, doDraw);
 
-    plot3D(tentacle, color, colorLow, angle, distance, distance2, frontBuff, backBuff);
+    plot3D(tentacle, color, colorLow, angle, distance, distance2, prevBuff, currentBuff);
   }
 }
 
@@ -560,8 +560,8 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
                             const float angle,
                             const float distance,
                             const float distance2,
-                            Pixel* frontBuff,
-                            Pixel* backBuff)
+                            Pixel* prevBuff,
+                            Pixel* currentBuff)
 {
   const std::vector<V3d> vertices = tentacle.getVertices();
   const size_t n = vertices.size();
@@ -635,7 +635,7 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
       logInfo("draw_line {}: color = {:#x}, colorLow = {:#x}.", nodeNum, color, colorLow);
 
       // TODO buff right way around ??????????????????????????????????????????????????????????????
-      std::vector<Pixel*> buffs{frontBuff, backBuff};
+      std::vector<Pixel*> buffs{currentBuff, prevBuff};
       // TODO - Control brightness because of back buff??
       // One buff may be better????? Make lighten more aggressive over whole tentacle??
       // draw_line(frontBuff, ix0, iy0, ix1, iy1, color, 1280, 720);
