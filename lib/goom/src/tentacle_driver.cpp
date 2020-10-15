@@ -634,12 +634,13 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
               dominantColor, dominantColorLow);
       logInfo("draw_line {}: color = {:#x}, colorLow = {:#x}.", nodeNum, color, colorLow);
 
-      Pixel* buffs[2] = {frontBuff, backBuff};
+      // TODO buff right way around ??????????????????????????????????????????????????????????????
+      std::vector<Pixel*> buffs{frontBuff, backBuff};
       // TODO - Control brightness because of back buff??
       // One buff may be better????? Make lighten more aggressive over whole tentacle??
       // draw_line(frontBuff, ix0, iy0, ix1, iy1, color, 1280, 720);
       constexpr uint8_t thickness = 1;
-      draw.line(std::size(buffs), buffs, ix0, iy0, ix1, iy1, colors, thickness);
+      draw.line(buffs, ix0, iy0, ix1, iy1, colors, thickness);
     }
   }
 }

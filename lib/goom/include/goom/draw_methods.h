@@ -1,6 +1,7 @@
 #ifndef _DRAW_METHODS_H
 #define _DRAW_METHODS_H
 
+#include "colorutils.h"
 #include "goom_graphic.h"
 
 #include <cstddef>
@@ -31,8 +32,7 @@ void drawFilledCircle(Pixel* buff,
                       const uint32_t screenWidth,
                       const uint32_t screenHeight);
 
-void drawLine(const size_t n,
-              Pixel* buffs[],
+void drawLine(std::vector<Pixel*>& buffs,
               const int x1,
               const int y1,
               const int x2,
@@ -55,6 +55,30 @@ void drawLine(Pixel* buff,
               const uint8_t thickness,
               const uint32_t screenx,
               const uint32_t screeny);
+
+inline void drawPixels(std::vector<Pixel*>& buffs,
+                       const int pos,
+                       const std::vector<Pixel>& newColors,
+                       const uint32_t buffIntensity,
+                       const bool allowOverexposed)
+{
+  for (size_t i = 0; i < buffs.size(); i++)
+  {
+    const Pixel brighterPixColor =
+        getBrighterColorInt(buffIntensity, newColors[i], allowOverexposed);
+    Pixel* const p = &(buffs[i][pos]);
+    *p = getColorAdd(*p, brighterPixColor, allowOverexposed);
+
+    /***
+    Pixel* const p = &(buffs[i][pos]);
+    const Pixel existingColorBlended =
+        getBrighterColorInt(buffIntensity, *p, allowOverexposed);
+    const Pixel pixColorBlended =
+        getBrighterColorInt(channel_limits<uint32_t>::max() - buffIntensity, newColors[i], allowOverexposed);
+    *p = getColorAdd(existingColorBlended, pixColorBlended, allowOverexposed);
+    ***/
+  }
+}
 
 } // namespace goom
 #endif

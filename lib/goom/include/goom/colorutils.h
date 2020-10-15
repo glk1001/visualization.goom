@@ -17,8 +17,10 @@ Pixel getColorAdd(const Pixel& color1, const Pixel& color2, const bool allowOver
 Pixel getBrighterColorInt(const uint32_t brightness,
                           const Pixel& color,
                           const bool allowOverexposed);
+Pixel getBrighterColorInt(const float brightness, const Pixel&, const bool) = delete;
 
 Pixel getBrighterColor(const float brightness, const Pixel& color, const bool allowOverexposed);
+Pixel getBrighterColor(const uint32_t brightness, const Pixel&, const bool) = delete;
 uint32_t getBrighterColor(const float brightness,
                           const uint32_t color,
                           const bool allowOverexposed);
@@ -113,7 +115,7 @@ inline uint32_t getBrighterColor(const float brightness,
                                  const uint32_t color,
                                  const bool allowOverexposed)
 {
-  return getBrighterColorInt(brightness, Pixel{.val = color}, allowOverexposed).val;
+  return getBrighterColor(brightness, Pixel{.val = color}, allowOverexposed).val;
 }
 
 

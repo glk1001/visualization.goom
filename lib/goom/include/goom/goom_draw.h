@@ -25,8 +25,18 @@ public:
   float getBuffIntensity() const;
   void setBuffIntensity(const float val);
 
-  Pixel getPixelRGB(Pixel* buff, const uint32_t x, const uint32_t y);
+  Pixel getPixelRGB(Pixel* buff, const uint32_t x, const uint32_t y) const;
   void setPixelRGB(Pixel* buff, const uint32_t x, const uint32_t y, const Pixel& color);
+  // Set the pixel but don't blend it with the existing pixel value.
+  void setPixelRGBNoBlend(Pixel* buff, const uint32_t x, const uint32_t y, const Pixel& color);
+
+  std::vector<Pixel> getPixelRGB(const std::vector<Pixel*>& buffs,
+                                 const uint32_t x,
+                                 const uint32_t y) const;
+  void setPixelRGB(std::vector<Pixel*>& buffs,
+                   const uint32_t x,
+                   const uint32_t y,
+                   const std::vector<Pixel>& colors);
 
   void circle(Pixel* buff, const int x0, const int y0, const int radius, const uint32_t color);
 
@@ -44,8 +54,7 @@ public:
             const uint32_t color,
             const uint8_t thickness);
 
-  void line(const size_t n,
-            Pixel* buffs[],
+  void line(std::vector<Pixel*> buffs,
             int x1,
             int y1,
             int x2,
@@ -61,17 +70,30 @@ private:
   uint32_t intBuffIntensity = channel_limits<uint32_t>::max();
 };
 
-inline Pixel GoomDraw::getPixelRGB(Pixel* buff, const uint32_t x, const uint32_t y)
+inline void GoomDraw::setPixelRGBNoBlend(Pixel* buff,
+                                         const uint32_t x,
+                                         const uint32_t y,
+                                         const Pixel& color)
+{
+  buff[x + (y * screenWidth)] = color;
+}
+
+inline Pixel GoomDraw::getPixelRGB(Pixel* buff, const uint32_t x, const uint32_t y) const
 {
   return buff[x + (y * screenWidth)];
 }
 
-inline void GoomDraw::setPixelRGB(Pixel* buff,
-                                  const uint32_t x,
-                                  const uint32_t y,
-                                  const Pixel& color)
+inline std::vector<Pixel> GoomDraw::getPixelRGB(const std::vector<Pixel*>& buffs,
+                                                const uint32_t x,
+                                                const uint32_t y) const
 {
-  buff[x + (y * screenWidth)] = color;
+  const uint32_t pos = x + (y * screenWidth);
+  std::vector<Pixel> colors(buffs.size());
+  for (size_t i = 0; i < buffs.size(); i++)
+  {
+    colors[i] = (buffs[i])[pos];
+  }
+  return colors;
 }
 
 inline uint32_t GoomDraw::getScreenWidth() const

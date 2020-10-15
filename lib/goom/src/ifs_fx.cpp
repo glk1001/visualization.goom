@@ -56,6 +56,7 @@
 #include <cstdint>
 #include <memory>
 #include <stdexcept>
+#include <vector>
 
 namespace goom
 {
@@ -302,6 +303,7 @@ struct IfsData
                  const uint32_t y,
                  const Pixel& ifsColor,
                  const float tmix);
+  bool useOldStyleDrawPixel = false;
   FXBuffSettings buffSettings;
   bool allowOverexposed = true;
   uint32_t countSinceOverexposed = 0;
@@ -324,10 +326,20 @@ inline void IfsData::drawPixel(Pixel* frontBuff,
                                const Pixel& ifsColor,
                                const float tmix)
 {
-  const Pixel backBuffColor = draw->getPixelRGB(backBuff, x, y);
-  const Pixel mixedColor = colorizer.getMixedColor(ifsColor, tmix);
-  const Pixel finalColor = getColorAdd(backBuffColor, mixedColor, allowOverexposed);
-  draw->setPixelRGB(frontBuff, x, y, finalColor);
+  if (useOldStyleDrawPixel)
+  {
+    const Pixel backBuffColor = draw->getPixelRGB(backBuff, x, y);
+    const Pixel mixedColor = colorizer.getMixedColor(ifsColor, tmix);
+    const Pixel finalColor = getColorAdd(backBuffColor, mixedColor, allowOverexposed);
+    draw->setPixelRGBNoBlend(frontBuff, x, y, finalColor);
+  }
+  else
+  {
+    // TODO buff right way around ??????????????????????????????????????????????????????????????
+    std::vector<Pixel*> buffs{frontBuff, backBuff};
+    const std::vector<Pixel> colors{colorizer.getMixedColor(ifsColor, tmix), ifsColor};
+    draw->setPixelRGB(buffs, x, y, colors);
+  }
 }
 
 void IfsData::updateAllowOverexposed()
@@ -788,6 +800,7 @@ static void updateIfs(Pixel* frontBuff, Pixel* backBuff, PluginInfo* goomInfo, I
   // TODO: trouver meilleur soluce pour increment (mettre le code de gestion de l'ifs dans ce fichier)
   //       find the best solution for increment (put the management code of the ifs in this file)
   const int increment = goomInfo->update.ifs_incr;
+  fx_data->useOldStyleDrawPixel = probabilityOfMInN(0, 4);
 
   logDebug("increment = {}", increment);
 

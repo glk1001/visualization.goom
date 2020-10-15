@@ -44,8 +44,7 @@ void GoomDraw::line(Pixel* buff,
            screenHeight);
 }
 
-void GoomDraw::line(const size_t n,
-                    Pixel* buffs[],
+void GoomDraw::line(std::vector<Pixel*> buffs,
                     int x1,
                     int y1,
                     int x2,
@@ -53,8 +52,25 @@ void GoomDraw::line(const size_t n,
                     const std::vector<Pixel>& colors,
                     const uint8_t thickness)
 {
-  drawLine(n, buffs, x1, y1, x2, y2, colors, intBuffIntensity, allowOverexposed, thickness,
+  drawLine(buffs, x1, y1, x2, y2, colors, intBuffIntensity, allowOverexposed, thickness,
            screenWidth, screenHeight);
+}
+
+void GoomDraw::setPixelRGB(Pixel* buff, const uint32_t x, const uint32_t y, const Pixel& color)
+{
+  std::vector<Pixel*> buffs{buff};
+  std::vector<Pixel> colors{color};
+  const int pos = static_cast<int>(x + (y * screenWidth));
+  drawPixels(buffs, pos, colors, intBuffIntensity, allowOverexposed);
+}
+
+void GoomDraw::setPixelRGB(std::vector<Pixel*>& buffs,
+                           const uint32_t x,
+                           const uint32_t y,
+                           const std::vector<Pixel>& colors)
+{
+  const int pos = static_cast<int>(x + (y * screenWidth));
+  drawPixels(buffs, pos, colors, intBuffIntensity, allowOverexposed);
 }
 
 } // namespace goom

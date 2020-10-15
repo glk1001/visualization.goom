@@ -512,8 +512,8 @@ static void fs_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* src, Pixel* d
       else
       {
         const std::vector<Pixel> colors = {{.val = mixedColor}, {.val = lowColor}};
-        Pixel* buffs[2] = {dest, src};
-        data->draw->line(std::size(buffs), buffs, x1, y1, x2, y2, colors, thickness);
+        std::vector<Pixel*> buffs{dest, src};
+        data->draw->line(buffs, x1, y1, x2, y2, colors, thickness);
       }
 
       x1 = x2;
