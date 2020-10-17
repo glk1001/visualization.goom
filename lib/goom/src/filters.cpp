@@ -29,11 +29,14 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <nlohmann/json.hpp>
 #include <stdexcept>
+#include <string>
 
 namespace goom
 {
 
+using nlohmann::json;
 using namespace goom::utils;
 
 class FilterStats
@@ -1001,6 +1004,60 @@ static void generatePrecalCoef(uint32_t precalCoef[16][16])
 
 /* VisualFX Wrapper */
 
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ZoomFilterData,
+                                   mode,
+                                   vitesse,
+                                   pertedec,
+                                   middleX,
+                                   middleY,
+                                   reverse,
+                                   hPlaneEffect,
+                                   vPlaneEffect,
+                                   waveEffect,
+                                   hypercosEffect,
+                                   noisify,
+                                   noiseFactor,
+                                   blockyWavy,
+                                   waveFreqFactor,
+                                   waveAmplitude,
+                                   waveEffectType,
+                                   scrunchAmplitude,
+                                   speedwayAmplitude,
+                                   amuletteAmplitude,
+                                   crystalBallAmplitude,
+                                   hypercosFreq,
+                                   hypercosAmplitude,
+                                   hPlaneEffectAmplitude,
+                                   vPlaneEffectAmplitude)
+
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(FilterDataWrapper,
+                                   filterData,
+                                   generalSpeed,
+                                   prevX,
+                                   prevY,
+                                   mustInitBuffers,
+                                   interlaceStart,
+                                   buffratio)
+
+static std::string getFxName(VisualFX*)
+{
+  return "ZoomFilter";
+}
+
+static std::string getStateAsJsonStr(VisualFX* _this, const PluginInfo*)
+{
+  const FilterDataWrapper* data = static_cast<FilterDataWrapper*>(_this->fx_data);
+  const json j = *data;
+  return j.dump();
+}
+
+static void setStateFromJsonStr(VisualFX* _this, PluginInfo*, const std::string& jsonStr)
+{
+  FilterDataWrapper* data = static_cast<FilterDataWrapper*>(_this->fx_data);
+  const auto j = json::parse(jsonStr);
+  *data = j;
+}
+
 static const char* const vfxname = "ZoomFilter";
 
 static void zoomFilterSave(VisualFX* _this, const PluginInfo*, const char* file)
@@ -1101,8 +1158,15 @@ static void zoomFilterVisualFXWrapper_init(VisualFX* _this, PluginInfo* info)
   initBuffers(info, info->screen.width, info->screen.height);
 }
 
+#include <fstream>
+
 static void zoomFilterVisualFXWrapper_free(VisualFX* _this)
 {
+  std::ofstream f("/tmp/filter.json");
+  const std::string jsonStr = getStateAsJsonStr(_this, nullptr);
+  f << jsonStr << std::endl;
+  f.close();
+
   FilterDataWrapper* data = static_cast<FilterDataWrapper*>(_this->fx_data);
 
   delete[] data->freebrutS;
@@ -1127,10 +1191,16 @@ VisualFX zoomFilterVisualFXWrapper_create()
   VisualFX fx;
   fx.init = zoomFilterVisualFXWrapper_init;
   fx.free = zoomFilterVisualFXWrapper_free;
+
   fx.setBuffSettings = zoomFilterVisualWrapper_setBuffSettings;
   fx.apply = zoomFilterVisualFXWrapper_apply;
+  fx.getFxName = getFxName;
+  fx.getStateAsJsonStr = getStateAsJsonStr;
+  fx.setStateFromJsonStr = setStateFromJsonStr;
+
   fx.save = zoomFilterSave;
   fx.restore = zoomFilterRestore;
+
   return fx;
 }
 

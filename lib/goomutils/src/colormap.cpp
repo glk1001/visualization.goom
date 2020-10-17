@@ -15,27 +15,28 @@ namespace goom::utils
 std::vector<ColorMap, ColorMap::ColorMapAllocator> ColorMaps::colorMaps{};
 ColorMaps::GroupColorNames ColorMaps::groups{nullptr};
 
-ColorMaps::ColorMaps() : overrideColorMap{nullptr}, overrideColorGroup{ColorMapGroup::_null}
+ColorMaps::ColorMaps()
 {
 }
 
-void ColorMaps::setOverrideColorMap(const ColorMap& cm)
+ColorMapName ColorMaps::getRandomColorMapName() const
 {
-  overrideColorMap = &cm;
+  initColorMaps();
+
+  return static_cast<ColorMapName>(getRandInRange(0u, colorMaps.size()));
 }
 
-void ColorMaps::setOverrideColorGroup(const ColorMapGroup grp)
+ColorMapName ColorMaps::getRandomColorMapName(const ColorMapGroup groupName) const
 {
-  overrideColorGroup = grp;
+  initGroups();
+  initColorMaps();
+
+  const std::vector<ColorMapName>* group = at(groups, groupName);
+  return group->at(getRandInRange(0u, group->size()));
 }
 
 const ColorMap& ColorMaps::getRandomColorMap() const
 {
-  if (overrideColorMap != nullptr)
-  {
-    return *overrideColorMap;
-  }
-
   initColorMaps();
 
   return colorMaps[getRandInRange(0u, colorMaps.size())];
@@ -43,11 +44,6 @@ const ColorMap& ColorMaps::getRandomColorMap() const
 
 const ColorMap& ColorMaps::getRandomColorMap(const ColorMapGroup groupName) const
 {
-  if (overrideColorMap != nullptr)
-  {
-    return *overrideColorMap;
-  }
-
   initGroups();
   initColorMaps();
 
@@ -92,11 +88,6 @@ size_t ColorMaps::getNumGroups() const
 
 ColorMapGroup ColorMaps::getRandomGroup() const
 {
-  if (overrideColorGroup != ColorMapGroup::_null)
-  {
-    return overrideColorGroup;
-  }
-
   initGroups();
   return static_cast<ColorMapGroup>(getRandInRange(0u, static_cast<size_t>(ColorMapGroup::_size)));
 }
@@ -148,10 +139,6 @@ void WeightedColorMaps::setWeightsActive(const bool value)
 
 ColorMapGroup WeightedColorMaps::getRandomGroup() const
 {
-  if (getOverrideColorGroup() != ColorMapGroup::_null)
-  {
-    return getOverrideColorGroup();
-  }
   if (!weightsActive)
   {
     return ColorMaps::getRandomGroup();

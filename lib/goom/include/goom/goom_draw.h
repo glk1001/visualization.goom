@@ -6,6 +6,8 @@
 
 #include <cstddef>
 #include <cstdint>
+// TODO Try to avoid including this
+#include <nlohmann/json.hpp>
 #include <vector>
 
 namespace goom
@@ -14,10 +16,14 @@ namespace goom
 class GoomDraw
 {
 public:
+  GoomDraw();
   GoomDraw(const uint32_t screenWidth, const uint32_t screenHeight);
 
   uint32_t getScreenWidth() const;
   uint32_t getScreenHeight() const;
+
+  void setScreenWidth(const uint32_t val);
+  void setScreenHeight(const uint32_t val);
 
   bool getAllowOverexposed() const;
   void setAllowOverexposed(const bool val);
@@ -63,12 +69,14 @@ public:
             const uint8_t thickness);
 
 private:
-  const uint32_t screenWidth;
-  const uint32_t screenHeight;
+  uint32_t screenWidth;
+  uint32_t screenHeight;
   bool allowOverexposed = false;
   float buffIntensity = 1;
   uint32_t intBuffIntensity = channel_limits<uint32_t>::max();
 };
+
+void from_json(const nlohmann::json&, GoomDraw&);
 
 inline void GoomDraw::setPixelRGBNoBlend(Pixel* buff,
                                          const uint32_t x,
@@ -101,9 +109,19 @@ inline uint32_t GoomDraw::getScreenWidth() const
   return screenWidth;
 }
 
+inline void GoomDraw::setScreenWidth(const uint32_t val)
+{
+  screenWidth = val;
+}
+
 inline uint32_t GoomDraw::getScreenHeight() const
 {
   return screenHeight;
+}
+
+inline void GoomDraw::setScreenHeight(const uint32_t val)
+{
+  screenHeight = val;
 }
 
 inline bool GoomDraw::getAllowOverexposed() const

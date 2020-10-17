@@ -45,6 +45,7 @@ target_include_directories(${PROJECT_NAME}
         ${CMAKE_SOURCE_DIR}/lib/goom/include/goom
         ${CMAKE_SOURCE_DIR}/lib/goomutils/include
         ${CMAKE_SOURCE_DIR}/lib/vivid/include
+        ${CMAKE_SOURCE_DIR}/lib/json/include
         ${CMAKE_SOURCE_DIR}/lib/fmt/include
         ${CMAKE_SOURCE_DIR}/lib/magic_enum/include
 )

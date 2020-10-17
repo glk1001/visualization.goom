@@ -86,25 +86,22 @@ public:
   const ColorMap& getColorMap(const ColorMapName) const;
   const ColorMapNames& getColorMapNames(const ColorMapGroup) const;
 
-  void setOverrideColorMap(const ColorMap&);
+  ColorMapName getRandomColorMapName() const;
+  ColorMapName getRandomColorMapName(const ColorMapGroup) const;
+
   const ColorMap& getRandomColorMap() const;
   const ColorMap& getRandomColorMap(const ColorMapGroup) const;
 
   size_t getNumGroups() const;
-  void setOverrideColorGroup(const ColorMapGroup);
   virtual ColorMapGroup getRandomGroup() const;
 
 protected:
   using GroupColorNames =
       std::array<const ColorMapNames*, static_cast<size_t>(ColorMapGroup::_size)>;
-  const ColorMap* getOverrideColorMap() const { return overrideColorMap; }
-  ColorMapGroup getOverrideColorGroup() const { return overrideColorGroup; }
   const GroupColorNames& getGroups() const { return groups; }
   static void initGroups();
 
 private:
-  const ColorMap* overrideColorMap;
-  ColorMapGroup overrideColorGroup;
   static std::vector<ColorMap, ColorMap::ColorMapAllocator> colorMaps;
   static GroupColorNames groups;
   static void initColorMaps();

@@ -6,16 +6,38 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <nlohmann/json.hpp>
 #include <vector>
 
 namespace goom
 {
+
+using nlohmann::json;
+
+GoomDraw::GoomDraw() : screenWidth{0}, screenHeight{0}
+{
+}
 
 GoomDraw::GoomDraw(const uint32_t screenW, const uint32_t screenH)
   : screenWidth{screenW}, screenHeight{screenH}
 {
   setBuffIntensity(0.5);
   setAllowOverexposed(true);
+}
+
+void to_json(json& j, const GoomDraw& draw)
+{
+  j = json{
+      {"screenWidth", draw.getScreenWidth()},
+      {"screenHeight", draw.getScreenHeight()},
+      {"allowOverexposed", draw.getAllowOverexposed()},
+      {"buffIntensity", draw.getBuffIntensity()},
+  };
+}
+
+void from_json(const json& j, GoomDraw& draw)
+{
+  draw.setScreenWidth(j.at("screenWidth").get<uint32_t>());
 }
 
 void GoomDraw::circle(

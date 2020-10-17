@@ -55,12 +55,14 @@
 #include <cmath>
 #include <cstdint>
 #include <memory>
+#include <nlohmann/json.hpp>
 #include <stdexcept>
 #include <vector>
 
 namespace goom
 {
 
+using nlohmann::json;
 using namespace goom::utils;
 
 inline bool changeCurrentColorMapEvent()
@@ -151,6 +153,22 @@ struct Fractal
   IFSPoint* buffer2;
 };
 
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Fractal,
+                                   numSimi,
+                                   //components[5 * maxSimi];
+                                   depth,
+                                   count,
+                                   speed,
+                                   width,
+                                   height,
+                                   lx,
+                                   ly,
+                                   rMean,
+                                   drMean,
+                                   dr2Mean,
+                                   curPt,
+                                   maxPt)
+
 class Colorizer
 {
 public:
@@ -180,7 +198,9 @@ public:
 private:
   const ColorMaps colorMaps;
   ColorMapGroup currentColorMapGroup;
+  ColorMapName mixerMapName;
   const ColorMap* mixerMap;
+  ColorMapName prevMixerMapName;
   const ColorMap* prevMixerMap;
   mutable uint32_t countSinceColorMapChange = 0;
   static constexpr uint32_t minColorMapChangeCompleted = 100;
@@ -191,12 +211,23 @@ private:
   float tBetweenColors; // in [0, 1]
   static ColorMode getNextColorMode();
   Pixel getNextMixerMapColor(const float t) const;
+
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(Colorizer,
+                                 currentColorMapGroup,
+                                 mixerMapName,
+                                 prevMixerMapName,
+                                 countSinceColorMapChange,
+                                 colorMapChangeCompleted,
+                                 colorMode,
+                                 tBetweenColors)
 };
 
 Colorizer::Colorizer() noexcept
   : colorMaps{},
     currentColorMapGroup{colorMaps.getRandomGroup()},
-    mixerMap{&colorMaps.getRandomColorMap(currentColorMapGroup)},
+    mixerMapName{colorMaps.getRandomColorMapName(currentColorMapGroup)},
+    mixerMap{&colorMaps.getColorMap(mixerMapName)},
+    prevMixerMapName{mixerMapName},
     prevMixerMap{mixerMap},
     colorMode{ColorMode::mapColors},
     tBetweenColors{0.5}
@@ -240,8 +271,10 @@ void Colorizer::changeColorMaps()
   {
     currentColorMapGroup = colorMaps.getRandomGroup();
   }
+  prevMixerMapName = mixerMapName;
   prevMixerMap = mixerMap;
-  mixerMap = &colorMaps.getRandomColorMap(currentColorMapGroup);
+  mixerMapName = colorMaps.getRandomColorMapName(currentColorMapGroup);
+  mixerMap = &colorMaps.getColorMap(mixerMapName);
   colorMapChangeCompleted = getRandInRange(minColorMapChangeCompleted, maxColorMapChangeCompleted);
   tBetweenColors = getRandInRange(0.2F, 0.8F);
   countSinceColorMapChange = colorMapChangeCompleted;
@@ -318,6 +351,33 @@ struct IfsData
   size_t curPt;
   bool initialized;
 };
+
+void to_json(json& j, const IfsData& ifs)
+{
+  j = json{
+      //    {"colorizer", ifs.colorizer},
+      //    {"draw", *ifs.draw},
+      {"useOldStyleDrawPixel", ifs.useOldStyleDrawPixel},
+      {"buffSettings", ifs.buffSettings},
+      {"countSinceOverexposed", ifs.countSinceOverexposed},
+      {"initialized", ifs.initialized},
+  };
+  if (ifs.root)
+  {
+    j["root"] = *ifs.root;
+  }
+}
+
+void from_json(const json& j, IfsData& ifs)
+{
+  j.at("colorizer").get_to(ifs.colorizer);
+  ifs.draw.reset(new GoomDraw{});
+  j.at("draw").get_to(*ifs.draw);
+  j.at("useOldStyleDrawPixel").get_to(ifs.useOldStyleDrawPixel);
+  j.at("buffSettings").get_to(ifs.buffSettings);
+  j.at("countSinceOverexposed").get_to(ifs.countSinceOverexposed);
+  j.at("initialized").get_to(ifs.initialized);
+}
 
 inline void IfsData::drawPixel(Pixel* prevBuff,
                                Pixel* currentBuff,
