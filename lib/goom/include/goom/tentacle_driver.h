@@ -5,7 +5,6 @@
 #include "goom_graphic.h"
 #include "goom_visual_fx.h"
 #include "goomutils/colormap.h"
-#include "goomutils/colormap_enums.h"
 #include "tentacles.h"
 #include "v3d.h"
 

@@ -1,7 +1,7 @@
 #ifndef LIB_GOOMUTILS_INCLUDE_GOOMUTILS_COLORMAP_H_
 #define LIB_GOOMUTILS_INCLUDE_GOOMUTILS_COLORMAP_H_
 
-#include "goomutils/colormap_enums.h"
+#include "goomutils/colordata/colormap_enums.h"
 #include "goomutils/goomrand.h"
 
 #include <array>
@@ -21,7 +21,7 @@ public:
   ColorMap& operator=(const ColorMap&) = delete;
 
   size_t getNumStops() const { return cmap.numStops(); }
-  const std::string& getMapName() const { return mapName; }
+  colordata::ColorMapName getMapName() const { return mapName; }
   uint32_t getColor(const float t) const { return vivid::Color{cmap.at(t)}.rgb32(); }
 
   static uint32_t getRandomColor(const ColorMap&, const float t0 = 0, const float t1 = 1);
@@ -29,9 +29,9 @@ public:
   static uint32_t getLighterColor(const uint32_t color, const int incPercent);
 
 private:
-  const std::string mapName;
+  const colordata::ColorMapName mapName;
   const vivid::ColorMap cmap;
-  ColorMap(const std::string& mapName, const vivid::ColorMap&);
+  ColorMap(const colordata::ColorMapName, const vivid::ColorMap&);
   ColorMap(const ColorMap&);
   struct ColorMapAllocator : std::allocator<ColorMap>
   {
@@ -74,7 +74,7 @@ constexpr T& at(std::array<T, static_cast<size_t>(ColorMapGroup::_size)>& arr,
 class ColorMaps
 {
 public:
-  using ColorMapNames = std::vector<ColorMapName>;
+  using ColorMapNames = std::vector<colordata::ColorMapName>;
 
   ColorMaps();
   ColorMaps(const ColorMaps&) = delete;
@@ -83,11 +83,11 @@ public:
   ColorMaps& operator=(const ColorMaps&) = delete;
 
   size_t getNumColorMaps() const;
-  const ColorMap& getColorMap(const ColorMapName) const;
+  const ColorMap& getColorMap(const colordata::ColorMapName) const;
   const ColorMapNames& getColorMapNames(const ColorMapGroup) const;
 
-  ColorMapName getRandomColorMapName() const;
-  ColorMapName getRandomColorMapName(const ColorMapGroup) const;
+  colordata::ColorMapName getRandomColorMapName() const;
+  colordata::ColorMapName getRandomColorMapName(const ColorMapGroup) const;
 
   const ColorMap& getRandomColorMap() const;
   const ColorMap& getRandomColorMap(const ColorMapGroup) const;

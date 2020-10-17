@@ -5,7 +5,6 @@
 #include "goom_plugin_info.h"
 #include "goom_visual_fx.h"
 #include "goomutils/colormap.h"
-#include "goomutils/colormap_enums.h"
 #include "goomutils/goomrand.h"
 #include "goomutils/mathutils.h"
 

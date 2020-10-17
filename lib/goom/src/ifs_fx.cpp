@@ -198,9 +198,7 @@ public:
 private:
   const ColorMaps colorMaps;
   ColorMapGroup currentColorMapGroup;
-  ColorMapName mixerMapName;
   const ColorMap* mixerMap;
-  ColorMapName prevMixerMapName;
   const ColorMap* prevMixerMap;
   mutable uint32_t countSinceColorMapChange = 0;
   static constexpr uint32_t minColorMapChangeCompleted = 100;
@@ -239,9 +237,7 @@ void from_json(const json& j, Colorizer& c)
 Colorizer::Colorizer() noexcept
   : colorMaps{},
     currentColorMapGroup{colorMaps.getRandomGroup()},
-    mixerMapName{colorMaps.getRandomColorMapName(currentColorMapGroup)},
-    mixerMap{&colorMaps.getColorMap(mixerMapName)},
-    prevMixerMapName{mixerMapName},
+    mixerMap{&colorMaps.getRandomColorMap(currentColorMapGroup)},
     prevMixerMap{mixerMap},
     colorMode{ColorMode::mapColors},
     tBetweenColors{0.5}
@@ -285,10 +281,8 @@ void Colorizer::changeColorMaps()
   {
     currentColorMapGroup = colorMaps.getRandomGroup();
   }
-  prevMixerMapName = mixerMapName;
   prevMixerMap = mixerMap;
-  mixerMapName = colorMaps.getRandomColorMapName(currentColorMapGroup);
-  mixerMap = &colorMaps.getColorMap(mixerMapName);
+  mixerMap = &colorMaps.getRandomColorMap(currentColorMapGroup);
   colorMapChangeCompleted = getRandInRange(minColorMapChangeCompleted, maxColorMapChangeCompleted);
   tBetweenColors = getRandInRange(0.2F, 0.8F);
   countSinceColorMapChange = colorMapChangeCompleted;

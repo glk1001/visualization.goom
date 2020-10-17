@@ -1,16 +1,17 @@
 #include "goomutils/colormap.h"
 
 #include "goomutils/colordata/all_maps.h"
-#include "goomutils/colormap_enums.h"
+#include "goomutils/colordata/colormap_enums.h"
 #include "goomutils/goomrand.h"
 
 #include <format>
-#include <string>
 #include <vector>
 #include <vivid/vivid.h>
 
 namespace goom::utils
 {
+
+using colordata::ColorMapName;
 
 std::vector<ColorMap, ColorMap::ColorMapAllocator> ColorMaps::colorMaps{};
 ColorMaps::GroupColorNames ColorMaps::groups{nullptr};
@@ -147,7 +148,7 @@ ColorMapGroup WeightedColorMaps::getRandomGroup() const
   return weights.getRandomWeighted();
 }
 
-ColorMap::ColorMap(const std::string& mapNm, const vivid::ColorMap& cm) : mapName{mapNm}, cmap{cm}
+ColorMap::ColorMap(const ColorMapName mapNm, const vivid::ColorMap& cm) : mapName{mapNm}, cmap{cm}
 {
 }
 
