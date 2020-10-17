@@ -37,7 +37,11 @@ void to_json(json& j, const GoomDraw& draw)
 
 void from_json(const json& j, GoomDraw& draw)
 {
-  draw.setScreenWidth(j.at("screenWidth").get<uint32_t>());
+  j.at("screenWidth").get_to(draw.screenWidth);
+  j.at("screenHeight").get_to(draw.screenHeight);
+  j.at("allowOverexposed").get_to(draw.allowOverexposed);
+  j.at("buffIntensity").get_to(draw.buffIntensity);
+  draw.setBuffIntensity(draw.getBuffIntensity());
 }
 
 void GoomDraw::circle(

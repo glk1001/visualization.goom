@@ -212,15 +212,29 @@ private:
   static ColorMode getNextColorMode();
   Pixel getNextMixerMapColor(const float t) const;
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(Colorizer,
-                                 currentColorMapGroup,
-                                 mixerMapName,
-                                 prevMixerMapName,
-                                 countSinceColorMapChange,
-                                 colorMapChangeCompleted,
-                                 colorMode,
-                                 tBetweenColors)
+  friend void to_json(json&, const Colorizer&);
+  friend void from_json(const json&, Colorizer&);
 };
+
+void to_json(json& j, const Colorizer& c)
+{
+  j = json{
+      {"countSinceColorMapChange", c.countSinceColorMapChange},
+      {"colorMapChangeCompleted", c.colorMapChangeCompleted},
+      {"colorMapChangeCompleted", c.colorMapChangeCompleted},
+      {"colorMode", c.colorMode},
+      {"tBetweenColors", c.tBetweenColors},
+  };
+}
+
+void from_json(const json& j, Colorizer& c)
+{
+  j.at("countSinceColorMapChange").get_to(c.countSinceColorMapChange);
+  j.at("colorMapChangeCompleted").get_to(c.colorMapChangeCompleted);
+  j.at("colorMapChangeCompleted").get_to(c.colorMapChangeCompleted);
+  j.at("colorMode").get_to(c.colorMode);
+  j.at("tBetweenColors").get_to(c.tBetweenColors);
+}
 
 Colorizer::Colorizer() noexcept
   : colorMaps{},
@@ -325,10 +339,12 @@ inline Pixel Colorizer::getMixedColor(const Pixel& baseColor, const float tmix)
 
 struct IfsData
 {
+  IfsData(const uint32_t screenWidth, uint32_t screenHeight);
+
   PluginParam enabled_bp;
   PluginParameters params;
 
-  std::unique_ptr<GoomDraw> draw;
+  GoomDraw draw;
   Colorizer colorizer;
   void drawPixel(Pixel* prevBuff,
                  Pixel* currentBuff,
@@ -337,20 +353,25 @@ struct IfsData
                  const Pixel& ifsColor,
                  const float tmix);
   bool useOldStyleDrawPixel = false;
-  FXBuffSettings buffSettings;
+  FXBuffSettings buffSettings = defaultFXBuffSettings;
   bool allowOverexposed = true;
   uint32_t countSinceOverexposed = 0;
   static constexpr uint32_t maxCountSinceOverexposed = 100;
   void updateAllowOverexposed();
 
-  Fractal* root;
-  Fractal* curF;
+  Fractal* root = nullptr;
+  Fractal* curF = nullptr;
 
   // Used by the Trace recursive method
-  IFSPoint* buff;
-  size_t curPt;
-  bool initialized;
+  IFSPoint* buff = nullptr;
+  size_t curPt = 0;
+  bool initialized = false;
 };
+
+IfsData::IfsData(const uint32_t screenWidth, uint32_t screenHeight)
+  : draw{screenWidth, screenHeight}, colorizer{}
+{
+}
 
 void to_json(json& j, const IfsData& ifs)
 {
@@ -371,8 +392,7 @@ void to_json(json& j, const IfsData& ifs)
 void from_json(const json& j, IfsData& ifs)
 {
   j.at("colorizer").get_to(ifs.colorizer);
-  ifs.draw.reset(new GoomDraw{});
-  j.at("draw").get_to(*ifs.draw);
+  j.at("draw").get_to(ifs.draw);
   j.at("useOldStyleDrawPixel").get_to(ifs.useOldStyleDrawPixel);
   j.at("buffSettings").get_to(ifs.buffSettings);
   j.at("countSinceOverexposed").get_to(ifs.countSinceOverexposed);
@@ -388,17 +408,17 @@ inline void IfsData::drawPixel(Pixel* prevBuff,
 {
   if (useOldStyleDrawPixel)
   {
-    const Pixel prevBuffColor = draw->getPixelRGB(prevBuff, x, y);
+    const Pixel prevBuffColor = draw.getPixelRGB(prevBuff, x, y);
     const Pixel mixedColor = colorizer.getMixedColor(ifsColor, tmix);
     const Pixel finalColor = getColorAdd(prevBuffColor, mixedColor, allowOverexposed);
-    draw->setPixelRGBNoBlend(currentBuff, x, y, finalColor);
+    draw.setPixelRGBNoBlend(currentBuff, x, y, finalColor);
   }
   else
   {
     // TODO buff right way around ??????????????????????????????????????????????????????????????
     std::vector<Pixel*> buffs{currentBuff, prevBuff};
     const std::vector<Pixel> colors{colorizer.getMixedColor(ifsColor, tmix), ifsColor};
-    draw->setPixelRGB(buffs, x, y, colors);
+    draw.setPixelRGB(buffs, x, y, colors);
   }
 }
 
@@ -494,9 +514,6 @@ static void deleteIfsBuffers(Fractal* fractal)
 static void initIfs(PluginInfo* goomInfo, IfsData* data)
 {
   data->enabled_bp = secure_b_param("Enabled", 1);
-
-  data->draw = std::make_unique<GoomDraw>(goomInfo->screen.width, goomInfo->screen.height);
-  data->buffSettings = defaultFXBuffSettings;
 
   if (!data->root)
   {
@@ -1262,7 +1279,7 @@ static void ifs_vfx_restore(VisualFX* _this, PluginInfo*, const char* file)
 
 static void ifs_vfx_init(VisualFX* _this, PluginInfo* goomInfo)
 {
-  IfsData* data = new IfsData{};
+  IfsData* data = new IfsData{goomInfo->screen.width, goomInfo->screen.height};
 
   data->enabled_bp = secure_b_param("Enabled", 1);
   data->params = plugin_parameters("Ifs", 1);
