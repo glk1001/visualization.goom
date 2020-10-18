@@ -6,11 +6,16 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 #include <vector>
 
 namespace goom
 {
+
+namespace nhlohmann
+{
+class json;
+}
 
 class GoomDraw
 {
@@ -71,6 +76,7 @@ private:
   uint32_t intBuffIntensity = channel_limits<uint32_t>::max();
 
   GoomDraw();
+  friend void to_json(nlohmann::json&, const GoomDraw&);
   friend void from_json(const nlohmann::json&, GoomDraw&);
 };
 

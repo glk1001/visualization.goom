@@ -54,9 +54,10 @@
 #include <cassert>
 #include <cmath>
 #include <cstdint>
-#include <memory>
+#include <fstream>
 #include <nlohmann/json.hpp>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 namespace goom
@@ -367,30 +368,51 @@ IfsData::IfsData(const uint32_t screenWidth, uint32_t screenHeight)
 {
 }
 
-void to_json(json& j, const IfsData& ifs)
+void to_json(json& j, const IfsData& data)
 {
   j = json{
-      //    {"colorizer", ifs.colorizer},
-      //    {"draw", *ifs.draw},
-      {"useOldStyleDrawPixel", ifs.useOldStyleDrawPixel},
-      {"buffSettings", ifs.buffSettings},
-      {"countSinceOverexposed", ifs.countSinceOverexposed},
-      {"initialized", ifs.initialized},
+      {"colorizer", data.colorizer},
+      {"draw", data.draw},
+      {"useOldStyleDrawPixel", data.useOldStyleDrawPixel},
+      {"buffSettings", data.buffSettings},
+      {"countSinceOverexposed", data.countSinceOverexposed},
+      {"initialized", data.initialized},
   };
-  if (ifs.root)
+  if (data.root)
   {
-    j["root"] = *ifs.root;
+    j["root"] = *data.root;
   }
 }
 
-void from_json(const json& j, IfsData& ifs)
+void from_json(const json& j, IfsData& data)
 {
-  j.at("colorizer").get_to(ifs.colorizer);
-  j.at("draw").get_to(ifs.draw);
-  j.at("useOldStyleDrawPixel").get_to(ifs.useOldStyleDrawPixel);
-  j.at("buffSettings").get_to(ifs.buffSettings);
-  j.at("countSinceOverexposed").get_to(ifs.countSinceOverexposed);
-  j.at("initialized").get_to(ifs.initialized);
+  j.at("colorizer").get_to(data.colorizer);
+  j.at("draw").get_to(data.draw);
+  j.at("useOldStyleDrawPixel").get_to(data.useOldStyleDrawPixel);
+  j.at("buffSettings").get_to(data.buffSettings);
+  j.at("countSinceOverexposed").get_to(data.countSinceOverexposed);
+  j.at("initialized").get_to(data.initialized);
+}
+
+static std::string getFxName(VisualFX*)
+{
+  return "IFS";
+}
+
+static void saveState(VisualFX* _this, std::ostream& f)
+{
+  const IfsData* data = static_cast<IfsData*>(_this->fx_data);
+  const json j = *data;
+  f << j.dump();
+}
+
+static void loadState(VisualFX* _this, std::istream& f)
+{
+  IfsData* data = static_cast<IfsData*>(_this->fx_data);
+  std::string jsonStr;
+  f >> jsonStr;
+  const auto j = json::parse(jsonStr);
+  j.get_to(*data);
 }
 
 inline void IfsData::drawPixel(Pixel* prevBuff,
@@ -1291,6 +1313,11 @@ static void ifs_vfx_init(VisualFX* _this, PluginInfo* goomInfo)
 
 static void ifs_vfx_free(VisualFX* _this)
 {
+  std::ofstream f("/tmp/ifs.json");
+  saveState(_this, f);
+  f << std::endl;
+  f.close();
+
   IfsData* data = static_cast<IfsData*>(_this->fx_data);
 
   releaseIfs(data);
@@ -1308,11 +1335,17 @@ VisualFX ifs_visualfx_create(void)
 {
   VisualFX fx;
   fx.init = ifs_vfx_init;
-  fx.setBuffSettings = ifs_vfx_setBuffSettings;
   fx.free = ifs_vfx_free;
+
+  fx.setBuffSettings = ifs_vfx_setBuffSettings;
+  fx.getFxName = getFxName;
+  fx.saveState = saveState;
+  fx.loadState = loadState;
   fx.apply = ifs_vfx_apply;
+
   fx.save = ifs_vfx_save;
   fx.restore = ifs_vfx_restore;
+
   return fx;
 }
 

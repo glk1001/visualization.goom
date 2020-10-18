@@ -14,11 +14,18 @@
 #include "goom_graphic.h"
 
 #include <cstdint>
-#include <nlohmann/json.hpp>
+#include <istream>
+#include <nlohmann/json_fwd.hpp>
+#include <ostream>
 #include <string>
 
 namespace goom
 {
+
+namespace nhlohmann
+{
+class json;
+}
 
 struct PluginInfo;
 
@@ -27,13 +34,13 @@ struct FXBuffSettings
   float buffIntensity;
   bool allowOverexposed;
 };
+void to_json(nlohmann::json&, const FXBuffSettings&);
+void from_json(const nlohmann::json&, FXBuffSettings&);
 
 static constexpr FXBuffSettings defaultFXBuffSettings{
     .buffIntensity = 0.5,
     .allowOverexposed = true,
 };
-
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(FXBuffSettings, buffIntensity, allowOverexposed)
 
 class VisualFx
 {
@@ -44,8 +51,8 @@ public:
   virtual void setBuffSettings(const FXBuffSettings&) = 0;
   virtual void apply(PluginInfo*, Pixel* prevBuff, Pixel* currentBuff) = 0;
   virtual std::string getFxName() const = 0;
-  virtual std::string getStateAsJsonStr() const = 0;
-  virtual void setStateFromJsonStr(const std::string& jsonStr) const = 0;
+  virtual void saveState(std::ostream&) = 0;
+  virtual void loadState(std::istream&) = 0;
 
 private:
   //PluginParameters* params; // ?????????????????????????????????????????????????????????
@@ -58,8 +65,8 @@ struct VisualFX
   void (*setBuffSettings)(VisualFX* _this, const FXBuffSettings&);
   void (*apply)(VisualFX* _this, PluginInfo* info, Pixel* prevBuff, Pixel* currentBuff);
   std::string (*getFxName)(VisualFX* _this);
-  std::string (*getStateAsJsonStr)(VisualFX* _this, const PluginInfo*);
-  void (*setStateFromJsonStr)(VisualFX* _this, PluginInfo*, const std::string& jsonStr);
+  void (*saveState)(VisualFX* _this, std::ostream&);
+  void (*loadState)(VisualFX* _this, std::istream&);
   void (*save)(VisualFX* _this, const PluginInfo* info, const char* file);
   void (*restore)(VisualFX* _this, PluginInfo* info, const char* file);
   void* fx_data;

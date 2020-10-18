@@ -12,13 +12,16 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
-#include <memory>
+#include <fstream>
+#include <nlohmann/json.hpp>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 namespace goom
 {
 
+using nlohmann::json;
 using namespace goom::utils;
 
 class StarsStats
@@ -163,8 +166,30 @@ struct Star
   const ColorMap* currentLowColorMap = nullptr;
 };
 
+static void to_json(json& j, const Star& data)
+{
+  j = json{
+      {"x", data.x},   {"y", data.y},   {"vx", data.vx},   {"vy", data.vy},
+      {"ax", data.ax}, {"ay", data.ay}, {"age", data.age}, {"vage", data.vage},
+  };
+}
+
+static void from_json(const json& j, Star& data)
+{
+  j.at("x").get_to(data.x);
+  j.at("y").get_to(data.y);
+  j.at("vx").get_to(data.vx);
+  j.at("vy").get_to(data.vy);
+  j.at("ax").get_to(data.ax);
+  j.at("ay").get_to(data.ay);
+  j.at("age").get_to(data.age);
+  j.at("vage").get_to(data.vage);
+}
+
 struct FSData
 {
+  explicit FSData(const PluginInfo*);
+
   PluginParam enabled_bp;
 
   ColorMaps colorMaps;
@@ -184,16 +209,15 @@ struct FSData
 
   StarModes fx_mode;
   size_t numStars;
-
   size_t maxStars;
-  Star* stars;
+  std::vector<Star> stars;
 
   float min_age;
   float max_age;
 
   FXBuffSettings buffSettings;
   bool useSingleBufferOnly;
-  std::unique_ptr<GoomDraw> draw;
+  GoomDraw draw;
 
   PluginParam min_age_p;
   PluginParam max_age_p;
@@ -204,23 +228,79 @@ struct FSData
   PluginParameters params;
 };
 
+static void to_json(json& j, const FSData& data)
+{
+  j = json{
+      {"currentColorGroup", data.currentColorGroup},
+      {"maxAge", data.maxAge},
+      {"fx_mode", data.fx_mode},
+      {"numStars", data.numStars},
+      {"maxStars", data.maxStars},
+      {"stars", data.stars},
+      {"min_age", data.min_age},
+      {"max_age", data.max_age},
+      {"buffSettings", data.buffSettings},
+      {"useSingleBufferOnly", data.useSingleBufferOnly},
+      {"draw", data.draw},
+  };
+}
+
+static void from_json(const json& j, FSData& data)
+{
+  j.at("currentColorGroup").get_to(data.currentColorGroup);
+  j.at("maxAge").get_to(data.maxAge);
+  j.at("fx_mode").get_to(data.fx_mode);
+  j.at("numStars").get_to(data.numStars);
+  j.at("maxStars").get_to(data.maxStars);
+  j.at("stars").get_to(data.stars);
+  j.at("min_age").get_to(data.min_age);
+  j.at("max_age").get_to(data.max_age);
+  j.at("buffSettings").get_to(data.buffSettings);
+  j.at("useSingleBufferOnly").get_to(data.useSingleBufferOnly);
+  j.at("draw").get_to(data.draw);
+}
+
+static std::string getFxName(VisualFX*)
+{
+  return "FlyingStars";
+}
+
+static void saveState(VisualFX* _this, std::ostream& f)
+{
+  const FSData* data = static_cast<FSData*>(_this->fx_data);
+  const json j = *data;
+  f << j.dump();
+}
+
+static void loadState(VisualFX* _this, std::istream& f)
+{
+  FSData* data = static_cast<FSData*>(_this->fx_data);
+  std::string jsonStr;
+  f >> jsonStr;
+  const auto j = json::parse(jsonStr);
+  j.get_to(*data);
+}
+
 static StarsStats stats{};
+
+FSData::FSData(const PluginInfo* goomInfo)
+  : colorMaps{},
+    currentColorGroup{colorMaps.getRandomGroup()},
+    fx_mode{StarModes::fireworks},
+    numStars{0},
+    maxStars{6000},
+    stars(maxStars),
+    buffSettings{defaultFXBuffSettings},
+    useSingleBufferOnly{true},
+    draw{goomInfo->screen.width, goomInfo->screen.height}
+{
+}
 
 static void fs_init(VisualFX* _this, PluginInfo* goomInfo)
 {
   stats.reset();
 
-  FSData* data = new FSData;
-
-  data->currentColorGroup = data->colorMaps.getRandomGroup();
-
-  data->fx_mode = StarModes::fireworks;
-  data->maxStars = 6000;
-  data->stars = new Star[data->maxStars];
-  data->numStars = 0;
-  data->buffSettings = defaultFXBuffSettings;
-  data->useSingleBufferOnly = true;
-  data->draw = std::make_unique<GoomDraw>(goomInfo->screen.width, goomInfo->screen.height);
+  FSData* data = new FSData{goomInfo};
 
   data->max_age_p = secure_i_param("Fireworks Smallest Bombs");
   IVAL(data->max_age_p) = 80;
@@ -261,14 +341,18 @@ static void fs_init(VisualFX* _this, PluginInfo* goomInfo)
   data->params.params[7] = &data->enabled_bp;
 
   _this->params = &data->params;
-  _this->fx_data = static_cast<void*>(data);
+  _this->fx_data = data;
 }
 
 static void fs_free(VisualFX* _this)
 {
+  std::ofstream f("/tmp/flyingstars.json");
+  saveState(_this, f);
+  f << std::endl;
+  f.close();
+
   FSData* data = static_cast<FSData*>(_this->fx_data);
 
-  delete[] data->stars;
   free(data->params.params);
 
   delete data;
@@ -506,13 +590,13 @@ static void fs_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* prevBuff, Pix
 
       if (data->useSingleBufferOnly)
       {
-        data->draw->line(currentBuff, x1, y1, x2, y2, mixedColor, thickness);
+        data->draw.line(currentBuff, x1, y1, x2, y2, mixedColor, thickness);
       }
       else
       {
         const std::vector<Pixel> colors = {{.val = mixedColor}, {.val = lowColor}};
         std::vector<Pixel*> buffs{currentBuff, prevBuff};
-        data->draw->line(buffs, x1, y1, x2, y2, colors, thickness);
+        data->draw.line(buffs, x1, y1, x2, y2, colors, thickness);
       }
 
       x1 = x2;
@@ -543,8 +627,8 @@ static void fs_setBuffSettings(VisualFX* _this, const FXBuffSettings& settings)
 {
   FSData* data = static_cast<FSData*>(_this->fx_data);
   data->buffSettings = settings;
-  data->draw->setBuffIntensity(data->buffSettings.buffIntensity);
-  data->draw->setAllowOverexposed(data->buffSettings.allowOverexposed);
+  data->draw.setBuffIntensity(data->buffSettings.buffIntensity);
+  data->draw.setAllowOverexposed(data->buffSettings.allowOverexposed);
 }
 
 VisualFX flying_star_create(void)
@@ -553,6 +637,9 @@ VisualFX flying_star_create(void)
                   .free = fs_free,
                   .setBuffSettings = fs_setBuffSettings,
                   .apply = fs_apply,
+                  .getFxName = getFxName,
+                  .saveState = saveState,
+                  .loadState = loadState,
                   .save = nullptr,
                   .restore = nullptr,
                   .fx_data = nullptr,
