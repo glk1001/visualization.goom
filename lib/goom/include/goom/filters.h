@@ -106,6 +106,9 @@ struct ZoomFilterData
   static constexpr float defaultVPlaneEffectAmplitude = 0.0025;
   static constexpr float minVPlaneEffectAmplitude = 0.0015;
   static constexpr float maxVPlaneEffectAmplitude = 0.0035;
+
+  template<class Archive>
+  void serialize(Archive&);
 };
 
 VisualFX zoomFilterVisualFXWrapper_create();

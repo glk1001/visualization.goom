@@ -27,16 +27,17 @@
 #include "v3d.h"
 
 #include <algorithm>
+#include <cereal/archives/json.hpp>
+#include <cereal/types/memory.hpp>
+#include <cereal/types/vector.hpp>
 #include <cmath>
 #include <cstdint>
-#include <nlohmann/json.hpp>
 #include <stdexcept>
 #include <string>
 
 namespace goom
 {
 
-using nlohmann::json;
 using namespace goom::utils;
 
 class FilterStats
@@ -372,7 +373,22 @@ struct FilterDataWrapper
 
   // modif d'optim by Jeko : precalcul des 4 coefs resultant des 2 pos
   uint32_t precalCoef[BUFFPOINTNB][BUFFPOINTNB];
+
+  template<class Archive>
+  void serialize(Archive& ar)
+  {
+    ar(filterData, generalSpeed, prevX, prevY, mustInitBuffers, interlaceStart, buffratio);
+  };
 };
+
+template<class Archive>
+void ZoomFilterData::serialize(Archive& ar)
+{
+  ar(mode, vitesse, pertedec, middleX, middleY, reverse, hPlaneEffect, vPlaneEffect, waveEffect,
+     hypercosEffect, noisify, noiseFactor, blockyWavy, waveFreqFactor, waveAmplitude,
+     waveEffectType, scrunchAmplitude, speedwayAmplitude, amuletteAmplitude, crystalBallAmplitude,
+     hypercosFreq, hypercosAmplitude, hPlaneEffectAmplitude, vPlaneEffectAmplitude);
+}
 
 // pure c version of the zoom filter
 static void c_zoom(Pixel* expix1, Pixel* expix2, const FilterDataWrapper*);
@@ -1004,87 +1020,6 @@ static void generatePrecalCoef(uint32_t precalCoef[16][16])
 
 // VisualFX Wrapper
 
-static void to_json(json& j, const ZoomFilterData& data)
-{
-  j = json{
-      {"mode", data.mode},
-      {"vitesse", data.vitesse},
-      {"pertedec", data.pertedec},
-      {"middleX", data.middleX},
-      {"middleY", data.middleY},
-      {"reverse", data.reverse},
-      {"hPlaneEffect", data.hPlaneEffect},
-      {"vPlaneEffect", data.vPlaneEffect},
-      {"waveEffect", data.waveEffect},
-      {"hypercosEffect", data.hypercosEffect},
-      {"noisify", data.noisify},
-      {"noiseFactor", data.noiseFactor},
-      {"blockyWavy", data.blockyWavy},
-      {"waveFreqFactor", data.waveFreqFactor},
-      {"waveAmplitude", data.waveAmplitude},
-      {"waveEffectType", data.waveEffectType},
-      {"scrunchAmplitude", data.scrunchAmplitude},
-      {"speedwayAmplitude", data.speedwayAmplitude},
-      {"amuletteAmplitude", data.amuletteAmplitude},
-      {"crystalBallAmplitude", data.crystalBallAmplitude},
-      {"hypercosFreq", data.hypercosFreq},
-      {"hypercosAmplitude", data.hypercosAmplitude},
-      {"hPlaneEffectAmplitude", data.hPlaneEffectAmplitude},
-      {"vPlaneEffectAmplitude", data.vPlaneEffectAmplitude},
-  };
-}
-
-static void from_json(const json& j, ZoomFilterData& data)
-{
-  j.at("mode").get_to(data.mode);
-  j.at("vitesse").get_to(data.vitesse);
-  j.at("pertedec").get_to(data.pertedec);
-  j.at("middleX").get_to(data.middleX);
-  j.at("middleY").get_to(data.middleY);
-  j.at("reverse").get_to(data.reverse);
-  j.at("hPlaneEffect").get_to(data.hPlaneEffect);
-  j.at("waveEffect").get_to(data.waveEffect);
-  j.at("hypercosEffect").get_to(data.hypercosEffect);
-  j.at("noisify").get_to(data.noisify);
-  j.at("noiseFactor").get_to(data.noiseFactor);
-  j.at("blockyWavy").get_to(data.blockyWavy);
-  j.at("waveFreqFactor").get_to(data.waveFreqFactor);
-  j.at("waveAmplitude").get_to(data.waveAmplitude);
-  j.at("waveEffectType").get_to(data.waveEffectType);
-  j.at("scrunchAmplitude").get_to(data.scrunchAmplitude);
-  j.at("speedwayAmplitude").get_to(data.speedwayAmplitude);
-  j.at("amuletteAmplitude").get_to(data.amuletteAmplitude);
-  j.at("crystalBallAmplitude").get_to(data.crystalBallAmplitude);
-  j.at("hypercosFreq").get_to(data.hypercosFreq);
-  j.at("hypercosAmplitude").get_to(data.hypercosAmplitude);
-  j.at("hPlaneEffectAmplitude").get_to(data.hPlaneEffectAmplitude);
-  j.at("vPlaneEffectAmplitude").get_to(data.vPlaneEffectAmplitude);
-}
-
-static void to_json(json& j, const FilterDataWrapper& data)
-{
-  j = json{
-      {"filterData", data.filterData},
-      {"generalSpeed", data.generalSpeed},
-      {"prevX", data.prevX},
-      {"prevY", data.prevY},
-      {"mustInitBuffers", data.mustInitBuffers},
-      {"interlaceStart", data.interlaceStart},
-      {"buffratio", data.buffratio},
-  };
-}
-
-static void from_json(const json& j, FilterDataWrapper& data)
-{
-  j.at("filterData").get_to(data.filterData);
-  j.at("generalSpeed").get_to(data.generalSpeed);
-  j.at("prevX").get_to(data.prevX);
-  j.at("prevY").get_to(data.prevY);
-  j.at("mustInitBuffers").get_to(data.mustInitBuffers);
-  j.at("interlaceStart").get_to(data.interlaceStart);
-  j.at("buffratio").get_to(data.buffratio);
-}
-
 static std::string getFxName(VisualFX*)
 {
   return "ZoomFilter";
@@ -1093,17 +1028,15 @@ static std::string getFxName(VisualFX*)
 static void saveState(VisualFX* _this, std::ostream& f)
 {
   const FilterDataWrapper* data = static_cast<FilterDataWrapper*>(_this->fx_data);
-  const json j = *data;
-  f << j.dump();
+  cereal::JSONOutputArchive archiveOut(f);
+  archiveOut(*data);
 }
 
 static void loadState(VisualFX* _this, std::istream& f)
 {
   FilterDataWrapper* data = static_cast<FilterDataWrapper*>(_this->fx_data);
-  std::string jsonStr;
-  f >> jsonStr;
-  const auto j = json::parse(jsonStr);
-  j.get_to(*data);
+  cereal::JSONInputArchive archive_in(f);
+  archive_in(*data);
 }
 
 static const char* const vfxname = "ZoomFilter";

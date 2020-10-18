@@ -4,15 +4,13 @@
 #include "goom_config.h"
 #include "goom_graphic.h"
 
+#include <cereal/archives/json.hpp>
 #include <cstddef>
 #include <cstdint>
-#include <nlohmann/json.hpp>
 #include <vector>
 
 namespace goom
 {
-
-using nlohmann::json;
 
 GoomDraw::GoomDraw() : screenWidth{0}, screenHeight{0}
 {
@@ -25,23 +23,10 @@ GoomDraw::GoomDraw(const uint32_t screenW, const uint32_t screenH)
   setAllowOverexposed(true);
 }
 
-void to_json(json& j, const GoomDraw& draw)
+template<class Archive>
+void GoomDraw::serialize(Archive& ar)
 {
-  j = json{
-      {"screenWidth", draw.getScreenWidth()},
-      {"screenHeight", draw.getScreenHeight()},
-      {"allowOverexposed", draw.getAllowOverexposed()},
-      {"buffIntensity", draw.getBuffIntensity()},
-  };
-}
-
-void from_json(const json& j, GoomDraw& draw)
-{
-  j.at("screenWidth").get_to(draw.screenWidth);
-  j.at("screenHeight").get_to(draw.screenHeight);
-  j.at("allowOverexposed").get_to(draw.allowOverexposed);
-  j.at("buffIntensity").get_to(draw.buffIntensity);
-  draw.setBuffIntensity(draw.getBuffIntensity());
+  ar(screenWidth, screenHeight, allowOverexposed, buffIntensity, intBuffIntensity);
 }
 
 void GoomDraw::circle(

@@ -15,17 +15,11 @@
 
 #include <cstdint>
 #include <istream>
-#include <nlohmann/json_fwd.hpp>
 #include <ostream>
 #include <string>
 
 namespace goom
 {
-
-namespace nhlohmann
-{
-class json;
-}
 
 struct PluginInfo;
 
@@ -33,9 +27,9 @@ struct FXBuffSettings
 {
   float buffIntensity;
   bool allowOverexposed;
+  template<class Archive>
+  void serialize(Archive&);
 };
-void to_json(nlohmann::json&, const FXBuffSettings&);
-void from_json(const nlohmann::json&, FXBuffSettings&);
 
 static constexpr FXBuffSettings defaultFXBuffSettings{
     .buffIntensity = 0.5,

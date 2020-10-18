@@ -10,10 +10,11 @@
 
 #include <algorithm>
 #include <array>
+#include <cereal/archives/json.hpp>
+#include <cereal/types/vector.hpp>
 #include <cmath>
 #include <cstddef>
 #include <fstream>
-#include <nlohmann/json.hpp>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -21,7 +22,6 @@
 namespace goom
 {
 
-using nlohmann::json;
 using namespace goom::utils;
 
 class StarsStats
@@ -164,27 +164,12 @@ struct Star
   float vage;
   const ColorMap* currentColorMap = nullptr;
   const ColorMap* currentLowColorMap = nullptr;
+  template<class Archive>
+  void serialize(Archive& ar)
+  {
+    ar(x, y, vx, vy, ax, ay, age, vage);
+  }
 };
-
-static void to_json(json& j, const Star& data)
-{
-  j = json{
-      {"x", data.x},   {"y", data.y},   {"vx", data.vx},   {"vy", data.vy},
-      {"ax", data.ax}, {"ay", data.ay}, {"age", data.age}, {"vage", data.vage},
-  };
-}
-
-static void from_json(const json& j, Star& data)
-{
-  j.at("x").get_to(data.x);
-  j.at("y").get_to(data.y);
-  j.at("vx").get_to(data.vx);
-  j.at("vy").get_to(data.vy);
-  j.at("ax").get_to(data.ax);
-  j.at("ay").get_to(data.ay);
-  j.at("age").get_to(data.age);
-  j.at("vage").get_to(data.vage);
-}
 
 struct FSData
 {
@@ -226,39 +211,14 @@ struct FSData
   PluginParam fx_mode_p;
 
   PluginParameters params;
+
+  template<class Archive>
+  void serialize(Archive& ar)
+  {
+    ar(currentColorGroup, maxAge, fx_mode, numStars, maxStars, stars, min_age, max_age,
+       buffSettings, useSingleBufferOnly, draw);
+  }
 };
-
-static void to_json(json& j, const FSData& data)
-{
-  j = json{
-      {"currentColorGroup", data.currentColorGroup},
-      {"maxAge", data.maxAge},
-      {"fx_mode", data.fx_mode},
-      {"numStars", data.numStars},
-      {"maxStars", data.maxStars},
-      {"stars", data.stars},
-      {"min_age", data.min_age},
-      {"max_age", data.max_age},
-      {"buffSettings", data.buffSettings},
-      {"useSingleBufferOnly", data.useSingleBufferOnly},
-      {"draw", data.draw},
-  };
-}
-
-static void from_json(const json& j, FSData& data)
-{
-  j.at("currentColorGroup").get_to(data.currentColorGroup);
-  j.at("maxAge").get_to(data.maxAge);
-  j.at("fx_mode").get_to(data.fx_mode);
-  j.at("numStars").get_to(data.numStars);
-  j.at("maxStars").get_to(data.maxStars);
-  j.at("stars").get_to(data.stars);
-  j.at("min_age").get_to(data.min_age);
-  j.at("max_age").get_to(data.max_age);
-  j.at("buffSettings").get_to(data.buffSettings);
-  j.at("useSingleBufferOnly").get_to(data.useSingleBufferOnly);
-  j.at("draw").get_to(data.draw);
-}
 
 static std::string getFxName(VisualFX*)
 {
@@ -268,17 +228,15 @@ static std::string getFxName(VisualFX*)
 static void saveState(VisualFX* _this, std::ostream& f)
 {
   const FSData* data = static_cast<FSData*>(_this->fx_data);
-  const json j = *data;
-  f << j.dump();
+  cereal::JSONOutputArchive archiveOut(f);
+  archiveOut(*data);
 }
 
 static void loadState(VisualFX* _this, std::istream& f)
 {
   FSData* data = static_cast<FSData*>(_this->fx_data);
-  std::string jsonStr;
-  f >> jsonStr;
-  const auto j = json::parse(jsonStr);
-  j.get_to(*data);
+  cereal::JSONInputArchive archiveIn(f);
+  archiveIn(*data);
 }
 
 static StarsStats stats{};

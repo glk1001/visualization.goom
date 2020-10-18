@@ -6,7 +6,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <nlohmann/json_fwd.hpp>
 #include <vector>
 
 namespace goom
@@ -21,6 +20,9 @@ class GoomDraw
 {
 public:
   GoomDraw(const uint32_t screenWidth, const uint32_t screenHeight);
+
+  template<class Archive>
+  void serialize(Archive&);
 
   uint32_t getScreenWidth() const;
   uint32_t getScreenHeight() const;
@@ -76,8 +78,6 @@ private:
   uint32_t intBuffIntensity = channel_limits<uint32_t>::max();
 
   GoomDraw();
-  friend void to_json(nlohmann::json&, const GoomDraw&);
-  friend void from_json(const nlohmann::json&, GoomDraw&);
 };
 
 inline void GoomDraw::setPixelRGBNoBlend(Pixel* buff,

@@ -52,10 +52,12 @@
 
 #undef NDEBUG
 #include <cassert>
+#include <cereal/archives/json.hpp>
+#include <cereal/types/memory.hpp>
 #include <cmath>
 #include <cstdint>
 #include <fstream>
-#include <nlohmann/json.hpp>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -63,7 +65,6 @@
 namespace goom
 {
 
-using nlohmann::json;
 using namespace goom::utils;
 
 inline bool changeCurrentColorMapEvent()
@@ -152,23 +153,15 @@ struct Fractal
 
   IFSPoint* buffer1;
   IFSPoint* buffer2;
-};
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Fractal,
-                                   numSimi,
-                                   //components[5 * maxSimi];
-                                   depth,
-                                   count,
-                                   speed,
-                                   width,
-                                   height,
-                                   lx,
-                                   ly,
-                                   rMean,
-                                   drMean,
-                                   dr2Mean,
-                                   curPt,
-                                   maxPt)
+  template<class Archive>
+  void serialize(Archive& ar)
+  {
+    ar(numSimi,
+       //components[5 * maxSimi];
+       depth, count, speed, width, height, lx, ly, rMean, drMean, dr2Mean, curPt, maxPt);
+  };
+};
 
 class Colorizer
 {
@@ -196,6 +189,20 @@ public:
 
   Pixel getMixedColor(const Pixel& baseColor, const float tmix);
 
+  template<class Archive>
+  void serialize(Archive& ar)
+  {
+    ar(countSinceColorMapChange, colorMapChangeCompleted, colorMapChangeCompleted, colorMode,
+       tBetweenColors);
+
+    auto mixerMapName = mixerMap->getMapName();
+    ar(cereal::make_nvp("mixerMap", mixerMapName));
+    auto prevMixerMapName = prevMixerMap->getMapName();
+    ar(cereal::make_nvp("prevMixerMap", prevMixerMapName));
+    mixerMap = &colorMaps.getColorMap(mixerMapName);
+    prevMixerMap = &colorMaps.getColorMap(prevMixerMapName);
+  };
+
 private:
   const ColorMaps colorMaps;
   ColorMapGroup currentColorMapGroup;
@@ -210,30 +217,7 @@ private:
   float tBetweenColors; // in [0, 1]
   static ColorMode getNextColorMode();
   Pixel getNextMixerMapColor(const float t) const;
-
-  friend void to_json(json&, const Colorizer&);
-  friend void from_json(const json&, Colorizer&);
 };
-
-void to_json(json& j, const Colorizer& c)
-{
-  j = json{
-      {"countSinceColorMapChange", c.countSinceColorMapChange},
-      {"colorMapChangeCompleted", c.colorMapChangeCompleted},
-      {"colorMapChangeCompleted", c.colorMapChangeCompleted},
-      {"colorMode", c.colorMode},
-      {"tBetweenColors", c.tBetweenColors},
-  };
-}
-
-void from_json(const json& j, Colorizer& c)
-{
-  j.at("countSinceColorMapChange").get_to(c.countSinceColorMapChange);
-  j.at("colorMapChangeCompleted").get_to(c.colorMapChangeCompleted);
-  j.at("colorMapChangeCompleted").get_to(c.colorMapChangeCompleted);
-  j.at("colorMode").get_to(c.colorMode);
-  j.at("tBetweenColors").get_to(c.tBetweenColors);
-}
 
 Colorizer::Colorizer() noexcept
   : colorMaps{},
@@ -354,44 +338,25 @@ struct IfsData
   static constexpr uint32_t maxCountSinceOverexposed = 100;
   void updateAllowOverexposed();
 
-  Fractal* root = nullptr;
+  std::unique_ptr<Fractal> root = nullptr;
   Fractal* curF = nullptr;
 
   // Used by the Trace recursive method
   IFSPoint* buff = nullptr;
   size_t curPt = 0;
   bool initialized = false;
+
+  template<class Archive>
+  void serialize(Archive& ar)
+  {
+    ar(colorizer, draw, useOldStyleDrawPixel, buffSettings, countSinceOverexposed, initialized,
+       root);
+  };
 };
 
 IfsData::IfsData(const uint32_t screenWidth, uint32_t screenHeight)
   : draw{screenWidth, screenHeight}, colorizer{}
 {
-}
-
-void to_json(json& j, const IfsData& data)
-{
-  j = json{
-      {"colorizer", data.colorizer},
-      {"draw", data.draw},
-      {"useOldStyleDrawPixel", data.useOldStyleDrawPixel},
-      {"buffSettings", data.buffSettings},
-      {"countSinceOverexposed", data.countSinceOverexposed},
-      {"initialized", data.initialized},
-  };
-  if (data.root)
-  {
-    j["root"] = *data.root;
-  }
-}
-
-void from_json(const json& j, IfsData& data)
-{
-  j.at("colorizer").get_to(data.colorizer);
-  j.at("draw").get_to(data.draw);
-  j.at("useOldStyleDrawPixel").get_to(data.useOldStyleDrawPixel);
-  j.at("buffSettings").get_to(data.buffSettings);
-  j.at("countSinceOverexposed").get_to(data.countSinceOverexposed);
-  j.at("initialized").get_to(data.initialized);
 }
 
 static std::string getFxName(VisualFX*)
@@ -402,17 +367,15 @@ static std::string getFxName(VisualFX*)
 static void saveState(VisualFX* _this, std::ostream& f)
 {
   const IfsData* data = static_cast<IfsData*>(_this->fx_data);
-  const json j = *data;
-  f << j.dump();
+  cereal::JSONOutputArchive archiveOut(f);
+  archiveOut(*data);
 }
 
 static void loadState(VisualFX* _this, std::istream& f)
 {
   IfsData* data = static_cast<IfsData*>(_this->fx_data);
-  std::string jsonStr;
-  f >> jsonStr;
-  const auto j = json::parse(jsonStr);
-  j.get_to(*data);
+  cereal::JSONInputArchive archive_in(f);
+  archive_in(*data);
 }
 
 inline void IfsData::drawPixel(Pixel* prevBuff,
@@ -533,14 +496,16 @@ static void initIfs(PluginInfo* goomInfo, IfsData* data)
 
   if (!data->root)
   {
-    data->root = new Fractal{};
+    data->root = std::make_unique<Fractal>();
     if (!data->root)
+    {
       return;
+    }
     data->root->buffer1 = nullptr;
     data->root->buffer2 = nullptr;
   }
 
-  Fractal* fractal = data->root;
+  Fractal* fractal = data->root.get();
   deleteIfsBuffers(fractal);
 
   const uint32_t numCentres = getNRand(4) + 2;
@@ -658,7 +623,7 @@ static void trace(Fractal* F, const Flt xo, const Flt yo, IfsData* data)
 
 static void drawFractal(IfsData* data)
 {
-  Fractal* fractal = data->root;
+  Fractal* fractal = data->root.get();
   int i;
   Similitude* Cur;
   for (Cur = fractal->components, i = static_cast<int>(fractal->numSimi); i; --i, Cur++)
@@ -707,14 +672,14 @@ static void drawFractal(IfsData* data)
 
 static IFSPoint* drawIfs(size_t* numPoints, IfsData* data)
 {
-  if (data->root == nullptr)
+  if (!data->root)
   {
     *numPoints = 0;
     return nullptr;
   }
 
-  Fractal* fractal = data->root;
-  if (fractal->buffer1 == nullptr)
+  Fractal* fractal = data->root.get();
+  if (!fractal->buffer1)
   {
     *numPoints = 0;
     return nullptr;
@@ -786,8 +751,8 @@ static void releaseIfs(IfsData* data)
 {
   if (data->root)
   {
-    deleteIfsBuffers(data->root);
-    delete data->root;
+    deleteIfsBuffers(data->root.get());
+    data->root.release();
     data->root = nullptr;
   }
 }
@@ -1170,127 +1135,12 @@ static void ifs_vfx_apply(VisualFX* _this,
 
 static const char* const vfxname = "Ifs";
 
-static void ifs_vfx_save(VisualFX* _this, const PluginInfo*, const char* file)
+static void ifs_vfx_save(VisualFX*, const PluginInfo*, const char*)
 {
-  FILE* f = fopen(file, "w");
-
-  save_int_setting(f, vfxname, "updData.justChanged", updData.justChanged);
-  save_int_setting(f, vfxname, "updData.couleur", static_cast<int>(updData.couleur.val));
-  save_int_setting(f, vfxname, "updData.v_0", updData.v[0]);
-  save_int_setting(f, vfxname, "updData.v_1", updData.v[1]);
-  save_int_setting(f, vfxname, "updData.v_2", updData.v[2]);
-  save_int_setting(f, vfxname, "updData.v_3", updData.v[3]);
-  save_int_setting(f, vfxname, "updData.col_0", updData.col[0]);
-  save_int_setting(f, vfxname, "updData.col_1", updData.col[1]);
-  save_int_setting(f, vfxname, "updData.col_2", updData.col[2]);
-  save_int_setting(f, vfxname, "updData.col_3", updData.col[3]);
-  save_int_setting(f, vfxname, "updData.mode", updData.mode);
-  save_int_setting(f, vfxname, "updData.cycle", updData.cycle);
-
-  IfsData* data = static_cast<IfsData*>(_this->fx_data);
-  save_int_setting(f, vfxname, "data.Cur_Pt", data->curPt);
-  save_int_setting(f, vfxname, "data.initalized", data->initialized);
-
-  Fractal* fractal = data->root;
-  save_int_setting(f, vfxname, "fractal.numSimi", static_cast<int>(fractal->numSimi));
-  save_int_setting(f, vfxname, "fractal.depth", static_cast<int>(fractal->depth));
-  save_int_setting(f, vfxname, "fractal.count", static_cast<int>(fractal->count));
-  save_int_setting(f, vfxname, "fractal.speed", static_cast<int>(fractal->speed));
-  save_int_setting(f, vfxname, "fractal.width", static_cast<int>(fractal->width));
-  save_int_setting(f, vfxname, "fractal.height", static_cast<int>(fractal->height));
-  save_int_setting(f, vfxname, "fractal.lx", static_cast<int>(fractal->lx));
-  save_int_setting(f, vfxname, "fractal.ly", static_cast<int>(fractal->ly));
-  save_float_setting(f, vfxname, "fractal.rMean", fractal->rMean);
-  save_float_setting(f, vfxname, "fractal.drMean", fractal->drMean);
-  save_float_setting(f, vfxname, "fractal.dr2Mean", fractal->dr2Mean);
-  save_int_setting(f, vfxname, "fractal.curPt", static_cast<int>(fractal->curPt));
-  save_int_setting(f, vfxname, "fractal.maxPt", static_cast<int>(fractal->maxPt));
-
-  for (int i = 0; i < static_cast<int>(fractal->numSimi); i++)
-  {
-    const Similitude* simi = &(fractal->components[i]);
-    save_indexed_float_setting(f, vfxname, "simi.c_x", i, simi->c_x);
-    save_indexed_float_setting(f, vfxname, "simi.c_y", i, simi->c_y);
-    save_indexed_float_setting(f, vfxname, "simi.r", i, simi->r);
-    save_indexed_float_setting(f, vfxname, "simi.r2", i, simi->r2);
-    save_indexed_float_setting(f, vfxname, "simi.A", i, simi->A);
-    save_indexed_float_setting(f, vfxname, "simi.A2", i, simi->A2);
-    save_indexed_int_setting(f, vfxname, "simi.Ct", i, simi->Ct);
-    save_indexed_int_setting(f, vfxname, "simi.St", i, simi->St);
-    save_indexed_int_setting(f, vfxname, "simi.Ct2", i, simi->Ct2);
-    save_indexed_int_setting(f, vfxname, "simi.St2", i, simi->St2);
-    save_indexed_int_setting(f, vfxname, "simi.Cx", i, simi->Cx);
-    save_indexed_int_setting(f, vfxname, "simi.Cy", i, simi->Cy);
-    save_indexed_int_setting(f, vfxname, "simi.R", i, simi->R);
-    save_indexed_int_setting(f, vfxname, "simi.R2", i, simi->R2);
-  }
-
-  fclose(f);
 }
 
-static void ifs_vfx_restore(VisualFX* _this, PluginInfo*, const char* file)
+static void ifs_vfx_restore(VisualFX*, PluginInfo*, const char*)
 {
-  FILE* f = fopen(file, "r");
-  if (f == nullptr)
-  {
-    exit(EXIT_FAILURE);
-  }
-
-  updData.justChanged = get_int_setting(f, vfxname, "updData.justChanged");
-  updData.couleur.val = static_cast<uint32_t>(get_int_setting(f, vfxname, "updData.couleur"));
-  updData.v[0] = get_int_setting(f, vfxname, "updData.v_0");
-  updData.v[1] = get_int_setting(f, vfxname, "updData.v_1");
-  updData.v[2] = get_int_setting(f, vfxname, "updData.v_2");
-  updData.v[3] = get_int_setting(f, vfxname, "updData.v_3");
-  updData.col[0] = get_int_setting(f, vfxname, "updData.col_0");
-  updData.col[1] = get_int_setting(f, vfxname, "updData.col_1");
-  updData.col[2] = get_int_setting(f, vfxname, "updData.col_2");
-  updData.col[3] = get_int_setting(f, vfxname, "updData.col_3");
-  updData.mode = get_int_setting(f, vfxname, "updData.mode");
-  updData.cycle = get_int_setting(f, vfxname, "updData.cycle");
-
-  IfsData* data = static_cast<IfsData*>(_this->fx_data);
-  data->curPt = static_cast<size_t>(get_int_setting(f, vfxname, "data.Cur_Pt"));
-  data->initialized = get_int_setting(f, vfxname, "data.initalized");
-  data->initialized = true;
-
-  Fractal* fractal = data->root;
-  fractal->numSimi = static_cast<uint32_t>(get_int_setting(f, vfxname, "fractal.numSimi"));
-  fractal->depth = static_cast<uint32_t>(get_int_setting(f, vfxname, "fractal.depth"));
-  fractal->count = static_cast<uint32_t>(get_int_setting(f, vfxname, "fractal.count"));
-  fractal->speed = static_cast<uint32_t>(get_int_setting(f, vfxname, "fractal.speed"));
-  fractal->width = static_cast<uint32_t>(get_int_setting(f, vfxname, "fractal.width"));
-  fractal->height = static_cast<uint32_t>(get_int_setting(f, vfxname, "fractal.height"));
-  fractal->lx = static_cast<uint32_t>(get_int_setting(f, vfxname, "fractal.lx"));
-  fractal->ly = static_cast<uint32_t>(get_int_setting(f, vfxname, "fractal.ly"));
-  fractal->rMean = get_float_setting(f, vfxname, "fractal.rMean");
-  fractal->drMean = get_float_setting(f, vfxname, "fractal.drMean");
-  fractal->dr2Mean = get_float_setting(f, vfxname, "fractal.dr2Mean");
-  fractal->curPt = static_cast<uint32_t>(get_int_setting(f, vfxname, "fractal.curPt"));
-  fractal->maxPt = static_cast<uint32_t>(get_int_setting(f, vfxname, "fractal.maxPt"));
-
-  for (int i = 0; i < static_cast<int>(fractal->numSimi); i++)
-  {
-    Similitude* simi = &(fractal->components[i]);
-    simi->c_x = get_indexed_float_setting(f, vfxname, "simi.c_x", i);
-    simi->c_y = get_indexed_float_setting(f, vfxname, "simi.c_y", i);
-    simi->r = get_indexed_float_setting(f, vfxname, "simi.r", i);
-    simi->r2 = get_indexed_float_setting(f, vfxname, "simi.r2", i);
-    simi->A = get_indexed_float_setting(f, vfxname, "simi.A", i);
-    simi->A2 = get_indexed_float_setting(f, vfxname, "simi.A2", i);
-    simi->Ct = get_indexed_int_setting(f, vfxname, "simi.Ct", i);
-    simi->St = get_indexed_int_setting(f, vfxname, "simi.St", i);
-    simi->Ct2 = get_indexed_int_setting(f, vfxname, "simi.Ct2", i);
-    simi->St2 = get_indexed_int_setting(f, vfxname, "simi.St2", i);
-    simi->Cx = get_indexed_int_setting(f, vfxname, "simi.Cx", i);
-    simi->Cy = get_indexed_int_setting(f, vfxname, "simi.Cy", i);
-    simi->R = get_indexed_int_setting(f, vfxname, "simi.R", i);
-    simi->R2 = get_indexed_int_setting(f, vfxname, "simi.R2", i);
-  }
-
-  fclose(f);
-
-  //    ifs_vfx_save(_this, info, "/tmp/vfx_save_after_restore.txt");
 }
 
 static void ifs_vfx_init(VisualFX* _this, PluginInfo* goomInfo)

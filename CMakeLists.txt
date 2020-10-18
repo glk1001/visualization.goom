@@ -34,9 +34,9 @@ include_directories(${includes}
                     ${PROJECT_SOURCE_DIR}/lib
                     ${PROJECT_SOURCE_DIR}/lib/goom/include
                     ${PROJECT_SOURCE_DIR}/lib/goom/goomutils/include
-                    ${PROJECT_SOURCE_DIR}/lib/vivid/include
-                    ${PROJECT_SOURCE_DIR}/lib/json/include
-                    ${PROJECT_SOURCE_DIR}/lib/fmt/include)
+                    SYSTEM ${PROJECT_SOURCE_DIR}/lib/vivid/include
+                    SYSTEM ${PROJECT_SOURCE_DIR}/lib/cereal/include
+                    SYSTEM ${PROJECT_SOURCE_DIR}/lib/fmt/include)
 
 set(GOOM_SOURCES src/Main.cpp)
 
