@@ -870,7 +870,7 @@ void zoomFilterFastRGB(PluginInfo* goomInfo,
 
   data->stats.doZoomFilterFastRGB();
 
-  if (!BVAL(data->enabled_bp))
+  if (!data->enabled_bp.bval)
   {
     return;
   }
@@ -1127,8 +1127,8 @@ static void zoomFilterVisualFXWrapper_init(VisualFX* _this, PluginInfo* info)
 
   data->enabled_bp = secure_b_param("Enabled", 1);
 
-  data->params = plugin_parameters("ZoomFilter", 1);
-  data->params.params[0] = &data->enabled_bp;
+  data->params.name = "ZoomFilter";
+  data->params.params.push_back(&data->enabled_bp);
 
   _this->params = &data->params;
   _this->fx_data = data;
@@ -1154,7 +1154,6 @@ static void zoomFilterVisualFXWrapper_free(VisualFX* _this)
   delete[] data->freebrutD;
   delete[] data->freebrutT;
   delete[] data->firedec;
-  free(data->params.params);
 
   delete data;
 }

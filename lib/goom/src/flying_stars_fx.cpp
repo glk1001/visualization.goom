@@ -261,42 +261,30 @@ static void fs_init(VisualFX* _this, PluginInfo* goomInfo)
   FSData* data = new FSData{goomInfo};
 
   data->max_age_p = secure_i_param("Fireworks Smallest Bombs");
-  IVAL(data->max_age_p) = 80;
-  IMIN(data->max_age_p) = 0;
-  IMAX(data->max_age_p) = 100;
-  ISTEP(data->max_age_p) = 1;
+  data->max_age_p.ival = 80;
 
   data->min_age_p = secure_i_param("Fireworks Largest Bombs");
-  IVAL(data->min_age_p) = 99;
-  IMIN(data->min_age_p) = 0;
-  IMAX(data->min_age_p) = 100;
-  ISTEP(data->min_age_p) = 1;
+  data->min_age_p.ival = 99;
 
   data->nbStars_limit_p = secure_i_param("Max Number of Particules");
-  IVAL(data->nbStars_limit_p) = 512;
-  IMIN(data->nbStars_limit_p) = 0;
-  IMAX(data->nbStars_limit_p) = static_cast<int>(data->maxStars);
-  ISTEP(data->nbStars_limit_p) = 64;
+  data->nbStars_limit_p.ival = 512;
 
   data->fx_mode_p = secure_i_param("FX Mode");
-  IVAL(data->fx_mode_p) = static_cast<int>(data->fx_mode);
-  IMIN(data->fx_mode_p) = 0;
-  IMAX(data->fx_mode_p) = numFx - 1;
-  ISTEP(data->fx_mode_p) = 1;
+  data->fx_mode_p.ival = static_cast<int>(data->fx_mode);
 
   data->nbStars_p = secure_f_feedback("Number of Particules (% of Max)");
 
-  data->params = plugin_parameters("Particule System", 8);
-  data->params.params[0] = &data->fx_mode_p;
-  data->params.params[1] = &data->nbStars_limit_p;
-  data->params.params[2] = 0;
-  data->params.params[3] = &data->min_age_p;
-  data->params.params[4] = &data->max_age_p;
-  data->params.params[5] = 0;
-  data->params.params[6] = &data->nbStars_p;
+  data->params.name = "Particule System";
+  data->params.params.push_back(&data->fx_mode_p);
+  data->params.params.push_back(&data->nbStars_limit_p);
+  data->params.params.push_back(nullptr);
+  data->params.params.push_back(&data->min_age_p);
+  data->params.params.push_back(&data->max_age_p);
+  data->params.params.push_back(nullptr);
+  data->params.params.push_back(&data->nbStars_p);
 
   data->enabled_bp = secure_b_param("Flying Stars", 1);
-  data->params.params[7] = &data->enabled_bp;
+  data->params.params.push_back(&data->enabled_bp);
 
   _this->params = &data->params;
   _this->fx_data = data;
@@ -310,9 +298,6 @@ static void fs_free(VisualFX* _this)
   f.close();
 
   FSData* data = static_cast<FSData*>(_this->fx_data);
-
-  free(data->params.params);
-
   delete data;
 }
 
@@ -483,18 +468,18 @@ static void fs_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* prevBuff, Pix
 {
   FSData* data = static_cast<FSData*>(_this->fx_data);
 
-  if (!BVAL(data->enabled_bp))
+  if (!data->enabled_bp.bval)
   {
     return;
   }
 
   // Get the new parameters values
-  data->min_age = 1.0f - static_cast<float>(IVAL(data->min_age_p)) / 100.0f;
-  data->max_age = 1.0f - static_cast<float>(IVAL(data->max_age_p)) / 100.0f;
-  FVAL(data->nbStars_p) = static_cast<float>(data->numStars) / static_cast<float>(data->maxStars);
+  data->min_age = 1.0f - static_cast<float>(data->min_age_p.ival) / 100.0f;
+  data->max_age = 1.0f - static_cast<float>(data->max_age_p.ival) / 100.0f;
+  data->nbStars_p.fval = static_cast<float>(data->numStars) / static_cast<float>(data->maxStars);
   data->nbStars_p.change_listener(&data->nbStars_p);
-  data->maxStars = static_cast<size_t>(IVAL(data->nbStars_limit_p));
-  data->fx_mode = static_cast<StarModes>(IVAL(data->fx_mode_p));
+  data->maxStars = static_cast<size_t>(data->nbStars_limit_p.ival);
+  data->fx_mode = static_cast<StarModes>(data->fx_mode_p.ival);
 
   // look for events
   if (goomInfo->sound->getTimeSinceLastGoom() < 1)
@@ -505,7 +490,7 @@ static void fs_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* prevBuff, Pix
       // Give a slight weight towards noFx mode by using numFX + 2.
       const uint32_t newVal = getNRand(numFx + 2);
       const StarModes newMode = newVal >= numFx ? StarModes::noFx : static_cast<StarModes>(newVal);
-      IVAL(data->fx_mode_p) = static_cast<int>(newMode);
+      data->fx_mode_p.ival = static_cast<int>(newMode);
       data->fx_mode_p.change_listener(&data->fx_mode_p);
     }
   }

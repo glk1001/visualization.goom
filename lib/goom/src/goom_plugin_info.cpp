@@ -1,9 +1,9 @@
 #include "goom_plugin_info.h"
 
 #include "goomutils/logging_control.h"
-#include "sound_info.h"
 // #undef NO_LOGGING
 #include "goomutils/logging.h"
+#include "sound_info.h"
 
 #include <cstddef>
 #include <memory>
@@ -11,15 +11,12 @@
 namespace goom
 {
 
-void plugin_info_init(PluginInfo* pp, size_t nbVisuals)
+void plugin_info_init(PluginInfo* pp)
 {
   logDebug("Starting plugin_info_init.");
 
   pp->sound = std::make_unique<SoundInfo>();
-
-  pp->nbParams = 0;
-  pp->nbVisuals = nbVisuals;
-  pp->visuals = new VisualFX*[nbVisuals];
+  pp->params.push_back(pp->sound->getParams());
 
   /* data for the update loop */
   pp->update.lockvar = 0;
@@ -71,32 +68,16 @@ void plugin_info_init(PluginInfo* pp, size_t nbVisuals)
   };
 }
 
-void plugin_info_add_visual(PluginInfo* p, size_t i, VisualFX* visual)
+void plugin_info_add_visual(PluginInfo* p, VisualFX* visual)
 {
-  p->visuals[i] = visual;
-  if (i == p->nbVisuals - 1)
+  p->visuals.push_back(visual);
+
+  if (!visual->params)
   {
-    ++i;
-    p->nbParams = 1;
-    while (i--)
-    {
-      if (p->visuals[i]->params)
-      {
-        p->nbParams++;
-      }
-    }
-    p->params = (PluginParameters*)malloc(sizeof(PluginParameters) * p->nbParams);
-    i = p->nbVisuals;
-    p->nbParams = 1;
-    p->params[0] = p->sound->getParams();
-    while (i--)
-    {
-      if (p->visuals[i]->params)
-      {
-        p->params[p->nbParams++] = *(p->visuals[i]->params);
-      }
-    }
+    return;
   }
+
+  p->params.push_back(*visual->params);
 }
 
 } // namespace goom

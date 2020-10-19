@@ -7,8 +7,13 @@
 #include "goomutils/goomrand.h"
 #include "goomutils/mathutils.h"
 
+#include <cereal/archives/json.hpp>
 #include <cmath>
 #include <cstdint>
+#include <fstream>
+#include <istream>
+#include <ostream>
+#include <string>
 
 namespace goom
 {
@@ -30,7 +35,16 @@ struct ConvData
   PluginParam factor_adj_p;
   PluginParam factor_p;
   PluginParameters params;
+
+  template<class Archive>
+  void serialize(Archive&);
 };
+
+template<class Archive>
+void ConvData::serialize(Archive& ar)
+{
+  ar(buffSettings, allowOverexposed, countSinceOverexposed, light, factor_adj_p, factor_p);
+}
 
 static void convolve_init(VisualFX* _this, PluginInfo*)
 {
@@ -42,31 +56,45 @@ static void convolve_init(VisualFX* _this, PluginInfo*)
   data->countSinceOverexposed = 0;
 
   data->light = secure_f_param("Screen Brightness");
-  data->light.param.fval.max = 300.0f;
-  data->light.param.fval.step = 1.0f;
-  data->light.param.fval.value = 100.0f;
+  data->light.fval = 100.0f;
 
   data->factor_adj_p = secure_f_param("Flash Intensity");
-  data->factor_adj_p.param.fval.max = 200.0f;
-  data->factor_adj_p.param.fval.step = 1.0f;
-  data->factor_adj_p.param.fval.value = 30.0f;
+  data->factor_adj_p.fval = 30.0f;
 
   data->factor_p = secure_f_feedback("Factor");
 
-  data->params = plugin_parameters("Bright Flash", 5);
-  data->params.params[0] = &data->light;
-  data->params.params[1] = &data->factor_adj_p;
-  data->params.params[2] = 0;
-  data->params.params[3] = &data->factor_p;
-  data->params.params[4] = 0;
+  data->params.name = "Bright Flash";
+  data->params.params.push_back(&data->light);
+  data->params.params.push_back(&data->factor_adj_p);
+  data->params.params.push_back(nullptr);
+  data->params.params.push_back(&data->factor_p);
+  data->params.params.push_back(nullptr);
 
   _this->params = &data->params;
 }
 
-static void convolve_free(VisualFX* _this)
+static void saveState(VisualFX* _this, std::ostream& f)
+{
+  const ConvData* data = static_cast<ConvData*>(_this->fx_data);
+  cereal::JSONOutputArchive archiveOut(f);
+  archiveOut(*data);
+}
+
+static void loadState(VisualFX* _this, std::istream& f)
 {
   ConvData* data = static_cast<ConvData*>(_this->fx_data);
-  free(data->params.params);
+  cereal::JSONInputArchive archive_in(f);
+  archive_in(*data);
+}
+
+static void convolve_free(VisualFX* _this)
+{
+  std::ofstream f("/tmp/convolve.json");
+  saveState(_this, f);
+  f << std::endl;
+  f.close();
+
+  ConvData* data = static_cast<ConvData*>(_this->fx_data);
   delete data;
 }
 
@@ -91,15 +119,15 @@ static void convolve_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* src, Pi
 {
   ConvData* data = static_cast<ConvData*>(_this->fx_data);
 
-  const float ff = (FVAL(data->factor_p) * FVAL(data->factor_adj_p) + FVAL(data->light)) / 100.0f;
+  const float ff = (data->factor_p.fval * data->factor_adj_p.fval + data->light.fval) / 100.0f;
   const uint32_t iff = static_cast<uint32_t>(std::round(ff * 256 + 0.0001f));
   constexpr float increaseRate = 1.3;
   constexpr float decayRate = 0.955;
   if (goomInfo->sound->getTimeSinceLastGoom() == 0)
   {
-    FVAL(data->factor_p) += goomInfo->sound->getGoomPower() * increaseRate;
+    data->factor_p.fval += goomInfo->sound->getGoomPower() * increaseRate;
   }
-  FVAL(data->factor_p) *= decayRate;
+  data->factor_p.fval *= decayRate;
   data->factor_p.change_listener(&data->factor_p);
 
   if (data->allowOverexposed)
@@ -136,6 +164,11 @@ static void convolve_setBuffSettings(VisualFX* _this, const FXBuffSettings& sett
   data->buffSettings = settings;
 }
 
+static std::string getFxName(VisualFX*)
+{
+  return "ZoomFilter";
+}
+
 VisualFX convolve_create(void)
 {
   VisualFX fx;
@@ -143,6 +176,9 @@ VisualFX convolve_create(void)
   fx.free = convolve_free;
   fx.setBuffSettings = convolve_setBuffSettings;
   fx.apply = convolve_apply;
+  fx.getFxName = getFxName;
+  fx.saveState = saveState;
+  fx.loadState = loadState;
   fx.save = nullptr;
   fx.restore = nullptr;
   fx.fx_data = 0;

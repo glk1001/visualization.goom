@@ -1126,7 +1126,7 @@ static void ifs_vfx_apply(VisualFX* _this,
     data->initialized = true;
     initIfs(goomInfo, data);
   }
-  if (!BVAL(data->enabled_bp))
+  if (!data->enabled_bp.bval)
   {
     return;
   }
@@ -1148,8 +1148,8 @@ static void ifs_vfx_init(VisualFX* _this, PluginInfo* goomInfo)
   IfsData* data = new IfsData{goomInfo->screen.width, goomInfo->screen.height};
 
   data->enabled_bp = secure_b_param("Enabled", 1);
-  data->params = plugin_parameters("Ifs", 1);
-  data->params.params[0] = &data->enabled_bp;
+  data->params.name = "Ifs";
+  data->params.params.push_back(&data->enabled_bp);
 
   data->root = nullptr;
   data->initialized = false;

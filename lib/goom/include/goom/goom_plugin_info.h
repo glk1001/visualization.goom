@@ -14,6 +14,7 @@
 #include <memory>
 #include <string>
 #include <unordered_set>
+#include <vector>
 
 namespace goom
 {
@@ -36,8 +37,7 @@ enum class GoomDrawable
 struct PluginInfo
 {
   // public data
-  size_t nbParams;
-  PluginParameters* params;
+  std::vector<PluginParameters> params;
 
   // private data
   struct Screen
@@ -50,8 +50,7 @@ struct PluginInfo
 
   std::unique_ptr<SoundInfo> sound;
 
-  size_t nbVisuals;
-  VisualFX** visuals; // pointers on all the visual fx
+  std::vector<VisualFX*> visuals; // pointers to all the visual fx
 
   // The known FX
   VisualFX convolve_fx;
@@ -111,10 +110,10 @@ struct PluginInfo
   } update_message;
 };
 
-void plugin_info_init(PluginInfo* p, size_t nbVisual);
+void plugin_info_init(PluginInfo* p);
 
 // i = [0..p->nbVisual-1]
-void plugin_info_add_visual(PluginInfo* p, size_t i, VisualFX* visual);
+void plugin_info_add_visual(PluginInfo* p, VisualFX* visual);
 
 } // namespace goom
 #endif

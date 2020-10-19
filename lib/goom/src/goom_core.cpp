@@ -923,7 +923,7 @@ PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
 
   PluginInfo* goomInfo = new PluginInfo;
 
-  plugin_info_init(goomInfo, 5);
+  plugin_info_init(goomInfo);
 
   goomInfo->star_fx = flying_star_create();
   goomInfo->zoomFilter_fx = zoomFilterVisualFXWrapper_create();
@@ -972,11 +972,11 @@ PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
   goomInfo->tentacles_fx.init(&goomInfo->tentacles_fx, goomInfo);
   goomInfo->convolve_fx.init(&goomInfo->convolve_fx, goomInfo);
   goomInfo->ifs_fx.init(&goomInfo->ifs_fx, goomInfo);
-  plugin_info_add_visual(goomInfo, 0, &goomInfo->zoomFilter_fx);
-  plugin_info_add_visual(goomInfo, 1, &goomInfo->tentacles_fx);
-  plugin_info_add_visual(goomInfo, 2, &goomInfo->star_fx);
-  plugin_info_add_visual(goomInfo, 3, &goomInfo->convolve_fx);
-  plugin_info_add_visual(goomInfo, 4, &goomInfo->ifs_fx);
+  plugin_info_add_visual(goomInfo, &goomInfo->zoomFilter_fx);
+  plugin_info_add_visual(goomInfo, &goomInfo->tentacles_fx);
+  plugin_info_add_visual(goomInfo, &goomInfo->star_fx);
+  plugin_info_add_visual(goomInfo, &goomInfo->convolve_fx);
+  plugin_info_add_visual(goomInfo, &goomInfo->ifs_fx);
 
   goomDots =
       std::unique_ptr<GoomDots>{new GoomDots{goomInfo->screen.width, goomInfo->screen.height}};
@@ -1204,12 +1204,7 @@ void goom_close(PluginInfo* goomInfo)
   goomInfo->tentacles_fx.free(&goomInfo->tentacles_fx);
   goomInfo->zoomFilter_fx.free(&goomInfo->zoomFilter_fx);
 
-  // Release info visual
-  free(goomInfo->params);
-
   // Release PluginInfo
-  delete[] goomInfo->visuals;
-
   delete goomInfo;
 }
 

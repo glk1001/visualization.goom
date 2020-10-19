@@ -884,8 +884,8 @@ void tentacle_fx_init(VisualFX* _this, PluginInfo* info)
   data->tentacles = new TentaclesWrapper{info->screen.width, info->screen.height};
 
   data->enabled_bp = secure_b_param("Enabled", 1);
-  data->params = plugin_parameters("3D Tentacles", 1);
-  data->params.params[0] = &data->enabled_bp;
+  data->params.name = "3D Tentacles";
+  data->params.params.push_back(&data->enabled_bp);
 
   _this->params = &data->params;
   _this->fx_data = data;
@@ -894,19 +894,23 @@ void tentacle_fx_init(VisualFX* _this, PluginInfo* info)
 void tentacle_fx_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* prevBuff, Pixel* currentBuff)
 {
   TentacleFXData* data = static_cast<TentacleFXData*>(_this->fx_data);
-  if (BVAL(data->enabled_bp))
+  if (!data->enabled_bp.bval)
   {
-    data->tentacles->update(goomInfo, prevBuff, currentBuff);
+    return;
   }
+
+  data->tentacles->update(goomInfo, prevBuff, currentBuff);
 }
 
 void tentacle_fx_update_no_draw(VisualFX* _this, PluginInfo* goomInfo)
 {
   TentacleFXData* data = static_cast<TentacleFXData*>(_this->fx_data);
-  if (BVAL(data->enabled_bp))
+  if (!data->enabled_bp.bval)
   {
-    data->tentacles->updateWithNoDraw(goomInfo);
+    return;
   }
+
+  data->tentacles->updateWithNoDraw(goomInfo);
 }
 
 void tentacle_log_stats(VisualFX* _this, const StatsLogValueFunc logVal)
@@ -919,7 +923,6 @@ void tentacle_fx_free(VisualFX* _this)
 {
   TentacleFXData* data = static_cast<TentacleFXData*>(_this->fx_data);
 
-  free(data->params.params);
   tentacle_free(data);
 
   delete data;
