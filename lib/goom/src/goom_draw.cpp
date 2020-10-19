@@ -4,7 +4,6 @@
 #include "goom_config.h"
 #include "goom_graphic.h"
 
-#include <cereal/archives/json.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <vector>
@@ -21,12 +20,6 @@ GoomDraw::GoomDraw(const uint32_t screenW, const uint32_t screenH)
 {
   setBuffIntensity(0.5);
   setAllowOverexposed(true);
-}
-
-template<class Archive>
-void GoomDraw::serialize(Archive& ar)
-{
-  ar(screenWidth, screenHeight, allowOverexposed, buffIntensity, intBuffIntensity);
 }
 
 void GoomDraw::circle(

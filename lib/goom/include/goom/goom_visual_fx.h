@@ -13,6 +13,7 @@
 #include "goom_config_param.h"
 #include "goom_graphic.h"
 
+#include <cereal/archives/json.hpp>
 #include <cstdint>
 #include <istream>
 #include <ostream>
@@ -30,6 +31,12 @@ struct FXBuffSettings
   template<class Archive>
   void serialize(Archive&);
 };
+
+template<class Archive>
+void FXBuffSettings::serialize(Archive& ar)
+{
+  ar(buffIntensity, allowOverexposed);
+}
 
 static constexpr FXBuffSettings defaultFXBuffSettings{
     .buffIntensity = 0.5,

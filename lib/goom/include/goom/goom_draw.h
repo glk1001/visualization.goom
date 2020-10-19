@@ -4,6 +4,7 @@
 #include "goom_config.h"
 #include "goom_graphic.h"
 
+#include <cereal/archives/json.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <vector>
@@ -79,6 +80,12 @@ private:
 
   GoomDraw();
 };
+
+template<class Archive>
+void GoomDraw::serialize(Archive& ar)
+{
+  ar(screenWidth, screenHeight, allowOverexposed, buffIntensity, intBuffIntensity);
+}
 
 inline void GoomDraw::setPixelRGBNoBlend(Pixel* buff,
                                          const uint32_t x,
