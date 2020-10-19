@@ -34,6 +34,7 @@
 #include <cstdint>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace goom
 {
@@ -351,15 +352,12 @@ struct FilterDataWrapper
   PluginParam enabled_bp;
   PluginParameters params;
 
-  uint32_t* coeffs;
-  uint32_t* freecoeffs;
-
-  int* brutS;
-  int* freebrutS; // source
-  int* brutD;
-  int* freebrutD; // dest
-  int* brutT;
-  int* freebrutT; // temp (en cours de generation)
+  int32_t* brutS;
+  std::vector<int32_t> freebrutS; // source
+  int32_t* brutD;
+  std::vector<int32_t> freebrutD; // dest
+  int32_t* brutT;
+  std::vector<int32_t> freebrutT; // temp (en cours de generation)
 
   uint32_t prevX;
   uint32_t prevY;
@@ -369,7 +367,7 @@ struct FilterDataWrapper
 
   // modif by jeko : fixedpoint : buffration = (16:16) (donc 0<=buffration<=2^16)
   int buffratio;
-  int* firedec;
+  std::vector<int32_t> firedec;
 
   // modif d'optim by Jeko : precalcul des 4 coefs resultant des 2 pos
   uint32_t precalCoef[BUFFPOINTNB][BUFFPOINTNB];
@@ -377,7 +375,8 @@ struct FilterDataWrapper
   template<class Archive>
   void serialize(Archive& ar)
   {
-    ar(filterData, generalSpeed, prevX, prevY, mustInitBuffers, interlaceStart, buffratio);
+    ar(filterData, generalSpeed, enabled_bp, prevX, prevY, mustInitBuffers, interlaceStart,
+       buffratio);
   };
 };
 
@@ -794,43 +793,39 @@ static void initBuffers(PluginInfo* goomInfo, const uint32_t resx, const uint32_
 
     if (data->brutS)
     {
-      delete[] data->freebrutS;
+      data->freebrutS.resize(0);
     }
     data->brutS = nullptr;
     if (data->brutD)
     {
-      delete[] data->freebrutD;
+      data->freebrutD.resize(0);
     }
     data->brutD = nullptr;
     if (data->brutT)
     {
-      delete[] data->freebrutT;
+      data->freebrutT.resize(0);
     }
     data->brutT = nullptr;
 
     data->filterData.middleX = resx / 2;
     data->filterData.middleY = resy / 2;
     data->mustInitBuffers = 1;
-    if (data->firedec)
-    {
-      delete[] data->firedec;
-    }
-    data->firedec = nullptr;
+    data->firedec.resize(0);
   }
 
   data->mustInitBuffers = 0;
-  data->freebrutS = new int[resx * resy * 2 + 128]{};
-  data->brutS = (int*)((1 + (uintptr_t((data->freebrutS))) / 128) * 128);
+  data->freebrutS.resize(resx * resy * 2 + 128);
+  data->brutS = (int32_t*)((1 + (uintptr_t((data->freebrutS.data()))) / 128) * 128);
 
-  data->freebrutD = new int[resx * resy * 2 + 128]{};
-  data->brutD = (int*)((1 + (uintptr_t((data->freebrutD))) / 128) * 128);
+  data->freebrutD.resize(resx * resy * 2 + 128);
+  data->brutD = (int32_t*)((1 + (uintptr_t((data->freebrutD.data()))) / 128) * 128);
 
-  data->freebrutT = new int[resx * resy * 2 + 128]{};
-  data->brutT = (int32_t*)((1 + (uintptr_t((data->freebrutT))) / 128) * 128);
+  data->freebrutT.resize(resx * resy * 2 + 128);
+  data->brutT = (int32_t*)((1 + (uintptr_t((data->freebrutT.data()))) / 128) * 128);
 
   data->buffratio = 0;
 
-  data->firedec = new int[data->prevY];
+  data->firedec.resize(data->prevY);
   generateWaterFXHorizontalBuffer(data);
 
   data->interlaceStart = 0;
@@ -928,12 +923,10 @@ void zoomFilterFastRGB(PluginInfo* goomInfo,
   if (data->interlaceStart == -1)
   {
     data->stats.doZoomFilterFastRGBInterlaceStartEqualMinus1_2();
-    int* tmp = data->brutD;
-    data->brutD = data->brutT;
-    data->brutT = tmp;
-    tmp = data->freebrutD;
-    data->freebrutD = data->freebrutT;
-    data->freebrutT = tmp;
+
+    std::swap(data->brutD, data->brutT);
+    std::swap(data->freebrutD, data->freebrutT);
+
     data->interlaceStart = -2;
   }
 
@@ -1104,14 +1097,12 @@ static void zoomFilterVisualFXWrapper_init(VisualFX* _this, PluginInfo* info)
 {
   FilterDataWrapper* data = new FilterDataWrapper{};
 
-  data->coeffs = 0;
-  data->freecoeffs = 0;
-  data->brutS = 0;
-  data->freebrutS = 0;
-  data->brutD = 0;
-  data->freebrutD = 0;
-  data->brutT = 0;
-  data->freebrutT = 0;
+  data->brutS = nullptr;
+  data->freebrutS.resize(0);
+  data->brutD = nullptr;
+  data->freebrutD.resize(0);
+  data->brutT = nullptr;
+  data->freebrutT.resize(0);
   data->prevX = 0;
   data->prevY = 0;
 
@@ -1123,7 +1114,7 @@ static void zoomFilterVisualFXWrapper_init(VisualFX* _this, PluginInfo* info)
 
   /** modif by jeko : fixedpoint : buffration = (16:16) (donc 0<=buffration<=2^16) */
   data->buffratio = 0;
-  data->firedec = nullptr;
+  data->firedec.resize(0);
 
   data->enabled_bp = secure_b_param("Enabled", 1);
 
@@ -1149,12 +1140,6 @@ static void zoomFilterVisualFXWrapper_free(VisualFX* _this)
   f.close();
 
   FilterDataWrapper* data = static_cast<FilterDataWrapper*>(_this->fx_data);
-
-  delete[] data->freebrutS;
-  delete[] data->freebrutD;
-  delete[] data->freebrutT;
-  delete[] data->firedec;
-
   delete data;
 }
 
