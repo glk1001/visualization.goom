@@ -47,20 +47,29 @@ public:
                    const uint32_t y,
                    const std::vector<Pixel>& colors);
 
-  void circle(Pixel* buff, const int x0, const int y0, const int radius, const uint32_t color);
+  void circle(Pixel* buff, const int x0, const int y0, const int radius, const Pixel& color);
 
-  void filledCircle(Pixel* buff,
+  void circle(std::vector<Pixel*> buffs,
+              const int x0,
+              const int y0,
+              const int radius,
+              const std::vector<Pixel>& colors);
+
+  void filledCircle(
+      Pixel* buff, const int x0, const int y0, const int radius, const std::vector<Pixel>& colors);
+
+  void filledCircle(std::vector<Pixel*> buffs,
                     const int x0,
                     const int y0,
                     const int radius,
-                    const std::vector<uint32_t>& colors);
+                    const std::vector<std::vector<Pixel>>& colorSets);
 
   void line(Pixel* buff,
             const int x1,
             const int y1,
             const int x2,
             const int y2,
-            const uint32_t color,
+            const Pixel& color,
             const uint8_t thickness);
 
   void line(std::vector<Pixel*> buffs,

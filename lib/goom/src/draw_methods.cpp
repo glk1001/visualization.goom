@@ -21,22 +21,37 @@ void drawCircle(Pixel* buff,
                 const int x0,
                 const int y0,
                 const int radius,
-                const uint32_t color,
+                const Pixel& color,
                 const uint32_t buffIntensity,
                 const bool allowOverexposed,
                 const uint32_t screenWidth,
                 const uint32_t screenHeight)
 {
-  const Pixel pixColor{.val = color};
-  const auto plot = [&](const int x, const int y) -> void {
+  std::vector<Pixel*> buffs{buff};
+  const std::vector<Pixel> colors{color};
+  drawCircle(buffs, x0, y0, radius, colors, buffIntensity, allowOverexposed, screenWidth,
+             screenHeight);
+}
+
+void drawCircle(std::vector<Pixel*>& buffs,
+                const int x0,
+                const int y0,
+                const int radius,
+                const std::vector<Pixel>& colors,
+                const uint32_t buffIntensity,
+                const bool allowOverexposed,
+                const uint32_t screenWidth,
+                const uint32_t screenHeight)
+{
+  assert(buffs.size() == colors.size());
+
+  auto plot = [&](const int x, const int y) -> void {
     if (uint32_t(x) >= screenWidth || uint32_t(y) >= screenHeight)
     {
       return;
     }
-    const Pixel brighterPixColor = getBrighterColorInt(buffIntensity, pixColor, allowOverexposed);
     const int pos = y * static_cast<int>(screenWidth) + x;
-    Pixel* const p = &(buff[pos]);
-    *p = getColorAdd(*p, brighterPixColor, allowOverexposed);
+    drawPixels(buffs, pos, colors, buffIntensity, allowOverexposed);
   };
 
   int f = 1 - radius;
@@ -76,7 +91,7 @@ void drawFilledCircle(Pixel* buff,
                       const int x0,
                       const int y0,
                       const int radius,
-                      const std::vector<uint32_t> colors,
+                      const std::vector<Pixel>& colors,
                       const uint32_t buffIntensity,
                       const bool allowOverexposed,
                       const uint32_t screenWidth,
@@ -86,6 +101,23 @@ void drawFilledCircle(Pixel* buff,
   {
     drawCircle(buff, x0, y0, i, colors.at(static_cast<size_t>(i - 1)), buffIntensity,
                allowOverexposed, screenWidth, screenHeight);
+  }
+}
+
+void drawFilledCircle(std::vector<Pixel*>& buffs,
+                      const int x0,
+                      const int y0,
+                      const int radius,
+                      const std::vector<std::vector<Pixel>>& colorSets,
+                      const uint32_t buffIntensity,
+                      const bool allowOverexposed,
+                      const uint32_t screenWidth,
+                      const uint32_t screenHeight)
+{
+  for (size_t i = 0; i < buffs.size(); i++)
+  {
+    drawFilledCircle(buffs[i], x0, y0, radius, colorSets.at(i), buffIntensity, allowOverexposed,
+                     screenWidth, screenHeight);
   }
 }
 
@@ -122,7 +154,7 @@ void drawLine(Pixel* buff,
               const int y1,
               const int x2,
               const int y2,
-              const uint32_t color,
+              const Pixel& color,
               const uint32_t buffIntensity,
               const bool allowOverexposed,
               const uint8_t thickness,
@@ -130,7 +162,7 @@ void drawLine(Pixel* buff,
               const uint32_t screeny)
 {
   std::vector<Pixel*> buffs{buff};
-  std::vector<Pixel> colors{Pixel{.val = color}};
+  std::vector<Pixel> colors{color};
   drawLine(buffs, x1, y1, x2, y2, colors, buffIntensity, allowOverexposed, thickness, screenx,
            screeny);
 }

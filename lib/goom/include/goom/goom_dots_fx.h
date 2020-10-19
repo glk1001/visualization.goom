@@ -46,17 +46,19 @@ private:
   const utils::ColorMap* colorMap4 = nullptr;
   const utils::ColorMap* colorMap5 = nullptr;
   uint32_t middleColor = 0;
+  bool useSingleBufferOnly = true;
 
   void changeColors();
 
-  static std::vector<uint32_t> getColors(const uint32_t color0,
-                                         const uint32_t color1,
-                                         const size_t numPts);
+  static std::vector<Pixel> getColors(const uint32_t color0,
+                                      const uint32_t color1,
+                                      const size_t numPts);
 
   float getLargeSoundFactor(const SoundInfo&) const;
 
-  void dotFilter(Pixel* currentBuff,
-                 const std::vector<uint32_t>& colors,
+  void dotFilter(Pixel* prevBuff,
+                 Pixel* currentBuff,
+                 const std::vector<Pixel>& colors,
                  const float t1,
                  const float t2,
                  const float t3,

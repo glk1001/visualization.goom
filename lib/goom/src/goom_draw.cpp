@@ -22,18 +22,36 @@ GoomDraw::GoomDraw(const uint32_t screenW, const uint32_t screenH)
   setAllowOverexposed(true);
 }
 
-void GoomDraw::circle(
-    Pixel* buff, const int x0, const int y0, const int radius, const uint32_t color)
+void GoomDraw::circle(Pixel* buff, const int x0, const int y0, const int radius, const Pixel& color)
 {
   drawCircle(buff, x0, y0, radius, color, intBuffIntensity, allowOverexposed, screenWidth,
              screenHeight);
 }
+void GoomDraw::circle(std::vector<Pixel*> buffs,
+                      const int x0,
+                      const int y0,
+                      const int radius,
+                      const std::vector<Pixel>& colors)
+{
+  drawCircle(buffs, x0, y0, radius, colors, intBuffIntensity, allowOverexposed, screenWidth,
+             screenHeight);
+}
 
 void GoomDraw::filledCircle(
-    Pixel* buff, const int x0, const int y0, const int radius, const std::vector<uint32_t>& colors)
+    Pixel* buff, const int x0, const int y0, const int radius, const std::vector<Pixel>& colors)
 {
   drawFilledCircle(buff, x0, y0, radius, colors, intBuffIntensity, allowOverexposed, screenWidth,
                    screenHeight);
+}
+
+void GoomDraw::filledCircle(std::vector<Pixel*> buffs,
+                            const int x0,
+                            const int y0,
+                            const int radius,
+                            const std::vector<std::vector<Pixel>>& colorSets)
+{
+  drawFilledCircle(buffs, x0, y0, radius, colorSets, intBuffIntensity, allowOverexposed,
+                   screenWidth, screenHeight);
 }
 
 void GoomDraw::line(Pixel* buff,
@@ -41,7 +59,7 @@ void GoomDraw::line(Pixel* buff,
                     const int y1,
                     const int x2,
                     const int y2,
-                    const uint32_t color,
+                    const Pixel& color,
                     const uint8_t thickness)
 {
   drawLine(buff, x1, y1, x2, y2, color, intBuffIntensity, thickness, allowOverexposed, screenWidth,

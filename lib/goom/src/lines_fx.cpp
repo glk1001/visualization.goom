@@ -246,7 +246,7 @@ void drawGoomLines(PluginInfo* goomInfo,
   if (audioRange < 0.0001)
   {
     // No range - flatline audio
-    line->draw->line(p, pt->x, pt->y, pt->x + AUDIO_SAMPLE_LEN, pt->y, color, 1);
+    line->draw->line(p, pt->x, pt->y, pt->x + AUDIO_SAMPLE_LEN, pt->y, Pixel{.val = color}, 1);
     goomLinesMove(line);
     return;
   }
@@ -279,7 +279,7 @@ void drawGoomLines(PluginInfo* goomInfo,
     const GMUnitPointer* const pt = &(line->points[i]);
     const auto [x2, y2, modColor] = getNextPoint(pt, data[i]);
 
-    line->draw->line(p, x1, y1, x2, y2, modColor, thickness);
+    line->draw->line(p, x1, y1, x2, y2, Pixel{.val = modColor}, thickness);
 
     x1 = x2;
     y1 = y2;

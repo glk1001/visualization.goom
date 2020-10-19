@@ -216,7 +216,8 @@ struct FSData
   void serialize(Archive& ar)
   {
     ar(currentColorGroup, maxAge, fx_mode, numStars, maxStars, stars, min_age, max_age,
-       buffSettings, useSingleBufferOnly, draw);
+       buffSettings, useSingleBufferOnly, draw, min_age_p, max_age_p, nbStars_p, nbStars_limit_p,
+       fx_mode_p);
   }
 };
 
@@ -524,7 +525,7 @@ static void fs_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* prevBuff, Pix
     for (size_t j = 1; j <= numParts; j++)
     {
       const float t = static_cast<float>(j - 1) / static_cast<float>(numParts - 1);
-      const uint32_t mixedColor = ColorMap::colorMix(color, lowColor, t);
+      const Pixel mixedColor{.val = ColorMap::colorMix(color, lowColor, t)};
       const int x2 = x0 - static_cast<int>(data->stars[i].vx * j);
       const int y2 = y0 - static_cast<int>(data->stars[i].vy * j);
       const uint8_t thickness = static_cast<uint8_t>(
@@ -537,7 +538,7 @@ static void fs_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* prevBuff, Pix
       }
       else
       {
-        const std::vector<Pixel> colors = {{.val = mixedColor}, {.val = lowColor}};
+        const std::vector<Pixel> colors = {mixedColor, {.val = lowColor}};
         std::vector<Pixel*> buffs{currentBuff, prevBuff};
         data->draw.line(buffs, x1, y1, x2, y2, colors, thickness);
       }
