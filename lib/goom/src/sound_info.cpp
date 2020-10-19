@@ -4,7 +4,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
 #include <limits>
 
 namespace goom
@@ -89,8 +88,6 @@ void SoundInfo::processSample(const int16_t soundData[NUM_AUDIO_SAMPLES][AUDIO_S
 
   // Volume sonore - TODO: why only positive volumes?
   volume = static_cast<float>(incVar) / static_cast<float>(allTimesPositiveMaxVolume);
-  memcpy(samples[0], soundData[0], AUDIO_SAMPLE_LEN * sizeof(short));
-  memcpy(samples[1], soundData[1], AUDIO_SAMPLE_LEN * sizeof(short));
 
   float difaccel = acceleration;
   acceleration = volume; // accel entre 0 et 1

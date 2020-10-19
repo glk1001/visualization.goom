@@ -57,8 +57,6 @@ private:
   int16_t allTimesPositiveMaxVolume = 1;
   float maxAccelSinceLastReset = 0;
 
-  int16_t samples[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN];
-
   PluginParameters params; // contains the previously defined parameters.
   PluginParam volume_p;
   PluginParam speed_p;
