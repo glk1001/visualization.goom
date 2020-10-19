@@ -11,6 +11,9 @@
 #include "goomutils/logging.h"
 
 #include <cstdint>
+#include <istream>
+#include <ostream>
+#include <string>
 #include <vector>
 
 namespace goom
@@ -23,9 +26,10 @@ inline bool changeDotColorsEvent()
   return probabilityOfMInN(1, 3);
 }
 
-GoomDots::GoomDots(const uint32_t screenW, const uint32_t screenH)
-  : screenWidth{screenW},
-    screenHeight{screenH},
+GoomDots::GoomDots(PluginInfo* info)
+  : goomInfo(info),
+    screenWidth{goomInfo->screen.width},
+    screenHeight{goomInfo->screen.height},
     pointWidth{(screenWidth * 2) / 5},
     pointHeight{(screenHeight * 2) / 5},
     pointWidthDiv2{static_cast<float>(pointWidth / 2.0F)},
@@ -53,6 +57,19 @@ void GoomDots::setBuffSettings(const FXBuffSettings& settings)
   buffSettings = settings;
   draw.setBuffIntensity(buffSettings.buffIntensity);
   draw.setAllowOverexposed(buffSettings.allowOverexposed);
+}
+
+std::string GoomDots::getFxName() const
+{
+  return "goom dots";
+}
+
+void GoomDots::saveState(std::ostream&)
+{
+}
+
+void GoomDots::loadState(std::istream&)
+{
 }
 
 void GoomDots::changeColors()
@@ -84,7 +101,7 @@ std::vector<Pixel> GoomDots::getColors(const uint32_t color0,
   return colors;
 }
 
-void GoomDots::drawDots(PluginInfo* goomInfo, Pixel* prevBuff, Pixel* currentBuff)
+void GoomDots::apply(Pixel* prevBuff, Pixel* currentBuff)
 {
   uint32_t radius = 3;
   if ((goomInfo->sound->getTimeSinceLastGoom() == 0) || changeDotColorsEvent())

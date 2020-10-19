@@ -910,7 +910,7 @@ inline bool changeFilterModeEventHappens(PluginInfo* goomInfo)
 
 static void setNextFilterMode(PluginInfo*);
 
-static std::unique_ptr<GoomDots> goomDots{nullptr};
+static std::unique_ptr<VisualFx> goomDots{nullptr};
 
 static uint32_t timeInState = 0;
 
@@ -978,8 +978,7 @@ PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
   plugin_info_add_visual(goomInfo, &goomInfo->convolve_fx);
   plugin_info_add_visual(goomInfo, &goomInfo->ifs_fx);
 
-  goomDots =
-      std::unique_ptr<GoomDots>{new GoomDots{goomInfo->screen.width, goomInfo->screen.height}};
+  goomDots = std::unique_ptr<VisualFx>{new GoomDots{goomInfo}};
 
   timeInState = 0;
   changeState(goomInfo);
@@ -1006,8 +1005,7 @@ void goom_set_resolution(PluginInfo* goomInfo, const uint16_t resx, const uint16
   goomLinesSetResolution(goomInfo->gmline1, resx, goomInfo->screen.height);
   goomLinesSetResolution(goomInfo->gmline2, resx, goomInfo->screen.height);
 
-  goomDots =
-      std::unique_ptr<GoomDots>{new GoomDots{goomInfo->screen.width, goomInfo->screen.height}};
+  goomDots = std::unique_ptr<VisualFx>{new GoomDots{goomInfo}};
 }
 
 int goom_set_screenbuffer(PluginInfo* goomInfo, uint32_t* buffer)
@@ -2239,7 +2237,7 @@ static void drawDotsIfRequired(PluginInfo* goomInfo)
 
   logDebug("goomInfo->curGDrawables points is set.");
   stats.doDots();
-  goomDots->drawDots(goomInfo, goomInfo->p2, goomInfo->p1);
+  goomDots->apply(goomInfo->p2, goomInfo->p1);
   logDebug("goomInfo->sound->getTimeSinceLastGoom() = {}", goomInfo->sound->getTimeSinceLastGoom());
 }
 

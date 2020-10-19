@@ -7,6 +7,7 @@
 #include "goomutils/colormap.h"
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace goom
@@ -15,17 +16,22 @@ namespace goom
 struct PluginInfo;
 class SoundInfo;
 
-class GoomDots
+class GoomDots : public VisualFx
 {
 public:
-  GoomDots(const uint32_t screenWidth, const uint32_t screenHeight);
+  explicit GoomDots(PluginInfo*);
   ~GoomDots() noexcept = default;
 
-  void setBuffSettings(const FXBuffSettings&);
+  void setBuffSettings(const FXBuffSettings&) override;
 
-  void drawDots(PluginInfo*, Pixel* prevBuff, Pixel* currentBuff);
+  void apply(Pixel* prevBuff, Pixel* currentBuff) override;
+
+  std::string getFxName() const override;
+  void saveState(std::ostream&) override;
+  void loadState(std::istream&) override;
 
 private:
+  PluginInfo* const goomInfo;
   const uint32_t screenWidth;
   const uint32_t screenHeight;
   const uint32_t pointWidth;
