@@ -2,7 +2,6 @@
 #define LIBS_GOOM_INCLUDE_GOOM_SOUND_INFO_H_
 
 #include "goom_config.h"
-#include "goom_config_param.h"
 
 #include <cstdint>
 
@@ -31,13 +30,13 @@ public:
   int16_t getAllTimesMaxVolume() const;
   int16_t getAllTimesMinVolume() const;
 
-  PluginParameters& getParams();
-
 private:
   uint32_t timeSinceLastGoom = 0;
   uint32_t timeSinceLastBigGoom = 0;
   float goomLimit = 1; // auto-updated limit of goom_detection
   float bigGoomLimit = 1;
+  static constexpr float bigGoomSpeedLimit = 10;
+  static constexpr float bigGoomFactor = 10;
   float goomPower = 0;
   uint32_t totalGoom = 0;
   static constexpr uint32_t cycleTime = 64;
@@ -56,17 +55,6 @@ private:
   int16_t allTimesMinVolume;
   int16_t allTimesPositiveMaxVolume = 1;
   float maxAccelSinceLastReset = 0;
-
-  PluginParameters params; // contains the previously defined parameters.
-  PluginParam volume_p;
-  PluginParam speed_p;
-  PluginParam accel_p;
-  PluginParam goom_limit_p;
-  PluginParam goom_power_p;
-  PluginParam last_goom_p;
-  PluginParam last_biggoom_p;
-  PluginParam biggoom_speed_limit_p;
-  PluginParam biggoom_factor_p;
 };
 
 inline uint32_t SoundInfo::getTimeSinceLastGoom() const
@@ -112,11 +100,6 @@ inline int16_t SoundInfo::getAllTimesMaxVolume() const
 inline int16_t SoundInfo::getAllTimesMinVolume() const
 {
   return allTimesMinVolume;
-}
-
-inline PluginParameters& SoundInfo::getParams()
-{
-  return params;
 }
 
 } // namespace goom

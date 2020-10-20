@@ -10,7 +10,7 @@
  *    please make my name being visible on it.
  */
 
-#include "goom_config_param.h"
+#include "goom_config.h"
 #include "goom_graphic.h"
 
 #include <cereal/archives/json.hpp>
@@ -67,8 +67,6 @@ struct VisualFX
   void (*save)(VisualFX* _this, const PluginInfo* info, const char* file);
   void (*restore)(VisualFX* _this, PluginInfo* info, const char* file);
   void* fx_data;
-
-  PluginParameters* params;
 };
 
 } // namespace goom

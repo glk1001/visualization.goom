@@ -11,33 +11,8 @@ namespace goom
 
 SoundInfo::SoundInfo() noexcept
   : allTimesMaxVolume{std::numeric_limits<int16_t>::min()},
-    allTimesMinVolume{std::numeric_limits<int16_t>::max()},
-    params{},
-    volume_p{secure_f_feedback("Sound Volume")},
-    speed_p{secure_f_feedback("Sound Speed")},
-    accel_p{secure_f_feedback("Sound Acceleration")},
-    goom_limit_p{secure_f_feedback("Goom Limit")},
-    goom_power_p{secure_f_feedback("Goom Power")},
-    last_goom_p{secure_f_feedback("Goom Detection")},
-    last_biggoom_p{secure_f_feedback("Big Goom Detection")},
-    biggoom_speed_limit_p{secure_i_param("Big Goom Speed Limit")},
-    biggoom_factor_p{secure_i_param("Big Goom Factor")}
+    allTimesMinVolume{std::numeric_limits<int16_t>::max()}
 {
-  biggoom_speed_limit_p.ival = 10;
-  biggoom_factor_p.ival = 10;
-
-  params.name = "Sound";
-  params.params.push_back(&biggoom_speed_limit_p);
-  params.params.push_back(&biggoom_factor_p);
-  params.params.push_back(nullptr);
-  params.params.push_back(&volume_p);
-  params.params.push_back(&accel_p);
-  params.params.push_back(&speed_p);
-  params.params.push_back(nullptr);
-  params.params.push_back(&goom_limit_p);
-  params.params.push_back(&goom_power_p);
-  params.params.push_back(&last_goom_p);
-  params.params.push_back(&last_biggoom_p);
 }
 
 SoundInfo::~SoundInfo() noexcept
@@ -135,8 +110,8 @@ void SoundInfo::processSample(const int16_t soundData[NUM_AUDIO_SAMPLES][AUDIO_S
   cycle++;
 
   // Detection des nouveaux gooms
-  if ((speed > static_cast<float>(biggoom_speed_limit_p.ival) / 100.0f) &&
-      (acceleration > bigGoomLimit) && (timeSinceLastBigGoom > bigGoomDuration))
+  if ((speed > bigGoomSpeedLimit / 100.0f) && (acceleration > bigGoomLimit) &&
+      (timeSinceLastBigGoom > bigGoomDuration))
   {
     timeSinceLastBigGoom = 0;
   }
@@ -189,26 +164,9 @@ void SoundInfo::processSample(const int16_t soundData[NUM_AUDIO_SAMPLES][AUDIO_S
       goomLimit -= 0.01;
     }
     totalGoom = 0;
-    bigGoomLimit = goomLimit * (1.0f + static_cast<float>(biggoom_factor_p.ival) / 500.0f);
+    bigGoomLimit = goomLimit * (1.0f + bigGoomFactor / 500.0f);
     maxAccelSinceLastReset = 0;
   }
-
-  // Mise a jour des parametres pour la GUI
-  volume_p.fval = volume;
-  volume_p.change_listener(&volume_p);
-  speed_p.fval = speed * 4;
-  speed_p.change_listener(&speed_p);
-  accel_p.fval = acceleration;
-  accel_p.change_listener(&accel_p);
-
-  goom_limit_p.fval = goomLimit;
-  goom_limit_p.change_listener(&goom_limit_p);
-  goom_power_p.fval = goomPower;
-  goom_power_p.change_listener(&goom_power_p);
-  last_goom_p.fval = 1.0F - static_cast<float>(timeSinceLastGoom) / 20.0F;
-  last_goom_p.change_listener(&last_goom_p);
-  last_biggoom_p.fval = 1.0F - static_cast<float>(timeSinceLastBigGoom) / 40.0F;
-  last_biggoom_p.change_listener(&last_biggoom_p);
 
   // bigGoomLimit == goomLimit*9/8+7 ?
 }

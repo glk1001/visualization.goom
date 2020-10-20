@@ -349,20 +349,19 @@ struct FilterDataWrapper
   ZoomFilterData filterData;
   float generalSpeed;
 
-  PluginParam enabled_bp;
-  PluginParameters params;
+  bool enabled = true;
 
-  int32_t* brutS;
+  int32_t* brutS = nullptr;
   std::vector<int32_t> freebrutS; // source
-  int32_t* brutD;
+  int32_t* brutD = nullptr;
   std::vector<int32_t> freebrutD; // dest
-  int32_t* brutT;
+  int32_t* brutT = nullptr;
   std::vector<int32_t> freebrutT; // temp (en cours de generation)
 
   uint32_t prevX;
   uint32_t prevY;
 
-  bool mustInitBuffers;
+  bool mustInitBuffers = true;
   int interlaceStart;
 
   // modif by jeko : fixedpoint : buffration = (16:16) (donc 0<=buffration<=2^16)
@@ -375,8 +374,7 @@ struct FilterDataWrapper
   template<class Archive>
   void serialize(Archive& ar)
   {
-    ar(filterData, generalSpeed, enabled_bp, prevX, prevY, mustInitBuffers, interlaceStart,
-       buffratio);
+    ar(filterData, generalSpeed, enabled, prevX, prevY, mustInitBuffers, interlaceStart, buffratio);
   };
 };
 
@@ -865,7 +863,7 @@ void zoomFilterFastRGB(PluginInfo* goomInfo,
 
   data->stats.doZoomFilterFastRGB();
 
-  if (!data->enabled_bp.bval)
+  if (!data->enabled)
   {
     return;
   }
@@ -1116,12 +1114,7 @@ static void zoomFilterVisualFXWrapper_init(VisualFX* _this, PluginInfo* info)
   data->buffratio = 0;
   data->firedec.resize(0);
 
-  data->enabled_bp = secure_b_param("Enabled", 1);
-
-  data->params.name = "ZoomFilter";
-  data->params.params.push_back(&data->enabled_bp);
-
-  _this->params = &data->params;
+  data->enabled = true;
   _this->fx_data = data;
 
   /** modif d'optim by Jeko : precalcul des 4 coefs resultant des 2 pos */

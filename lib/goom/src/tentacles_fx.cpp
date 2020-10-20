@@ -735,6 +735,13 @@ void TentaclesWrapper::prettyMoveStart(const float acceleration, const int32_t t
   currentDriver->setRoughTentacles(true);
 }
 
+/****
+inline float getRapport(const float accelvar)
+{
+  return std::min(1.12f, 1.2f * (1.0f + 2.0f * (accelvar - 1.0f)));
+}
+****/
+
 void TentaclesWrapper::prettyMoveFinish()
 {
   prettyMoveHappeningTimer = 0;
@@ -884,18 +891,13 @@ void tentacle_fx_init(VisualFX* _this, PluginInfo* info)
 
   data->tentacles = new TentaclesWrapper{info->screen.width, info->screen.height};
 
-  data->enabled_bp = secure_b_param("Enabled", 1);
-  data->params.name = "3D Tentacles";
-  data->params.params.push_back(&data->enabled_bp);
-
-  _this->params = &data->params;
   _this->fx_data = data;
 }
 
 void tentacle_fx_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* prevBuff, Pixel* currentBuff)
 {
   TentacleFXData* data = static_cast<TentacleFXData*>(_this->fx_data);
-  if (!data->enabled_bp.bval)
+  if (!data->enabled)
   {
     return;
   }
@@ -906,7 +908,7 @@ void tentacle_fx_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* prevBuff, P
 void tentacle_fx_update_no_draw(VisualFX* _this, PluginInfo* goomInfo)
 {
   TentacleFXData* data = static_cast<TentacleFXData*>(_this->fx_data);
-  if (!data->enabled_bp.bval)
+  if (!data->enabled)
   {
     return;
   }

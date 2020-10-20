@@ -31,10 +31,9 @@ struct ConvData
   bool allowOverexposed = false;
   uint32_t countSinceOverexposed = 0;
   static constexpr uint32_t maxCountSinceOverexposed = 100;
-  PluginParam light;
-  PluginParam factor_adj_p;
-  PluginParam factor_p;
-  PluginParameters params;
+  float screenBrightness;
+  float flashIntensity;
+  float factor;
 
   template<class Archive>
   void serialize(Archive&);
@@ -43,7 +42,7 @@ struct ConvData
 template<class Archive>
 void ConvData::serialize(Archive& ar)
 {
-  ar(buffSettings, allowOverexposed, countSinceOverexposed, light, factor_adj_p, factor_p);
+  ar(buffSettings, allowOverexposed, countSinceOverexposed, screenBrightness, flashIntensity);
 }
 
 static void convolve_init(VisualFX* _this, PluginInfo*)
@@ -55,22 +54,10 @@ static void convolve_init(VisualFX* _this, PluginInfo*)
   data->allowOverexposed = false;
   data->countSinceOverexposed = 0;
 
-  data->light = secure_f_param("Screen Brightness");
-  data->light.fval = 100.0f;
+  data->screenBrightness = 100;
 
-  data->factor_adj_p = secure_f_param("Flash Intensity");
-  data->factor_adj_p.fval = 30.0f;
-
-  data->factor_p = secure_f_feedback("Factor");
-
-  data->params.name = "Bright Flash";
-  data->params.params.push_back(&data->light);
-  data->params.params.push_back(&data->factor_adj_p);
-  data->params.params.push_back(nullptr);
-  data->params.params.push_back(&data->factor_p);
-  data->params.params.push_back(nullptr);
-
-  _this->params = &data->params;
+  data->flashIntensity = 30;
+  data->factor = 0.5;
 }
 
 static void saveState(VisualFX* _this, std::ostream& f)
@@ -119,16 +106,15 @@ static void convolve_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* src, Pi
 {
   ConvData* data = static_cast<ConvData*>(_this->fx_data);
 
-  const float ff = (data->factor_p.fval * data->factor_adj_p.fval + data->light.fval) / 100.0f;
+  const float ff = (data->factor * data->flashIntensity + data->screenBrightness) / 100.0f;
   const uint32_t iff = static_cast<uint32_t>(std::round(ff * 256 + 0.0001f));
   constexpr float increaseRate = 1.3;
   constexpr float decayRate = 0.955;
   if (goomInfo->sound->getTimeSinceLastGoom() == 0)
   {
-    data->factor_p.fval += goomInfo->sound->getGoomPower() * increaseRate;
+    data->factor += goomInfo->sound->getGoomPower() * increaseRate;
   }
-  data->factor_p.fval *= decayRate;
-  data->factor_p.change_listener(&data->factor_p);
+  data->factor *= decayRate;
 
   if (data->allowOverexposed)
   {
@@ -166,7 +152,7 @@ static void convolve_setBuffSettings(VisualFX* _this, const FXBuffSettings& sett
 
 static std::string getFxName(VisualFX*)
 {
-  return "ZoomFilter";
+  return "Convolve";
 }
 
 VisualFX convolve_create(void)

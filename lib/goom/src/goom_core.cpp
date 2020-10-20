@@ -972,11 +972,11 @@ PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
   goomInfo->tentacles_fx.init(&goomInfo->tentacles_fx, goomInfo);
   goomInfo->convolve_fx.init(&goomInfo->convolve_fx, goomInfo);
   goomInfo->ifs_fx.init(&goomInfo->ifs_fx, goomInfo);
-  plugin_info_add_visual(goomInfo, &goomInfo->zoomFilter_fx);
-  plugin_info_add_visual(goomInfo, &goomInfo->tentacles_fx);
-  plugin_info_add_visual(goomInfo, &goomInfo->star_fx);
-  plugin_info_add_visual(goomInfo, &goomInfo->convolve_fx);
-  plugin_info_add_visual(goomInfo, &goomInfo->ifs_fx);
+  goomInfo->visuals.push_back(&goomInfo->zoomFilter_fx);
+  goomInfo->visuals.push_back(&goomInfo->tentacles_fx);
+  goomInfo->visuals.push_back(&goomInfo->star_fx);
+  goomInfo->visuals.push_back(&goomInfo->convolve_fx);
+  goomInfo->visuals.push_back(&goomInfo->ifs_fx);
 
   goomDots = std::unique_ptr<VisualFx>{new GoomDots{goomInfo}};
 

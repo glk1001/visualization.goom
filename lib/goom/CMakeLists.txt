@@ -17,7 +17,6 @@ set (SRCE_FILES
                  src/flying_stars_fx.cpp
                  src/gfontlib.cpp
                  src/gfontrle.cpp
-                 src/goom_config_param.cpp
                  src/goom_core.cpp
                  src/goom_dots_fx.cpp
                  src/goom_draw.cpp

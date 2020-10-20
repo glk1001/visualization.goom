@@ -175,7 +175,7 @@ struct FSData
 {
   explicit FSData(const PluginInfo*);
 
-  PluginParam enabled_bp;
+  bool enabled = true;
 
   ColorMaps colorMaps;
   ColorMapGroup currentColorGroup;
@@ -190,12 +190,12 @@ struct FSData
       {ColorMapGroup::misc, 1},
   }}};
 
-  uint32_t maxAge = 15;
-
   StarModes fx_mode;
   size_t numStars;
   size_t maxStars;
   std::vector<Star> stars;
+  uint32_t maxStarAge = 15;
+  uint32_t nbStarsLimit;
 
   float min_age;
   float max_age;
@@ -204,20 +204,11 @@ struct FSData
   bool useSingleBufferOnly;
   GoomDraw draw;
 
-  PluginParam min_age_p;
-  PluginParam max_age_p;
-  PluginParam nbStars_p;
-  PluginParam nbStars_limit_p;
-  PluginParam fx_mode_p;
-
-  PluginParameters params;
-
   template<class Archive>
   void serialize(Archive& ar)
   {
-    ar(currentColorGroup, maxAge, fx_mode, numStars, maxStars, stars, min_age, max_age,
-       buffSettings, useSingleBufferOnly, draw, min_age_p, max_age_p, nbStars_p, nbStars_limit_p,
-       fx_mode_p);
+    ar(currentColorGroup, maxStarAge, fx_mode, numStars, maxStars, stars, min_age, max_age,
+       buffSettings, useSingleBufferOnly, draw, nbStarsLimit);
   }
 };
 
@@ -261,33 +252,15 @@ static void fs_init(VisualFX* _this, PluginInfo* goomInfo)
 
   FSData* data = new FSData{goomInfo};
 
-  data->max_age_p = secure_i_param("Fireworks Smallest Bombs");
-  data->max_age_p.ival = 80;
+  // Fireworks Smallest Bombs
+  data->max_age = 80;
 
-  data->min_age_p = secure_i_param("Fireworks Largest Bombs");
-  data->min_age_p.ival = 99;
+  // Fireworks Largest Bombs
+  data->min_age = 99;
 
-  data->nbStars_limit_p = secure_i_param("Max Number of Particules");
-  data->nbStars_limit_p.ival = 512;
+  // Max Number of Particules
+  data->nbStarsLimit = 512;
 
-  data->fx_mode_p = secure_i_param("FX Mode");
-  data->fx_mode_p.ival = static_cast<int>(data->fx_mode);
-
-  data->nbStars_p = secure_f_feedback("Number of Particules (% of Max)");
-
-  data->params.name = "Particule System";
-  data->params.params.push_back(&data->fx_mode_p);
-  data->params.params.push_back(&data->nbStars_limit_p);
-  data->params.params.push_back(nullptr);
-  data->params.params.push_back(&data->min_age_p);
-  data->params.params.push_back(&data->max_age_p);
-  data->params.params.push_back(nullptr);
-  data->params.params.push_back(&data->nbStars_p);
-
-  data->enabled_bp = secure_b_param("Flying Stars", 1);
-  data->params.params.push_back(&data->enabled_bp);
-
-  _this->params = &data->params;
   _this->fx_data = data;
 }
 
@@ -371,7 +344,7 @@ static void fs_sound_event_occured(VisualFX* _this, PluginInfo* goomInfo)
   const uint32_t halfWidth = goomInfo->screen.width / 2;
   const uint32_t halfHeight = goomInfo->screen.height / 2;
   data->currentColorGroup = data->colorMaps.getRandomGroup();
-  data->maxAge = minStarAge + getNRand(maxStarExtraAge);
+  data->maxStarAge = minStarAge + getNRand(maxStarExtraAge);
   data->useSingleBufferOnly = probabilityOfMInN(1, 10);
 
   size_t max = 100 + static_cast<size_t>((1.0f + goomInfo->sound->getGoomPower()) * getNRand(150));
@@ -416,7 +389,7 @@ static void fs_sound_event_occured(VisualFX* _this, PluginInfo* goomInfo)
       break;
     case StarModes::fountain:
       stats.fountainFxChosen();
-      data->maxAge *= 2.0 / 3.0;
+      data->maxStarAge *= 2.0 / 3.0;
       my = goomInfo->screen.height + 2;
       mx = halfWidth;
       vage = 0.001f;
@@ -469,18 +442,10 @@ static void fs_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* prevBuff, Pix
 {
   FSData* data = static_cast<FSData*>(_this->fx_data);
 
-  if (!data->enabled_bp.bval)
+  if (!data->enabled)
   {
     return;
   }
-
-  // Get the new parameters values
-  data->min_age = 1.0f - static_cast<float>(data->min_age_p.ival) / 100.0f;
-  data->max_age = 1.0f - static_cast<float>(data->max_age_p.ival) / 100.0f;
-  data->nbStars_p.fval = static_cast<float>(data->numStars) / static_cast<float>(data->maxStars);
-  data->nbStars_p.change_listener(&data->nbStars_p);
-  data->maxStars = static_cast<size_t>(data->nbStars_limit_p.ival);
-  data->fx_mode = static_cast<StarModes>(data->fx_mode_p.ival);
 
   // look for events
   if (goomInfo->sound->getTimeSinceLastGoom() < 1)
@@ -490,9 +455,7 @@ static void fs_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* prevBuff, Pix
     {
       // Give a slight weight towards noFx mode by using numFX + 2.
       const uint32_t newVal = getNRand(numFx + 2);
-      const StarModes newMode = newVal >= numFx ? StarModes::noFx : static_cast<StarModes>(newVal);
-      data->fx_mode_p.ival = static_cast<int>(newMode);
-      data->fx_mode_p.change_listener(&data->fx_mode_p);
+      data->fx_mode = newVal >= numFx ? StarModes::noFx : static_cast<StarModes>(newVal);
     }
   }
 
@@ -504,14 +467,14 @@ static void fs_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* prevBuff, Pix
     updateStar(&data->stars[i]);
 
     // dead particule
-    if (data->stars[i].age >= data->maxAge)
+    if (data->stars[i].age >= data->maxStarAge)
     {
       stats.deadStar();
       continue;
     }
 
     // choose the color of the particule
-    const float tAge = data->stars[i].age / static_cast<float>(data->maxAge);
+    const float tAge = data->stars[i].age / static_cast<float>(data->maxStarAge);
     const uint32_t color = data->stars[i].currentColorMap->getColor(tAge);
     const uint32_t lowColor = getLowColor(data, i, tAge);
     const float thicknessFactor = getRandInRange(1.0F, 3.0F);
@@ -554,7 +517,7 @@ static void fs_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* prevBuff, Pix
     if ((data->stars[i].x > static_cast<float>(goomInfo->screen.width + 64)) ||
         ((data->stars[i].vy >= 0) &&
          (data->stars[i].y - 16 * data->stars[i].vy > goomInfo->screen.height)) ||
-        (data->stars[i].x < -64) || (data->stars[i].age >= data->maxAge))
+        (data->stars[i].x < -64) || (data->stars[i].age >= data->maxStarAge))
     {
       data->stars[i] = data->stars[data->numStars - 1];
       data->numStars--;
@@ -586,8 +549,7 @@ VisualFX flying_star_create(void)
                   .loadState = loadState,
                   .save = nullptr,
                   .restore = nullptr,
-                  .fx_data = nullptr,
-                  .params = nullptr};
+                  .fx_data = nullptr};
 }
 
 void flying_star_log_stats(VisualFX*, const StatsLogValueFunc logVal)

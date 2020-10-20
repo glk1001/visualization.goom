@@ -16,7 +16,6 @@ void plugin_info_init(PluginInfo* pp)
   logDebug("Starting plugin_info_init.");
 
   pp->sound = std::make_unique<SoundInfo>();
-  pp->params.push_back(pp->sound->getParams());
 
   /* data for the update loop */
   pp->update.lockvar = 0;
@@ -66,18 +65,6 @@ void plugin_info_init(PluginInfo* pp)
       .hPlaneEffectAmplitude = ZoomFilterData::defaultHPlaneEffectAmplitude,
       .vPlaneEffectAmplitude = ZoomFilterData::defaultVPlaneEffectAmplitude,
   };
-}
-
-void plugin_info_add_visual(PluginInfo* p, VisualFX* visual)
-{
-  p->visuals.push_back(visual);
-
-  if (!visual->params)
-  {
-    return;
-  }
-
-  p->params.push_back(*visual->params);
 }
 
 } // namespace goom

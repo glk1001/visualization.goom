@@ -320,8 +320,7 @@ struct IfsData
 {
   IfsData(const uint32_t screenWidth, uint32_t screenHeight);
 
-  PluginParam enabled_bp;
-  PluginParameters params;
+  bool enabled = true;
 
   GoomDraw draw;
   Colorizer colorizer;
@@ -492,8 +491,6 @@ static void deleteIfsBuffers(Fractal* fractal)
 
 static void initIfs(PluginInfo* goomInfo, IfsData* data)
 {
-  data->enabled_bp = secure_b_param("Enabled", 1);
-
   if (!data->root)
   {
     data->root = std::make_unique<Fractal>();
@@ -1126,7 +1123,7 @@ static void ifs_vfx_apply(VisualFX* _this,
     data->initialized = true;
     initIfs(goomInfo, data);
   }
-  if (!data->enabled_bp.bval)
+  if (!data->enabled)
   {
     return;
   }
@@ -1147,15 +1144,10 @@ static void ifs_vfx_init(VisualFX* _this, PluginInfo* goomInfo)
 {
   IfsData* data = new IfsData{goomInfo->screen.width, goomInfo->screen.height};
 
-  data->enabled_bp = secure_b_param("Enabled", 1);
-  data->params.name = "Ifs";
-  data->params.params.push_back(&data->enabled_bp);
-
   data->root = nullptr;
   data->initialized = false;
 
   _this->fx_data = data;
-  _this->params = &data->params;
 
   initIfs(goomInfo, data);
   data->initialized = true;

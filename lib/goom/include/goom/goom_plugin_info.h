@@ -3,7 +3,6 @@
 
 #include "filters.h"
 #include "goom_config.h"
-#include "goom_config_param.h"
 #include "goom_graphic.h"
 #include "goom_visual_fx.h"
 #include "lines_fx.h"
@@ -36,9 +35,6 @@ enum class GoomDrawable
  */
 struct PluginInfo
 {
-  // public data
-  std::vector<PluginParameters> params;
-
   // private data
   struct Screen
   {
@@ -111,9 +107,6 @@ struct PluginInfo
 };
 
 void plugin_info_init(PluginInfo* p);
-
-// i = [0..p->nbVisual-1]
-void plugin_info_add_visual(PluginInfo* p, VisualFX* visual);
 
 } // namespace goom
 #endif
