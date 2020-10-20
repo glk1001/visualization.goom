@@ -51,10 +51,11 @@ struct PluginInfo
   //  std::vector<std::unique_ptr<VisualFX>> newVisuals;
 
   // The known FX
-  VisualFX convolve_fx;
   VisualFX star_fx;
   VisualFX zoomFilter_fx;
   VisualFX ifs_fx;
+
+  std::unique_ptr<VisualFx> convolve_fx;
   std::unique_ptr<VisualFx> tentacles_fx;
   std::unique_ptr<VisualFx> goomDots;
 

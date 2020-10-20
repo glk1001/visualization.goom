@@ -2,7 +2,6 @@
 #define _TENTACLES_FX_H
 
 #include "goom_graphic.h"
-#include "goom_plugin_info.h"
 #include "goom_visual_fx.h"
 
 #include <cstdint>
@@ -14,6 +13,7 @@
 namespace goom
 {
 
+struct PluginInfo;
 class TentaclesWrapper;
 
 class TentaclesFx : public VisualFx

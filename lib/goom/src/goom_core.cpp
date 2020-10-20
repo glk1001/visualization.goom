@@ -934,9 +934,9 @@ PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
 
   goomInfo->star_fx = flying_star_create();
   goomInfo->zoomFilter_fx = zoomFilterVisualFXWrapper_create();
-  goomInfo->convolve_fx = convolve_create();
   goomInfo->ifs_fx = ifs_visualfx_create();
 
+  goomInfo->convolve_fx.reset(new ConvolveFx{goomInfo});
   goomInfo->tentacles_fx.reset(new TentaclesFx{goomInfo});
   goomInfo->goomDots.reset(new GoomDots{goomInfo});
 
@@ -965,13 +965,12 @@ PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
 
   goomInfo->star_fx.init(&goomInfo->star_fx, goomInfo);
   goomInfo->zoomFilter_fx.init(&goomInfo->zoomFilter_fx, goomInfo);
-  goomInfo->convolve_fx.init(&goomInfo->convolve_fx, goomInfo);
   goomInfo->ifs_fx.init(&goomInfo->ifs_fx, goomInfo);
   goomInfo->visuals.push_back(&goomInfo->zoomFilter_fx);
   goomInfo->visuals.push_back(&goomInfo->star_fx);
-  goomInfo->visuals.push_back(&goomInfo->convolve_fx);
   goomInfo->visuals.push_back(&goomInfo->ifs_fx);
 
+  goomInfo->newVisuals.emplace_back(goomInfo->convolve_fx.get());
   goomInfo->newVisuals.emplace_back(goomInfo->tentacles_fx.get());
   goomInfo->newVisuals.emplace_back(goomInfo->goomDots.get());
 
@@ -1002,6 +1001,7 @@ void goom_set_resolution(PluginInfo* goomInfo, const uint16_t resx, const uint16
   goomLinesSetResolution(goomInfo->gmline1, resx, goomInfo->screen.height);
   goomLinesSetResolution(goomInfo->gmline2, resx, goomInfo->screen.height);
 
+  goomInfo->convolve_fx.reset(new ConvolveFx{goomInfo});
   goomInfo->tentacles_fx.reset(new TentaclesFx{goomInfo});
   goomInfo->goomDots.reset(new GoomDots{goomInfo});
 }
@@ -1160,7 +1160,7 @@ void goom_update(PluginInfo* goomInfo,
   displayLinesIfInAGoom(goomInfo, data);
 
   // affichage et swappage des buffers...
-  goomInfo->convolve_fx.apply(&goomInfo->convolve_fx, goomInfo, goomInfo->p1, goomInfo->outputBuf);
+  goomInfo->convolve_fx->apply(goomInfo->p1, goomInfo->outputBuf);
   std::swap(goomInfo->p1, goomInfo->p2);
   goomInfo->cycle++;
 
@@ -1197,7 +1197,6 @@ void goom_close(PluginInfo* goomInfo)
   goomLinesFree(&goomInfo->gmline2);
 
   goomInfo->ifs_fx.free(&goomInfo->ifs_fx);
-  goomInfo->convolve_fx.free(&goomInfo->convolve_fx);
   goomInfo->star_fx.free(&goomInfo->star_fx);
   goomInfo->zoomFilter_fx.free(&goomInfo->zoomFilter_fx);
 
