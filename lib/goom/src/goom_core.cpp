@@ -910,8 +910,6 @@ inline bool changeFilterModeEventHappens(PluginInfo* goomInfo)
 
 static void setNextFilterMode(PluginInfo*);
 
-static std::unique_ptr<VisualFx> goomDots{nullptr};
-
 static uint32_t timeInState = 0;
 
 PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
@@ -922,27 +920,25 @@ PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
   states.doRandomStateChange();
 
   PluginInfo* goomInfo = new PluginInfo;
-
   plugin_info_init(goomInfo);
-
-  goomInfo->star_fx = flying_star_create();
-  goomInfo->zoomFilter_fx = zoomFilterVisualFXWrapper_create();
-  goomInfo->tentacles_fx = tentacle_fx_create();
-  goomInfo->convolve_fx = convolve_create();
-  goomInfo->ifs_fx = ifs_visualfx_create();
-
   goomInfo->screen.width = resx;
   goomInfo->screen.height = resy;
   goomInfo->screen.size = resx * resy;
-
   initBuffers(goomInfo, goomInfo->screen.size);
+  goomInfo->cycle = 0;
 
   if (seed > 0)
   {
     setRandSeed(static_cast<uint64_t>(seed));
   }
 
-  goomInfo->cycle = 0;
+  goomInfo->star_fx = flying_star_create();
+  goomInfo->zoomFilter_fx = zoomFilterVisualFXWrapper_create();
+  goomInfo->convolve_fx = convolve_create();
+  goomInfo->ifs_fx = ifs_visualfx_create();
+
+  goomInfo->tentacles_fx.reset(new TentaclesFx{goomInfo});
+  goomInfo->goomDots.reset(new GoomDots{goomInfo});
 
   const uint32_t lRed = getRedLineColor();
   const uint32_t lGreen = getGreenLineColor();
@@ -969,16 +965,17 @@ PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
 
   goomInfo->star_fx.init(&goomInfo->star_fx, goomInfo);
   goomInfo->zoomFilter_fx.init(&goomInfo->zoomFilter_fx, goomInfo);
-  goomInfo->tentacles_fx.init(&goomInfo->tentacles_fx, goomInfo);
   goomInfo->convolve_fx.init(&goomInfo->convolve_fx, goomInfo);
   goomInfo->ifs_fx.init(&goomInfo->ifs_fx, goomInfo);
   goomInfo->visuals.push_back(&goomInfo->zoomFilter_fx);
-  goomInfo->visuals.push_back(&goomInfo->tentacles_fx);
   goomInfo->visuals.push_back(&goomInfo->star_fx);
   goomInfo->visuals.push_back(&goomInfo->convolve_fx);
   goomInfo->visuals.push_back(&goomInfo->ifs_fx);
 
-  goomDots = std::unique_ptr<VisualFx>{new GoomDots{goomInfo}};
+  goomInfo->newVisuals.emplace_back(goomInfo->tentacles_fx.get());
+  goomInfo->newVisuals.emplace_back(goomInfo->goomDots.get());
+
+  // visuals start()
 
   timeInState = 0;
   changeState(goomInfo);
@@ -1005,7 +1002,8 @@ void goom_set_resolution(PluginInfo* goomInfo, const uint16_t resx, const uint16
   goomLinesSetResolution(goomInfo->gmline1, resx, goomInfo->screen.height);
   goomLinesSetResolution(goomInfo->gmline2, resx, goomInfo->screen.height);
 
-  goomDots = std::unique_ptr<VisualFx>{new GoomDots{goomInfo}};
+  goomInfo->tentacles_fx.reset(new TentaclesFx{goomInfo});
+  goomInfo->goomDots.reset(new GoomDots{goomInfo});
 }
 
 int goom_set_screenbuffer(PluginInfo* goomInfo, uint32_t* buffer)
@@ -1179,7 +1177,7 @@ void goom_close(PluginInfo* goomInfo)
   stats.setSeedLastValue(getRandSeed());
 
   stats.log(logStatsValue);
-  tentacle_log_stats(&goomInfo->tentacles_fx, logStatsValue);
+  goomInfo->tentacles_fx->log(logStatsValue);
   filter_log_stats(&goomInfo->zoomFilter_fx, logStatsValue);
   flying_star_log_stats(&goomInfo->star_fx, logStatsValue);
 
@@ -1192,6 +1190,8 @@ void goom_close(PluginInfo* goomInfo)
     free(goomInfo->back);
   }
 
+  // visuals finish()
+
   goomInfo->pixel = goomInfo->back = nullptr;
   goomLinesFree(&goomInfo->gmline1);
   goomLinesFree(&goomInfo->gmline2);
@@ -1199,7 +1199,6 @@ void goom_close(PluginInfo* goomInfo)
   goomInfo->ifs_fx.free(&goomInfo->ifs_fx);
   goomInfo->convolve_fx.free(&goomInfo->convolve_fx);
   goomInfo->star_fx.free(&goomInfo->star_fx);
-  goomInfo->tentacles_fx.free(&goomInfo->tentacles_fx);
   goomInfo->zoomFilter_fx.free(&goomInfo->zoomFilter_fx);
 
   // Release PluginInfo
@@ -1829,15 +1828,14 @@ static void applyTentaclesIfRequired(PluginInfo* goomInfo)
 {
   if (!goomInfo->curGDrawables.contains(GoomDrawable::tentacles))
   {
-    tentacle_fx_update_no_draw(&goomInfo->tentacles_fx, goomInfo);
+    goomInfo->tentacles_fx->applyNoDraw();
     return;
   }
 
   logDebug("goomInfo->curGDrawables tentacles is set.");
   stats.doTentacles();
-  goomInfo->tentacles_fx.setBuffSettings(&goomInfo->tentacles_fx,
-                                         states.getCurrentBuffSettings(GoomDrawable::tentacles));
-  goomInfo->tentacles_fx.apply(&goomInfo->tentacles_fx, goomInfo, goomInfo->p2, goomInfo->p1);
+  goomInfo->tentacles_fx->setBuffSettings(states.getCurrentBuffSettings(GoomDrawable::tentacles));
+  goomInfo->tentacles_fx->apply(goomInfo->p2, goomInfo->p1);
 }
 
 static void applyStarsIfRequired(PluginInfo* goomInfo)
@@ -2237,7 +2235,7 @@ static void drawDotsIfRequired(PluginInfo* goomInfo)
 
   logDebug("goomInfo->curGDrawables points is set.");
   stats.doDots();
-  goomDots->apply(goomInfo->p2, goomInfo->p1);
+  goomInfo->goomDots->apply(goomInfo->p2, goomInfo->p1);
   logDebug("goomInfo->sound->getTimeSinceLastGoom() = {}", goomInfo->sound->getTimeSinceLastGoom());
 }
 

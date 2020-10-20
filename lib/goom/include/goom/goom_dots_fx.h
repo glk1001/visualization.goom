@@ -7,6 +7,8 @@
 #include "goomutils/colormap.h"
 
 #include <cstdint>
+#include <istream>
+#include <ostream>
 #include <string>
 #include <vector>
 
@@ -24,11 +26,15 @@ public:
 
   void setBuffSettings(const FXBuffSettings&) override;
 
+  void start() override;
+
   void apply(Pixel* prevBuff, Pixel* currentBuff) override;
 
   std::string getFxName() const override;
   void saveState(std::ostream&) override;
   void loadState(std::istream&) override;
+
+  void finish() override;
 
 private:
   PluginInfo* const goomInfo;

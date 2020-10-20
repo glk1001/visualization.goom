@@ -19,7 +19,9 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <istream>
 #include <memory>
+#include <ostream>
 #include <stdexcept>
 #include <string>
 #include <tuple>
@@ -881,77 +883,62 @@ void TentaclesWrapper::prettyMove(const float acceleration)
           cycle, doRotation);
 }
 
-/*
- * VisualFX wrapper for the tentacles
- */
 
-void tentacle_fx_init(VisualFX* _this, PluginInfo* info)
+// TODO PASS GoomINFO to wrapper
+TentaclesFx::TentaclesFx(PluginInfo* info)
+  : goomInfo{info}, tentacles{new TentaclesWrapper{goomInfo->screen.width, goomInfo->screen.height}}
 {
-  TentacleFXData* data = new TentacleFXData{};
-
-  data->tentacles = new TentaclesWrapper{info->screen.width, info->screen.height};
-
-  _this->fx_data = data;
 }
 
-void tentacle_fx_apply(VisualFX* _this, PluginInfo* goomInfo, Pixel* prevBuff, Pixel* currentBuff)
+void TentaclesFx::setBuffSettings(const FXBuffSettings& settings)
 {
-  TentacleFXData* data = static_cast<TentacleFXData*>(_this->fx_data);
-  if (!data->enabled)
+  tentacles->setBuffSettings(settings);
+}
+
+void TentaclesFx::start()
+{
+}
+
+void TentaclesFx::finish()
+{
+}
+
+void TentaclesFx::log(const StatsLogValueFunc logVal) const
+{
+  tentacles->logStats(logVal);
+}
+
+void TentaclesFx::apply(Pixel* prevBuff, Pixel* currentBuff)
+{
+  if (!enabled)
   {
     return;
   }
 
-  data->tentacles->update(goomInfo, prevBuff, currentBuff);
+  tentacles->update(goomInfo, prevBuff, currentBuff);
 }
 
-void tentacle_fx_update_no_draw(VisualFX* _this, PluginInfo* goomInfo)
+void TentaclesFx::applyNoDraw()
 {
-  TentacleFXData* data = static_cast<TentacleFXData*>(_this->fx_data);
-  if (!data->enabled)
+  if (!enabled)
   {
     return;
   }
 
-  data->tentacles->updateWithNoDraw(goomInfo);
+  tentacles->updateWithNoDraw(goomInfo);
 }
 
-void tentacle_log_stats(VisualFX* _this, const StatsLogValueFunc logVal)
+std::string TentaclesFx::getFxName() const
 {
-  TentacleFXData* data = static_cast<TentacleFXData*>(_this->fx_data);
-  data->tentacles->logStats(logVal);
+  return "Tentacles FX";
 }
 
-void tentacle_fx_free(VisualFX* _this)
+void TentaclesFx::saveState(std::ostream&)
 {
-  TentacleFXData* data = static_cast<TentacleFXData*>(_this->fx_data);
-
-  tentacle_free(data);
-
-  delete data;
 }
 
-static void tentacle_fx_setBuffSettings(VisualFX* _this, const FXBuffSettings& settings)
+void TentaclesFx::loadState(std::istream&)
 {
-  TentacleFXData* data = static_cast<TentacleFXData*>(_this->fx_data);
-  data->tentacles->setBuffSettings(settings);
-}
-
-VisualFX tentacle_fx_create(void)
-{
-  VisualFX fx;
-  fx.init = tentacle_fx_init;
-  fx.setBuffSettings = tentacle_fx_setBuffSettings;
-  fx.apply = tentacle_fx_apply;
-  fx.free = tentacle_fx_free;
-  fx.save = nullptr;
-  fx.restore = nullptr;
-  return fx;
-}
-
-void tentacle_free(TentacleFXData* data)
-{
-  delete data->tentacles;
 }
 
 } // namespace goom

@@ -352,11 +352,11 @@ struct FilterDataWrapper
   bool enabled = true;
 
   int32_t* brutS = nullptr;
-  std::vector<int32_t> freebrutS; // source
+  std::vector<int32_t> freebrutS{}; // source
   int32_t* brutD = nullptr;
-  std::vector<int32_t> freebrutD; // dest
+  std::vector<int32_t> freebrutD{}; // dest
   int32_t* brutT = nullptr;
-  std::vector<int32_t> freebrutT; // temp (en cours de generation)
+  std::vector<int32_t> freebrutT{}; // temp (en cours de generation)
 
   uint32_t prevX;
   uint32_t prevY;

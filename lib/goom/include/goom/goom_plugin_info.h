@@ -46,14 +46,17 @@ struct PluginInfo
 
   std::unique_ptr<SoundInfo> sound;
 
-  std::vector<VisualFX*> visuals; // pointers to all the visual fx
+  std::vector<VisualFX*> visuals;
+  std::vector<VisualFx*> newVisuals;
+  //  std::vector<std::unique_ptr<VisualFX>> newVisuals;
 
   // The known FX
   VisualFX convolve_fx;
   VisualFX star_fx;
   VisualFX zoomFilter_fx;
-  VisualFX tentacles_fx;
   VisualFX ifs_fx;
+  std::unique_ptr<VisualFx> tentacles_fx;
+  std::unique_ptr<VisualFx> goomDots;
 
   // image buffers
   uint32_t* pixel;

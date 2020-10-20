@@ -59,6 +59,14 @@ void GoomDots::setBuffSettings(const FXBuffSettings& settings)
   draw.setAllowOverexposed(buffSettings.allowOverexposed);
 }
 
+void GoomDots::start()
+{
+}
+
+void GoomDots::finish()
+{
+}
+
 std::string GoomDots::getFxName() const
 {
   return "goom dots";

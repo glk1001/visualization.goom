@@ -6,23 +6,42 @@
 #include "goom_visual_fx.h"
 
 #include <cstdint>
+#include <istream>
+#include <memory>
+#include <ostream>
+#include <string>
 
 namespace goom
 {
 
 class TentaclesWrapper;
 
-struct TentacleFXData
+class TentaclesFx : public VisualFx
 {
-  bool enabled = true;
-  TentaclesWrapper* tentacles;
-};
+public:
+  TentaclesFx() = delete;
+  explicit TentaclesFx(PluginInfo*);
+  ~TentaclesFx() noexcept = default;
 
-VisualFX tentacle_fx_create();
-void tentacle_free(TentacleFXData*);
-void tentacle_fx_apply(VisualFX* _this, PluginInfo*, Pixel* prevBuff, Pixel* currentBuff);
-void tentacle_fx_update_no_draw(VisualFX* _this, PluginInfo* goomInfo);
-void tentacle_log_stats(VisualFX* _this, const StatsLogValueFunc);
+  void setBuffSettings(const FXBuffSettings&) override;
+
+  void start() override;
+
+  void applyNoDraw() override;
+  void apply(Pixel* prevBuff, Pixel* currentBuff) override;
+
+  std::string getFxName() const override;
+  void saveState(std::ostream&) override;
+  void loadState(std::istream&) override;
+
+  void log(const StatsLogValueFunc logVal) const override;
+  void finish() override;
+
+private:
+  PluginInfo* const goomInfo;
+  bool enabled = true;
+  std::unique_ptr<TentaclesWrapper> tentacles;
+};
 
 } // namespace goom
 #endif
