@@ -32,6 +32,8 @@
 #include <cereal/types/vector.hpp>
 #include <cmath>
 #include <cstdint>
+#include <fstream>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -339,91 +341,289 @@ using CoeffArray = union
   uint32_t intVal = 0;
 };
 
-static void generatePrecalCoef(uint32_t precalCoef[BUFFPOINTNB][BUFFPOINTNB]);
-
 // TODO repeated fields in here
-struct FilterDataWrapper
+struct ZoomFilterFxData
 {
+  explicit ZoomFilterFxData(const PluginInfo*);
+
   mutable FilterStats stats;
-
   ZoomFilterData filterData;
-  float generalSpeed;
 
-  bool enabled = true;
+  float generalSpeed = 0;
+  int interlaceStart = 0;
+  uint32_t prevX = 0;
+  uint32_t prevY = 0;
 
-  int32_t* brutS = nullptr;
   std::vector<int32_t> freebrutS{}; // source
-  int32_t* brutD = nullptr;
+  int32_t* brutS = nullptr;
   std::vector<int32_t> freebrutD{}; // dest
-  int32_t* brutT = nullptr;
+  int32_t* brutD = nullptr;
   std::vector<int32_t> freebrutT{}; // temp (en cours de generation)
+  int32_t* brutT = nullptr;
 
-  uint32_t prevX;
-  uint32_t prevY;
-
-  bool mustInitBuffers = true;
-  int interlaceStart;
-
-  // modif by jeko : fixedpoint : buffration = (16:16) (donc 0<=buffration<=2^16)
-  int buffratio;
-  std::vector<int32_t> firedec;
-
-  // modif d'optim by Jeko : precalcul des 4 coefs resultant des 2 pos
-  uint32_t precalCoef[BUFFPOINTNB][BUFFPOINTNB];
+  // modification by jeko : fixedpoint : buffratio = (16:16) (donc 0<=buffratio<=2^16)
+  int buffratio = 0;
 
   template<class Archive>
   void serialize(Archive& ar)
   {
-    ar(filterData, generalSpeed, enabled, prevX, prevY, mustInitBuffers, interlaceStart, buffratio);
+    ar(CEREAL_NVP(filterData), CEREAL_NVP(generalSpeed), CEREAL_NVP(prevX), CEREAL_NVP(prevY),
+       CEREAL_NVP(interlaceStart), CEREAL_NVP(buffratio));
   };
+
+  void makeZoomBufferStripe(const uint32_t interlaceIncrement);
+  void c_zoom(Pixel* expix1, Pixel* expix2);
+
+private:
+  std::vector<int32_t> firedec{};
+
+  // modif d'optim by Jeko : precalcul des 4 coefs resultant des 2 pos
+  uint32_t precalCoef[BUFFPOINTNB][BUFFPOINTNB];
+
+  void generateWaterFXHorizontalBuffer();
+  v2g zoomVector(const float x, const float y);
+  static void generatePrecalCoef(uint32_t precalCoef[16][16]);
 };
 
 template<class Archive>
 void ZoomFilterData::serialize(Archive& ar)
 {
-  ar(mode, vitesse, pertedec, middleX, middleY, reverse, hPlaneEffect, vPlaneEffect, waveEffect,
-     hypercosEffect, noisify, noiseFactor, blockyWavy, waveFreqFactor, waveAmplitude,
-     waveEffectType, scrunchAmplitude, speedwayAmplitude, amuletteAmplitude, crystalBallAmplitude,
-     hypercosFreq, hypercosAmplitude, hPlaneEffectAmplitude, vPlaneEffectAmplitude);
+  ar(CEREAL_NVP(mode), CEREAL_NVP(vitesse), CEREAL_NVP(middleX), CEREAL_NVP(middleY),
+     CEREAL_NVP(reverse), CEREAL_NVP(hPlaneEffect), CEREAL_NVP(vPlaneEffect),
+     CEREAL_NVP(waveEffect), CEREAL_NVP(hypercosEffect), CEREAL_NVP(noisify),
+     CEREAL_NVP(noiseFactor), CEREAL_NVP(blockyWavy), CEREAL_NVP(waveFreqFactor),
+     CEREAL_NVP(waveAmplitude), CEREAL_NVP(waveEffectType), CEREAL_NVP(scrunchAmplitude),
+     CEREAL_NVP(speedwayAmplitude), CEREAL_NVP(amuletteAmplitude), CEREAL_NVP(crystalBallAmplitude),
+     CEREAL_NVP(hypercosFreq), CEREAL_NVP(hypercosAmplitude), CEREAL_NVP(hPlaneEffectAmplitude),
+     CEREAL_NVP(vPlaneEffectAmplitude));
 }
 
-// pure c version of the zoom filter
-static void c_zoom(Pixel* expix1, Pixel* expix2, const FilterDataWrapper*);
-
-inline v2g zoomVector(PluginInfo* goomInfo, const float x, const float y)
+ZoomFilterFxData::ZoomFilterFxData(const PluginInfo* goomInfo)
+  : prevX{goomInfo->screen.width},
+    prevY{goomInfo->screen.height},
+    freebrutS(goomInfo->screen.width * goomInfo->screen.height * 2 + 128),
+    brutS{(int32_t*)((1 + (uintptr_t((freebrutS.data()))) / 128) * 128)},
+    freebrutD(goomInfo->screen.width * goomInfo->screen.height * 2 + 128),
+    brutD{(int32_t*)((1 + (uintptr_t((freebrutD.data()))) / 128) * 128)},
+    freebrutT(goomInfo->screen.width * goomInfo->screen.height * 2 + 128),
+    brutT{(int32_t*)((1 + (uintptr_t((freebrutT.data()))) / 128) * 128)},
+    firedec(prevY)
 {
-  FilterDataWrapper* data = static_cast<FilterDataWrapper*>(goomInfo->zoomFilter_fx.fx_data);
+  filterData.middleX = goomInfo->screen.width / 2;
+  filterData.middleY = goomInfo->screen.height / 2;
 
-  data->stats.doZoomVector();
+  generatePrecalCoef(precalCoef);
+  generateWaterFXHorizontalBuffer();
+  makeZoomBufferStripe(goomInfo->screen.height);
+
+  // Copy the data from temp to dest and source
+  memcpy(brutS, brutT, goomInfo->screen.width * goomInfo->screen.height * 2 * sizeof(int));
+  memcpy(brutD, brutT, goomInfo->screen.width * goomInfo->screen.height * 2 * sizeof(int));
+}
+
+void ZoomFilterFxData::generatePrecalCoef(uint32_t precalCoef[16][16])
+{
+  for (uint32_t coefh = 0; coefh < 16; coefh++)
+  {
+    for (uint32_t coefv = 0; coefv < 16; coefv++)
+    {
+      const uint32_t diffcoeffh = sqrtperte - coefh;
+      const uint32_t diffcoeffv = sqrtperte - coefv;
+
+      if (!(coefh || coefv))
+      {
+        precalCoef[coefh][coefv] = 255;
+      }
+      else
+      {
+        uint32_t i1 = diffcoeffh * diffcoeffv;
+        uint32_t i2 = coefh * diffcoeffv;
+        uint32_t i3 = diffcoeffh * coefv;
+        uint32_t i4 = coefh * coefv;
+
+        // TODO: faire mieux...
+        if (i1)
+        {
+          i1--;
+        }
+        if (i2)
+        {
+          i2--;
+        }
+        if (i3)
+        {
+          i3--;
+        }
+        if (i4)
+        {
+          i4--;
+        }
+
+        precalCoef[coefh][coefv] = CoeffArray{
+            .vals{
+                .c1 = static_cast<uint8_t>(i1),
+                .c2 = static_cast<uint8_t>(i2),
+                .c3 = static_cast<uint8_t>(i3),
+                .c4 = static_cast<uint8_t>(i4),
+            }}.intVal;
+      }
+    }
+  }
+}
+
+/*
+ * Makes a stripe of a transform buffer (brutT)
+ *
+ * The transform is (in order) :
+ * Translation (-data->middleX, -data->middleY)
+ * Homothetie (Center : 0,0   Coeff : 2/data->prevX)
+ */
+void ZoomFilterFxData::makeZoomBufferStripe(const uint32_t interlaceIncrement)
+{
+  stats.doMakeZoomBufferStripe();
+
+  // Ratio from pixmap to normalized coordinates
+  const float ratio = 2.0f / static_cast<float>(prevX);
+
+  // Ratio from normalized to virtual pixmap coordinates
+  const float inv_ratio = BUFFPOINTNBF / ratio;
+  const float min = ratio / BUFFPOINTNBF;
+
+  // Y position of the pixel to compute in normalized coordinates
+  float Y = ratio * static_cast<float>(interlaceStart - static_cast<int>(filterData.middleY));
+
+  // Where (vertically) to stop generating the buffer stripe
+  uint32_t maxEnd = prevY;
+  if (maxEnd > static_cast<uint32_t>(interlaceStart + static_cast<int>(interlaceIncrement)))
+  {
+    maxEnd = static_cast<uint32_t>(interlaceStart + static_cast<int>(interlaceIncrement));
+  }
+
+  // Position of the pixel to compute in pixmap coordinates
+  uint32_t y;
+  for (y = static_cast<uint32_t>(interlaceStart); (y < prevY) && (y < maxEnd); y++)
+  {
+    uint32_t premul_y_prevX = y * prevX * 2;
+    float X = -static_cast<float>(filterData.middleX) * ratio;
+    for (uint32_t x = 0; x < prevX; x++)
+    {
+      v2g vector = zoomVector(X, Y);
+      // Finish and avoid null displacement
+      if (fabs(vector.x) < min)
+      {
+        vector.x = (vector.x < 0.0f) ? -min : min;
+      }
+      if (fabs(vector.y) < min)
+      {
+        vector.y = (vector.y < 0.0f) ? -min : min;
+      }
+
+      brutT[premul_y_prevX] = static_cast<int>((X - vector.x) * inv_ratio) +
+                              static_cast<int>(filterData.middleX * BUFFPOINTNB);
+      brutT[premul_y_prevX + 1] = static_cast<int>((Y - vector.y) * inv_ratio) +
+                                  static_cast<int>(filterData.middleY * BUFFPOINTNB);
+      premul_y_prevX += 2;
+      X += ratio;
+    }
+    Y += ratio;
+  }
+  interlaceStart += static_cast<int>(interlaceIncrement);
+  if (y >= prevY - 1)
+  {
+    interlaceStart = -1;
+  }
+}
+
+void ZoomFilterFxData::generateWaterFXHorizontalBuffer()
+{
+  stats.doGenerateWaterFXHorizontalBuffer();
+
+  int decc = getRandInRange(-4, +4);
+  int spdc = getRandInRange(-4, +4);
+  int accel = getRandInRange(-4, +4);
+
+  for (size_t loopv = prevY; loopv != 0;)
+  {
+    loopv--;
+    firedec[loopv] = decc;
+    decc += spdc / 10;
+    spdc += getRandInRange(-2, +3);
+
+    if (decc > 4)
+    {
+      spdc -= 1;
+    }
+    if (decc < -4)
+    {
+      spdc += 1;
+    }
+
+    if (spdc > 30)
+    {
+      spdc = spdc - static_cast<int>(getNRand(3)) + accel / 10;
+    }
+    if (spdc < -30)
+    {
+      spdc = spdc + static_cast<int>(getNRand(3)) + accel / 10;
+    }
+
+    if (decc > 8 && spdc > 1)
+    {
+      spdc -= getRandInRange(-2, +1);
+    }
+    if (decc < -8 && spdc < -1)
+    {
+      spdc += static_cast<int>(getNRand(3)) + 2;
+    }
+    if (decc > 8 || decc < -8)
+    {
+      decc = decc * 8 / 9;
+    }
+
+    accel += getRandInRange(-1, +2);
+    if (accel > 20)
+    {
+      accel -= 2;
+    }
+    if (accel < -20)
+    {
+      accel += 2;
+    }
+  }
+}
+
+v2g ZoomFilterFxData::zoomVector(const float x, const float y)
+{
+  stats.doZoomVector();
 
   /* sx = (x < 0.0f) ? -1.0f : 1.0f;
      sy = (y < 0.0f) ? -1.0f : 1.0f;
    */
-  float coefVitesse = (1.0f + data->generalSpeed) / 50.0f;
+  float coefVitesse = (1.0f + generalSpeed) / 50.0f;
 
   // Effects
 
   // Centralized FX
-  switch (data->filterData.mode)
+  switch (filterData.mode)
   {
     case ZoomFilterMode::crystalBallMode:
     {
-      data->stats.doZoomVectorCrystalBallMode();
-      coefVitesse -= data->filterData.crystalBallAmplitude * (sq_distance(x, y) - 0.3f);
+      stats.doZoomVectorCrystalBallMode();
+      coefVitesse -= filterData.crystalBallAmplitude * (sq_distance(x, y) - 0.3f);
       break;
     }
     case ZoomFilterMode::amuletteMode:
     {
-      data->stats.doZoomVectorAmuletteMode();
-      coefVitesse += data->filterData.amuletteAmplitude * sq_distance(x, y);
+      stats.doZoomVectorAmuletteMode();
+      coefVitesse += filterData.amuletteAmplitude * sq_distance(x, y);
       break;
     }
     case ZoomFilterMode::waveMode:
     {
-      data->stats.doZoomVectorWaveMode();
-      const float angle = sq_distance(x, y) * data->filterData.waveFreqFactor;
+      stats.doZoomVectorWaveMode();
+      const float angle = sq_distance(x, y) * filterData.waveFreqFactor;
       float periodicPart;
-      switch (data->filterData.waveEffectType)
+      switch (filterData.waveEffectType)
       {
         case ZoomFilterData::WaveEffect::waveSinEffect:
           periodicPart = sin(angle);
@@ -437,13 +637,13 @@ inline v2g zoomVector(PluginInfo* goomInfo, const float x, const float y)
         default:
           throw std::logic_error("Unknown WaveEffect enum");
       }
-      coefVitesse += data->filterData.waveAmplitude * periodicPart;
+      coefVitesse += filterData.waveAmplitude * periodicPart;
       break;
     }
     case ZoomFilterMode::scrunchMode:
     {
-      data->stats.doZoomVectorScrunchMode();
-      coefVitesse += data->filterData.scrunchAmplitude * sq_distance(x, y);
+      stats.doZoomVectorScrunchMode();
+      coefVitesse += filterData.scrunchAmplitude * sq_distance(x, y);
       break;
     }
       //case ZoomFilterMode::HYPERCOS1_MODE:
@@ -454,12 +654,12 @@ inline v2g zoomVector(PluginInfo* goomInfo, const float x, const float y)
       //break;
     case ZoomFilterMode::speedwayMode:
     {
-      data->stats.doZoomVectorSpeedwayMode();
-      coefVitesse *= data->filterData.speedwayAmplitude * y;
+      stats.doZoomVectorSpeedwayMode();
+      coefVitesse *= filterData.speedwayAmplitude * y;
       break;
     }
     default:
-      data->stats.doZoomVectorDefaultMode();
+      stats.doZoomVectorDefaultMode();
       break;
   }
 
@@ -478,116 +678,48 @@ inline v2g zoomVector(PluginInfo* goomInfo, const float x, const float y)
 
   // Effects adds-on
   /* Noise */
-  if (data->filterData.noisify)
+  if (filterData.noisify)
   {
-    data->stats.doZoomVectorNoisify();
-    if (data->filterData.noiseFactor > 0.01)
+    stats.doZoomVectorNoisify();
+    if (filterData.noiseFactor > 0.01)
     {
-      data->stats.doZoomVectorNoiseFactor();
+      stats.doZoomVectorNoiseFactor();
       //    const float xAmp = 1.0/getRandInRange(50.0f, 200.0f);
       //    const float yAmp = 1.0/getRandInRange(50.0f, 200.0f);
-      const float amp = data->filterData.noiseFactor / getRandInRange(noiseMin, noiseMax);
-      data->filterData.noiseFactor *= 0.999;
+      const float amp = filterData.noiseFactor / getRandInRange(noiseMin, noiseMax);
+      filterData.noiseFactor *= 0.999;
       vx += amp * (getRandInRange(0.0f, 1.0f) - 0.5f);
       vy += amp * (getRandInRange(0.0f, 1.0f) - 0.5f);
     }
   }
 
   // Hypercos
-  if (data->filterData.hypercosEffect)
+  if (filterData.hypercosEffect)
   {
-    data->stats.doZoomVectorHypercosEffect();
-    vx += data->filterData.hypercosAmplitude * sin(data->filterData.hypercosFreq * y);
-    vy += data->filterData.hypercosAmplitude * sin(data->filterData.hypercosFreq * x);
+    stats.doZoomVectorHypercosEffect();
+    vx += filterData.hypercosAmplitude * sin(filterData.hypercosFreq * y);
+    vy += filterData.hypercosAmplitude * sin(filterData.hypercosFreq * x);
   }
 
   // H Plane
-  if (data->filterData.hPlaneEffect)
+  if (filterData.hPlaneEffect)
   {
-    data->stats.doZoomVectorHPlaneEffect();
+    stats.doZoomVectorHPlaneEffect();
 
-    vx += y * data->filterData.hPlaneEffectAmplitude *
-          static_cast<float>(data->filterData.hPlaneEffect);
+    vx += y * filterData.hPlaneEffectAmplitude * static_cast<float>(filterData.hPlaneEffect);
   }
 
   // V Plane
-  if (data->filterData.vPlaneEffect)
+  if (filterData.vPlaneEffect)
   {
-    data->stats.doZoomVectorVPlaneEffect();
-    vy += x * data->filterData.vPlaneEffectAmplitude *
-          static_cast<float>(data->filterData.vPlaneEffect);
+    stats.doZoomVectorVPlaneEffect();
+    vy += x * filterData.vPlaneEffectAmplitude * static_cast<float>(filterData.vPlaneEffect);
   }
 
   /* TODO : Water Mode */
   //    if (data->waveEffect)
 
   return v2g{vx, vy};
-}
-
-/*
- * Makes a stripe of a transform buffer (brutT)
- *
- * The transform is (in order) :
- * Translation (-data->middleX, -data->middleY)
- * Homothetie (Center : 0,0   Coeff : 2/data->prevX)
- */
-static void makeZoomBufferStripe(PluginInfo* goomInfo, const uint32_t INTERLACE_INCR)
-{
-  FilterDataWrapper* data = static_cast<FilterDataWrapper*>(goomInfo->zoomFilter_fx.fx_data);
-
-  data->stats.doMakeZoomBufferStripe();
-
-  // Ratio from pixmap to normalized coordinates
-  const float ratio = 2.0f / static_cast<float>(data->prevX);
-
-  // Ratio from normalized to virtual pixmap coordinates
-  const float inv_ratio = BUFFPOINTNBF / ratio;
-  const float min = ratio / BUFFPOINTNBF;
-
-  // Y position of the pixel to compute in normalized coordinates
-  float Y =
-      ratio * static_cast<float>(data->interlaceStart - static_cast<int>(data->filterData.middleY));
-
-  // Where (vertically) to stop generating the buffer stripe
-  uint32_t maxEnd = data->prevY;
-  if (maxEnd > static_cast<uint32_t>(data->interlaceStart + static_cast<int>(INTERLACE_INCR)))
-  {
-    maxEnd = static_cast<uint32_t>(data->interlaceStart + static_cast<int>(INTERLACE_INCR));
-  }
-
-  // Position of the pixel to compute in pixmap coordinates
-  uint32_t y;
-  for (y = static_cast<uint32_t>(data->interlaceStart); (y < data->prevY) && (y < maxEnd); y++)
-  {
-    uint32_t premul_y_prevX = y * data->prevX * 2;
-    float X = -static_cast<float>(data->filterData.middleX) * ratio;
-    for (uint32_t x = 0; x < data->prevX; x++)
-    {
-      v2g vector = zoomVector(goomInfo, X, Y);
-      // Finish and avoid null displacement
-      if (fabs(vector.x) < min)
-      {
-        vector.x = (vector.x < 0.0f) ? -min : min;
-      }
-      if (fabs(vector.y) < min)
-      {
-        vector.y = (vector.y < 0.0f) ? -min : min;
-      }
-
-      data->brutT[premul_y_prevX] = static_cast<int>((X - vector.x) * inv_ratio) +
-                                    static_cast<int>(data->filterData.middleX * BUFFPOINTNB);
-      data->brutT[premul_y_prevX + 1] = static_cast<int>((Y - vector.y) * inv_ratio) +
-                                        static_cast<int>(data->filterData.middleY * BUFFPOINTNB);
-      premul_y_prevX += 2;
-      X += ratio;
-    }
-    Y += ratio;
-  }
-  data->interlaceStart += static_cast<int>(INTERLACE_INCR);
-  if (y >= data->prevY - 1)
-  {
-    data->interlaceStart = -1;
-  }
 }
 
 inline Pixel getMixedColor(const CoeffArray& coeffs,
@@ -655,15 +787,10 @@ inline void setPixelColor(Pixel* buffer, const uint32_t pos, const Pixel& p)
   buffer[pos] = p;
 }
 
-static void c_zoom(Pixel* expix1, Pixel* expix2, const FilterDataWrapper* data)
+// pure c version of the zoom filter
+void ZoomFilterFxData::c_zoom(Pixel* expix1, Pixel* expix2)
 {
-  data->stats.doCZoom();
-
-  const uint32_t prevX = data->prevX;
-  const uint32_t prevY = data->prevY;
-  const int* brutS = data->brutS;
-  const int* brutD = data->brutD;
-  const int buffratio = data->buffratio;
+  stats.doCZoom();
 
   const uint32_t ax = (prevX - 1) << perteDec;
   const uint32_t ay = (prevY - 1) << perteDec;
@@ -698,7 +825,7 @@ static void c_zoom(Pixel* expix1, Pixel* expix2, const FilterDataWrapper* data)
     else
     {
       // coeff en modulo 15
-      const CoeffArray coeffs{.intVal = data->precalCoef[px & perteMask][py & perteMask]};
+      const CoeffArray coeffs{.intVal = precalCoef[px & perteMask][py & perteMask]};
 
       const uint32_t pix1Pos = (px >> perteDec) + prevX * (py >> perteDec);
       const Pixel col1 = getPixelColor(expix1, pix1Pos);
@@ -706,15 +833,15 @@ static void c_zoom(Pixel* expix1, Pixel* expix2, const FilterDataWrapper* data)
       const Pixel col3 = getPixelColor(expix1, pix1Pos + bufwidth);
       const Pixel col4 = getPixelColor(expix1, pix1Pos + bufwidth + 1);
 
-      if (data->filterData.blockyWavy)
+      if (filterData.blockyWavy)
       {
-        data->stats.doGetBlockyMixedColor();
+        stats.doGetBlockyMixedColor();
         const Pixel newColor = getBlockyMixedColor(coeffs, col1, col2, col3, col4);
         setPixelColor(expix2, pix2Pos, newColor);
       }
       else
       {
-        data->stats.doGetMixedColor();
+        stats.doGetMixedColor();
         const Pixel newColor = getMixedColor(coeffs, col1, col2, col3, col4);
         setPixelColor(expix2, pix2Pos, newColor);
       }
@@ -722,116 +849,61 @@ static void c_zoom(Pixel* expix1, Pixel* expix2, const FilterDataWrapper* data)
   }
 }
 
-static void generateWaterFXHorizontalBuffer(FilterDataWrapper* data)
+ZoomFilterFx::ZoomFilterFx(PluginInfo* info)
+  : goomInfo{info}, fxData{new ZoomFilterFxData{goomInfo}}
 {
-  data->stats.doGenerateWaterFXHorizontalBuffer();
-
-  int decc = getRandInRange(-4, +4);
-  int spdc = getRandInRange(-4, +4);
-  int accel = getRandInRange(-4, +4);
-
-  for (size_t loopv = data->prevY; loopv != 0;)
-  {
-    loopv--;
-    data->firedec[loopv] = decc;
-    decc += spdc / 10;
-    spdc += getRandInRange(-2, +3);
-
-    if (decc > 4)
-    {
-      spdc -= 1;
-    }
-    if (decc < -4)
-    {
-      spdc += 1;
-    }
-
-    if (spdc > 30)
-    {
-      spdc = spdc - static_cast<int>(getNRand(3)) + accel / 10;
-    }
-    if (spdc < -30)
-    {
-      spdc = spdc + static_cast<int>(getNRand(3)) + accel / 10;
-    }
-
-    if (decc > 8 && spdc > 1)
-    {
-      spdc -= getRandInRange(-2, +1);
-    }
-    if (decc < -8 && spdc < -1)
-    {
-      spdc += static_cast<int>(getNRand(3)) + 2;
-    }
-    if (decc > 8 || decc < -8)
-    {
-      decc = decc * 8 / 9;
-    }
-
-    accel += getRandInRange(-1, +2);
-    if (accel > 20)
-    {
-      accel -= 2;
-    }
-    if (accel < -20)
-    {
-      accel += 2;
-    }
-  }
 }
 
-static void initBuffers(PluginInfo* goomInfo, const uint32_t resx, const uint32_t resy)
+ZoomFilterFx::~ZoomFilterFx() noexcept
 {
-  FilterDataWrapper* data = static_cast<FilterDataWrapper*>(goomInfo->zoomFilter_fx.fx_data);
+}
 
-  if ((data->prevX != resx) || (data->prevY != resy))
-  {
-    data->prevX = resx;
-    data->prevY = resy;
+void ZoomFilterFx::setBuffSettings(const FXBuffSettings&)
+{
+}
 
-    if (data->brutS)
-    {
-      data->freebrutS.resize(0);
-    }
-    data->brutS = nullptr;
-    if (data->brutD)
-    {
-      data->freebrutD.resize(0);
-    }
-    data->brutD = nullptr;
-    if (data->brutT)
-    {
-      data->freebrutT.resize(0);
-    }
-    data->brutT = nullptr;
+void ZoomFilterFx::start()
+{
+}
 
-    data->filterData.middleX = resx / 2;
-    data->filterData.middleY = resy / 2;
-    data->mustInitBuffers = 1;
-    data->firedec.resize(0);
-  }
+void ZoomFilterFx::finish()
+{
+  std::ofstream f("/tmp/zoom-filter.json");
+  saveState(f);
+  f << std::endl;
+  f.close();
+}
 
-  data->mustInitBuffers = 0;
-  data->freebrutS.resize(resx * resy * 2 + 128);
-  data->brutS = (int32_t*)((1 + (uintptr_t((data->freebrutS.data()))) / 128) * 128);
+void ZoomFilterFx::log(const StatsLogValueFunc& logVal) const
+{
+  fxData->stats.setLastGeneralSpeed(fxData->generalSpeed);
+  fxData->stats.setLastPrevX(fxData->prevX);
+  fxData->stats.setLastPrevY(fxData->prevY);
+  fxData->stats.setLastInterlaceStart(fxData->interlaceStart);
+  fxData->stats.setLastBuffratio(fxData->buffratio);
+  fxData->stats.log(logVal);
+}
 
-  data->freebrutD.resize(resx * resy * 2 + 128);
-  data->brutD = (int32_t*)((1 + (uintptr_t((data->freebrutD.data()))) / 128) * 128);
+std::string ZoomFilterFx::getFxName() const
+{
+  return "ZoomFilter FX";
+}
 
-  data->freebrutT.resize(resx * resy * 2 + 128);
-  data->brutT = (int32_t*)((1 + (uintptr_t((data->freebrutT.data()))) / 128) * 128);
+void ZoomFilterFx::saveState(std::ostream& f)
+{
+  cereal::JSONOutputArchive archiveOut(f);
+  archiveOut(*fxData);
+}
 
-  data->buffratio = 0;
+void ZoomFilterFx::loadState(std::istream& f)
+{
+  cereal::JSONInputArchive archive_in(f);
+  archive_in(*fxData);
+}
 
-  data->firedec.resize(data->prevY);
-  generateWaterFXHorizontalBuffer(data);
-
-  data->interlaceStart = 0;
-  makeZoomBufferStripe(goomInfo, resy);
-
-  /* Copy the data from temp to dest and source */
-  memcpy(data->brutS, data->brutT, resx * resy * 2 * sizeof(int));
-  memcpy(data->brutD, data->brutT, resx * resy * 2 * sizeof(int));
+void ZoomFilterFx::apply(Pixel*, Pixel*)
+{
+  throw std::logic_error("ZoomFilterFx::apply should never be called.");
 }
 
 /**
@@ -847,36 +919,27 @@ static void initBuffers(PluginInfo* goomInfo, const uint32_t resx, const uint32_
  *  So that is why you have this name, for the nostalgy of the first days of goom
  *  when it was just a tiny program writen in Turbo Pascal on my i486...
  */
-void zoomFilterFastRGB(PluginInfo* goomInfo,
-                       Pixel* pix1,
-                       Pixel* pix2,
-                       ZoomFilterData* zf,
-                       const uint16_t resx,
-                       const uint16_t resy,
-                       const int switchIncr,
-                       const float switchMult)
+void ZoomFilterFx::zoomFilterFastRGB(Pixel* pix1,
+                                     Pixel* pix2,
+                                     const ZoomFilterData* zf,
+                                     [[maybe_unused]] const uint16_t resx,
+                                     const uint16_t resy,
+                                     const int switchIncr,
+                                     const float switchMult)
 {
   logDebug("resx = {}, resy = {}, switchIncr = {}, switchMult = {:.2}", resx, resy, switchIncr,
            switchMult);
 
-  FilterDataWrapper* data = static_cast<FilterDataWrapper*>(goomInfo->zoomFilter_fx.fx_data);
+  fxData->stats.doZoomFilterFastRGB();
 
-  data->stats.doZoomFilterFastRGB();
-
-  if (!data->enabled)
+  if (!enabled)
   {
     return;
   }
 
   // changement de taille
-  logDebug("data->prevX = {}, data->prevY = {}", data->prevX, data->prevY);
-  if (data->mustInitBuffers)
-  {
-    logDebug("Calling initBuffers");
-    initBuffers(goomInfo, resx, resy);
-  }
-
-  if (data->interlaceStart != -2)
+  logDebug("fxData->prevX = {}, fxData->prevY = {}", fxData->prevX, fxData->prevY);
+  if (fxData->interlaceStart != -2)
   {
     zf = nullptr;
   }
@@ -884,65 +947,65 @@ void zoomFilterFastRGB(PluginInfo* goomInfo,
   // changement de config
   if (zf)
   {
-    data->stats.doZoomFilterFastRGBChangeConfig();
-    data->filterData = *zf;
-    data->generalSpeed = static_cast<float>(zf->vitesse - 128) / 128.0f;
-    if (data->filterData.reverse)
+    fxData->stats.doZoomFilterFastRGBChangeConfig();
+    fxData->filterData = *zf;
+    fxData->generalSpeed = static_cast<float>(zf->vitesse - 128) / 128.0f;
+    if (fxData->filterData.reverse)
     {
-      data->generalSpeed = -data->generalSpeed;
+      fxData->generalSpeed = -fxData->generalSpeed;
     }
-    data->interlaceStart = 0;
+    fxData->interlaceStart = 0;
   }
 
   // generation du buffer de trans
-  logDebug("data->interlaceStart = {}", data->interlaceStart);
-  if (data->interlaceStart == -1)
+  logDebug("data->interlaceStart = {}", fxData->interlaceStart);
+  if (fxData->interlaceStart == -1)
   {
-    data->stats.doZoomFilterFastRGBInterlaceStartEqualMinus1_1();
+    fxData->stats.doZoomFilterFastRGBInterlaceStartEqualMinus1_1();
     /* sauvegarde de l'etat actuel dans la nouvelle source
      * TODO: write that in MMX (has been done in previous version, but did not follow
      * some new fonctionnalities) */
-    const uint32_t y = 2 * data->prevX * data->prevY;
+    const uint32_t y = 2 * fxData->prevX * fxData->prevY;
     for (uint32_t x = 0; x < y; x += 2)
     {
-      int brutSmypos = data->brutS[x];
+      int brutSmypos = fxData->brutS[x];
       const uint32_t x2 = x + 1;
 
-      data->brutS[x] =
-          brutSmypos + (((data->brutD[x] - brutSmypos) * data->buffratio) >> BUFFPOINTNB);
-      brutSmypos = data->brutS[x2];
-      data->brutS[x2] =
-          brutSmypos + (((data->brutD[x2] - brutSmypos) * data->buffratio) >> BUFFPOINTNB);
+      fxData->brutS[x] =
+          brutSmypos + (((fxData->brutD[x] - brutSmypos) * fxData->buffratio) >> BUFFPOINTNB);
+      brutSmypos = fxData->brutS[x2];
+      fxData->brutS[x2] =
+          brutSmypos + (((fxData->brutD[x2] - brutSmypos) * fxData->buffratio) >> BUFFPOINTNB);
     }
-    data->buffratio = 0;
+    fxData->buffratio = 0;
   }
 
-  logDebug("data->interlaceStart = {}", data->interlaceStart);
-  if (data->interlaceStart == -1)
+  logDebug("data->interlaceStart = {}", fxData->interlaceStart);
+  if (fxData->interlaceStart == -1)
   {
-    data->stats.doZoomFilterFastRGBInterlaceStartEqualMinus1_2();
+    fxData->stats.doZoomFilterFastRGBInterlaceStartEqualMinus1_2();
 
-    std::swap(data->brutD, data->brutT);
-    std::swap(data->freebrutD, data->freebrutT);
+    std::swap(fxData->brutD, fxData->brutT);
+    std::swap(fxData->freebrutD, fxData->freebrutT);
 
-    data->interlaceStart = -2;
+    fxData->interlaceStart = -2;
   }
 
-  logDebug("data->interlaceStart = {}", data->interlaceStart);
-  if (data->interlaceStart >= 0)
+  logDebug("data->interlaceStart = {}", fxData->interlaceStart);
+  if (fxData->interlaceStart >= 0)
   {
     // creation de la nouvelle destination
-    makeZoomBufferStripe(goomInfo, resy / 16);
+    fxData->makeZoomBufferStripe(resy / 16);
   }
 
   if (switchIncr != 0)
   {
-    data->stats.doZoomFilterFastRGBSwitchIncrNotZero();
+    fxData->stats.doZoomFilterFastRGBSwitchIncrNotZero();
 
-    data->buffratio += switchIncr;
-    if (data->buffratio > BUFFPOINTMASK)
+    fxData->buffratio += switchIncr;
+    if (fxData->buffratio > BUFFPOINTMASK)
     {
-      data->buffratio = BUFFPOINTMASK;
+      fxData->buffratio = BUFFPOINTMASK;
     }
   }
 
@@ -950,227 +1013,13 @@ void zoomFilterFastRGB(PluginInfo* goomInfo,
   //  if (std::fabs(1.0f - switchMult) < 0.0001)
   if (std::fabs(1.0f - switchMult) > 0.0001)
   {
-    data->stats.doZoomFilterFastRGBSwitchIncrNotEqual1();
+    fxData->stats.doZoomFilterFastRGBSwitchIncrNotEqual1();
 
-    data->buffratio = static_cast<int>(static_cast<float>(BUFFPOINTMASK) * (1.0f - switchMult) +
-                                       static_cast<float>(data->buffratio) * switchMult);
+    fxData->buffratio = static_cast<int>(static_cast<float>(BUFFPOINTMASK) * (1.0f - switchMult) +
+                                         static_cast<float>(fxData->buffratio) * switchMult);
   }
 
-  c_zoom(pix1, pix2, data);
-}
-
-static void generatePrecalCoef(uint32_t precalCoef[16][16])
-{
-  for (uint32_t coefh = 0; coefh < 16; coefh++)
-  {
-    for (uint32_t coefv = 0; coefv < 16; coefv++)
-    {
-      const uint32_t diffcoeffh = sqrtperte - coefh;
-      const uint32_t diffcoeffv = sqrtperte - coefv;
-
-      if (!(coefh || coefv))
-      {
-        precalCoef[coefh][coefv] = 255;
-      }
-      else
-      {
-        uint32_t i1 = diffcoeffh * diffcoeffv;
-        uint32_t i2 = coefh * diffcoeffv;
-        uint32_t i3 = diffcoeffh * coefv;
-        uint32_t i4 = coefh * coefv;
-
-        // TODO: faire mieux...
-        if (i1)
-        {
-          i1--;
-        }
-        if (i2)
-        {
-          i2--;
-        }
-        if (i3)
-        {
-          i3--;
-        }
-        if (i4)
-        {
-          i4--;
-        }
-
-        precalCoef[coefh][coefv] = CoeffArray{
-            .vals{
-                .c1 = static_cast<uint8_t>(i1),
-                .c2 = static_cast<uint8_t>(i2),
-                .c3 = static_cast<uint8_t>(i3),
-                .c4 = static_cast<uint8_t>(i4),
-            }}.intVal;
-      }
-    }
-  }
-}
-
-// VisualFX Wrapper
-
-static std::string getFxName(VisualFX*)
-{
-  return "ZoomFilter";
-}
-
-static void saveState(VisualFX* _this, std::ostream& f)
-{
-  const FilterDataWrapper* data = static_cast<FilterDataWrapper*>(_this->fx_data);
-  cereal::JSONOutputArchive archiveOut(f);
-  archiveOut(*data);
-}
-
-static void loadState(VisualFX* _this, std::istream& f)
-{
-  FilterDataWrapper* data = static_cast<FilterDataWrapper*>(_this->fx_data);
-  cereal::JSONInputArchive archive_in(f);
-  archive_in(*data);
-}
-
-static const char* const vfxname = "ZoomFilter";
-
-static void zoomFilterSave(VisualFX* _this, const PluginInfo*, const char* file)
-{
-  FILE* f = fopen(file, "w");
-
-  FilterDataWrapper* data = static_cast<FilterDataWrapper*>(_this->fx_data);
-
-  save_int_setting(f, vfxname, "data->prevX", static_cast<int>(data->prevX));
-  save_int_setting(f, vfxname, "data->prevY", static_cast<int>(data->prevY));
-  save_float_setting(f, vfxname, "data->generalSpeed", data->generalSpeed);
-  save_int_setting(f, vfxname, "data->reverse", data->filterData.reverse);
-  save_int_setting(f, vfxname, "data->mode", static_cast<int>(data->filterData.mode));
-  save_int_setting(f, vfxname, "data->waveEffect", data->filterData.waveEffect);
-  save_int_setting(f, vfxname, "data->hypercosEffect", data->filterData.hypercosEffect);
-  save_int_setting(f, vfxname, "data->vPlaneEffect", data->filterData.vPlaneEffect);
-  save_int_setting(f, vfxname, "data->hPlaneEffect", data->filterData.hPlaneEffect);
-  save_int_setting(f, vfxname, "data->noisify", static_cast<int>(data->filterData.noisify));
-  save_int_setting(f, vfxname, "data->middleX", static_cast<int>(data->filterData.middleX));
-  save_int_setting(f, vfxname, "data->middleY", static_cast<int>(data->filterData.middleY));
-
-  save_int_setting(f, vfxname, "data->mustInitBuffers", data->mustInitBuffers);
-  save_int_setting(f, vfxname, "data->interlaceStart", data->interlaceStart);
-
-  save_int_setting(f, vfxname, "data->buffratio", data->buffratio);
-  //    int precalCoef[BUFFPOINTNB][BUFFPOINTNB];
-
-  fclose(f);
-}
-
-static void zoomFilterRestore(VisualFX* _this, PluginInfo*, const char* file)
-{
-  FILE* f = fopen(file, "r");
-  if (f == NULL)
-  {
-    exit(EXIT_FAILURE);
-  }
-
-  FilterDataWrapper* data = static_cast<FilterDataWrapper*>(_this->fx_data);
-
-  data->prevX = static_cast<uint32_t>(get_int_setting(f, vfxname, "data->prevX"));
-  data->prevY = static_cast<uint32_t>(get_int_setting(f, vfxname, "data->prevY"));
-  data->generalSpeed = get_float_setting(f, vfxname, "data->generalSpeed");
-  data->filterData.reverse = get_int_setting(f, vfxname, "data->reverse");
-  data->filterData.mode = static_cast<ZoomFilterMode>(get_int_setting(f, vfxname, "data->mode"));
-  data->filterData.waveEffect = get_int_setting(f, vfxname, "data->waveEffect");
-  data->filterData.hypercosEffect = get_int_setting(f, vfxname, "data->hypercosEffect");
-  data->filterData.vPlaneEffect = get_int_setting(f, vfxname, "data->vPlaneEffect");
-  data->filterData.hPlaneEffect = get_int_setting(f, vfxname, "data->hPlaneEffect");
-  data->filterData.noisify = get_int_setting(f, vfxname, "data->noisify");
-  data->filterData.middleX = static_cast<uint32_t>(get_int_setting(f, vfxname, "data->middleX"));
-  data->filterData.middleY = static_cast<uint32_t>(get_int_setting(f, vfxname, "data->middleY"));
-
-  data->mustInitBuffers = get_int_setting(f, vfxname, "data->mustInitBuffers");
-  data->interlaceStart = get_int_setting(f, vfxname, "data->interlaceStart");
-
-  data->buffratio = get_int_setting(f, vfxname, "data->buffratio");
-
-  fclose(f);
-}
-
-static void zoomFilterVisualFXWrapper_init(VisualFX* _this, PluginInfo* info)
-{
-  FilterDataWrapper* data = new FilterDataWrapper{};
-
-  data->brutS = nullptr;
-  data->freebrutS.resize(0);
-  data->brutD = nullptr;
-  data->freebrutD.resize(0);
-  data->brutT = nullptr;
-  data->freebrutT.resize(0);
-  data->prevX = 0;
-  data->prevY = 0;
-
-  data->mustInitBuffers = 1;
-  data->interlaceStart = -2;
-
-  data->generalSpeed = 0.0f;
-  data->filterData = info->update.zoomFilterData;
-
-  /** modif by jeko : fixedpoint : buffration = (16:16) (donc 0<=buffration<=2^16) */
-  data->buffratio = 0;
-  data->firedec.resize(0);
-
-  data->enabled = true;
-  _this->fx_data = data;
-
-  /** modif d'optim by Jeko : precalcul des 4 coefs resultant des 2 pos */
-  generatePrecalCoef(data->precalCoef);
-
-  initBuffers(info, info->screen.width, info->screen.height);
-}
-
-#include <fstream>
-
-static void zoomFilterVisualFXWrapper_free(VisualFX* _this)
-{
-  std::ofstream f("/tmp/filter.json");
-  saveState(_this, f);
-  f << std::endl;
-  f.close();
-
-  FilterDataWrapper* data = static_cast<FilterDataWrapper*>(_this->fx_data);
-  delete data;
-}
-
-static void zoomFilterVisualFXWrapper_apply(VisualFX*, PluginInfo*, Pixel*, Pixel*)
-{
-}
-
-static void zoomFilterVisualWrapper_setBuffSettings(VisualFX*, const FXBuffSettings&)
-{
-}
-
-VisualFX zoomFilterVisualFXWrapper_create()
-{
-  VisualFX fx;
-  fx.init = zoomFilterVisualFXWrapper_init;
-  fx.free = zoomFilterVisualFXWrapper_free;
-
-  fx.setBuffSettings = zoomFilterVisualWrapper_setBuffSettings;
-  fx.apply = zoomFilterVisualFXWrapper_apply;
-  fx.getFxName = getFxName;
-  fx.saveState = saveState;
-  fx.loadState = loadState;
-
-  fx.save = zoomFilterSave;
-  fx.restore = zoomFilterRestore;
-
-  return fx;
-}
-
-void filter_log_stats(VisualFX* _this, const StatsLogValueFunc logVal)
-{
-  FilterDataWrapper* data = static_cast<FilterDataWrapper*>(_this->fx_data);
-  data->stats.setLastGeneralSpeed(data->generalSpeed);
-  data->stats.setLastPrevX(data->prevX);
-  data->stats.setLastPrevY(data->prevY);
-  data->stats.setLastInterlaceStart(data->interlaceStart);
-  data->stats.setLastBuffratio(data->buffratio);
-  data->stats.log(logVal);
+  fxData->c_zoom(pix1, pix2);
 }
 
 } // namespace goom

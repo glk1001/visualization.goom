@@ -908,6 +908,30 @@ inline bool changeFilterModeEventHappens(PluginInfo* goomInfo)
   return goomEvent.happens(GoomEvent::changeFilterMode);
 }
 
+static void log(PluginInfo* goomInfo, const StatsLogValueFunc& logVal)
+{
+  for (auto& v : goomInfo->visuals)
+  {
+    v->log(logVal);
+  }
+}
+
+static void start(PluginInfo* goomInfo)
+{
+  for (auto& v : goomInfo->visuals)
+  {
+    v->start();
+  }
+}
+
+static void finish(PluginInfo* goomInfo)
+{
+  for (auto& v : goomInfo->visuals)
+  {
+    v->finish();
+  }
+}
+
 static void setNextFilterMode(PluginInfo*);
 
 static uint32_t timeInState = 0;
@@ -932,10 +956,9 @@ PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
     setRandSeed(static_cast<uint64_t>(seed));
   }
 
-  goomInfo->star_fx = flying_star_create();
-  goomInfo->zoomFilter_fx = zoomFilterVisualFXWrapper_create();
-  goomInfo->ifs_fx = ifs_visualfx_create();
-
+  goomInfo->zoomFilter_fx.reset(new ZoomFilterFx{goomInfo});
+  goomInfo->ifs_fx.reset(new IfsFx{goomInfo});
+  goomInfo->star_fx.reset(new FlyingStarsFx{goomInfo});
   goomInfo->convolve_fx.reset(new ConvolveFx{goomInfo});
   goomInfo->tentacles_fx.reset(new TentaclesFx{goomInfo});
   goomInfo->goomDots.reset(new GoomDots{goomInfo});
@@ -963,47 +986,51 @@ PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed)
   stats.setZoomFilterStartValue(goomInfo->update.zoomFilterData.mode);
   stats.setSeedStartValue(getRandSeed());
 
-  goomInfo->star_fx.init(&goomInfo->star_fx, goomInfo);
-  goomInfo->zoomFilter_fx.init(&goomInfo->zoomFilter_fx, goomInfo);
-  goomInfo->ifs_fx.init(&goomInfo->ifs_fx, goomInfo);
-  goomInfo->visuals.push_back(&goomInfo->zoomFilter_fx);
-  goomInfo->visuals.push_back(&goomInfo->star_fx);
-  goomInfo->visuals.push_back(&goomInfo->ifs_fx);
-
-  goomInfo->newVisuals.emplace_back(goomInfo->convolve_fx.get());
-  goomInfo->newVisuals.emplace_back(goomInfo->tentacles_fx.get());
-  goomInfo->newVisuals.emplace_back(goomInfo->goomDots.get());
-
-  // visuals start()
+  goomInfo->visuals.emplace_back(goomInfo->zoomFilter_fx.get());
+  goomInfo->visuals.emplace_back(goomInfo->ifs_fx.get());
+  goomInfo->visuals.emplace_back(goomInfo->star_fx.get());
+  goomInfo->visuals.emplace_back(goomInfo->convolve_fx.get());
+  goomInfo->visuals.emplace_back(goomInfo->tentacles_fx.get());
+  goomInfo->visuals.emplace_back(goomInfo->goomDots.get());
 
   timeInState = 0;
   changeState(goomInfo);
   changeFilterMode(goomInfo);
 
+  start(goomInfo);
+
   return goomInfo;
 }
 
-void goom_set_resolution(PluginInfo* goomInfo, const uint16_t resx, const uint16_t resy)
+/****************************************
+*                CLOSE                 *
+****************************************/
+void goom_close(PluginInfo* goomInfo)
 {
-  free(goomInfo->pixel);
-  free(goomInfo->back);
+  stats.setStateLastValue(states.getCurrentStateIndex());
+  stats.setZoomFilterLastValue(&goomInfo->update.zoomFilterData);
+  stats.setSeedLastValue(getRandSeed());
 
-  goomInfo->screen.width = resx;
-  goomInfo->screen.height = resy;
-  goomInfo->screen.size = resx * resy;
+  stats.log(logStatsValue);
+  log(goomInfo, logStatsValue);
 
-  initBuffers(goomInfo, goomInfo->screen.size);
+  finish(goomInfo);
 
-  /* init_ifs (goomInfo, resx, goomInfo->screen.height); */
-  goomInfo->ifs_fx.free(&goomInfo->ifs_fx);
-  goomInfo->ifs_fx.init(&goomInfo->ifs_fx, goomInfo);
+  if (goomInfo->pixel)
+  {
+    free(goomInfo->pixel);
+  }
+  if (goomInfo->back)
+  {
+    free(goomInfo->back);
+  }
 
-  goomLinesSetResolution(goomInfo->gmline1, resx, goomInfo->screen.height);
-  goomLinesSetResolution(goomInfo->gmline2, resx, goomInfo->screen.height);
+  goomInfo->pixel = goomInfo->back = nullptr;
+  goomLinesFree(&goomInfo->gmline1);
+  goomLinesFree(&goomInfo->gmline2);
 
-  goomInfo->convolve_fx.reset(new ConvolveFx{goomInfo});
-  goomInfo->tentacles_fx.reset(new TentaclesFx{goomInfo});
-  goomInfo->goomDots.reset(new GoomDots{goomInfo});
+  // Release PluginInfo
+  delete goomInfo;
 }
 
 int goom_set_screenbuffer(PluginInfo* goomInfo, uint32_t* buffer)
@@ -1141,9 +1168,9 @@ void goom_update(PluginInfo* goomInfo,
   changeZoomEffect(goomInfo, pzfd, forceMode);
 
   // Zoom here!
-  zoomFilterFastRGB(goomInfo, goomInfo->p1, goomInfo->p2, pzfd, goomInfo->screen.width,
-                    goomInfo->screen.height, goomInfo->update.switchIncr,
-                    goomInfo->update.switchMult);
+  goomInfo->zoomFilter_fx->zoomFilterFastRGB(
+      goomInfo->p1, goomInfo->p2, pzfd, goomInfo->screen.width, goomInfo->screen.height,
+      goomInfo->update.switchIncr, goomInfo->update.switchMult);
 
   applyTentaclesIfRequired(goomInfo);
 
@@ -1165,43 +1192,6 @@ void goom_update(PluginInfo* goomInfo,
   goomInfo->cycle++;
 
   logDebug("About to return.");
-}
-
-/****************************************
-*                CLOSE                 *
-****************************************/
-void goom_close(PluginInfo* goomInfo)
-{
-  stats.setStateLastValue(states.getCurrentStateIndex());
-  stats.setZoomFilterLastValue(&goomInfo->update.zoomFilterData);
-  stats.setSeedLastValue(getRandSeed());
-
-  stats.log(logStatsValue);
-  goomInfo->tentacles_fx->log(logStatsValue);
-  filter_log_stats(&goomInfo->zoomFilter_fx, logStatsValue);
-  flying_star_log_stats(&goomInfo->star_fx, logStatsValue);
-
-  if (goomInfo->pixel)
-  {
-    free(goomInfo->pixel);
-  }
-  if (goomInfo->back)
-  {
-    free(goomInfo->back);
-  }
-
-  // visuals finish()
-
-  goomInfo->pixel = goomInfo->back = nullptr;
-  goomLinesFree(&goomInfo->gmline1);
-  goomLinesFree(&goomInfo->gmline2);
-
-  goomInfo->ifs_fx.free(&goomInfo->ifs_fx);
-  goomInfo->star_fx.free(&goomInfo->star_fx);
-  goomInfo->zoomFilter_fx.free(&goomInfo->zoomFilter_fx);
-
-  // Release PluginInfo
-  delete goomInfo;
 }
 
 static void chooseGoomLine(PluginInfo* goomInfo,
@@ -1297,7 +1287,6 @@ static void changeFilterModeIfMusicChanges(PluginInfo* goomInfo, const int force
 static void setNextFilterMode(PluginInfo* goomInfo)
 {
   //  goomInfo->update.zoomFilterData.vitesse = 127;
-  //  goomInfo->update.zoomFilterData.pertedec = 8;
   //  goomInfo->update.zoomFilterData.middleX = 16;
   //  goomInfo->update.zoomFilterData.middleY = 1;
   goomInfo->update.zoomFilterData.reverse = true;
@@ -1434,7 +1423,7 @@ static void changeFilterMode(PluginInfo* goomInfo)
 
   stats.filterModeChange(goomInfo->update.zoomFilterData.mode);
 
-  ifsRenew(&goomInfo->ifs_fx, *goomInfo->sound);
+  goomInfo->ifs_fx->renew();
   stats.ifsRenew();
 }
 
@@ -1461,7 +1450,7 @@ static void changeState(PluginInfo* goomInfo)
   {
     if (goomEvent.happens(GoomEvent::ifsRenew))
     {
-      ifsRenew(&goomInfo->ifs_fx, *goomInfo->sound);
+      goomInfo->ifs_fx->renew();
       stats.ifsRenew();
     }
     if (goomInfo->update.ifs_incr <= 0)
@@ -1469,7 +1458,7 @@ static void changeState(PluginInfo* goomInfo)
       goomInfo->update.recay_ifs = 5;
       goomInfo->update.ifs_incr = 11;
       stats.ifsIncrLessThanEqualZero();
-      ifsRenew(&goomInfo->ifs_fx, *goomInfo->sound);
+      goomInfo->ifs_fx->renew();
       stats.ifsRenew();
     }
   }
@@ -1725,7 +1714,6 @@ static void megaLentUpdate(PluginInfo* goomInfo, ZoomFilterData** pzfd)
   logDebug("mega lent change");
   *pzfd = &goomInfo->update.zoomFilterData;
   goomInfo->update.zoomFilterData.vitesse = stopSpeed - 1;
-  goomInfo->update.zoomFilterData.pertedec = 8;
   goomInfo->update.lockvar += 50;
   stats.lockChange();
   goomInfo->update.switchIncr = goomInfo->update.switchIncrAmount;
@@ -1794,7 +1782,7 @@ static void changeZoomEffect(PluginInfo* goomInfo, ZoomFilterData* pzfd, const i
       goomInfo->update.switchIncr = 0;
       goomInfo->update.switchMult = goomInfo->update.switchMultAmount;
 
-      ifsRenew(&goomInfo->ifs_fx, *goomInfo->sound);
+      goomInfo->ifs_fx->renew();
       stats.ifsRenew();
     }
   }
@@ -1808,7 +1796,7 @@ static void changeZoomEffect(PluginInfo* goomInfo, ZoomFilterData* pzfd, const i
                goomInfo->update.cyclesSinceLastChange, timeBetweenChange);
       pzfd = &goomInfo->update.zoomFilterData;
       goomInfo->update.cyclesSinceLastChange = 0;
-      ifsRenew(&goomInfo->ifs_fx, *goomInfo->sound);
+      goomInfo->ifs_fx->renew();
       stats.ifsRenew();
     }
     else
@@ -1846,9 +1834,8 @@ static void applyStarsIfRequired(PluginInfo* goomInfo)
 
   logDebug("goomInfo->curGDrawables stars is set.");
   stats.doStars();
-  goomInfo->star_fx.setBuffSettings(&goomInfo->star_fx,
-                                    states.getCurrentBuffSettings(GoomDrawable::stars));
-  goomInfo->star_fx.apply(&goomInfo->star_fx, goomInfo, goomInfo->p2, goomInfo->p1);
+  goomInfo->star_fx->setBuffSettings(states.getCurrentBuffSettings(GoomDrawable::stars));
+  goomInfo->star_fx->apply(goomInfo->p2, goomInfo->p1);
 }
 
 #ifdef SHOW_STATE_TEXT_ON_SCREEN
@@ -2089,7 +2076,6 @@ static void bigBreak(PluginInfo* goomInfo, ZoomFilterData** pzfd)
 {
   *pzfd = &goomInfo->update.zoomFilterData;
   goomInfo->update.zoomFilterData.vitesse += 3;
-  goomInfo->update.zoomFilterData.pertedec = 8;
 }
 
 static void forceFilterMode(PluginInfo* goomInfo, const int forceMode, ZoomFilterData** pzfd)
@@ -2107,7 +2093,6 @@ static void lowerSpeed(PluginInfo* goomInfo, ZoomFilterData** pzfd)
 static void stopDecrementing(PluginInfo* goomInfo, ZoomFilterData** pzfd)
 {
   *pzfd = &goomInfo->update.zoomFilterData;
-  goomInfo->update.zoomFilterData.pertedec = 8;
 }
 
 static void updateDecayRecay(PluginInfo* goomInfo)
@@ -2196,9 +2181,8 @@ static void applyIfsIfRequired(PluginInfo* goomInfo)
   logDebug("goomInfo->update.ifs_incr = {} > 0 and goomInfo->curGDrawables IFS is set",
            goomInfo->update.ifs_incr);
   stats.doIFS();
-  goomInfo->ifs_fx.setBuffSettings(&goomInfo->ifs_fx,
-                                   states.getCurrentBuffSettings(GoomDrawable::IFS));
-  goomInfo->ifs_fx.apply(&goomInfo->ifs_fx, goomInfo, goomInfo->p2, goomInfo->p1);
+  goomInfo->ifs_fx->setBuffSettings(states.getCurrentBuffSettings(GoomDrawable::IFS));
+  goomInfo->ifs_fx->apply(goomInfo->p2, goomInfo->p1);
 }
 
 static void regularlyLowerTheSpeed(PluginInfo* goomInfo, ZoomFilterData** pzfd)

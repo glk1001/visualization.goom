@@ -83,7 +83,7 @@ void ConvolveFx::finish()
   f.close();
 }
 
-void ConvolveFx::log(const StatsLogValueFunc logVal) const
+void ConvolveFx::log(const StatsLogValueFunc&) const
 {
 }
 

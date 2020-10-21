@@ -34,7 +34,7 @@ public:
   void saveState(std::ostream&) override;
   void loadState(std::istream&) override;
 
-  void log(const StatsLogValueFunc logVal) const override;
+  void log(const StatsLogValueFunc& logVal) const override;
   void finish() override;
 
 private:

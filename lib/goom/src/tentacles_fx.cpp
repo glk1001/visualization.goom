@@ -575,8 +575,8 @@ void TentaclesWrapper::init()
   currentDriver->setRoughTentacles(false);
   currentDriver->freshStart();
   //  currentDriver->setColorMode(static_cast<TentacleDriver::ColorModes>(getRandInRange(0u, 2u)));
-  //  currentDriver->setColorMode(static_cast<TentacleDriver::ColorModes>(getRandInRange(1u, 2u)));
-  currentDriver->setColorMode(TentacleDriver::ColorModes::oneGroupForAll);
+  currentDriver->setColorMode(static_cast<TentacleDriver::ColorModes>(getRandInRange(1u, 2u)));
+  //  currentDriver->setColorMode(TentacleDriver::ColorModes::oneGroupForAll);
   currentDriver->setReverseColorMix(probabilityOfMInN(1, 2));
 
   distt = std::lerp(disttMin, disttMax, 0.3);
@@ -903,7 +903,7 @@ void TentaclesFx::finish()
 {
 }
 
-void TentaclesFx::log(const StatsLogValueFunc logVal) const
+void TentaclesFx::log(const StatsLogValueFunc& logVal) const
 {
   tentacles->logStats(logVal);
 }

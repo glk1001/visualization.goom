@@ -1,7 +1,6 @@
 #ifndef _GOOM_CORE_H
 #define _GOOM_CORE_H
 
-#include "filters.h"
 #include "goom_config.h"
 #include "goom_plugin_info.h"
 
@@ -11,7 +10,6 @@ namespace goom
 {
 
 PluginInfo* goom_init(const uint16_t resx, const uint16_t resy, const int seed);
-void goom_set_resolution(PluginInfo*, const uint16_t resx, const uint16_t resy);
 
 /*
  * forceMode == 0 : do nothing

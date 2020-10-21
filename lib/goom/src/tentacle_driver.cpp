@@ -386,9 +386,9 @@ std::vector<utils::ColorMapGroup> TentacleDriver::getNextColorMapGroups() const
 {
   const size_t numDifferentGroups =
       (colorMode == ColorModes::minimal || colorMode == ColorModes::oneGroupForAll ||
-       probabilityOfMInN(1, 2))
+       probabilityOfMInN(3, 4))
           ? 1
-          : getRandInRange(1u, colorizers.size());
+          : getRandInRange(1U, std::min(size_t(5U), colorizers.size()));
   std::vector<utils::ColorMapGroup> groups(numDifferentGroups);
   for (size_t i = 0; i < numDifferentGroups; i++)
   {

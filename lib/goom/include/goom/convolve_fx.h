@@ -1,6 +1,7 @@
 #ifndef _CONVOLVE_FX_H
 #define _CONVOLVE_FX_H
 
+#include "goom_config.h"
 #include "goom_graphic.h"
 #include "goom_visual_fx.h"
 
@@ -32,7 +33,7 @@ public:
   void saveState(std::ostream&) override;
   void loadState(std::istream&) override;
 
-  void log(const StatsLogValueFunc logVal) const override;
+  void log(const StatsLogValueFunc& logVal) const override;
   void finish() override;
 
 private:

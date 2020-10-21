@@ -57,7 +57,7 @@ public:
   virtual void saveState(std::ostream&) = 0;
   virtual void loadState(std::istream&) = 0;
 
-  virtual void log(const StatsLogValueFunc) const {};
+  virtual void log(const StatsLogValueFunc&) const {};
   virtual void finish(){};
 };
 

@@ -42,7 +42,6 @@ void plugin_info_init(PluginInfo* pp)
   pp->update.zoomFilterData = {
       .mode = ZoomFilterMode::crystalBallMode,
       .vitesse = 127,
-      .pertedec = 8,
       .middleX = 16,
       .middleY = 1,
       .reverse = true,

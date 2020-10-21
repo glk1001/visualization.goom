@@ -18,6 +18,8 @@
 namespace goom
 {
 
+class IfsFx;
+
 enum class GoomDrawable
 {
   IFS = 0,
@@ -46,18 +48,15 @@ struct PluginInfo
 
   std::unique_ptr<SoundInfo> sound;
 
-  std::vector<VisualFX*> visuals;
-  std::vector<VisualFx*> newVisuals;
-  //  std::vector<std::unique_ptr<VisualFX>> newVisuals;
-
   // The known FX
-  VisualFX star_fx;
-  VisualFX zoomFilter_fx;
-  VisualFX ifs_fx;
-
+  std::unique_ptr<ZoomFilterFx> zoomFilter_fx;
+  std::unique_ptr<IfsFx> ifs_fx;
+  std::unique_ptr<VisualFx> star_fx;
   std::unique_ptr<VisualFx> convolve_fx;
   std::unique_ptr<VisualFx> tentacles_fx;
   std::unique_ptr<VisualFx> goomDots;
+
+  std::vector<VisualFx*> visuals;
 
   // image buffers
   uint32_t* pixel;
