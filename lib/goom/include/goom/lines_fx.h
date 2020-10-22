@@ -14,7 +14,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <memory>
 
 namespace goom
 {
@@ -39,56 +38,61 @@ enum class LineType
 constexpr size_t numLineTypes = static_cast<size_t>(LineType::_size);
 
 // tableau de points
-struct GMLine
+class GMLine
 {
-  std::unique_ptr<GoomDraw> draw;
-  const utils::ColorMaps* colorMaps;
+public:
+  // construit un effet de line (une ligne horitontale pour commencer)
+  GMLine(PluginInfo* goomInfo,
+         const uint16_t rx,
+         const uint16_t ry,
+         const LineType IDsrc,
+         const float paramS,
+         const uint32_t srcColor,
+         const LineType IDdest,
+         const float paramD,
+         const uint32_t destColor);
 
-  GMUnitPointer* points;
-  GMUnitPointer* points2;
-  LineType IDdest;
-  float param;
-  float amplitudeF;
-  float amplitude;
+  uint32_t getRandomLineColor();
 
-  size_t nbPoints;
-  // pour l'instant je stocke la couleur a terme, on stockera le mode couleur et l'on animera
-  uint32_t color;
-  uint32_t color2;
+  void setResolution(const uint32_t rx, const uint32_t ry);
+  void switchGoomLines(const LineType dest,
+                       const float param,
+                       const float amplitude,
+                       const uint32_t color);
+  void drawGoomLines(const int16_t data[AUDIO_SAMPLE_LEN], Pixel*);
+
+  float power = 0;
+  float powinc = 0;
+
+private:
+  PluginInfo* goomInfo;
+  GoomDraw draw;
+  utils::ColorMaps colorMaps{};
 
   uint16_t screenX;
   uint16_t screenY;
 
-  float power;
-  float powinc;
+  const size_t nbPoints = AUDIO_SAMPLE_LEN;
+  GMUnitPointer points[AUDIO_SAMPLE_LEN];
+  GMUnitPointer points2[AUDIO_SAMPLE_LEN];
 
-  PluginInfo* goomInfo;
+  LineType IDdest;
+  float param;
+  float amplitudeF = 1;
+  float amplitude = 1;
+
+  // pour l'instant je stocke la couleur a terme, on stockera le mode couleur et l'on animera
+  uint32_t color;
+  uint32_t color2;
+
+  void goomLinesMove();
+  static void generateLine(
+      const LineType id, const float param, const uint32_t rx, const uint32_t ry, GMUnitPointer* l);
 };
-
-// construit un effet de line (une ligne horitontale pour commencer)
-GMLine* goomLinesInit(PluginInfo* goomInfo,
-                      const uint32_t rx,
-                      const uint32_t ry,
-                      const LineType IDsrc,
-                      const float paramS,
-                      const uint32_t srcColor,
-                      const LineType IDdest,
-                      const float paramD,
-                      const uint32_t destColor);
-
-void goomLinesFree(GMLine**);
-
-void goomLinesSetResolution(GMLine*, const uint32_t rx, const uint32_t ry);
-
-void switchGoomLines(
-    GMLine*, const LineType dest, const float param, const float amplitude, const uint32_t color);
 
 uint32_t getBlackLineColor();
 uint32_t getGreenLineColor();
 uint32_t getRedLineColor();
-uint32_t getRandomLineColor(PluginInfo*);
-
-void drawGoomLines(PluginInfo*, GMLine*, const int16_t data[AUDIO_SAMPLE_LEN], Pixel*);
 
 } // namespace goom
 #endif

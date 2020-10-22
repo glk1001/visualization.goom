@@ -4,8 +4,6 @@
 #include "filters.h"
 #include "goom_config.h"
 #include "goom_graphic.h"
-#include "goom_visual_fx.h"
-#include "lines_fx.h"
 #include "sound_info.h"
 
 #include <cstddef>
@@ -65,10 +63,6 @@ struct PluginInfo
 
   const Screen screen;
   GoomUpdate update;
-
-  // Line Fx
-  GMLine* gmline1 = nullptr;
-  GMLine* gmline2 = nullptr;
 
   const SoundInfo& getSoundInfo() const;
   void processSoundSample(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN]);

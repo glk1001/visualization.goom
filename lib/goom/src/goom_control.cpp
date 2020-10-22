@@ -962,6 +962,10 @@ private:
   std::unordered_set<GoomDrawable> curGDrawables;
   GoomMessage messageData;
 
+  // Line Fx
+  GMLine gmline1;
+  GMLine gmline2;
+
   void initBuffers();
   bool changeFilterModeEventHappens();
   void setNextFilterMode();
@@ -1066,11 +1070,34 @@ void GoomControl::update(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN]
   controller->update(data, forceMode, fps, songTitle, message);
 }
 
+static const uint32_t lRed = getRedLineColor();
+static const uint32_t lGreen = getGreenLineColor();
+static const uint32_t lBlack = getBlackLineColor();
 
 GoomControl::GoomControlImp::GoomControlImp(const uint16_t resx,
                                             const uint16_t resy,
                                             const int seed)
-  : goomInfo{new PluginInfo{resx, resy}}, imageBuffers{resx, resy}, visualFx{goomInfo.get()}
+  : goomInfo{new PluginInfo{resx, resy}},
+    imageBuffers{resx, resy},
+    visualFx{goomInfo.get()},
+    gmline1{goomInfo.get(),
+            resx,
+            resy,
+            LineType::hline,
+            static_cast<float>(resy),
+            lBlack,
+            LineType::circle,
+            0.4f * static_cast<float>(resy),
+            lGreen},
+    gmline2{goomInfo.get(),
+            resx,
+            resy,
+            LineType::hline,
+            0,
+            lBlack,
+            LineType::circle,
+            0.2f * static_cast<float>(resy),
+            lRed}
 {
   logDebug("Initialize goom: resx = {}, resy = {}, seed = {}.", resx, resy, seed);
 
@@ -1079,23 +1106,11 @@ GoomControl::GoomControlImp::GoomControlImp(const uint16_t resx,
     setRandSeed(static_cast<uint64_t>(seed));
   }
 
-  const uint32_t lRed = getRedLineColor();
-  const uint32_t lGreen = getGreenLineColor();
-  const uint32_t lBlack = getBlackLineColor();
-  goomInfo->gmline1 = goomLinesInit(goomInfo.get(), resx, goomInfo->screen.height, LineType::hline,
-                                    goomInfo->screen.height, lBlack, LineType::circle,
-                                    0.4f * static_cast<float>(goomInfo->screen.height), lGreen);
-  goomInfo->gmline2 =
-      goomLinesInit(goomInfo.get(), resx, goomInfo->screen.height, LineType::hline, 0, lBlack,
-                    LineType::circle, 0.2f * static_cast<float>(goomInfo->screen.height), lRed);
-
   gfont_load();
 }
 
 GoomControl::GoomControlImp::~GoomControlImp()
 {
-  goomLinesFree(&goomInfo->gmline1);
-  goomLinesFree(&goomInfo->gmline2);
 }
 
 void GoomControl::GoomControlImp::setScreenBuffer(uint32_t* buffer)
@@ -1311,7 +1326,7 @@ void GoomControl::GoomControlImp::chooseGoomLine(float* param1,
   }
 
   stats.changeLineColor();
-  *couleur = getRandomLineColor(goomInfo.get());
+  *couleur = gmline1.getRandomLineColor();
 }
 
 void GoomControl::GoomControlImp::changeFilterModeIfMusicChanges(const int forceMode)
@@ -2003,8 +2018,8 @@ void GoomControl::GoomControlImp::stopRequest()
   chooseGoomLine(&param1, &param2, &couleur, &mode, &amplitude, 1);
   couleur = getBlackLineColor();
 
-  switchGoomLines(goomInfo->gmline1, mode, param1, amplitude, couleur);
-  switchGoomLines(goomInfo->gmline2, mode, param2, amplitude, couleur);
+  gmline1.switchGoomLines(mode, param1, amplitude, couleur);
+  gmline2.switchGoomLines(mode, param2, amplitude, couleur);
   stats.switchLines();
   goomInfo->update.stop_lines &= 0x0fff;
 }
@@ -2045,7 +2060,7 @@ void GoomControl::GoomControlImp::stopRandomLineChangeMode()
       LineType mode;
       chooseGoomLine(&param1, &param2, &couleur1, &mode, &amplitude, goomInfo->update.stop_lines);
 
-      uint32_t couleur2 = getRandomLineColor(goomInfo.get());
+      uint32_t couleur2 = gmline2.getRandomLineColor();
       if (goomInfo->update.stop_lines)
       {
         goomInfo->update.stop_lines--;
@@ -2057,8 +2072,8 @@ void GoomControl::GoomControlImp::stopRandomLineChangeMode()
 
       logDebug("goomInfo->update.lineMode = {} == {} = goomInfo->update.drawLinesDuration",
                goomInfo->update.lineMode, goomInfo->update.drawLinesDuration);
-      switchGoomLines(goomInfo->gmline1, mode, param1, amplitude, couleur1);
-      switchGoomLines(goomInfo->gmline2, mode, param2, amplitude, couleur2);
+      gmline1.switchGoomLines(mode, param1, amplitude, couleur1);
+      gmline2.switchGoomLines(mode, param2, amplitude, couleur2);
       stats.switchLines();
     }
   }
@@ -2076,10 +2091,10 @@ void GoomControl::GoomControlImp::displayLines(
 
   stats.doLines();
 
-  goomInfo->gmline2->power = goomInfo->gmline1->power;
+  gmline2.power = gmline1.power;
 
-  drawGoomLines(goomInfo.get(), goomInfo->gmline1, data[0], imageBuffers.p2);
-  drawGoomLines(goomInfo.get(), goomInfo->gmline2, data[1], imageBuffers.p2);
+  gmline1.drawGoomLines(data[0], imageBuffers.p2);
+  gmline2.drawGoomLines(data[1], imageBuffers.p2);
 
   if (((cycle % 121) == 9) && goomEvent.happens(GoomEvent::changeGoomLine) &&
       ((goomInfo->update.lineMode == 0) ||
@@ -2093,7 +2108,7 @@ void GoomControl::GoomControlImp::displayLines(
     LineType mode;
     chooseGoomLine(&param1, &param2, &couleur1, &mode, &amplitude, goomInfo->update.stop_lines);
 
-    uint32_t couleur2 = getRandomLineColor(goomInfo.get());
+    uint32_t couleur2 = gmline2.getRandomLineColor();
     if (goomInfo->update.stop_lines)
     {
       goomInfo->update.stop_lines--;
@@ -2102,8 +2117,8 @@ void GoomControl::GoomControlImp::displayLines(
         couleur2 = couleur1 = getBlackLineColor();
       }
     }
-    switchGoomLines(goomInfo->gmline1, mode, param1, amplitude, couleur1);
-    switchGoomLines(goomInfo->gmline2, mode, param2, amplitude, couleur2);
+    gmline1.switchGoomLines(mode, param1, amplitude, couleur1);
+    gmline2.switchGoomLines(mode, param2, amplitude, couleur2);
   }
 }
 

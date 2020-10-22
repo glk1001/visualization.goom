@@ -12,16 +12,43 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <iterator>
+#include <memory>
 #include <stdexcept>
 #include <tuple>
+#include <vector>
 
 namespace goom
 {
 
 using namespace goom::utils;
 
-static void generateLine(
-    const LineType id, const float param, GMUnitPointer* l, const uint32_t rx, const uint32_t ry)
+GMLine::GMLine(PluginInfo* info,
+               const uint16_t rx,
+               const uint16_t ry,
+               const LineType IDsrc,
+               const float paramS,
+               const uint32_t srcColor,
+               const LineType dest,
+               const float paramD,
+               const uint32_t destColor)
+  : goomInfo{info},
+    draw{goomInfo->screen.width, goomInfo->screen.height},
+    screenX{rx},
+    screenY{ry},
+    IDdest{dest},
+    param{paramD},
+    color{srcColor},
+    color2{destColor}
+{
+  generateLine(IDsrc, paramS, rx, ry, points);
+  generateLine(IDdest, paramD, rx, ry, points2);
+
+  switchGoomLines(IDdest, paramD, 1.0, destColor);
+}
+
+void GMLine::generateLine(
+    const LineType id, const float param, const uint32_t rx, const uint32_t ry, GMUnitPointer* l)
 {
   switch (id)
   {
@@ -56,28 +83,24 @@ static void generateLine(
   }
 }
 
-void goomLinesSetResolution(GMLine* gml, const uint32_t rx, const uint32_t ry)
+void GMLine::setResolution(const uint32_t rx, const uint32_t ry)
 {
-  if (gml)
-  {
-    gml->screenX = rx;
-    gml->screenY = ry;
-
-    generateLine(gml->IDdest, gml->param, gml->points2, rx, ry);
-  }
+  screenX = rx;
+  screenY = ry;
+  generateLine(IDdest, param, rx, ry, points2);
 }
 
-static void goomLinesMove(GMLine* l)
+void GMLine::goomLinesMove()
 {
   for (uint32_t i = 0; i < AUDIO_SAMPLE_LEN; i++)
   {
-    l->points[i].x = (l->points2[i].x + 39.0f * l->points[i].x) / 40.0f;
-    l->points[i].y = (l->points2[i].y + 39.0f * l->points[i].y) / 40.0f;
-    l->points[i].angle = (l->points2[i].angle + 39.0f * l->points[i].angle) / 40.0f;
+    points[i].x = (points2[i].x + 39.0f * points[i].x) / 40.0f;
+    points[i].y = (points2[i].y + 39.0f * points[i].y) / 40.0f;
+    points[i].angle = (points2[i].angle + 39.0f * points[i].angle) / 40.0f;
   }
 
-  unsigned char* c1 = reinterpret_cast<unsigned char*>(&l->color);
-  unsigned char* c2 = reinterpret_cast<unsigned char*>(&l->color2);
+  unsigned char* c1 = reinterpret_cast<unsigned char*>(&color);
+  unsigned char* c2 = reinterpret_cast<unsigned char*>(&color2);
   for (int i = 0; i < 4; i++)
   {
     int cc1 = *c1;
@@ -87,88 +110,31 @@ static void goomLinesMove(GMLine* l)
     ++c2;
   }
 
-  l->power += l->powinc;
-  if (l->power < 1.1f)
+  power += powinc;
+  if (power < 1.1f)
   {
-    l->power = 1.1f;
-    l->powinc = static_cast<float>(getNRand(20) + 10) / 300.0f;
+    power = 1.1f;
+    powinc = static_cast<float>(getNRand(20) + 10) / 300.0f;
   }
-  if (l->power > 17.5f)
+  if (power > 17.5f)
   {
-    l->power = 17.5f;
-    l->powinc = -static_cast<float>(getNRand(20) + 10) / 300.0f;
+    power = 17.5f;
+    powinc = -static_cast<float>(getNRand(20) + 10) / 300.0f;
   }
 
-  l->amplitude = (99.0f * l->amplitude + l->amplitudeF) / 100.0f;
+  amplitude = (99.0f * amplitude + amplitudeF) / 100.0f;
 }
 
-void switchGoomLines(GMLine* gml,
-                     const LineType dest,
-                     const float param,
-                     const float amplitude,
-                     const uint32_t color)
+void GMLine::switchGoomLines(const LineType dest,
+                             const float prm,
+                             const float amp,
+                             const uint32_t color)
 {
-  generateLine(dest, param, gml->points2, gml->screenX, gml->screenY);
-  gml->IDdest = dest;
-  gml->param = param;
-  gml->amplitudeF = amplitude;
-  gml->color2 = color;
-}
-
-GMLine* goomLinesInit(PluginInfo* goomInfo,
-                      const uint32_t rx,
-                      const uint32_t ry,
-                      const LineType IDsrc,
-                      const float paramS,
-                      const uint32_t srcColor,
-                      const LineType IDdest,
-                      const float paramD,
-                      const uint32_t destColor)
-{
-  GMLine* l = new GMLine{};
-
-  l->draw = std::make_unique<GoomDraw>(goomInfo->screen.width, goomInfo->screen.height);
-
-  l->goomInfo = goomInfo;
-
-  l->colorMaps = new ColorMaps{};
-
-  l->points = new GMUnitPointer[AUDIO_SAMPLE_LEN];
-  l->points2 = new GMUnitPointer[AUDIO_SAMPLE_LEN];
-  l->nbPoints = AUDIO_SAMPLE_LEN;
-
-  l->IDdest = IDdest;
-  l->param = paramD;
-
-  l->amplitude = l->amplitudeF = 1.0f;
-
-  generateLine(IDsrc, paramS, l->points, rx, ry);
-  generateLine(IDdest, paramD, l->points2, rx, ry);
-
-  l->color = srcColor;
-  l->color2 = destColor;
-
-  l->screenX = rx;
-  l->screenY = ry;
-
-  l->power = 0.0f;
-  l->powinc = 0.01f;
-
-  switchGoomLines(l, IDdest, paramD, 1.0f, destColor);
-
-  return l;
-}
-
-void goomLinesFree(GMLine** l)
-{
-  delete (*l)->colorMaps;
-
-  delete[](*l)->points;
-  delete[](*l)->points2;
-
-  delete (*l);
-
-  l = nullptr;
+  generateLine(dest, param, screenX, screenY, points2);
+  IDdest = dest;
+  param = prm;
+  amplitudeF = amp;
+  color2 = color;
 }
 
 // les modes couleur possible (si tu mets un autre c'est noir)
@@ -219,73 +185,97 @@ uint32_t getRedLineColor()
   return getcouleur(GML_RED);
 }
 
-uint32_t getRandomLineColor(PluginInfo* goomInfo)
+uint32_t GMLine::getRandomLineColor()
 {
   if (getNRand(10) == 0)
   {
     return getcouleur(static_cast<int>(getNRand(6)));
   }
-  return ColorMap::getRandomColor(goomInfo->gmline1->colorMaps->getRandomColorMap());
+  return ColorMap::getRandomColor(colorMaps.getRandomColorMap());
 }
 
-void drawGoomLines(PluginInfo* goomInfo,
-                   GMLine* line,
-                   const int16_t data[AUDIO_SAMPLE_LEN],
-                   Pixel* p)
+std::vector<float> simpleMovingAverage(const int16_t x[AUDIO_SAMPLE_LEN], const uint32_t winLen)
 {
-  if (!line)
+  int32_t temp = 0;
+  for (size_t i = 0; i < winLen - 1; i++)
   {
-    return;
+    temp += x[i];
   }
 
-  const GMUnitPointer* pt = &(line->points[0]);
-  const uint32_t color = getLightenedColor(line->color, line->power);
+  std::vector<float> result{};
+  result.reserve(AUDIO_SAMPLE_LEN - winLen + 1);
+  for (size_t i = 0; i < AUDIO_SAMPLE_LEN - winLen + 1; i++)
+  {
+    temp += x[winLen - 1 + i];
+    result.push_back(static_cast<float>(temp) / winLen);
+    temp -= x[i];
+  }
+
+  return result;
+}
+
+inline std::vector<float> getDataPoints(const int16_t x[AUDIO_SAMPLE_LEN])
+{
+  if (probabilityOfMInN(2, 3))
+  {
+    return std::vector<float>{x, x + AUDIO_SAMPLE_LEN};
+  }
+
+  return simpleMovingAverage(x, 5);
+}
+
+void GMLine::drawGoomLines(const int16_t audioData[AUDIO_SAMPLE_LEN], Pixel* p)
+{
+  const GMUnitPointer* pt = &(points[0]);
+  const uint32_t lineColor = getLightenedColor(color, power);
 
   const float audioRange = static_cast<float>(goomInfo->getSoundInfo().getAllTimesMaxVolume() -
                                               goomInfo->getSoundInfo().getAllTimesMinVolume());
   if (audioRange < 0.0001)
   {
     // No range - flatline audio
-    line->draw->line(p, pt->x, pt->y, pt->x + AUDIO_SAMPLE_LEN, pt->y, Pixel{.val = color}, 1);
-    goomLinesMove(line);
+    draw.line(p, pt->x, pt->y, pt->x + AUDIO_SAMPLE_LEN, pt->y, Pixel{.val = lineColor}, 1);
+    goomLinesMove();
     return;
   }
 
   // This factor gives height to the audio samples lines. This value seems pleasing.
-  constexpr float maxNormalizedPeak = 90000;
-  const auto getNormalizedData = [&](const int16_t data) {
+  constexpr float maxNormalizedPeak = 120000;
+  const auto getNormalizedData = [&](const float data) {
     return maxNormalizedPeak *
-           static_cast<float>(data - goomInfo->getSoundInfo().getAllTimesMinVolume()) / audioRange;
+           (data - static_cast<float>(goomInfo->getSoundInfo().getAllTimesMinVolume())) /
+           audioRange;
   };
 
-  const uint32_t randColor = getRandomLineColor(goomInfo);
+  const uint32_t randColor = getRandomLineColor();
 
-  const auto getNextPoint = [&](const GMUnitPointer* pt, const int16_t dataVal) {
+  const auto getNextPoint = [&](const GMUnitPointer* pt, const float dataVal) {
     const float cosa = cos(pt->angle) / 1000.0f;
     const float sina = sin(pt->angle) / 1000.0f;
     const float fdata = getNormalizedData(dataVal);
-    const int x = static_cast<int>(pt->x + cosa * line->amplitude * fdata);
-    const int y = static_cast<int>(pt->y + sina * line->amplitude * fdata);
+    const int x = static_cast<int>(pt->x + cosa * amplitude * fdata);
+    const int y = static_cast<int>(pt->y + sina * amplitude * fdata);
     const float t = std::max(0.05f, fdata / static_cast<float>(maxNormalizedPeak));
-    const uint32_t modColor = ColorMap::colorMix(color, randColor, t);
+    const uint32_t modColor = ColorMap::colorMix(lineColor, randColor, t);
     return std::make_tuple(x, y, modColor);
   };
 
+  const std::vector<float> data = getDataPoints(audioData);
   auto [x1, y1, modColor] = getNextPoint(pt, data[0]);
   constexpr uint8_t thickness = 1;
 
   for (size_t i = 1; i < AUDIO_SAMPLE_LEN; i++)
   {
-    const GMUnitPointer* const pt = &(line->points[i]);
+    const GMUnitPointer* const pt = &(points[i]);
     const auto [x2, y2, modColor] = getNextPoint(pt, data[i]);
 
-    line->draw->line(p, x1, y1, x2, y2, Pixel{.val = modColor}, thickness);
+    draw.line(p, x1, y1, x2, y2, Pixel{.val = modColor}, thickness);
 
     x1 = x2;
     y1 = y2;
   }
 
-  goomLinesMove(line);
+  goomLinesMove();
 }
 
 } // namespace goom
