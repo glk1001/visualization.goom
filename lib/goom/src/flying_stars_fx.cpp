@@ -294,7 +294,7 @@ void FlyingStarsFx::apply(Pixel* prevBuff, Pixel* currentBuff)
   fxData->maxStars = getRandInRange(256U, fxData->maxStarsLimit);
 
   // look for events
-  if (goomInfo->sound->getTimeSinceLastGoom() < 1)
+  if (goomInfo->getSoundInfo().getTimeSinceLastGoom() < 1)
   {
     soundEventOccured();
     if (getNRand(20) == 1)
@@ -389,9 +389,10 @@ void FlyingStarsFx::soundEventOccured()
   fxData->maxStarAge = minStarAge + getNRand(maxStarExtraAge);
   fxData->useSingleBufferOnly = probabilityOfMInN(1, 10);
 
-  size_t max = 100 + static_cast<size_t>((1.0f + goomInfo->sound->getGoomPower()) * getNRand(150));
-  float radius =
-      (1.0f + goomInfo->sound->getGoomPower()) * static_cast<float>(getNRand(150) + 50) / 300.0F;
+  size_t max =
+      100 + static_cast<size_t>((1.0f + goomInfo->getSoundInfo().getGoomPower()) * getNRand(150));
+  float radius = (1.0f + goomInfo->getSoundInfo().getGoomPower()) *
+                 static_cast<float>(getNRand(150) + 50) / 300.0F;
   float gravity = 0.02f;
 
   uint32_t mx;
@@ -418,7 +419,7 @@ void FlyingStarsFx::soundEventOccured()
           break;
         }
       }
-      vage = fxData->max_age * (1.0f - goomInfo->sound->getGoomPower());
+      vage = fxData->max_age * (1.0f - goomInfo->getSoundInfo().getGoomPower());
     }
     break;
     case StarModes::rain:
@@ -444,7 +445,7 @@ void FlyingStarsFx::soundEventOccured()
 
   radius *= goomInfo->screen.height / 200.0f; // Why 200 ? Because the FX was developed on 320x200.
   max *= goomInfo->screen.height / 200.0f;
-  if (goomInfo->sound->getTimeSinceLastBigGoom() < 1)
+  if (goomInfo->getSoundInfo().getTimeSinceLastBigGoom() < 1)
   {
     radius *= 1.5;
     max *= 2;

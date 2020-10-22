@@ -624,7 +624,7 @@ void TentaclesWrapper::update(PluginInfo* goomInfo, Pixel* prevBuff, Pixel* curr
 
     logDebug("Starting pretty_move without draw.");
     stats.updateWithPrettyMoveNoDraw();
-    prettyMove(goomInfo->sound->getAcceleration());
+    prettyMove(goomInfo->getSoundInfo().getAcceleration());
 
     cycle += 10.0F * cycleInc;
     if (cycle > 1000)
@@ -642,7 +642,7 @@ void TentaclesWrapper::update(PluginInfo* goomInfo, Pixel* prevBuff, Pixel* curr
 
     logDebug("Starting pretty_move and draw.");
     stats.updateWithPrettyMoveDraw();
-    prettyMove(goomInfo->sound->getAcceleration());
+    prettyMove(goomInfo->getSoundInfo().getAcceleration());
     cycle += cycleInc;
 
     if (isPrettyMoveHappening || changeDominantColorMapEvent())
@@ -660,7 +660,7 @@ void TentaclesWrapper::update(PluginInfo* goomInfo, Pixel* prevBuff, Pixel* curr
 
     const auto [modColor, modColorLow] = getModColors();
 
-    if (goomInfo->sound->getTimeSinceLastGoom() != 0)
+    if (goomInfo->getSoundInfo().getTimeSinceLastGoom() != 0)
     {
       stats.lowToMediumAcceleration();
     }
@@ -679,9 +679,10 @@ void TentaclesWrapper::update(PluginInfo* goomInfo, Pixel* prevBuff, Pixel* curr
     }
 
     // Higher sound acceleration increases tentacle wave frequency.
-    const float tentacleWaveFreq = goomInfo->sound->getAcceleration() < 0.3
-                                       ? 1.25F
-                                       : 1.0F / (1.10F - goomInfo->sound->getAcceleration());
+    const float tentacleWaveFreq =
+        goomInfo->getSoundInfo().getAcceleration() < 0.3
+            ? 1.25F
+            : 1.0F / (1.10F - goomInfo->getSoundInfo().getAcceleration());
     currentDriver->multiplyIterZeroYValWaveFreq(tentacleWaveFreq);
 
     currentDriver->update(m_half_pi - rot, distt, distt2, modColor, modColorLow, prevBuff,

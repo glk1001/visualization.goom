@@ -26,7 +26,7 @@
 
 #include "CircularBuffer.h"
 #include "goom/goom_config.h"
-#include "goom/goom_core.h"
+#include "goom/goom_control.h"
 
 #include <condition_variable>
 #include <functional>
@@ -68,8 +68,8 @@ public:
 
 protected:
   const static size_t g_num_audio_buffers_in_circular_buffer = 16;
-  const goom::PluginInfo* goomPluginInfo() const { return m_goom; };
-  goom::PluginInfo* goomPluginInfo() { return m_goom; };
+  //  const goom::GoomControl goomPluginInfo() const { return m_goom; };
+  //  goom::PluginInfo* goomPluginInfo() { return m_goom; };
   int AudioBufferLen() const { return m_audioBufferLen; };
   int TexWidth() const { return m_tex_width; };
   int TexHeight() const { return m_tex_height; };
@@ -132,7 +132,7 @@ private:
   GLint m_aCoordLoc = -1;
 
   // Goom's data itself
-  goom::PluginInfo* m_goom = nullptr;
+  std::unique_ptr<goom::GoomControl> m_goomControl = nullptr;
 
   // Audio buffer storage
   const static size_t g_circular_buffer_size =

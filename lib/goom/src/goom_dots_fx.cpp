@@ -112,15 +112,15 @@ std::vector<Pixel> GoomDots::getColors(const uint32_t color0,
 void GoomDots::apply(Pixel* prevBuff, Pixel* currentBuff)
 {
   uint32_t radius = 3;
-  if ((goomInfo->sound->getTimeSinceLastGoom() == 0) || changeDotColorsEvent())
+  if ((goomInfo->getSoundInfo().getTimeSinceLastGoom() == 0) || changeDotColorsEvent())
   {
     changeColors();
     radius = 5;
   }
 
-  const float largeFactor = getLargeSoundFactor(*(goomInfo->sound));
-  const uint32_t speedvarMult80Plus15 = goomInfo->sound->getSpeed() * 80 + 15;
-  const uint32_t speedvarMult50Plus1 = goomInfo->sound->getSpeed() * 50 + 1;
+  const float largeFactor = getLargeSoundFactor(goomInfo->getSoundInfo());
+  const uint32_t speedvarMult80Plus15 = goomInfo->getSoundInfo().getSpeed() * 80 + 15;
+  const uint32_t speedvarMult50Plus1 = goomInfo->getSoundInfo().getSpeed() * 50 + 1;
   logDebug("speedvarMult80Plus15 = {}", speedvarMult80Plus15);
   logDebug("speedvarMult50Plus1 = {}", speedvarMult50Plus1);
 

@@ -1,7 +1,6 @@
 #include "tentacle_driver.h"
 
 #include "colorutils.h"
-#include "goom_core.h"
 #include "goom_draw.h"
 #include "goomutils/colormap.h"
 #include "goomutils/goomrand.h"

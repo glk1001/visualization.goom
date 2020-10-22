@@ -2,7 +2,6 @@
 #define AUDIO_DATA_HPP
 
 #include "goom/goom_config.h"
-#include "goom/goom_core.h"
 
 #include <cstdint>
 

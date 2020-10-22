@@ -98,9 +98,9 @@ void ConvolveFx::apply(Pixel* prevBuff, Pixel* currentBuff)
   const uint32_t iff = static_cast<uint32_t>(std::round(ff * 256 + 0.0001f));
   constexpr float increaseRate = 1.3;
   constexpr float decayRate = 0.955;
-  if (goomInfo->sound->getTimeSinceLastGoom() == 0)
+  if (goomInfo->getSoundInfo().getTimeSinceLastGoom() == 0)
   {
-    fxData->factor += goomInfo->sound->getGoomPower() * increaseRate;
+    fxData->factor += goomInfo->getSoundInfo().getGoomPower() * increaseRate;
   }
   fxData->factor *= decayRate;
 

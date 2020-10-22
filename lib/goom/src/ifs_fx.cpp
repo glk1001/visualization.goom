@@ -691,7 +691,7 @@ void IfsFx::renew()
   fxData->updateAllowOverexposed();
 
   fxData->root->speed = static_cast<uint32_t>(getRandInRange(1.11F, 5.1F) /
-                                              (1.1F - goomInfo->sound->getAcceleration()));
+                                              (1.1F - goomInfo->getSoundInfo().getAcceleration()));
 }
 
 void IfsFx::changeColormaps()

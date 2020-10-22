@@ -212,7 +212,7 @@ void CVisualizationGoom::AudioData(const float* pAudioData,
 
 bool CVisualizationGoom::UpdateTrack(const VisTrack& track)
 {
-  if (m_goom)
+  if (m_goomControl)
   {
     m_lastSongName = m_currentSongName;
     std::string artist = track.artist;
@@ -336,12 +336,14 @@ void CVisualizationGoom::Process()
 {
   constexpr int seed = 0; // goom will supply a random seed
   // constexpr int seed = 1; // goom will use same random sequence
-  m_goom = goom::goom_init(m_tex_width, m_tex_height, seed);
-  if (!m_goom)
+  m_goomControl.reset(new goom::GoomControl{static_cast<uint16_t>(m_tex_width),
+                                            static_cast<uint16_t>(m_tex_height), seed});
+  if (!m_goomControl)
   {
     kodi::Log(ADDON_LOG_FATAL, "CVisualizationGoom: Goom could not be initialized!");
     return;
   }
+  m_goomControl->start();
 
   float floatAudioData[m_audioBufferLen];
   const char* title = nullptr;
@@ -417,7 +419,7 @@ void CVisualizationGoom::Process()
     lk.unlock();
   }
 
-  goom::goom_close(m_goom);
+  m_goomControl->finish();
 }
 
 void CVisualizationGoom::UpdateGoomBuffer(const char* title,
@@ -426,8 +428,8 @@ void CVisualizationGoom::UpdateGoomBuffer(const char* title,
 {
   static int16_t audioData[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN];
   FillAudioDataBuffer(audioData, floatAudioData, m_channels);
-  goom::goom_set_screenbuffer(m_goom, pixels.get());
-  goom::goom_update(m_goom, audioData, 0, 0.0f, title, "");
+  m_goomControl->setScreenBuffer(pixels.get());
+  m_goomControl->update(audioData, 0, 0.0f, title, "");
 }
 
 void CVisualizationGoom::InitQuadData()
