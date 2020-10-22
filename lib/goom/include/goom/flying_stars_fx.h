@@ -14,7 +14,7 @@ namespace goom
 {
 
 struct PluginInfo;
-struct FlyingStarsData;
+struct FlyingStarsImpl;
 
 class FlyingStarsFx : public VisualFx
 {
@@ -37,13 +37,8 @@ public:
   void finish() override;
 
 private:
-  PluginInfo* const goomInfo;
   bool enabled = true;
-  std::unique_ptr<FlyingStarsData> fxData;
-  void addABomb(
-      const uint32_t mx, const uint32_t my, const float radius, float vage, const float gravity);
-  uint32_t getLowColor(const size_t starNum, const float tmix);
-  void soundEventOccured();
+  std::unique_ptr<FlyingStarsImpl> fxImpl;
 };
 
 } // namespace goom

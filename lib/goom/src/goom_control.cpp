@@ -400,10 +400,10 @@ const GoomStates::WeightedStatesArray GoomStates::states{{
     }},
   },
   {
-    .weight = 60,
+    .weight = 600000,
     .drawables {{
       { .fx = GoomDrawable::dots,      .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::stars,     .buffSettings = { .buffIntensity = 0.6, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::stars,     .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
     }},
   },
   {

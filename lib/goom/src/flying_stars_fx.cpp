@@ -171,14 +171,28 @@ struct Star
   }
 };
 
-struct FlyingStarsData
+class FlyingStarsImpl
 {
-  explicit FlyingStarsData(const PluginInfo*);
+public:
+  explicit FlyingStarsImpl(const PluginInfo*);
 
-  bool enabled = true;
+  void setBuffSettings(const FXBuffSettings&);
+
+  void updateBuffers(Pixel* prevBuff, Pixel* currentBuff);
+
+  void log(const StatsLogValueFunc& logVal) const;
+
+  template<class Archive>
+  void serialize(Archive& ar)
+  {
+    ar(fx_mode, maxStars, stars, maxStarAge, min_age, max_age, buffSettings, useSingleBufferOnly,
+       draw);
+  }
+
+private:
+  const PluginInfo* const goomInfo;
 
   ColorMaps colorMaps;
-  ColorMapGroup currentColorGroup;
   const WeightedColorMaps lowColorMaps{Weights<ColorMapGroup>{{
       {ColorMapGroup::perceptuallyUniformSequential, 0},
       {ColorMapGroup::sequential, 0},
@@ -194,7 +208,6 @@ struct FlyingStarsData
   static constexpr size_t maxStarsLimit = 2048;
   size_t maxStars = maxStarsLimit;
   std::vector<Star> stars;
-  size_t numStars = 0;
   uint32_t maxStarAge = 15;
 
   // Fireworks Largest Bombs
@@ -207,45 +220,26 @@ struct FlyingStarsData
   GoomDraw draw;
   StarsStats stats;
 
-  template<class Archive>
-  void serialize(Archive& ar)
-  {
-    ar(currentColorGroup, fx_mode, numStars, maxStars, stars, maxStarAge, min_age, max_age,
-       buffSettings, useSingleBufferOnly, draw);
-  }
+  void soundEventOccured();
+  static void updateStar(Star*);
+  uint32_t getLowColor(const size_t starNum, const float tmix);
+  bool isStarDead(const Star&) const;
+  void addABomb(const utils::ColorMapGroup colorGroup,
+                const utils::ColorMap* lowColorMap,
+                const uint32_t mx,
+                const uint32_t my,
+                const float radius,
+                float vage,
+                const float gravity);
 };
 
-FlyingStarsData::FlyingStarsData(const PluginInfo* goomInfo)
-  : colorMaps{},
-    currentColorGroup{colorMaps.getRandomGroup()},
-    stars(maxStarsLimit),
-    draw{goomInfo->screen.width, goomInfo->screen.height},
-    stats{}
-{
-}
-
-/**
- * Met a jour la position et vitesse d'une particule.
- */
-static void updateStar(Star* s)
-{
-  s->x += s->vx;
-  s->y += s->vy;
-  s->vx += s->ax;
-  s->vy += s->ay;
-  s->age += s->vage;
-}
-
-FlyingStarsFx::FlyingStarsFx(PluginInfo* info)
-  : goomInfo{info}, fxData{new FlyingStarsData{goomInfo}}
+FlyingStarsFx::FlyingStarsFx(PluginInfo* info) : fxImpl{new FlyingStarsImpl{info}}
 {
 }
 
 void FlyingStarsFx::setBuffSettings(const FXBuffSettings& settings)
 {
-  fxData->buffSettings = settings;
-  fxData->draw.setBuffIntensity(fxData->buffSettings.buffIntensity);
-  fxData->draw.setAllowOverexposed(fxData->buffSettings.allowOverexposed);
+  fxImpl->setBuffSettings(settings);
 }
 
 void FlyingStarsFx::start()
@@ -262,7 +256,7 @@ void FlyingStarsFx::finish()
 
 void FlyingStarsFx::log(const StatsLogValueFunc& logVal) const
 {
-  fxData->stats.log(logVal);
+  fxImpl->log(logVal);
 }
 
 std::string FlyingStarsFx::getFxName() const
@@ -273,25 +267,49 @@ std::string FlyingStarsFx::getFxName() const
 void FlyingStarsFx::saveState(std::ostream& f)
 {
   cereal::JSONOutputArchive archiveOut(f);
-  fxData->stars.resize(fxData->numStars);
-  archiveOut(*fxData);
+  archiveOut(*fxImpl);
 }
 
 void FlyingStarsFx::loadState(std::istream& f)
 {
   cereal::JSONInputArchive archive_in(f);
-  archive_in(*fxData);
-  fxData->stars.resize(fxData->maxStars);
+  archive_in(*fxImpl);
 }
 
 void FlyingStarsFx::apply(Pixel* prevBuff, Pixel* currentBuff)
 {
-  if (!fxData->enabled)
+  if (!enabled)
   {
     return;
   }
 
-  fxData->maxStars = getRandInRange(256U, fxData->maxStarsLimit);
+  fxImpl->updateBuffers(prevBuff, currentBuff);
+}
+
+FlyingStarsImpl::FlyingStarsImpl(const PluginInfo* info)
+  : goomInfo{info},
+    colorMaps{},
+    stars{},
+    draw{goomInfo->screen.width, goomInfo->screen.height},
+    stats{}
+{
+  stars.reserve(maxStarsLimit);
+}
+
+void FlyingStarsImpl::setBuffSettings(const FXBuffSettings& settings)
+{
+  draw.setBuffIntensity(settings.buffIntensity);
+  draw.setAllowOverexposed(settings.allowOverexposed);
+}
+
+void FlyingStarsImpl::log(const StatsLogValueFunc& logVal) const
+{
+  stats.log(logVal);
+}
+
+void FlyingStarsImpl::updateBuffers(Pixel* prevBuff, Pixel* currentBuff)
+{
+  maxStars = getRandInRange(256U, maxStarsLimit);
 
   // look for events
   if (goomInfo->getSoundInfo().getTimeSinceLastGoom() < 1)
@@ -301,33 +319,33 @@ void FlyingStarsFx::apply(Pixel* prevBuff, Pixel* currentBuff)
     {
       // Give a slight weight towards noFx mode by using numFX + 2.
       const uint32_t newVal = getNRand(numFx + 2);
-      fxData->fx_mode = newVal >= numFx ? StarModes::noFx : static_cast<StarModes>(newVal);
+      fx_mode = newVal >= numFx ? StarModes::noFx : static_cast<StarModes>(newVal);
     }
   }
 
   // update particules
-  fxData->stats.updateStars();
+  stats.updateStars();
 
-  for (size_t i = 0; i < fxData->numStars; ++i)
+  for (size_t i = 0; i < stars.size(); ++i)
   {
-    updateStar(&fxData->stars[i]);
+    updateStar(&stars[i]);
 
     // dead particule
-    if (fxData->stars[i].age >= fxData->maxStarAge)
+    if (stars[i].age >= maxStarAge)
     {
-      fxData->stats.deadStar();
+      stats.deadStar();
       continue;
     }
 
     // choose the color of the particule
-    const float tAge = fxData->stars[i].age / static_cast<float>(fxData->maxStarAge);
-    const uint32_t color = fxData->stars[i].currentColorMap->getColor(tAge);
+    const float tAge = stars[i].age / static_cast<float>(maxStarAge);
+    const uint32_t color = stars[i].currentColorMap->getColor(tAge);
     const uint32_t lowColor = getLowColor(i, tAge);
     const float thicknessFactor = getRandInRange(1.0F, 3.0F);
 
     // draws the particule
-    const int x0 = static_cast<int>(fxData->stars[i].x);
-    const int y0 = static_cast<int>(fxData->stars[i].y);
+    const int x0 = static_cast<int>(stars[i].x);
+    const int y0 = static_cast<int>(stars[i].y);
     int x1 = x0;
     int y1 = y0;
     constexpr size_t numParts = 7;
@@ -335,21 +353,21 @@ void FlyingStarsFx::apply(Pixel* prevBuff, Pixel* currentBuff)
     {
       const float t = static_cast<float>(j - 1) / static_cast<float>(numParts - 1);
       const Pixel mixedColor{.val = ColorMap::colorMix(color, lowColor, t)};
-      const int x2 = x0 - static_cast<int>(fxData->stars[i].vx * j);
-      const int y2 = y0 - static_cast<int>(fxData->stars[i].vy * j);
+      const int x2 = x0 - static_cast<int>(stars[i].vx * j);
+      const int y2 = y0 - static_cast<int>(stars[i].vy * j);
       const uint8_t thickness = static_cast<uint8_t>(
           std::clamp(1u, 2u, static_cast<uint32_t>(thicknessFactor * (1.0 - t))));
       //      1u, 5u, static_cast<uint32_t>((1.0 - std::fabs(t - 0.5)) * getRandInRange(1.0F, 5.0F))));
 
-      if (fxData->useSingleBufferOnly)
+      if (useSingleBufferOnly)
       {
-        fxData->draw.line(currentBuff, x1, y1, x2, y2, mixedColor, thickness);
+        draw.line(currentBuff, x1, y1, x2, y2, mixedColor, thickness);
       }
       else
       {
         const std::vector<Pixel> colors = {mixedColor, {.val = lowColor}};
         std::vector<Pixel*> buffs{currentBuff, prevBuff};
-        fxData->draw.line(buffs, x1, y1, x2, y2, colors, thickness);
+        draw.line(buffs, x1, y1, x2, y2, colors, thickness);
       }
 
       x1 = x2;
@@ -357,107 +375,33 @@ void FlyingStarsFx::apply(Pixel* prevBuff, Pixel* currentBuff)
     }
   }
 
-  // look for dead particules
-  for (size_t i = 0; i < fxData->numStars;)
-  {
-    if ((fxData->stars[i].x > static_cast<float>(goomInfo->screen.width + 64)) ||
-        ((fxData->stars[i].vy >= 0) &&
-         (fxData->stars[i].y - 16 * fxData->stars[i].vy > goomInfo->screen.height)) ||
-        (fxData->stars[i].x < -64) || (fxData->stars[i].age >= fxData->maxStarAge))
-    {
-      fxData->stars[i] = fxData->stars[fxData->numStars - 1];
-      fxData->numStars--;
-      fxData->stats.removedDeadStar();
-    }
-    else
-    {
-      ++i;
-    }
-  }
+  // remove all dead particules
+  const auto isDead = [&](const Star& s) { return isStarDead(s); };
+  std::erase_if(stars, isDead);
+  // stars.erase(std::remove_if(stars.begin(), stars.end(), isDead),
+  //                     stars.end());
+}
+
+inline bool FlyingStarsImpl::isStarDead(const Star& star) const
+{
+  return (star.x > static_cast<float>(goomInfo->screen.width + 64)) ||
+         ((star.vy >= 0) && (star.y - 16 * star.vy > goomInfo->screen.height)) || (star.x < -64) ||
+         (star.age >= maxStarAge);
 }
 
 /**
- * Ajoute de nouvelles particules au moment d'un evenement sonore.
+ * Met a jour la position et vitesse d'une particule.
  */
-void FlyingStarsFx::soundEventOccured()
+void FlyingStarsImpl::updateStar(Star* s)
 {
-  fxData->stats.soundEventOccurred();
-
-  const uint32_t halfWidth = goomInfo->screen.width / 2;
-  const uint32_t halfHeight = goomInfo->screen.height / 2;
-  fxData->currentColorGroup = fxData->colorMaps.getRandomGroup();
-  fxData->maxStarAge = minStarAge + getNRand(maxStarExtraAge);
-  fxData->useSingleBufferOnly = probabilityOfMInN(1, 10);
-
-  size_t max =
-      100 + static_cast<size_t>((1.0f + goomInfo->getSoundInfo().getGoomPower()) * getNRand(150));
-  float radius = (1.0f + goomInfo->getSoundInfo().getGoomPower()) *
-                 static_cast<float>(getNRand(150) + 50) / 300.0F;
-  float gravity = 0.02f;
-
-  uint32_t mx;
-  uint32_t my;
-  float vage;
-
-  switch (fxData->fx_mode)
-  {
-    case StarModes::noFx:
-      fxData->stats.noFxChosen();
-      return;
-    case StarModes::fireworks:
-    {
-      fxData->stats.fireworksFxChosen();
-      const double rsq = halfHeight * halfHeight;
-      while (true)
-      {
-        mx = getNRand(goomInfo->screen.width);
-        my = getNRand(goomInfo->screen.height);
-        const double dx = mx - halfWidth;
-        const double dy = my - halfHeight;
-        if ((dx * dx) + (dy * dy) >= rsq)
-        {
-          break;
-        }
-      }
-      vage = fxData->max_age * (1.0f - goomInfo->getSoundInfo().getGoomPower());
-    }
-    break;
-    case StarModes::rain:
-      fxData->stats.rainFxChosen();
-      mx = getNRand(goomInfo->screen.width);
-      mx = (mx <= halfWidth) ? 0 : goomInfo->screen.width;
-      my = -(goomInfo->screen.height / 3) - getNRand(goomInfo->screen.width / 3);
-      radius *= 1.5;
-      vage = 0.002f;
-      break;
-    case StarModes::fountain:
-      fxData->stats.fountainFxChosen();
-      fxData->maxStarAge *= 2.0 / 3.0;
-      my = goomInfo->screen.height + 2;
-      mx = halfWidth;
-      vage = 0.001f;
-      radius += 1.0f;
-      gravity = 0.04f;
-      break;
-    default:
-      throw std::logic_error("Unknown StarModes enum.");
-  }
-
-  radius *= goomInfo->screen.height / 200.0f; // Why 200 ? Because the FX was developed on 320x200.
-  max *= goomInfo->screen.height / 200.0f;
-  if (goomInfo->getSoundInfo().getTimeSinceLastBigGoom() < 1)
-  {
-    radius *= 1.5;
-    max *= 2;
-  }
-
-  for (size_t i = 0; i < max; i++)
-  {
-    addABomb(mx, my, radius, vage, gravity);
-  }
+  s->x += s->vx;
+  s->y += s->vy;
+  s->vx += s->ax;
+  s->vy += s->ay;
+  s->age += s->vage;
 }
 
-inline uint32_t FlyingStarsFx::getLowColor(const size_t starNum, const float tmix)
+inline uint32_t FlyingStarsImpl::getLowColor(const size_t starNum, const float tmix)
 {
   if (probabilityOfMInN(1, 2))
   {
@@ -472,51 +416,140 @@ inline uint32_t FlyingStarsFx::getLowColor(const size_t starNum, const float tmi
     return starLowColors[size_t(tmix * static_cast<float>(numLowColors - 1))];
   }
 
-  const float brightness = getRandInRange(0.2f, 0.8f);
-  return getBrighterColor(brightness, fxData->stars[starNum].currentLowColorMap->getColor(tmix),
-                          fxData->buffSettings.allowOverexposed);
+  const float brightness = getRandInRange(0.2f, 0.6f);
+  return getBrighterColor(brightness, stars[starNum].currentLowColorMap->getColor(tmix),
+                          buffSettings.allowOverexposed);
+}
+
+/**
+ * Ajoute de nouvelles particules au moment d'un evenement sonore.
+ */
+void FlyingStarsImpl::soundEventOccured()
+{
+  stats.soundEventOccurred();
+
+  const uint32_t halfWidth = goomInfo->screen.width / 2;
+  const uint32_t halfHeight = goomInfo->screen.height / 2;
+
+  maxStarAge = minStarAge + getNRand(maxStarExtraAge);
+  useSingleBufferOnly = probabilityOfMInN(1, 10);
+
+  float radius = (1.0f + goomInfo->getSoundInfo().getGoomPower()) *
+                 static_cast<float>(getNRand(150) + 50) / 300.0F;
+  float gravity = 0.02f;
+
+  uint32_t mx;
+  uint32_t my;
+  float vage;
+
+  switch (fx_mode)
+  {
+    case StarModes::noFx:
+      stats.noFxChosen();
+      return;
+    case StarModes::fireworks:
+    {
+      stats.fireworksFxChosen();
+      const double rsq = halfHeight * halfHeight;
+      while (true)
+      {
+        mx = getNRand(goomInfo->screen.width);
+        my = getNRand(goomInfo->screen.height);
+        const double dx = mx - halfWidth;
+        const double dy = my - halfHeight;
+        if ((dx * dx) + (dy * dy) >= rsq)
+        {
+          break;
+        }
+      }
+      vage = max_age * (1.0f - goomInfo->getSoundInfo().getGoomPower());
+    }
+    break;
+    case StarModes::rain:
+      stats.rainFxChosen();
+      mx = getNRand(goomInfo->screen.width);
+      mx = (mx <= halfWidth) ? 0 : goomInfo->screen.width;
+      my = -(goomInfo->screen.height / 3) - getNRand(goomInfo->screen.width / 3);
+      radius *= 1.5;
+      vage = 0.002f;
+      break;
+    case StarModes::fountain:
+      stats.fountainFxChosen();
+      maxStarAge *= 2.0 / 3.0;
+      my = goomInfo->screen.height + 2;
+      mx = halfWidth;
+      vage = 0.001f;
+      radius += 1.0f;
+      gravity = 0.04f;
+      break;
+    default:
+      throw std::logic_error("Unknown StarModes enum.");
+  }
+
+  // Why 200 ? Because the FX was developed on 320x200.
+  const float heightRatio = goomInfo->screen.height / 200.0F;
+  size_t maxStarsInBomb = heightRatio * (100.0F + (1.0F + goomInfo->getSoundInfo().getGoomPower()) *
+                                                      static_cast<float>(getNRand(150)));
+  radius *= heightRatio;
+  if (goomInfo->getSoundInfo().getTimeSinceLastBigGoom() < 1)
+  {
+    radius *= 1.5;
+    maxStarsInBomb *= 2;
+  }
+
+  ColorMapGroup colorGroup = colorMaps.getRandomGroup();
+  const ColorMap* lowColorMap = &lowColorMaps.getRandomColorMap();
+
+  for (size_t i = 0; i < maxStarsInBomb; i++)
+  {
+    addABomb(colorGroup, lowColorMap, mx, my, radius, vage, gravity);
+  }
 }
 
 /**
  * Cree une nouvelle 'bombe', c'est a dire une particule appartenant a une fusee d'artifice.
  */
-void FlyingStarsFx::addABomb(
-    const uint32_t mx, const uint32_t my, const float radius, float vage, const float gravity)
+void FlyingStarsImpl::addABomb(const ColorMapGroup colorGroup,
+                               const ColorMap* lowColorMap,
+                               const uint32_t mx,
+                               const uint32_t my,
+                               const float radius,
+                               float vage,
+                               const float gravity)
 {
-  if (fxData->numStars >= fxData->maxStars)
+  if (stars.size() >= maxStars)
   {
-    fxData->stats.addBombButTooManyStars();
+    stats.addBombButTooManyStars();
     return;
   }
-  fxData->stats.addBomb();
+  stats.addBomb();
 
-  fxData->numStars++;
+  stars.push_back(Star{});
 
-  const unsigned int i = fxData->numStars - 1;
-  fxData->stars[i].x = mx;
-  fxData->stars[i].y = my;
+  const unsigned int i = stars.size() - 1;
+  stars[i].x = mx;
+  stars[i].y = my;
 
   // TODO Get colormap based on current mode.
-  fxData->stars[i].currentColorMap =
-      &fxData->colorMaps.getRandomColorMap(fxData->currentColorGroup);
-  fxData->stars[i].currentLowColorMap = &fxData->lowColorMaps.getRandomColorMap();
+  stars[i].currentColorMap = &colorMaps.getRandomColorMap(colorGroup);
+  stars[i].currentLowColorMap = lowColorMap;
 
   float ro = radius * static_cast<float>(getNRand(100)) / 100.0f;
   ro *= static_cast<float>(getNRand(100)) / 100.0f + 1.0f;
   const uint32_t theta = getNRand(256);
 
-  fxData->stars[i].vx = ro * cos256[theta];
-  fxData->stars[i].vy = -0.2f + ro * sin256[theta];
+  stars[i].vx = ro * cos256[theta];
+  stars[i].vy = -0.2f + ro * sin256[theta];
 
-  fxData->stars[i].ax = 0;
-  fxData->stars[i].ay = gravity;
+  stars[i].ax = 0;
+  stars[i].ay = gravity;
 
-  fxData->stars[i].age = 0;
-  if (vage < fxData->min_age)
+  stars[i].age = 0;
+  if (vage < min_age)
   {
-    vage = fxData->min_age;
+    vage = min_age;
   }
-  fxData->stars[i].vage = vage;
+  stars[i].vage = vage;
 }
 
 } // namespace goom
