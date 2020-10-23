@@ -400,7 +400,7 @@ const GoomStates::WeightedStatesArray GoomStates::states{{
     }},
   },
   {
-    .weight = 600000,
+    .weight = 60,
     .drawables {{
       { .fx = GoomDrawable::dots,      .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
       { .fx = GoomDrawable::stars,     .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
@@ -867,23 +867,61 @@ struct LogStatsVisitor
 };
 
 
-struct GoomImageBuffers
+class GoomImageBuffers
 {
+public:
   explicit GoomImageBuffers(const uint16_t resx, const uint16_t resy);
   ~GoomImageBuffers() noexcept;
-  Pixel* pixel = nullptr;
-  Pixel* back = nullptr;
-  Pixel* p1 = nullptr;
-  Pixel* p2 = nullptr;
-  Pixel* outputBuf = nullptr;
+
+  Pixel* getP1() const { return p1; }
+  Pixel* getP2() const { return p2; }
+  Pixel* getOutputBuff() const { return outputBuff; }
+  void setOutputBuff(Pixel* val) { outputBuff = val; }
+
+  void rotateBuffers();
+
+private:
+  static constexpr size_t numBuffs = 10;
+  const std::vector<Pixel*> buffs;
+  Pixel* p1;
+  Pixel* p2;
+  Pixel* outputBuff = nullptr;
+  size_t nextBuff;
+  static std::vector<Pixel*> getPixelBuffs(const uint16_t resx, const uint16_t resy);
 };
 
-GoomImageBuffers::GoomImageBuffers(const uint16_t resx, const uint16_t resy)
-  : pixel{new Pixel[static_cast<size_t>(resx) * static_cast<size_t>(resy)]{}},
-    back{new Pixel[static_cast<size_t>(resx) * static_cast<size_t>(resy)]{}},
-    p1{pixel},
-    p2{back}
+std::vector<Pixel*> GoomImageBuffers::getPixelBuffs(const uint16_t resx, const uint16_t resy)
 {
+  std::vector<Pixel*> newBuffs(numBuffs);
+  for (auto& b : newBuffs)
+  {
+    b = new Pixel[static_cast<size_t>(resx) * static_cast<size_t>(resy)]{};
+  }
+  return newBuffs;
+}
+
+GoomImageBuffers::GoomImageBuffers(const uint16_t resx, const uint16_t resy)
+  : buffs{getPixelBuffs(resx, resy)}, p1{buffs[0]}, p2{buffs[1]}, nextBuff{2}
+{
+}
+
+GoomImageBuffers::~GoomImageBuffers() noexcept
+{
+  for (auto& b : buffs)
+  {
+    delete[] b;
+  }
+}
+
+inline void GoomImageBuffers::rotateBuffers()
+{
+  p1 = p2;
+  p2 = buffs[nextBuff];
+  nextBuff++;
+  if (nextBuff >= buffs.size())
+  {
+    nextBuff = 0;
+  }
 }
 
 struct GoomMessage
@@ -925,12 +963,6 @@ GoomVisualFx::GoomVisualFx(PluginInfo* goomInfo)
     }
 // clang-format on
 {
-}
-
-GoomImageBuffers::~GoomImageBuffers() noexcept
-{
-  delete[] back;
-  delete[] pixel;
 }
 
 class GoomControl::GoomControlImp
@@ -1115,7 +1147,7 @@ GoomControl::GoomControlImp::~GoomControlImp()
 
 void GoomControl::GoomControlImp::setScreenBuffer(uint32_t* buffer)
 {
-  imageBuffers.outputBuf = reinterpret_cast<Pixel*>(buffer);
+  imageBuffers.setOutputBuff(reinterpret_cast<Pixel*>(buffer));
 }
 
 inline bool GoomControl::GoomControlImp::changeFilterModeEventHappens()
@@ -1238,8 +1270,8 @@ void GoomControl::GoomControlImp::update(const int16_t data[NUM_AUDIO_SAMPLES][A
 
   // Zoom here!
   visualFx.zoomFilter_fx->zoomFilterFastRGB(
-      imageBuffers.p1, imageBuffers.p2, pzfd, goomInfo->screen.width, goomInfo->screen.height,
-      goomInfo->update.switchIncr, goomInfo->update.switchMult);
+      imageBuffers.getP1(), imageBuffers.getP2(), pzfd, goomInfo->screen.width,
+      goomInfo->screen.height, goomInfo->update.switchIncr, goomInfo->update.switchMult);
 
   applyTentaclesIfRequired();
 
@@ -1256,8 +1288,9 @@ void GoomControl::GoomControlImp::update(const int16_t data[NUM_AUDIO_SAMPLES][A
   displayLinesIfInAGoom(data);
 
   // affichage et swappage des buffers...
-  visualFx.convolve_fx->apply(imageBuffers.p1, imageBuffers.outputBuf);
-  std::swap(imageBuffers.p1, imageBuffers.p2);
+  visualFx.convolve_fx->apply(imageBuffers.getP1(), imageBuffers.getOutputBuff());
+  imageBuffers.rotateBuffers();
+
   cycle++;
 
   logDebug("About to return.");
@@ -1889,7 +1922,7 @@ void GoomControl::GoomControlImp::applyTentaclesIfRequired()
   logDebug("curGDrawables tentacles is set.");
   stats.doTentacles();
   visualFx.tentacles_fx->setBuffSettings(states.getCurrentBuffSettings(GoomDrawable::tentacles));
-  visualFx.tentacles_fx->apply(imageBuffers.p2, imageBuffers.p1);
+  visualFx.tentacles_fx->apply(imageBuffers.getP2(), imageBuffers.getP1());
 }
 
 void GoomControl::GoomControlImp::applyStarsIfRequired()
@@ -1902,7 +1935,7 @@ void GoomControl::GoomControlImp::applyStarsIfRequired()
   logDebug("curGDrawables stars is set.");
   stats.doStars();
   visualFx.star_fx->setBuffSettings(states.getCurrentBuffSettings(GoomDrawable::stars));
-  visualFx.star_fx->apply(imageBuffers.p2, imageBuffers.p1);
+  visualFx.star_fx->apply(imageBuffers.getP2(), imageBuffers.getP1());
 }
 
 #ifdef SHOW_STATE_TEXT_ON_SCREEN
@@ -1948,8 +1981,8 @@ void GoomControl::GoomControlImp::displayText(const char* songTitle,
   {
     char text[256];
     sprintf(text, "%2.0f fps", fps);
-    goom_draw_text(imageBuffers.p1, goomInfo->screen.width, goomInfo->screen.height, 10, 24, text,
-                   1, 0);
+    goom_draw_text(imageBuffers.getP1(), goomInfo->screen.width, goomInfo->screen.height, 10, 24,
+                   text, 1, 0);
   }
 
   if (songTitle)
@@ -1962,14 +1995,14 @@ void GoomControl::GoomControlImp::displayText(const char* songTitle,
 
   if (goomInfo->update.timeOfTitleDisplay)
   {
-    goom_draw_text(imageBuffers.p1, goomInfo->screen.width, goomInfo->screen.height,
+    goom_draw_text(imageBuffers.getP1(), goomInfo->screen.width, goomInfo->screen.height,
                    static_cast<int>(goomInfo->screen.width / 2),
                    static_cast<int>(goomInfo->screen.height / 2 + 7), goomInfo->update.titleText,
                    static_cast<float>(190 - goomInfo->update.timeOfTitleDisplay) / 10.0f, 1);
     goomInfo->update.timeOfTitleDisplay--;
     if (goomInfo->update.timeOfTitleDisplay < 4)
     {
-      goom_draw_text(imageBuffers.p2, goomInfo->screen.width, goomInfo->screen.height,
+      goom_draw_text(imageBuffers.getP2(), goomInfo->screen.width, goomInfo->screen.height,
                      static_cast<int>(goomInfo->screen.width / 2),
                      static_cast<int>(goomInfo->screen.height / 2 + 7), goomInfo->update.titleText,
                      static_cast<float>(190 - goomInfo->update.timeOfTitleDisplay) / 10.0f, 1);
@@ -1997,7 +2030,7 @@ void GoomControl::GoomControlImp::updateMessage(const char* message)
       const uint32_t ypos =
           10 + messageData.affiche - (messageData.numberOfLinesInMessage - i) * 25;
 
-      goom_draw_text(imageBuffers.p1, goomInfo->screen.width, goomInfo->screen.height, 50,
+      goom_draw_text(imageBuffers.getP1(), goomInfo->screen.width, goomInfo->screen.height, 50,
                      static_cast<int>(ypos), msgLines[i].c_str(), 1, 0);
     }
     messageData.affiche--;
@@ -2093,8 +2126,8 @@ void GoomControl::GoomControlImp::displayLines(
 
   gmline2.power = gmline1.power;
 
-  gmline1.drawGoomLines(data[0], imageBuffers.p2);
-  gmline2.drawGoomLines(data[1], imageBuffers.p2);
+  gmline1.drawGoomLines(data[0], imageBuffers.getP1());
+  gmline2.drawGoomLines(data[1], imageBuffers.getP2());
 
   if (((cycle % 121) == 9) && goomEvent.happens(GoomEvent::changeGoomLine) &&
       ((goomInfo->update.lineMode == 0) ||
@@ -2244,7 +2277,7 @@ void GoomControl::GoomControlImp::applyIfsIfRequired()
            goomInfo->update.ifs_incr);
   stats.doIFS();
   visualFx.ifs_fx->setBuffSettings(states.getCurrentBuffSettings(GoomDrawable::IFS));
-  visualFx.ifs_fx->apply(imageBuffers.p2, imageBuffers.p1);
+  visualFx.ifs_fx->apply(imageBuffers.getP2(), imageBuffers.getP1());
 }
 
 void GoomControl::GoomControlImp::regularlyLowerTheSpeed(ZoomFilterData** pzfd)
@@ -2280,7 +2313,7 @@ void GoomControl::GoomControlImp::drawDotsIfRequired()
 
   logDebug("goomInfo->curGDrawables points is set.");
   stats.doDots();
-  visualFx.goomDots->apply(imageBuffers.p2, imageBuffers.p1);
+  visualFx.goomDots->apply(imageBuffers.getP2(), imageBuffers.getP1());
   logDebug("sound getTimeSinceLastGoom() = {}", goomInfo->getSoundInfo().getTimeSinceLastGoom());
 }
 
