@@ -320,9 +320,9 @@ void FilterStats::setLastBuffratio(const int val)
 constexpr float noiseMin = 70;
 constexpr float noiseMax = 120;
 
-constexpr size_t BUFFPOINTNB = 16;
-constexpr float BUFFPOINTNBF = static_cast<float>(BUFFPOINTNB);
-constexpr int BUFFPOINTMASK = 0xffff;
+constexpr size_t buffPointNum = 16;
+constexpr float buffPointNumFlt = static_cast<float>(buffPointNum);
+constexpr int buffPointMask = 0xffff;
 
 constexpr uint32_t sqrtperte = 16;
 // faire : a % sqrtperte <=> a & pertemask
@@ -341,11 +341,28 @@ using CoeffArray = union
   uint32_t intVal = 0;
 };
 
-// TODO repeated fields in here
-struct ZoomFilterFxData
+struct ZoomFilterImpl
 {
-  explicit ZoomFilterFxData(const PluginInfo*);
+  explicit ZoomFilterImpl(const PluginInfo*);
 
+  void zoomFilterFastRGB(Pixel* pix1,
+                         Pixel* pix2,
+                         const ZoomFilterData* zf,
+                         const uint16_t resx,
+                         const uint16_t resy,
+                         const int switchIncr,
+                         const float switchMult);
+
+  void log(const StatsLogValueFunc& logVal) const;
+
+  template<class Archive>
+  void serialize(Archive& ar)
+  {
+    ar(CEREAL_NVP(filterData), CEREAL_NVP(generalSpeed), CEREAL_NVP(prevX), CEREAL_NVP(prevY),
+       CEREAL_NVP(interlaceStart), CEREAL_NVP(buffRatio));
+  };
+
+private:
   mutable FilterStats stats;
   ZoomFilterData filterData;
 
@@ -361,25 +378,15 @@ struct ZoomFilterFxData
   std::vector<int32_t> freebrutT{}; // temp (en cours de generation)
   int32_t* brutT = nullptr;
 
-  // modification by jeko : fixedpoint : buffratio = (16:16) (donc 0<=buffratio<=2^16)
-  int buffratio = 0;
-
-  template<class Archive>
-  void serialize(Archive& ar)
-  {
-    ar(CEREAL_NVP(filterData), CEREAL_NVP(generalSpeed), CEREAL_NVP(prevX), CEREAL_NVP(prevY),
-       CEREAL_NVP(interlaceStart), CEREAL_NVP(buffratio));
-  };
-
-  void makeZoomBufferStripe(const uint32_t interlaceIncrement);
-  void c_zoom(Pixel* expix1, Pixel* expix2);
-
-private:
+  // modification by jeko : fixedpoint : buffRatio = (16:16) (donc 0<=buffRatio<=2^16)
+  int buffRatio = 0;
   std::vector<int32_t> firedec{};
 
   // modif d'optim by Jeko : precalcul des 4 coefs resultant des 2 pos
-  uint32_t precalCoef[BUFFPOINTNB][BUFFPOINTNB];
+  uint32_t precalCoef[buffPointNum][buffPointNum];
 
+  void makeZoomBufferStripe(const uint32_t interlaceIncrement);
+  void c_zoom(Pixel* expix1, Pixel* expix2);
   void generateWaterFXHorizontalBuffer();
   v2g zoomVector(const float x, const float y);
   static void generatePrecalCoef(uint32_t precalCoef[16][16]);
@@ -398,7 +405,7 @@ void ZoomFilterData::serialize(Archive& ar)
      CEREAL_NVP(vPlaneEffectAmplitude));
 }
 
-ZoomFilterFxData::ZoomFilterFxData(const PluginInfo* goomInfo)
+ZoomFilterImpl::ZoomFilterImpl(const PluginInfo* goomInfo)
   : prevX{goomInfo->screen.width},
     prevY{goomInfo->screen.height},
     freebrutS(goomInfo->screen.width * goomInfo->screen.height * 2 + 128),
@@ -421,7 +428,127 @@ ZoomFilterFxData::ZoomFilterFxData(const PluginInfo* goomInfo)
   memcpy(brutD, brutT, goomInfo->screen.width * goomInfo->screen.height * 2 * sizeof(int));
 }
 
-void ZoomFilterFxData::generatePrecalCoef(uint32_t precalCoef[16][16])
+void ZoomFilterImpl::log(const StatsLogValueFunc& logVal) const
+{
+  stats.setLastGeneralSpeed(generalSpeed);
+  stats.setLastPrevX(prevX);
+  stats.setLastPrevY(prevY);
+  stats.setLastInterlaceStart(interlaceStart);
+  stats.setLastBuffratio(buffRatio);
+
+  stats.log(logVal);
+}
+
+/**
+ * Main work for the dynamic displacement map.
+ *
+ * Reads data from pix1, write to pix2.
+ *
+ * Useful data for this FX are stored in ZoomFilterData.
+ *
+ * If you think that this is a strange function name, let me say that a long time ago,
+ *  there has been a slow version and a gray-level only one. Then came these function,
+ *  fast and working in RGB colorspace ! nice but it only was applying a zoom to the image.
+ *  So that is why you have this name, for the nostalgy of the first days of goom
+ *  when it was just a tiny program writen in Turbo Pascal on my i486...
+ */
+void ZoomFilterImpl::zoomFilterFastRGB(Pixel* pix1,
+                                       Pixel* pix2,
+                                       const ZoomFilterData* zf,
+                                       [[maybe_unused]] const uint16_t resx,
+                                       const uint16_t resy,
+                                       const int switchIncr,
+                                       const float switchMult)
+{
+  logDebug("resx = {}, resy = {}, switchIncr = {}, switchMult = {:.2}", resx, resy, switchIncr,
+           switchMult);
+
+  stats.doZoomFilterFastRGB();
+
+  // changement de taille
+  logDebug("prevX = {}, prevY = {}", prevX, prevY);
+  if (interlaceStart != -2)
+  {
+    zf = nullptr;
+  }
+
+  // changement de config
+  if (zf)
+  {
+    stats.doZoomFilterFastRGBChangeConfig();
+    filterData = *zf;
+    generalSpeed = static_cast<float>(zf->vitesse - 128) / 128.0f;
+    if (filterData.reverse)
+    {
+      generalSpeed = -generalSpeed;
+    }
+    interlaceStart = 0;
+  }
+
+  // generation du buffer de trans
+  logDebug("interlaceStart = {}", interlaceStart);
+  if (interlaceStart == -1)
+  {
+    stats.doZoomFilterFastRGBInterlaceStartEqualMinus1_1();
+    // sauvegarde de l'etat actuel dans la nouvelle source
+    // TODO: write that in MMX (has been done in previous version, but did not follow
+    //   some new fonctionnalities)
+    const uint32_t y = 2 * prevX * prevY;
+    for (uint32_t x = 0; x < y; x += 2)
+    {
+      int brutSmypos = brutS[x];
+      const uint32_t x2 = x + 1;
+
+      brutS[x] = brutSmypos + (((brutD[x] - brutSmypos) * buffRatio) >> buffPointNum);
+      brutSmypos = brutS[x2];
+      brutS[x2] = brutSmypos + (((brutD[x2] - brutSmypos) * buffRatio) >> buffPointNum);
+    }
+    buffRatio = 0;
+  }
+
+  logDebug("interlaceStart = {}", interlaceStart);
+  if (interlaceStart == -1)
+  {
+    stats.doZoomFilterFastRGBInterlaceStartEqualMinus1_2();
+
+    std::swap(brutD, brutT);
+    std::swap(freebrutD, freebrutT);
+
+    interlaceStart = -2;
+  }
+
+  logDebug("interlaceStart = {}", interlaceStart);
+  if (interlaceStart >= 0)
+  {
+    // creation de la nouvelle destination
+    makeZoomBufferStripe(resy / 16);
+  }
+
+  if (switchIncr != 0)
+  {
+    stats.doZoomFilterFastRGBSwitchIncrNotZero();
+
+    buffRatio += switchIncr;
+    if (buffRatio > buffPointMask)
+    {
+      buffRatio = buffPointMask;
+    }
+  }
+
+  // Equal was interesting but not correct!?
+  //  if (std::fabs(1.0f - switchMult) < 0.0001)
+  if (std::fabs(1.0f - switchMult) > 0.0001)
+  {
+    stats.doZoomFilterFastRGBSwitchIncrNotEqual1();
+
+    buffRatio = static_cast<int>(static_cast<float>(buffPointMask) * (1.0f - switchMult) +
+                                 static_cast<float>(buffRatio) * switchMult);
+  }
+
+  c_zoom(pix1, pix2);
+}
+
+void ZoomFilterImpl::generatePrecalCoef(uint32_t precalCoef[16][16])
 {
   for (uint32_t coefh = 0; coefh < 16; coefh++)
   {
@@ -478,7 +605,7 @@ void ZoomFilterFxData::generatePrecalCoef(uint32_t precalCoef[16][16])
  * Translation (-data->middleX, -data->middleY)
  * Homothetie (Center : 0,0   Coeff : 2/data->prevX)
  */
-void ZoomFilterFxData::makeZoomBufferStripe(const uint32_t interlaceIncrement)
+void ZoomFilterImpl::makeZoomBufferStripe(const uint32_t interlaceIncrement)
 {
   stats.doMakeZoomBufferStripe();
 
@@ -486,8 +613,8 @@ void ZoomFilterFxData::makeZoomBufferStripe(const uint32_t interlaceIncrement)
   const float ratio = 2.0f / static_cast<float>(prevX);
 
   // Ratio from normalized to virtual pixmap coordinates
-  const float inv_ratio = BUFFPOINTNBF / ratio;
-  const float min = ratio / BUFFPOINTNBF;
+  const float inv_ratio = buffPointNumFlt / ratio;
+  const float min = ratio / buffPointNumFlt;
 
   // Y position of the pixel to compute in normalized coordinates
   float Y = ratio * static_cast<float>(interlaceStart - static_cast<int>(filterData.middleY));
@@ -519,9 +646,9 @@ void ZoomFilterFxData::makeZoomBufferStripe(const uint32_t interlaceIncrement)
       }
 
       brutT[premul_y_prevX] = static_cast<int>((X - vector.x) * inv_ratio) +
-                              static_cast<int>(filterData.middleX * BUFFPOINTNB);
+                              static_cast<int>(filterData.middleX * buffPointNum);
       brutT[premul_y_prevX + 1] = static_cast<int>((Y - vector.y) * inv_ratio) +
-                                  static_cast<int>(filterData.middleY * BUFFPOINTNB);
+                                  static_cast<int>(filterData.middleY * buffPointNum);
       premul_y_prevX += 2;
       X += ratio;
     }
@@ -534,7 +661,7 @@ void ZoomFilterFxData::makeZoomBufferStripe(const uint32_t interlaceIncrement)
   }
 }
 
-void ZoomFilterFxData::generateWaterFXHorizontalBuffer()
+void ZoomFilterImpl::generateWaterFXHorizontalBuffer()
 {
   stats.doGenerateWaterFXHorizontalBuffer();
 
@@ -592,7 +719,7 @@ void ZoomFilterFxData::generateWaterFXHorizontalBuffer()
   }
 }
 
-v2g ZoomFilterFxData::zoomVector(const float x, const float y)
+v2g ZoomFilterImpl::zoomVector(const float x, const float y)
 {
   stats.doZoomVector();
 
@@ -788,7 +915,7 @@ inline void setPixelColor(Pixel* buffer, const uint32_t pos, const Pixel& p)
 }
 
 // pure c version of the zoom filter
-void ZoomFilterFxData::c_zoom(Pixel* expix1, Pixel* expix2)
+void ZoomFilterImpl::c_zoom(Pixel* expix1, Pixel* expix2)
 {
   stats.doCZoom();
 
@@ -810,11 +937,11 @@ void ZoomFilterFxData::c_zoom(Pixel* expix1, Pixel* expix2)
 
     const int brutSmypos = brutS[myPos];
     const uint32_t px = static_cast<uint32_t>(
-        brutSmypos + (((brutD[myPos] - brutSmypos) * buffratio) >> BUFFPOINTNB));
+        brutSmypos + (((brutD[myPos] - brutSmypos) * buffRatio) >> buffPointNum));
 
     const int brutSmypos2 = brutS[myPos2];
     const uint32_t py = static_cast<uint32_t>(
-        brutSmypos2 + (((brutD[myPos2] - brutSmypos2) * buffratio) >> BUFFPOINTNB));
+        brutSmypos2 + (((brutD[myPos2] - brutSmypos2) * buffRatio) >> buffPointNum));
 
     const uint32_t pix2Pos = static_cast<uint32_t>(myPos >> 1);
 
@@ -849,8 +976,7 @@ void ZoomFilterFxData::c_zoom(Pixel* expix1, Pixel* expix2)
   }
 }
 
-ZoomFilterFx::ZoomFilterFx(PluginInfo* info)
-  : goomInfo{info}, fxData{new ZoomFilterFxData{goomInfo}}
+ZoomFilterFx::ZoomFilterFx(PluginInfo* info) : goomInfo{info}, fxImpl{new ZoomFilterImpl{goomInfo}}
 {
 }
 
@@ -876,12 +1002,7 @@ void ZoomFilterFx::finish()
 
 void ZoomFilterFx::log(const StatsLogValueFunc& logVal) const
 {
-  fxData->stats.setLastGeneralSpeed(fxData->generalSpeed);
-  fxData->stats.setLastPrevX(fxData->prevX);
-  fxData->stats.setLastPrevY(fxData->prevY);
-  fxData->stats.setLastInterlaceStart(fxData->interlaceStart);
-  fxData->stats.setLastBuffratio(fxData->buffratio);
-  fxData->stats.log(logVal);
+  fxImpl->log(logVal);
 }
 
 std::string ZoomFilterFx::getFxName() const
@@ -892,33 +1013,19 @@ std::string ZoomFilterFx::getFxName() const
 void ZoomFilterFx::saveState(std::ostream& f)
 {
   cereal::JSONOutputArchive archiveOut(f);
-  archiveOut(*fxData);
+  archiveOut(*fxImpl);
 }
 
 void ZoomFilterFx::loadState(std::istream& f)
 {
   cereal::JSONInputArchive archive_in(f);
-  archive_in(*fxData);
+  archive_in(*fxImpl);
 }
 
 void ZoomFilterFx::apply(Pixel*, Pixel*)
 {
   throw std::logic_error("ZoomFilterFx::apply should never be called.");
 }
-
-/**
- * Main work for the dynamic displacement map.
- *
- * Reads data from pix1, write to pix2.
- *
- * Useful datas for this FX are stored in ZoomFilterData.
- *
- * If you think that this is a strange function name, let me say that a long time ago,
- *  there has been a slow version and a gray-level only one. Then came these function,
- *  fast and workin in RGB colorspace ! nice but it only was applying a zoom to the image.
- *  So that is why you have this name, for the nostalgy of the first days of goom
- *  when it was just a tiny program writen in Turbo Pascal on my i486...
- */
 void ZoomFilterFx::zoomFilterFastRGB(Pixel* pix1,
                                      Pixel* pix2,
                                      const ZoomFilterData* zf,
@@ -927,99 +1034,12 @@ void ZoomFilterFx::zoomFilterFastRGB(Pixel* pix1,
                                      const int switchIncr,
                                      const float switchMult)
 {
-  logDebug("resx = {}, resy = {}, switchIncr = {}, switchMult = {:.2}", resx, resy, switchIncr,
-           switchMult);
-
-  fxData->stats.doZoomFilterFastRGB();
-
   if (!enabled)
   {
     return;
   }
 
-  // changement de taille
-  logDebug("fxData->prevX = {}, fxData->prevY = {}", fxData->prevX, fxData->prevY);
-  if (fxData->interlaceStart != -2)
-  {
-    zf = nullptr;
-  }
-
-  // changement de config
-  if (zf)
-  {
-    fxData->stats.doZoomFilterFastRGBChangeConfig();
-    fxData->filterData = *zf;
-    fxData->generalSpeed = static_cast<float>(zf->vitesse - 128) / 128.0f;
-    if (fxData->filterData.reverse)
-    {
-      fxData->generalSpeed = -fxData->generalSpeed;
-    }
-    fxData->interlaceStart = 0;
-  }
-
-  // generation du buffer de trans
-  logDebug("data->interlaceStart = {}", fxData->interlaceStart);
-  if (fxData->interlaceStart == -1)
-  {
-    fxData->stats.doZoomFilterFastRGBInterlaceStartEqualMinus1_1();
-    /* sauvegarde de l'etat actuel dans la nouvelle source
-     * TODO: write that in MMX (has been done in previous version, but did not follow
-     * some new fonctionnalities) */
-    const uint32_t y = 2 * fxData->prevX * fxData->prevY;
-    for (uint32_t x = 0; x < y; x += 2)
-    {
-      int brutSmypos = fxData->brutS[x];
-      const uint32_t x2 = x + 1;
-
-      fxData->brutS[x] =
-          brutSmypos + (((fxData->brutD[x] - brutSmypos) * fxData->buffratio) >> BUFFPOINTNB);
-      brutSmypos = fxData->brutS[x2];
-      fxData->brutS[x2] =
-          brutSmypos + (((fxData->brutD[x2] - brutSmypos) * fxData->buffratio) >> BUFFPOINTNB);
-    }
-    fxData->buffratio = 0;
-  }
-
-  logDebug("data->interlaceStart = {}", fxData->interlaceStart);
-  if (fxData->interlaceStart == -1)
-  {
-    fxData->stats.doZoomFilterFastRGBInterlaceStartEqualMinus1_2();
-
-    std::swap(fxData->brutD, fxData->brutT);
-    std::swap(fxData->freebrutD, fxData->freebrutT);
-
-    fxData->interlaceStart = -2;
-  }
-
-  logDebug("data->interlaceStart = {}", fxData->interlaceStart);
-  if (fxData->interlaceStart >= 0)
-  {
-    // creation de la nouvelle destination
-    fxData->makeZoomBufferStripe(resy / 16);
-  }
-
-  if (switchIncr != 0)
-  {
-    fxData->stats.doZoomFilterFastRGBSwitchIncrNotZero();
-
-    fxData->buffratio += switchIncr;
-    if (fxData->buffratio > BUFFPOINTMASK)
-    {
-      fxData->buffratio = BUFFPOINTMASK;
-    }
-  }
-
-  // Equal was interesting but not correct!?
-  //  if (std::fabs(1.0f - switchMult) < 0.0001)
-  if (std::fabs(1.0f - switchMult) > 0.0001)
-  {
-    fxData->stats.doZoomFilterFastRGBSwitchIncrNotEqual1();
-
-    fxData->buffratio = static_cast<int>(static_cast<float>(BUFFPOINTMASK) * (1.0f - switchMult) +
-                                         static_cast<float>(fxData->buffratio) * switchMult);
-  }
-
-  fxData->c_zoom(pix1, pix2);
+  fxImpl->zoomFilterFastRGB(pix1, pix2, zf, resx, resy, switchIncr, switchMult);
 }
 
 } // namespace goom

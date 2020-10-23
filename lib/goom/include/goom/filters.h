@@ -123,7 +123,7 @@ struct ZoomFilterData
  */
 
 struct PluginInfo;
-struct ZoomFilterFxData;
+struct ZoomFilterImpl;
 
 class ZoomFilterFx : public VisualFx
 {
@@ -156,7 +156,7 @@ public:
 private:
   bool enabled = true;
   PluginInfo* const goomInfo;
-  std::unique_ptr<ZoomFilterFxData> fxData;
+  std::unique_ptr<ZoomFilterImpl> fxImpl;
 };
 
 } // namespace goom

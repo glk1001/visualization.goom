@@ -337,7 +337,7 @@ struct IfsData
 
   static void randomSimis(const Fractal*, Similitude* cur, uint32_t i);
   static constexpr int fix = 12;
-  static Flt DBL_To_F_PT(const Dbl);
+  static Flt dbl_to_flt(const Dbl);
   static Flt div_by_unit(const Flt);
   static Flt div_by_2units(const Flt);
   void trace(Fractal*, const Flt xo, const Flt yo);
@@ -561,7 +561,7 @@ void IfsData::trace(Fractal* F, const Flt xo, const Flt yo)
   }
 }
 
-inline Flt IfsData::DBL_To_F_PT(const Dbl x)
+inline Flt IfsData::dbl_to_flt(const Dbl x)
 {
   constexpr int unit = 1 << fix;
   return static_cast<Flt>(static_cast<Dbl>(unit) * x);
@@ -817,16 +817,16 @@ void IfsFx::drawFractal()
   Similitude* Cur;
   for (Cur = fractal->components, i = static_cast<int>(fractal->numSimi); i; --i, Cur++)
   {
-    Cur->Cx = IfsData::DBL_To_F_PT(Cur->c_x);
-    Cur->Cy = IfsData::DBL_To_F_PT(Cur->c_y);
+    Cur->Cx = IfsData::dbl_to_flt(Cur->c_x);
+    Cur->Cy = IfsData::dbl_to_flt(Cur->c_y);
 
-    Cur->Ct = IfsData::DBL_To_F_PT(cos(Cur->A));
-    Cur->St = IfsData::DBL_To_F_PT(sin(Cur->A));
-    Cur->Ct2 = IfsData::DBL_To_F_PT(cos(Cur->A2));
-    Cur->St2 = IfsData::DBL_To_F_PT(sin(Cur->A2));
+    Cur->Ct = IfsData::dbl_to_flt(cos(Cur->A));
+    Cur->St = IfsData::dbl_to_flt(sin(Cur->A));
+    Cur->Ct2 = IfsData::dbl_to_flt(cos(Cur->A2));
+    Cur->St2 = IfsData::dbl_to_flt(sin(Cur->A2));
 
-    Cur->R = IfsData::DBL_To_F_PT(Cur->r);
-    Cur->R2 = IfsData::DBL_To_F_PT(Cur->r2);
+    Cur->R = IfsData::dbl_to_flt(Cur->r);
+    Cur->R2 = IfsData::dbl_to_flt(Cur->r2);
   }
 
   fxData->curPt = 0;
