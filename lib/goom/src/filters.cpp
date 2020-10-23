@@ -348,8 +348,6 @@ struct ZoomFilterImpl
   void zoomFilterFastRGB(Pixel* pix1,
                          Pixel* pix2,
                          const ZoomFilterData* zf,
-                         const uint16_t resx,
-                         const uint16_t resy,
                          const int switchIncr,
                          const float switchMult);
 
@@ -358,18 +356,19 @@ struct ZoomFilterImpl
   template<class Archive>
   void serialize(Archive& ar)
   {
-    ar(CEREAL_NVP(filterData), CEREAL_NVP(generalSpeed), CEREAL_NVP(prevX), CEREAL_NVP(prevY),
-       CEREAL_NVP(interlaceStart), CEREAL_NVP(buffRatio));
+    ar(CEREAL_NVP(filterData), CEREAL_NVP(generalSpeed), CEREAL_NVP(interlaceStart),
+       CEREAL_NVP(buffRatio));
   };
 
 private:
-  mutable FilterStats stats;
+  const uint32_t prevX;
+  const uint32_t prevY;
   ZoomFilterData filterData;
+
+  mutable FilterStats stats{};
 
   float generalSpeed = 0;
   int interlaceStart = 0;
-  uint32_t prevX = 0;
-  uint32_t prevY = 0;
 
   std::vector<int32_t> freebrutS{}; // source
   int32_t* brutS = nullptr;
@@ -408,6 +407,7 @@ void ZoomFilterData::serialize(Archive& ar)
 ZoomFilterImpl::ZoomFilterImpl(const PluginInfo* goomInfo)
   : prevX{goomInfo->screen.width},
     prevY{goomInfo->screen.height},
+    filterData{},
     freebrutS(goomInfo->screen.width * goomInfo->screen.height * 2 + 128),
     brutS{(int32_t*)((1 + (uintptr_t((freebrutS.data()))) / 128) * 128)},
     freebrutD(goomInfo->screen.width * goomInfo->screen.height * 2 + 128),
@@ -455,13 +455,10 @@ void ZoomFilterImpl::log(const StatsLogValueFunc& logVal) const
 void ZoomFilterImpl::zoomFilterFastRGB(Pixel* pix1,
                                        Pixel* pix2,
                                        const ZoomFilterData* zf,
-                                       [[maybe_unused]] const uint16_t resx,
-                                       const uint16_t resy,
                                        const int switchIncr,
                                        const float switchMult)
 {
-  logDebug("resx = {}, resy = {}, switchIncr = {}, switchMult = {:.2}", resx, resy, switchIncr,
-           switchMult);
+  logDebug("switchIncr = {}, switchMult = {:.2}", switchIncr, switchMult);
 
   stats.doZoomFilterFastRGB();
 
@@ -521,7 +518,7 @@ void ZoomFilterImpl::zoomFilterFastRGB(Pixel* pix1,
   if (interlaceStart >= 0)
   {
     // creation de la nouvelle destination
-    makeZoomBufferStripe(resy / 16);
+    makeZoomBufferStripe(prevY / 16);
   }
 
   if (switchIncr != 0)
@@ -537,11 +534,11 @@ void ZoomFilterImpl::zoomFilterFastRGB(Pixel* pix1,
 
   // Equal was interesting but not correct!?
   //  if (std::fabs(1.0f - switchMult) < 0.0001)
-  if (std::fabs(1.0f - switchMult) > 0.0001)
+  if (std::fabs(1.0F - switchMult) > 0.00001F)
   {
     stats.doZoomFilterFastRGBSwitchIncrNotEqual1();
 
-    buffRatio = static_cast<int>(static_cast<float>(buffPointMask) * (1.0f - switchMult) +
+    buffRatio = static_cast<int>(static_cast<float>(buffPointMask) * (1.0F - switchMult) +
                                  static_cast<float>(buffRatio) * switchMult);
   }
 
@@ -610,10 +607,10 @@ void ZoomFilterImpl::makeZoomBufferStripe(const uint32_t interlaceIncrement)
   stats.doMakeZoomBufferStripe();
 
   // Ratio from pixmap to normalized coordinates
-  const float ratio = 2.0f / static_cast<float>(prevX);
+  const float ratio = 2.0F / static_cast<float>(prevX);
 
   // Ratio from normalized to virtual pixmap coordinates
-  const float inv_ratio = buffPointNumFlt / ratio;
+  const float invRatio = buffPointNumFlt / ratio;
   const float min = ratio / buffPointNumFlt;
 
   // Y position of the pixel to compute in normalized coordinates
@@ -645,9 +642,9 @@ void ZoomFilterImpl::makeZoomBufferStripe(const uint32_t interlaceIncrement)
         vector.y = (vector.y < 0.0f) ? -min : min;
       }
 
-      brutT[premul_y_prevX] = static_cast<int>((X - vector.x) * inv_ratio) +
+      brutT[premul_y_prevX] = static_cast<int>((X - vector.x) * invRatio) +
                               static_cast<int>(filterData.middleX * buffPointNum);
-      brutT[premul_y_prevX + 1] = static_cast<int>((Y - vector.y) * inv_ratio) +
+      brutT[premul_y_prevX + 1] = static_cast<int>((Y - vector.y) * invRatio) +
                                   static_cast<int>(filterData.middleY * buffPointNum);
       premul_y_prevX += 2;
       X += ratio;
@@ -922,8 +919,8 @@ void ZoomFilterImpl::c_zoom(Pixel* expix1, Pixel* expix2)
   const uint32_t ax = (prevX - 1) << perteDec;
   const uint32_t ay = (prevY - 1) << perteDec;
 
-  const uint32_t bufsize = prevX * prevY * 2;
-  const uint32_t bufwidth = prevX;
+  const uint32_t buffSize = prevX * prevY * 2;
+  const uint32_t buffWidth = prevX;
 
   expix1[0].val = 0;
   expix1[prevX - 1].val = 0;
@@ -931,7 +928,7 @@ void ZoomFilterImpl::c_zoom(Pixel* expix1, Pixel* expix2)
   expix1[prevX * prevY - prevX].val = 0;
 
   uint32_t myPos2;
-  for (uint32_t myPos = 0; myPos < bufsize; myPos += 2)
+  for (uint32_t myPos = 0; myPos < buffSize; myPos += 2)
   {
     myPos2 = myPos + 1;
 
@@ -957,8 +954,8 @@ void ZoomFilterImpl::c_zoom(Pixel* expix1, Pixel* expix2)
       const uint32_t pix1Pos = (px >> perteDec) + prevX * (py >> perteDec);
       const Pixel col1 = getPixelColor(expix1, pix1Pos);
       const Pixel col2 = getPixelColor(expix1, pix1Pos + 1);
-      const Pixel col3 = getPixelColor(expix1, pix1Pos + bufwidth);
-      const Pixel col4 = getPixelColor(expix1, pix1Pos + bufwidth + 1);
+      const Pixel col3 = getPixelColor(expix1, pix1Pos + buffWidth);
+      const Pixel col4 = getPixelColor(expix1, pix1Pos + buffWidth + 1);
 
       if (filterData.blockyWavy)
       {
@@ -1029,8 +1026,6 @@ void ZoomFilterFx::apply(Pixel*, Pixel*)
 void ZoomFilterFx::zoomFilterFastRGB(Pixel* pix1,
                                      Pixel* pix2,
                                      const ZoomFilterData* zf,
-                                     [[maybe_unused]] const uint16_t resx,
-                                     const uint16_t resy,
                                      const int switchIncr,
                                      const float switchMult)
 {
@@ -1039,7 +1034,7 @@ void ZoomFilterFx::zoomFilterFastRGB(Pixel* pix1,
     return;
   }
 
-  fxImpl->zoomFilterFastRGB(pix1, pix2, zf, resx, resy, switchIncr, switchMult);
+  fxImpl->zoomFilterFastRGB(pix1, pix2, zf, switchIncr, switchMult);
 }
 
 } // namespace goom

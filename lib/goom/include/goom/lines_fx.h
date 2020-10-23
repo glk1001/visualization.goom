@@ -59,7 +59,7 @@ public:
                        const float param,
                        const float amplitude,
                        const uint32_t color);
-  void drawGoomLines(const int16_t data[AUDIO_SAMPLE_LEN], Pixel*);
+  void drawGoomLines(const int16_t data[AUDIO_SAMPLE_LEN], Pixel* prevBuff, Pixel* currentBuff);
 
   float power = 0;
   float powinc = 0;

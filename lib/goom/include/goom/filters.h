@@ -148,8 +148,6 @@ public:
   void zoomFilterFastRGB(Pixel* pix1,
                          Pixel* pix2,
                          const ZoomFilterData* zf,
-                         const uint16_t resx,
-                         const uint16_t resy,
                          const int switchIncr,
                          const float switchMult);
 

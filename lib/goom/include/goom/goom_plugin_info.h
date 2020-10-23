@@ -48,10 +48,10 @@ struct PluginInfo
     int cyclesSinceLastChange = 0; // nombre de Cycle Depuis Dernier Changement
     int drawLinesDuration = 80; // duree de la transition entre afficher les lignes ou pas
     int lineMode = 80; // l'effet lineaire a dessiner
-    float switchMultAmount = 29.0 / 30.0;
-    int switchIncrAmount = 0x7f;
-    int switchIncr = 0x7f;
-    float switchMult = 1.0;
+    static constexpr float switchMultAmount = 29.0 / 30.0;
+    float switchMult = switchMultAmount;
+    static constexpr int switchIncrAmount = 0x7f;
+    int switchIncr = switchIncrAmount;
     uint32_t stateSelectionBlocker = 0;
     int32_t previousZoomSpeed = 128;
     int timeOfTitleDisplay = 0;

@@ -216,16 +216,22 @@ std::vector<float> simpleMovingAverage(const int16_t x[AUDIO_SAMPLE_LEN], const 
 
 inline std::vector<float> getDataPoints(const int16_t x[AUDIO_SAMPLE_LEN])
 {
+  return std::vector<float>{x, x + AUDIO_SAMPLE_LEN};
+  /**
   if (probabilityOfMInN(2, 3))
   {
     return std::vector<float>{x, x + AUDIO_SAMPLE_LEN};
   }
 
   return simpleMovingAverage(x, 5);
+  **/
 }
 
-void GMLine::drawGoomLines(const int16_t audioData[AUDIO_SAMPLE_LEN], Pixel* p)
+void GMLine::drawGoomLines(const int16_t audioData[AUDIO_SAMPLE_LEN],
+                           Pixel* prevBuff,
+                           Pixel* currentBuff)
 {
+  std::vector<Pixel*> buffs{currentBuff, prevBuff};
   const GMUnitPointer* pt = &(points[0]);
   const uint32_t lineColor = getLightenedColor(color, power);
 
@@ -234,7 +240,8 @@ void GMLine::drawGoomLines(const int16_t audioData[AUDIO_SAMPLE_LEN], Pixel* p)
   if (audioRange < 0.0001)
   {
     // No range - flatline audio
-    draw.line(p, pt->x, pt->y, pt->x + AUDIO_SAMPLE_LEN, pt->y, Pixel{.val = lineColor}, 1);
+    const std::vector<Pixel> colors = {{.val = lineColor}, {.val = lineColor}};
+    draw.line(buffs, pt->x, pt->y, pt->x + AUDIO_SAMPLE_LEN, pt->y, colors, 1);
     goomLinesMove();
     return;
   }
@@ -269,7 +276,8 @@ void GMLine::drawGoomLines(const int16_t audioData[AUDIO_SAMPLE_LEN], Pixel* p)
     const GMUnitPointer* const pt = &(points[i]);
     const auto [x2, y2, modColor] = getNextPoint(pt, data[i]);
 
-    draw.line(p, x1, y1, x2, y2, Pixel{.val = modColor}, thickness);
+    const std::vector<Pixel> colors = {{.val = modColor}, {.val = lineColor}};
+    draw.line(buffs, x1, y1, x2, y2, colors, thickness);
 
     x1 = x2;
     y1 = y2;

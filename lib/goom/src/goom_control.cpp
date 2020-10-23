@@ -881,7 +881,7 @@ public:
   void rotateBuffers();
 
 private:
-  static constexpr size_t numBuffs = 10;
+  static constexpr size_t numBuffs = 5;
   const std::vector<Pixel*> buffs;
   Pixel* p1;
   Pixel* p2;
@@ -1269,9 +1269,9 @@ void GoomControl::GoomControlImp::update(const int16_t data[NUM_AUDIO_SAMPLES][A
   changeZoomEffect(pzfd, forceMode);
 
   // Zoom here!
-  visualFx.zoomFilter_fx->zoomFilterFastRGB(
-      imageBuffers.getP1(), imageBuffers.getP2(), pzfd, goomInfo->screen.width,
-      goomInfo->screen.height, goomInfo->update.switchIncr, goomInfo->update.switchMult);
+  visualFx.zoomFilter_fx->zoomFilterFastRGB(imageBuffers.getP1(), imageBuffers.getP2(), pzfd,
+                                            goomInfo->update.switchIncr,
+                                            goomInfo->update.switchMult);
 
   applyTentaclesIfRequired();
 
@@ -2126,8 +2126,8 @@ void GoomControl::GoomControlImp::displayLines(
 
   gmline2.power = gmline1.power;
 
-  gmline1.drawGoomLines(data[0], imageBuffers.getP1());
-  gmline2.drawGoomLines(data[1], imageBuffers.getP2());
+  gmline1.drawGoomLines(data[0], imageBuffers.getP1(), imageBuffers.getP2());
+  gmline2.drawGoomLines(data[1], imageBuffers.getP1(), imageBuffers.getP2());
 
   if (((cycle % 121) == 9) && goomEvent.happens(GoomEvent::changeGoomLine) &&
       ((goomInfo->update.lineMode == 0) ||
