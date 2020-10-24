@@ -216,15 +216,13 @@ std::vector<float> simpleMovingAverage(const int16_t x[AUDIO_SAMPLE_LEN], const 
 
 inline std::vector<float> getDataPoints(const int16_t x[AUDIO_SAMPLE_LEN])
 {
-  return std::vector<float>{x, x + AUDIO_SAMPLE_LEN};
-  /**
-  if (probabilityOfMInN(2, 3))
+  //  return std::vector<float>{x, x + AUDIO_SAMPLE_LEN};
+  if (probabilityOfMInN(9999, 10000))
   {
     return std::vector<float>{x, x + AUDIO_SAMPLE_LEN};
   }
 
   return simpleMovingAverage(x, 5);
-  **/
 }
 
 void GMLine::drawGoomLines(const int16_t audioData[AUDIO_SAMPLE_LEN],
