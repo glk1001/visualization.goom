@@ -27,13 +27,13 @@
 #include "v3d.h"
 
 #include <algorithm>
+#include <array>
 #include <cereal/archives/json.hpp>
 #include <cereal/types/memory.hpp>
 #include <cereal/types/vector.hpp>
 #include <cmath>
 #include <cstdint>
 #include <fstream>
-#include <memory>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -329,21 +329,20 @@ constexpr uint32_t sqrtperte = 16;
 constexpr uint32_t perteMask = 0xf;
 // faire : a / sqrtperte <=> a >> PERTEDEC
 constexpr uint32_t perteDec = 4;
+
+static constexpr size_t numCoeffs = 4;
 using CoeffArray = union
 {
-  struct
-  {
-    uint8_t c1;
-    uint8_t c2;
-    uint8_t c3;
-    uint8_t c4;
-  } vals;
+  uint8_t c[numCoeffs];
   uint32_t intVal = 0;
 };
+using PixelArray = std::array<Pixel, numCoeffs>;
 
 struct ZoomFilterImpl
 {
   explicit ZoomFilterImpl(const PluginInfo*);
+
+  void setBuffSettings(const FXBuffSettings&);
 
   void zoomFilterFastRGB(Pixel* pix1,
                          Pixel* pix2,
@@ -356,14 +355,15 @@ struct ZoomFilterImpl
   template<class Archive>
   void serialize(Archive& ar)
   {
-    ar(CEREAL_NVP(filterData), CEREAL_NVP(generalSpeed), CEREAL_NVP(interlaceStart),
-       CEREAL_NVP(buffRatio));
+    ar(CEREAL_NVP(filterData), CEREAL_NVP(buffSettings), CEREAL_NVP(generalSpeed),
+       CEREAL_NVP(interlaceStart), CEREAL_NVP(buffRatio));
   };
 
 private:
   const uint32_t prevX;
   const uint32_t prevY;
   ZoomFilterData filterData;
+  FXBuffSettings buffSettings{};
 
   mutable FilterStats stats{};
 
@@ -389,6 +389,8 @@ private:
   void generateWaterFXHorizontalBuffer();
   v2g zoomVector(const float x, const float y);
   static void generatePrecalCoef(uint32_t precalCoef[16][16]);
+  Pixel getMixedColor(const CoeffArray& coeffs, const PixelArray& colors) const;
+  Pixel getBlockyMixedColor(const CoeffArray& coeffs, const PixelArray& colors) const;
 };
 
 template<class Archive>
@@ -426,6 +428,11 @@ ZoomFilterImpl::ZoomFilterImpl(const PluginInfo* goomInfo)
   // Copy the data from temp to dest and source
   memcpy(brutS, brutT, goomInfo->screen.width * goomInfo->screen.height * 2 * sizeof(int));
   memcpy(brutD, brutT, goomInfo->screen.width * goomInfo->screen.height * 2 * sizeof(int));
+}
+
+void ZoomFilterImpl::setBuffSettings(const FXBuffSettings& settings)
+{
+  buffSettings = settings;
 }
 
 void ZoomFilterImpl::log(const StatsLogValueFunc& logVal) const
@@ -584,11 +591,11 @@ void ZoomFilterImpl::generatePrecalCoef(uint32_t precalCoef[16][16])
         }
 
         precalCoef[coefh][coefv] = CoeffArray{
-            .vals{
-                .c1 = static_cast<uint8_t>(i1),
-                .c2 = static_cast<uint8_t>(i2),
-                .c3 = static_cast<uint8_t>(i3),
-                .c4 = static_cast<uint8_t>(i4),
+            .c{
+                static_cast<uint8_t>(i1),
+                static_cast<uint8_t>(i2),
+                static_cast<uint8_t>(i3),
+                static_cast<uint8_t>(i4),
             }}.intVal;
       }
     }
@@ -846,37 +853,37 @@ v2g ZoomFilterImpl::zoomVector(const float x, const float y)
   return v2g{vx, vy};
 }
 
-inline Pixel getMixedColor(const CoeffArray& coeffs,
-                           const Pixel& col1,
-                           const Pixel& col2,
-                           const Pixel& col3,
-                           const Pixel& col4)
+inline Pixel ZoomFilterImpl::getMixedColor(const CoeffArray& coeffs, const PixelArray& colors) const
 {
   if (coeffs.intVal == 0)
   {
     return Pixel{.val = 0};
   }
 
-  const uint32_t c1 = coeffs.vals.c1;
-  const uint32_t c2 = coeffs.vals.c2;
-  const uint32_t c3 = coeffs.vals.c3;
-  const uint32_t c4 = coeffs.vals.c4;
+  uint32_t newR = 0;
+  uint32_t newG = 0;
+  uint32_t newB = 0;
+  for (size_t i = 0; i < numCoeffs; i++)
+  {
+    const uint32_t coeff = static_cast<uint32_t>(coeffs.c[i]);
+    newR += static_cast<uint32_t>(colors[i].channels.r) * coeff;
+    newG += static_cast<uint32_t>(colors[i].channels.g) * coeff;
+    newB += static_cast<uint32_t>(colors[i].channels.b) * coeff;
+  }
+  newR >>= 8;
+  newG >>= 8;
+  newB >>= 8;
 
-  uint32_t newR =
-      (col1.channels.r * c1 + col2.channels.r * c2 + col3.channels.r * c3 + col4.channels.r * c4) >>
-      8;
+  if (buffSettings.allowOverexposed)
+  {
+    return Pixel{.channels = {.r = static_cast<uint8_t>((newR & 0xffffff00) ? 0xff : newR),
+                              .g = static_cast<uint8_t>((newG & 0xffffff00) ? 0xff : newG),
+                              .b = static_cast<uint8_t>((newB & 0xffffff00) ? 0xff : newB),
+                              .a = 0xff}};
+  }
 
-  uint32_t newG =
-      (col1.channels.g * c1 + col2.channels.g * c2 + col3.channels.g * c3 + col4.channels.g * c4) >>
-      8;
-
-  uint32_t newB =
-      (col1.channels.b * c1 + col2.channels.b * c2 + col3.channels.b * c3 + col4.channels.b * c4) >>
-      8;
-
-  // TODO Fix this!!
   const uint32_t maxVal = std::max({newR, newG, newB});
-  if (maxVal > 25555) // DISABLED!!!
+  if (maxVal > channel_limits<uint32_t>::max())
   {
     // scale all channels back
     newR = (newR << 8) / maxVal;
@@ -884,21 +891,19 @@ inline Pixel getMixedColor(const CoeffArray& coeffs,
     newB = (newB << 8) / maxVal;
   }
 
-  return Pixel{.channels = {.r = static_cast<uint8_t>((newR & 0xffffff00) ? 0xff : newR),
-                            .g = static_cast<uint8_t>((newG & 0xffffff00) ? 0xff : newG),
-                            .b = static_cast<uint8_t>((newB & 0xffffff00) ? 0xff : newB),
+  return Pixel{.channels = {.r = static_cast<uint8_t>(newR),
+                            .g = static_cast<uint8_t>(newG),
+                            .b = static_cast<uint8_t>(newB),
                             .a = 0xff}};
 }
 
-inline Pixel getBlockyMixedColor(const CoeffArray& coeffs,
-                                 const Pixel& col1,
-                                 const Pixel& col2,
-                                 const Pixel& col3,
-                                 const Pixel& col4)
+inline Pixel ZoomFilterImpl::getBlockyMixedColor(const CoeffArray& coeffs,
+                                                 const PixelArray& colors) const
 {
   // Changing the color order gives a strange blocky, wavy look.
-  // The order col1, col3, col2, col1 gave a black tear - no so good.
-  return getMixedColor(coeffs, col1, col3, col2, col4);
+  // The order col4, col3, col2, col1 gave a black tear - no so good.
+  const PixelArray reorderedColors{colors[0], colors[2], colors[1], colors[3]};
+  return getMixedColor(coeffs, reorderedColors);
 }
 
 inline Pixel getPixelColor(const Pixel* buffer, const uint32_t pos)
@@ -952,21 +957,23 @@ void ZoomFilterImpl::c_zoom(Pixel* expix1, Pixel* expix2)
       const CoeffArray coeffs{.intVal = precalCoef[px & perteMask][py & perteMask]};
 
       const uint32_t pix1Pos = (px >> perteDec) + prevX * (py >> perteDec);
-      const Pixel col1 = getPixelColor(expix1, pix1Pos);
-      const Pixel col2 = getPixelColor(expix1, pix1Pos + 1);
-      const Pixel col3 = getPixelColor(expix1, pix1Pos + buffWidth);
-      const Pixel col4 = getPixelColor(expix1, pix1Pos + buffWidth + 1);
+      const PixelArray colors = {
+          getPixelColor(expix1, pix1Pos),
+          getPixelColor(expix1, pix1Pos + 1),
+          getPixelColor(expix1, pix1Pos + buffWidth),
+          getPixelColor(expix1, pix1Pos + buffWidth + 1),
+      };
 
       if (filterData.blockyWavy)
       {
         stats.doGetBlockyMixedColor();
-        const Pixel newColor = getBlockyMixedColor(coeffs, col1, col2, col3, col4);
+        const Pixel newColor = getBlockyMixedColor(coeffs, colors);
         setPixelColor(expix2, pix2Pos, newColor);
       }
       else
       {
         stats.doGetMixedColor();
-        const Pixel newColor = getMixedColor(coeffs, col1, col2, col3, col4);
+        const Pixel newColor = getMixedColor(coeffs, colors);
         setPixelColor(expix2, pix2Pos, newColor);
       }
     }
@@ -981,8 +988,9 @@ ZoomFilterFx::~ZoomFilterFx() noexcept
 {
 }
 
-void ZoomFilterFx::setBuffSettings(const FXBuffSettings&)
+void ZoomFilterFx::setBuffSettings(const FXBuffSettings& settings)
 {
+  fxImpl->setBuffSettings(settings);
 }
 
 void ZoomFilterFx::start()

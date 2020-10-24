@@ -86,6 +86,7 @@ public:
     changeGoomLine,
     ifsRenew,
     changeBlockyWavyToOn,
+    changeZoomFilterAllowOverexposedToOn,
     _size // must be last - gives number of enums
   };
 
@@ -127,34 +128,35 @@ private:
   };
   // clang-format off
   static constexpr std::array<WeightedEvent, numGoomEvents> weightedEvents{{
-    { .event = GoomEvent::changeFilterMode,                    .m = 1, .outOf =  16 },
-    { .event = GoomEvent::changeFilterFromAmuletteMode,        .m = 1, .outOf =   5 },
-    { .event = GoomEvent::changeState,                         .m = 1, .outOf =   2 },
-    { .event = GoomEvent::turnOffNoise,                        .m = 4, .outOf =   5 },
-    { .event = GoomEvent::changeToMegaLentMode,                .m = 1, .outOf = 700 },
-    { .event = GoomEvent::changeLineCircleAmplitude,           .m = 1, .outOf =   3 },
-    { .event = GoomEvent::changeLineCircleParams,              .m = 1, .outOf =   2 },
-    { .event = GoomEvent::changeHLineParams,                   .m = 3, .outOf =   4 },
-    { .event = GoomEvent::changeVLineParams,                   .m = 2, .outOf =   3 },
-    { .event = GoomEvent::hypercosEffectOnWithWaveMode,        .m = 1, .outOf =   2 },
-    { .event = GoomEvent::waveEffectOnWithWaveMode,            .m = 1, .outOf =   3 },
-    { .event = GoomEvent::changeVitesseWithWaveMode,           .m = 1, .outOf =   2 },
-    { .event = GoomEvent::waveEffectOnWithCrystalBallMode,     .m = 1, .outOf =   4 },
-    { .event = GoomEvent::hypercosEffectOnWithCrystalBallMode, .m = 1, .outOf =   2 },
-    { .event = GoomEvent::hypercosEffectOnWithHyperCos1Mode,   .m = 1, .outOf =   3 },
-    { .event = GoomEvent::hypercosEffectOnWithHyperCos2Mode,   .m = 1, .outOf =   6 },
-    { .event = GoomEvent::filterReverseOffAndStopSpeed,        .m = 1, .outOf =   5 },
-    { .event = GoomEvent::filterReverseOn,                     .m = 1, .outOf =  10 },
-    { .event = GoomEvent::filterVitesseStopSpeedMinus1,        .m = 1, .outOf =  10 },
-    { .event = GoomEvent::filterVitesseStopSpeedPlus1,         .m = 1, .outOf =  12 },
-    { .event = GoomEvent::filterZeroHPlaneEffect,              .m = 1, .outOf =   2 },
-    { .event = GoomEvent::filterChangeVitesseAndToggleReverse, .m = 1, .outOf =  40 },
-    { .event = GoomEvent::reduceLineMode,                      .m = 1, .outOf =   5 },
-    { .event = GoomEvent::updateLineMode,                      .m = 1, .outOf =   4 },
-    { .event = GoomEvent::changeLineToBlack,                   .m = 1, .outOf =   2 },
-    { .event = GoomEvent::changeGoomLine,                      .m = 1, .outOf =   3 },
-    { .event = GoomEvent::ifsRenew,                            .m = 2, .outOf =   3 },
-    { .event = GoomEvent::changeBlockyWavyToOn,                .m = 1, .outOf =  10 },
+    { .event = GoomEvent::changeFilterMode,                     .m = 1, .outOf =  16 },
+    { .event = GoomEvent::changeFilterFromAmuletteMode,         .m = 1, .outOf =   5 },
+    { .event = GoomEvent::changeState,                          .m = 1, .outOf =   2 },
+    { .event = GoomEvent::turnOffNoise,                         .m = 4, .outOf =   5 },
+    { .event = GoomEvent::changeToMegaLentMode,                 .m = 1, .outOf = 700 },
+    { .event = GoomEvent::changeLineCircleAmplitude,            .m = 1, .outOf =   3 },
+    { .event = GoomEvent::changeLineCircleParams,               .m = 1, .outOf =   2 },
+    { .event = GoomEvent::changeHLineParams,                    .m = 3, .outOf =   4 },
+    { .event = GoomEvent::changeVLineParams,                    .m = 2, .outOf =   3 },
+    { .event = GoomEvent::hypercosEffectOnWithWaveMode,         .m = 1, .outOf =   2 },
+    { .event = GoomEvent::waveEffectOnWithWaveMode,             .m = 1, .outOf =   3 },
+    { .event = GoomEvent::changeVitesseWithWaveMode,            .m = 1, .outOf =   2 },
+    { .event = GoomEvent::waveEffectOnWithCrystalBallMode,      .m = 1, .outOf =   4 },
+    { .event = GoomEvent::hypercosEffectOnWithCrystalBallMode,  .m = 1, .outOf =   2 },
+    { .event = GoomEvent::hypercosEffectOnWithHyperCos1Mode,    .m = 1, .outOf =   3 },
+    { .event = GoomEvent::hypercosEffectOnWithHyperCos2Mode,    .m = 1, .outOf =   6 },
+    { .event = GoomEvent::filterReverseOffAndStopSpeed,         .m = 1, .outOf =   5 },
+    { .event = GoomEvent::filterReverseOn,                      .m = 1, .outOf =  10 },
+    { .event = GoomEvent::filterVitesseStopSpeedMinus1,         .m = 1, .outOf =  10 },
+    { .event = GoomEvent::filterVitesseStopSpeedPlus1,          .m = 1, .outOf =  12 },
+    { .event = GoomEvent::filterZeroHPlaneEffect,               .m = 1, .outOf =   2 },
+    { .event = GoomEvent::filterChangeVitesseAndToggleReverse,  .m = 1, .outOf =  40 },
+    { .event = GoomEvent::reduceLineMode,                       .m = 1, .outOf =   5 },
+    { .event = GoomEvent::updateLineMode,                       .m = 1, .outOf =   4 },
+    { .event = GoomEvent::changeLineToBlack,                    .m = 1, .outOf =   2 },
+    { .event = GoomEvent::changeGoomLine,                       .m = 1, .outOf =   3 },
+    { .event = GoomEvent::ifsRenew,                             .m = 2, .outOf =   3 },
+    { .event = GoomEvent::changeBlockyWavyToOn,                 .m = 1, .outOf =  10 },
+    { .event = GoomEvent::changeZoomFilterAllowOverexposedToOn, .m = 8, .outOf =  10 },
   }};
 
   static constexpr std::array<std::pair<GoomFilterEvent, size_t>, numGoomFilterEvents> weightedFilterEvents{{
@@ -295,7 +297,7 @@ const FXBuffSettings& GoomStates::getCurrentBuffSettings(const GoomDrawable theF
       return d.buffSettings;
     }
   }
-  return defaultFXBuffSettings;
+  return FXBuffSettings{};
 }
 
 inline void GoomStates::doRandomStateChange()
@@ -476,6 +478,7 @@ public:
   void ifsIncrGreaterThanZero();
   void changeLineColor();
   void doBlockyWavy();
+  void doZoomFilterAlloOverexposed();
 
 private:
   std::string songTitle;
@@ -516,6 +519,7 @@ private:
   uint32_t numChangeLineColor = 0;
   uint32_t numSwitchLines = 0;
   uint32_t numBlockyWavy = 0;
+  uint32_t numZoomFilterAllowOverexposed = 0;
   std::array<uint32_t, static_cast<size_t>(ZoomFilterMode::_size)> numFilterModeChanges{0};
   std::vector<uint32_t> numStateChanges;
   std::vector<uint64_t> stateDurations;
@@ -558,6 +562,7 @@ void GoomStats::reset()
   numChangeLineColor = 0;
   numSwitchLines = 0;
   numBlockyWavy = 0;
+  numZoomFilterAllowOverexposed = 0;
 }
 
 void GoomStats::log(const StatsLogValueFunc logVal) const
@@ -663,6 +668,7 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
   logVal(module, "numChangeLineColor", numChangeLineColor);
   logVal(module, "numSwitchLines", numSwitchLines);
   logVal(module, "numBlockyWavy", numBlockyWavy);
+  logVal(module, "numZoomFilterAllowOverexposed", numZoomFilterAllowOverexposed);
 }
 
 void GoomStats::setSongTitle(const std::string& s)
@@ -848,6 +854,11 @@ inline void GoomStats::switchLines()
 inline void GoomStats::doBlockyWavy()
 {
   numBlockyWavy++;
+}
+
+inline void GoomStats::doZoomFilterAlloOverexposed()
+{
+  numZoomFilterAllowOverexposed++;
 }
 
 constexpr int32_t stopSpeed = 128;
@@ -1176,6 +1187,7 @@ void GoomControl::GoomControlImp::start()
   goomInfo->update.zoomFilterData.middleX = goomInfo->screen.width;
   goomInfo->update.zoomFilterData.middleY = goomInfo->screen.height;
 
+  stats.reset();
   stats.setStateStartValue(states.getCurrentStateIndex());
   stats.setZoomFilterStartValue(goomInfo->update.zoomFilterData.mode);
   stats.setSeedStartValue(getRandSeed());
@@ -1759,6 +1771,16 @@ void GoomControl::GoomControlImp::bigNormalUpdate(ZoomFilterData** pzfd)
     goomInfo->update.zoomFilterData.blockyWavy = true;
   }
 
+  if (!goomEvent.happens(GoomEvent::changeZoomFilterAllowOverexposedToOn))
+  {
+    visualFx.zoomFilter_fx->setBuffSettings({.buffIntensity = 0.5, .allowOverexposed = false});
+  }
+  else
+  {
+    stats.doZoomFilterAlloOverexposed();
+    visualFx.zoomFilter_fx->setBuffSettings({.buffIntensity = 0.5, .allowOverexposed = true});
+  }
+
   if (goomInfo->update.zoomFilterData.mode == ZoomFilterMode::amuletteMode)
   {
     goomInfo->update.zoomFilterData.vPlaneEffect = 0;
@@ -1853,6 +1875,16 @@ void GoomControl::GoomControlImp::changeZoomEffect(ZoomFilterData* pzfd, const i
   {
     goomInfo->update.zoomFilterData.blockyWavy = true;
     stats.doBlockyWavy();
+  }
+
+  if (!goomEvent.happens(GoomEvent::changeZoomFilterAllowOverexposedToOn))
+  {
+    visualFx.zoomFilter_fx->setBuffSettings({.buffIntensity = 0.5, .allowOverexposed = false});
+  }
+  else
+  {
+    stats.doZoomFilterAlloOverexposed();
+    visualFx.zoomFilter_fx->setBuffSettings({.buffIntensity = 0.5, .allowOverexposed = true});
   }
 
   if (pzfd)
