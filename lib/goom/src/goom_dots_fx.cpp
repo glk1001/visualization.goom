@@ -90,23 +90,7 @@ void GoomDots::changeColors()
   middleColor = ColorMap::getRandomColor(colorMaps.getRandomColorMap(ColorMapGroup::misc), 0.1, 1);
 
   useSingleBufferOnly = probabilityOfMInN(1, 2);
-}
-
-std::vector<Pixel> GoomDots::getColors(const Pixel& color0,
-                                       const Pixel& color1,
-                                       const size_t numPts)
-{
-  std::vector<Pixel> colors(numPts);
-  constexpr float t_min = 0.0;
-  constexpr float t_max = 1.0;
-  const float t_step = (t_max - t_min) / static_cast<float>(numPts);
-  float t = t_min;
-  for (size_t i = 0; i < numPts; i++)
-  {
-    colors[i] = ColorMap::colorMix(color0, color1, t);
-    t += t_step;
-  }
-  return colors;
+  useGrayScale = probabilityOfMInN(1, 10);
 }
 
 void GoomDots::apply(Pixel* prevBuff, Pixel* currentBuff)
@@ -121,8 +105,6 @@ void GoomDots::apply(Pixel* prevBuff, Pixel* currentBuff)
   const float largeFactor = getLargeSoundFactor(goomInfo->getSoundInfo());
   const uint32_t speedvarMult80Plus15 = goomInfo->getSoundInfo().getSpeed() * 80 + 15;
   const uint32_t speedvarMult50Plus1 = goomInfo->getSoundInfo().getSpeed() * 50 + 1;
-  logDebug("speedvarMult80Plus15 = {}", speedvarMult80Plus15);
-  logDebug("speedvarMult50Plus1 = {}", speedvarMult50Plus1);
 
   const float pointWidthDiv2MultLarge = pointWidthDiv2 * largeFactor;
   const float pointHeightDiv2MultLarge = pointHeightDiv2 * largeFactor;
@@ -142,12 +124,10 @@ void GoomDots::apply(Pixel* prevBuff, Pixel* currentBuff)
 
   const size_t numColors = radius;
 
-  logDebug("goomInfo->update.loopvar = {}", goomInfo->update.loopvar);
   float t = t_min;
   for (uint32_t i = 1; i * 15 <= speedvarMult80Plus15; i++)
   {
     goomInfo->update.loopvar += speedvarMult50Plus1;
-    logDebug("goomInfo->update.loopvar = {}", goomInfo->update.loopvar);
 
     const uint32_t loopvar_div_i = goomInfo->update.loopvar / i;
     const float i_mult_10 = 10.0f * i;
@@ -198,6 +178,33 @@ void GoomDots::apply(Pixel* prevBuff, Pixel* currentBuff)
   }
 }
 
+std::vector<Pixel> GoomDots::getColors(const Pixel& color0,
+                                       const Pixel& color1,
+                                       const size_t numPts)
+{
+  std::vector<Pixel> colors(numPts);
+  constexpr float t_min = 0.0;
+  constexpr float t_max = 1.0;
+  const float t_step = (t_max - t_min) / static_cast<float>(numPts);
+  float t = t_min;
+  for (size_t i = 0; i < numPts; i++)
+  {
+    if (!useGrayScale)
+    {
+      colors[i] = ColorMap::colorMix(color0, color1, t);
+    }
+    else
+    {
+      colors[i] = Pixel{.channels{.r = static_cast<uint8_t>(t * channel_limits<uint32_t>::max()),
+                                  .g = static_cast<uint8_t>(t * channel_limits<uint32_t>::max()),
+                                  .b = static_cast<uint8_t>(t * channel_limits<uint32_t>::max()),
+                                  .a = 0xff}};
+    }
+    t += t_step;
+  }
+  return colors;
+}
+
 float GoomDots::getLargeSoundFactor(const SoundInfo& soundInfo) const
 {
   float largefactor = soundInfo.getSpeed() / 150.0f + soundInfo.getVolume() / 1.5f;
@@ -239,7 +246,7 @@ void GoomDots::dotFilter(Pixel* prevBuff,
   {
     draw.filledCircle(currentBuff, xmid, ymid, static_cast<int>(radius), colors);
     draw.setPixelRGB(currentBuff, static_cast<uint32_t>(xmid), static_cast<uint32_t>(ymid),
-                     Pixel{.val = middleColor});
+                     middleColor);
   }
   else
   {
