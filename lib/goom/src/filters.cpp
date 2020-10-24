@@ -28,6 +28,8 @@
 
 #include <algorithm>
 #include <array>
+#undef NDEBUG
+#include <cassert>
 #include <cereal/archives/json.hpp>
 #include <cereal/types/memory.hpp>
 #include <cereal/types/vector.hpp>
@@ -360,8 +362,10 @@ struct ZoomFilterImpl
   };
 
 private:
-  const uint32_t prevX;
-  const uint32_t prevY;
+  const uint32_t screenWidth;
+  const uint32_t screenHeight;
+  const float ratioPixmapToNormalizedCoords;
+  const float minNormCoordVal;
   ZoomFilterData filterData;
   FXBuffSettings buffSettings{};
 
@@ -387,7 +391,7 @@ private:
   void makeZoomBufferStripe(const uint32_t interlaceIncrement);
   void c_zoom(Pixel* expix1, Pixel* expix2);
   void generateWaterFXHorizontalBuffer();
-  v2g zoomVector(const float x, const float y);
+  v2g getZoomVector(const float x, const float y);
   static void generatePrecalCoef(uint32_t precalCoef[16][16]);
   Pixel getMixedColor(const CoeffArray& coeffs, const PixelArray& colors) const;
   Pixel getBlockyMixedColor(const CoeffArray& coeffs, const PixelArray& colors) const;
@@ -407,8 +411,10 @@ void ZoomFilterData::serialize(Archive& ar)
 }
 
 ZoomFilterImpl::ZoomFilterImpl(const PluginInfo* goomInfo)
-  : prevX{goomInfo->screen.width},
-    prevY{goomInfo->screen.height},
+  : screenWidth{goomInfo->screen.width},
+    screenHeight{goomInfo->screen.height},
+    ratioPixmapToNormalizedCoords{2.0F / static_cast<float>(screenWidth)},
+    minNormCoordVal{ratioPixmapToNormalizedCoords / buffPointNumFlt},
     filterData{},
     freebrutS(goomInfo->screen.width * goomInfo->screen.height * 2 + 128),
     brutS{(int32_t*)((1 + (uintptr_t((freebrutS.data()))) / 128) * 128)},
@@ -416,7 +422,7 @@ ZoomFilterImpl::ZoomFilterImpl(const PluginInfo* goomInfo)
     brutD{(int32_t*)((1 + (uintptr_t((freebrutD.data()))) / 128) * 128)},
     freebrutT(goomInfo->screen.width * goomInfo->screen.height * 2 + 128),
     brutT{(int32_t*)((1 + (uintptr_t((freebrutT.data()))) / 128) * 128)},
-    firedec(prevY)
+    firedec(screenHeight)
 {
   filterData.middleX = goomInfo->screen.width / 2;
   filterData.middleY = goomInfo->screen.height / 2;
@@ -438,8 +444,8 @@ void ZoomFilterImpl::setBuffSettings(const FXBuffSettings& settings)
 void ZoomFilterImpl::log(const StatsLogValueFunc& logVal) const
 {
   stats.setLastGeneralSpeed(generalSpeed);
-  stats.setLastPrevX(prevX);
-  stats.setLastPrevY(prevY);
+  stats.setLastPrevX(screenWidth);
+  stats.setLastPrevY(screenHeight);
   stats.setLastInterlaceStart(interlaceStart);
   stats.setLastBuffratio(buffRatio);
 
@@ -470,7 +476,6 @@ void ZoomFilterImpl::zoomFilterFastRGB(Pixel* pix1,
   stats.doZoomFilterFastRGB();
 
   // changement de taille
-  logDebug("prevX = {}, prevY = {}", prevX, prevY);
   if (interlaceStart != -2)
   {
     zf = nullptr;
@@ -497,7 +502,7 @@ void ZoomFilterImpl::zoomFilterFastRGB(Pixel* pix1,
     // sauvegarde de l'etat actuel dans la nouvelle source
     // TODO: write that in MMX (has been done in previous version, but did not follow
     //   some new fonctionnalities)
-    const uint32_t y = 2 * prevX * prevY;
+    const uint32_t y = 2 * screenWidth * screenHeight;
     for (uint32_t x = 0; x < y; x += 2)
     {
       int brutSmypos = brutS[x];
@@ -525,7 +530,7 @@ void ZoomFilterImpl::zoomFilterFastRGB(Pixel* pix1,
   if (interlaceStart >= 0)
   {
     // creation de la nouvelle destination
-    makeZoomBufferStripe(prevY / 16);
+    makeZoomBufferStripe(screenHeight / 16);
   }
 
   if (switchIncr != 0)
@@ -613,53 +618,41 @@ void ZoomFilterImpl::makeZoomBufferStripe(const uint32_t interlaceIncrement)
 {
   stats.doMakeZoomBufferStripe();
 
-  // Ratio from pixmap to normalized coordinates
-  const float ratio = 2.0F / static_cast<float>(prevX);
+  assert(interlaceStart >= 0);
 
   // Ratio from normalized to virtual pixmap coordinates
-  const float invRatio = buffPointNumFlt / ratio;
-  const float min = ratio / buffPointNumFlt;
+  const float invRatio = buffPointNumFlt / ratioPixmapToNormalizedCoords;
 
   // Y position of the pixel to compute in normalized coordinates
-  float Y = ratio * static_cast<float>(interlaceStart - static_cast<int>(filterData.middleY));
+  float normY = ratioPixmapToNormalizedCoords *
+                static_cast<float>(interlaceStart - static_cast<int>(filterData.middleY));
 
   // Where (vertically) to stop generating the buffer stripe
-  uint32_t maxEnd = prevY;
-  if (maxEnd > static_cast<uint32_t>(interlaceStart + static_cast<int>(interlaceIncrement)))
-  {
-    maxEnd = static_cast<uint32_t>(interlaceStart + static_cast<int>(interlaceIncrement));
-  }
+  const uint32_t maxEnd =
+      std::min(screenHeight, static_cast<uint32_t>(interlaceStart) + interlaceIncrement);
 
   // Position of the pixel to compute in pixmap coordinates
-  uint32_t y;
-  for (y = static_cast<uint32_t>(interlaceStart); (y < prevY) && (y < maxEnd); y++)
+  for (uint32_t y = static_cast<uint32_t>(interlaceStart); y < maxEnd; y++)
   {
-    uint32_t premul_y_prevX = y * prevX * 2;
-    float X = -static_cast<float>(filterData.middleX) * ratio;
-    for (uint32_t x = 0; x < prevX; x++)
+    uint32_t brutPos = y * screenWidth * 2;
+    float normX = -static_cast<float>(filterData.middleX) * ratioPixmapToNormalizedCoords;
+    for (uint32_t x = 0; x < screenWidth; x++)
     {
-      v2g vector = zoomVector(X, Y);
-      // Finish and avoid null displacement
-      if (fabs(vector.x) < min)
-      {
-        vector.x = (vector.x < 0.0f) ? -min : min;
-      }
-      if (fabs(vector.y) < min)
-      {
-        vector.y = (vector.y < 0.0f) ? -min : min;
-      }
+      const v2g vector = getZoomVector(normX, normY);
 
-      brutT[premul_y_prevX] = static_cast<int>((X - vector.x) * invRatio) +
-                              static_cast<int>(filterData.middleX * buffPointNum);
-      brutT[premul_y_prevX + 1] = static_cast<int>((Y - vector.y) * invRatio) +
-                                  static_cast<int>(filterData.middleY * buffPointNum);
-      premul_y_prevX += 2;
-      X += ratio;
+      brutT[brutPos] = static_cast<int>((normX - vector.x) * invRatio) +
+                       static_cast<int>(filterData.middleX * buffPointNum);
+      brutT[brutPos + 1] = static_cast<int>((normY - vector.y) * invRatio) +
+                           static_cast<int>(filterData.middleY * buffPointNum);
+
+      brutPos += 2;
+      normX += ratioPixmapToNormalizedCoords;
     }
-    Y += ratio;
+    normY += ratioPixmapToNormalizedCoords;
   }
+
   interlaceStart += static_cast<int>(interlaceIncrement);
-  if (y >= prevY - 1)
+  if (maxEnd == screenHeight)
   {
     interlaceStart = -1;
   }
@@ -673,7 +666,7 @@ void ZoomFilterImpl::generateWaterFXHorizontalBuffer()
   int spdc = getRandInRange(-4, +4);
   int accel = getRandInRange(-4, +4);
 
-  for (size_t loopv = prevY; loopv != 0;)
+  for (size_t loopv = screenHeight; loopv != 0;)
   {
     loopv--;
     firedec[loopv] = decc;
@@ -723,7 +716,7 @@ void ZoomFilterImpl::generateWaterFXHorizontalBuffer()
   }
 }
 
-v2g ZoomFilterImpl::zoomVector(const float x, const float y)
+v2g ZoomFilterImpl::getZoomVector(const float x, const float y)
 {
   stats.doZoomVector();
 
@@ -732,9 +725,7 @@ v2g ZoomFilterImpl::zoomVector(const float x, const float y)
    */
   float coefVitesse = (1.0f + generalSpeed) / 50.0f;
 
-  // Effects
-
-  // Centralized FX
+  // The Effects
   switch (filterData.mode)
   {
     case ZoomFilterMode::crystalBallMode:
@@ -807,8 +798,7 @@ v2g ZoomFilterImpl::zoomVector(const float x, const float y)
   //vx = (X+Y)*0.1;
   //vy = (Y-X)*0.1;
 
-  // Effects adds-on
-  /* Noise */
+  // The Effects adds-on
   if (filterData.noisify)
   {
     stats.doZoomVectorNoisify();
@@ -824,7 +814,6 @@ v2g ZoomFilterImpl::zoomVector(const float x, const float y)
     }
   }
 
-  // Hypercos
   if (filterData.hypercosEffect)
   {
     stats.doZoomVectorHypercosEffect();
@@ -832,7 +821,6 @@ v2g ZoomFilterImpl::zoomVector(const float x, const float y)
     vy += filterData.hypercosAmplitude * sin(filterData.hypercosFreq * x);
   }
 
-  // H Plane
   if (filterData.hPlaneEffect)
   {
     stats.doZoomVectorHPlaneEffect();
@@ -840,7 +828,6 @@ v2g ZoomFilterImpl::zoomVector(const float x, const float y)
     vx += y * filterData.hPlaneEffectAmplitude * static_cast<float>(filterData.hPlaneEffect);
   }
 
-  // V Plane
   if (filterData.vPlaneEffect)
   {
     stats.doZoomVectorVPlaneEffect();
@@ -849,6 +836,16 @@ v2g ZoomFilterImpl::zoomVector(const float x, const float y)
 
   /* TODO : Water Mode */
   //    if (data->waveEffect)
+
+  // avoid null displacement
+  if (std::fabs(vx) < minNormCoordVal)
+  {
+    vx = (vx < 0.0f) ? -minNormCoordVal : minNormCoordVal;
+  }
+  if (std::fabs(vy) < minNormCoordVal)
+  {
+    vy = (vy < 0.0f) ? -minNormCoordVal : minNormCoordVal;
+  }
 
   return v2g{vx, vy};
 }
@@ -921,21 +918,20 @@ void ZoomFilterImpl::c_zoom(Pixel* expix1, Pixel* expix2)
 {
   stats.doCZoom();
 
-  const uint32_t ax = (prevX - 1) << perteDec;
-  const uint32_t ay = (prevY - 1) << perteDec;
+  const uint32_t ax = (screenWidth - 1) << perteDec;
+  const uint32_t ay = (screenHeight - 1) << perteDec;
 
-  const uint32_t buffSize = prevX * prevY * 2;
-  const uint32_t buffWidth = prevX;
+  const uint32_t buffSize = screenWidth * screenHeight * 2;
+  const uint32_t buffWidth = screenWidth;
 
   expix1[0].val = 0;
-  expix1[prevX - 1].val = 0;
-  expix1[prevX * prevY - 1].val = 0;
-  expix1[prevX * prevY - prevX].val = 0;
+  expix1[screenWidth - 1].val = 0;
+  expix1[screenWidth * screenHeight - 1].val = 0;
+  expix1[screenWidth * screenHeight - screenWidth].val = 0;
 
-  uint32_t myPos2;
   for (uint32_t myPos = 0; myPos < buffSize; myPos += 2)
   {
-    myPos2 = myPos + 1;
+    const uint32_t myPos2 = myPos + 1;
 
     const int brutSmypos = brutS[myPos];
     const uint32_t px = static_cast<uint32_t>(
@@ -956,7 +952,7 @@ void ZoomFilterImpl::c_zoom(Pixel* expix1, Pixel* expix2)
       // coeff en modulo 15
       const CoeffArray coeffs{.intVal = precalCoef[px & perteMask][py & perteMask]};
 
-      const uint32_t pix1Pos = (px >> perteDec) + prevX * (py >> perteDec);
+      const uint32_t pix1Pos = (px >> perteDec) + screenWidth * (py >> perteDec);
       const PixelArray colors = {
           getPixelColor(expix1, pix1Pos),
           getPixelColor(expix1, pix1Pos + 1),
