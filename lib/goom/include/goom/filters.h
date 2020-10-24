@@ -145,7 +145,7 @@ public:
   void log(const StatsLogValueFunc& logVal) const override;
   void finish() override;
 
-  void zoomFilterFastRGB(Pixel* pix1,
+  void zoomFilterFastRGB(const Pixel* pix1,
                          Pixel* pix2,
                          const ZoomFilterData* zf,
                          const int switchIncr,

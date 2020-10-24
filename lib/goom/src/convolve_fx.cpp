@@ -93,7 +93,7 @@ void ConvolveFx::loadState(std::istream& f)
   archive_in(*fxData);
   }
 
-  void ConvolveFx::convolve(Pixel* currentBuff, uint32_t* outputBuff)
+  void ConvolveFx::convolve(const Pixel* currentBuff, uint32_t* outputBuff)
   {
     if (!enabled)
     {

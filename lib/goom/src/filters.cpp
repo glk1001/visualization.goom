@@ -75,6 +75,9 @@ public:
   void doZoomFilterFastRGBInterlaceStartEqualMinus1_2();
   void doZoomFilterFastRGBSwitchIncrNotZero();
   void doZoomFilterFastRGBSwitchIncrNotEqual1();
+  void doCZoomOutOfRange();
+  void coeffVitesseBelowMin();
+  void coeffVitesseAboveMax();
 
   void setLastGeneralSpeed(const float val);
   void setLastPrevX(const uint32_t val);
@@ -106,6 +109,9 @@ private:
   uint64_t numZoomFilterFastRGBInterlaceStartEqualMinus1_2 = 0;
   uint64_t numZoomFilterFastRGBSwitchIncrNotZero = 0;
   uint64_t numZoomFilterFastRGBSwitchIncrNotEqual1 = 0;
+  uint64_t numCZoomOutOfRange = 0;
+  uint64_t numCoeffVitesseBelowMin = 0;
+  uint64_t numCoeffVitesseAboveMax = 0;
 
   float lastGeneralSpeed;
   uint32_t lastPrevX = 0;
@@ -149,6 +155,9 @@ void FilterStats::log(const StatsLogValueFunc logVal) const
   logVal(module, "numZoomFilterFastRGBSwitchIncrNotZero", numZoomFilterFastRGBSwitchIncrNotZero);
   logVal(module, "numZoomFilterFastRGBSwitchIncrNotEqual1",
          numZoomFilterFastRGBSwitchIncrNotEqual1);
+  logVal(module, "numCZoomOutOfRange", numCZoomOutOfRange);
+  logVal(module, "numCoeffVitesseBelowMin", numCoeffVitesseBelowMin);
+  logVal(module, "numCoeffVitesseAboveMax", numCoeffVitesseAboveMax);
 }
 
 void FilterStats::reset()
@@ -176,6 +185,9 @@ void FilterStats::reset()
   numZoomFilterFastRGBInterlaceStartEqualMinus1_2 = 0;
   numZoomFilterFastRGBSwitchIncrNotZero = 0;
   numZoomFilterFastRGBSwitchIncrNotEqual1 = 0;
+  numCZoomOutOfRange = 0;
+  numCoeffVitesseBelowMin = 0;
+  numCoeffVitesseAboveMax = 0;
 }
 
 inline void FilterStats::doZoomVector()
@@ -293,6 +305,21 @@ inline void FilterStats::doZoomFilterFastRGBSwitchIncrNotZero()
   numZoomFilterFastRGBSwitchIncrNotZero++;
 }
 
+inline void FilterStats::doCZoomOutOfRange()
+{
+  numCZoomOutOfRange++;
+}
+
+inline void FilterStats::coeffVitesseBelowMin()
+{
+  numCoeffVitesseBelowMin++;
+}
+
+void FilterStats::coeffVitesseAboveMax()
+{
+  numCoeffVitesseAboveMax++;
+}
+
 void FilterStats::setLastGeneralSpeed(const float val)
 {
   lastGeneralSpeed = val;
@@ -340,13 +367,16 @@ using CoeffArray = union
 };
 using PixelArray = std::array<Pixel, numCoeffs>;
 
+constexpr float minCoefVitesse = -2.01;
+constexpr float maxCoefVitesse = +2.01;
+
 struct ZoomFilterImpl
 {
   explicit ZoomFilterImpl(const PluginInfo*);
 
   void setBuffSettings(const FXBuffSettings&);
 
-  void zoomFilterFastRGB(Pixel* pix1,
+  void zoomFilterFastRGB(const Pixel* pix1,
                          Pixel* pix2,
                          const ZoomFilterData* zf,
                          const int switchIncr,
@@ -389,7 +419,7 @@ private:
   uint32_t precalCoef[buffPointNum][buffPointNum];
 
   void makeZoomBufferStripe(const uint32_t interlaceIncrement);
-  void c_zoom(Pixel* expix1, Pixel* expix2);
+  void c_zoom(const Pixel* expix1, Pixel* expix2);
   void generateWaterFXHorizontalBuffer();
   v2g getZoomVector(const float x, const float y);
   static void generatePrecalCoef(uint32_t precalCoef[16][16]);
@@ -465,7 +495,7 @@ void ZoomFilterImpl::log(const StatsLogValueFunc& logVal) const
  *  So that is why you have this name, for the nostalgy of the first days of goom
  *  when it was just a tiny program writen in Turbo Pascal on my i486...
  */
-void ZoomFilterImpl::zoomFilterFastRGB(Pixel* pix1,
+void ZoomFilterImpl::zoomFilterFastRGB(const Pixel* pix1,
                                        Pixel* pix2,
                                        const ZoomFilterData* zf,
                                        const int switchIncr,
@@ -612,7 +642,7 @@ void ZoomFilterImpl::generatePrecalCoef(uint32_t precalCoef[16][16])
  *
  * The transform is (in order) :
  * Translation (-data->middleX, -data->middleY)
- * Homothetie (Center : 0,0   Coeff : 2/data->prevX)
+ * Homothetie (Center : 0,0   Coeff : 2/data->screenWidth)
  */
 void ZoomFilterImpl::makeZoomBufferStripe(const uint32_t interlaceIncrement)
 {
@@ -785,7 +815,16 @@ v2g ZoomFilterImpl::getZoomVector(const float x, const float y)
       break;
   }
 
-  coefVitesse = std::clamp(coefVitesse, -2.01f, +2.01f);
+  if (coefVitesse < minCoefVitesse)
+  {
+    coefVitesse = minCoefVitesse;
+    stats.coeffVitesseBelowMin();
+  }
+  else if (coefVitesse > maxCoefVitesse)
+  {
+    coefVitesse = maxCoefVitesse;
+    stats.coeffVitesseAboveMax();
+  }
 
   float vx = coefVitesse * x;
   float vy = coefVitesse * y;
@@ -914,7 +953,7 @@ inline void setPixelColor(Pixel* buffer, const uint32_t pos, const Pixel& p)
 }
 
 // pure c version of the zoom filter
-void ZoomFilterImpl::c_zoom(Pixel* expix1, Pixel* expix2)
+void ZoomFilterImpl::c_zoom(const Pixel* expix1, Pixel* expix2)
 {
   stats.doCZoom();
 
@@ -923,11 +962,6 @@ void ZoomFilterImpl::c_zoom(Pixel* expix1, Pixel* expix2)
 
   const uint32_t buffSize = screenWidth * screenHeight * 2;
   const uint32_t buffWidth = screenWidth;
-
-  expix1[0].val = 0;
-  expix1[screenWidth - 1].val = 0;
-  expix1[screenWidth * screenHeight - 1].val = 0;
-  expix1[screenWidth * screenHeight - screenWidth].val = 0;
 
   for (uint32_t myPos = 0; myPos < buffSize; myPos += 2)
   {
@@ -945,6 +979,7 @@ void ZoomFilterImpl::c_zoom(Pixel* expix1, Pixel* expix2)
 
     if ((px >= ax) || (py >= ay))
     {
+      stats.doCZoomOutOfRange();
       setPixelColor(expix2, pix2Pos, Pixel{.val = 0});
     }
     else
@@ -1027,7 +1062,7 @@ void ZoomFilterFx::apply(Pixel*, Pixel*)
 {
   throw std::logic_error("ZoomFilterFx::apply should never be called.");
 }
-void ZoomFilterFx::zoomFilterFastRGB(Pixel* pix1,
+void ZoomFilterFx::zoomFilterFastRGB(const Pixel* pix1,
                                      Pixel* pix2,
                                      const ZoomFilterData* zf,
                                      const int switchIncr,

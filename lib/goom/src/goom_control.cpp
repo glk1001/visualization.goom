@@ -188,47 +188,6 @@ private:
 using GoomEvent = GoomEvents::GoomEvent;
 using GoomFilterEvent = GoomEvents::GoomFilterEvent;
 
-GoomEvents::GoomEvents() noexcept
-  : filterWeights{{weightedFilterEvents.begin(), weightedFilterEvents.end()}},
-    lineTypeWeights{{weightedLineEvents.begin(), weightedLineEvents.end()}}
-{
-}
-
-void GoomEvents::setGoomInfo(PluginInfo* info)
-{
-  goomInfo = info;
-}
-
-inline bool GoomEvents::happens(const GoomEvent event) const
-{
-  const WeightedEvent& weightedEvent = weightedEvents[static_cast<size_t>(event)];
-  return probabilityOfMInN(weightedEvent.m, weightedEvent.outOf);
-}
-
-inline GoomEvents::GoomFilterEvent GoomEvents::getRandomFilterEvent() const
-{
-  //////////////////return GoomFilterEvent::amuletteMode;
-  //////////////////return GoomFilterEvent::waveModeWithHyperCosEffect;
-
-  GoomEvents::GoomFilterEvent nextEvent = filterWeights.getRandomWeighted();
-  for (size_t i = 0; i < 10; i++)
-  {
-    if (nextEvent != lastReturnedFilterEvent)
-    {
-      break;
-    }
-    nextEvent = filterWeights.getRandomWeighted();
-  }
-  lastReturnedFilterEvent = nextEvent;
-
-  return nextEvent;
-}
-
-inline LineType GoomEvents::getRandomLineTypeEvent() const
-{
-  return lineTypeWeights.getRandomWeighted();
-}
-
 class GoomStates
 {
 public:
@@ -262,48 +221,6 @@ private:
   const Weights<uint16_t> weightedStates;
   size_t currentStateIndex;
 };
-
-GoomStates::GoomStates() : weightedStates{getWeightedStates(states)}, currentStateIndex{0}
-{
-  doRandomStateChange();
-}
-
-inline bool GoomStates::isCurrentlyDrawable(const GoomDrawable drawable) const
-{
-  return getCurrentDrawables().contains(drawable);
-}
-
-inline size_t GoomStates::getCurrentStateIndex() const
-{
-  return currentStateIndex;
-}
-
-inline GoomStates::DrawablesState GoomStates::getCurrentDrawables() const
-{
-  GoomStates::DrawablesState currentDrawables{};
-  for (const auto d : states[currentStateIndex].drawables)
-  {
-    currentDrawables.insert(d.fx);
-  }
-  return currentDrawables;
-}
-
-const FXBuffSettings GoomStates::getCurrentBuffSettings(const GoomDrawable theFx) const
-{
-  for (const auto& d : states[currentStateIndex].drawables)
-  {
-    if (d.fx == theFx)
-    {
-      return d.buffSettings;
-    }
-  }
-  return FXBuffSettings{};
-}
-
-inline void GoomStates::doRandomStateChange()
-{
-  currentStateIndex = static_cast<size_t>(weightedStates.getRandomWeighted());
-}
 
 // clang-format off
 const GoomStates::WeightedStatesArray GoomStates::states{{
@@ -430,17 +347,6 @@ const GoomStates::WeightedStatesArray GoomStates::states{{
   { .weight =  40, .drawables = {                      GD::tentacles,                                              }},
   **/
 // clang-format on
-
-std::vector<std::pair<uint16_t, size_t>> GoomStates::getWeightedStates(
-    const GoomStates::WeightedStatesArray& states)
-{
-  std::vector<std::pair<uint16_t, size_t>> weightedVals(states.size());
-  for (size_t i = 0; i < states.size(); i++)
-  {
-    weightedVals[i] = std::make_pair(i, states[i].weight);
-  }
-  return weightedVals;
-}
 
 class GoomStats
 {
@@ -1451,6 +1357,7 @@ void GoomControl::GoomControlImp::setNextFilterMode()
       }
       goomInfo->update.zoomFilterData.waveEffectType =
           static_cast<ZoomFilterData::WaveEffect>(getRandInRange(0, 2));
+      // BUG HERE - wrong range - BUT GIVES GOOD AFFECT
       goomInfo->update.zoomFilterData.waveAmplitude =
           getRandInRange(ZoomFilterData::minWaveFreqFactor, ZoomFilterData::maxWaveFreqFactor);
       goomInfo->update.zoomFilterData.waveFreqFactor =
@@ -2345,6 +2252,100 @@ void GoomControl::GoomControlImp::drawDotsIfRequired()
   stats.doDots();
   visualFx.goomDots->apply(imageBuffers.getP2(), imageBuffers.getP1());
   logDebug("sound getTimeSinceLastGoom() = {}", goomInfo->getSoundInfo().getTimeSinceLastGoom());
+}
+
+GoomEvents::GoomEvents() noexcept
+  : filterWeights{{weightedFilterEvents.begin(), weightedFilterEvents.end()}},
+    lineTypeWeights{{weightedLineEvents.begin(), weightedLineEvents.end()}}
+{
+}
+
+void GoomEvents::setGoomInfo(PluginInfo* info)
+{
+  goomInfo = info;
+}
+
+inline bool GoomEvents::happens(const GoomEvent event) const
+{
+  const WeightedEvent& weightedEvent = weightedEvents[static_cast<size_t>(event)];
+  return probabilityOfMInN(weightedEvent.m, weightedEvent.outOf);
+}
+
+inline GoomEvents::GoomFilterEvent GoomEvents::getRandomFilterEvent() const
+{
+  //////////////////return GoomFilterEvent::amuletteMode;
+  //////////////////return GoomFilterEvent::waveModeWithHyperCosEffect;
+
+  GoomEvents::GoomFilterEvent nextEvent = filterWeights.getRandomWeighted();
+  for (size_t i = 0; i < 10; i++)
+  {
+    if (nextEvent != lastReturnedFilterEvent)
+    {
+      break;
+    }
+    nextEvent = filterWeights.getRandomWeighted();
+  }
+  lastReturnedFilterEvent = nextEvent;
+
+  return nextEvent;
+}
+
+inline LineType GoomEvents::getRandomLineTypeEvent() const
+{
+  return lineTypeWeights.getRandomWeighted();
+}
+
+GoomStates::GoomStates() : weightedStates{getWeightedStates(states)}, currentStateIndex{0}
+{
+  doRandomStateChange();
+}
+
+inline bool GoomStates::isCurrentlyDrawable(const GoomDrawable drawable) const
+{
+  return getCurrentDrawables().contains(drawable);
+}
+
+inline size_t GoomStates::getCurrentStateIndex() const
+{
+  return currentStateIndex;
+}
+
+inline GoomStates::DrawablesState GoomStates::getCurrentDrawables() const
+{
+  GoomStates::DrawablesState currentDrawables{};
+  for (const auto d : states[currentStateIndex].drawables)
+  {
+    currentDrawables.insert(d.fx);
+  }
+  return currentDrawables;
+}
+
+const FXBuffSettings GoomStates::getCurrentBuffSettings(const GoomDrawable theFx) const
+{
+  for (const auto& d : states[currentStateIndex].drawables)
+  {
+    if (d.fx == theFx)
+    {
+      return d.buffSettings;
+    }
+  }
+  return FXBuffSettings{};
+}
+
+inline void GoomStates::doRandomStateChange()
+{
+  currentStateIndex = static_cast<size_t>(weightedStates.getRandomWeighted());
+}
+
+std::vector<std::pair<uint16_t, size_t>> GoomStates::getWeightedStates(
+    const GoomStates::WeightedStatesArray& states)
+{
+  std::vector<std::pair<uint16_t, size_t>> weightedVals(states.size());
+  for (size_t i = 0; i < states.size(); i++)
+  {
+    weightedVals[i] = std::make_pair(i, states[i].weight);
+  }
+  return weightedVals;
 }
 
 } // namespace goom

@@ -28,7 +28,7 @@ public:
   void start() override;
 
   void apply(Pixel*, Pixel*) override{};
-  void convolve(Pixel* currentBuff, uint32_t* outputBuff);
+  void convolve(const Pixel* currentBuff, uint32_t* outputBuff);
 
   std::string getFxName() const override;
   void saveState(std::ostream&) override;
