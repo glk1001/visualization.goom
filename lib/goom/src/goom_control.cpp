@@ -239,7 +239,7 @@ public:
   bool isCurrentlyDrawable(const GoomDrawable) const;
   size_t getCurrentStateIndex() const;
   DrawablesState getCurrentDrawables() const;
-  const FXBuffSettings& getCurrentBuffSettings(const GoomDrawable) const;
+  const FXBuffSettings getCurrentBuffSettings(const GoomDrawable) const;
 
   void doRandomStateChange();
 
@@ -288,7 +288,7 @@ inline GoomStates::DrawablesState GoomStates::getCurrentDrawables() const
   return currentDrawables;
 }
 
-const FXBuffSettings& GoomStates::getCurrentBuffSettings(const GoomDrawable theFx) const
+const FXBuffSettings GoomStates::getCurrentBuffSettings(const GoomDrawable theFx) const
 {
   for (const auto& d : states[currentStateIndex].drawables)
   {
@@ -886,8 +886,8 @@ public:
 
   Pixel* getP1() const { return p1; }
   Pixel* getP2() const { return p2; }
-  Pixel* getOutputBuff() const { return outputBuff; }
-  void setOutputBuff(Pixel* val) { outputBuff = val; }
+  uint32_t* getOutputBuff() const { return outputBuff; }
+  void setOutputBuff(uint32_t* val) { outputBuff = val; }
 
   void rotateBuffers();
 
@@ -896,7 +896,7 @@ private:
   const std::vector<Pixel*> buffs;
   Pixel* p1;
   Pixel* p2;
-  Pixel* outputBuff = nullptr;
+  uint32_t* outputBuff = nullptr;
   size_t nextBuff;
   static std::vector<Pixel*> getPixelBuffs(const uint16_t resx, const uint16_t resy);
 };
@@ -949,7 +949,7 @@ struct GoomVisualFx
   std::unique_ptr<ZoomFilterFx> zoomFilter_fx;
   std::unique_ptr<IfsFx> ifs_fx;
   std::unique_ptr<VisualFx> star_fx;
-  std::unique_ptr<VisualFx> convolve_fx;
+  std::unique_ptr<ConvolveFx> convolve_fx;
   std::unique_ptr<VisualFx> tentacles_fx;
   std::unique_ptr<VisualFx> goomDots;
 
@@ -979,8 +979,10 @@ GoomVisualFx::GoomVisualFx(PluginInfo* goomInfo)
 class GoomControl::GoomControlImp
 {
 public:
+  GoomControlImp() noexcept = delete;
   GoomControlImp(const uint16_t resx, const uint16_t resy, const int seed);
   ~GoomControlImp();
+  void swap(GoomControl::GoomControlImp& other) noexcept = delete;
 
   void setScreenBuffer(uint32_t* buffer);
 
@@ -1044,7 +1046,7 @@ private:
 
   void chooseGoomLine(float* param1,
                       float* param2,
-                      uint32_t* couleur,
+                      Pixel* couleur,
                       LineType* mode,
                       float* amplitude,
                       const int far);
@@ -1113,9 +1115,9 @@ void GoomControl::update(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN]
   controller->update(data, forceMode, fps, songTitle, message);
 }
 
-static const uint32_t lRed = getRedLineColor();
-static const uint32_t lGreen = getGreenLineColor();
-static const uint32_t lBlack = getBlackLineColor();
+static const Pixel lRed = getRedLineColor();
+static const Pixel lGreen = getGreenLineColor();
+static const Pixel lBlack = getBlackLineColor();
 
 GoomControl::GoomControlImp::GoomControlImp(const uint16_t resx,
                                             const uint16_t resy,
@@ -1158,7 +1160,7 @@ GoomControl::GoomControlImp::~GoomControlImp()
 
 void GoomControl::GoomControlImp::setScreenBuffer(uint32_t* buffer)
 {
-  imageBuffers.setOutputBuff(reinterpret_cast<Pixel*>(buffer));
+  imageBuffers.setOutputBuff(buffer);
 }
 
 inline bool GoomControl::GoomControlImp::changeFilterModeEventHappens()
@@ -1300,7 +1302,7 @@ void GoomControl::GoomControlImp::update(const int16_t data[NUM_AUDIO_SAMPLES][A
   displayLinesIfInAGoom(data);
 
   // affichage et swappage des buffers...
-  visualFx.convolve_fx->apply(imageBuffers.getP1(), imageBuffers.getOutputBuff());
+  visualFx.convolve_fx->convolve(imageBuffers.getP1(), imageBuffers.getOutputBuff());
   imageBuffers.rotateBuffers();
 
   cycle++;
@@ -1308,12 +1310,8 @@ void GoomControl::GoomControlImp::update(const int16_t data[NUM_AUDIO_SAMPLES][A
   logDebug("About to return.");
 }
 
-void GoomControl::GoomControlImp::chooseGoomLine(float* param1,
-                                                 float* param2,
-                                                 uint32_t* couleur,
-                                                 LineType* mode,
-                                                 float* amplitude,
-                                                 const int far)
+void GoomControl::GoomControlImp::chooseGoomLine(
+    float* param1, float* param2, Pixel* couleur, LineType* mode, float* amplitude, const int far)
 {
   *amplitude = 1.0f;
   *mode = goomEvent.getRandomLineTypeEvent();
@@ -2078,7 +2076,7 @@ void GoomControl::GoomControlImp::stopRequest()
   float param1 = 0;
   float param2 = 0;
   float amplitude = 0;
-  uint32_t couleur = 0;
+  Pixel couleur{};
   LineType mode;
   chooseGoomLine(&param1, &param2, &couleur, &mode, &amplitude, 1);
   couleur = getBlackLineColor();
@@ -2121,11 +2119,11 @@ void GoomControl::GoomControlImp::stopRandomLineChangeMode()
       float param1 = 0;
       float param2 = 0;
       float amplitude = 0;
-      uint32_t couleur1 = 0;
+      Pixel couleur1{};
       LineType mode;
       chooseGoomLine(&param1, &param2, &couleur1, &mode, &amplitude, goomInfo->update.stop_lines);
 
-      uint32_t couleur2 = gmline2.getRandomLineColor();
+      Pixel couleur2 = gmline2.getRandomLineColor();
       if (goomInfo->update.stop_lines)
       {
         goomInfo->update.stop_lines--;
@@ -2169,11 +2167,11 @@ void GoomControl::GoomControlImp::displayLines(
     float param1 = 0;
     float param2 = 0;
     float amplitude = 0;
-    uint32_t couleur1 = 0;
+    Pixel couleur1{};
     LineType mode;
     chooseGoomLine(&param1, &param2, &couleur1, &mode, &amplitude, goomInfo->update.stop_lines);
 
-    uint32_t couleur2 = gmline2.getRandomLineColor();
+    Pixel couleur2 = gmline2.getRandomLineColor();
     if (goomInfo->update.stop_lines)
     {
       goomInfo->update.stop_lines--;

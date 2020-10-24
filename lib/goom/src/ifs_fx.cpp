@@ -265,7 +265,7 @@ inline Pixel Colorizer::getNextMixerMapColor(const float t) const
   const float tTransition =
       static_cast<float>(countSinceColorMapChange) / static_cast<float>(colorMapChangeCompleted);
   countSinceColorMapChange--;
-  return Pixel{.val = ColorMap::colorMix(nextColor.val, prevMixerMap->getColor(t), tTransition)};
+  return ColorMap::colorMix(nextColor, prevMixerMap->getColor(t), tTransition);
 }
 
 inline Pixel Colorizer::getMixedColor(const Pixel& baseColor, const float tmix)
@@ -281,13 +281,13 @@ inline Pixel Colorizer::getMixedColor(const Pixel& baseColor, const float tmix)
     case ColorMode::mixColors:
     case ColorMode::megaMixColorChange:
     {
-      const uint32_t mixColor = getNextMixerMapColor(tmix).val;
-      return Pixel{.val = ColorMap::colorMix(mixColor, baseColor.val, tBetweenColors)};
+      const Pixel mixColor = getNextMixerMapColor(tmix);
+      return ColorMap::colorMix(mixColor, baseColor, tBetweenColors);
     }
     case ColorMode::reverseMixColors:
     {
-      const uint32_t mixColor = getNextMixerMapColor(tmix).val;
-      return Pixel{.val = ColorMap::colorMix(baseColor.val, mixColor, tBetweenColors)};
+      const Pixel mixColor = getNextMixerMapColor(tmix);
+      return ColorMap::colorMix(baseColor, mixColor, tBetweenColors);
     }
     case ColorMode::singleColors:
     {
@@ -697,7 +697,7 @@ void IfsFx::renew()
 void IfsFx::changeColormaps()
 {
   fxData->colorizer.changeColorMaps();
-  updateData->couleur.val =
+  updateData->couleur =
       ColorMap::getRandomColor(fxData->colorizer.getColorMaps().getRandomColorMap());
 }
 

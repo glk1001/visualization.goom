@@ -12,8 +12,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
-#include <iterator>
-#include <memory>
 #include <stdexcept>
 #include <tuple>
 #include <vector>
@@ -28,10 +26,10 @@ GMLine::GMLine(PluginInfo* info,
                const uint16_t ry,
                const LineType IDsrc,
                const float paramS,
-               const uint32_t srcColor,
+               const Pixel& srcColor,
                const LineType dest,
                const float paramD,
-               const uint32_t destColor)
+               const Pixel& destColor)
   : goomInfo{info},
     draw{goomInfo->screen.width, goomInfo->screen.height},
     screenX{rx},
@@ -128,7 +126,7 @@ void GMLine::goomLinesMove()
 void GMLine::switchGoomLines(const LineType dest,
                              const float prm,
                              const float amp,
-                             const uint32_t color)
+                             const Pixel& color)
 {
   generateLine(dest, param, screenX, screenY, points2);
   IDdest = dest;
@@ -146,7 +144,7 @@ void GMLine::switchGoomLines(const LineType dest,
 #define GML_BLEU 5
 #define GML_BLACK 6
 
-inline uint32_t getcouleur(const int mode)
+inline Pixel getcouleur(const int mode)
 {
   switch (mode)
   {
@@ -167,25 +165,24 @@ inline uint32_t getcouleur(const int mode)
     default:
       throw std::logic_error("Unknown line color.");
   }
-  return 0;
 }
 
-uint32_t getBlackLineColor()
+Pixel getBlackLineColor()
 {
   return getcouleur(GML_BLACK);
 }
 
-uint32_t getGreenLineColor()
+Pixel getGreenLineColor()
 {
   return getcouleur(GML_VERT);
 }
 
-uint32_t getRedLineColor()
+Pixel getRedLineColor()
 {
   return getcouleur(GML_RED);
 }
 
-uint32_t GMLine::getRandomLineColor()
+Pixel GMLine::getRandomLineColor()
 {
   if (getNRand(10) == 0)
   {
@@ -231,14 +228,14 @@ void GMLine::drawGoomLines(const int16_t audioData[AUDIO_SAMPLE_LEN],
 {
   std::vector<Pixel*> buffs{currentBuff, prevBuff};
   const GMUnitPointer* pt = &(points[0]);
-  const uint32_t lineColor = getLightenedColor(color, power);
+  const Pixel lineColor = getLightenedColor(color, power);
 
   const float audioRange = static_cast<float>(goomInfo->getSoundInfo().getAllTimesMaxVolume() -
                                               goomInfo->getSoundInfo().getAllTimesMinVolume());
   if (audioRange < 0.0001)
   {
     // No range - flatline audio
-    const std::vector<Pixel> colors = {{.val = lineColor}, {.val = lineColor}};
+    const std::vector<Pixel> colors = {lineColor, lineColor};
     draw.line(buffs, pt->x, pt->y, pt->x + AUDIO_SAMPLE_LEN, pt->y, colors, 1);
     goomLinesMove();
     return;
@@ -252,7 +249,7 @@ void GMLine::drawGoomLines(const int16_t audioData[AUDIO_SAMPLE_LEN],
            audioRange;
   };
 
-  const uint32_t randColor = getRandomLineColor();
+  const Pixel randColor = getRandomLineColor();
 
   const auto getNextPoint = [&](const GMUnitPointer* pt, const float dataVal) {
     const float cosa = cos(pt->angle) / 1000.0f;
@@ -261,7 +258,7 @@ void GMLine::drawGoomLines(const int16_t audioData[AUDIO_SAMPLE_LEN],
     const int x = static_cast<int>(pt->x + cosa * amplitude * fdata);
     const int y = static_cast<int>(pt->y + sina * amplitude * fdata);
     const float t = std::max(0.05f, fdata / static_cast<float>(maxNormalizedPeak));
-    const uint32_t modColor = ColorMap::colorMix(lineColor, randColor, t);
+    const Pixel modColor = ColorMap::colorMix(lineColor, randColor, t);
     return std::make_tuple(x, y, modColor);
   };
 
@@ -274,7 +271,7 @@ void GMLine::drawGoomLines(const int16_t audioData[AUDIO_SAMPLE_LEN],
     const GMUnitPointer* const pt = &(points[i]);
     const auto [x2, y2, modColor] = getNextPoint(pt, data[i]);
 
-    const std::vector<Pixel> colors = {{.val = modColor}, {.val = lineColor}};
+    const std::vector<Pixel> colors = {modColor, lineColor};
     draw.line(buffs, x1, y1, x2, y2, colors, thickness);
 
     x1 = x2;

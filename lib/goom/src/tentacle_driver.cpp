@@ -148,8 +148,8 @@ void TentacleDriver::init(const TentacleLayout& layout)
     logDebug("Created tentacle2D {}.", i);
 
     // To hide the annoying flapping tentacle head, make near the head very dark.
-    const uint32_t headColor = getIntColor(5, 5, 5);
-    const uint32_t headColorLow = headColor;
+    const Pixel headColor = getIntColor(5, 5, 5);
+    const Pixel headColorLow = headColor;
     Tentacle3D tentacle{std::move(tentacle2D), *colorizers[colorizers.size() - 1], headColor,
                         headColorLow, initialHeadPos};
 
@@ -516,8 +516,8 @@ void TentacleDriver::freshStart()
 void TentacleDriver::update(const float angle,
                             const float distance,
                             const float distance2,
-                            const uint32_t color,
-                            const uint32_t colorLow,
+                            const Pixel& color,
+                            const Pixel& colorLow,
                             Pixel* prevBuff,
                             Pixel* currentBuff)
 {
@@ -553,8 +553,8 @@ void TentacleDriver::update(const float angle,
 constexpr int coordIgnoreVal = -666;
 
 void TentacleDriver::plot3D(const Tentacle3D& tentacle,
-                            const uint32_t dominantColor,
-                            const uint32_t dominantColorLow,
+                            const Pixel& dominantColor,
+                            const Pixel& dominantColorLow,
                             const float angle,
                             const float distance,
                             const float distance2,
@@ -589,7 +589,7 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
   // Faraway tentacles get smaller and draw_line adds them together making them look
   // very white and over-exposed. If we reduce the brightness, then all the combined
   // tentacles look less bright and white and more colors show through.
-  using GetMixedColorsFunc = std::function<std::tuple<uint32_t, uint32_t>(const size_t nodeNum)>;
+  using GetMixedColorsFunc = std::function<std::tuple<Pixel, Pixel>(const size_t nodeNum)>;
   GetMixedColorsFunc getMixedColors = [&](const size_t nodeNum) {
     return tentacle.getMixedColors(nodeNum, dominantColor, dominantColorLow);
   };
@@ -626,7 +626,7 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
                iy1);
 
       const auto [color, colorLow] = getMixedColors(nodeNum);
-      const std::vector<Pixel> colors = {{.val = color}, {.val = colorLow}};
+      const std::vector<Pixel> colors{color, colorLow};
 
       logInfo("draw_line {}: dominantColor = {:#x}, dominantColorLow = {:#x}.", nodeNum,
               dominantColor, dominantColorLow);
@@ -719,10 +719,10 @@ void TentacleColorMapColorizer::changeColorMap()
   colorMap = &colorMaps->getRandomColorMap(currentColorMapGroup);
 }
 
-uint32_t TentacleColorMapColorizer::getColor(const size_t nodeNum) const
+Pixel TentacleColorMapColorizer::getColor(const size_t nodeNum) const
 {
   const float t = static_cast<float>(nodeNum) / static_cast<float>(numNodes);
-  uint32_t nextColor = colorMap->getColor(t);
+  Pixel nextColor = colorMap->getColor(t);
 
   // Keep going with the smooth transition until tmix runs out.
   if (tTransition > 0.0)

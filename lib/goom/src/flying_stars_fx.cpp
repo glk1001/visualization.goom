@@ -222,7 +222,7 @@ private:
 
   void soundEventOccured();
   static void updateStar(Star*);
-  uint32_t getLowColor(const size_t starNum, const float tmix);
+  Pixel getLowColor(const size_t starNum, const float tmix);
   bool isStarDead(const Star&) const;
   void addABomb(const utils::ColorMapGroup colorGroup,
                 const utils::ColorMap* lowColorMap,
@@ -339,8 +339,8 @@ void FlyingStarsImpl::updateBuffers(Pixel* prevBuff, Pixel* currentBuff)
 
     // choose the color of the particule
     const float tAge = stars[i].age / static_cast<float>(maxStarAge);
-    const uint32_t color = stars[i].currentColorMap->getColor(tAge);
-    const uint32_t lowColor = getLowColor(i, tAge);
+    const Pixel color = stars[i].currentColorMap->getColor(tAge);
+    const Pixel lowColor = getLowColor(i, tAge);
     const float thicknessFactor = getRandInRange(1.0F, 3.0F);
 
     // draws the particule
@@ -401,7 +401,7 @@ void FlyingStarsImpl::updateStar(Star* s)
   s->age += s->vage;
 }
 
-inline uint32_t FlyingStarsImpl::getLowColor(const size_t starNum, const float tmix)
+inline Pixel FlyingStarsImpl::getLowColor(const size_t starNum, const float tmix)
 {
   if (probabilityOfMInN(1, 2))
   {
@@ -413,7 +413,7 @@ inline uint32_t FlyingStarsImpl::getLowColor(const size_t starNum, const float t
       0x111a100a, 0x0c180508, 0x08100304, 0x00050101, 0x0
     };
     // clang-format on
-    return starLowColors[size_t(tmix * static_cast<float>(numLowColors - 1))];
+    return Pixel{.val = starLowColors[size_t(tmix * static_cast<float>(numLowColors - 1))]};
   }
 
   const float brightness = getRandInRange(0.2f, 0.6f);

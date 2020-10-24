@@ -1,6 +1,7 @@
 #ifndef LIBS_GOOM_INCLUDE_GOOM_TENTACLES_H_
 #define LIBS_GOOM_INCLUDE_GOOM_TENTACLES_H_
 
+#include "goom_graphic.h"
 #include "goomutils/colormap.h"
 #include "goomutils/mathutils.h"
 
@@ -21,7 +22,7 @@ public:
   virtual utils::ColorMapGroup getColorMapGroup() const = 0;
   virtual void setColorMapGroup(const utils::ColorMapGroup) = 0;
   virtual void changeColorMap() = 0;
-  virtual uint32_t getColor(const size_t nodeNum) const = 0;
+  virtual Pixel getColor(const size_t nodeNum) const = 0;
 };
 
 class TentacleTweaker
@@ -219,13 +220,13 @@ class Tentacle3D
 {
 public:
   explicit Tentacle3D(std::unique_ptr<Tentacle2D>,
-                      const uint32_t headColor,
-                      const uint32_t headColorLow,
+                      const Pixel& headColor,
+                      const Pixel& headColorLow,
                       const V3d& head);
   explicit Tentacle3D(std::unique_ptr<Tentacle2D>,
                       const TentacleColorizer& colorizer,
-                      const uint32_t headColor,
-                      const uint32_t headColorLow,
+                      const Pixel& headColor,
+                      const Pixel& headColorLow,
                       const V3d& head);
   Tentacle3D(Tentacle3D&&) noexcept;
   Tentacle3D(const Tentacle3D&) = delete;
@@ -239,14 +240,14 @@ public:
 
   size_t getID() const { return tentacle->getID(); }
 
-  uint32_t getColor(const size_t nodeNum) const;
-  std::tuple<uint32_t, uint32_t> getMixedColors(const size_t nodeNum,
-                                                const uint32_t color,
-                                                const uint32_t colorLow) const;
-  std::tuple<uint32_t, uint32_t> getMixedColors(const size_t nodeNum,
-                                                const uint32_t color,
-                                                const uint32_t colorLow,
-                                                const float brightness) const;
+  Pixel getColor(const size_t nodeNum) const;
+  std::tuple<Pixel, Pixel> getMixedColors(const size_t nodeNum,
+                                          const Pixel& color,
+                                          const Pixel& colorLow) const;
+  std::tuple<Pixel, Pixel> getMixedColors(const size_t nodeNum,
+                                          const Pixel& color,
+                                          const Pixel& colorLow,
+                                          const float brightness) const;
 
   bool getReverseColorMix() const { return reverseColorMix; }
   void setReverseColorMix(const bool val) { reverseColorMix = val; }
@@ -264,8 +265,8 @@ private:
   const TentacleColorizer* const colorizer;
   SpecialNodes specialColorNodes;
   const utils::ColorMap* specialNodesColorMap;
-  const uint32_t headColor;
-  const uint32_t headColorLow;
+  const Pixel headColor;
+  const Pixel headColorLow;
   V3d head;
   bool reverseColorMix = false;
   bool allowOverexposed = true;

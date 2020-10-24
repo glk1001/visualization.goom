@@ -20,49 +20,38 @@ namespace goom
 
 using namespace goom::utils;
 
-inline bool allowOverexposedEvent()
-{
-  return probabilityOfMInN(1, 100);
-}
-
 struct ConvolveData
 {
-  FXBuffSettings buffSettings{};
-  bool allowOverexposed = false;
-  uint32_t countSinceOverexposed = 0;
-  static constexpr uint32_t maxCountSinceOverexposed = 100;
+  ConvolveData(const uint32_t screenWidth, const uint32_t screenHeight);
+  const uint32_t screenWidth;
+  const uint32_t screenHeight;
   float screenBrightness = 100;
   float flashIntensity = 30;
   float factor = 0.5;
+  FXBuffSettings buffSettings{};
+
+  void createOutputWithBrightness(const Pixel* src, uint32_t* dest, const uint32_t flashInt);
 
   template<class Archive>
   void serialize(Archive&);
 };
 
+ConvolveData::ConvolveData(const uint32_t w, const uint32_t h) : screenWidth{w}, screenHeight{h}
+{
+}
+
 template<class Archive>
 void ConvolveData::serialize(Archive& ar)
 {
-  ar(buffSettings, allowOverexposed, countSinceOverexposed, screenBrightness, flashIntensity);
+  ar(buffSettings, screenBrightness, flashIntensity, factor);
 }
 
-static void createOutputWithBrightness(const Pixel* src,
-                                       Pixel* dest,
-                                       const PluginInfo* goomInfo,
-                                       const uint32_t iff,
-                                       const bool allowOverexposed)
+ConvolveFx::ConvolveFx(PluginInfo* info)
+  : goomInfo{info}, fxData{new ConvolveData{goomInfo->screen.width, goomInfo->screen.height}}
 {
-  int i = 0; // info->screen.height * info->screen.width - 1;
-  for (uint32_t y = 0; y < goomInfo->screen.height; y++)
-  {
-    for (uint32_t x = 0; x < goomInfo->screen.width; x++)
-    {
-      dest[i] = getBrighterColorInt(iff, src[i], allowOverexposed);
-      i++;
-    }
-  }
 }
 
-ConvolveFx::ConvolveFx(PluginInfo* info) : goomInfo{info}, fxData{new ConvolveData{}}
+ConvolveFx::~ConvolveFx() noexcept
 {
 }
 
@@ -87,49 +76,6 @@ void ConvolveFx::log(const StatsLogValueFunc&) const
 {
 }
 
-void ConvolveFx::apply(Pixel* prevBuff, Pixel* currentBuff)
-{
-  if (!enabled)
-  {
-    return;
-  }
-
-  const float ff = (fxData->factor * fxData->flashIntensity + fxData->screenBrightness) / 100.0f;
-  const uint32_t iff = static_cast<uint32_t>(std::round(ff * 256 + 0.0001f));
-  constexpr float increaseRate = 1.3;
-  constexpr float decayRate = 0.955;
-  if (goomInfo->getSoundInfo().getTimeSinceLastGoom() == 0)
-  {
-    fxData->factor += goomInfo->getSoundInfo().getGoomPower() * increaseRate;
-  }
-  fxData->factor *= decayRate;
-
-  if (fxData->allowOverexposed)
-  {
-    fxData->countSinceOverexposed++;
-    if (fxData->countSinceOverexposed > ConvolveData::maxCountSinceOverexposed)
-    {
-      fxData->allowOverexposed = false;
-    }
-  }
-  else if (allowOverexposedEvent())
-  {
-    fxData->countSinceOverexposed = 0;
-    fxData->allowOverexposed = true;
-  }
-
-  fxData->allowOverexposed = true;
-
-  if (std::fabs(1.0 - ff) < 0.02)
-  {
-    memcpy(currentBuff, prevBuff, goomInfo->screen.size * sizeof(Pixel));
-  }
-  else
-  {
-    createOutputWithBrightness(prevBuff, currentBuff, goomInfo, iff, fxData->allowOverexposed);
-  }
-}
-
 std::string ConvolveFx::getFxName() const
 {
   return "Convolve FX";
@@ -145,6 +91,50 @@ void ConvolveFx::loadState(std::istream& f)
 {
   cereal::JSONInputArchive archive_in(f);
   archive_in(*fxData);
-}
+  }
+
+  void ConvolveFx::convolve(Pixel* currentBuff, uint32_t* outputBuff)
+  {
+    if (!enabled)
+    {
+      return;
+    }
+
+    const float flash =
+        (fxData->factor * fxData->flashIntensity + fxData->screenBrightness) / 100.0F;
+    const uint32_t flashInt = static_cast<uint32_t>(std::round(flash * 256 + 0.0001F));
+    constexpr float increaseRate = 1.3;
+    constexpr float decayRate = 0.955;
+    if (goomInfo->getSoundInfo().getTimeSinceLastGoom() == 0)
+    {
+      fxData->factor += goomInfo->getSoundInfo().getGoomPower() * increaseRate;
+    }
+    fxData->factor *= decayRate;
+
+    if (std::fabs(1.0 - flash) > 0.02)
+    {
+      fxData->createOutputWithBrightness(currentBuff, outputBuff, flashInt);
+    }
+    else
+    {
+      static_assert(sizeof(Pixel) == sizeof(uint32_t));
+      memcpy(outputBuff, currentBuff, goomInfo->screen.size * sizeof(Pixel));
+    }
+  }
+
+  void ConvolveData::createOutputWithBrightness(const Pixel* src,
+                                                uint32_t* dest,
+                                                const uint32_t flashInt)
+  {
+    size_t i = 0; // < info->screen.height * info->screen.width
+    for (uint32_t y = 0; y < screenHeight; y++)
+    {
+      for (uint32_t x = 0; x < screenWidth; x++)
+      {
+        dest[i] = getBrighterColorInt(flashInt, src[i], buffSettings.allowOverexposed).val;
+        i++;
+      }
+    }
+  }
 
 } // namespace goom

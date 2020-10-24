@@ -124,8 +124,8 @@ public:
   void update(const float angle,
               const float distance,
               const float distance2,
-              const uint32_t color,
-              const uint32_t colorLow,
+              const Pixel& color,
+              const Pixel& colorLow,
               Pixel* prevBuff,
               Pixel* currentBuff);
 
@@ -202,8 +202,8 @@ private:
   void updateIterTimers();
   void checkForTimerEvents();
   void plot3D(const Tentacle3D& tentacle,
-              const uint32_t dominantColor,
-              const uint32_t dominantColorLow,
+              const Pixel& dominantColor,
+              const Pixel& dominantColorLow,
               const float angle,
               const float distance,
               const float distance2,
@@ -226,7 +226,7 @@ public:
   utils::ColorMapGroup getColorMapGroup() const override;
   void setColorMapGroup(const utils::ColorMapGroup) override;
   void changeColorMap() override;
-  uint32_t getColor(const size_t nodeNum) const override;
+  Pixel getColor(const size_t nodeNum) const override;
 
 private:
   const utils::ColorMaps* colorMaps;

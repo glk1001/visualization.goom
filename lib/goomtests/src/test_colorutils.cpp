@@ -78,9 +78,8 @@ TEST_CASE("Half intensity color", "[color-half-intensity]")
 TEST_CASE("Lighten", "[color-lighten]")
 {
   const Pixel c{.channels{.r = 100, .g = 0, .b = 0}};
-  Pixel cl;
 
-  cl.val = getLightenedColor(c.val, 10.0);
+  const Pixel cl = getLightenedColor(c, 10.0);
   REQUIRE(static_cast<uint32_t>(cl.channels.r) == 50);
   REQUIRE(static_cast<uint32_t>(cl.channels.g) == 0);
   REQUIRE(static_cast<uint32_t>(cl.channels.b) == 0);
@@ -89,50 +88,49 @@ TEST_CASE("Lighten", "[color-lighten]")
 TEST_CASE("Lightened color", "[color-half-lightened]")
 {
   const Pixel c{.channels{.r = 100, .g = 50, .b = 20}};
-  Pixel cl;
 
-  cl.val = getLightenedColor(c.val, 0.5);
+  Pixel cl = getLightenedColor(c, 0.5);
   REQUIRE(cl.channels.r == 0);
   REQUIRE(cl.channels.g == 0);
   REQUIRE(cl.channels.b == 0);
 
-  cl.val = getLightenedColor(c.val, 1.0);
+  cl = getLightenedColor(c, 1.0);
   REQUIRE(cl.channels.r == 0);
   REQUIRE(cl.channels.g == 0);
   REQUIRE(cl.channels.b == 0);
 
-  cl.val = getLightenedColor(c.val, 2.0);
+  cl = getLightenedColor(c, 2.0);
   REQUIRE(cl.channels.r == 15);
   REQUIRE(cl.channels.g == 7);
   REQUIRE(cl.channels.b == 3);
 
-  cl.val = getLightenedColor(c.val, 5.0);
+  cl = getLightenedColor(c, 5.0);
   REQUIRE(cl.channels.r == 34);
   REQUIRE(cl.channels.g == 17);
   REQUIRE(cl.channels.b == 6);
 
-  cl.val = getLightenedColor(c.val, 10.0);
+  cl = getLightenedColor(c, 10.0);
   REQUIRE(cl.channels.r == 50);
   REQUIRE(cl.channels.g == 25);
   REQUIRE(cl.channels.b == 10);
 
   const Pixel c2{.channels{.r = 255, .g = 255, .b = 255}};
-  cl.val = getLightenedColor(c2.val, 1.0);
+  cl = getLightenedColor(c2, 1.0);
   REQUIRE(cl.channels.r == 0);
   REQUIRE(cl.channels.g == 0);
   REQUIRE(cl.channels.b == 0);
 
-  cl.val = getLightenedColor(c2.val, 2.0);
+  cl = getLightenedColor(c2, 2.0);
   REQUIRE(cl.channels.r == 38);
   REQUIRE(cl.channels.g == 38);
   REQUIRE(cl.channels.b == 38);
 
-  cl.val = getLightenedColor(c2.val, 5.0);
+  cl = getLightenedColor(c2, 5.0);
   REQUIRE(cl.channels.r == 89);
   REQUIRE(cl.channels.g == 89);
   REQUIRE(cl.channels.b == 89);
 
-  cl.val = getLightenedColor(c2.val, 10.0);
+  cl = getLightenedColor(c2, 10.0);
   REQUIRE(cl.channels.r == 127);
   REQUIRE(cl.channels.g == 127);
   REQUIRE(cl.channels.b == 127);
@@ -143,22 +141,22 @@ TEST_CASE("Evolved color", "[color-evolve]")
   const Pixel c{.channels{.r = 100, .g = 50, .b = 20}};
   Pixel cl;
 
-  cl.val = getEvolvedColor(c.val);
+  cl = getEvolvedColor(c);
   REQUIRE(cl.channels.r == 67);
   REQUIRE(cl.channels.g == 33);
   REQUIRE(cl.channels.b == 13);
 
-  cl.val = getEvolvedColor(cl.val);
+  cl = getEvolvedColor(cl);
   REQUIRE(cl.channels.r == 44);
   REQUIRE(cl.channels.g == 22);
   REQUIRE(cl.channels.b == 8);
 
-  cl.val = getEvolvedColor(cl.val);
+  cl = getEvolvedColor(cl);
   REQUIRE(cl.channels.r == 29);
   REQUIRE(cl.channels.g == 14);
   REQUIRE(cl.channels.b == 5);
 
-  cl.val = getEvolvedColor(cl.val);
+  cl = getEvolvedColor(cl);
   REQUIRE(cl.channels.r == 19);
   REQUIRE(cl.channels.g == 9);
   REQUIRE(cl.channels.b == 3);

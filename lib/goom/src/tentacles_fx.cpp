@@ -390,7 +390,7 @@ public:
 private:
   WeightedColorMaps colorMaps;
   const ColorMap* dominantColorMap;
-  uint32_t dominantColor = 0;
+  Pixel dominantColor;
   void changeDominantColor();
 
   bool updatingWithDraw = false;
@@ -429,7 +429,7 @@ private:
   void prettyMoveFinish();
   void prettyMove(const float acceleration);
   void prettyMoveWithNoDraw(PluginInfo*);
-  std::tuple<uint32_t, uint32_t> getModColors();
+  std::tuple<Pixel, Pixel> getModColors();
 
   size_t countSinceHighAccelLastMarked = 0;
   size_t countSinceColorChangeLastMarked = 0;
@@ -693,17 +693,17 @@ void TentaclesWrapper::update(PluginInfo* goomInfo, Pixel* prevBuff, Pixel* curr
 void TentaclesWrapper::changeDominantColor()
 {
   stats.changeDominantColor();
-  const uint32_t newColor = ColorMap::getRandomColor(*dominantColorMap);
+  const Pixel newColor = ColorMap::getRandomColor(*dominantColorMap);
   dominantColor = ColorMap::colorMix(dominantColor, newColor, 0.7);
 }
 
-inline std::tuple<uint32_t, uint32_t> TentaclesWrapper::getModColors()
+inline std::tuple<Pixel, Pixel> TentaclesWrapper::getModColors()
 {
   // IMPORTANT. getEvolvedColor works just right - not sure why
   dominantColor = getEvolvedColor(dominantColor);
 
-  const uint32_t modColor = getLightenedColor(dominantColor, lig * 2.0f + 2.0f);
-  const uint32_t modColorLow = getLightenedColor(modColor, (lig / 2.0f) + 0.67f);
+  const Pixel modColor = getLightenedColor(dominantColor, lig * 2.0f + 2.0f);
+  const Pixel modColorLow = getLightenedColor(modColor, (lig / 2.0f) + 0.67f);
 
   return std::make_tuple(modColor, modColorLow);
 }

@@ -11,7 +11,7 @@
 namespace goom
 {
 
-uint32_t getIntColor(const uint8_t r, const uint8_t g, const uint8_t b);
+Pixel getIntColor(const uint8_t r, const uint8_t g, const uint8_t b);
 
 Pixel getColorAdd(const Pixel& color1, const Pixel& color2, const bool allowOverexposed);
 Pixel getBrighterColorInt(const uint32_t brightness,
@@ -21,15 +21,12 @@ Pixel getBrighterColorInt(const float brightness, const Pixel&, const bool) = de
 
 Pixel getBrighterColor(const float brightness, const Pixel& color, const bool allowOverexposed);
 Pixel getBrighterColor(const uint32_t brightness, const Pixel&, const bool) = delete;
-uint32_t getBrighterColor(const float brightness,
-                          const uint32_t color,
-                          const bool allowOverexposed);
 
 Pixel getRightShiftedChannels(const Pixel& color, const int value);
 Pixel getHalfIntensityColor(const Pixel& color);
 
-uint32_t getLightenedColor(const uint32_t oldColor, const float power);
-uint32_t getEvolvedColor(const uint32_t baseColor);
+Pixel getLightenedColor(const Pixel& oldColor, const float power);
+Pixel getEvolvedColor(const Pixel& baseColor);
 
 uint32_t getLuma(const Pixel& color);
 
@@ -109,13 +106,6 @@ inline Pixel getBrighterColor(const float brightness,
   assert(brightness >= 0.0 && brightness <= 1.0);
   const uint32_t br = static_cast<uint32_t>(std::round(brightness * 256 + 0.0001f));
   return getBrighterColorInt(br, color, allowOverexposed);
-}
-
-inline uint32_t getBrighterColor(const float brightness,
-                                 const uint32_t color,
-                                 const bool allowOverexposed)
-{
-  return getBrighterColor(brightness, Pixel{.val = color}, allowOverexposed).val;
 }
 
 

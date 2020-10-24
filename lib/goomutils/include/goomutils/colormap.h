@@ -1,12 +1,12 @@
 #ifndef LIB_GOOMUTILS_INCLUDE_GOOMUTILS_COLORMAP_H_
 #define LIB_GOOMUTILS_INCLUDE_GOOMUTILS_COLORMAP_H_
 
+#include "goom/goom_graphic.h"
 #include "goomutils/colordata/colormap_enums.h"
 #include "goomutils/goomrand.h"
 
 #include <array>
 #include <memory>
-#include <string>
 #include <utility>
 #include <vector>
 #include <vivid/vivid.h>
@@ -22,11 +22,11 @@ public:
 
   size_t getNumStops() const { return cmap.numStops(); }
   colordata::ColorMapName getMapName() const { return mapName; }
-  uint32_t getColor(const float t) const { return vivid::Color{cmap.at(t)}.rgb32(); }
+  Pixel getColor(const float t) const { return Pixel{.val = vivid::Color{cmap.at(t)}.rgb32()}; }
 
-  static uint32_t getRandomColor(const ColorMap&, const float t0 = 0, const float t1 = 1);
-  static uint32_t colorMix(const uint32_t col1, const uint32_t col2, const float t);
-  static uint32_t getLighterColor(const uint32_t color, const int incPercent);
+  static Pixel getRandomColor(const ColorMap&, const float t0 = 0, const float t1 = 1);
+  static Pixel colorMix(const Pixel& col1, const Pixel& col2, const float t);
+  static Pixel getLighterColor(const Pixel& color, const int incPercent);
 
 private:
   const colordata::ColorMapName mapName;
@@ -38,12 +38,12 @@ private:
     template<class U, class... Args>
     void construct(U* p, Args&&... args)
     {
-      ::new ((void*)p) U(std::forward<Args>(args)...);
+      ::new (static_cast<void*>(p)) U(std::forward<Args>(args)...);
     }
     template<class U>
     struct rebind
     {
-      typedef ColorMapAllocator other;
+      using other = ColorMapAllocator;
     };
   };
   friend class ColorMaps;

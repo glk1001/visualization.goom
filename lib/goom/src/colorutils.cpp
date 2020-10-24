@@ -9,9 +9,11 @@
 namespace goom
 {
 
-uint32_t getIntColor(const uint8_t r, const uint8_t g, const uint8_t b)
+static_assert(sizeof(Pixel) == sizeof(uint32_t));
+
+Pixel getIntColor(const uint8_t r, const uint8_t g, const uint8_t b)
 {
-  return Pixel{.channels = {.r = r, .g = g, .b = b, .a = 0xff}}.val;
+  return Pixel{.channels = {.r = r, .g = g, .b = b, .a = 0xff}};
 }
 
 inline uint8_t lighten(const uint8_t value, const float power)
@@ -26,38 +28,41 @@ inline uint8_t lighten(const uint8_t value, const float power)
   return std::clamp(static_cast<int>(t), channel_limits<int>::min(), channel_limits<int>::max());
 }
 
-uint32_t getLightenedColor(const uint32_t oldColor, const float power)
+Pixel getLightenedColor(const Pixel& oldColor, const float power)
 {
-  Pixel pixel{.val = oldColor};
+  Pixel pixel = oldColor;
 
   pixel.channels.r = lighten(pixel.channels.r, power);
   pixel.channels.g = lighten(pixel.channels.g, power);
   pixel.channels.b = lighten(pixel.channels.b, power);
 
-  return pixel.val;
+  return pixel;
 }
 
-inline uint32_t evolvedColor(uint32_t src, uint32_t dest, const uint32_t mask, const uint32_t incr)
+inline Pixel evolvedColor(const Pixel& src,
+                          const Pixel& dest,
+                          const uint32_t mask,
+                          const uint32_t incr)
 {
-  const int32_t color = static_cast<int32_t>(src & (~mask));
-  src &= mask;
-  dest &= mask;
+  const int32_t color = static_cast<int32_t>(src.val & (~mask));
+  uint32_t isrc = src.val & mask;
+  const uint32_t idest = dest.val & mask;
 
-  if ((src != mask) && (src < dest))
+  if ((isrc != mask) && (isrc < idest))
   {
-    src += incr;
+    isrc += incr;
   }
-  if (src > dest)
+  if (isrc > idest)
   {
-    src -= incr;
+    isrc -= incr;
   }
 
-  return static_cast<uint32_t>((src & mask) | static_cast<uint32_t>(color));
+  return Pixel{.val = static_cast<uint32_t>((isrc & mask) | static_cast<uint32_t>(color))};
 }
 
-uint32_t getEvolvedColor(const uint32_t baseColor)
+Pixel getEvolvedColor(const Pixel& baseColor)
 {
-  uint32_t newColor = baseColor;
+  Pixel newColor = baseColor;
 
   newColor = evolvedColor(newColor, baseColor, 0xff, 0x01);
   newColor = evolvedColor(newColor, baseColor, 0xff00, 0x0100);

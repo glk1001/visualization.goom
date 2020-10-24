@@ -21,13 +21,14 @@ class ConvolveFx : public VisualFx
 public:
   ConvolveFx() = delete;
   explicit ConvolveFx(PluginInfo*);
-  ~ConvolveFx() noexcept = default;
+  ~ConvolveFx() noexcept;
 
   void setBuffSettings(const FXBuffSettings&) override;
 
   void start() override;
 
-  void apply(Pixel* prevBuff, Pixel* currentBuff) override;
+  void apply(Pixel*, Pixel*) override{};
+  void convolve(Pixel* currentBuff, uint32_t* outputBuff);
 
   std::string getFxName() const override;
   void saveState(std::ostream&) override;

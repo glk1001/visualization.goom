@@ -18,6 +18,7 @@ target_include_directories( ${PROJECT_NAME}
         $<INSTALL_INTERFACE:include>
     PRIVATE
         ${CMAKE_SOURCE_DIR}/lib/goomutils/include/goomutils
+        ${CMAKE_SOURCE_DIR}/lib/goom/include
         ${CMAKE_SOURCE_DIR}/lib/vivid/include
         ${CMAKE_SOURCE_DIR}/lib/fmt/include
         ${CMAKE_SOURCE_DIR}/lib/magic_enum/include

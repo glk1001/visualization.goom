@@ -47,18 +47,18 @@ public:
          const uint16_t ry,
          const LineType IDsrc,
          const float paramS,
-         const uint32_t srcColor,
+         const Pixel& srcColor,
          const LineType IDdest,
          const float paramD,
-         const uint32_t destColor);
+         const Pixel& destColor);
 
-  uint32_t getRandomLineColor();
+  Pixel getRandomLineColor();
 
   void setResolution(const uint32_t rx, const uint32_t ry);
   void switchGoomLines(const LineType dest,
                        const float param,
                        const float amplitude,
-                       const uint32_t color);
+                       const Pixel& color);
   void drawGoomLines(const int16_t data[AUDIO_SAMPLE_LEN], Pixel* prevBuff, Pixel* currentBuff);
 
   float power = 0;
@@ -82,17 +82,17 @@ private:
   float amplitude = 1;
 
   // pour l'instant je stocke la couleur a terme, on stockera le mode couleur et l'on animera
-  uint32_t color;
-  uint32_t color2;
+  Pixel color;
+  Pixel color2;
 
   void goomLinesMove();
   static void generateLine(
       const LineType id, const float param, const uint32_t rx, const uint32_t ry, GMUnitPointer* l);
 };
 
-uint32_t getBlackLineColor();
-uint32_t getGreenLineColor();
-uint32_t getRedLineColor();
+Pixel getBlackLineColor();
+Pixel getGreenLineColor();
+Pixel getRedLineColor();
 
 } // namespace goom
 #endif

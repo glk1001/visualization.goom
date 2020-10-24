@@ -92,8 +92,8 @@ void GoomDots::changeColors()
   useSingleBufferOnly = probabilityOfMInN(1, 2);
 }
 
-std::vector<Pixel> GoomDots::getColors(const uint32_t color0,
-                                       const uint32_t color1,
+std::vector<Pixel> GoomDots::getColors(const Pixel& color0,
+                                       const Pixel& color1,
                                        const size_t numPts)
 {
   std::vector<Pixel> colors(numPts);
@@ -103,7 +103,7 @@ std::vector<Pixel> GoomDots::getColors(const uint32_t color0,
   float t = t_min;
   for (size_t i = 0; i < numPts; i++)
   {
-    colors[i] = Pixel{.val = ColorMap::colorMix(color0, color1, t)};
+    colors[i] = ColorMap::colorMix(color0, color1, t);
     t += t_step;
   }
   return colors;
@@ -247,13 +247,12 @@ void GoomDots::dotFilter(Pixel* prevBuff,
     std::vector<Pixel> prevBuffColors(colors.size());
     for (size_t i = 0; i < colors.size(); i++)
     {
-      prevBuffColors[i] = Pixel{.val = ColorMap::colorMix(middleColor, colors[i].val, 0.5)};
+      prevBuffColors[i] = ColorMap::colorMix(middleColor, colors[i], 0.5);
     }
     const std::vector<std::vector<Pixel>> colorSets{colors, prevBuffColors};
     draw.filledCircle(buffs, xmid, ymid, static_cast<int>(radius), colorSets);
     const std::vector<Pixel> centreColors{
-        Pixel{.val = middleColor},
-        Pixel{.val = getBrighterColor(0.5, middleColor, buffSettings.allowOverexposed)}};
+        middleColor, getBrighterColor(0.5F, middleColor, buffSettings.allowOverexposed)};
     draw.setPixelRGB(buffs, static_cast<uint32_t>(xmid), static_cast<uint32_t>(ymid), centreColors);
   }
 }

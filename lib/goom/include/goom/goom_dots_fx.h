@@ -57,13 +57,13 @@ private:
   const utils::ColorMap* colorMap3 = nullptr;
   const utils::ColorMap* colorMap4 = nullptr;
   const utils::ColorMap* colorMap5 = nullptr;
-  uint32_t middleColor = 0;
+  Pixel middleColor{};
   bool useSingleBufferOnly = true;
 
   void changeColors();
 
-  static std::vector<Pixel> getColors(const uint32_t color0,
-                                      const uint32_t color1,
+  static std::vector<Pixel> getColors(const Pixel& color0,
+                                      const Pixel& color1,
                                       const size_t numPts);
 
   float getLargeSoundFactor(const SoundInfo&) const;
