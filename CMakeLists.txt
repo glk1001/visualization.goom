@@ -29,11 +29,11 @@ add_subdirectory(lib/goomutils)
 add_subdirectory(lib/vivid)
 
 include_directories(${includes}
-                    ${GLM_INCLUDE_DIR}
-                    ${KODI_INCLUDE_DIR}/.. # Hack way with "/..", need bigger Kodi cmake rework to match right include ways (becomes done in future)
-                    ${PROJECT_SOURCE_DIR}/lib
                     ${PROJECT_SOURCE_DIR}/lib/goom/include
                     ${PROJECT_SOURCE_DIR}/lib/goom/goomutils/include
+                    ${PROJECT_SOURCE_DIR}/lib
+                    SYSTEM ${GLM_INCLUDE_DIR}
+                    SYSTEM ${KODI_INCLUDE_DIR}/.. # Hack way with "/..", need bigger Kodi cmake rework to match right include ways (becomes done in future)
                     SYSTEM ${PROJECT_SOURCE_DIR}/lib/vivid/include
                     SYSTEM ${PROJECT_SOURCE_DIR}/lib/cereal/include
                     SYSTEM ${PROJECT_SOURCE_DIR}/lib/fmt/include)
