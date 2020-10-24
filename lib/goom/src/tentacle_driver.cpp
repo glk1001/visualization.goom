@@ -18,7 +18,6 @@
 #include <functional>
 #include <memory>
 #include <numeric>
-#include <stack>
 #include <stdexcept>
 #include <tuple>
 #include <utility>
@@ -42,7 +41,7 @@ TentacleDriver::TentacleDriver(const ColorMaps* cm, const uint32_t screenW, cons
     screenWidth{screenW},
     screenHeight{screenH},
     draw{screenWidth, screenHeight},
-    buffSettings{defaultFXBuffSettings},
+    buffSettings{},
     colorMaps{cm},
     colorizers{},
     constPrevYWeightFunc(),

@@ -27,7 +27,7 @@ inline bool allowOverexposedEvent()
 
 struct ConvolveData
 {
-  FXBuffSettings buffSettings = defaultFXBuffSettings;
+  FXBuffSettings buffSettings{};
   bool allowOverexposed = false;
   uint32_t countSinceOverexposed = 0;
   static constexpr uint32_t maxCountSinceOverexposed = 100;

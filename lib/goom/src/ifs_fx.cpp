@@ -314,7 +314,7 @@ struct IfsData
                  const Pixel& ifsColor,
                  const float tmix);
   bool useOldStyleDrawPixel = false;
-  FXBuffSettings buffSettings = defaultFXBuffSettings;
+  FXBuffSettings buffSettings{};
   bool allowOverexposed = true;
   uint32_t countSinceOverexposed = 0;
   static constexpr uint32_t maxCountSinceOverexposed = 100;

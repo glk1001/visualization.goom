@@ -215,7 +215,7 @@ private:
   // Fireworks Smallest Bombs
   float max_age = 1.0f - 80.0F / 100.0f;
 
-  FXBuffSettings buffSettings = defaultFXBuffSettings;
+  FXBuffSettings buffSettings{};
   bool useSingleBufferOnly = true;
   GoomDraw draw;
   StarsStats stats;

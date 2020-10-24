@@ -24,8 +24,8 @@ namespace goom
 
 struct FXBuffSettings
 {
-  float buffIntensity;
-  bool allowOverexposed;
+  float buffIntensity = 0.5;
+  bool allowOverexposed = true;
   template<class Archive>
   void serialize(Archive&);
 };
@@ -35,11 +35,6 @@ void FXBuffSettings::serialize(Archive& ar)
 {
   ar(buffIntensity, allowOverexposed);
 }
-
-static constexpr FXBuffSettings defaultFXBuffSettings{
-    .buffIntensity = 0.5,
-    .allowOverexposed = true,
-};
 
 class VisualFx
 {

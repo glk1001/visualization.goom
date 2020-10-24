@@ -37,7 +37,7 @@ GoomDots::GoomDots(PluginInfo* info)
     pointWidthDiv3{static_cast<float>(pointWidth / 3.0F)},
     pointHeightDiv3{static_cast<float>(pointHeight / 3.0F)},
     draw{screenWidth, screenHeight},
-    buffSettings{defaultFXBuffSettings},
+    buffSettings{},
     colorMaps{Weights<ColorMapGroup>{{
         {ColorMapGroup::perceptuallyUniformSequential, 10},
         {ColorMapGroup::sequential, 20},
