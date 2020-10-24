@@ -205,7 +205,7 @@ private:
   }}};
 
   StarModes fx_mode = StarModes::fireworks;
-  static constexpr size_t maxStarsLimit = 2048;
+  static constexpr size_t maxStarsLimit = 1024;
   size_t maxStars = maxStarsLimit;
   std::vector<Star> stars;
   uint32_t maxStarAge = 15;
@@ -309,7 +309,7 @@ void FlyingStarsImpl::log(const StatsLogValueFunc& logVal) const
 
 void FlyingStarsImpl::updateBuffers(Pixel* prevBuff, Pixel* currentBuff)
 {
-  maxStars = getRandInRange(256U, maxStarsLimit);
+  maxStars = getRandInRange(100U, maxStarsLimit);
 
   // look for events
   if (goomInfo->getSoundInfo().getTimeSinceLastGoom() < 1)
