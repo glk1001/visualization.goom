@@ -87,6 +87,7 @@ public:
     ifsRenew,
     changeBlockyWavyToOn,
     changeZoomFilterAllowOverexposedToOn,
+    allowStrangeWaveValues,
     _size // must be last - gives number of enums
   };
 
@@ -157,6 +158,7 @@ private:
     { .event = GoomEvent::ifsRenew,                             .m = 2, .outOf =   3 },
     { .event = GoomEvent::changeBlockyWavyToOn,                 .m = 1, .outOf =  10 },
     { .event = GoomEvent::changeZoomFilterAllowOverexposedToOn, .m = 8, .outOf =  10 },
+    { .event = GoomEvent::allowStrangeWaveValues,               .m = 5, .outOf =  10 },
   }};
 
   static constexpr std::array<std::pair<GoomFilterEvent, size_t>, numGoomFilterEvents> weightedFilterEvents{{
@@ -1357,11 +1359,21 @@ void GoomControl::GoomControlImp::setNextFilterMode()
       }
       goomInfo->update.zoomFilterData.waveEffectType =
           static_cast<ZoomFilterData::WaveEffect>(getRandInRange(0, 2));
-      // BUG HERE - wrong range - BUT GIVES GOOD AFFECT
-      goomInfo->update.zoomFilterData.waveAmplitude =
-          getRandInRange(ZoomFilterData::minWaveFreqFactor, ZoomFilterData::maxWaveFreqFactor);
-      goomInfo->update.zoomFilterData.waveFreqFactor =
-          getRandInRange(ZoomFilterData::minWaveAmplitude, ZoomFilterData::maxWaveAmplitude);
+      if (goomEvent.happens(GoomEvent::allowStrangeWaveValues))
+      {
+        // BUG HERE - wrong ranges - BUT GIVES GOOD AFFECT
+        goomInfo->update.zoomFilterData.waveAmplitude = getRandInRange(
+            ZoomFilterData::minLargeWaveAmplitude, ZoomFilterData::maxLargeWaveAmplitude);
+        goomInfo->update.zoomFilterData.waveFreqFactor = getRandInRange(
+            ZoomFilterData::minWaveSmallFreqFactor, ZoomFilterData::maxWaveSmallFreqFactor);
+      }
+      else
+      {
+        goomInfo->update.zoomFilterData.waveAmplitude =
+            getRandInRange(ZoomFilterData::minWaveAmplitude, ZoomFilterData::maxWaveAmplitude);
+        goomInfo->update.zoomFilterData.waveFreqFactor =
+            getRandInRange(ZoomFilterData::minWaveFreqFactor, ZoomFilterData::maxWaveFreqFactor);
+      }
       break;
     case GoomFilterEvent::crystalBallMode:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::crystalBallMode;

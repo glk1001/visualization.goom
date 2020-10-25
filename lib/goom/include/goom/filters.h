@@ -56,11 +56,15 @@ struct ZoomFilterData
   static constexpr float defaultWaveFreqFactor = 20;
   static constexpr float minWaveFreqFactor = 1;
   static constexpr float maxWaveFreqFactor = 50;
+  static constexpr float minWaveSmallFreqFactor = 0.001;
+  static constexpr float maxWaveSmallFreqFactor = 0.1;
   float waveFreqFactor = defaultWaveFreqFactor;
 
   static constexpr float defaultWaveAmplitude = 0.01;
   static constexpr float minWaveAmplitude = 0.001;
   static constexpr float maxWaveAmplitude = 0.1;
+  static constexpr float minLargeWaveAmplitude = 1;
+  static constexpr float maxLargeWaveAmplitude = 50;
   float waveAmplitude = defaultWaveAmplitude;
 
   enum class WaveEffect
