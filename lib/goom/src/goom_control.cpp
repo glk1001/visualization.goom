@@ -227,28 +227,28 @@ private:
 // clang-format off
 const GoomStates::WeightedStatesArray GoomStates::states{{
   {
-    .weight = 1000000,
+    .weight = 200,
     .drawables {{
       { .fx = GoomDrawable::IFS,       .buffSettings = { .buffIntensity = 0.8, .allowOverexposed = true  } },
       { .fx = GoomDrawable::dots,      .buffSettings = { .buffIntensity = 0.2, .allowOverexposed = false } },
     }},
   },
   {
-    .weight = 1000000,
+    .weight = 200,
     .drawables {{
       { .fx = GoomDrawable::IFS,       .buffSettings = { .buffIntensity = 0.8, .allowOverexposed = true  } },
       { .fx = GoomDrawable::stars,     .buffSettings = { .buffIntensity = 0.3, .allowOverexposed = true  } },
     }},
   },
   {
-    .weight = 1000000,
+    .weight = 200,
     .drawables {{
       { .fx = GoomDrawable::tentacles, .buffSettings = { .buffIntensity = 0.8, .allowOverexposed = true  } },
       { .fx = GoomDrawable::dots,      .buffSettings = { .buffIntensity = 0.2, .allowOverexposed = false } },
     }},
   },
   {
-    .weight = 1000000,
+    .weight = 200,
     .drawables {{
       { .fx = GoomDrawable::tentacles, .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
       { .fx = GoomDrawable::lines,     .buffSettings = { .buffIntensity = 0.4, .allowOverexposed = true  } },
@@ -265,7 +265,7 @@ const GoomStates::WeightedStatesArray GoomStates::states{{
     }},
   },
   {
-    .weight = 40,
+    .weight = 20,
     .drawables {{
       { .fx = GoomDrawable::IFS,       .buffSettings = { .buffIntensity = 0.9, .allowOverexposed = false } },
       { .fx = GoomDrawable::tentacles, .buffSettings = { .buffIntensity = 0.3, .allowOverexposed = true  } },
@@ -297,7 +297,7 @@ const GoomStates::WeightedStatesArray GoomStates::states{{
     }},
   },
   {
-    .weight = 60,
+    .weight = 40,
     .drawables {{
       { .fx = GoomDrawable::dots,      .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true } },
       { .fx = GoomDrawable::tentacles, .buffSettings = { .buffIntensity = 0.8, .allowOverexposed = true } },
@@ -308,7 +308,7 @@ const GoomStates::WeightedStatesArray GoomStates::states{{
     }},
   },
   {
-    .weight = 60,
+    .weight = 40,
     .drawables {{
       { .fx = GoomDrawable::dots,      .buffSettings = { .buffIntensity = 0.4, .allowOverexposed = true  } },
       { .fx = GoomDrawable::tentacles, .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
