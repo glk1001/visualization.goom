@@ -706,7 +706,7 @@ void IfsFx::updateIfs(Pixel* prevBuff, Pixel* currentBuff)
   // TODO: trouver meilleur soluce pour increment (mettre le code de gestion de l'ifs dans ce fichier)
   //       find the best solution for increment (put the management code of the ifs in this file)
   const int increment = goomInfo->update.ifs_incr;
-  fxData->useOldStyleDrawPixel = probabilityOfMInN(1, 4);
+  fxData->useOldStyleDrawPixel = probabilityOfMInN(1, 50);
 
   logDebug("increment = {}", increment);
 

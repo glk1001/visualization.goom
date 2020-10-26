@@ -464,7 +464,7 @@ TentaclesWrapper::TentaclesWrapper(const uint32_t screenWidth, const uint32_t sc
         {0, 5},
         {1, 15},
         {2, 15},
-        {3, 5},
+        {3, 15},
     }},
     stats{}
 {

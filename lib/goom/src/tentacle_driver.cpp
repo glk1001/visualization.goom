@@ -55,15 +55,15 @@ TentacleDriver::TentacleDriver(const ColorMaps* cm, const uint32_t screenW, cons
     iterTimers{&glitchTimer, &roughenTimer}
 {
   const IterParamsGroup iter1 = {
-      {100, 0.500, 1.0, {1.5, -10.0, +10.0, m_pi}, 70.0},
-      {125, 0.600, 2.0, {1.0, -10.0, +10.0, 0.0}, 75.0},
+      {100, 0.600, 1.0, {1.5, -10.0, +10.0, m_pi}, 70.0},
+      {125, 0.700, 2.0, {1.0, -10.0, +10.0, 0.0}, 75.0},
   };
   const IterParamsGroup iter2 = {
-      {125, 0.600, 0.5, {1.0, -10.0, +10.0, 0.0}, 70.0},
-      {150, 0.700, 1.5, {1.5, -10.0, +10.0, m_pi}, 75.0},
+      {125, 0.700, 0.5, {1.0, -10.0, +10.0, 0.0}, 70.0},
+      {150, 0.800, 1.5, {1.5, -10.0, +10.0, m_pi}, 75.0},
   };
   const IterParamsGroup iter3 = {
-      {150, 0.700, 1.5, {1.5, -10.0, +10.0, m_pi}, 70.0},
+      {150, 0.800, 1.5, {1.5, -10.0, +10.0, m_pi}, 70.0},
       {200, 0.900, 2.5, {1.0, -10.0, +10.0, 0.0}, 75.0},
   };
 
@@ -190,8 +190,9 @@ std::unique_ptr<Tentacle2D> TentacleDriver::createNewTentacle2D(const size_t ID,
 {
   logDebug("Creating new tentacle2D {}...", ID);
 
-  const size_t tentacleLen =
-      size_t(getRandInRange(0.99f, 1.01f) * static_cast<float>(params.length));
+  //  const size_t tentacleLen =
+  //      size_t(getRandInRange(0.99f, 1.01f) * static_cast<float>(params.length));
+  const size_t tentacleLen = params.length;
   const double tent2d_xmax = tent2d_xmin + tentacleLen;
 
   std::unique_ptr<Tentacle2D> tentacle{
@@ -204,7 +205,8 @@ std::unique_ptr<Tentacle2D> TentacleDriver::createNewTentacle2D(const size_t ID,
 
   tentacle->setPrevYWeight(params.prevYWeight);
   tentacle->setCurrentYWeight(1.0 - params.prevYWeight);
-  tentacle->setNumNodes(size_t(static_cast<float>(params.numNodes) * getRandInRange(0.9f, 1.1f)));
+  //  tentacle->setNumNodes(size_t(static_cast<float>(params.numNodes) * getRandInRange(0.9f, 1.1f)));
+  tentacle->setNumNodes(params.numNodes);
   logDebug("tentacle {:3}:"
            " tentacleLen = {:4}, tent2d_xmin = {:7.2f}, tent2d_xmax = {:5.2f},"
            " prevYWeight = {:5.2f}, curYWeight = {:5.2f}, numNodes = {:5}",
@@ -384,7 +386,7 @@ std::vector<utils::ColorMapGroup> TentacleDriver::getNextColorMapGroups() const
 {
   const size_t numDifferentGroups =
       (colorMode == ColorModes::minimal || colorMode == ColorModes::oneGroupForAll ||
-       probabilityOfMInN(3, 4))
+       probabilityOfMInN(99, 100))
           ? 1
           : getRandInRange(1U, std::min(size_t(5U), colorizers.size()));
   std::vector<utils::ColorMapGroup> groups(numDifferentGroups);

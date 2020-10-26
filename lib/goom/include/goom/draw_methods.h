@@ -90,6 +90,7 @@ inline void drawPixels(std::vector<Pixel*>& buffs,
     *p = getColorAdd(*p, brighterPixColor, allowOverexposed);
 
     /***
+	ATTEMPT AT BLENDING - WON'T WORK THOUGH - BECAUSE OF MULTIPLE BUFFERS??
     Pixel* const p = &(buffs[i][pos]);
     const Pixel existingColorBlended =
         getBrighterColorInt(buffIntensity, *p, allowOverexposed);
