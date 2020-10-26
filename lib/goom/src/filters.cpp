@@ -83,7 +83,7 @@ public:
   void setLastPrevX(const uint32_t val);
   void setLastPrevY(const uint32_t val);
   void setLastInterlaceStart(const int val);
-  void setLastBuffratio(const int val);
+  void setLastBrutDiffFactor(const int val);
 
 private:
   uint64_t numZoomVectors = 0;
@@ -116,8 +116,8 @@ private:
   float lastGeneralSpeed;
   uint32_t lastPrevX = 0;
   uint32_t lastPrevY = 0;
-  int lastInterlaceStart = 0;
-  int lastBuffratio = 0;
+  int32_t lastInterlaceStart = 0;
+  int32_t lastBrutDiffFactor = 0;
 };
 
 void FilterStats::log(const StatsLogValueFunc logVal) const
@@ -128,7 +128,7 @@ void FilterStats::log(const StatsLogValueFunc logVal) const
   logVal(module, "lastPrevX", lastPrevX);
   logVal(module, "lastPrevY", lastPrevY);
   logVal(module, "lastInterlaceStart", lastInterlaceStart);
-  logVal(module, "lastBuffratio", lastBuffratio);
+  logVal(module, "lastBrutDiffFactor", lastBrutDiffFactor);
 
   logVal(module, "numZoomVectors", numZoomVectors);
   logVal(module, "numZoomVectorCrystalBallMode", numZoomVectorCrystalBallMode);
@@ -335,23 +335,23 @@ void FilterStats::setLastPrevY(const uint32_t val)
   lastPrevY = val;
 }
 
-void FilterStats::setLastInterlaceStart(const int val)
+void FilterStats::setLastInterlaceStart(const int32_t val)
 {
   lastInterlaceStart = val;
 }
 
-void FilterStats::setLastBuffratio(const int val)
+void FilterStats::setLastBrutDiffFactor(const int32_t val)
 {
-  lastBuffratio = val;
+  lastBrutDiffFactor = val;
 }
 
 // For noise amplitude, take the reciprocal of these.
 constexpr float noiseMin = 70;
 constexpr float noiseMax = 120;
 
-constexpr size_t buffPointNum = 16;
+constexpr int32_t buffPointNum = 16;
 constexpr float buffPointNumFlt = static_cast<float>(buffPointNum);
-constexpr int buffPointMask = 0xffff;
+constexpr int32_t buffPointMask = 0xffff;
 
 constexpr uint32_t sqrtperte = 16;
 // faire : a % sqrtperte <=> a & pertemask
@@ -379,7 +379,7 @@ struct ZoomFilterImpl
   void zoomFilterFastRGB(const Pixel* pix1,
                          Pixel* pix2,
                          const ZoomFilterData* zf,
-                         const int switchIncr,
+                         const int32_t switchIncr,
                          const float switchMult);
 
   void log(const StatsLogValueFunc& logVal) const;
@@ -388,47 +388,53 @@ struct ZoomFilterImpl
   void serialize(Archive& ar)
   {
     ar(CEREAL_NVP(filterData), CEREAL_NVP(buffSettings), CEREAL_NVP(generalSpeed),
-       CEREAL_NVP(interlaceStart), CEREAL_NVP(buffRatio));
+       CEREAL_NVP(interlaceStart), CEREAL_NVP(brutDiffFactor));
   };
 
 private:
   const uint32_t screenWidth;
   const uint32_t screenHeight;
-  const float ratioPixmapToNormalizedCoords;
+  const float ratioPixmapToNormalizedCoord;
+  const float ratioNormalizedCoordToPixmap;
   const float minNormCoordVal;
   ZoomFilterData filterData;
   FXBuffSettings buffSettings{};
 
+  float toNormalizedCoord(const int32_t pixmapCoord);
+  int32_t toPixmapCoord(const float normalizedCoord);
+
+  void incNormalizedCoord(float& normalizedCoord);
+
   mutable FilterStats stats{};
 
   float generalSpeed = 0;
-  int interlaceStart = 0;
+  int32_t interlaceStart = 0;
 
-  std::vector<int32_t> freebrutX_Srce{}; // source
-  std::vector<int32_t> freebrutY_Srce{}; // source
-  int32_t* brutX_Srce = nullptr;
-  int32_t* brutY_Srce = nullptr;
-  std::vector<int32_t> freebrutX_Dest{}; // dest
-  std::vector<int32_t> freebrutY_Dest{}; // dest
-  int32_t* brutX_Dest = nullptr;
-  int32_t* brutY_Dest = nullptr;
-  std::vector<int32_t> freebrutX_Temp{}; // temp (en cours de generation)
-  std::vector<int32_t> freebrutY_Temp{}; // temp (en cours de generation)
-  int32_t* brutX_Temp = nullptr;
-  int32_t* brutY_Temp = nullptr;
+  std::vector<int32_t> freeBrutXSrce{}; // source
+  std::vector<int32_t> freeBrutYSrce{}; // source
+  int32_t* brutXSrce = nullptr;
+  int32_t* brutYSrce = nullptr;
+  std::vector<int32_t> freeBrutXDest{}; // dest
+  std::vector<int32_t> freeBrutYDest{}; // dest
+  int32_t* brutXDest = nullptr;
+  int32_t* brutYDest = nullptr;
+  std::vector<int32_t> freeBrutXTemp{}; // temp (en cours de generation)
+  std::vector<int32_t> freeBrutYTemp{}; // temp (en cours de generation)
+  int32_t* brutXTemp = nullptr;
+  int32_t* brutYTemp = nullptr;
 
-  // modification by jeko : fixedpoint : buffRatio = (16:16) (donc 0<=buffRatio<=2^16)
-  int buffRatio = 0;
+  // modification by jeko : fixedpoint : brutDiffFactor = (16:16) (0 <= brutDiffFactor <= 2^16)
+  int32_t brutDiffFactor = 0;
   std::vector<int32_t> firedec{};
 
   // modif d'optim by Jeko : precalcul des 4 coefs resultant des 2 pos
-  uint32_t precalCoef[buffPointNum][buffPointNum];
+  uint32_t precalcCoeffs[buffPointNum][buffPointNum];
 
   void makeZoomBufferStripe(const uint32_t interlaceIncrement);
-  void c_zoom(const Pixel* expix1, Pixel* expix2);
+  void c_zoom(const Pixel* srceBuff, Pixel* destBuff);
   void generateWaterFXHorizontalBuffer();
-  v2g getZoomVector(const float x, const float y);
-  static void generatePrecalCoef(uint32_t precalCoef[16][16]);
+  v2g getZoomVector(const float normX, const float normY);
+  static void generatePrecalCoef(uint32_t precalcCoeffs[16][16]);
   Pixel getMixedColor(const CoeffArray& coeffs, const PixelArray& colors) const;
   Pixel getBlockyMixedColor(const CoeffArray& coeffs, const PixelArray& colors) const;
 };
@@ -449,40 +455,56 @@ void ZoomFilterData::serialize(Archive& ar)
 ZoomFilterImpl::ZoomFilterImpl(const PluginInfo* goomInfo)
   : screenWidth{goomInfo->screen.width},
     screenHeight{goomInfo->screen.height},
-    ratioPixmapToNormalizedCoords{2.0F / static_cast<float>(screenWidth)},
-    minNormCoordVal{ratioPixmapToNormalizedCoords / buffPointNumFlt},
+    ratioPixmapToNormalizedCoord{2.0F / static_cast<float>(screenWidth)},
+    ratioNormalizedCoordToPixmap{1.0F / ratioPixmapToNormalizedCoord},
+    minNormCoordVal{ratioPixmapToNormalizedCoord / buffPointNumFlt},
     filterData{},
-    freebrutX_Srce(goomInfo->screen.width * goomInfo->screen.height + 128),
-    freebrutY_Srce(goomInfo->screen.width * goomInfo->screen.height + 128),
-    brutX_Srce{(int32_t*)((1 + (uintptr_t((freebrutX_Srce.data()))) / 128) * 128)},
-    brutY_Srce{(int32_t*)((1 + (uintptr_t((freebrutY_Srce.data()))) / 128) * 128)},
-    freebrutX_Dest(goomInfo->screen.width * goomInfo->screen.height + 128),
-    freebrutY_Dest(goomInfo->screen.width * goomInfo->screen.height + 128),
-    brutX_Dest{(int32_t*)((1 + (uintptr_t((freebrutX_Dest.data()))) / 128) * 128)},
-    brutY_Dest{(int32_t*)((1 + (uintptr_t((freebrutY_Dest.data()))) / 128) * 128)},
-    freebrutX_Temp(goomInfo->screen.width * goomInfo->screen.height + 128),
-    freebrutY_Temp(goomInfo->screen.width * goomInfo->screen.height + 128),
-    brutX_Temp{(int32_t*)((1 + (uintptr_t((freebrutX_Temp.data()))) / 128) * 128)},
-    brutY_Temp{(int32_t*)((1 + (uintptr_t((freebrutY_Temp.data()))) / 128) * 128)},
+    freeBrutXSrce(goomInfo->screen.width * goomInfo->screen.height + 128),
+    freeBrutYSrce(goomInfo->screen.width * goomInfo->screen.height + 128),
+    brutXSrce{(int32_t*)((1 + (uintptr_t((freeBrutXSrce.data()))) / 128) * 128)},
+    brutYSrce{(int32_t*)((1 + (uintptr_t((freeBrutYSrce.data()))) / 128) * 128)},
+    freeBrutXDest(goomInfo->screen.width * goomInfo->screen.height + 128),
+    freeBrutYDest(goomInfo->screen.width * goomInfo->screen.height + 128),
+    brutXDest{(int32_t*)((1 + (uintptr_t((freeBrutXDest.data()))) / 128) * 128)},
+    brutYDest{(int32_t*)((1 + (uintptr_t((freeBrutYDest.data()))) / 128) * 128)},
+    freeBrutXTemp(goomInfo->screen.width * goomInfo->screen.height + 128),
+    freeBrutYTemp(goomInfo->screen.width * goomInfo->screen.height + 128),
+    brutXTemp{(int32_t*)((1 + (uintptr_t((freeBrutXTemp.data()))) / 128) * 128)},
+    brutYTemp{(int32_t*)((1 + (uintptr_t((freeBrutYTemp.data()))) / 128) * 128)},
     firedec(screenHeight)
 {
   filterData.middleX = goomInfo->screen.width / 2;
   filterData.middleY = goomInfo->screen.height / 2;
 
-  generatePrecalCoef(precalCoef);
+  generatePrecalCoef(precalcCoeffs);
   generateWaterFXHorizontalBuffer();
   makeZoomBufferStripe(goomInfo->screen.height);
 
   // Copy the data from temp to dest and source
-  memcpy(brutX_Srce, brutX_Temp, goomInfo->screen.width * goomInfo->screen.height * sizeof(int));
-  memcpy(brutY_Srce, brutY_Temp, goomInfo->screen.width * goomInfo->screen.height * sizeof(int));
-  memcpy(brutX_Dest, brutX_Temp, goomInfo->screen.width * goomInfo->screen.height * sizeof(int));
-  memcpy(brutY_Dest, brutY_Temp, goomInfo->screen.width * goomInfo->screen.height * sizeof(int));
+  memcpy(brutXSrce, brutXTemp, goomInfo->screen.width * goomInfo->screen.height * sizeof(int32_t));
+  memcpy(brutYSrce, brutYTemp, goomInfo->screen.width * goomInfo->screen.height * sizeof(int32_t));
+  memcpy(brutXDest, brutXTemp, goomInfo->screen.width * goomInfo->screen.height * sizeof(int32_t));
+  memcpy(brutYDest, brutYTemp, goomInfo->screen.width * goomInfo->screen.height * sizeof(int32_t));
 }
 
 void ZoomFilterImpl::setBuffSettings(const FXBuffSettings& settings)
 {
   buffSettings = settings;
+}
+
+inline void ZoomFilterImpl::incNormalizedCoord(float& normalizedCoord)
+{
+  normalizedCoord += ratioPixmapToNormalizedCoord;
+}
+
+inline float ZoomFilterImpl::toNormalizedCoord(const int32_t pixmapCoord)
+{
+  return ratioPixmapToNormalizedCoord * static_cast<float>(pixmapCoord);
+}
+
+inline int32_t ZoomFilterImpl::toPixmapCoord(const float normalizedCoord)
+{
+  return static_cast<int32_t>(ratioNormalizedCoordToPixmap * normalizedCoord);
 }
 
 void ZoomFilterImpl::log(const StatsLogValueFunc& logVal) const
@@ -491,7 +513,7 @@ void ZoomFilterImpl::log(const StatsLogValueFunc& logVal) const
   stats.setLastPrevX(screenWidth);
   stats.setLastPrevY(screenHeight);
   stats.setLastInterlaceStart(interlaceStart);
-  stats.setLastBuffratio(buffRatio);
+  stats.setLastBrutDiffFactor(brutDiffFactor);
 
   stats.log(logVal);
 }
@@ -512,7 +534,7 @@ void ZoomFilterImpl::log(const StatsLogValueFunc& logVal) const
 void ZoomFilterImpl::zoomFilterFastRGB(const Pixel* pix1,
                                        Pixel* pix2,
                                        const ZoomFilterData* zf,
-                                       const int switchIncr,
+                                       const int32_t switchIncr,
                                        const float switchMult)
 {
   logDebug("switchIncr = {}, switchMult = {:.2}", switchIncr, switchMult);
@@ -543,14 +565,15 @@ void ZoomFilterImpl::zoomFilterFastRGB(const Pixel* pix1,
   {
     stats.doZoomFilterFastRGBInterlaceStartEqualMinus1_1();
     // sauvegarde de l'etat actuel dans la nouvelle source
+    // save the current state in the new source
     // TODO: write that in MMX (has been done in previous version, but did not follow
     //   some new fonctionnalities)
     for (size_t i = 0; i < screenWidth * screenHeight; i++)
     {
-      brutX_Srce[i] += ((brutX_Dest[i] - brutX_Srce[i]) * buffRatio) >> buffPointNum;
-      brutY_Srce[i] += ((brutY_Dest[i] - brutY_Srce[i]) * buffRatio) >> buffPointNum;
+      brutXSrce[i] += ((brutXDest[i] - brutXSrce[i]) * brutDiffFactor) >> buffPointNum;
+      brutYSrce[i] += ((brutYDest[i] - brutYSrce[i]) * brutDiffFactor) >> buffPointNum;
     }
-    buffRatio = 0;
+    brutDiffFactor = 0;
   }
 
   // TODO Why if repeated?
@@ -558,11 +581,11 @@ void ZoomFilterImpl::zoomFilterFastRGB(const Pixel* pix1,
   {
     stats.doZoomFilterFastRGBInterlaceStartEqualMinus1_2();
 
-    std::swap(brutX_Dest, brutX_Temp);
-    std::swap(freebrutX_Dest, freebrutX_Temp);
+    std::swap(brutXDest, brutXTemp);
+    std::swap(freeBrutXDest, freeBrutXTemp);
 
-    std::swap(brutY_Dest, brutY_Temp);
-    std::swap(freebrutY_Dest, freebrutY_Temp);
+    std::swap(brutYDest, brutYTemp);
+    std::swap(freeBrutYDest, freeBrutYTemp);
 
     interlaceStart = -2;
   }
@@ -577,10 +600,10 @@ void ZoomFilterImpl::zoomFilterFastRGB(const Pixel* pix1,
   {
     stats.doZoomFilterFastRGBSwitchIncrNotZero();
 
-    buffRatio += switchIncr;
-    if (buffRatio > buffPointMask)
+    brutDiffFactor += switchIncr;
+    if (brutDiffFactor > buffPointMask)
     {
-      buffRatio = buffPointMask;
+      brutDiffFactor = buffPointMask;
     }
   }
 
@@ -590,14 +613,14 @@ void ZoomFilterImpl::zoomFilterFastRGB(const Pixel* pix1,
   {
     stats.doZoomFilterFastRGBSwitchIncrNotEqual1();
 
-    buffRatio = static_cast<int>(static_cast<float>(buffPointMask) * (1.0F - switchMult) +
-                                 static_cast<float>(buffRatio) * switchMult);
+    brutDiffFactor = static_cast<int32_t>(static_cast<float>(buffPointMask) * (1.0F - switchMult) +
+                                          static_cast<float>(brutDiffFactor) * switchMult);
   }
 
   c_zoom(pix1, pix2);
 }
 
-void ZoomFilterImpl::generatePrecalCoef(uint32_t precalCoef[16][16])
+void ZoomFilterImpl::generatePrecalCoef(uint32_t precalcCoeffs[16][16])
 {
   for (uint32_t coefh = 0; coefh < 16; coefh++)
   {
@@ -608,7 +631,7 @@ void ZoomFilterImpl::generatePrecalCoef(uint32_t precalCoef[16][16])
 
       if (!(coefh || coefv))
       {
-        precalCoef[coefh][coefv] = 255;
+        precalcCoeffs[coefh][coefv] = 255;
       }
       else
       {
@@ -635,7 +658,7 @@ void ZoomFilterImpl::generatePrecalCoef(uint32_t precalCoef[16][16])
           i4--;
         }
 
-        precalCoef[coefh][coefv] = CoeffArray{
+        precalcCoeffs[coefh][coefv] = CoeffArray{
             .c{
                 static_cast<uint8_t>(i1),
                 static_cast<uint8_t>(i2),
@@ -660,12 +683,9 @@ void ZoomFilterImpl::makeZoomBufferStripe(const uint32_t interlaceIncrement)
 
   assert(interlaceStart >= 0);
 
-  // Ratio from normalized to virtual pixmap coordinates
-  const float invRatio = buffPointNumFlt / ratioPixmapToNormalizedCoords;
-
-  // Y position of the pixel to compute in normalized coordinates
-  float normY = ratioPixmapToNormalizedCoords *
-                static_cast<float>(interlaceStart - static_cast<int>(filterData.middleY));
+  float normY = toNormalizedCoord(interlaceStart - static_cast<int32_t>(filterData.middleY));
+  const float normMiddleX = toNormalizedCoord(filterData.middleX);
+  const float normMiddleY = toNormalizedCoord(filterData.middleY);
 
   // Where (vertically) to stop generating the buffer stripe
   const uint32_t maxEnd =
@@ -675,23 +695,23 @@ void ZoomFilterImpl::makeZoomBufferStripe(const uint32_t interlaceIncrement)
   for (uint32_t y = static_cast<uint32_t>(interlaceStart); y < maxEnd; y++)
   {
     uint32_t brutPos = y * screenWidth;
-    float normX = -static_cast<float>(filterData.middleX) * ratioPixmapToNormalizedCoords;
+    float normX = -toNormalizedCoord(static_cast<int32_t>(filterData.middleX));
     for (uint32_t x = 0; x < screenWidth; x++)
     {
       const v2g vector = getZoomVector(normX, normY);
 
-      brutX_Temp[brutPos] = static_cast<int>((normX - vector.x) * invRatio) +
-                            static_cast<int>(filterData.middleX * buffPointNum);
-      brutY_Temp[brutPos] = static_cast<int>((normY - vector.y) * invRatio) +
-                            static_cast<int>(filterData.middleY * buffPointNum);
+      brutXTemp[brutPos] =
+          std::lround(toPixmapCoord((normX - vector.x + normMiddleX) * buffPointNumFlt));
+      brutYTemp[brutPos] =
+          std::lround(toPixmapCoord((normY - vector.y + normMiddleY) * buffPointNumFlt));
 
       brutPos++;
-      normX += ratioPixmapToNormalizedCoords;
+      incNormalizedCoord(normX);
     }
-    normY += ratioPixmapToNormalizedCoords;
+    incNormalizedCoord(normY);
   }
 
-  interlaceStart += static_cast<int>(interlaceIncrement);
+  interlaceStart += static_cast<int32_t>(interlaceIncrement);
   if (maxEnd == screenHeight)
   {
     interlaceStart = -1;
@@ -702,9 +722,9 @@ void ZoomFilterImpl::generateWaterFXHorizontalBuffer()
 {
   stats.doGenerateWaterFXHorizontalBuffer();
 
-  int decc = getRandInRange(-4, +4);
-  int spdc = getRandInRange(-4, +4);
-  int accel = getRandInRange(-4, +4);
+  int32_t decc = getRandInRange(-4, +4);
+  int32_t spdc = getRandInRange(-4, +4);
+  int32_t accel = getRandInRange(-4, +4);
 
   for (size_t loopv = screenHeight; loopv != 0;)
   {
@@ -724,11 +744,11 @@ void ZoomFilterImpl::generateWaterFXHorizontalBuffer()
 
     if (spdc > 30)
     {
-      spdc = spdc - static_cast<int>(getNRand(3)) + accel / 10;
+      spdc = spdc - static_cast<int32_t>(getNRand(3)) + accel / 10;
     }
     if (spdc < -30)
     {
-      spdc = spdc + static_cast<int>(getNRand(3)) + accel / 10;
+      spdc = spdc + static_cast<int32_t>(getNRand(3)) + accel / 10;
     }
 
     if (decc > 8 && spdc > 1)
@@ -737,7 +757,7 @@ void ZoomFilterImpl::generateWaterFXHorizontalBuffer()
     }
     if (decc < -8 && spdc < -1)
     {
-      spdc += static_cast<int>(getNRand(3)) + 2;
+      spdc += static_cast<int32_t>(getNRand(3)) + 2;
     }
     if (decc > 8 || decc < -8)
     {
@@ -756,7 +776,7 @@ void ZoomFilterImpl::generateWaterFXHorizontalBuffer()
   }
 }
 
-v2g ZoomFilterImpl::getZoomVector(const float x, const float y)
+v2g ZoomFilterImpl::getZoomVector(const float normX, const float normY)
 {
   stats.doZoomVector();
 
@@ -771,19 +791,19 @@ v2g ZoomFilterImpl::getZoomVector(const float x, const float y)
     case ZoomFilterMode::crystalBallMode:
     {
       stats.doZoomVectorCrystalBallMode();
-      coefVitesse -= filterData.crystalBallAmplitude * (sq_distance(x, y) - 0.3f);
+      coefVitesse -= filterData.crystalBallAmplitude * (sq_distance(normX, normY) - 0.3f);
       break;
     }
     case ZoomFilterMode::amuletteMode:
     {
       stats.doZoomVectorAmuletteMode();
-      coefVitesse += filterData.amuletteAmplitude * sq_distance(x, y);
+      coefVitesse += filterData.amuletteAmplitude * sq_distance(normX, normY);
       break;
     }
     case ZoomFilterMode::waveMode:
     {
       stats.doZoomVectorWaveMode();
-      const float angle = sq_distance(x, y) * filterData.waveFreqFactor;
+      const float angle = sq_distance(normX, normY) * filterData.waveFreqFactor;
       float periodicPart;
       switch (filterData.waveEffectType)
       {
@@ -805,7 +825,7 @@ v2g ZoomFilterImpl::getZoomVector(const float x, const float y)
     case ZoomFilterMode::scrunchMode:
     {
       stats.doZoomVectorScrunchMode();
-      coefVitesse += filterData.scrunchAmplitude * sq_distance(x, y);
+      coefVitesse += filterData.scrunchAmplitude * sq_distance(normX, normY);
       break;
     }
       //case ZoomFilterMode::HYPERCOS1_MODE:
@@ -817,7 +837,7 @@ v2g ZoomFilterImpl::getZoomVector(const float x, const float y)
     case ZoomFilterMode::speedwayMode:
     {
       stats.doZoomVectorSpeedwayMode();
-      coefVitesse *= filterData.speedwayAmplitude * y;
+      coefVitesse *= filterData.speedwayAmplitude * normY;
       break;
     }
     default:
@@ -836,8 +856,8 @@ v2g ZoomFilterImpl::getZoomVector(const float x, const float y)
     stats.coeffVitesseAboveMax();
   }
 
-  float vx = coefVitesse * x;
-  float vy = coefVitesse * y;
+  float vx = coefVitesse * normX;
+  float vy = coefVitesse * normY;
 
   /* Amulette 2 */
   // vx = X * tan(dist);
@@ -866,21 +886,23 @@ v2g ZoomFilterImpl::getZoomVector(const float x, const float y)
   if (filterData.hypercosEffect)
   {
     stats.doZoomVectorHypercosEffect();
-    vx += filterData.hypercosAmplitude * sin(filterData.hypercosFreq * y);
-    vy += filterData.hypercosAmplitude * sin(filterData.hypercosFreq * x);
+    vx += filterData.hypercosAmplitude * sin(filterData.hypercosFreq * normX);
+    vy += filterData.hypercosAmplitude * sin(filterData.hypercosFreq * normY);
+    //    vx += filterData.hypercosAmplitude * cos(filterData.hypercosFreq * x);
+    //    vy += filterData.hypercosAmplitude * cos(filterData.hypercosFreq * y);
   }
 
   if (filterData.hPlaneEffect)
   {
     stats.doZoomVectorHPlaneEffect();
 
-    vx += y * filterData.hPlaneEffectAmplitude * static_cast<float>(filterData.hPlaneEffect);
+    vx += normY * filterData.hPlaneEffectAmplitude * static_cast<float>(filterData.hPlaneEffect);
   }
 
   if (filterData.vPlaneEffect)
   {
     stats.doZoomVectorVPlaneEffect();
-    vy += x * filterData.vPlaneEffectAmplitude * static_cast<float>(filterData.vPlaneEffect);
+    vy += normX * filterData.vPlaneEffectAmplitude * static_cast<float>(filterData.vPlaneEffect);
   }
 
   /* TODO : Water Mode */
@@ -963,51 +985,51 @@ inline void setPixelColor(Pixel* buffer, const uint32_t pos, const Pixel& p)
 }
 
 // pure c version of the zoom filter
-void ZoomFilterImpl::c_zoom(const Pixel* expix1, Pixel* expix2)
+void ZoomFilterImpl::c_zoom(const Pixel* srceBuff, Pixel* destBuff)
 {
   stats.doCZoom();
 
-  const uint32_t ax = (screenWidth - 1) << perteDec;
-  const uint32_t ay = (screenHeight - 1) << perteDec;
+  const uint32_t brut_ax = (screenWidth - 1) << perteDec;
+  const uint32_t brut_ay = (screenHeight - 1) << perteDec;
 
-  for (uint32_t i = 0; i < screenWidth * screenHeight; i++)
+  for (uint32_t destPos = 0; destPos < screenWidth * screenHeight; destPos++)
   {
-    const uint32_t px = static_cast<uint32_t>(
-        brutX_Srce[i] + (((brutX_Dest[i] - brutX_Srce[i]) * buffRatio) >> buffPointNum));
-    const uint32_t py = static_cast<uint32_t>(
-        brutY_Srce[i] + (((brutY_Dest[i] - brutY_Srce[i]) * buffRatio) >> buffPointNum));
+    const uint32_t brut_px = static_cast<uint32_t>(
+        brutXSrce[destPos] +
+        (((brutXDest[destPos] - brutXSrce[destPos]) * brutDiffFactor) >> buffPointNum));
+    const uint32_t brut_py = static_cast<uint32_t>(
+        brutYSrce[destPos] +
+        (((brutYDest[destPos] - brutYSrce[destPos]) * brutDiffFactor) >> buffPointNum));
 
-    const uint32_t pix2Pos = i;
-
-    if ((px >= ax) || (py >= ay))
+    if ((brut_px >= brut_ax) || (brut_py >= brut_ay))
     {
       stats.doCZoomOutOfRange();
-      setPixelColor(expix2, pix2Pos, Pixel{.val = 0});
+      setPixelColor(destBuff, destPos, Pixel{.val = 0});
     }
     else
     {
       // coeff en modulo 15
-      const CoeffArray coeffs{.intVal = precalCoef[px & perteMask][py & perteMask]};
+      const CoeffArray coeffs{.intVal = precalcCoeffs[brut_px & perteMask][brut_py & perteMask]};
 
-      const uint32_t pix1Pos = (px >> perteDec) + screenWidth * (py >> perteDec);
+      const uint32_t srcePos = (brut_px >> perteDec) + screenWidth * (brut_py >> perteDec);
       const PixelArray colors = {
-          getPixelColor(expix1, pix1Pos),
-          getPixelColor(expix1, pix1Pos + 1),
-          getPixelColor(expix1, pix1Pos + screenWidth),
-          getPixelColor(expix1, pix1Pos + screenWidth + 1),
+          getPixelColor(srceBuff, srcePos),
+          getPixelColor(srceBuff, srcePos + 1),
+          getPixelColor(srceBuff, srcePos + screenWidth),
+          getPixelColor(srceBuff, srcePos + screenWidth + 1),
       };
 
       if (filterData.blockyWavy)
       {
         stats.doGetBlockyMixedColor();
         const Pixel newColor = getBlockyMixedColor(coeffs, colors);
-        setPixelColor(expix2, pix2Pos, newColor);
+        setPixelColor(destBuff, destPos, newColor);
       }
       else
       {
         stats.doGetMixedColor();
         const Pixel newColor = getMixedColor(coeffs, colors);
-        setPixelColor(expix2, pix2Pos, newColor);
+        setPixelColor(destBuff, destPos, newColor);
       }
     }
   }

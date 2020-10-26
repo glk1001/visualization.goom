@@ -162,7 +162,7 @@ private:
   }};
 
   static constexpr std::array<std::pair<GoomFilterEvent, size_t>, numGoomFilterEvents> weightedFilterEvents{{
-    { GoomFilterEvent::waveModeWithHyperCosEffect,  20000 },
+    { GoomFilterEvent::waveModeWithHyperCosEffect,  3 },
     { GoomFilterEvent::waveMode,                    3 },
     { GoomFilterEvent::crystalBallMode,             1 },
     { GoomFilterEvent::crystalBallModeWithEffects,  2 },
@@ -830,7 +830,7 @@ public:
   void rotateBuffers();
 
 private:
-  static constexpr size_t numBuffs = 5;
+  static constexpr size_t numBuffs = 10;
   const std::vector<Pixel*> buffs;
   Pixel* p1;
   Pixel* p2;
@@ -844,13 +844,14 @@ std::vector<Pixel*> GoomImageBuffers::getPixelBuffs(const uint16_t resx, const u
   std::vector<Pixel*> newBuffs(numBuffs);
   for (auto& b : newBuffs)
   {
-    b = new Pixel[static_cast<size_t>(resx) * static_cast<size_t>(resy)]{};
+    // Allocate one extra row and column to help the filter process handle edges.
+    b = new Pixel[static_cast<size_t>(resx + 1) * static_cast<size_t>(resy + 1)]{};
   }
   return newBuffs;
 }
 
 GoomImageBuffers::GoomImageBuffers(const uint16_t resx, const uint16_t resy)
-  : buffs{getPixelBuffs(resx, resy)}, p1{buffs[0]}, p2{buffs[1]}, nextBuff{2}
+  : buffs{getPixelBuffs(resx, resy)}, p1{buffs[0]}, p2{buffs[1]}, nextBuff{numBuffs == 2 ? 0 : 2}
 {
 }
 
