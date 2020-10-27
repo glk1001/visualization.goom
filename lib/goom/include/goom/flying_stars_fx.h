@@ -22,6 +22,8 @@ public:
   FlyingStarsFx() = delete;
   explicit FlyingStarsFx(PluginInfo*);
   ~FlyingStarsFx() noexcept = default;
+  FlyingStarsFx(const FlyingStarsFx&) = delete;
+  FlyingStarsFx& operator=(const FlyingStarsFx&) = delete;
 
   void setBuffSettings(const FXBuffSettings&) override;
 

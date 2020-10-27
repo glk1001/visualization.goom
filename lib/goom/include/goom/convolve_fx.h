@@ -22,6 +22,8 @@ public:
   ConvolveFx() = delete;
   explicit ConvolveFx(PluginInfo*);
   ~ConvolveFx() noexcept;
+  ConvolveFx(const ConvolveFx&) = delete;
+  ConvolveFx& operator=(const ConvolveFx&) = delete;
 
   void setBuffSettings(const FXBuffSettings&) override;
 

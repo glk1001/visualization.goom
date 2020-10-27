@@ -22,7 +22,7 @@ public:
 
   size_t getNumStops() const { return cmap.numStops(); }
   colordata::ColorMapName getMapName() const { return mapName; }
-  Pixel getColor(const float t) const { return Pixel{.val = vivid::Color{cmap.at(t)}.rgb32()}; }
+  Pixel getColor(const float t) const { return Pixel{vivid::Color{cmap.at(t)}.rgb32()}; }
 
   static Pixel getRandomColor(const ColorMap&, const float t0 = 0, const float t1 = 1);
   static Pixel colorMix(const Pixel& col1, const Pixel& col2, const float t);

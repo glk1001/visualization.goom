@@ -16,6 +16,7 @@ namespace goom
 
 enum class ZoomFilterMode
 {
+  _null = -1,
   normalMode = 0,
   waveMode,
   crystalBallMode,
@@ -135,6 +136,8 @@ public:
   ZoomFilterFx() = delete;
   explicit ZoomFilterFx(PluginInfo*);
   ~ZoomFilterFx() noexcept;
+  ZoomFilterFx(const ZoomFilterFx&) = delete;
+  ZoomFilterFx& operator=(const ZoomFilterFx&) = delete;
 
   void setBuffSettings(const FXBuffSettings&) override;
 

@@ -8,18 +8,6 @@
 namespace goom
 {
 
-#ifdef COLOR_BGRA
-#define A_CHANNEL 0x000000FFu
-#define R_OFFSET 24u
-#define G_OFFSET 16u
-#define B_OFFSET 8u
-#define A_OFFSET 0u
-
-#define ALPHA 3u
-#define BLEU 2u
-#define VERT 1u
-#define ROUGE 0u
-
 template<class T>
 struct channel_limits
 {
@@ -51,45 +39,134 @@ struct channel_limits<float>
   static constexpr float max() noexcept { return channel_limits<uint8_t>::max(); }
 };
 
-union Pixel
-{
-  struct
-  {
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
-    uint8_t a;
-  } channels;
-  uint32_t val;
-  uint8_t cop[4];
-};
+
+#ifdef COLOR_BGRA
+#define A_CHANNEL 0x000000FFu
+
+#define ALPHA 3u
+#define BLEU 2u
+#define VERT 1u
+#define ROUGE 0u
 
 #else // not COLOR_BGRA
 #define A_CHANNEL 0xFF000000u
-#define A_OFFSET 24u
-#define R_OFFSET 16u
-#define G_OFFSET 8u
-#define B_OFFSET 0u
 
 #define BLEU 3u
 #define VERT 2u
 #define ROUGE 1u
 #define ALPHA 0u
 
-union Pixel
+#endif /* COLOR_BGRA */
+
+
+class Pixel
 {
-  struct
+#ifdef COLOR_BGRA
+  struct Channels
   {
-    uint8_t a;
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
-  } channels;
-  uint32_t val;
-  uint8_t cop[4];
+    uint8_t r = 0;
+    uint8_t g = 0;
+    uint8_t b = 0;
+    uint8_t a = 0;
+  };
+#else
+  struct Channels
+  {
+    uint8_t a = 0;
+    uint8_t r = 0;
+    uint8_t g = 0;
+    uint8_t b = 0;
+  };
+#endif /* COLOR_BGRA */
+
+public:
+  Pixel();
+  explicit Pixel(const Channels&);
+  explicit Pixel(const uint32_t val);
+  explicit Pixel(const uint8_t cop[4]);
+
+  uint8_t r() const;
+  uint8_t g() const;
+  uint8_t b() const;
+  uint8_t a() const;
+
+  void set_r(const uint8_t c);
+  void set_g(const uint8_t c);
+  void set_b(const uint8_t c);
+  void set_a(const uint8_t c);
+
+  uint32_t rgba() const;
+  void set_rgba(const uint32_t v);
+
+private:
+  union
+  {
+    Channels channels;
+    uint32_t intVal;
+  } color;
 };
 
-#endif /* COLOR_BGRA */
+inline Pixel::Pixel() : color{.channels{}}
+{
+}
+
+inline Pixel::Pixel(const Channels& c) : color{.channels{c}}
+{
+}
+
+inline Pixel::Pixel(const uint32_t v) : color{.intVal{v}}
+{
+}
+
+inline uint8_t Pixel::r() const
+{
+  return color.channels.r;
+}
+
+inline void Pixel::set_r(const uint8_t c)
+{
+  color.channels.r = c;
+}
+
+inline uint8_t Pixel::g() const
+{
+  return color.channels.g;
+}
+
+inline void Pixel::set_g(const uint8_t c)
+{
+  color.channels.g = c;
+}
+
+inline uint8_t Pixel::b() const
+{
+  return color.channels.b;
+}
+
+inline void Pixel::set_b(const uint8_t c)
+{
+  color.channels.b = c;
+}
+
+inline uint8_t Pixel::a() const
+{
+  return color.channels.a;
+}
+
+inline void Pixel::set_a(const uint8_t c)
+{
+  color.channels.a = c;
+}
+
+inline uint32_t Pixel::rgba() const
+{
+  return color.intVal;
+}
+
+inline void Pixel::set_rgba(const uint32_t v)
+{
+  color.intVal = v;
+}
 
 } // namespace goom
 #endif

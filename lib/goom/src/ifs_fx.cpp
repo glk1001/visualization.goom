@@ -118,23 +118,23 @@ struct Similitude
 
 struct Fractal
 {
-  uint32_t numSimi;
+  uint32_t numSimi = 0;
   Similitude components[5 * maxSimi];
-  uint32_t depth;
-  uint32_t count;
-  uint32_t speed;
-  uint32_t width;
-  uint32_t height;
-  uint32_t lx;
-  uint32_t ly;
-  Dbl rMean;
-  Dbl drMean;
-  Dbl dr2Mean;
-  uint32_t curPt;
-  uint32_t maxPt;
+  uint32_t depth = 0;
+  uint32_t count = 0;
+  uint32_t speed = 0;
+  uint32_t width = 0;
+  uint32_t height = 0;
+  uint32_t lx = 0;
+  uint32_t ly = 0;
+  Dbl rMean = 0;
+  Dbl drMean = 0;
+  Dbl dr2Mean = 0;
+  uint32_t curPt = 0;
+  uint32_t maxPt = 0;
 
-  std::vector<IfsPoint> buffer1;
-  std::vector<IfsPoint> buffer2;
+  std::vector<IfsPoint> buffer1{};
+  std::vector<IfsPoint> buffer2{};
 
   template<class Archive>
   void serialize(Archive& ar)
@@ -302,6 +302,8 @@ struct IfsData
 {
   IfsData(const uint32_t screenWidth, uint32_t screenHeight);
   ~IfsData();
+  IfsData(const IfsData&) = delete;
+  IfsData& operator=(const IfsData&) = delete;
 
   bool enabled = true;
 
@@ -581,6 +583,25 @@ inline Flt IfsData::div_by_2units(const Flt x)
 constexpr size_t numChannels = 4;
 using Int32ChannelArray = std::array<int32_t, numChannels>;
 
+static_assert(numChannels == 4);
+
+inline Pixel getPixel(const Int32ChannelArray& col)
+{
+  return Pixel{{.r = col[ROUGE], .g = col[VERT], .b = col[BLEU], .a = col[ALPHA]}};
+}
+
+inline Int32ChannelArray getChannelArray(const Pixel& p)
+{
+  Int32ChannelArray a;
+
+  a[ROUGE] = p.r();
+  a[VERT] = p.g();
+  a[BLEU] = p.b();
+  a[ALPHA] = p.a();
+
+  return a;
+}
+
 #define MOD_MER 0
 #define MOD_FEU 1
 #define MOD_MERVER 2
@@ -595,33 +616,13 @@ struct IfsFx::IfsUpdateData
   int cycle;
 };
 
-inline Pixel getPixel(const Int32ChannelArray& col)
-{
-  Pixel p;
-  for (size_t i = 0; i < numChannels; i++)
-  {
-    p.cop[i] = static_cast<uint8_t>(col[i]);
-  }
-  return p;
-}
-
-inline Int32ChannelArray getChannelArray(const Pixel& p)
-{
-  Int32ChannelArray a;
-  for (size_t i = 0; i < numChannels; i++)
-  {
-    a[i] = p.cop[i];
-  }
-  return a;
-}
-
 
 IfsFx::IfsFx(PluginInfo* info)
   : goomInfo{info},
     fxData{new IfsData{goomInfo->screen.width, goomInfo->screen.height}},
     // clang-format off
     updateData{new IfsUpdateData{
-      .couleur = { .val = 0xc0c0c0c0 },
+      .couleur{ Pixel{0xc0c0c0c0} },
       .v = { 2, 4, 3, 2 },
       .col = { 2, 4, 3, 2 },
       .justChanged = 0,

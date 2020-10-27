@@ -73,7 +73,7 @@ private:
 
 
 inline PluginInfo::PluginInfo(const uint32_t width, const uint32_t height) noexcept
-  : screen{width, height, width * height}, soundInfo{std::make_unique<SoundInfo>()}
+  : screen{width, height, width * height}, update{}, soundInfo{std::make_unique<SoundInfo>()}
 {
 }
 

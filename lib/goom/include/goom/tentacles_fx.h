@@ -22,6 +22,8 @@ public:
   TentaclesFx() = delete;
   explicit TentaclesFx(PluginInfo*);
   ~TentaclesFx() noexcept = default;
+  TentaclesFx(const TentaclesFx&) = delete;
+  TentaclesFx& operator=(const TentaclesFx&) = delete;
 
   void setBuffSettings(const FXBuffSettings&) override;
 

@@ -23,6 +23,8 @@ class GoomDots : public VisualFx
 public:
   explicit GoomDots(PluginInfo*);
   ~GoomDots() noexcept = default;
+  GoomDots(const GoomDots&) = delete;
+  GoomDots& operator=(const GoomDots&) = delete;
 
   void setBuffSettings(const FXBuffSettings&) override;
 

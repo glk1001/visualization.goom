@@ -13,7 +13,7 @@ static_assert(sizeof(Pixel) == sizeof(uint32_t));
 
 Pixel getIntColor(const uint8_t r, const uint8_t g, const uint8_t b)
 {
-  return Pixel{.channels = {.r = r, .g = g, .b = b, .a = 0xff}};
+  return Pixel{{.r = r, .g = g, .b = b, .a = 0xff}};
 }
 
 inline uint8_t lighten(const uint8_t value, const float power)
@@ -32,9 +32,9 @@ Pixel getLightenedColor(const Pixel& oldColor, const float power)
 {
   Pixel pixel = oldColor;
 
-  pixel.channels.r = lighten(pixel.channels.r, power);
-  pixel.channels.g = lighten(pixel.channels.g, power);
-  pixel.channels.b = lighten(pixel.channels.b, power);
+  pixel.set_r(lighten(pixel.r(), power));
+  pixel.set_g(lighten(pixel.g(), power));
+  pixel.set_b(lighten(pixel.b(), power));
 
   return pixel;
 }
@@ -44,9 +44,9 @@ inline Pixel evolvedColor(const Pixel& src,
                           const uint32_t mask,
                           const uint32_t incr)
 {
-  const int32_t color = static_cast<int32_t>(src.val & (~mask));
-  uint32_t isrc = src.val & mask;
-  const uint32_t idest = dest.val & mask;
+  const int32_t color = static_cast<int32_t>(src.rgba() & (~mask));
+  uint32_t isrc = src.rgba() & mask;
+  const uint32_t idest = dest.rgba() & mask;
 
   if ((isrc != mask) && (isrc < idest))
   {
@@ -57,7 +57,7 @@ inline Pixel evolvedColor(const Pixel& src,
     isrc -= incr;
   }
 
-  return Pixel{.val = static_cast<uint32_t>((isrc & mask) | static_cast<uint32_t>(color))};
+  return Pixel{static_cast<uint32_t>((isrc & mask) | static_cast<uint32_t>(color))};
 }
 
 Pixel getEvolvedColor(const Pixel& baseColor)

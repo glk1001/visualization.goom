@@ -113,11 +113,11 @@ private:
   uint64_t numCoeffVitesseBelowMin = 0;
   uint64_t numCoeffVitesseAboveMax = 0;
 
-  float lastGeneralSpeed;
+  float lastGeneralSpeed = -1000;
   uint32_t lastPrevX = 0;
   uint32_t lastPrevY = 0;
-  int32_t lastInterlaceStart = 0;
-  int32_t lastTranDiffFactor = 0;
+  int32_t lastInterlaceStart = -1000;
+  int32_t lastTranDiffFactor = -1000;
 };
 
 void FilterStats::log(const StatsLogValueFunc logVal) const
@@ -375,6 +375,8 @@ class ZoomFilterImpl
 public:
   explicit ZoomFilterImpl(const PluginInfo*) noexcept;
   ~ZoomFilterImpl() noexcept;
+  ZoomFilterImpl(const ZoomFilterImpl&) = delete;
+  ZoomFilterImpl& operator=(const ZoomFilterImpl&) = delete;
 
   void setBuffSettings(const FXBuffSettings&);
 
@@ -698,7 +700,7 @@ void ZoomFilterImpl::c_zoom(const Pixel* srceBuff, Pixel* destBuff)
     if ((tran_px >= tran_ax) || (tran_py >= tran_ay))
     {
       stats.doCZoomOutOfRange();
-      setPixelColor(destBuff, destPos, Pixel{.val = 0});
+      setPixelColor(destBuff, destPos, Pixel{0U});
     }
     else
     {
@@ -984,7 +986,7 @@ inline Pixel ZoomFilterImpl::getMixedColor(const CoeffArray& coeffs, const Pixel
 {
   if (coeffs.intVal == 0)
   {
-    return Pixel{.val = 0};
+    return Pixel{0U};
   }
 
   uint32_t newR = 0;
@@ -993,9 +995,9 @@ inline Pixel ZoomFilterImpl::getMixedColor(const CoeffArray& coeffs, const Pixel
   for (size_t i = 0; i < numCoeffs; i++)
   {
     const uint32_t coeff = static_cast<uint32_t>(coeffs.c[i]);
-    newR += static_cast<uint32_t>(colors[i].channels.r) * coeff;
-    newG += static_cast<uint32_t>(colors[i].channels.g) * coeff;
-    newB += static_cast<uint32_t>(colors[i].channels.b) * coeff;
+    newR += static_cast<uint32_t>(colors[i].r()) * coeff;
+    newG += static_cast<uint32_t>(colors[i].g()) * coeff;
+    newB += static_cast<uint32_t>(colors[i].b()) * coeff;
   }
   newR >>= 8;
   newG >>= 8;
@@ -1003,10 +1005,10 @@ inline Pixel ZoomFilterImpl::getMixedColor(const CoeffArray& coeffs, const Pixel
 
   if (buffSettings.allowOverexposed)
   {
-    return Pixel{.channels = {.r = static_cast<uint8_t>((newR & 0xffffff00) ? 0xff : newR),
-                              .g = static_cast<uint8_t>((newG & 0xffffff00) ? 0xff : newG),
-                              .b = static_cast<uint8_t>((newB & 0xffffff00) ? 0xff : newB),
-                              .a = 0xff}};
+    return Pixel{{.r = static_cast<uint8_t>((newR & 0xffffff00) ? 0xff : newR),
+                  .g = static_cast<uint8_t>((newG & 0xffffff00) ? 0xff : newG),
+                  .b = static_cast<uint8_t>((newB & 0xffffff00) ? 0xff : newB),
+                  .a = 0xff}};
   }
 
   const uint32_t maxVal = std::max({newR, newG, newB});
@@ -1018,10 +1020,10 @@ inline Pixel ZoomFilterImpl::getMixedColor(const CoeffArray& coeffs, const Pixel
     newB = (newB << 8) / maxVal;
   }
 
-  return Pixel{.channels = {.r = static_cast<uint8_t>(newR),
-                            .g = static_cast<uint8_t>(newG),
-                            .b = static_cast<uint8_t>(newB),
-                            .a = 0xff}};
+  return Pixel{{.r = static_cast<uint8_t>(newR),
+                .g = static_cast<uint8_t>(newG),
+                .b = static_cast<uint8_t>(newB),
+                .a = 0xff}};
 }
 
 inline Pixel ZoomFilterImpl::getBlockyMixedColor(const CoeffArray& coeffs,

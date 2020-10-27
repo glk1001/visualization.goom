@@ -51,6 +51,8 @@ public:
          const LineType IDdest,
          const float paramD,
          const Pixel& destColor);
+  GMLine(const GMLine&) = delete;
+  GMLine& operator=(const GMLine&) = delete;
 
   Pixel getRandomLineColor();
 

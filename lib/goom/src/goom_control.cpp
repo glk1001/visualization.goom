@@ -53,6 +53,8 @@ class GoomEvents
 {
 public:
   GoomEvents() noexcept;
+  GoomEvents(const GoomEvents&) = delete;
+  GoomEvents& operator=(const GoomEvents&) = delete;
 
   void setGoomInfo(PluginInfo* goomInfo);
 
@@ -384,6 +386,9 @@ class GoomStats
 {
 public:
   GoomStats() noexcept = default;
+  GoomStats(const GoomStats&) = delete;
+  GoomStats& operator=(const GoomStats&) = delete;
+
   void setSongTitle(const std::string& songTitle);
   void setStateStartValue(const uint32_t stateIndex);
   void setZoomFilterStartValue(const ZoomFilterMode filterMode);
@@ -419,7 +424,7 @@ public:
   void doZoomFilterAlloOverexposed();
 
 private:
-  std::string songTitle;
+  std::string songTitle = "";
   uint32_t startingState = 0;
   ZoomFilterMode startingFilterMode = ZoomFilterMode::_size;
   uint64_t startingSeed = 0;
@@ -430,10 +435,10 @@ private:
   uint32_t minTimeInUpdatesMs = 0;
   uint32_t maxTimeInUpdatesMs = 0;
   std::chrono::high_resolution_clock::time_point timeNowHiRes{};
-  size_t stateAtMin;
-  size_t stateAtMax;
-  ZoomFilterMode filterModeAtMin;
-  ZoomFilterMode filterModeAtMax;
+  size_t stateAtMin = 0;
+  size_t stateAtMax = 0;
+  ZoomFilterMode filterModeAtMin = ZoomFilterMode::_null;
+  ZoomFilterMode filterModeAtMax = ZoomFilterMode::_null;
 
   uint32_t numUpdates = 0;
   uint64_t totalTimeInUpdatesMs = 0;
@@ -459,8 +464,8 @@ private:
   uint32_t numBlockyWavy = 0;
   uint32_t numZoomFilterAllowOverexposed = 0;
   std::array<uint32_t, static_cast<size_t>(ZoomFilterMode::_size)> numFilterModeChanges{0};
-  std::vector<uint32_t> numStateChanges;
-  std::vector<uint64_t> stateDurations;
+  std::vector<uint32_t> numStateChanges{};
+  std::vector<uint64_t> stateDurations{};
 };
 
 void GoomStats::reset()
@@ -471,6 +476,11 @@ void GoomStats::reset()
   lastState = 0;
   lastZoomFilterData = nullptr;
   lastSeed = 0;
+
+  stateAtMin = 0;
+  stateAtMax = 0;
+  filterModeAtMin = ZoomFilterMode::_null;
+  filterModeAtMax = ZoomFilterMode::_null;
 
   numUpdates = 0;
   totalTimeInUpdatesMs = 0;
@@ -821,6 +831,8 @@ class GoomImageBuffers
 public:
   explicit GoomImageBuffers(const uint16_t resx, const uint16_t resy);
   ~GoomImageBuffers() noexcept;
+  GoomImageBuffers(const GoomImageBuffers&) = delete;
+  GoomImageBuffers& operator=(const GoomImageBuffers&) = delete;
 
   Pixel* getP1() const { return p1; }
   Pixel* getP2() const { return p2; }
@@ -924,6 +936,8 @@ public:
   void swap(GoomControl::GoomControlImp& other) noexcept = delete;
 
   void setScreenBuffer(uint32_t* buffer);
+  uint16_t getScreenWidth();
+  uint16_t getScreenHeight();
 
   void start();
   void finish();
@@ -943,8 +957,8 @@ private:
   GoomEvents goomEvent{};
   uint32_t timeInState = 0;
   uint32_t cycle = 0;
-  std::unordered_set<GoomDrawable> curGDrawables;
-  GoomMessage messageData;
+  std::unordered_set<GoomDrawable> curGDrawables{};
+  GoomMessage messageData{};
 
   // Line Fx
   GMLine gmline1;
@@ -1035,6 +1049,16 @@ void GoomControl::setScreenBuffer(uint32_t* buffer)
   controller->setScreenBuffer(buffer);
 }
 
+uint16_t GoomControl::getScreenWidth()
+{
+  return controller->getScreenWidth();
+}
+
+uint16_t GoomControl::getScreenHeight()
+{
+  return controller->getScreenHeight();
+}
+
 void GoomControl::start()
 {
   controller->start();
@@ -1100,6 +1124,16 @@ GoomControl::GoomControlImp::~GoomControlImp()
 void GoomControl::GoomControlImp::setScreenBuffer(uint32_t* buffer)
 {
   imageBuffers.setOutputBuff(buffer);
+}
+
+uint16_t GoomControl::GoomControlImp::getScreenWidth()
+{
+  return goomInfo->screen.width;
+}
+
+uint16_t GoomControl::GoomControlImp::getScreenHeight()
+{
+  return goomInfo->screen.height;
 }
 
 inline bool GoomControl::GoomControlImp::changeFilterModeEventHappens()

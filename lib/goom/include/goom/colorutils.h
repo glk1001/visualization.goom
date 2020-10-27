@@ -38,10 +38,10 @@ inline uint32_t colorChannelAdd(const uint8_t c1, const uint8_t c2)
 
 inline Pixel getColorAdd(const Pixel& color1, const Pixel& color2, const bool allowOverexposed)
 {
-  uint32_t newR = colorChannelAdd(color1.channels.r, color2.channels.r);
-  uint32_t newG = colorChannelAdd(color1.channels.g, color2.channels.g);
-  uint32_t newB = colorChannelAdd(color1.channels.b, color2.channels.b);
-  const uint32_t newA = colorChannelAdd(color1.channels.a, color2.channels.a);
+  uint32_t newR = colorChannelAdd(color1.r(), color2.r());
+  uint32_t newG = colorChannelAdd(color1.g(), color2.g());
+  uint32_t newB = colorChannelAdd(color1.b(), color2.b());
+  const uint32_t newA = colorChannelAdd(color1.a(), color2.a());
 
   if (!allowOverexposed)
   {
@@ -55,7 +55,7 @@ inline Pixel getColorAdd(const Pixel& color1, const Pixel& color2, const bool al
     }
   }
 
-  return Pixel{.channels{
+  return Pixel{{
       .r = static_cast<uint8_t>((newR & 0xffffff00) ? 0xff : newR),
       .g = static_cast<uint8_t>((newG & 0xffffff00) ? 0xff : newG),
       .b = static_cast<uint8_t>((newB & 0xffffff00) ? 0xff : newB),
@@ -73,10 +73,10 @@ inline Pixel getBrighterColorInt(const uint32_t brightness,
                                  const Pixel& color,
                                  const bool allowOverexposed)
 {
-  uint32_t newR = getBrighterChannelColor(brightness, color.channels.r);
-  uint32_t newG = getBrighterChannelColor(brightness, color.channels.g);
-  uint32_t newB = getBrighterChannelColor(brightness, color.channels.b);
-  const uint32_t newA = getBrighterChannelColor(brightness, color.channels.a);
+  uint32_t newR = getBrighterChannelColor(brightness, color.r());
+  uint32_t newG = getBrighterChannelColor(brightness, color.g());
+  uint32_t newB = getBrighterChannelColor(brightness, color.b());
+  const uint32_t newA = getBrighterChannelColor(brightness, color.a());
 
   if (!allowOverexposed)
   {
@@ -90,7 +90,7 @@ inline Pixel getBrighterColorInt(const uint32_t brightness,
     }
   }
 
-  return Pixel{.channels{
+  return Pixel{{
       .r = static_cast<uint8_t>((newR & 0xffffff00) ? 0xff : newR),
       .g = static_cast<uint8_t>((newG & 0xffffff00) ? 0xff : newG),
       .b = static_cast<uint8_t>((newB & 0xffffff00) ? 0xff : newB),
@@ -113,9 +113,9 @@ inline Pixel getRightShiftedChannels(const Pixel& color, const int value)
 {
   Pixel p = color;
 
-  p.channels.r >>= value;
-  p.channels.g >>= value;
-  p.channels.b >>= value;
+  p.set_r(p.r() >> value);
+  p.set_g(p.g() >> value);
+  p.set_b(p.b() >> value);
 
   return p;
 }
@@ -151,9 +151,9 @@ inline Pixel getHalfIntensityColor(const Pixel& color)
 
 inline uint32_t getLuma(const Pixel& color)
 {
-  const uint32_t r = color.channels.r;
-  const uint32_t g = color.channels.g;
-  const uint32_t b = color.channels.b;
+  const uint32_t r = color.r();
+  const uint32_t g = color.g();
+  const uint32_t b = color.b();
   return (r + r + b + g + g + g) >> 3;
 }
 

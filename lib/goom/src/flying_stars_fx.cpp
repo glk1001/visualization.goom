@@ -154,14 +154,14 @@ constexpr size_t numFx = static_cast<uint32_t>(StarModes::_size);
 
 struct Star
 {
-  float x;
-  float y;
-  float vx;
-  float vy;
-  float ax;
-  float ay;
-  float age;
-  float vage;
+  float x = 0;
+  float y = 0;
+  float vx = 0;
+  float vy = 0;
+  float ax = 0;
+  float ay = 0;
+  float age = 0;
+  float vage = 0;
   const ColorMap* currentColorMap = nullptr;
   const ColorMap* currentLowColorMap = nullptr;
   template<class Archive>
@@ -175,6 +175,8 @@ class FlyingStarsImpl
 {
 public:
   explicit FlyingStarsImpl(const PluginInfo*);
+  FlyingStarsImpl(const FlyingStarsImpl&) = delete;
+  FlyingStarsImpl& operator=(const FlyingStarsImpl&) = delete;
 
   void setBuffSettings(const FXBuffSettings&);
 

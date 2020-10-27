@@ -116,7 +116,7 @@ private:
   std::vector<uint32_t> numDriverTentacles{};
   std::vector<uint32_t> numDriverChanges{};
 
-  size_t lastNumTentacles;
+  size_t lastNumTentacles = 0;
   bool lastUpdatingWithDraw = false;
   float lastCycle = 0;
   float lastCycleInc = 0;
@@ -379,6 +379,8 @@ class TentaclesWrapper
 public:
   explicit TentaclesWrapper(const uint32_t screenWidth, const uint32_t screenHeight);
   ~TentaclesWrapper() noexcept = default;
+  TentaclesWrapper(const TentaclesWrapper&) = delete;
+  TentaclesWrapper& operator=(const TentaclesWrapper&) = delete;
 
   void setBuffSettings(const FXBuffSettings&);
 

@@ -131,7 +131,7 @@ void ConvolveFx::loadState(std::istream& f)
     {
       for (uint32_t x = 0; x < screenWidth; x++)
       {
-        dest[i] = getBrighterColorInt(flashInt, src[i], buffSettings.allowOverexposed).val;
+        dest[i] = getBrighterColorInt(flashInt, src[i], buffSettings.allowOverexposed).rgba();
         i++;
       }
     }

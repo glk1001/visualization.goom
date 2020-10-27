@@ -44,6 +44,7 @@ target_include_directories(${PROJECT_NAME}
         ${CMAKE_SOURCE_DIR}/lib/goom/include/goom
         ${CMAKE_SOURCE_DIR}/lib/goomutils/include
 )
+
 target_include_directories(${PROJECT_NAME}
     SYSTEM PRIVATE
         ${CMAKE_SOURCE_DIR}/lib/vivid/include
@@ -66,3 +67,5 @@ target_compile_options(${PROJECT_NAME}
 
 set_property(TARGET goom PROPERTY POSITION_INDEPENDENT_CODE ON)
 set_property(TARGET goom PROPERTY CXX_STANDARD 20)
+set_property(TARGET goom PROPERTY CMAKE_C_EXTENSIONS OFF)
+set_property(TARGET goom PROPERTY COMMON_C_WARNINGS -Wall -Weffc++ -Wextra -Wsign-conversion)

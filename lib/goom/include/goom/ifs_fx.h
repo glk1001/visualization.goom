@@ -29,6 +29,8 @@ public:
   IfsFx() = delete;
   explicit IfsFx(PluginInfo*);
   ~IfsFx() noexcept;
+  IfsFx(const IfsFx&) = delete;
+  IfsFx& operator=(const IfsFx&) = delete;
 
   void setBuffSettings(const FXBuffSettings&) override;
 

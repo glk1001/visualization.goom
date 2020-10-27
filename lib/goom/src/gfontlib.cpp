@@ -92,8 +92,8 @@ void gfont_load(void)
         g = (unsigned int)gfont[(y + 2) * (the_font.width * 4) + (x * 4 + fpos * 4 + 1)];
         b = (unsigned int)gfont[(y + 2) * (the_font.width * 4) + (x * 4 + fpos * 4 + 2)];
         a = (unsigned int)gfont[(y + 2) * (the_font.width * 4) + (x * 4 + fpos * 4 + 3)];
-        font_chars[i][y][x].val =
-            (r << (ROUGE * 8)) | (g << (VERT * 8)) | (b << (BLEU * 8)) | (a << (ALPHA * 8));
+        font_chars[i][y][x].set_rgba((r << (ROUGE * 8)) | (g << (VERT * 8)) | (b << (BLEU * 8)) |
+                                     (a << (ALPHA * 8)));
       }
     }
     for (unsigned int y = 0; y < (unsigned int)font_height[i] / 2; y++)
@@ -118,10 +118,10 @@ void gfont_load(void)
         g4 = (unsigned int)gfont[2 * (y + 1) * (the_font.width * 4) + (x * 8 + fpos * 4 + 5)];
         b4 = (unsigned int)gfont[2 * (y + 1) * (the_font.width * 4) + (x * 8 + fpos * 4 + 6)];
         a4 = (unsigned int)gfont[2 * (y + 1) * (the_font.width * 4) + (x * 8 + fpos * 4 + 7)];
-        small_font_chars[i][y][x].val = (((r1 + r2 + r3 + r4) >> 2) << (ROUGE * 8)) |
-                                        (((g1 + g2 + g3 + g4) >> 2) << (VERT * 8)) |
-                                        (((b1 + b2 + b3 + b4) >> 2) << (BLEU * 8)) |
-                                        (((a1 + a2 + a3 + a4) >> 2) << (ALPHA * 8));
+        small_font_chars[i][y][x].set_rgba((((r1 + r2 + r3 + r4) >> 2) << (ROUGE * 8)) |
+                                           (((g1 + g2 + g3 + g4) >> 2) << (VERT * 8)) |
+                                           (((b1 + b2 + b3 + b4) >> 2) << (BLEU * 8)) |
+                                           (((a1 + a2 + a3 + a4) >> 2) << (ALPHA * 8)));
       }
     }
   }
@@ -254,30 +254,27 @@ void goom_draw_text(Pixel* buf,
           {
             Pixel color = cur_font_chars[c][yy - ymin][xx - x];
             Pixel transparency;
-            transparency.val = color.val & A_CHANNEL;
-            if (transparency.val)
+            transparency.set_rgba(color.rgba() & A_CHANNEL);
+            if (transparency.rgba())
             {
-              if (transparency.val == A_CHANNEL)
+              if (transparency.rgba() == A_CHANNEL)
               {
                 buf[yy * int(resolx) + xx] = color;
               }
               else
               {
                 Pixel back = buf[yy * int(resolx) + xx];
-                unsigned int a1 = color.channels.a;
+                unsigned int a1 = color.a();
                 unsigned int a2 = 255 - a1;
-                buf[yy * int(resolx) + xx].channels.r =
-                    (unsigned char)((((unsigned int)color.channels.r * a1) +
-                                     ((unsigned int)back.channels.r * a2)) >>
-                                    8);
-                buf[yy * int(resolx) + xx].channels.g =
-                    (unsigned char)((((unsigned int)color.channels.g * a1) +
-                                     ((unsigned int)back.channels.g * a2)) >>
-                                    8);
-                buf[yy * int(resolx) + xx].channels.b =
-                    (unsigned char)((((unsigned int)color.channels.b * a1) +
-                                     ((unsigned int)back.channels.b * a2)) >>
-                                    8);
+                buf[yy * int(resolx) + xx].set_r((unsigned char)((((unsigned int)color.r() * a1) +
+                                                                  ((unsigned int)back.r() * a2)) >>
+                                                                 8));
+                buf[yy * int(resolx) + xx].set_g((unsigned char)((((unsigned int)color.g() * a1) +
+                                                                  ((unsigned int)back.g() * a2)) >>
+                                                                 8));
+                buf[yy * int(resolx) + xx].set_b((unsigned char)((((unsigned int)color.b() * a1) +
+                                                                  ((unsigned int)back.b() * a2)) >>
+                                                                 8));
               }
             }
           }
