@@ -548,4 +548,6 @@ bool CVisualizationGoom::InitGLObjects()
 
 #ifndef DO_TESTING
 ADDONCREATOR(CVisualizationGoom) // Don't touch this!
+#else
+#pragma message("Compiling " __FILE__ " with 'DO_TESTING' ON.")
 #endif
