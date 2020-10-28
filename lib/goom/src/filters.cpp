@@ -944,13 +944,32 @@ v2g ZoomFilterImpl::getZoomVector(const float normX, const float normY)
     }
   }
 
-  if (filterData.hypercosEffect)
+  switch (filterData.hypercosEffect)
   {
-    stats.doZoomVectorHypercosEffect();
-    vx += filterData.hypercosAmplitude * sin(filterData.hypercosFreq * normX);
-    vy += filterData.hypercosAmplitude * sin(filterData.hypercosFreq * normY);
-    //    vx += filterData.hypercosAmplitude * cos(filterData.hypercosFreq * x);
-    //    vy += filterData.hypercosAmplitude * cos(filterData.hypercosFreq * y);
+    case ZoomFilterData::HypercosEffect::none:
+      break;
+    case ZoomFilterData::HypercosEffect::sinRectangular:
+      stats.doZoomVectorHypercosEffect();
+      vx += filterData.hypercosAmplitude * sin(filterData.hypercosFreq * normX);
+      vy += filterData.hypercosAmplitude * sin(filterData.hypercosFreq * normY);
+      break;
+    case ZoomFilterData::HypercosEffect::cosRectangular:
+      stats.doZoomVectorHypercosEffect();
+      vx += filterData.hypercosAmplitude * cos(filterData.hypercosFreq * normX);
+      vy += filterData.hypercosAmplitude * cos(filterData.hypercosFreq * normY);
+      break;
+    case ZoomFilterData::HypercosEffect::sinCurlSwirl:
+      stats.doZoomVectorHypercosEffect();
+      vx += filterData.hypercosAmplitude * sin(filterData.hypercosFreq * normY);
+      vy += filterData.hypercosAmplitude * sin(filterData.hypercosFreq * normX);
+      break;
+    case ZoomFilterData::HypercosEffect::cosCurlSwirl:
+      stats.doZoomVectorHypercosEffect();
+      vx += filterData.hypercosAmplitude * cos(filterData.hypercosFreq * normY);
+      vy += filterData.hypercosAmplitude * cos(filterData.hypercosFreq * normX);
+      break;
+    default:
+      throw std::logic_error("Unknown filterData.hypercosEffect value");
   }
 
   if (filterData.hPlaneEffect)

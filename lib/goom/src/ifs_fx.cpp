@@ -587,7 +587,10 @@ static_assert(numChannels == 4);
 
 inline Pixel getPixel(const Int32ChannelArray& col)
 {
-  return Pixel{{.r = col[ROUGE], .g = col[VERT], .b = col[BLEU], .a = col[ALPHA]}};
+  return Pixel{{.r = static_cast<uint8_t>(col[ROUGE]),
+                .g = static_cast<uint8_t>(col[VERT]),
+                .b = static_cast<uint8_t>(col[BLEU]),
+                .a = static_cast<uint8_t>(col[ALPHA])}};
 }
 
 inline Int32ChannelArray getChannelArray(const Pixel& p)

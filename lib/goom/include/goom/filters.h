@@ -47,7 +47,19 @@ struct ZoomFilterData
 
   //* @since April 2002
   bool waveEffect = false; // applique une "surcouche" de wave effect
-  bool hypercosEffect = false; // applique une "surcouche de hypercos effect
+
+  enum class HypercosEffect
+  {
+    none,
+    sinCurlSwirl,
+    cosCurlSwirl,
+    sinRectangular,
+    cosRectangular,
+    _size
+  };
+  // applique une surcouche de hypercos effect
+  // applies an overlay of hypercos effect
+  HypercosEffect hypercosEffect = HypercosEffect::none;
 
   bool noisify = false; // ajoute un bruit a la transformation
   double noiseFactor = 1; // in range [0, 1]

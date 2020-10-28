@@ -542,7 +542,8 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
     logVal(module, "lastZoomFilterData->vPlaneEffect", lastZoomFilterData->vPlaneEffect);
     logVal(module, "lastZoomFilterData->waveEffect",
            static_cast<uint32_t>(lastZoomFilterData->waveEffect));
-    logVal(module, "lastZoomFilterData->hypercosEffect", lastZoomFilterData->hypercosEffect);
+    logVal(module, "lastZoomFilterData->hypercosEffect",
+           enumToString(lastZoomFilterData->hypercosEffect));
     logVal(module, "lastZoomFilterData->noisify",
            static_cast<uint32_t>(lastZoomFilterData->noisify));
     logVal(module, "lastZoomFilterData->noiseFactor",
@@ -836,24 +837,28 @@ public:
 
   Pixel* getP1() const { return p1; }
   Pixel* getP2() const { return p2; }
+
   uint32_t* getOutputBuff() const { return outputBuff; }
   void setOutputBuff(uint32_t* val) { outputBuff = val; }
 
+  static constexpr size_t maxNumBuffs = 10;
+  static constexpr size_t maxBuffInc = maxNumBuffs / 2;
+  void setBuffInc(const size_t i);
   void rotateBuffers();
 
 private:
-  static constexpr size_t numBuffs = 10;
-  const std::vector<Pixel*> buffs;
+  std::vector<Pixel*> buffs;
   Pixel* p1;
   Pixel* p2;
   uint32_t* outputBuff = nullptr;
   size_t nextBuff;
+  size_t buffInc;
   static std::vector<Pixel*> getPixelBuffs(const uint16_t resx, const uint16_t resy);
 };
 
 std::vector<Pixel*> GoomImageBuffers::getPixelBuffs(const uint16_t resx, const uint16_t resy)
 {
-  std::vector<Pixel*> newBuffs(numBuffs);
+  std::vector<Pixel*> newBuffs(maxNumBuffs);
   for (auto& b : newBuffs)
   {
     // Allocate one extra row and column to help the filter process handle edges.
@@ -863,7 +868,11 @@ std::vector<Pixel*> GoomImageBuffers::getPixelBuffs(const uint16_t resx, const u
 }
 
 GoomImageBuffers::GoomImageBuffers(const uint16_t resx, const uint16_t resy)
-  : buffs{getPixelBuffs(resx, resy)}, p1{buffs[0]}, p2{buffs[1]}, nextBuff{numBuffs == 2 ? 0 : 2}
+  : buffs{getPixelBuffs(resx, resy)},
+    p1{buffs[0]},
+    p2{buffs[1]},
+    nextBuff{maxNumBuffs == 2 ? 0 : 2},
+    buffInc{1}
 {
 }
 
@@ -875,11 +884,20 @@ GoomImageBuffers::~GoomImageBuffers() noexcept
   }
 }
 
-inline void GoomImageBuffers::rotateBuffers()
+void GoomImageBuffers::setBuffInc(const size_t i)
+{
+  if (i < 1 || i > maxBuffInc)
+  {
+    throw std::logic_error("Cannot set buff inc: i out of range.");
+  }
+  buffInc = i;
+}
+
+void GoomImageBuffers::rotateBuffers()
 {
   p1 = p2;
   p2 = buffs[nextBuff];
-  nextBuff++;
+  nextBuff += +buffInc;
   if (nextBuff >= buffs.size())
   {
     nextBuff = 0;
@@ -1276,6 +1294,8 @@ void GoomControl::GoomControlImp::update(const int16_t data[NUM_AUDIO_SAMPLES][A
 
   // affichage et swappage des buffers...
   visualFx.convolve_fx->convolve(imageBuffers.getP1(), imageBuffers.getOutputBuff());
+
+  imageBuffers.setBuffInc(getRandInRange(1U, GoomImageBuffers::maxBuffInc + 1));
   imageBuffers.rotateBuffers();
 
   cycle++;
@@ -1367,6 +1387,18 @@ void GoomControl::GoomControlImp::changeFilterModeIfMusicChanges(const int force
   logDebug("sound getTimeSinceLastGoom() = {}", goomInfo->getSoundInfo().getTimeSinceLastGoom());
 }
 
+inline ZoomFilterData::HypercosEffect getHypercosEffect(const bool active)
+{
+  if (!active)
+  {
+    return ZoomFilterData::HypercosEffect::none;
+  }
+
+  return static_cast<ZoomFilterData::HypercosEffect>(
+      getRandInRange(static_cast<uint32_t>(ZoomFilterData::HypercosEffect::none) + 1,
+                     static_cast<uint32_t>(ZoomFilterData::HypercosEffect::_size)));
+}
+
 void GoomControl::GoomControlImp::setNextFilterMode()
 {
   //  goomInfo->update.zoomFilterData.vitesse = 127;
@@ -1376,7 +1408,7 @@ void GoomControl::GoomControlImp::setNextFilterMode()
   //  goomInfo->update.zoomFilterData.hPlaneEffect = 0;
   //  goomInfo->update.zoomFilterData.vPlaneEffect = 0;
   goomInfo->update.zoomFilterData.waveEffect = false;
-  goomInfo->update.zoomFilterData.hypercosEffect = false;
+  goomInfo->update.zoomFilterData.hypercosEffect = ZoomFilterData::HypercosEffect::none;
   //  goomInfo->update.zoomFilterData.noisify = false;
   //  goomInfo->update.zoomFilterData.noiseFactor = 1;
   //  goomInfo->update.zoomFilterData.blockyWavy = false;
@@ -1410,7 +1442,7 @@ void GoomControl::GoomControlImp::setNextFilterMode()
       break;
     case GoomFilterEvent::waveModeWithHyperCosEffect:
       goomInfo->update.zoomFilterData.hypercosEffect =
-          goomEvent.happens(GoomEvent::hypercosEffectOnWithWaveMode);
+          getHypercosEffect(goomEvent.happens(GoomEvent::hypercosEffectOnWithWaveMode));
       [[fallthrough]];
     case GoomFilterEvent::waveMode:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::waveMode;
@@ -1450,7 +1482,7 @@ void GoomControl::GoomControlImp::setNextFilterMode()
       goomInfo->update.zoomFilterData.waveEffect =
           goomEvent.happens(GoomEvent::waveEffectOnWithCrystalBallMode);
       goomInfo->update.zoomFilterData.hypercosEffect =
-          goomEvent.happens(GoomEvent::hypercosEffectOnWithCrystalBallMode);
+          getHypercosEffect(goomEvent.happens(GoomEvent::hypercosEffectOnWithCrystalBallMode));
       goomInfo->update.zoomFilterData.crystalBallAmplitude = getRandInRange(
           ZoomFilterData::minCrystalBallAmplitude, ZoomFilterData::maxCrystalBallAmplitude);
       break;
@@ -1470,25 +1502,25 @@ void GoomControl::GoomControlImp::setNextFilterMode()
     case GoomFilterEvent::scrunchModeWithEffects:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::scrunchMode;
       goomInfo->update.zoomFilterData.waveEffect = true;
-      goomInfo->update.zoomFilterData.hypercosEffect = true;
+      goomInfo->update.zoomFilterData.hypercosEffect = getHypercosEffect(true);
       goomInfo->update.zoomFilterData.scrunchAmplitude =
           getRandInRange(ZoomFilterData::minScrunchAmplitude, ZoomFilterData::maxScrunchAmplitude);
       break;
     case GoomFilterEvent::hyperCos1Mode:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::hyperCos1Mode;
       goomInfo->update.zoomFilterData.hypercosEffect =
-          goomEvent.happens(GoomEvent::hypercosEffectOnWithHyperCos1Mode);
+          getHypercosEffect(goomEvent.happens(GoomEvent::hypercosEffectOnWithHyperCos1Mode));
       break;
     case GoomFilterEvent::hyperCos2Mode:
       goomInfo->update.zoomFilterData.mode = ZoomFilterMode::hyperCos2Mode;
       goomInfo->update.zoomFilterData.hypercosEffect =
-          goomEvent.happens(GoomEvent::hypercosEffectOnWithHyperCos2Mode);
+          getHypercosEffect(goomEvent.happens(GoomEvent::hypercosEffectOnWithHyperCos2Mode));
       break;
     default:
       throw std::logic_error("GoomFilterEvent not implemented.");
   }
 
-  if (goomInfo->update.zoomFilterData.hypercosEffect)
+  if (goomInfo->update.zoomFilterData.hypercosEffect != ZoomFilterData::HypercosEffect::none)
   {
     goomInfo->update.zoomFilterData.hypercosFreq =
         getRandInRange(ZoomFilterData::minHypercosFreq, ZoomFilterData::maxHypercosFreq);
