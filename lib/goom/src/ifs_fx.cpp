@@ -337,8 +337,11 @@ struct IfsData
        root);
   };
 
-  int getIfsIncrement() const;
-  void setIfsIncrement(const int val);
+  void renew();
+  void updateIncr();
+  void updateDecay();
+  void updateDecayAndRecay();
+  int getIfsIncr() const;
   static void randomSimis(const Fractal*, Similitude* cur, uint32_t i);
   static constexpr int fix = 12;
   static Flt dbl_to_flt(const Dbl);
@@ -348,7 +351,9 @@ struct IfsData
   static void transform(Similitude*, Flt xo, Flt yo, Flt* x, Flt* y);
 
 private:
-  int increment = 1;
+  int ifs_incr = 1; // dessiner l'ifs (0 = non: > = increment)
+  int decay_ifs = 0; // disparition de l'ifs
+  int recay_ifs = 0; // dedisparition de l'ifs
   static Dbl gaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S);
   static Dbl halfGaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S);
   static constexpr Dbl get_1_minus_exp_neg_S(const Dbl S);
@@ -426,14 +431,56 @@ IfsData::~IfsData()
 {
 }
 
-inline int IfsData::getIfsIncrement() const
+void IfsData::renew()
 {
-  return increment;
+  colorizer.changeColorMode();
+  updateAllowOverexposed();
 }
 
-void IfsData::setIfsIncrement(const int val)
+void IfsData::updateIncr()
 {
-  increment = val;
+  if (ifs_incr <= 0)
+  {
+    recay_ifs = 5;
+    ifs_incr = 11;
+    renew();
+  }
+}
+
+void IfsData::updateDecay()
+{
+  if ((ifs_incr > 0) && (decay_ifs <= 0))
+  {
+    decay_ifs = 100;
+  }
+}
+
+void IfsData::updateDecayAndRecay()
+{
+  decay_ifs--;
+  if (decay_ifs > 0)
+  {
+    ifs_incr += 2;
+  }
+  if (decay_ifs == 0)
+  {
+    ifs_incr = 0;
+  }
+
+  if (recay_ifs)
+  {
+    ifs_incr -= 2;
+    recay_ifs--;
+    if ((recay_ifs == 0) && (ifs_incr <= 0))
+    {
+      ifs_incr = 1;
+    }
+  }
+}
+
+inline int IfsData::getIfsIncr() const
+{
+  return ifs_incr;
 }
 
 Dbl IfsData::gaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S)
@@ -697,15 +744,33 @@ void IfsFx::apply(Pixel* prevBuff, Pixel* currentBuff)
   {
     return;
   }
+  if (fxData->getIfsIncr() <= 0)
+  {
+    return;
+  }
 
   updateIfs(prevBuff, currentBuff);
+}
+
+void IfsFx::updateIncr()
+{
+  fxData->updateIncr();
+}
+
+void IfsFx::updateDecay()
+{
+  fxData->updateDecay();
+}
+
+void IfsFx::updateDecayAndRecay()
+{
+  fxData->updateDecayAndRecay();
 }
 
 void IfsFx::renew()
 {
   changeColormaps();
-  fxData->colorizer.changeColorMode();
-  fxData->updateAllowOverexposed();
+  fxData->renew();
 
   fxData->root->speed = static_cast<uint32_t>(getRandInRange(1.11F, 5.1F) /
                                               (1.1F - goomInfo->getSoundInfo().getAcceleration()));
@@ -716,11 +781,6 @@ void IfsFx::changeColormaps()
   fxData->colorizer.changeColorMaps();
   updateData->couleur =
       ColorMap::getRandomColor(fxData->colorizer.getColorMaps().getRandomColorMap());
-}
-
-void IfsFx::setIfsIncrement(const int val)
-{
-  fxData->setIfsIncrement(val);
 }
 
 void IfsFx::updateIfs(Pixel* prevBuff, Pixel* currentBuff)
@@ -889,7 +949,7 @@ void IfsFx::updatePixelBuffers(Pixel* prevBuff,
   const float tStep = numPoints == 1 ? 0.0F : (1.0F - 0.0F) / static_cast<float>(numPoints - 1);
   float t = -tStep;
 
-  for (size_t i = 0; i < numPoints; i += static_cast<size_t>(fxData->getIfsIncrement()))
+  for (size_t i = 0; i < numPoints; i += static_cast<size_t>(fxData->getIfsIncr()))
   {
     t += tStep;
 

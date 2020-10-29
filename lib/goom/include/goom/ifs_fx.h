@@ -33,7 +33,9 @@ public:
   IfsFx& operator=(const IfsFx&) = delete;
 
   void renew();
-  void setIfsIncrement(const int val);
+  void updateIncr();
+  void updateDecay();
+  void updateDecayAndRecay();
 
   void setBuffSettings(const FXBuffSettings&) override;
 

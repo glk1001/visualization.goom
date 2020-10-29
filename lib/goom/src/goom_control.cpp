@@ -429,8 +429,6 @@ public:
   void doNoise();
   void setLastNoiseFactor(const float val);
   void ifsRenew();
-  void ifsIncrLessThanEqualZero();
-  void ifsIncrGreaterThanZero();
   void changeLineColor();
   void doBlockyWavy();
   void doZoomFilterAlloOverexposed();
@@ -469,8 +467,6 @@ private:
   uint32_t numMegaLentChanges = 0;
   uint32_t numDoNoise = 0;
   uint32_t numIfsRenew = 0;
-  uint32_t numIfsIncrLessThanEqualZero = 0;
-  uint32_t numIfsIncrGreaterThanZero = 0;
   uint32_t numChangeLineColor = 0;
   uint32_t numSwitchLines = 0;
   uint32_t numBlockyWavy = 0;
@@ -517,8 +513,6 @@ void GoomStats::reset()
   numMegaLentChanges = 0;
   numDoNoise = 0;
   numIfsRenew = 0;
-  numIfsIncrLessThanEqualZero = 0;
-  numIfsIncrGreaterThanZero = 0;
   numChangeLineColor = 0;
   numSwitchLines = 0;
   numBlockyWavy = 0;
@@ -624,8 +618,6 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
   logVal(module, "numMegaLentChanges", numMegaLentChanges);
   logVal(module, "numDoNoise", numDoNoise);
   logVal(module, "numIfsRenew", numIfsRenew);
-  logVal(module, "numIfsIncrLessThanEqualZero", numIfsIncrLessThanEqualZero);
-  logVal(module, "numIfsIncrGreaterThanZero", numIfsIncrGreaterThanZero);
   logVal(module, "numChangeLineColor", numChangeLineColor);
   logVal(module, "numSwitchLines", numSwitchLines);
   logVal(module, "numBlockyWavy", numBlockyWavy);
@@ -792,16 +784,6 @@ inline void GoomStats::ifsRenew()
   numIfsRenew++;
 }
 
-inline void GoomStats::ifsIncrLessThanEqualZero()
-{
-  numIfsIncrLessThanEqualZero++;
-}
-
-inline void GoomStats::ifsIncrGreaterThanZero()
-{
-  numIfsIncrGreaterThanZero++;
-}
-
 inline void GoomStats::changeLineColor()
 {
   numChangeLineColor++;
@@ -961,9 +943,6 @@ struct GoomData
 {
   int lockvar = 0; // pour empecher de nouveaux changements
   int stop_lines = 0;
-  int ifs_incr = 1; // dessiner l'ifs (0 = non: > = increment)
-  int decay_ifs = 0; // disparition de l'ifs
-  int recay_ifs = 0; // dedisparition de l'ifs
   int cyclesSinceLastChange = 0; // nombre de Cycle Depuis Dernier Changement
   int drawLinesDuration = 80; // duree de la transition entre afficher les lignes ou pas
   int lineMode = 80; // l'effet lineaire a dessiner
@@ -1043,8 +1022,6 @@ private:
   void changeMilieu();
   void bigNormalUpdate(ZoomFilterData** pzfd);
   void megaLentUpdate(ZoomFilterData** pzfd);
-
-  void updateDecayRecay();
 
   // baisser regulierement la vitesse
   void regularlyLowerTheSpeed(ZoomFilterData** pzfd);
@@ -1287,8 +1264,6 @@ void GoomControl::GoomControlImp::update(const int16_t data[NUM_AUDIO_SAMPLES][A
 
   /* ! etude du signal ... */
   goomInfo->processSoundSample(data);
-
-  updateDecayRecay();
 
   applyIfsIfRequired();
 
@@ -1626,19 +1601,12 @@ void GoomControl::GoomControlImp::changeState()
       visualFx.ifs_fx->renew();
       stats.ifsRenew();
     }
-    if (goomData.ifs_incr <= 0)
-    {
-      goomData.recay_ifs = 5;
-      goomData.ifs_incr = 11;
-      stats.ifsIncrLessThanEqualZero();
-      visualFx.ifs_fx->renew();
-      stats.ifsRenew();
-    }
+    visualFx.ifs_fx->updateIncr();
   }
-  else if ((goomData.ifs_incr > 0) && (goomData.decay_ifs <= 0))
+  else
   {
-    goomData.decay_ifs = 100;
-    stats.ifsIncrGreaterThanZero();
+    // Pretty delicate  has to be done otherwise Ifs' disappear.
+    visualFx.ifs_fx->updateDecay();
   }
 
   if (!states.isCurrentlyDrawable(GoomDrawable::scope))
@@ -2280,29 +2248,6 @@ void GoomControl::GoomControlImp::stopDecrementing(ZoomFilterData** pzfd)
   *pzfd = &goomData.zoomFilterData;
 }
 
-void GoomControl::GoomControlImp::updateDecayRecay()
-{
-  goomData.decay_ifs--;
-  if (goomData.decay_ifs > 0)
-  {
-    goomData.ifs_incr += 2;
-  }
-  if (goomData.decay_ifs == 0)
-  {
-    goomData.ifs_incr = 0;
-  }
-
-  if (goomData.recay_ifs)
-  {
-    goomData.ifs_incr -= 2;
-    goomData.recay_ifs--;
-    if ((goomData.recay_ifs == 0) && (goomData.ifs_incr <= 0))
-    {
-      goomData.ifs_incr = 1;
-    }
-  }
-}
-
 void GoomControl::GoomControlImp::bigUpdateIfNotLocked(ZoomFilterData** pzfd)
 {
   logDebug("goomData.lockvar = {}", goomData.lockvar);
@@ -2356,16 +2301,16 @@ void GoomControl::GoomControlImp::displayLinesIfInAGoom(
 
 void GoomControl::GoomControlImp::applyIfsIfRequired()
 {
-  logDebug("goomData.ifs_incr = {}", goomData.ifs_incr);
-  if ((goomData.ifs_incr <= 0) || !curGDrawables.contains(GoomDrawable::IFS))
+  visualFx.ifs_fx->updateDecayAndRecay();
+
+  if (!curGDrawables.contains(GoomDrawable::IFS))
   {
     return;
   }
 
-  logDebug("goomData.ifs_incr = {} > 0 and curGDrawables IFS is set", goomData.ifs_incr);
+  logDebug("curGDrawables IFS is set");
   stats.doIFS();
   visualFx.ifs_fx->setBuffSettings(states.getCurrentBuffSettings(GoomDrawable::IFS));
-  visualFx.ifs_fx->setIfsIncrement(goomData.ifs_incr);
   visualFx.ifs_fx->apply(imageBuffers.getP2(), imageBuffers.getP1());
 }
 
