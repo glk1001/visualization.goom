@@ -337,6 +337,8 @@ struct IfsData
        root);
   };
 
+  int getIfsIncrement() const;
+  void setIfsIncrement(const int val);
   static void randomSimis(const Fractal*, Similitude* cur, uint32_t i);
   static constexpr int fix = 12;
   static Flt dbl_to_flt(const Dbl);
@@ -346,6 +348,7 @@ struct IfsData
   static void transform(Similitude*, Flt xo, Flt yo, Flt* x, Flt* y);
 
 private:
+  int increment = 1;
   static Dbl gaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S);
   static Dbl halfGaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S);
   static constexpr Dbl get_1_minus_exp_neg_S(const Dbl S);
@@ -421,6 +424,16 @@ IfsData::IfsData(const uint32_t screenWidth, uint32_t screenHeight)
 
 IfsData::~IfsData()
 {
+}
+
+inline int IfsData::getIfsIncrement() const
+{
+  return increment;
+}
+
+void IfsData::setIfsIncrement(const int val)
+{
+  increment = val;
 }
 
 Dbl IfsData::gaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S)
@@ -705,14 +718,16 @@ void IfsFx::changeColormaps()
       ColorMap::getRandomColor(fxData->colorizer.getColorMaps().getRandomColorMap());
 }
 
+void IfsFx::setIfsIncrement(const int val)
+{
+  fxData->setIfsIncrement(val);
+}
+
 void IfsFx::updateIfs(Pixel* prevBuff, Pixel* currentBuff)
 {
   // TODO: trouver meilleur soluce pour increment (mettre le code de gestion de l'ifs dans ce fichier)
   //       find the best solution for increment (put the management code of the ifs in this file)
-  const int increment = goomInfo->update.ifs_incr;
   fxData->useOldStyleDrawPixel = probabilityOfMInN(1, 50);
-
-  logDebug("increment = {}", increment);
 
   updateData->cycle++;
   if (updateData->cycle >= 80)
@@ -727,7 +742,7 @@ void IfsFx::updateIfs(Pixel* prevBuff, Pixel* currentBuff)
       (updateData->cycle < 40) ? updateData->cycle / 10 : 7 - updateData->cycle / 10;
   const Pixel color = getRightShiftedChannels(updateData->couleur, cycle10);
 
-  updatePixelBuffers(prevBuff, currentBuff, numPoints, points, increment, color);
+  updatePixelBuffers(prevBuff, currentBuff, numPoints, points, color);
 
   updateData->justChanged--;
 
@@ -866,7 +881,6 @@ void IfsFx::updatePixelBuffers(Pixel* prevBuff,
                                Pixel* currentBuff,
                                const size_t numPoints,
                                const std::vector<IfsPoint>& points,
-                               const int increment,
                                const Pixel& color)
 {
   bool doneColorChange =
@@ -875,7 +889,7 @@ void IfsFx::updatePixelBuffers(Pixel* prevBuff,
   const float tStep = numPoints == 1 ? 0.0F : (1.0F - 0.0F) / static_cast<float>(numPoints - 1);
   float t = -tStep;
 
-  for (size_t i = 0; i < numPoints; i += static_cast<size_t>(increment))
+  for (size_t i = 0; i < numPoints; i += static_cast<size_t>(fxData->getIfsIncrement()))
   {
     t += tStep;
 

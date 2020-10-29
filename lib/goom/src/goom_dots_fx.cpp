@@ -127,15 +127,15 @@ void GoomDots::apply(Pixel* prevBuff, Pixel* currentBuff)
   float t = t_min;
   for (uint32_t i = 1; i * 15 <= speedvarMult80Plus15; i++)
   {
-    goomInfo->update.loopvar += speedvarMult50Plus1;
+    loopvar += speedvarMult50Plus1;
 
-    const uint32_t loopvar_div_i = goomInfo->update.loopvar / i;
+    const uint32_t loopvar_div_i = loopvar / i;
     const float i_mult_10 = 10.0f * i;
 
     const std::vector<Pixel> colors1 = getColors(middleColor, colorMap1->getColor(t), numColors);
     const float color1_t3 = i * 152.0f;
     const float color1_t4 = 128.0f;
-    const uint32_t color1_cycle = goomInfo->update.loopvar + i * 2032;
+    const uint32_t color1_cycle = loopvar + i * 2032;
 
     const std::vector<Pixel> colors2 = getColors(middleColor, colorMap2->getColor(t), numColors);
     const float color2_t1 = pointWidthDiv2MultLarge / i + i_mult_10;
@@ -161,7 +161,7 @@ void GoomDots::apply(Pixel* prevBuff, Pixel* currentBuff)
     const float color5_t2 = (pointHeightMultLarge + i_mult_10) / i;
     const float color5_t3 = 66.0f;
     const float color5_t4 = 74.0f;
-    const uint32_t color5_cycle = goomInfo->update.loopvar + i * 500;
+    const uint32_t color5_cycle = loopvar + i * 500;
 
     dotFilter(prevBuff, currentBuff, colors1, color1_t1, color1_t2, color1_t3, color1_t4,
               color1_cycle, radius);

@@ -32,11 +32,13 @@ public:
   IfsFx(const IfsFx&) = delete;
   IfsFx& operator=(const IfsFx&) = delete;
 
+  void renew();
+  void setIfsIncrement(const int val);
+
   void setBuffSettings(const FXBuffSettings&) override;
 
   void start() override;
 
-  void renew();
   void apply(Pixel* prevBuff, Pixel* currentBuff) override;
 
   std::string getFxName() const override;
@@ -63,7 +65,6 @@ private:
                           Pixel* currentBuff,
                           const size_t numPoints,
                           const std::vector<IfsPoint>& points,
-                          const int increment,
                           const Pixel& color);
   void updateColors();
   void updateColorsModeMer();

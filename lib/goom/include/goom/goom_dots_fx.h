@@ -62,6 +62,7 @@ private:
   Pixel middleColor{};
   bool useSingleBufferOnly = true;
   bool useGrayScale = false;
+  uint32_t loopvar = 0; // mouvement des points
 
   void changeColors();
 

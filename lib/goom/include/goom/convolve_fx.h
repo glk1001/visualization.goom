@@ -25,12 +25,13 @@ public:
   ConvolveFx(const ConvolveFx&) = delete;
   ConvolveFx& operator=(const ConvolveFx&) = delete;
 
+  void convolve(const Pixel* currentBuff, uint32_t* outputBuff);
+
   void setBuffSettings(const FXBuffSettings&) override;
 
   void start() override;
 
   void apply(Pixel*, Pixel*) override{};
-  void convolve(const Pixel* currentBuff, uint32_t* outputBuff);
 
   std::string getFxName() const override;
   void saveState(std::ostream&) override;
