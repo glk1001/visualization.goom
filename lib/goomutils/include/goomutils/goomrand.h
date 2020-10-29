@@ -1,11 +1,12 @@
 #ifndef LIB_GOOMUTILS_INCLUDE_GOOMUTILS_GOOMRAND_H_
 #define LIB_GOOMUTILS_INCLUDE_GOOMUTILS_GOOMRAND_H_
 
-#include "goomutils/goomrand.h"
-
 #include <cmath>
 #include <cstdlib>
 #include <format>
+#include <istream>
+#include <ostream>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -15,6 +16,9 @@ namespace goom::utils
 uint64_t getRandSeed();
 void setRandSeed(const uint64_t seed);
 extern const uint32_t randMax;
+
+void saveRandState(std::ostream&);
+void restoreRandState(std::istream&);
 
 // Return random sign integer, either -1 or +1.
 inline int getRandSignInt();

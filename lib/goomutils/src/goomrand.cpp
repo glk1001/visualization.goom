@@ -6,7 +6,10 @@
 #undef NDEBUG
 
 #include <cmath>
+#include <cstdint>
+#include <istream>
 #include <limits>
+#include <ostream>
 #include <random>
 #include <stdexcept>
 
@@ -30,11 +33,12 @@ void setRandSeed(const uint64_t seed)
 
 // NOTE: C++ std::uniform_int_distribution is too expensive (about double) so we use Xoshiro
 //   and multiplication/shift technique. For timings, see tests/test_goomrand.cpp.
+// thread_local xoshiro256starstar64 eng { getRandSeed() };
+thread_local xoshiro256plus64 xoshiroEng{getRandSeed()};
+
 inline uint32_t randXoshiroFunc(const uint32_t n0, const uint32_t n1)
 {
-  // thread_local xoshiro256starstar64 eng { getRandSeed() };
-  thread_local xoshiro256plus64 eng{getRandSeed()};
-  const uint32_t x = eng();
+  const uint32_t x = xoshiroEng();
   const uint64_t m = (static_cast<uint64_t>(x) * static_cast<uint64_t>(n1 - n0)) >> 32;
   return n0 + static_cast<uint32_t>(m);
 }
@@ -46,6 +50,18 @@ inline uint32_t randSplitmixFunc(const uint32_t n0, const uint32_t n1)
   const uint32_t x = eng();
   const uint64_t m = (static_cast<uint64_t>(x) * static_cast<uint64_t>(n1 - n0)) >> 32;
   return n0 + static_cast<uint32_t>(m);
+}
+
+void saveRandState(std::ostream& f)
+{
+  f << randSeed << std::endl;
+  f << xoshiroEng << std::endl;
+}
+
+void restoreRandState(std::istream& f)
+{
+  f >> randSeed;
+  f >> xoshiroEng;
 }
 
 uint32_t getRandInRange(const uint32_t n0, const uint32_t n1)
@@ -64,7 +80,7 @@ int32_t getRandInRange(const int32_t n0, const int32_t n1)
   if ((n0 < 0) && (n1 < 0))
   {
     return -static_cast<int32_t>(
-        getRandInRange(static_cast<uint32_t>(-n1), static_cast<uint32_t>(-n0)));
+        getRandInRange(static_cast<uint32_t>(-n1 - 1), static_cast<uint32_t>(-n0 + 1)));
   }
   if ((n0 >= 0) && (n1 >= 0))
   {

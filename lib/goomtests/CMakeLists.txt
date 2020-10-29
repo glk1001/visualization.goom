@@ -8,6 +8,7 @@ message(STATUS "Tests C++ warnings = \"${COMMON_CXX_WARNINGS}\".")
 add_executable(test_main
     src/test_main.cpp
     src/test_colorutils.cpp
+    src/test_goomrand.cpp
     src/test_strutils.cpp
 )
 
@@ -25,6 +26,7 @@ target_include_directories(test_main
         "/home/greg/Prj/github/xbmc/visualization.goom/lib/goom/include/goom"  
         "/home/greg/Prj/github/xbmc/visualization.goom/lib/goomutils/include/goomutils"  
         ${CMAKE_SOURCE_DIR}/lib/magic_enum/include
+        ${CMAKE_SOURCE_DIR}/lib/fmt/include
 )
 
 # Hacking?????????????????????????

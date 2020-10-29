@@ -49,6 +49,8 @@
 
 
 #include <cstdint>
+#include <istream>
+#include <ostream>
 
 namespace xoshiro_detail
 {
@@ -68,6 +70,12 @@ protected:
   }
 
 public:
+  template<typename itype_f, typename rtype_f, unsigned int a_f, unsigned int b_f>
+  friend std::istream& operator>>(std::istream&, xoshiro_x4<itype_f, rtype_f, a_f, b_f>&);
+
+  template<typename itype_f, typename rtype_f, unsigned int a_f, unsigned int b_f>
+  friend std::ostream& operator<<(std::ostream&, const xoshiro_x4<itype_f, rtype_f, a_f, b_f>&);
+
   using state_type = itype;
   using result_type = rtype;
 
@@ -124,6 +132,20 @@ public:
 };
 
 template<typename itype, typename rtype, unsigned int a, unsigned int b>
+std::istream& operator>>(std::istream& f, xoshiro_x4<itype, rtype, a, b>& x)
+{
+  f >> x.s0_ >> x.s1_ >> x.s2_ >> x.s3_;
+  return f;
+}
+
+template<typename itype, typename rtype, unsigned int a, unsigned int b>
+std::ostream& operator<<(std::ostream& f, const xoshiro_x4<itype, rtype, a, b>& x)
+{
+  f << x.s0_ << " " << x.s1_ << " " << x.s2_ << " " << x.s3_ << " ";
+  return f;
+}
+
+template<typename itype, typename rtype, unsigned int a, unsigned int b>
 class xoshiro_x8
 {
 protected:
@@ -135,6 +157,12 @@ protected:
   static inline itype rotl(const itype x, int k) { return (x << k) | (x >> (ITYPE_BITS - k)); }
 
 public:
+  template<typename itype_f, typename rtype_f, unsigned int a_f, unsigned int b_f>
+  friend std::istream& operator>>(std::istream&, xoshiro_x8<itype_f, rtype_f, a_f, b_f>&);
+
+  template<typename itype_f, typename rtype_f, unsigned int a_f, unsigned int b_f>
+  friend std::ostream& operator<<(std::ostream&, const xoshiro_x8<itype_f, rtype_f, a_f, b_f>&);
+
   using state_type = itype;
   using result_type = rtype;
 
@@ -205,6 +233,22 @@ public:
   //   - I/O
   //   - Seeding from a seed_seq.
 };
+
+template<typename itype, typename rtype, unsigned int a, unsigned int b>
+std::istream& operator>>(std::istream& f, xoshiro_x8<itype, rtype, a, b>& x)
+{
+  f >> x.s0_ >> x.s1_ >> x.s2_ >> x.s3_;
+  f >> x.s4_ >> x.s5_ >> x.s6_ >> x.s7_;
+  return f;
+}
+
+template<typename itype, typename rtype, unsigned int a, unsigned int b>
+std::ostream& operator<<(std::ostream& f, const xoshiro_x8<itype, rtype, a, b>& x)
+{
+  f << x.s0_ << " " << x.s1_ << " " << x.s2_ << " " << x.s3_ << " ";
+  f << x.s4_ << " " << x.s5_ << " " << x.s6_ << " " << x.s7_;
+  return f;
+}
 
 
 template<typename xoshiro_base>
