@@ -21,7 +21,7 @@ namespace goom
 
 using namespace goom::utils;
 
-GMLine::GMLine(PluginInfo* info,
+GMLine::GMLine(const PluginInfo* info,
                const uint16_t rx,
                const uint16_t ry,
                const LineType IDsrc,
@@ -31,7 +31,7 @@ GMLine::GMLine(PluginInfo* info,
                const float paramD,
                const Pixel& destColor)
   : goomInfo{info},
-    draw{goomInfo->screen.width, goomInfo->screen.height},
+    draw{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height},
     screenX{rx},
     screenY{ry},
     IDdest{dest},

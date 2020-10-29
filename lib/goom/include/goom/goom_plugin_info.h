@@ -1,45 +1,48 @@
 #ifndef _GOOM_PLUGIN_INFO_H
 #define _GOOM_PLUGIN_INFO_H
 
-#include "filters.h"
 #include "goom_config.h"
-#include "goom_graphic.h"
 #include "sound_info.h"
 
-#include <cstddef>
 #include <cstdint>
 #include <memory>
 
 namespace goom
 {
 
-/**
- * Allows FXs to know the current state of the plugin.
- */
-struct PluginInfo
+class PluginInfo
 {
+public:
   struct Screen
   {
-    uint32_t width;
-    uint32_t height;
+    uint16_t width;
+    uint16_t height;
     uint32_t size; // == screen.height * screen.width.
   };
 
-  PluginInfo(const uint32_t width, const uint32_t height) noexcept;
+  PluginInfo(const uint16_t width, const uint16_t height) noexcept;
 
-  const Screen screen;
-
+  const Screen getScreenInfo() const;
   const SoundInfo& getSoundInfo() const;
+
+protected:
   void processSoundSample(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN]);
 
 private:
+  const Screen screen;
   std::unique_ptr<SoundInfo> soundInfo;
 };
 
 
-inline PluginInfo::PluginInfo(const uint32_t width, const uint32_t height) noexcept
-  : screen{width, height, width * height}, soundInfo{std::make_unique<SoundInfo>()}
+inline PluginInfo::PluginInfo(const uint16_t width, const uint16_t height) noexcept
+  : screen{width, height, static_cast<uint32_t>(width) * static_cast<uint32_t>(height)},
+    soundInfo{std::make_unique<SoundInfo>()}
 {
+}
+
+inline const PluginInfo::Screen PluginInfo::getScreenInfo() const
+{
+  return screen;
 }
 
 inline const SoundInfo& PluginInfo::getSoundInfo() const

@@ -46,8 +46,9 @@ void ConvolveData::serialize(Archive& ar)
   ar(buffSettings, screenBrightness, flashIntensity, factor);
 }
 
-ConvolveFx::ConvolveFx(PluginInfo* info)
-  : goomInfo{info}, fxData{new ConvolveData{goomInfo->screen.width, goomInfo->screen.height}}
+ConvolveFx::ConvolveFx(const PluginInfo* info)
+  : goomInfo{info},
+    fxData{new ConvolveData{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height}}
 {
 }
 
@@ -118,7 +119,7 @@ void ConvolveFx::loadState(std::istream& f)
     else
     {
       static_assert(sizeof(Pixel) == sizeof(uint32_t));
-      memcpy(outputBuff, currentBuff, goomInfo->screen.size * sizeof(Pixel));
+      memcpy(outputBuff, currentBuff, goomInfo->getScreenInfo().size * sizeof(Pixel));
     }
   }
 
@@ -126,7 +127,7 @@ void ConvolveFx::loadState(std::istream& f)
                                                 uint32_t* dest,
                                                 const uint32_t flashInt)
   {
-    size_t i = 0; // < info->screen.height * info->screen.width
+    size_t i = 0; // < screenWidth * screenHeight
     for (uint32_t y = 0; y < screenHeight; y++)
     {
       for (uint32_t x = 0; x < screenWidth; x++)

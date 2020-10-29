@@ -42,7 +42,7 @@ class GMLine
 {
 public:
   // construit un effet de line (une ligne horitontale pour commencer)
-  GMLine(PluginInfo* goomInfo,
+  GMLine(const PluginInfo* goomInfo,
          const uint16_t rx,
          const uint16_t ry,
          const LineType IDsrc,
@@ -67,7 +67,7 @@ public:
   float powinc = 0;
 
 private:
-  PluginInfo* goomInfo;
+  const PluginInfo* const goomInfo;
   GoomDraw draw;
   utils::ColorMaps colorMaps{};
 

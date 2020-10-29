@@ -56,21 +56,5 @@ public:
   virtual void finish(){};
 };
 
-struct PluginInfo;
-
-struct VisualFX
-{
-  void (*init)(VisualFX* _this, PluginInfo* info);
-  void (*free)(VisualFX* _this);
-  void (*setBuffSettings)(VisualFX* _this, const FXBuffSettings&);
-  void (*apply)(VisualFX* _this, PluginInfo* info, Pixel* prevBuff, Pixel* currentBuff);
-  std::string (*getFxName)(VisualFX* _this);
-  void (*saveState)(VisualFX* _this, std::ostream&);
-  void (*loadState)(VisualFX* _this, std::istream&);
-  void (*save)(VisualFX* _this, const PluginInfo* info, const char* file);
-  void (*restore)(VisualFX* _this, PluginInfo* info, const char* file);
-  void* fx_data;
-};
-
 } // namespace goom
 #endif

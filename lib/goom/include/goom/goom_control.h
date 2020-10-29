@@ -19,8 +19,8 @@ public:
   void setScreenBuffer(uint32_t* buffer);
   void start();
 
-  uint16_t getScreenWidth();
-  uint16_t getScreenHeight();
+  uint16_t getScreenWidth() const;
+  uint16_t getScreenHeight() const;
 
   /*
    * Update the next goom frame

@@ -235,7 +235,7 @@ private:
                 const float gravity);
 };
 
-FlyingStarsFx::FlyingStarsFx(PluginInfo* info) : fxImpl{new FlyingStarsImpl{info}}
+FlyingStarsFx::FlyingStarsFx(const PluginInfo* info) : fxImpl{new FlyingStarsImpl{info}}
 {
 }
 
@@ -292,7 +292,7 @@ FlyingStarsImpl::FlyingStarsImpl(const PluginInfo* info)
   : goomInfo{info},
     colorMaps{},
     stars{},
-    draw{goomInfo->screen.width, goomInfo->screen.height},
+    draw{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height},
     stats{}
 {
   stars.reserve(maxStarsLimit);
@@ -354,7 +354,7 @@ void FlyingStarsImpl::updateBuffers(Pixel* prevBuff, Pixel* currentBuff)
     for (size_t j = 1; j <= numParts; j++)
     {
       const float t = static_cast<float>(j - 1) / static_cast<float>(numParts - 1);
-      const Pixel mixedColor{.val = ColorMap::colorMix(color, lowColor, t)};
+      const Pixel mixedColor{ColorMap::colorMix(color, lowColor, t)};
       const int x2 = x0 - static_cast<int>(stars[i].vx * j);
       const int y2 = y0 - static_cast<int>(stars[i].vy * j);
       const uint8_t thickness = static_cast<uint8_t>(
@@ -367,7 +367,7 @@ void FlyingStarsImpl::updateBuffers(Pixel* prevBuff, Pixel* currentBuff)
       }
       else
       {
-        const std::vector<Pixel> colors = {mixedColor, {.val = lowColor}};
+        const std::vector<Pixel> colors = {mixedColor, lowColor};
         std::vector<Pixel*> buffs{currentBuff, prevBuff};
         draw.line(buffs, x1, y1, x2, y2, colors, thickness);
       }
@@ -386,9 +386,9 @@ void FlyingStarsImpl::updateBuffers(Pixel* prevBuff, Pixel* currentBuff)
 
 inline bool FlyingStarsImpl::isStarDead(const Star& star) const
 {
-  return (star.x > static_cast<float>(goomInfo->screen.width + 64)) ||
-         ((star.vy >= 0) && (star.y - 16 * star.vy > goomInfo->screen.height)) || (star.x < -64) ||
-         (star.age >= maxStarAge);
+  return (star.x > static_cast<float>(goomInfo->getScreenInfo().width + 64)) ||
+         ((star.vy >= 0) && (star.y - 16 * star.vy > goomInfo->getScreenInfo().height)) ||
+         (star.x < -64) || (star.age >= maxStarAge);
 }
 
 /**
@@ -415,7 +415,7 @@ inline Pixel FlyingStarsImpl::getLowColor(const size_t starNum, const float tmix
       0x111a100a, 0x0c180508, 0x08100304, 0x00050101, 0x0
     };
     // clang-format on
-    return Pixel{.val = starLowColors[size_t(tmix * static_cast<float>(numLowColors - 1))]};
+    return Pixel{starLowColors[size_t(tmix * static_cast<float>(numLowColors - 1))]};
   }
 
   const float brightness = getRandInRange(0.2f, 0.6f);
@@ -430,8 +430,8 @@ void FlyingStarsImpl::soundEventOccured()
 {
   stats.soundEventOccurred();
 
-  const uint32_t halfWidth = goomInfo->screen.width / 2;
-  const uint32_t halfHeight = goomInfo->screen.height / 2;
+  const uint32_t halfWidth = goomInfo->getScreenInfo().width / 2;
+  const uint32_t halfHeight = goomInfo->getScreenInfo().height / 2;
 
   maxStarAge = minStarAge + getNRand(maxStarExtraAge);
   useSingleBufferOnly = probabilityOfMInN(1, 10);
@@ -455,8 +455,8 @@ void FlyingStarsImpl::soundEventOccured()
       const double rsq = halfHeight * halfHeight;
       while (true)
       {
-        mx = getNRand(goomInfo->screen.width);
-        my = getNRand(goomInfo->screen.height);
+        mx = getNRand(goomInfo->getScreenInfo().width);
+        my = getNRand(goomInfo->getScreenInfo().height);
         const double dx = mx - halfWidth;
         const double dy = my - halfHeight;
         if ((dx * dx) + (dy * dy) >= rsq)
@@ -469,16 +469,16 @@ void FlyingStarsImpl::soundEventOccured()
     break;
     case StarModes::rain:
       stats.rainFxChosen();
-      mx = getNRand(goomInfo->screen.width);
-      mx = (mx <= halfWidth) ? 0 : goomInfo->screen.width;
-      my = -(goomInfo->screen.height / 3) - getNRand(goomInfo->screen.width / 3);
+      mx = getNRand(goomInfo->getScreenInfo().width);
+      mx = (mx <= halfWidth) ? 0 : goomInfo->getScreenInfo().width;
+      my = -(goomInfo->getScreenInfo().height / 3) - getNRand(goomInfo->getScreenInfo().width / 3);
       radius *= 1.5;
       vage = 0.002f;
       break;
     case StarModes::fountain:
       stats.fountainFxChosen();
       maxStarAge *= 2.0 / 3.0;
-      my = goomInfo->screen.height + 2;
+      my = goomInfo->getScreenInfo().height + 2;
       mx = halfWidth;
       vage = 0.001f;
       radius += 1.0f;
@@ -489,7 +489,7 @@ void FlyingStarsImpl::soundEventOccured()
   }
 
   // Why 200 ? Because the FX was developed on 320x200.
-  const float heightRatio = goomInfo->screen.height / 200.0F;
+  const float heightRatio = goomInfo->getScreenInfo().height / 200.0F;
   size_t maxStarsInBomb = heightRatio * (100.0F + (1.0F + goomInfo->getSoundInfo().getGoomPower()) *
                                                       static_cast<float>(getNRand(150)));
   radius *= heightRatio;

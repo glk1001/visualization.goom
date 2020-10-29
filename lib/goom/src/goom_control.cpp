@@ -978,6 +978,25 @@ struct GoomData
   ZoomFilterData zoomFilterData{};
 };
 
+class WritablePluginInfo : public PluginInfo
+{
+public:
+  WritablePluginInfo(const uint16_t width, const uint16_t height) noexcept;
+
+  void processSoundSample(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN]);
+};
+
+WritablePluginInfo::WritablePluginInfo(const uint16_t width, const uint16_t height) noexcept
+  : PluginInfo{width, height}
+{
+}
+
+inline void WritablePluginInfo::processSoundSample(
+    const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN])
+{
+  PluginInfo::processSoundSample(data);
+}
+
 class GoomControl::GoomControlImp
 {
 public:
@@ -987,8 +1006,8 @@ public:
   void swap(GoomControl::GoomControlImp& other) noexcept = delete;
 
   void setScreenBuffer(uint32_t* buffer);
-  uint16_t getScreenWidth();
-  uint16_t getScreenHeight();
+  uint16_t getScreenWidth() const;
+  uint16_t getScreenHeight() const;
 
   void start();
   void finish();
@@ -1000,7 +1019,7 @@ public:
               const char* message);
 
 private:
-  std::unique_ptr<PluginInfo> goomInfo;
+  std::unique_ptr<WritablePluginInfo> goomInfo;
   GoomImageBuffers imageBuffers;
   GoomVisualFx visualFx;
   GoomStats stats{};
@@ -1101,12 +1120,12 @@ void GoomControl::setScreenBuffer(uint32_t* buffer)
   controller->setScreenBuffer(buffer);
 }
 
-uint16_t GoomControl::getScreenWidth()
+uint16_t GoomControl::getScreenWidth() const
 {
   return controller->getScreenWidth();
 }
 
-uint16_t GoomControl::getScreenHeight()
+uint16_t GoomControl::getScreenHeight() const
 {
   return controller->getScreenHeight();
 }
@@ -1137,7 +1156,7 @@ static const Pixel lBlack = getBlackLineColor();
 GoomControl::GoomControlImp::GoomControlImp(const uint16_t resx,
                                             const uint16_t resy,
                                             const int seed)
-  : goomInfo{new PluginInfo{resx, resy}},
+  : goomInfo{new WritablePluginInfo{resx, resy}},
     imageBuffers{resx, resy},
     visualFx{goomInfo.get()},
     gmline1{goomInfo.get(),
@@ -1178,14 +1197,14 @@ void GoomControl::GoomControlImp::setScreenBuffer(uint32_t* buffer)
   imageBuffers.setOutputBuff(buffer);
 }
 
-uint16_t GoomControl::GoomControlImp::getScreenWidth()
+uint16_t GoomControl::GoomControlImp::getScreenWidth() const
 {
-  return goomInfo->screen.width;
+  return goomInfo->getScreenInfo().width;
 }
 
-uint16_t GoomControl::GoomControlImp::getScreenHeight()
+uint16_t GoomControl::GoomControlImp::getScreenHeight() const
 {
-  return goomInfo->screen.height;
+  return goomInfo->getScreenInfo().height;
 }
 
 inline bool GoomControl::GoomControlImp::changeFilterModeEventHappens()
@@ -1211,8 +1230,8 @@ void GoomControl::GoomControlImp::start()
 
   curGDrawables = states.getCurrentDrawables();
   setNextFilterMode();
-  goomData.zoomFilterData.middleX = goomInfo->screen.width;
-  goomData.zoomFilterData.middleY = goomInfo->screen.height;
+  goomData.zoomFilterData.middleX = getScreenWidth();
+  goomData.zoomFilterData.middleY = getScreenHeight();
 
   stats.reset();
   stats.setStateStartValue(states.getCurrentStateIndex());
@@ -1358,35 +1377,35 @@ void GoomControl::GoomControlImp::chooseGoomLine(
       }
       else if (goomEvent.happens(GoomEvent::changeLineCircleParams))
       {
-        *param1 = 0.40f * goomInfo->screen.height;
-        *param2 = 0.22f * goomInfo->screen.height;
+        *param1 = 0.40f * getScreenHeight();
+        *param2 = 0.22f * getScreenHeight();
       }
       else
       {
-        *param1 = *param2 = goomInfo->screen.height * 0.35F;
+        *param1 = *param2 = getScreenHeight() * 0.35F;
       }
       break;
     case LineType::hline:
       if (goomEvent.happens(GoomEvent::changeHLineParams) || far)
       {
-        *param1 = goomInfo->screen.height / 7.0F;
-        *param2 = 6.0f * goomInfo->screen.height / 7.0F;
+        *param1 = getScreenHeight() / 7.0F;
+        *param2 = 6.0f * getScreenHeight() / 7.0F;
       }
       else
       {
-        *param1 = *param2 = goomInfo->screen.height / 2.0f;
+        *param1 = *param2 = getScreenHeight() / 2.0f;
         *amplitude = 2.0f;
       }
       break;
     case LineType::vline:
       if (goomEvent.happens(GoomEvent::changeVLineParams) || far)
       {
-        *param1 = goomInfo->screen.width / 7.0f;
-        *param2 = 6.0f * goomInfo->screen.width / 7.0f;
+        *param1 = getScreenWidth() / 7.0f;
+        *param2 = 6.0f * getScreenWidth() / 7.0f;
       }
       else
       {
-        *param1 = *param2 = goomInfo->screen.width / 2.0f;
+        *param1 = *param2 = getScreenWidth() / 2.0f;
         *amplitude = 1.5f;
       }
       break;
@@ -1647,8 +1666,8 @@ void GoomControl::GoomControlImp::changeMilieu()
       (goomData.zoomFilterData.mode == ZoomFilterMode::yOnlyMode) ||
       (goomData.zoomFilterData.mode == ZoomFilterMode::amuletteMode))
   {
-    goomData.zoomFilterData.middleX = goomInfo->screen.width / 2;
-    goomData.zoomFilterData.middleY = goomInfo->screen.height / 2;
+    goomData.zoomFilterData.middleX = getScreenWidth() / 2;
+    goomData.zoomFilterData.middleY = getScreenHeight() / 2;
   }
   else
   {
@@ -1665,18 +1684,18 @@ void GoomControl::GoomControlImp::changeMilieu()
     switch (middlePointWeights.getRandomWeighted())
     {
       case MiddlePointEvents::event1:
-        goomData.zoomFilterData.middleY = goomInfo->screen.height - 1;
-        goomData.zoomFilterData.middleX = goomInfo->screen.width / 2;
+        goomData.zoomFilterData.middleX = getScreenWidth() / 2;
+        goomData.zoomFilterData.middleY = getScreenHeight() - 1;
         break;
       case MiddlePointEvents::event2:
-        goomData.zoomFilterData.middleX = goomInfo->screen.width - 1;
+        goomData.zoomFilterData.middleX = getScreenWidth() - 1;
         break;
       case MiddlePointEvents::event3:
         goomData.zoomFilterData.middleX = 1;
         break;
       case MiddlePointEvents::event4:
-        goomData.zoomFilterData.middleY = goomInfo->screen.height / 2;
-        goomData.zoomFilterData.middleX = goomInfo->screen.width / 2;
+        goomData.zoomFilterData.middleX = getScreenWidth() / 2;
+        goomData.zoomFilterData.middleY = getScreenHeight() / 2;
         break;
       default:
         throw std::logic_error("Unknown MiddlePointEvents enum.");
@@ -1831,7 +1850,7 @@ void GoomControl::GoomControlImp::bigNormalUpdate(ZoomFilterData** pzfd)
   }
 
   if ((goomData.zoomFilterData.middleX == 1) ||
-      (goomData.zoomFilterData.middleX == goomInfo->screen.width - 1))
+      (goomData.zoomFilterData.middleX == getScreenWidth() - 1))
   {
     goomData.zoomFilterData.vPlaneEffect = 0;
     if (goomEvent.happens(GoomEvent::filterZeroHPlaneEffect))
@@ -2054,8 +2073,7 @@ void GoomControl::GoomControlImp::displayText(const char* songTitle,
   {
     char text[256];
     sprintf(text, "%2.0f fps", fps);
-    goom_draw_text(imageBuffers.getP1(), goomInfo->screen.width, goomInfo->screen.height, 10, 24,
-                   text, 1, 0);
+    goom_draw_text(imageBuffers.getP1(), getScreenWidth(), getScreenHeight(), 10, 24, text, 1, 0);
   }
 
   if (songTitle)
@@ -2068,16 +2086,16 @@ void GoomControl::GoomControlImp::displayText(const char* songTitle,
 
   if (goomData.timeOfTitleDisplay)
   {
-    goom_draw_text(imageBuffers.getP1(), goomInfo->screen.width, goomInfo->screen.height,
-                   static_cast<int>(goomInfo->screen.width / 2),
-                   static_cast<int>(goomInfo->screen.height / 2 + 7), goomData.titleText,
+    goom_draw_text(imageBuffers.getP1(), getScreenWidth(), getScreenHeight(),
+                   static_cast<int>(getScreenWidth() / 2),
+                   static_cast<int>(getScreenHeight() / 2 + 7), goomData.titleText,
                    static_cast<float>(190 - goomData.timeOfTitleDisplay) / 10.0f, 1);
     goomData.timeOfTitleDisplay--;
     if (goomData.timeOfTitleDisplay < 4)
     {
-      goom_draw_text(imageBuffers.getP2(), goomInfo->screen.width, goomInfo->screen.height,
-                     static_cast<int>(goomInfo->screen.width / 2),
-                     static_cast<int>(goomInfo->screen.height / 2 + 7), goomData.titleText,
+      goom_draw_text(imageBuffers.getP2(), getScreenWidth(), getScreenHeight(),
+                     static_cast<int>(getScreenWidth() / 2),
+                     static_cast<int>(getScreenHeight() / 2 + 7), goomData.titleText,
                      static_cast<float>(190 - goomData.timeOfTitleDisplay) / 10.0f, 1);
     }
   }
@@ -2103,7 +2121,7 @@ void GoomControl::GoomControlImp::updateMessage(const char* message)
       const uint32_t ypos =
           10 + messageData.affiche - (messageData.numberOfLinesInMessage - i) * 25;
 
-      goom_draw_text(imageBuffers.getP1(), goomInfo->screen.width, goomInfo->screen.height, 50,
+      goom_draw_text(imageBuffers.getP1(), getScreenWidth(), getScreenHeight(), 50,
                      static_cast<int>(ypos), msgLines[i].c_str(), 1, 0);
     }
     messageData.affiche--;

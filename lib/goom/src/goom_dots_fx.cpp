@@ -26,10 +26,10 @@ inline bool changeDotColorsEvent()
   return probabilityOfMInN(1, 3);
 }
 
-GoomDots::GoomDots(PluginInfo* info)
+GoomDots::GoomDots(const PluginInfo* info)
   : goomInfo(info),
-    screenWidth{goomInfo->screen.width},
-    screenHeight{goomInfo->screen.height},
+    screenWidth{goomInfo->getScreenInfo().width},
+    screenHeight{goomInfo->getScreenInfo().height},
     pointWidth{(screenWidth * 2) / 5},
     pointHeight{(screenHeight * 2) / 5},
     pointWidthDiv2{static_cast<float>(pointWidth / 2.0F)},

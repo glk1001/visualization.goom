@@ -27,7 +27,7 @@ class IfsFx : public VisualFx
 {
 public:
   IfsFx() = delete;
-  explicit IfsFx(PluginInfo*);
+  explicit IfsFx(const PluginInfo*);
   ~IfsFx() noexcept;
   IfsFx(const IfsFx&) = delete;
   IfsFx& operator=(const IfsFx&) = delete;
@@ -50,7 +50,7 @@ public:
 
 private:
   bool enabled = true;
-  PluginInfo* const goomInfo;
+  const PluginInfo* const goomInfo;
   std::unique_ptr<IfsData> fxData;
 
   void updateIfs(Pixel* prevBuff, Pixel* currentBuff);

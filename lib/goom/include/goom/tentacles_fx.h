@@ -20,7 +20,7 @@ class TentaclesFx : public VisualFx
 {
 public:
   TentaclesFx() = delete;
-  explicit TentaclesFx(PluginInfo*);
+  explicit TentaclesFx(const PluginInfo*);
   ~TentaclesFx() noexcept = default;
   TentaclesFx(const TentaclesFx&) = delete;
   TentaclesFx& operator=(const TentaclesFx&) = delete;
@@ -40,7 +40,7 @@ public:
   void finish() override;
 
 private:
-  PluginInfo* const goomInfo;
+  const PluginInfo* const goomInfo;
   bool enabled = true;
   std::unique_ptr<TentaclesWrapper> tentacles;
 };

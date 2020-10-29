@@ -384,8 +384,8 @@ public:
 
   void setBuffSettings(const FXBuffSettings&);
 
-  void update(PluginInfo*, Pixel* prevBuff, Pixel* currentBuff);
-  void updateWithNoDraw(PluginInfo*);
+  void update(const PluginInfo*, Pixel* prevBuff, Pixel* currentBuff);
+  void updateWithNoDraw();
 
   void logStats(const StatsLogValueFunc logVal);
 
@@ -430,7 +430,7 @@ private:
   void prettyMoveStart(const float acceleration, const int32_t timerVal = -1);
   void prettyMoveFinish();
   void prettyMove(const float acceleration);
-  void prettyMoveWithNoDraw(PluginInfo*);
+  void prettyMoveWithNoDraw();
   std::tuple<Pixel, Pixel> getModColors();
 
   size_t countSinceHighAccelLastMarked = 0;
@@ -551,7 +551,7 @@ void TentaclesWrapper::logStats(const StatsLogValueFunc logVal)
   stats.log(logVal);
 }
 
-void TentaclesWrapper::updateWithNoDraw(PluginInfo*)
+void TentaclesWrapper::updateWithNoDraw()
 {
   stats.updateWithNoDraw();
 
@@ -601,7 +601,7 @@ void TentaclesWrapper::init()
   }
 }
 
-void TentaclesWrapper::update(PluginInfo* goomInfo, Pixel* prevBuff, Pixel* currentBuff)
+void TentaclesWrapper::update(const PluginInfo* goomInfo, Pixel* prevBuff, Pixel* currentBuff)
 {
   logDebug("Starting update.");
 
@@ -888,8 +888,10 @@ void TentaclesWrapper::prettyMove(const float acceleration)
 
 
 // TODO PASS GoomINFO to wrapper
-TentaclesFx::TentaclesFx(PluginInfo* info)
-  : goomInfo{info}, tentacles{new TentaclesWrapper{goomInfo->screen.width, goomInfo->screen.height}}
+TentaclesFx::TentaclesFx(const PluginInfo* info)
+  : goomInfo{info},
+    tentacles{
+        new TentaclesWrapper{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height}}
 {
 }
 
@@ -928,7 +930,7 @@ void TentaclesFx::applyNoDraw()
     return;
   }
 
-  tentacles->updateWithNoDraw(goomInfo);
+  tentacles->updateWithNoDraw();
 }
 
 std::string TentaclesFx::getFxName() const

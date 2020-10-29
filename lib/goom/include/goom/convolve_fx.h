@@ -20,7 +20,7 @@ class ConvolveFx : public VisualFx
 {
 public:
   ConvolveFx() = delete;
-  explicit ConvolveFx(PluginInfo*);
+  explicit ConvolveFx(const PluginInfo*);
   ~ConvolveFx() noexcept;
   ConvolveFx(const ConvolveFx&) = delete;
   ConvolveFx& operator=(const ConvolveFx&) = delete;
@@ -41,7 +41,7 @@ public:
   void finish() override;
 
 private:
-  PluginInfo* const goomInfo;
+  const PluginInfo* const goomInfo;
   bool enabled = true;
   std::unique_ptr<ConvolveData> fxData;
 };

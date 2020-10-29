@@ -459,38 +459,38 @@ void ZoomFilterData::serialize(Archive& ar)
 }
 
 ZoomFilterImpl::ZoomFilterImpl(const PluginInfo* goomInfo) noexcept
-  : screenWidth{goomInfo->screen.width},
-    screenHeight{goomInfo->screen.height},
+  : screenWidth{goomInfo->getScreenInfo().width},
+    screenHeight{goomInfo->getScreenInfo().height},
     ratioPixmapToNormalizedCoord{2.0F / static_cast<float>(screenWidth)},
     ratioNormalizedCoordToPixmap{1.0F / ratioPixmapToNormalizedCoord},
     minNormCoordVal{ratioPixmapToNormalizedCoord / buffPointNumFlt},
     filterData{},
-    freeTranXSrce(goomInfo->screen.width * goomInfo->screen.height + 128),
-    freeTranYSrce(goomInfo->screen.width * goomInfo->screen.height + 128),
+    freeTranXSrce(goomInfo->getScreenInfo().size + 128),
+    freeTranYSrce(goomInfo->getScreenInfo().size + 128),
     tranXSrce{(int32_t*)((1 + (uintptr_t((freeTranXSrce.data()))) / 128) * 128)},
     tranYSrce{(int32_t*)((1 + (uintptr_t((freeTranYSrce.data()))) / 128) * 128)},
-    freeTranXDest(goomInfo->screen.width * goomInfo->screen.height + 128),
-    freeTranYDest(goomInfo->screen.width * goomInfo->screen.height + 128),
+    freeTranXDest(goomInfo->getScreenInfo().size + 128),
+    freeTranYDest(goomInfo->getScreenInfo().size + 128),
     tranXDest{(int32_t*)((1 + (uintptr_t((freeTranXDest.data()))) / 128) * 128)},
     tranYDest{(int32_t*)((1 + (uintptr_t((freeTranYDest.data()))) / 128) * 128)},
-    freeTranXTemp(goomInfo->screen.width * goomInfo->screen.height + 128),
-    freeTranYTemp(goomInfo->screen.width * goomInfo->screen.height + 128),
+    freeTranXTemp(goomInfo->getScreenInfo().size + 128),
+    freeTranYTemp(goomInfo->getScreenInfo().size + 128),
     tranXTemp{(int32_t*)((1 + (uintptr_t((freeTranXTemp.data()))) / 128) * 128)},
     tranYTemp{(int32_t*)((1 + (uintptr_t((freeTranYTemp.data()))) / 128) * 128)},
     firedec(screenHeight)
 {
-  filterData.middleX = goomInfo->screen.width / 2;
-  filterData.middleY = goomInfo->screen.height / 2;
+  filterData.middleX = goomInfo->getScreenInfo().width / 2;
+  filterData.middleY = goomInfo->getScreenInfo().height / 2;
 
   generatePrecalCoef(precalcCoeffs);
   generateWaterFXHorizontalBuffer();
-  makeZoomBufferStripe(goomInfo->screen.height);
+  makeZoomBufferStripe(goomInfo->getScreenInfo().height);
 
   // Copy the data from temp to dest and source
-  memcpy(tranXSrce, tranXTemp, goomInfo->screen.width * goomInfo->screen.height * sizeof(int32_t));
-  memcpy(tranYSrce, tranYTemp, goomInfo->screen.width * goomInfo->screen.height * sizeof(int32_t));
-  memcpy(tranXDest, tranXTemp, goomInfo->screen.width * goomInfo->screen.height * sizeof(int32_t));
-  memcpy(tranYDest, tranYTemp, goomInfo->screen.width * goomInfo->screen.height * sizeof(int32_t));
+  memcpy(tranXSrce, tranXTemp, goomInfo->getScreenInfo().size * sizeof(int32_t));
+  memcpy(tranYSrce, tranYTemp, goomInfo->getScreenInfo().size * sizeof(int32_t));
+  memcpy(tranXDest, tranXTemp, goomInfo->getScreenInfo().size * sizeof(int32_t));
+  memcpy(tranYDest, tranYTemp, goomInfo->getScreenInfo().size * sizeof(int32_t));
 }
 
 ZoomFilterImpl::~ZoomFilterImpl() noexcept
@@ -1064,7 +1064,8 @@ inline void ZoomFilterImpl::setPixelColor(Pixel* buffer, const uint32_t pos, con
   buffer[pos] = p;
 }
 
-ZoomFilterFx::ZoomFilterFx(PluginInfo* info) : goomInfo{info}, fxImpl{new ZoomFilterImpl{goomInfo}}
+ZoomFilterFx::ZoomFilterFx(const PluginInfo* info)
+  : goomInfo{info}, fxImpl{new ZoomFilterImpl{goomInfo}}
 {
 }
 

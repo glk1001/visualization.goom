@@ -20,7 +20,7 @@ class FlyingStarsFx : public VisualFx
 {
 public:
   FlyingStarsFx() = delete;
-  explicit FlyingStarsFx(PluginInfo*);
+  explicit FlyingStarsFx(const PluginInfo*);
   ~FlyingStarsFx() noexcept = default;
   FlyingStarsFx(const FlyingStarsFx&) = delete;
   FlyingStarsFx& operator=(const FlyingStarsFx&) = delete;

@@ -21,7 +21,7 @@ class SoundInfo;
 class GoomDots : public VisualFx
 {
 public:
-  explicit GoomDots(PluginInfo*);
+  explicit GoomDots(const PluginInfo*);
   ~GoomDots() noexcept = default;
   GoomDots(const GoomDots&) = delete;
   GoomDots& operator=(const GoomDots&) = delete;
@@ -39,7 +39,7 @@ public:
   void finish() override;
 
 private:
-  PluginInfo* const goomInfo;
+  const PluginInfo* const goomInfo;
   const uint32_t screenWidth;
   const uint32_t screenHeight;
   const uint32_t pointWidth;

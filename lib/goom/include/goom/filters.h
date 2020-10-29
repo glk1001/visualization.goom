@@ -146,7 +146,7 @@ class ZoomFilterFx : public VisualFx
 {
 public:
   ZoomFilterFx() = delete;
-  explicit ZoomFilterFx(PluginInfo*);
+  explicit ZoomFilterFx(const PluginInfo*);
   ~ZoomFilterFx() noexcept;
   ZoomFilterFx(const ZoomFilterFx&) = delete;
   ZoomFilterFx& operator=(const ZoomFilterFx&) = delete;
@@ -172,7 +172,7 @@ public:
 
 private:
   bool enabled = true;
-  PluginInfo* const goomInfo;
+  const PluginInfo* const goomInfo;
   std::unique_ptr<ZoomFilterImpl> fxImpl;
 };
 

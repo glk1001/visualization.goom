@@ -257,7 +257,7 @@ void Colorizer::changeColorMaps()
 
 inline Pixel Colorizer::getNextMixerMapColor(const float t) const
 {
-  const Pixel nextColor = Pixel{.val = mixerMap->getColor(t)};
+  const Pixel nextColor = mixerMap->getColor(t);
   if (countSinceColorMapChange == 0)
   {
     return nextColor;
@@ -633,9 +633,9 @@ struct IfsFx::IfsUpdateData
 };
 
 
-IfsFx::IfsFx(PluginInfo* info)
+IfsFx::IfsFx(const PluginInfo* info)
   : goomInfo{info},
-    fxData{new IfsData{goomInfo->screen.width, goomInfo->screen.height}},
+    fxData{new IfsData{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height}},
     // clang-format off
     updateData{new IfsUpdateData{
       .couleur{ Pixel{0xc0c0c0c0} },
@@ -895,7 +895,7 @@ void IfsFx::updatePixelBuffers(Pixel* prevBuff,
 
     const uint32_t x = points[i].x & 0x7fffffff;
     const uint32_t y = points[i].y & 0x7fffffff;
-    if ((x >= goomInfo->screen.width) || (y >= goomInfo->screen.height))
+    if ((x >= goomInfo->getScreenInfo().width) || (y >= goomInfo->getScreenInfo().height))
     {
       continue;
     }
