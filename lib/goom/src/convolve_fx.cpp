@@ -8,6 +8,7 @@
 #include "goomutils/mathutils.h"
 
 #include <cereal/archives/json.hpp>
+#include <cereal/types/memory.hpp>
 #include <cmath>
 #include <cstdint>
 #include <fstream>
@@ -23,14 +24,11 @@ using namespace goom::utils;
 class ConvolveFx::ConvolveImpl
 {
 public:
-  ConvolveImpl(const PluginInfo*);
+  explicit ConvolveImpl(const PluginInfo*);
 
   void setBuffSettings(const FXBuffSettings&);
 
   void convolve(const Pixel* currentBuff, uint32_t* outputBuff);
-
-  template<class Archive>
-  void serialize(Archive&);
 
 private:
   const PluginInfo* const goomInfo;
@@ -40,6 +38,13 @@ private:
   FXBuffSettings buffSettings{};
 
   void createOutputWithBrightness(const Pixel* src, uint32_t* dest, const uint32_t flashInt);
+
+  ConvolveImpl() noexcept : goomInfo{nullptr} {}
+  friend class cereal::access;
+  template<class Archive>
+  void load(Archive&);
+  template<class Archive>
+  void save(Archive&) const;
 };
 
 ConvolveFx::ConvolveFx(const PluginInfo* info) : fxImpl{new ConvolveImpl{info}}
@@ -94,14 +99,36 @@ void ConvolveFx::convolve(const Pixel* currentBuff, uint32_t* outputBuff)
   fxImpl->convolve(currentBuff, outputBuff);
 }
 
+template<class Archive>
+void ConvolveFx::serialize(Archive& ar)
+{
+  ar(CEREAL_NVP(enabled), CEREAL_NVP(fxImpl));
+}
+
+// Need to explicitly instantiate template functions for serialization.
+template void ConvolveFx::serialize<cereal::JSONOutputArchive>(cereal::JSONOutputArchive&);
+template void ConvolveFx::serialize<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
+
+template void ConvolveFx::ConvolveImpl::save<cereal::JSONOutputArchive>(
+    cereal::JSONOutputArchive&) const;
+template void ConvolveFx::ConvolveImpl::load<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
+
 ConvolveFx::ConvolveImpl::ConvolveImpl(const PluginInfo* info) : goomInfo{info}
 {
 }
 
 template<class Archive>
-void ConvolveFx::ConvolveImpl::serialize(Archive& ar)
+void ConvolveFx::ConvolveImpl::load(Archive& ar)
 {
-  ar(buffSettings, screenBrightness, flashIntensity, factor);
+  ar(CEREAL_NVP(buffSettings), CEREAL_NVP(screenBrightness), CEREAL_NVP(flashIntensity),
+     CEREAL_NVP(factor));
+}
+
+template<class Archive>
+void ConvolveFx::ConvolveImpl::save(Archive& ar) const
+{
+  ar(CEREAL_NVP(buffSettings), CEREAL_NVP(screenBrightness), CEREAL_NVP(flashIntensity),
+     CEREAL_NVP(factor));
 }
 
 inline void ConvolveFx::ConvolveImpl::setBuffSettings(const FXBuffSettings& settings)

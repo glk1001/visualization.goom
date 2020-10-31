@@ -4,6 +4,7 @@
 #include "goom_graphic.h"
 #include "goom_visual_fx.h"
 
+#include <cereal/access.hpp>
 #include <istream>
 #include <memory>
 #include <ostream>
@@ -42,6 +43,10 @@ private:
   bool enabled = true;
   class ConvolveImpl;
   std::unique_ptr<ConvolveImpl> fxImpl;
+
+  friend class cereal::access;
+  template<class Archive>
+  void serialize(Archive&);
 };
 
 } // namespace goom
