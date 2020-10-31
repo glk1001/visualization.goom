@@ -4,7 +4,6 @@
 #include "goom_graphic.h"
 #include "goom_visual_fx.h"
 
-#include <cstdint>
 #include <istream>
 #include <memory>
 #include <ostream>
@@ -13,13 +12,12 @@
 namespace goom
 {
 
-struct PluginInfo;
-class TentaclesWrapper;
+class PluginInfo;
 
 class TentaclesFx : public VisualFx
 {
 public:
-  TentaclesFx() = delete;
+  TentaclesFx() noexcept = delete;
   explicit TentaclesFx(const PluginInfo*);
   ~TentaclesFx() noexcept = default;
   TentaclesFx(const TentaclesFx&) = delete;
@@ -33,16 +31,16 @@ public:
   void apply(Pixel* prevBuff, Pixel* currentBuff) override;
 
   std::string getFxName() const override;
-  void saveState(std::ostream&) override;
+  void saveState(std::ostream&) const override;
   void loadState(std::istream&) override;
 
-  void log(const StatsLogValueFunc& logVal) const override;
+  void log(const StatsLogValueFunc&) const override;
   void finish() override;
 
 private:
-  const PluginInfo* const goomInfo;
   bool enabled = true;
-  std::unique_ptr<TentaclesWrapper> tentacles;
+  class TentaclesImpl;
+  std::unique_ptr<TentaclesImpl> fxImpl;
 };
 
 } // namespace goom

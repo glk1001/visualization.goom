@@ -5,7 +5,9 @@
 #include "goom_plugin_info.h"
 
 #include <cstdint>
+#include <istream>
 #include <memory>
+#include <ostream>
 
 namespace goom
 {
@@ -16,11 +18,14 @@ public:
   GoomControl(const uint16_t resx, const uint16_t resy, const int seed);
   ~GoomControl() noexcept;
 
-  void setScreenBuffer(uint32_t* buffer);
-  void start();
-
   uint16_t getScreenWidth() const;
   uint16_t getScreenHeight() const;
+
+  void saveState(std::ostream&) const;
+  void restoreState(std::istream&);
+
+  void setScreenBuffer(uint32_t* buffer);
+  void start();
 
   /*
    * Update the next goom frame

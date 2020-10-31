@@ -30,11 +30,16 @@
 
 #include <algorithm>
 #include <array>
+#include <cereal/archives/json.hpp>
+#include <cereal/types/memory.hpp>
+#include <cereal/types/vector.hpp>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <format>
+#include <istream>
 #include <memory>
+#include <ostream>
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
@@ -955,6 +960,15 @@ struct GoomData
   int timeOfTitleDisplay = 0;
   char titleText[1024];
   ZoomFilterData zoomFilterData{};
+
+  template<class Archive>
+  void serialize(Archive& ar)
+  {
+    ar(CEREAL_NVP(lockvar), CEREAL_NVP(stop_lines), CEREAL_NVP(cyclesSinceLastChange),
+       CEREAL_NVP(drawLinesDuration), CEREAL_NVP(lineMode), CEREAL_NVP(switchMult),
+       CEREAL_NVP(switchIncr), CEREAL_NVP(stateSelectionBlocker), CEREAL_NVP(previousZoomSpeed),
+       CEREAL_NVP(timeOfTitleDisplay), CEREAL_NVP(titleText), CEREAL_NVP(zoomFilterData));
+  };
 };
 
 class WritablePluginInfo : public PluginInfo
@@ -984,6 +998,9 @@ public:
   ~GoomControlImp();
   void swap(GoomControl::GoomControlImp& other) noexcept = delete;
 
+  void saveState(std::ostream&) const;
+  void restoreState(std::istream&);
+
   void setScreenBuffer(uint32_t* buffer);
   uint16_t getScreenWidth() const;
   uint16_t getScreenHeight() const;
@@ -996,6 +1013,12 @@ public:
               const float fps,
               const char* songTitle,
               const char* message);
+
+  template<class Archive>
+  void serialize(Archive& ar)
+  {
+    ar(CEREAL_NVP(goomInfo), CEREAL_NVP(timeInState), CEREAL_NVP(cycle));
+  };
 
 private:
   std::unique_ptr<WritablePluginInfo> goomInfo;
@@ -1092,6 +1115,16 @@ GoomControl::~GoomControl() noexcept
 {
 }
 
+void GoomControl::saveState(std::ostream& f) const
+{
+  controller->saveState(f);
+}
+
+void GoomControl::restoreState(std::istream& f)
+{
+  controller->restoreState(f);
+}
+
 void GoomControl::setScreenBuffer(uint32_t* buffer)
 {
   controller->setScreenBuffer(buffer);
@@ -1182,6 +1215,14 @@ uint16_t GoomControl::GoomControlImp::getScreenWidth() const
 uint16_t GoomControl::GoomControlImp::getScreenHeight() const
 {
   return goomInfo->getScreenInfo().height;
+}
+
+void GoomControl::GoomControlImp::saveState(std::ostream& f) const
+{
+}
+
+void GoomControl::GoomControlImp::restoreState(std::istream& f)
+{
 }
 
 inline bool GoomControl::GoomControlImp::changeFilterModeEventHappens()
@@ -2182,7 +2223,7 @@ void GoomControl::GoomControlImp::displayLines(
 
   stats.doLines();
 
-  gmline2.power = gmline1.power;
+  gmline2.setPower(gmline1.getPower());
 
   gmline1.drawGoomLines(data[0], imageBuffers.getP1(), imageBuffers.getP2());
   gmline2.drawGoomLines(data[1], imageBuffers.getP1(), imageBuffers.getP2());

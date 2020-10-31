@@ -171,7 +171,7 @@ struct Star
   }
 };
 
-class FlyingStarsImpl
+class FlyingStarsFx::FlyingStarsImpl
 {
 public:
   explicit FlyingStarsImpl(const PluginInfo*);
@@ -250,10 +250,6 @@ void FlyingStarsFx::start()
 
 void FlyingStarsFx::finish()
 {
-  std::ofstream f("/tmp/flying-stars.json");
-  saveState(f);
-  f << std::endl;
-  f.close();
 }
 
 void FlyingStarsFx::log(const StatsLogValueFunc& logVal) const
@@ -266,7 +262,7 @@ std::string FlyingStarsFx::getFxName() const
   return "Flying Stars FX";
 }
 
-void FlyingStarsFx::saveState(std::ostream& f)
+void FlyingStarsFx::saveState(std::ostream& f) const
 {
   cereal::JSONOutputArchive archiveOut(f);
   archiveOut(*fxImpl);
@@ -288,7 +284,7 @@ void FlyingStarsFx::apply(Pixel* prevBuff, Pixel* currentBuff)
   fxImpl->updateBuffers(prevBuff, currentBuff);
 }
 
-FlyingStarsImpl::FlyingStarsImpl(const PluginInfo* info)
+FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl(const PluginInfo* info)
   : goomInfo{info},
     colorMaps{},
     stars{},
@@ -298,18 +294,18 @@ FlyingStarsImpl::FlyingStarsImpl(const PluginInfo* info)
   stars.reserve(maxStarsLimit);
 }
 
-void FlyingStarsImpl::setBuffSettings(const FXBuffSettings& settings)
+void FlyingStarsFx::FlyingStarsImpl::setBuffSettings(const FXBuffSettings& settings)
 {
   draw.setBuffIntensity(settings.buffIntensity);
   draw.setAllowOverexposed(settings.allowOverexposed);
 }
 
-void FlyingStarsImpl::log(const StatsLogValueFunc& logVal) const
+void FlyingStarsFx::FlyingStarsImpl::log(const StatsLogValueFunc& logVal) const
 {
   stats.log(logVal);
 }
 
-void FlyingStarsImpl::updateBuffers(Pixel* prevBuff, Pixel* currentBuff)
+void FlyingStarsFx::FlyingStarsImpl::updateBuffers(Pixel* prevBuff, Pixel* currentBuff)
 {
   maxStars = getRandInRange(100U, maxStarsLimit);
 
@@ -384,7 +380,7 @@ void FlyingStarsImpl::updateBuffers(Pixel* prevBuff, Pixel* currentBuff)
   //                     stars.end());
 }
 
-inline bool FlyingStarsImpl::isStarDead(const Star& star) const
+inline bool FlyingStarsFx::FlyingStarsImpl::isStarDead(const Star& star) const
 {
   return (star.x > static_cast<float>(goomInfo->getScreenInfo().width + 64)) ||
          ((star.vy >= 0) && (star.y - 16 * star.vy > goomInfo->getScreenInfo().height)) ||
@@ -394,7 +390,7 @@ inline bool FlyingStarsImpl::isStarDead(const Star& star) const
 /**
  * Met a jour la position et vitesse d'une particule.
  */
-void FlyingStarsImpl::updateStar(Star* s)
+void FlyingStarsFx::FlyingStarsImpl::updateStar(Star* s)
 {
   s->x += s->vx;
   s->y += s->vy;
@@ -403,7 +399,7 @@ void FlyingStarsImpl::updateStar(Star* s)
   s->age += s->vage;
 }
 
-inline Pixel FlyingStarsImpl::getLowColor(const size_t starNum, const float tmix)
+inline Pixel FlyingStarsFx::FlyingStarsImpl::getLowColor(const size_t starNum, const float tmix)
 {
   if (probabilityOfMInN(1, 2))
   {
@@ -426,7 +422,7 @@ inline Pixel FlyingStarsImpl::getLowColor(const size_t starNum, const float tmix
 /**
  * Ajoute de nouvelles particules au moment d'un evenement sonore.
  */
-void FlyingStarsImpl::soundEventOccured()
+void FlyingStarsFx::FlyingStarsImpl::soundEventOccured()
 {
   stats.soundEventOccurred();
 
@@ -511,13 +507,13 @@ void FlyingStarsImpl::soundEventOccured()
 /**
  * Cree une nouvelle 'bombe', c'est a dire une particule appartenant a une fusee d'artifice.
  */
-void FlyingStarsImpl::addABomb(const ColorMapGroup colorGroup,
-                               const ColorMap* lowColorMap,
-                               const uint32_t mx,
-                               const uint32_t my,
-                               const float radius,
-                               float vage,
-                               const float gravity)
+void FlyingStarsFx::FlyingStarsImpl::addABomb(const ColorMapGroup colorGroup,
+                                              const ColorMap* lowColorMap,
+                                              const uint32_t mx,
+                                              const uint32_t my,
+                                              const float radius,
+                                              float vage,
+                                              const float gravity)
 {
   if (stars.size() >= maxStars)
   {

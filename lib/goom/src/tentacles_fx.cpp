@@ -374,22 +374,23 @@ void TentacleStats::changeTentacleDriver(const uint32_t driverIndex)
   numDriverChanges.at(driverIndex)++;
 }
 
-class TentaclesWrapper
+class TentaclesFx::TentaclesImpl
 {
 public:
-  explicit TentaclesWrapper(const uint32_t screenWidth, const uint32_t screenHeight);
-  ~TentaclesWrapper() noexcept = default;
-  TentaclesWrapper(const TentaclesWrapper&) = delete;
-  TentaclesWrapper& operator=(const TentaclesWrapper&) = delete;
+  explicit TentaclesImpl(const PluginInfo*);
+  ~TentaclesImpl() noexcept = default;
+  TentaclesImpl(const TentaclesImpl&) = delete;
+  TentaclesImpl& operator=(const TentaclesImpl&) = delete;
 
   void setBuffSettings(const FXBuffSettings&);
 
-  void update(const PluginInfo*, Pixel* prevBuff, Pixel* currentBuff);
+  void update(Pixel* prevBuff, Pixel* currentBuff);
   void updateWithNoDraw();
 
   void logStats(const StatsLogValueFunc logVal);
 
 private:
+  const PluginInfo* const goomInfo;
   WeightedColorMaps colorMaps;
   const ColorMap* dominantColorMap;
   Pixel dominantColor;
@@ -447,8 +448,65 @@ private:
   mutable TentacleStats stats;
 };
 
-TentaclesWrapper::TentaclesWrapper(const uint32_t screenWidth, const uint32_t screenHeight)
-  : colorMaps{Weights<ColorMapGroup>{{
+// TODO PASS GoomINFO to wrapper
+TentaclesFx::TentaclesFx(const PluginInfo* info) : fxImpl{new TentaclesImpl{info}}
+{
+}
+
+void TentaclesFx::setBuffSettings(const FXBuffSettings& settings)
+{
+  fxImpl->setBuffSettings(settings);
+}
+
+void TentaclesFx::start()
+{
+}
+
+void TentaclesFx::finish()
+{
+}
+
+void TentaclesFx::log(const StatsLogValueFunc& logVal) const
+{
+  fxImpl->logStats(logVal);
+}
+
+void TentaclesFx::apply(Pixel* prevBuff, Pixel* currentBuff)
+{
+  if (!enabled)
+  {
+    return;
+  }
+
+  fxImpl->update(prevBuff, currentBuff);
+}
+
+void TentaclesFx::applyNoDraw()
+{
+  if (!enabled)
+  {
+    return;
+  }
+
+  fxImpl->updateWithNoDraw();
+}
+
+std::string TentaclesFx::getFxName() const
+{
+  return "Tentacles FX";
+}
+
+void TentaclesFx::saveState(std::ostream&) const
+{
+}
+
+void TentaclesFx::loadState(std::istream&)
+{
+}
+
+TentaclesFx::TentaclesImpl::TentaclesImpl(const PluginInfo* info)
+  : goomInfo{info},
+    colorMaps{Weights<ColorMapGroup>{{
         {ColorMapGroup::perceptuallyUniformSequential, 10},
         {ColorMapGroup::sequential, 10},
         {ColorMapGroup::sequential2, 10},
@@ -494,7 +552,8 @@ colorMaps.setWeights(colorGroupWeights);
 
   for (size_t i = 0; i < numDrivers; i++)
   {
-    drivers.emplace_back(new TentacleDriver{&colorMaps, screenWidth, screenHeight});
+    drivers.emplace_back(new TentacleDriver{&colorMaps, goomInfo->getScreenInfo().width,
+                                            goomInfo->getScreenInfo().height});
   }
 
   if (numDrivers != driverWeights.getNumElements())
@@ -514,18 +573,18 @@ colorMaps.setWeights(colorGroupWeights);
   init();
 }
 
-inline void TentaclesWrapper::setBuffSettings(const FXBuffSettings& settings)
+inline void TentaclesFx::TentaclesImpl::setBuffSettings(const FXBuffSettings& settings)
 {
   currentDriver->setBuffSettings(settings);
 }
 
-inline void TentaclesWrapper::incCounters()
+inline void TentaclesFx::TentaclesImpl::incCounters()
 {
   countSinceHighAccelLastMarked++;
   countSinceColorChangeLastMarked++;
 }
 
-void TentaclesWrapper::logStats(const StatsLogValueFunc logVal)
+void TentaclesFx::TentaclesImpl::logStats(const StatsLogValueFunc logVal)
 {
   stats.setLastNumTentacles(currentDriver->getNumTentacles());
   stats.setLastUpdatingWithDraw(updatingWithDraw);
@@ -551,7 +610,7 @@ void TentaclesWrapper::logStats(const StatsLogValueFunc logVal)
   stats.log(logVal);
 }
 
-void TentaclesWrapper::updateWithNoDraw()
+void TentaclesFx::TentaclesImpl::updateWithNoDraw()
 {
   stats.updateWithNoDraw();
 
@@ -572,7 +631,7 @@ void TentaclesWrapper::updateWithNoDraw()
   changeDominantColor();
 }
 
-void TentaclesWrapper::init()
+void TentaclesFx::TentaclesImpl::init()
 {
   currentDriver->setRoughTentacles(false);
   currentDriver->freshStart();
@@ -601,7 +660,7 @@ void TentaclesWrapper::init()
   }
 }
 
-void TentaclesWrapper::update(const PluginInfo* goomInfo, Pixel* prevBuff, Pixel* currentBuff)
+void TentaclesFx::TentaclesImpl::update(Pixel* prevBuff, Pixel* currentBuff)
 {
   logDebug("Starting update.");
 
@@ -692,14 +751,14 @@ void TentaclesWrapper::update(const PluginInfo* goomInfo, Pixel* prevBuff, Pixel
   }
 }
 
-void TentaclesWrapper::changeDominantColor()
+void TentaclesFx::TentaclesImpl::changeDominantColor()
 {
   stats.changeDominantColor();
   const Pixel newColor = ColorMap::getRandomColor(*dominantColorMap);
   dominantColor = ColorMap::colorMix(dominantColor, newColor, 0.7);
 }
 
-inline std::tuple<Pixel, Pixel> TentaclesWrapper::getModColors()
+inline std::tuple<Pixel, Pixel> TentaclesFx::TentaclesImpl::getModColors()
 {
   // IMPORTANT. getEvolvedColor works just right - not sure why
   dominantColor = getEvolvedColor(dominantColor);
@@ -710,7 +769,7 @@ inline std::tuple<Pixel, Pixel> TentaclesWrapper::getModColors()
   return std::make_tuple(modColor, modColorLow);
 }
 
-void TentaclesWrapper::prettyMovePreStart()
+void TentaclesFx::TentaclesImpl::prettyMovePreStart()
 {
   prePrettyMoveLock = getRandInRange(minPrePrettyMoveLock, maxPrePrettyMoveLock);
   distt2OffsetPreStep =
@@ -718,7 +777,7 @@ void TentaclesWrapper::prettyMovePreStart()
   distt2Offset = 0;
 }
 
-void TentaclesWrapper::prettyMoveStart(const float acceleration, const int32_t timerVal)
+void TentaclesFx::TentaclesImpl::prettyMoveStart(const float acceleration, const int32_t timerVal)
 {
   stats.prettyMoveHappens();
 
@@ -747,14 +806,14 @@ inline float getRapport(const float accelvar)
 }
 ****/
 
-void TentaclesWrapper::prettyMoveFinish()
+void TentaclesFx::TentaclesImpl::prettyMoveFinish()
 {
   prettyMoveHappeningTimer = 0;
   distt2Offset = 0;
   currentDriver->setRoughTentacles(false);
 }
 
-void TentaclesWrapper::isPrettyMoveHappeningUpdate(const float acceleration)
+void TentaclesFx::TentaclesImpl::isPrettyMoveHappeningUpdate(const float acceleration)
 {
   // Are we in a prettyMove?
   if (prettyMoveHappeningTimer > 0)
@@ -804,19 +863,19 @@ void TentaclesWrapper::isPrettyMoveHappeningUpdate(const float acceleration)
   }
 }
 
-inline TentacleDriver* TentaclesWrapper::getNextDriver() const
+inline TentacleDriver* TentaclesFx::TentaclesImpl::getNextDriver() const
 {
   const size_t driverIndex = driverWeights.getRandomWeighted();
   stats.changeTentacleDriver(driverIndex);
   return drivers[driverIndex].get();
 }
 
-inline float TentaclesWrapper::getStableRotationOffset(const float cycleVal)
+inline float TentaclesFx::TentaclesImpl::getStableRotationOffset(const float cycleVal)
 {
   return (1.5F + sin(cycleVal) / 32.0F) * m_pi;
 }
 
-void TentaclesWrapper::prettyMove(const float acceleration)
+void TentaclesFx::TentaclesImpl::prettyMove(const float acceleration)
 {
   isPrettyMoveHappeningUpdate(acceleration);
 
@@ -884,66 +943,6 @@ void TentaclesWrapper::prettyMove(const float acceleration)
           "lerpMix = {:.03f}, cycle = {:.03f}, doRotation = {}",
           prettyMoveHappeningTimer, postPrettyMoveLock, oldRot, rot, rotOffset, prettyMoveLerpMix,
           cycle, doRotation);
-}
-
-
-// TODO PASS GoomINFO to wrapper
-TentaclesFx::TentaclesFx(const PluginInfo* info)
-  : goomInfo{info},
-    tentacles{
-        new TentaclesWrapper{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height}}
-{
-}
-
-void TentaclesFx::setBuffSettings(const FXBuffSettings& settings)
-{
-  tentacles->setBuffSettings(settings);
-}
-
-void TentaclesFx::start()
-{
-}
-
-void TentaclesFx::finish()
-{
-}
-
-void TentaclesFx::log(const StatsLogValueFunc& logVal) const
-{
-  tentacles->logStats(logVal);
-}
-
-void TentaclesFx::apply(Pixel* prevBuff, Pixel* currentBuff)
-{
-  if (!enabled)
-  {
-    return;
-  }
-
-  tentacles->update(goomInfo, prevBuff, currentBuff);
-}
-
-void TentaclesFx::applyNoDraw()
-{
-  if (!enabled)
-  {
-    return;
-  }
-
-  tentacles->updateWithNoDraw();
-}
-
-std::string TentaclesFx::getFxName() const
-{
-  return "Tentacles FX";
-}
-
-void TentaclesFx::saveState(std::ostream&)
-{
-}
-
-void TentaclesFx::loadState(std::istream&)
-{
 }
 
 } // namespace goom

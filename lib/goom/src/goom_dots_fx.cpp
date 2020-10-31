@@ -12,6 +12,7 @@
 
 #include <cstdint>
 #include <istream>
+#include <memory>
 #include <ostream>
 #include <string>
 #include <vector>
@@ -26,7 +27,104 @@ inline bool changeDotColorsEvent()
   return probabilityOfMInN(1, 3);
 }
 
-GoomDots::GoomDots(const PluginInfo* info)
+class GoomDots::GoomDotsImpl
+{
+public:
+  explicit GoomDotsImpl(const PluginInfo*);
+  GoomDotsImpl(const GoomDotsImpl&) = delete;
+  GoomDotsImpl& operator=(const GoomDotsImpl&) = delete;
+
+  void setBuffSettings(const FXBuffSettings&);
+
+  void apply(Pixel* prevBuff, Pixel* currentBuff);
+
+private:
+  const PluginInfo* const goomInfo;
+  const uint32_t screenWidth;
+  const uint32_t screenHeight;
+  const uint32_t pointWidth;
+  const uint32_t pointHeight;
+
+  const float pointWidthDiv2;
+  const float pointHeightDiv2;
+  const float pointWidthDiv3;
+  const float pointHeightDiv3;
+
+  GoomDraw draw;
+  FXBuffSettings buffSettings;
+
+  utils::WeightedColorMaps colorMaps;
+  const utils::ColorMap* colorMap1 = nullptr;
+  const utils::ColorMap* colorMap2 = nullptr;
+  const utils::ColorMap* colorMap3 = nullptr;
+  const utils::ColorMap* colorMap4 = nullptr;
+  const utils::ColorMap* colorMap5 = nullptr;
+  Pixel middleColor{};
+  bool useSingleBufferOnly = true;
+  bool useGrayScale = false;
+  uint32_t loopvar = 0; // mouvement des points
+
+  void changeColors();
+
+  std::vector<Pixel> getColors(const Pixel& color0, const Pixel& color1, const size_t numPts);
+
+  float getLargeSoundFactor(const SoundInfo&) const;
+
+  void dotFilter(Pixel* prevBuff,
+                 Pixel* currentBuff,
+                 const std::vector<Pixel>& colors,
+                 const float t1,
+                 const float t2,
+                 const float t3,
+                 const float t4,
+                 const uint32_t cycle,
+                 const uint32_t radius);
+};
+
+GoomDots::GoomDots(const PluginInfo* info) : fxImpl{new GoomDotsImpl{info}}
+{
+}
+
+GoomDots::~GoomDots() noexcept
+{
+}
+
+void GoomDots::setBuffSettings(const FXBuffSettings& settings)
+{
+  fxImpl->setBuffSettings(settings);
+}
+
+void GoomDots::start()
+{
+}
+
+void GoomDots::finish()
+{
+}
+
+std::string GoomDots::getFxName() const
+{
+  return "goom dots";
+}
+
+void GoomDots::saveState(std::ostream&) const
+{
+}
+
+void GoomDots::loadState(std::istream&)
+{
+}
+
+void GoomDots::apply(Pixel* prevBuff, Pixel* currentBuff)
+{
+  if (!enabled)
+  {
+    return;
+  }
+  fxImpl->apply(prevBuff, currentBuff);
+}
+
+GoomDots::GoomDotsImpl::GoomDotsImpl(const PluginInfo* info)
   : goomInfo(info),
     screenWidth{goomInfo->getScreenInfo().width},
     screenHeight{goomInfo->getScreenInfo().height},
@@ -52,35 +150,14 @@ GoomDots::GoomDots(const PluginInfo* info)
   changeColors();
 }
 
-void GoomDots::setBuffSettings(const FXBuffSettings& settings)
+void GoomDots::GoomDotsImpl::setBuffSettings(const FXBuffSettings& settings)
 {
   buffSettings = settings;
   draw.setBuffIntensity(buffSettings.buffIntensity);
   draw.setAllowOverexposed(buffSettings.allowOverexposed);
 }
 
-void GoomDots::start()
-{
-}
-
-void GoomDots::finish()
-{
-}
-
-std::string GoomDots::getFxName() const
-{
-  return "goom dots";
-}
-
-void GoomDots::saveState(std::ostream&)
-{
-}
-
-void GoomDots::loadState(std::istream&)
-{
-}
-
-void GoomDots::changeColors()
+void GoomDots::GoomDotsImpl::changeColors()
 {
   colorMap1 = &colorMaps.getRandomColorMap();
   colorMap2 = &colorMaps.getRandomColorMap();
@@ -93,7 +170,7 @@ void GoomDots::changeColors()
   useGrayScale = probabilityOfMInN(1, 10);
 }
 
-void GoomDots::apply(Pixel* prevBuff, Pixel* currentBuff)
+void GoomDots::GoomDotsImpl::apply(Pixel* prevBuff, Pixel* currentBuff)
 {
   uint32_t radius = 3;
   if ((goomInfo->getSoundInfo().getTimeSinceLastGoom() == 0) || changeDotColorsEvent())
@@ -178,9 +255,9 @@ void GoomDots::apply(Pixel* prevBuff, Pixel* currentBuff)
   }
 }
 
-std::vector<Pixel> GoomDots::getColors(const Pixel& color0,
-                                       const Pixel& color1,
-                                       const size_t numPts)
+std::vector<Pixel> GoomDots::GoomDotsImpl::getColors(const Pixel& color0,
+                                                     const Pixel& color1,
+                                                     const size_t numPts)
 {
   std::vector<Pixel> colors(numPts);
   constexpr float t_min = 0.0;
@@ -205,7 +282,7 @@ std::vector<Pixel> GoomDots::getColors(const Pixel& color0,
   return colors;
 }
 
-float GoomDots::getLargeSoundFactor(const SoundInfo& soundInfo) const
+float GoomDots::GoomDotsImpl::getLargeSoundFactor(const SoundInfo& soundInfo) const
 {
   float largefactor = soundInfo.getSpeed() / 150.0f + soundInfo.getVolume() / 1.5f;
   if (largefactor > 1.5f)
@@ -215,15 +292,15 @@ float GoomDots::getLargeSoundFactor(const SoundInfo& soundInfo) const
   return largefactor;
 }
 
-void GoomDots::dotFilter(Pixel* prevBuff,
-                         Pixel* currentBuff,
-                         const std::vector<Pixel>& colors,
-                         const float t1,
-                         const float t2,
-                         const float t3,
-                         const float t4,
-                         const uint32_t cycle,
-                         const uint32_t radius)
+void GoomDots::GoomDotsImpl::dotFilter(Pixel* prevBuff,
+                                       Pixel* currentBuff,
+                                       const std::vector<Pixel>& colors,
+                                       const float t1,
+                                       const float t2,
+                                       const float t3,
+                                       const float t4,
+                                       const uint32_t cycle,
+                                       const uint32_t radius)
 {
   const uint32_t xOffset = static_cast<uint32_t>(t1 * cos(static_cast<float>(cycle) / t3));
   const uint32_t yOffset = static_cast<uint32_t>(t2 * sin(static_cast<float>(cycle) / t4));

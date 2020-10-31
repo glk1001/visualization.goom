@@ -77,21 +77,16 @@ uint32_t getRandInRange(const uint32_t n0, const uint32_t n1)
 
 int32_t getRandInRange(const int32_t n0, const int32_t n1)
 {
-  if ((n0 < 0) && (n1 < 0))
+  if (n0 >= n1)
   {
-    return -static_cast<int32_t>(
-        getRandInRange(static_cast<uint32_t>(-n1 - 1), static_cast<uint32_t>(-n0 + 1)));
+    throw std::logic_error("int n0 >= n1");
   }
   if ((n0 >= 0) && (n1 >= 0))
   {
     return static_cast<int32_t>(
         getRandInRange(static_cast<uint32_t>(n0), static_cast<uint32_t>(n1)));
   }
-  if (n0 >= n1)
-  {
-    throw std::logic_error("int n0 >= n1");
-  }
-  return n0 + static_cast<int32_t>(getNRand(static_cast<uint32_t>(n1)));
+  return n0 + static_cast<int32_t>(getNRand(static_cast<uint32_t>(-n0 + n1)));
 }
 
 float getRandInRange(const float x0, const float x1)

@@ -370,7 +370,7 @@ using PixelArray = std::array<Pixel, numCoeffs>;
 constexpr float minCoefVitesse = -2.01;
 constexpr float maxCoefVitesse = +2.01;
 
-class ZoomFilterImpl
+class ZoomFilterFx::ZoomFilterImpl
 {
 public:
   explicit ZoomFilterImpl(const PluginInfo*) noexcept;
@@ -458,7 +458,7 @@ void ZoomFilterData::serialize(Archive& ar)
      CEREAL_NVP(vPlaneEffectAmplitude));
 }
 
-ZoomFilterImpl::ZoomFilterImpl(const PluginInfo* goomInfo) noexcept
+ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl(const PluginInfo* goomInfo) noexcept
   : screenWidth{goomInfo->getScreenInfo().width},
     screenHeight{goomInfo->getScreenInfo().height},
     ratioPixmapToNormalizedCoord{2.0F / static_cast<float>(screenWidth)},
@@ -493,31 +493,31 @@ ZoomFilterImpl::ZoomFilterImpl(const PluginInfo* goomInfo) noexcept
   memcpy(tranYDest, tranYTemp, goomInfo->getScreenInfo().size * sizeof(int32_t));
 }
 
-ZoomFilterImpl::~ZoomFilterImpl() noexcept
+ZoomFilterFx::ZoomFilterImpl::~ZoomFilterImpl() noexcept
 {
 }
 
-void ZoomFilterImpl::setBuffSettings(const FXBuffSettings& settings)
+void ZoomFilterFx::ZoomFilterImpl::setBuffSettings(const FXBuffSettings& settings)
 {
   buffSettings = settings;
 }
 
-inline void ZoomFilterImpl::incNormalizedCoord(float& normalizedCoord)
+inline void ZoomFilterFx::ZoomFilterImpl::incNormalizedCoord(float& normalizedCoord)
 {
   normalizedCoord += ratioPixmapToNormalizedCoord;
 }
 
-inline float ZoomFilterImpl::toNormalizedCoord(const int32_t pixmapCoord)
+inline float ZoomFilterFx::ZoomFilterImpl::toNormalizedCoord(const int32_t pixmapCoord)
 {
   return ratioPixmapToNormalizedCoord * static_cast<float>(pixmapCoord);
 }
 
-inline int32_t ZoomFilterImpl::toPixmapCoord(const float normalizedCoord)
+inline int32_t ZoomFilterFx::ZoomFilterImpl::toPixmapCoord(const float normalizedCoord)
 {
   return static_cast<int32_t>(ratioNormalizedCoordToPixmap * normalizedCoord);
 }
 
-void ZoomFilterImpl::log(const StatsLogValueFunc& logVal) const
+void ZoomFilterFx::ZoomFilterImpl::log(const StatsLogValueFunc& logVal) const
 {
   stats.setLastGeneralSpeed(generalSpeed);
   stats.setLastPrevX(screenWidth);
@@ -526,6 +526,68 @@ void ZoomFilterImpl::log(const StatsLogValueFunc& logVal) const
   stats.setLastTranDiffFactor(tranDiffFactor);
 
   stats.log(logVal);
+}
+
+ZoomFilterFx::ZoomFilterFx(const PluginInfo* info) : fxImpl{new ZoomFilterImpl{info}}
+{
+}
+
+ZoomFilterFx::~ZoomFilterFx() noexcept
+{
+}
+
+void ZoomFilterFx::setBuffSettings(const FXBuffSettings& settings)
+{
+  fxImpl->setBuffSettings(settings);
+}
+
+void ZoomFilterFx::start()
+{
+}
+
+void ZoomFilterFx::finish()
+{
+}
+
+void ZoomFilterFx::log(const StatsLogValueFunc& logVal) const
+{
+  fxImpl->log(logVal);
+}
+
+std::string ZoomFilterFx::getFxName() const
+{
+  return "ZoomFilter FX";
+}
+
+void ZoomFilterFx::saveState(std::ostream& f) const
+{
+  cereal::JSONOutputArchive archiveOut(f);
+  archiveOut(*fxImpl);
+}
+
+void ZoomFilterFx::loadState(std::istream& f)
+{
+  cereal::JSONInputArchive archive_in(f);
+  archive_in(*fxImpl);
+}
+
+void ZoomFilterFx::apply(Pixel*, Pixel*)
+{
+  throw std::logic_error("ZoomFilterFx::apply should never be called.");
+}
+
+void ZoomFilterFx::zoomFilterFastRGB(const Pixel* pix1,
+                                     Pixel* pix2,
+                                     const ZoomFilterData* zf,
+                                     const int switchIncr,
+                                     const float switchMult)
+{
+  if (!enabled)
+  {
+    return;
+  }
+
+  fxImpl->zoomFilterFastRGB(pix1, pix2, zf, switchIncr, switchMult);
 }
 
 /**
@@ -541,11 +603,11 @@ void ZoomFilterImpl::log(const StatsLogValueFunc& logVal) const
  *  So that is why you have this name, for the nostalgy of the first days of goom
  *  when it was just a tiny program writen in Turbo Pascal on my i486...
  */
-void ZoomFilterImpl::zoomFilterFastRGB(const Pixel* pix1,
-                                       Pixel* pix2,
-                                       const ZoomFilterData* zf,
-                                       const int32_t switchIncr,
-                                       const float switchMult)
+void ZoomFilterFx::ZoomFilterImpl::zoomFilterFastRGB(const Pixel* pix1,
+                                                     Pixel* pix2,
+                                                     const ZoomFilterData* zf,
+                                                     const int32_t switchIncr,
+                                                     const float switchMult)
 {
   logDebug("switchIncr = {}, switchMult = {:.2}", switchIncr, switchMult);
 
@@ -630,7 +692,7 @@ void ZoomFilterImpl::zoomFilterFastRGB(const Pixel* pix1,
   c_zoom(pix1, pix2);
 }
 
-void ZoomFilterImpl::generatePrecalCoef(uint32_t precalcCoeffs[16][16])
+void ZoomFilterFx::ZoomFilterImpl::generatePrecalCoef(uint32_t precalcCoeffs[16][16])
 {
   for (uint32_t coefh = 0; coefh < 16; coefh++)
   {
@@ -681,7 +743,7 @@ void ZoomFilterImpl::generatePrecalCoef(uint32_t precalcCoeffs[16][16])
 }
 
 // pure c version of the zoom filter
-void ZoomFilterImpl::c_zoom(const Pixel* srceBuff, Pixel* destBuff)
+void ZoomFilterFx::ZoomFilterImpl::c_zoom(const Pixel* srceBuff, Pixel* destBuff)
 {
   stats.doCZoom();
 
@@ -738,7 +800,7 @@ void ZoomFilterImpl::c_zoom(const Pixel* srceBuff, Pixel* destBuff)
  * Translation (-data->middleX, -data->middleY)
  * Homothetie (Center : 0,0   Coeff : 2/data->screenWidth)
  */
-void ZoomFilterImpl::makeZoomBufferStripe(const uint32_t interlaceIncrement)
+void ZoomFilterFx::ZoomFilterImpl::makeZoomBufferStripe(const uint32_t interlaceIncrement)
 {
   stats.doMakeZoomBufferStripe();
 
@@ -779,7 +841,7 @@ void ZoomFilterImpl::makeZoomBufferStripe(const uint32_t interlaceIncrement)
   }
 }
 
-void ZoomFilterImpl::generateWaterFXHorizontalBuffer()
+void ZoomFilterFx::ZoomFilterImpl::generateWaterFXHorizontalBuffer()
 {
   stats.doGenerateWaterFXHorizontalBuffer();
 
@@ -837,7 +899,7 @@ void ZoomFilterImpl::generateWaterFXHorizontalBuffer()
   }
 }
 
-v2g ZoomFilterImpl::getZoomVector(const float normX, const float normY)
+v2g ZoomFilterFx::ZoomFilterImpl::getZoomVector(const float normX, const float normY)
 {
   stats.doZoomVector();
 
@@ -1001,7 +1063,8 @@ v2g ZoomFilterImpl::getZoomVector(const float normX, const float normY)
   return v2g{vx, vy};
 }
 
-inline Pixel ZoomFilterImpl::getMixedColor(const CoeffArray& coeffs, const PixelArray& colors) const
+inline Pixel ZoomFilterFx::ZoomFilterImpl::getMixedColor(const CoeffArray& coeffs,
+                                                         const PixelArray& colors) const
 {
   if (coeffs.intVal == 0)
   {
@@ -1045,8 +1108,8 @@ inline Pixel ZoomFilterImpl::getMixedColor(const CoeffArray& coeffs, const Pixel
                 .a = 0xff}};
 }
 
-inline Pixel ZoomFilterImpl::getBlockyMixedColor(const CoeffArray& coeffs,
-                                                 const PixelArray& colors) const
+inline Pixel ZoomFilterFx::ZoomFilterImpl::getBlockyMixedColor(const CoeffArray& coeffs,
+                                                               const PixelArray& colors) const
 {
   // Changing the color order gives a strange blocky, wavy look.
   // The order col4, col3, col2, col1 gave a black tear - no so good.
@@ -1054,80 +1117,16 @@ inline Pixel ZoomFilterImpl::getBlockyMixedColor(const CoeffArray& coeffs,
   return getMixedColor(coeffs, reorderedColors);
 }
 
-inline Pixel ZoomFilterImpl::getPixelColor(const Pixel* buffer, const uint32_t pos)
+inline Pixel ZoomFilterFx::ZoomFilterImpl::getPixelColor(const Pixel* buffer, const uint32_t pos)
 {
   return buffer[pos];
 }
 
-inline void ZoomFilterImpl::setPixelColor(Pixel* buffer, const uint32_t pos, const Pixel& p)
+inline void ZoomFilterFx::ZoomFilterImpl::setPixelColor(Pixel* buffer,
+                                                        const uint32_t pos,
+                                                        const Pixel& p)
 {
   buffer[pos] = p;
-}
-
-ZoomFilterFx::ZoomFilterFx(const PluginInfo* info)
-  : goomInfo{info}, fxImpl{new ZoomFilterImpl{goomInfo}}
-{
-}
-
-ZoomFilterFx::~ZoomFilterFx() noexcept
-{
-}
-
-void ZoomFilterFx::setBuffSettings(const FXBuffSettings& settings)
-{
-  fxImpl->setBuffSettings(settings);
-}
-
-void ZoomFilterFx::start()
-{
-}
-
-void ZoomFilterFx::finish()
-{
-  std::ofstream f("/tmp/zoom-filter.json");
-  saveState(f);
-  f << std::endl;
-  f.close();
-}
-
-void ZoomFilterFx::log(const StatsLogValueFunc& logVal) const
-{
-  fxImpl->log(logVal);
-}
-
-std::string ZoomFilterFx::getFxName() const
-{
-  return "ZoomFilter FX";
-}
-
-void ZoomFilterFx::saveState(std::ostream& f)
-{
-  cereal::JSONOutputArchive archiveOut(f);
-  archiveOut(*fxImpl);
-}
-
-void ZoomFilterFx::loadState(std::istream& f)
-{
-  cereal::JSONInputArchive archive_in(f);
-  archive_in(*fxImpl);
-}
-
-void ZoomFilterFx::apply(Pixel*, Pixel*)
-{
-  throw std::logic_error("ZoomFilterFx::apply should never be called.");
-}
-void ZoomFilterFx::zoomFilterFastRGB(const Pixel* pix1,
-                                     Pixel* pix2,
-                                     const ZoomFilterData* zf,
-                                     const int switchIncr,
-                                     const float switchMult)
-{
-  if (!enabled)
-  {
-    return;
-  }
-
-  fxImpl->zoomFilterFastRGB(pix1, pix2, zf, switchIncr, switchMult);
 }
 
 } // namespace goom

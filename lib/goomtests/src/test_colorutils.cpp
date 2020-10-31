@@ -21,7 +21,7 @@ TEST_CASE("Test max channels", "[channels-max]")
 TEST_CASE("Color channels are added", "[color-channel-add]")
 {
   REQUIRE(colorChannelAdd(100, 120) == 220);
-  REQUIRE(colorChannelAdd(200, 120) == 255);
+  REQUIRE(colorChannelAdd(200, 120) == 320);
   REQUIRE(colorChannelAdd(0, 120) == 120);
   REQUIRE(colorChannelAdd(0, 0) == 0);
 }
@@ -30,11 +30,16 @@ TEST_CASE("Colors are added", "[color-add]")
 {
   const Pixel c1{{.r = 100, .g = 50, .b = 20}};
   const Pixel c2{{.r = 120, .g = 250, .b = 70}};
-  const Pixel c3 = getColorAdd(c1, c2, false);
+  const Pixel c3 = getColorAdd(c1, c2, true);
 
   REQUIRE(static_cast<uint32_t>(c3.r()) == 220);
   REQUIRE(static_cast<uint32_t>(c3.g()) == 255);
   REQUIRE(static_cast<uint32_t>(c3.b()) == 90);
+
+  const Pixel c4 = getColorAdd(c1, c2, false);
+  REQUIRE(static_cast<uint32_t>(c4.r()) == 220 * 255 / 300);
+  REQUIRE(static_cast<uint32_t>(c4.g()) == 255);
+  REQUIRE(static_cast<uint32_t>(c4.b()) == 90 * 255 / 300);
 }
 
 TEST_CASE("Color channels are brightened", "[color-channel-bright]")

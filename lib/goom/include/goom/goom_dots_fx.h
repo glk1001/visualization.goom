@@ -1,28 +1,25 @@
 #ifndef LIBS_GOOM_INCLUDE_GOOM_GOOM_DOTS_FX_H_
 #define LIBS_GOOM_INCLUDE_GOOM_GOOM_DOTS_FX_H_
 
-#include "goom_draw.h"
 #include "goom_graphic.h"
 #include "goom_visual_fx.h"
-#include "goomutils/colormap.h"
 
-#include <cstdint>
 #include <istream>
+#include <memory>
 #include <ostream>
 #include <string>
-#include <vector>
 
 namespace goom
 {
 
-struct PluginInfo;
-class SoundInfo;
+class PluginInfo;
 
 class GoomDots : public VisualFx
 {
 public:
+  GoomDots() noexcept = delete;
   explicit GoomDots(const PluginInfo*);
-  ~GoomDots() noexcept = default;
+  ~GoomDots() noexcept;
   GoomDots(const GoomDots&) = delete;
   GoomDots& operator=(const GoomDots&) = delete;
 
@@ -33,52 +30,15 @@ public:
   void apply(Pixel* prevBuff, Pixel* currentBuff) override;
 
   std::string getFxName() const override;
-  void saveState(std::ostream&) override;
+  void saveState(std::ostream&) const override;
   void loadState(std::istream&) override;
 
   void finish() override;
 
 private:
-  const PluginInfo* const goomInfo;
-  const uint32_t screenWidth;
-  const uint32_t screenHeight;
-  const uint32_t pointWidth;
-  const uint32_t pointHeight;
-
-  const float pointWidthDiv2;
-  const float pointHeightDiv2;
-  const float pointWidthDiv3;
-  const float pointHeightDiv3;
-
-  GoomDraw draw;
-  FXBuffSettings buffSettings;
-
-  utils::WeightedColorMaps colorMaps;
-  const utils::ColorMap* colorMap1 = nullptr;
-  const utils::ColorMap* colorMap2 = nullptr;
-  const utils::ColorMap* colorMap3 = nullptr;
-  const utils::ColorMap* colorMap4 = nullptr;
-  const utils::ColorMap* colorMap5 = nullptr;
-  Pixel middleColor{};
-  bool useSingleBufferOnly = true;
-  bool useGrayScale = false;
-  uint32_t loopvar = 0; // mouvement des points
-
-  void changeColors();
-
-  std::vector<Pixel> getColors(const Pixel& color0, const Pixel& color1, const size_t numPts);
-
-  float getLargeSoundFactor(const SoundInfo&) const;
-
-  void dotFilter(Pixel* prevBuff,
-                 Pixel* currentBuff,
-                 const std::vector<Pixel>& colors,
-                 const float t1,
-                 const float t2,
-                 const float t3,
-                 const float t4,
-                 const uint32_t cycle,
-                 const uint32_t radius);
+  bool enabled = true;
+  class GoomDotsImpl;
+  std::unique_ptr<GoomDotsImpl> fxImpl;
 };
 
 } // namespace goom

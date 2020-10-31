@@ -1,7 +1,6 @@
 #ifndef _CONVOLVE_FX_H
 #define _CONVOLVE_FX_H
 
-#include "goom_config.h"
 #include "goom_graphic.h"
 #include "goom_visual_fx.h"
 
@@ -13,13 +12,12 @@
 namespace goom
 {
 
-struct ConvolveData;
-struct PluginInfo;
+class PluginInfo;
 
 class ConvolveFx : public VisualFx
 {
 public:
-  ConvolveFx() = delete;
+  ConvolveFx() noexcept = delete;
   explicit ConvolveFx(const PluginInfo*);
   ~ConvolveFx() noexcept;
   ConvolveFx(const ConvolveFx&) = delete;
@@ -34,16 +32,16 @@ public:
   void apply(Pixel*, Pixel*) override{};
 
   std::string getFxName() const override;
-  void saveState(std::ostream&) override;
+  void saveState(std::ostream&) const override;
   void loadState(std::istream&) override;
 
-  void log(const StatsLogValueFunc& logVal) const override;
+  void log(const StatsLogValueFunc&) const override;
   void finish() override;
 
 private:
-  const PluginInfo* const goomInfo;
   bool enabled = true;
-  std::unique_ptr<ConvolveData> fxData;
+  class ConvolveImpl;
+  std::unique_ptr<ConvolveImpl> fxImpl;
 };
 
 } // namespace goom

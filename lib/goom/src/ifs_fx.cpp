@@ -298,25 +298,75 @@ inline Pixel Colorizer::getMixedColor(const Pixel& baseColor, const float tmix)
   }
 }
 
-struct IfsData
-{
-  IfsData(const uint32_t screenWidth, uint32_t screenHeight);
-  ~IfsData();
-  IfsData(const IfsData&) = delete;
-  IfsData& operator=(const IfsData&) = delete;
+#define MOD_MER 0
+#define MOD_FEU 1
+#define MOD_MERVER 2
 
-  bool enabled = true;
+constexpr size_t numChannels = 4;
+using Int32ChannelArray = std::array<int32_t, numChannels>;
+
+static_assert(numChannels == 4);
+
+inline Pixel getPixel(const Int32ChannelArray& col)
+{
+  return Pixel{{.r = static_cast<uint8_t>(col[ROUGE]),
+                .g = static_cast<uint8_t>(col[VERT]),
+                .b = static_cast<uint8_t>(col[BLEU]),
+                .a = static_cast<uint8_t>(col[ALPHA])}};
+}
+
+inline Int32ChannelArray getChannelArray(const Pixel& p)
+{
+  Int32ChannelArray a;
+
+  a[ROUGE] = p.r();
+  a[VERT] = p.g();
+  a[BLEU] = p.b();
+  a[ALPHA] = p.a();
+
+  return a;
+}
+
+struct IfsUpdateData
+{
+  Pixel couleur;
+  Int32ChannelArray v;
+  Int32ChannelArray col;
+  int justChanged;
+  int mode;
+  int cycle;
+};
+
+class IfsFx::IfsImpl
+{
+public:
+  explicit IfsImpl(const PluginInfo*);
+  ~IfsImpl();
+  IfsImpl(const IfsImpl&) = delete;
+  IfsImpl& operator=(const IfsImpl&) = delete;
+
+  void updateIfs(Pixel* prevBuff, Pixel* currentBuff);
+  void setBuffSettings(const FXBuffSettings&);
+  void renew();
+  void updateIncr();
+  void updateDecay();
+  void updateDecayAndRecay();
+
+  template<class Archive>
+  void serialize(Archive& ar)
+  {
+    ar(colorizer, draw, useOldStyleDrawPixel, buffSettings, countSinceOverexposed, initialized,
+       root);
+  };
+
+private:
+  const PluginInfo* const goomInfo;
 
   GoomDraw draw;
   Colorizer colorizer;
-  void drawPixel(Pixel* prevBuff,
-                 Pixel* currentBuff,
-                 const uint32_t x,
-                 const uint32_t y,
-                 const Pixel& ifsColor,
-                 const float tmix);
   bool useOldStyleDrawPixel = false;
   FXBuffSettings buffSettings{};
+
   bool allowOverexposed = true;
   uint32_t countSinceOverexposed = 0;
   static constexpr uint32_t maxCountSinceOverexposed = 100;
@@ -328,39 +378,132 @@ struct IfsData
   // Used by the Trace recursive method
   IfsPoint* buff = nullptr;
   size_t curPt = 0;
-  bool initialized = false;
-
-  template<class Archive>
-  void serialize(Archive& ar)
-  {
-    ar(colorizer, draw, useOldStyleDrawPixel, buffSettings, countSinceOverexposed, initialized,
-       root);
-  };
-
-  void renew();
-  void updateIncr();
-  void updateDecay();
-  void updateDecayAndRecay();
-  int getIfsIncr() const;
-  static void randomSimis(const Fractal*, Similitude* cur, uint32_t i);
-  static constexpr int fix = 12;
-  static Flt dbl_to_flt(const Dbl);
-  static Flt div_by_unit(const Flt);
-  static Flt div_by_2units(const Flt);
   void trace(Fractal*, const Flt xo, const Flt yo);
   static void transform(Similitude*, Flt xo, Flt yo, Flt* x, Flt* y);
 
-private:
+  bool initialized = false;
   int ifs_incr = 1; // dessiner l'ifs (0 = non: > = increment)
   int decay_ifs = 0; // disparition de l'ifs
   int recay_ifs = 0; // dedisparition de l'ifs
   static Dbl gaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S);
   static Dbl halfGaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S);
   static constexpr Dbl get_1_minus_exp_neg_S(const Dbl S);
+  const std::vector<IfsPoint>& drawIfs();
+  void drawFractal();
+
+  IfsUpdateData updateData;
+
+  void changeColormaps();
+  void updatePixelBuffers(Pixel* prevBuff,
+                          Pixel* currentBuff,
+                          const size_t numPoints,
+                          const std::vector<IfsPoint>& points,
+                          const Pixel& color);
+  void drawPixel(Pixel* prevBuff,
+                 Pixel* currentBuff,
+                 const uint32_t x,
+                 const uint32_t y,
+                 const Pixel& ifsColor,
+                 const float tmix);
+  void updateColors();
+  void updateColorsModeMer();
+  void updateColorsModeMerver();
+  void updateColorsModeFeu();
+  int getIfsIncr() const;
+  static void randomSimis(const Fractal*, Similitude* cur, uint32_t i);
+  static constexpr int fix = 12;
+  static Flt dbl_to_flt(const Dbl);
+  static Flt div_by_unit(const Flt);
+  static Flt div_by_2units(const Flt);
 };
 
-IfsData::IfsData(const uint32_t screenWidth, uint32_t screenHeight)
-  : draw{screenWidth, screenHeight}, colorizer{}
+
+IfsFx::IfsFx(const PluginInfo* info) : fxImpl{new IfsImpl{info}}
+{
+}
+
+IfsFx::~IfsFx() noexcept
+{
+}
+
+void IfsFx::setBuffSettings(const FXBuffSettings& settings)
+{
+  fxImpl->setBuffSettings(settings);
+}
+
+void IfsFx::start()
+{
+}
+
+void IfsFx::finish()
+{
+}
+
+void IfsFx::log(const StatsLogValueFunc&) const
+{
+}
+
+std::string IfsFx::getFxName() const
+{
+  return "IFS FX";
+}
+
+void IfsFx::saveState(std::ostream& f) const
+{
+  cereal::JSONOutputArchive archiveOut(f);
+  archiveOut(*fxImpl);
+}
+
+void IfsFx::loadState(std::istream& f)
+{
+  cereal::JSONInputArchive archive_in(f);
+  archive_in(*fxImpl);
+}
+
+void IfsFx::apply(Pixel* prevBuff, Pixel* currentBuff)
+{
+  if (!enabled)
+  {
+    return;
+  }
+
+  fxImpl->updateIfs(prevBuff, currentBuff);
+}
+
+void IfsFx::updateIncr()
+{
+  fxImpl->updateIncr();
+}
+
+void IfsFx::updateDecay()
+{
+  fxImpl->updateDecay();
+}
+
+void IfsFx::updateDecayAndRecay()
+{
+  fxImpl->updateDecayAndRecay();
+}
+
+void IfsFx::renew()
+{
+  fxImpl->renew();
+}
+
+IfsFx::IfsImpl::IfsImpl(const PluginInfo* info)
+  : goomInfo{info},
+    draw{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height},
+    colorizer{},
+    // clang-format off
+    updateData{
+      .couleur{ Pixel{0xc0c0c0c0} },
+      .v = { 2, 4, 3, 2 },
+      .col = { 2, 4, 3, 2 },
+      .justChanged = 0,
+      .mode = MOD_MERVER,
+      .cycle = 0,
+    }
+// clang-format on
 {
   root = std::make_unique<Fractal>();
 
@@ -410,8 +553,8 @@ IfsData::IfsData(const uint32_t screenWidth, uint32_t screenHeight)
   fractal->buffer2.resize(fractal->maxPt);
 
   fractal->speed = 6;
-  fractal->width = screenWidth; // modif by JeKo
-  fractal->height = screenHeight; // modif by JeKo
+  fractal->width = goomInfo->getScreenInfo().width; // modif by JeKo
+  fractal->height = goomInfo->getScreenInfo().height; // modif by JeKo
   fractal->curPt = 0;
   fractal->count = 0;
   fractal->lx = (fractal->width - 1) / 2;
@@ -419,25 +562,88 @@ IfsData::IfsData(const uint32_t screenWidth, uint32_t screenHeight)
 
   randomSimis(fractal, fractal->components, 5 * maxSimi);
 
+#ifndef NO_LOGGING
   for (size_t i = 0; i < 5 * maxSimi; i++)
   {
     Similitude cur = fractal->components[i];
     logDebug("simi[{}]: c_x = {:.2}, c_y = {:.2}, r = {:.2}, r2 = {:.2}, A = {:.2}, A2 = {:.2}.", i,
              cur.c_x, cur.c_y, cur.r, cur.r2, cur.A, cur.A2);
   }
+#endif
 }
 
-IfsData::~IfsData()
+IfsFx::IfsImpl::~IfsImpl()
 {
 }
 
-void IfsData::renew()
+void IfsFx::IfsImpl::setBuffSettings(const FXBuffSettings& settings)
 {
+  buffSettings = settings;
+}
+
+void IfsFx::IfsImpl::renew()
+{
+  changeColormaps();
   colorizer.changeColorMode();
   updateAllowOverexposed();
+
+  root->speed = static_cast<uint32_t>(getRandInRange(1.11F, 5.1F) /
+                                      (1.1F - goomInfo->getSoundInfo().getAcceleration()));
 }
 
-void IfsData::updateIncr()
+void IfsFx::IfsImpl::changeColormaps()
+{
+  colorizer.changeColorMaps();
+  updateData.couleur = ColorMap::getRandomColor(colorizer.getColorMaps().getRandomColorMap());
+}
+
+void IfsFx::IfsImpl::updateIfs(Pixel* prevBuff, Pixel* currentBuff)
+{
+  if (getIfsIncr() <= 0)
+  {
+    return;
+  }
+
+  // TODO: trouver meilleur soluce pour increment (mettre le code de gestion de l'ifs dans ce fichier)
+  //       find the best solution for increment (put the management code of the ifs in this file)
+  useOldStyleDrawPixel = probabilityOfMInN(1, 50);
+
+  updateData.cycle++;
+  if (updateData.cycle >= 80)
+  {
+    updateData.cycle = 0;
+  }
+
+  const std::vector<IfsPoint>& points = drawIfs();
+  const size_t numPoints = curPt - 1;
+
+  const int cycle10 = (updateData.cycle < 40) ? updateData.cycle / 10 : 7 - updateData.cycle / 10;
+  const Pixel color = getRightShiftedChannels(updateData.couleur, cycle10);
+
+  updatePixelBuffers(prevBuff, currentBuff, numPoints, points, color);
+
+  updateData.justChanged--;
+
+  updateData.col = getChannelArray(updateData.couleur);
+
+  updateColors();
+
+  updateData.couleur = getPixel(updateData.col);
+
+  logDebug("updateData.col[ALPHA] = {}", updateData.col[ALPHA]);
+  logDebug("updateData.col[BLEU] = {}", updateData.col[BLEU]);
+  logDebug("updateData.col[VERT] = {}", updateData.col[VERT]);
+  logDebug("updateData.col[ROUGE] = {}", updateData.col[ROUGE]);
+
+  logDebug("updateData.v[ALPHA] = {}", updateData.v[ALPHA]);
+  logDebug("updateData.v[BLEU] = {}", updateData.v[BLEU]);
+  logDebug("updateData.v[VERT] = {}", updateData.v[VERT]);
+  logDebug("updateData.v[ROUGE] = {}", updateData.v[ROUGE]);
+
+  logDebug("updateData.mode = {}", updateData.mode);
+}
+
+void IfsFx::IfsImpl::updateIncr()
 {
   if (ifs_incr <= 0)
   {
@@ -447,7 +653,7 @@ void IfsData::updateIncr()
   }
 }
 
-void IfsData::updateDecay()
+void IfsFx::IfsImpl::updateDecay()
 {
   if ((ifs_incr > 0) && (decay_ifs <= 0))
   {
@@ -455,7 +661,7 @@ void IfsData::updateDecay()
   }
 }
 
-void IfsData::updateDecayAndRecay()
+void IfsFx::IfsImpl::updateDecayAndRecay()
 {
   decay_ifs--;
   if (decay_ifs > 0)
@@ -478,31 +684,31 @@ void IfsData::updateDecayAndRecay()
   }
 }
 
-inline int IfsData::getIfsIncr() const
+inline int IfsFx::IfsImpl::getIfsIncr() const
 {
   return ifs_incr;
 }
 
-Dbl IfsData::gaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S)
+Dbl IfsFx::IfsImpl::gaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S)
 {
   const Dbl x = getRandInRange(0.0f, 1.0f);
   const Dbl y = A_mult_1_minus_exp_neg_S * (1.0 - exp(-x * x * S));
   return probabilityOfMInN(1, 2) ? c + y : c - y;
 }
 
-Dbl IfsData::halfGaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S)
+Dbl IfsFx::IfsImpl::halfGaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S)
 {
   const Dbl x = getRandInRange(0.0f, 1.0f);
   const Dbl y = A_mult_1_minus_exp_neg_S * (1.0 - exp(-x * x * S));
   return c + y;
 }
 
-constexpr Dbl IfsData::get_1_minus_exp_neg_S(const Dbl S)
+constexpr Dbl IfsFx::IfsImpl::get_1_minus_exp_neg_S(const Dbl S)
 {
   return 1.0 - std::exp(-S);
 }
 
-void IfsData::randomSimis(const Fractal* fractal, Similitude* cur, uint32_t i)
+void IfsFx::IfsImpl::randomSimis(const Fractal* fractal, Similitude* cur, uint32_t i)
 {
   static const constinit Dbl c_AS_factor = 0.8f * get_1_minus_exp_neg_S(4.0);
   static const constinit Dbl r_1_minus_exp_neg_S = get_1_minus_exp_neg_S(3.0);
@@ -533,12 +739,12 @@ void IfsData::randomSimis(const Fractal* fractal, Similitude* cur, uint32_t i)
   }
 }
 
-inline void IfsData::drawPixel(Pixel* prevBuff,
-                               Pixel* currentBuff,
-                               const uint32_t x,
-                               const uint32_t y,
-                               const Pixel& ifsColor,
-                               const float tmix)
+inline void IfsFx::IfsImpl::drawPixel(Pixel* prevBuff,
+                                      Pixel* currentBuff,
+                                      const uint32_t x,
+                                      const uint32_t y,
+                                      const Pixel& ifsColor,
+                                      const float tmix)
 {
   if (useOldStyleDrawPixel)
   {
@@ -556,7 +762,7 @@ inline void IfsData::drawPixel(Pixel* prevBuff,
   }
 }
 
-void IfsData::updateAllowOverexposed()
+void IfsFx::IfsImpl::updateAllowOverexposed()
 {
   if (buffSettings.allowOverexposed)
   {
@@ -581,7 +787,7 @@ void IfsData::updateAllowOverexposed()
   }
 }
 
-inline void IfsData::transform(Similitude* Simi, Flt xo, Flt yo, Flt* x, Flt* y)
+inline void IfsFx::IfsImpl::transform(Similitude* Simi, Flt xo, Flt yo, Flt* x, Flt* y)
 {
   xo = xo - Simi->Cx;
   xo = div_by_unit(xo * Simi->R);
@@ -597,7 +803,7 @@ inline void IfsData::transform(Similitude* Simi, Flt xo, Flt yo, Flt* x, Flt* y)
   *y = div_by_unit(xo * Simi->St + yo * Simi->Ct + xx * Simi->St2 + yy * Simi->Ct2) + Simi->Cy;
 }
 
-void IfsData::trace(Fractal* F, const Flt xo, const Flt yo)
+void IfsFx::IfsImpl::trace(Fractal* F, const Flt xo, const Flt yo)
 {
   Similitude* Cur = curF->components;
   //  logDebug("data->Cur_F->numSimi = {}, xo = {}, yo = {}", data->Cur_F->numSimi, xo, yo);
@@ -623,211 +829,25 @@ void IfsData::trace(Fractal* F, const Flt xo, const Flt yo)
   }
 }
 
-inline Flt IfsData::dbl_to_flt(const Dbl x)
+inline Flt IfsFx::IfsImpl::dbl_to_flt(const Dbl x)
 {
   constexpr int unit = 1 << fix;
   return static_cast<Flt>(static_cast<Dbl>(unit) * x);
 }
 
-inline Flt IfsData::div_by_unit(const Flt x)
+inline Flt IfsFx::IfsImpl::div_by_unit(const Flt x)
 {
   return x >> fix;
 }
 
-inline Flt IfsData::div_by_2units(const Flt x)
+inline Flt IfsFx::IfsImpl::div_by_2units(const Flt x)
 {
   return x >> (fix + 1);
 }
 
-
-constexpr size_t numChannels = 4;
-using Int32ChannelArray = std::array<int32_t, numChannels>;
-
-static_assert(numChannels == 4);
-
-inline Pixel getPixel(const Int32ChannelArray& col)
+const std::vector<IfsPoint>& IfsFx::IfsImpl::drawIfs()
 {
-  return Pixel{{.r = static_cast<uint8_t>(col[ROUGE]),
-                .g = static_cast<uint8_t>(col[VERT]),
-                .b = static_cast<uint8_t>(col[BLEU]),
-                .a = static_cast<uint8_t>(col[ALPHA])}};
-}
-
-inline Int32ChannelArray getChannelArray(const Pixel& p)
-{
-  Int32ChannelArray a;
-
-  a[ROUGE] = p.r();
-  a[VERT] = p.g();
-  a[BLEU] = p.b();
-  a[ALPHA] = p.a();
-
-  return a;
-}
-
-#define MOD_MER 0
-#define MOD_FEU 1
-#define MOD_MERVER 2
-
-struct IfsFx::IfsUpdateData
-{
-  Pixel couleur;
-  Int32ChannelArray v;
-  Int32ChannelArray col;
-  int justChanged;
-  int mode;
-  int cycle;
-};
-
-
-IfsFx::IfsFx(const PluginInfo* info)
-  : goomInfo{info},
-    fxData{new IfsData{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height}},
-    // clang-format off
-    updateData{new IfsUpdateData{
-      .couleur{ Pixel{0xc0c0c0c0} },
-      .v = { 2, 4, 3, 2 },
-      .col = { 2, 4, 3, 2 },
-      .justChanged = 0,
-      .mode = MOD_MERVER,
-      .cycle = 0,
-    }}
-// clang-format on
-{
-}
-
-IfsFx::~IfsFx() noexcept
-{
-}
-
-void IfsFx::setBuffSettings(const FXBuffSettings& settings)
-{
-  fxData->buffSettings = settings;
-}
-
-void IfsFx::start()
-{
-}
-
-void IfsFx::finish()
-{
-  std::ofstream f("/tmp/ifs.json");
-  saveState(f);
-  f << std::endl;
-  f.close();
-}
-
-void IfsFx::log(const StatsLogValueFunc&) const
-{
-}
-
-std::string IfsFx::getFxName() const
-{
-  return "IFS FX";
-}
-
-void IfsFx::saveState(std::ostream& f)
-{
-  cereal::JSONOutputArchive archiveOut(f);
-  archiveOut(*fxData);
-}
-
-void IfsFx::loadState(std::istream& f)
-{
-  cereal::JSONInputArchive archive_in(f);
-  archive_in(*fxData);
-}
-
-void IfsFx::apply(Pixel* prevBuff, Pixel* currentBuff)
-{
-  if (!fxData->enabled)
-  {
-    return;
-  }
-  if (fxData->getIfsIncr() <= 0)
-  {
-    return;
-  }
-
-  updateIfs(prevBuff, currentBuff);
-}
-
-void IfsFx::updateIncr()
-{
-  fxData->updateIncr();
-}
-
-void IfsFx::updateDecay()
-{
-  fxData->updateDecay();
-}
-
-void IfsFx::updateDecayAndRecay()
-{
-  fxData->updateDecayAndRecay();
-}
-
-void IfsFx::renew()
-{
-  changeColormaps();
-  fxData->renew();
-
-  fxData->root->speed = static_cast<uint32_t>(getRandInRange(1.11F, 5.1F) /
-                                              (1.1F - goomInfo->getSoundInfo().getAcceleration()));
-}
-
-void IfsFx::changeColormaps()
-{
-  fxData->colorizer.changeColorMaps();
-  updateData->couleur =
-      ColorMap::getRandomColor(fxData->colorizer.getColorMaps().getRandomColorMap());
-}
-
-void IfsFx::updateIfs(Pixel* prevBuff, Pixel* currentBuff)
-{
-  // TODO: trouver meilleur soluce pour increment (mettre le code de gestion de l'ifs dans ce fichier)
-  //       find the best solution for increment (put the management code of the ifs in this file)
-  fxData->useOldStyleDrawPixel = probabilityOfMInN(1, 50);
-
-  updateData->cycle++;
-  if (updateData->cycle >= 80)
-  {
-    updateData->cycle = 0;
-  }
-
-  const std::vector<IfsPoint>& points = drawIfs();
-  const size_t numPoints = fxData->curPt - 1;
-
-  const int cycle10 =
-      (updateData->cycle < 40) ? updateData->cycle / 10 : 7 - updateData->cycle / 10;
-  const Pixel color = getRightShiftedChannels(updateData->couleur, cycle10);
-
-  updatePixelBuffers(prevBuff, currentBuff, numPoints, points, color);
-
-  updateData->justChanged--;
-
-  updateData->col = getChannelArray(updateData->couleur);
-
-  updateColors();
-
-  updateData->couleur = getPixel(updateData->col);
-
-  logDebug("updateData.col[ALPHA] = {}", updateData->col[ALPHA]);
-  logDebug("updateData.col[BLEU] = {}", updateData->col[BLEU]);
-  logDebug("updateData.col[VERT] = {}", updateData->col[VERT]);
-  logDebug("updateData.col[ROUGE] = {}", updateData->col[ROUGE]);
-
-  logDebug("updateData.v[ALPHA] = {}", updateData->v[ALPHA]);
-  logDebug("updateData.v[BLEU] = {}", updateData->v[BLEU]);
-  logDebug("updateData.v[VERT] = {}", updateData->v[VERT]);
-  logDebug("updateData.v[ROUGE] = {}", updateData->v[ROUGE]);
-
-  logDebug("updateData.mode = {}", updateData->mode);
-}
-
-const std::vector<IfsPoint>& IfsFx::drawIfs()
-{
-  Fractal* fractal = fxData->root.get();
+  Fractal* fractal = root.get();
 
   const Dbl u = static_cast<Dbl>(fractal->count) * static_cast<Dbl>(fractal->speed) / 1000.0;
   const Dbl uu = u * u;
@@ -880,8 +900,8 @@ const std::vector<IfsPoint>& IfsFx::drawIfs()
       *S1 = *S4;
     }
 
-    IfsData::randomSimis(fractal, fractal->components + 3 * fractal->numSimi, fractal->numSimi);
-    IfsData::randomSimis(fractal, fractal->components + 4 * fractal->numSimi, fractal->numSimi);
+    IfsImpl::randomSimis(fractal, fractal->components + 3 * fractal->numSimi, fractal->numSimi);
+    IfsImpl::randomSimis(fractal, fractal->components + 4 * fractal->numSimi, fractal->numSimi);
 
     fractal->count = 0;
   }
@@ -889,28 +909,28 @@ const std::vector<IfsPoint>& IfsFx::drawIfs()
   return fractal->buffer2;
 }
 
-void IfsFx::drawFractal()
+void IfsFx::IfsImpl::drawFractal()
 {
-  Fractal* fractal = fxData->root.get();
+  Fractal* fractal = root.get();
   int i;
   Similitude* Cur;
   for (Cur = fractal->components, i = static_cast<int>(fractal->numSimi); i; --i, Cur++)
   {
-    Cur->Cx = IfsData::dbl_to_flt(Cur->c_x);
-    Cur->Cy = IfsData::dbl_to_flt(Cur->c_y);
+    Cur->Cx = IfsImpl::dbl_to_flt(Cur->c_x);
+    Cur->Cy = IfsImpl::dbl_to_flt(Cur->c_y);
 
-    Cur->Ct = IfsData::dbl_to_flt(cos(Cur->A));
-    Cur->St = IfsData::dbl_to_flt(sin(Cur->A));
-    Cur->Ct2 = IfsData::dbl_to_flt(cos(Cur->A2));
-    Cur->St2 = IfsData::dbl_to_flt(sin(Cur->A2));
+    Cur->Ct = IfsImpl::dbl_to_flt(cos(Cur->A));
+    Cur->St = IfsImpl::dbl_to_flt(sin(Cur->A));
+    Cur->Ct2 = IfsImpl::dbl_to_flt(cos(Cur->A2));
+    Cur->St2 = IfsImpl::dbl_to_flt(sin(Cur->A2));
 
-    Cur->R = IfsData::dbl_to_flt(Cur->r);
-    Cur->R2 = IfsData::dbl_to_flt(Cur->r2);
+    Cur->R = IfsImpl::dbl_to_flt(Cur->r);
+    Cur->R2 = IfsImpl::dbl_to_flt(Cur->r2);
   }
 
-  fxData->curPt = 0;
-  fxData->curF = fractal;
-  fxData->buff = fractal->buffer2.data();
+  curPt = 0;
+  curF = fractal;
+  buff = fractal->buffer2.data();
   int j;
   for (Cur = fractal->components, i = static_cast<int>(fractal->numSimi); i; --i, Cur++)
   {
@@ -926,30 +946,29 @@ void IfsFx::drawFractal()
       }
       Flt x;
       Flt y;
-      IfsData::transform(Simi, xo, yo, &x, &y);
-      fxData->trace(fractal, x, y);
+      IfsImpl::transform(Simi, xo, yo, &x, &y);
+      trace(fractal, x, y);
     }
   }
 
   // Erase previous
-  fractal->curPt = fxData->curPt;
-  fxData->buff = fractal->buffer1.data();
+  fractal->curPt = curPt;
+  buff = fractal->buffer1.data();
   std::swap(fractal->buffer1, fractal->buffer2);
 }
 
-void IfsFx::updatePixelBuffers(Pixel* prevBuff,
-                               Pixel* currentBuff,
-                               const size_t numPoints,
-                               const std::vector<IfsPoint>& points,
-                               const Pixel& color)
+void IfsFx::IfsImpl::updatePixelBuffers(Pixel* prevBuff,
+                                        Pixel* currentBuff,
+                                        const size_t numPoints,
+                                        const std::vector<IfsPoint>& points,
+                                        const Pixel& color)
 {
-  bool doneColorChange =
-      fxData->colorizer.getColorMode() != Colorizer::ColorMode::megaMapColorChange &&
-      fxData->colorizer.getColorMode() != Colorizer::ColorMode::megaMixColorChange;
+  bool doneColorChange = colorizer.getColorMode() != Colorizer::ColorMode::megaMapColorChange &&
+                         colorizer.getColorMode() != Colorizer::ColorMode::megaMixColorChange;
   const float tStep = numPoints == 1 ? 0.0F : (1.0F - 0.0F) / static_cast<float>(numPoints - 1);
   float t = -tStep;
 
-  for (size_t i = 0; i < numPoints; i += static_cast<size_t>(fxData->getIfsIncr()))
+  for (size_t i = 0; i < numPoints; i += static_cast<size_t>(getIfsIncr()))
   {
     t += tStep;
 
@@ -966,225 +985,225 @@ void IfsFx::updatePixelBuffers(Pixel* prevBuff,
       doneColorChange = true;
     }
 
-    fxData->drawPixel(prevBuff, currentBuff, x, y, color, t);
+    drawPixel(prevBuff, currentBuff, x, y, color, t);
   }
 }
 
-void IfsFx::updateColors()
+void IfsFx::IfsImpl::updateColors()
 {
-  if (updateData->mode == MOD_MER)
+  if (updateData.mode == MOD_MER)
   {
     updateColorsModeMer();
   }
-  else if (updateData->mode == MOD_MERVER)
+  else if (updateData.mode == MOD_MERVER)
   {
     updateColorsModeMerver();
   }
-  else if (updateData->mode == MOD_FEU)
+  else if (updateData.mode == MOD_FEU)
   {
     updateColorsModeFeu();
   }
 }
 
-void IfsFx::updateColorsModeMer()
+void IfsFx::IfsImpl::updateColorsModeMer()
 {
-  updateData->col[BLEU] += updateData->v[BLEU];
-  if (updateData->col[BLEU] > channel_limits<int32_t>::max())
+  updateData.col[BLEU] += updateData.v[BLEU];
+  if (updateData.col[BLEU] > channel_limits<int32_t>::max())
   {
-    updateData->col[BLEU] = channel_limits<int32_t>::max();
-    updateData->v[BLEU] = -getRandInRange(1, 5);
+    updateData.col[BLEU] = channel_limits<int32_t>::max();
+    updateData.v[BLEU] = -getRandInRange(1, 5);
   }
-  if (updateData->col[BLEU] < 32)
+  if (updateData.col[BLEU] < 32)
   {
-    updateData->col[BLEU] = 32;
-    updateData->v[BLEU] = getRandInRange(1, 5);
-  }
-
-  updateData->col[VERT] += updateData->v[VERT];
-  if (updateData->col[VERT] > 200)
-  {
-    updateData->col[VERT] = 200;
-    updateData->v[VERT] = -getRandInRange(2, 5);
-  }
-  if (updateData->col[VERT] > updateData->col[BLEU])
-  {
-    updateData->col[VERT] = updateData->col[BLEU];
-    updateData->v[VERT] = updateData->v[BLEU];
-  }
-  if (updateData->col[VERT] < 32)
-  {
-    updateData->col[VERT] = 32;
-    updateData->v[VERT] = getRandInRange(2, 5);
+    updateData.col[BLEU] = 32;
+    updateData.v[BLEU] = getRandInRange(1, 5);
   }
 
-  updateData->col[ROUGE] += updateData->v[ROUGE];
-  if (updateData->col[ROUGE] > 64)
+  updateData.col[VERT] += updateData.v[VERT];
+  if (updateData.col[VERT] > 200)
   {
-    updateData->col[ROUGE] = 64;
-    updateData->v[ROUGE] = -getRandInRange(1, 5);
+    updateData.col[VERT] = 200;
+    updateData.v[VERT] = -getRandInRange(2, 5);
   }
-  if (updateData->col[ROUGE] < 0)
+  if (updateData.col[VERT] > updateData.col[BLEU])
   {
-    updateData->col[ROUGE] = 0;
-    updateData->v[ROUGE] = getRandInRange(1, 5);
+    updateData.col[VERT] = updateData.col[BLEU];
+    updateData.v[VERT] = updateData.v[BLEU];
   }
-
-  updateData->col[ALPHA] += updateData->v[ALPHA];
-  if (updateData->col[ALPHA] > 0)
+  if (updateData.col[VERT] < 32)
   {
-    updateData->col[ALPHA] = 0;
-    updateData->v[ALPHA] = -getRandInRange(1, 5);
-  }
-  if (updateData->col[ALPHA] < 0)
-  {
-    updateData->col[ALPHA] = 0;
-    updateData->v[ALPHA] = getRandInRange(1, 5);
+    updateData.col[VERT] = 32;
+    updateData.v[VERT] = getRandInRange(2, 5);
   }
 
-  if (((updateData->col[VERT] > 32) && (updateData->col[ROUGE] < updateData->col[VERT] + 40) &&
-       (updateData->col[VERT] < updateData->col[ROUGE] + 20) && (updateData->col[BLEU] < 64) &&
+  updateData.col[ROUGE] += updateData.v[ROUGE];
+  if (updateData.col[ROUGE] > 64)
+  {
+    updateData.col[ROUGE] = 64;
+    updateData.v[ROUGE] = -getRandInRange(1, 5);
+  }
+  if (updateData.col[ROUGE] < 0)
+  {
+    updateData.col[ROUGE] = 0;
+    updateData.v[ROUGE] = getRandInRange(1, 5);
+  }
+
+  updateData.col[ALPHA] += updateData.v[ALPHA];
+  if (updateData.col[ALPHA] > 0)
+  {
+    updateData.col[ALPHA] = 0;
+    updateData.v[ALPHA] = -getRandInRange(1, 5);
+  }
+  if (updateData.col[ALPHA] < 0)
+  {
+    updateData.col[ALPHA] = 0;
+    updateData.v[ALPHA] = getRandInRange(1, 5);
+  }
+
+  if (((updateData.col[VERT] > 32) && (updateData.col[ROUGE] < updateData.col[VERT] + 40) &&
+       (updateData.col[VERT] < updateData.col[ROUGE] + 20) && (updateData.col[BLEU] < 64) &&
        probabilityOfMInN(1, 20)) &&
-      (updateData->justChanged < 0))
+      (updateData.justChanged < 0))
   {
-    updateData->mode = probabilityOfMInN(2, 3) ? MOD_FEU : MOD_MERVER;
-    updateData->justChanged = 250;
+    updateData.mode = probabilityOfMInN(2, 3) ? MOD_FEU : MOD_MERVER;
+    updateData.justChanged = 250;
   }
 }
 
-void IfsFx::updateColorsModeMerver()
+void IfsFx::IfsImpl::updateColorsModeMerver()
 {
-  updateData->col[BLEU] += updateData->v[BLEU];
-  if (updateData->col[BLEU] > 128)
+  updateData.col[BLEU] += updateData.v[BLEU];
+  if (updateData.col[BLEU] > 128)
   {
-    updateData->col[BLEU] = 128;
-    updateData->v[BLEU] = -getRandInRange(1, 5);
+    updateData.col[BLEU] = 128;
+    updateData.v[BLEU] = -getRandInRange(1, 5);
   }
-  if (updateData->col[BLEU] < 16)
+  if (updateData.col[BLEU] < 16)
   {
-    updateData->col[BLEU] = 16;
-    updateData->v[BLEU] = getRandInRange(1, 5);
-  }
-
-  updateData->col[VERT] += updateData->v[VERT];
-  if (updateData->col[VERT] > 200)
-  {
-    updateData->col[VERT] = 200;
-    updateData->v[VERT] = -getRandInRange(2, 5);
-  }
-  if (updateData->col[VERT] > updateData->col[ALPHA])
-  {
-    updateData->col[VERT] = updateData->col[ALPHA];
-    updateData->v[VERT] = updateData->v[ALPHA];
-  }
-  if (updateData->col[VERT] < 32)
-  {
-    updateData->col[VERT] = 32;
-    updateData->v[VERT] = getRandInRange(2, 5);
+    updateData.col[BLEU] = 16;
+    updateData.v[BLEU] = getRandInRange(1, 5);
   }
 
-  updateData->col[ROUGE] += updateData->v[ROUGE];
-  if (updateData->col[ROUGE] > 128)
+  updateData.col[VERT] += updateData.v[VERT];
+  if (updateData.col[VERT] > 200)
   {
-    updateData->col[ROUGE] = 128;
-    updateData->v[ROUGE] = -getRandInRange(1, 5);
+    updateData.col[VERT] = 200;
+    updateData.v[VERT] = -getRandInRange(2, 5);
   }
-  if (updateData->col[ROUGE] < 0)
+  if (updateData.col[VERT] > updateData.col[ALPHA])
   {
-    updateData->col[ROUGE] = 0;
-    updateData->v[ROUGE] = getRandInRange(1, 5);
+    updateData.col[VERT] = updateData.col[ALPHA];
+    updateData.v[VERT] = updateData.v[ALPHA];
   }
-
-  updateData->col[ALPHA] += updateData->v[ALPHA];
-  if (updateData->col[ALPHA] > channel_limits<int32_t>::max())
+  if (updateData.col[VERT] < 32)
   {
-    updateData->col[ALPHA] = channel_limits<int32_t>::max();
-    updateData->v[ALPHA] = -getRandInRange(1, 5);
-  }
-  if (updateData->col[ALPHA] < 0)
-  {
-    updateData->col[ALPHA] = 0;
-    updateData->v[ALPHA] = getRandInRange(1, 5);
+    updateData.col[VERT] = 32;
+    updateData.v[VERT] = getRandInRange(2, 5);
   }
 
-  if (((updateData->col[VERT] > 32) && (updateData->col[ROUGE] < updateData->col[VERT] + 40) &&
-       (updateData->col[VERT] < updateData->col[ROUGE] + 20) && (updateData->col[BLEU] < 64) &&
+  updateData.col[ROUGE] += updateData.v[ROUGE];
+  if (updateData.col[ROUGE] > 128)
+  {
+    updateData.col[ROUGE] = 128;
+    updateData.v[ROUGE] = -getRandInRange(1, 5);
+  }
+  if (updateData.col[ROUGE] < 0)
+  {
+    updateData.col[ROUGE] = 0;
+    updateData.v[ROUGE] = getRandInRange(1, 5);
+  }
+
+  updateData.col[ALPHA] += updateData.v[ALPHA];
+  if (updateData.col[ALPHA] > channel_limits<int32_t>::max())
+  {
+    updateData.col[ALPHA] = channel_limits<int32_t>::max();
+    updateData.v[ALPHA] = -getRandInRange(1, 5);
+  }
+  if (updateData.col[ALPHA] < 0)
+  {
+    updateData.col[ALPHA] = 0;
+    updateData.v[ALPHA] = getRandInRange(1, 5);
+  }
+
+  if (((updateData.col[VERT] > 32) && (updateData.col[ROUGE] < updateData.col[VERT] + 40) &&
+       (updateData.col[VERT] < updateData.col[ROUGE] + 20) && (updateData.col[BLEU] < 64) &&
        probabilityOfMInN(1, 20)) &&
-      (updateData->justChanged < 0))
+      (updateData.justChanged < 0))
   {
-    updateData->mode = probabilityOfMInN(2, 3) ? MOD_FEU : MOD_MER;
-    updateData->justChanged = 250;
+    updateData.mode = probabilityOfMInN(2, 3) ? MOD_FEU : MOD_MER;
+    updateData.justChanged = 250;
   }
 }
 
-void IfsFx::updateColorsModeFeu()
+void IfsFx::IfsImpl::updateColorsModeFeu()
 {
-  updateData->col[BLEU] += updateData->v[BLEU];
-  if (updateData->col[BLEU] > 64)
+  updateData.col[BLEU] += updateData.v[BLEU];
+  if (updateData.col[BLEU] > 64)
   {
-    updateData->col[BLEU] = 64;
-    updateData->v[BLEU] = -getRandInRange(1, 5);
+    updateData.col[BLEU] = 64;
+    updateData.v[BLEU] = -getRandInRange(1, 5);
   }
-  if (updateData->col[BLEU] < 0)
+  if (updateData.col[BLEU] < 0)
   {
-    updateData->col[BLEU] = 0;
-    updateData->v[BLEU] = getRandInRange(1, 5);
-  }
-
-  updateData->col[VERT] += updateData->v[VERT];
-  if (updateData->col[VERT] > 200)
-  {
-    updateData->col[VERT] = 200;
-    updateData->v[VERT] = -getRandInRange(2, 5);
-  }
-  if (updateData->col[VERT] > updateData->col[ROUGE] + 20)
-  {
-    updateData->col[VERT] = updateData->col[ROUGE] + 20;
-    updateData->v[VERT] = -getRandInRange(2, 5);
-    updateData->v[ROUGE] = getRandInRange(1, 5);
-    updateData->v[BLEU] = getRandInRange(1, 5);
-  }
-  if (updateData->col[VERT] < 0)
-  {
-    updateData->col[VERT] = 0;
-    updateData->v[VERT] = getRandInRange(2, 5);
+    updateData.col[BLEU] = 0;
+    updateData.v[BLEU] = getRandInRange(1, 5);
   }
 
-  updateData->col[ROUGE] += updateData->v[ROUGE];
-  if (updateData->col[ROUGE] > channel_limits<int32_t>::max())
+  updateData.col[VERT] += updateData.v[VERT];
+  if (updateData.col[VERT] > 200)
   {
-    updateData->col[ROUGE] = channel_limits<int32_t>::max();
-    updateData->v[ROUGE] = -getRandInRange(1, 5);
+    updateData.col[VERT] = 200;
+    updateData.v[VERT] = -getRandInRange(2, 5);
   }
-  if (updateData->col[ROUGE] > updateData->col[VERT] + 40)
+  if (updateData.col[VERT] > updateData.col[ROUGE] + 20)
   {
-    updateData->col[ROUGE] = updateData->col[VERT] + 40;
-    updateData->v[ROUGE] = -getRandInRange(1, 5);
+    updateData.col[VERT] = updateData.col[ROUGE] + 20;
+    updateData.v[VERT] = -getRandInRange(2, 5);
+    updateData.v[ROUGE] = getRandInRange(1, 5);
+    updateData.v[BLEU] = getRandInRange(1, 5);
   }
-  if (updateData->col[ROUGE] < 0)
+  if (updateData.col[VERT] < 0)
   {
-    updateData->col[ROUGE] = 0;
-    updateData->v[ROUGE] = getRandInRange(1, 5);
-  }
-
-  updateData->col[ALPHA] += updateData->v[ALPHA];
-  if (updateData->col[ALPHA] > 0)
-  {
-    updateData->col[ALPHA] = 0;
-    updateData->v[ALPHA] = -getRandInRange(1, 5);
-  }
-  if (updateData->col[ALPHA] < 0)
-  {
-    updateData->col[ALPHA] = 0;
-    updateData->v[ALPHA] = getRandInRange(1, 5);
+    updateData.col[VERT] = 0;
+    updateData.v[VERT] = getRandInRange(2, 5);
   }
 
-  if (((updateData->col[ROUGE] < 64) && (updateData->col[VERT] > 32) &&
-       (updateData->col[VERT] < updateData->col[BLEU]) && (updateData->col[BLEU] > 32) &&
+  updateData.col[ROUGE] += updateData.v[ROUGE];
+  if (updateData.col[ROUGE] > channel_limits<int32_t>::max())
+  {
+    updateData.col[ROUGE] = channel_limits<int32_t>::max();
+    updateData.v[ROUGE] = -getRandInRange(1, 5);
+  }
+  if (updateData.col[ROUGE] > updateData.col[VERT] + 40)
+  {
+    updateData.col[ROUGE] = updateData.col[VERT] + 40;
+    updateData.v[ROUGE] = -getRandInRange(1, 5);
+  }
+  if (updateData.col[ROUGE] < 0)
+  {
+    updateData.col[ROUGE] = 0;
+    updateData.v[ROUGE] = getRandInRange(1, 5);
+  }
+
+  updateData.col[ALPHA] += updateData.v[ALPHA];
+  if (updateData.col[ALPHA] > 0)
+  {
+    updateData.col[ALPHA] = 0;
+    updateData.v[ALPHA] = -getRandInRange(1, 5);
+  }
+  if (updateData.col[ALPHA] < 0)
+  {
+    updateData.col[ALPHA] = 0;
+    updateData.v[ALPHA] = getRandInRange(1, 5);
+  }
+
+  if (((updateData.col[ROUGE] < 64) && (updateData.col[VERT] > 32) &&
+       (updateData.col[VERT] < updateData.col[BLEU]) && (updateData.col[BLEU] > 32) &&
        probabilityOfMInN(1, 20)) &&
-      (updateData->justChanged < 0))
+      (updateData.justChanged < 0))
   {
-    updateData->mode = probabilityOfMInN(1, 2) ? MOD_MER : MOD_MERVER;
-    updateData->justChanged = 250;
+    updateData.mode = probabilityOfMInN(1, 2) ? MOD_MER : MOD_MERVER;
+    updateData.justChanged = 250;
   }
 }
 

@@ -12,7 +12,10 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <istream>
+#include <ostream>
 #include <stdexcept>
+#include <string>
 #include <tuple>
 #include <vector>
 
@@ -43,6 +46,18 @@ GMLine::GMLine(const PluginInfo* info,
   generateLine(IDdest, paramD, rx, ry, points2);
 
   switchGoomLines(IDdest, paramD, 1.0, destColor);
+}
+
+std::string GMLine::getFxName() const
+{
+}
+
+void GMLine::saveState(std::ostream&) const
+{
+}
+
+void GMLine::loadState(std::istream&)
+{
 }
 
 void GMLine::generateLine(
@@ -86,6 +101,16 @@ void GMLine::setResolution(const uint32_t rx, const uint32_t ry)
   screenX = rx;
   screenY = ry;
   generateLine(IDdest, param, rx, ry, points2);
+}
+
+float GMLine::getPower() const
+{
+  return power;
+}
+
+void GMLine::setPower(const float val)
+{
+  power = val;
 }
 
 void GMLine::goomLinesMove()

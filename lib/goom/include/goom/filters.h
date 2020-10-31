@@ -1,7 +1,6 @@
 #ifndef _FILTERS_H
 #define _FILTERS_H
 
-#include "goom_config.h"
 #include "goom_graphic.h"
 #include "goom_visual_fx.h"
 
@@ -139,13 +138,12 @@ struct ZoomFilterData
  * resx,resy : taille des buffers.
  */
 
-struct PluginInfo;
-struct ZoomFilterImpl;
+class PluginInfo;
 
 class ZoomFilterFx : public VisualFx
 {
 public:
-  ZoomFilterFx() = delete;
+  ZoomFilterFx() noexcept = delete;
   explicit ZoomFilterFx(const PluginInfo*);
   ~ZoomFilterFx() noexcept;
   ZoomFilterFx(const ZoomFilterFx&) = delete;
@@ -164,15 +162,15 @@ public:
   void apply(Pixel* prevBuff, Pixel* currentBuff) override;
 
   std::string getFxName() const override;
-  void saveState(std::ostream&) override;
+  void saveState(std::ostream&) const override;
   void loadState(std::istream&) override;
 
-  void log(const StatsLogValueFunc& logVal) const override;
+  void log(const StatsLogValueFunc&) const override;
   void finish() override;
 
 private:
   bool enabled = true;
-  const PluginInfo* const goomInfo;
+  class ZoomFilterImpl;
   std::unique_ptr<ZoomFilterImpl> fxImpl;
 };
 

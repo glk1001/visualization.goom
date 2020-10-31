@@ -14,6 +14,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <istream>
+#include <ostream>
+#include <string>
 
 namespace goom
 {
@@ -56,15 +59,21 @@ public:
 
   Pixel getRandomLineColor();
 
+  float getPower() const;
+  void setPower(const float val);
+
   void setResolution(const uint32_t rx, const uint32_t ry);
+
   void switchGoomLines(const LineType dest,
                        const float param,
                        const float amplitude,
                        const Pixel& color);
+
   void drawGoomLines(const int16_t data[AUDIO_SAMPLE_LEN], Pixel* prevBuff, Pixel* currentBuff);
 
-  float power = 0;
-  float powinc = 0;
+  std::string getFxName() const;
+  void saveState(std::ostream&) const;
+  void loadState(std::istream&);
 
 private:
   const PluginInfo* const goomInfo;
@@ -77,6 +86,9 @@ private:
   const size_t nbPoints = AUDIO_SAMPLE_LEN;
   GMUnitPointer points[AUDIO_SAMPLE_LEN];
   GMUnitPointer points2[AUDIO_SAMPLE_LEN];
+
+  float power = 0;
+  float powinc = 0;
 
   LineType IDdest;
   float param;
