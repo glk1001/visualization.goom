@@ -10,9 +10,12 @@
 #include "goomutils/mathutils.h"
 
 #include <algorithm>
+#include <cereal/archives/json.hpp>
+#include <cereal/types/memory.hpp>
 #include <cmath>
 #include <cstdint>
 #include <istream>
+#include <memory>
 #include <ostream>
 #include <stdexcept>
 #include <string>
@@ -31,19 +34,20 @@ struct GMUnitPointer
   float angle;
 };
 
-class GoomLine::GoomLineImp
+class LinesFx::LinesImpl
 {
 public:
+  LinesImpl() noexcept;
   // construit un effet de line (une ligne horitontale pour commencer)
-  GoomLineImp(const PluginInfo* goomInfo,
-              const LineType srceID,
-              const float srceParam,
-              const Pixel& srceColor,
-              const LineType destID,
-              const float destParam,
-              const Pixel& destColor);
-  GoomLineImp(const GoomLineImp&) = delete;
-  GoomLineImp& operator=(const GoomLineImp&) = delete;
+  LinesImpl(const std::shared_ptr<const PluginInfo>& goomInfo,
+            const LineType srceID,
+            const float srceParam,
+            const Pixel& srceColor,
+            const LineType destID,
+            const float destParam,
+            const Pixel& destColor) noexcept;
+  LinesImpl(const LinesImpl&) = delete;
+  LinesImpl& operator=(const LinesImpl&) = delete;
 
   Pixel getRandomLineColor();
 
@@ -61,9 +65,11 @@ public:
   void saveState(std::ostream&) const;
   void loadState(std::istream&);
 
+  bool operator==(const LinesImpl&) const;
+
 private:
-  const PluginInfo* const goomInfo;
-  GoomDraw draw;
+  std::shared_ptr<const PluginInfo> goomInfo{};
+  GoomDraw draw{};
   utils::ColorMaps colorMaps{};
 
   const size_t nbPoints = AUDIO_SAMPLE_LEN;
@@ -73,84 +79,132 @@ private:
   float power = 0;
   float powinc = 0;
 
-  LineType destID;
-  float param;
+  LineType destID = LineType::circle;
+  float param = 0;
   float amplitudeF = 1;
   float amplitude = 1;
 
   // pour l'instant je stocke la couleur a terme, on stockera le mode couleur et l'on animera
-  Pixel color;
-  Pixel color2;
+  Pixel color{};
+  Pixel color2{};
 
   void goomLinesMove();
   void generateLine(const LineType id, const float param, GMUnitPointer*);
+
+  friend class cereal::access;
+  template<class Archive>
+  void save(Archive&) const;
+  template<class Archive>
+  void load(Archive&);
 };
 
-GoomLine::GoomLine(const PluginInfo* info,
-                   const LineType srceID,
-                   const float srceParam,
-                   const Pixel& srceColor,
-                   const LineType destID,
-                   const float destParam,
-                   const Pixel& destColor)
-  : lineImp{new GoomLineImp{info, srceID, srceParam, srceColor, destID, destParam, destColor}}
+LinesFx::LinesFx() noexcept : fxImpl{new LinesImpl{}}
 {
 }
 
-GoomLine::~GoomLine() noexcept
+LinesFx::LinesFx(const std::shared_ptr<const PluginInfo>& info,
+                 const LineType srceID,
+                 const float srceParam,
+                 const Pixel& srceColor,
+                 const LineType destID,
+                 const float destParam,
+                 const Pixel& destColor) noexcept
+  : fxImpl{new LinesImpl{info, srceID, srceParam, srceColor, destID, destParam, destColor}}
 {
 }
 
-std::string GoomLine::getFxName() const
+LinesFx::~LinesFx() noexcept
+{
+}
+
+bool LinesFx::operator==(const LinesFx& l) const
+{
+  return fxImpl->operator==(*l.fxImpl);
+}
+
+std::string LinesFx::getFxName() const
 {
   return "Line FX";
 }
 
-void GoomLine::saveState(std::ostream&) const
+void LinesFx::saveState(std::ostream&) const
 {
 }
 
-void GoomLine::loadState(std::istream&)
+void LinesFx::loadState(std::istream&)
 {
 }
 
-Pixel GoomLine::getRandomLineColor()
+Pixel LinesFx::getRandomLineColor()
 {
-  return lineImp->getRandomLineColor();
+  return fxImpl->getRandomLineColor();
 }
 
-float GoomLine::getPower() const
+float LinesFx::getPower() const
 {
-  return lineImp->getPower();
+  return fxImpl->getPower();
 }
 
-void GoomLine::setPower(const float val)
+void LinesFx::setPower(const float val)
 {
-  lineImp->setPower(val);
+  fxImpl->setPower(val);
 }
 
-void GoomLine::switchGoomLines(const LineType newDestID,
-                               const float newParam,
-                               const float newAmplitude,
-                               const Pixel& newColor)
+void LinesFx::switchGoomLines(const LineType newDestID,
+                              const float newParam,
+                              const float newAmplitude,
+                              const Pixel& newColor)
 {
-  lineImp->switchGoomLines(newDestID, newParam, newAmplitude, newColor);
+  fxImpl->switchGoomLines(newDestID, newParam, newAmplitude, newColor);
 }
 
-void GoomLine::drawGoomLines(const int16_t data[AUDIO_SAMPLE_LEN],
-                             Pixel* prevBuff,
-                             Pixel* currentBuff)
+void LinesFx::drawGoomLines(const int16_t data[AUDIO_SAMPLE_LEN],
+                            Pixel* prevBuff,
+                            Pixel* currentBuff)
 {
-  lineImp->drawGoomLines(data, prevBuff, currentBuff);
+  fxImpl->drawGoomLines(data, prevBuff, currentBuff);
 }
 
-GoomLine::GoomLineImp::GoomLineImp(const PluginInfo* info,
-                                   const LineType srceID,
-                                   const float srceParam,
-                                   const Pixel& srceColor,
-                                   const LineType theDestID,
-                                   const float destParam,
-                                   const Pixel& destColor)
+template<class Archive>
+void LinesFx::serialize(Archive& ar)
+{
+  ar(CEREAL_NVP(enabled), CEREAL_NVP(fxImpl));
+}
+
+// Need to explicitly instantiate template functions for serialization.
+template void LinesFx::serialize<cereal::JSONOutputArchive>(cereal::JSONOutputArchive&);
+template void LinesFx::serialize<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
+
+template void LinesFx::LinesImpl::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive&) const;
+template void LinesFx::LinesImpl::load<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
+
+template<class Archive>
+void LinesFx::LinesImpl::save(Archive& ar) const
+{
+  ar(CEREAL_NVP(goomInfo), CEREAL_NVP(draw), CEREAL_NVP(power), CEREAL_NVP(powinc),
+     CEREAL_NVP(destID), CEREAL_NVP(param), CEREAL_NVP(amplitudeF), CEREAL_NVP(amplitude),
+     CEREAL_NVP(color), CEREAL_NVP(color2));
+}
+
+template<class Archive>
+void LinesFx::LinesImpl::load(Archive& ar)
+{
+  ar(CEREAL_NVP(goomInfo), CEREAL_NVP(draw), CEREAL_NVP(power), CEREAL_NVP(powinc),
+     CEREAL_NVP(destID), CEREAL_NVP(param), CEREAL_NVP(amplitudeF), CEREAL_NVP(amplitude),
+     CEREAL_NVP(color), CEREAL_NVP(color2));
+}
+
+LinesFx::LinesImpl::LinesImpl() noexcept
+{
+}
+
+LinesFx::LinesImpl::LinesImpl(const std::shared_ptr<const PluginInfo>& info,
+                              const LineType srceID,
+                              const float srceParam,
+                              const Pixel& srceColor,
+                              const LineType theDestID,
+                              const float destParam,
+                              const Pixel& destColor) noexcept
   : goomInfo{info},
     draw{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height},
     destID{theDestID},
@@ -164,7 +218,24 @@ GoomLine::GoomLineImp::GoomLineImp(const PluginInfo* info,
   switchGoomLines(destID, destParam, 1.0, destColor);
 }
 
-void GoomLine::GoomLineImp::generateLine(const LineType id, const float param, GMUnitPointer* l)
+bool LinesFx::LinesImpl::operator==(const LinesImpl& l) const
+{
+  if (goomInfo == nullptr && l.goomInfo != nullptr)
+  {
+    return false;
+  }
+  if (goomInfo != nullptr && l.goomInfo == nullptr)
+  {
+    return false;
+  }
+
+  return ((goomInfo == nullptr && l.goomInfo == nullptr) || (*goomInfo == *l.goomInfo)) &&
+         draw == l.draw && power == l.power && powinc == l.powinc && destID == l.destID &&
+         param == l.param && amplitudeF == l.amplitudeF && amplitude == l.amplitude &&
+         color == l.color && color2 == l.color2;
+}
+
+void LinesFx::LinesImpl::generateLine(const LineType id, const float param, GMUnitPointer* l)
 {
   switch (id)
   {
@@ -201,17 +272,17 @@ void GoomLine::GoomLineImp::generateLine(const LineType id, const float param, G
   }
 }
 
-inline float GoomLine::GoomLineImp::getPower() const
+inline float LinesFx::LinesImpl::getPower() const
 {
   return power;
 }
 
-inline void GoomLine::GoomLineImp::setPower(const float val)
+inline void LinesFx::LinesImpl::setPower(const float val)
 {
   power = val;
 }
 
-void GoomLine::GoomLineImp::goomLinesMove()
+void LinesFx::LinesImpl::goomLinesMove()
 {
   for (uint32_t i = 0; i < AUDIO_SAMPLE_LEN; i++)
   {
@@ -246,10 +317,10 @@ void GoomLine::GoomLineImp::goomLinesMove()
   amplitude = (99.0f * amplitude + amplitudeF) / 100.0f;
 }
 
-void GoomLine::GoomLineImp::switchGoomLines(const LineType newDestID,
-                                            const float newParam,
-                                            const float newAmplitude,
-                                            const Pixel& newColor)
+void LinesFx::LinesImpl::switchGoomLines(const LineType newDestID,
+                                         const float newParam,
+                                         const float newAmplitude,
+                                         const Pixel& newColor)
 {
   generateLine(newDestID, param, points2);
   destID = newDestID;
@@ -305,7 +376,7 @@ Pixel getRedLineColor()
   return getcouleur(GML_RED);
 }
 
-Pixel GoomLine::GoomLineImp::getRandomLineColor()
+Pixel LinesFx::LinesImpl::getRandomLineColor()
 {
   if (getNRand(10) == 0)
   {
@@ -345,9 +416,9 @@ inline std::vector<float> getDataPoints(const int16_t x[AUDIO_SAMPLE_LEN])
   return simpleMovingAverage(x, 5);
 }
 
-void GoomLine::GoomLineImp::drawGoomLines(const int16_t audioData[AUDIO_SAMPLE_LEN],
-                                          Pixel* prevBuff,
-                                          Pixel* currentBuff)
+void LinesFx::LinesImpl::drawGoomLines(const int16_t audioData[AUDIO_SAMPLE_LEN],
+                                       Pixel* prevBuff,
+                                       Pixel* currentBuff)
 {
   std::vector<Pixel*> buffs{currentBuff, prevBuff};
   const GMUnitPointer* pt = &(points[0]);

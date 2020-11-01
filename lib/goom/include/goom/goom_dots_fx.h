@@ -4,6 +4,7 @@
 #include "goom_graphic.h"
 #include "goom_visual_fx.h"
 
+#include <cereal/access.hpp>
 #include <istream>
 #include <memory>
 #include <ostream>
@@ -14,14 +15,14 @@ namespace goom
 
 class PluginInfo;
 
-class GoomDots : public VisualFx
+class GoomDotsFx : public VisualFx
 {
 public:
-  GoomDots() noexcept = delete;
-  explicit GoomDots(const PluginInfo*);
-  ~GoomDots() noexcept;
-  GoomDots(const GoomDots&) = delete;
-  GoomDots& operator=(const GoomDots&) = delete;
+  GoomDotsFx() noexcept;
+  explicit GoomDotsFx(const std::shared_ptr<const PluginInfo>&) noexcept;
+  ~GoomDotsFx() noexcept;
+  GoomDotsFx(const GoomDotsFx&) = delete;
+  GoomDotsFx& operator=(const GoomDotsFx&) = delete;
 
   void setBuffSettings(const FXBuffSettings&) override;
 
@@ -35,10 +36,16 @@ public:
 
   void finish() override;
 
+  bool operator==(const GoomDotsFx&) const;
+
 private:
   bool enabled = true;
   class GoomDotsImpl;
   std::unique_ptr<GoomDotsImpl> fxImpl;
+
+  friend class cereal::access;
+  template<class Archive>
+  void serialize(Archive&);
 };
 
 } // namespace goom

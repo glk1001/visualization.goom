@@ -3,6 +3,8 @@
 
 #include "goom_config.h"
 
+#include <cereal/archives/json.hpp>
+#include <cereal/types/memory.hpp>
 #include <cstdint>
 
 namespace goom
@@ -12,7 +14,7 @@ class SoundInfo
 {
 public:
   SoundInfo() noexcept;
-  SoundInfo(const SoundInfo&) = delete;
+  SoundInfo(const SoundInfo&) noexcept;
   ~SoundInfo() noexcept;
 
   void processSample(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN]);
@@ -29,6 +31,11 @@ public:
 
   int16_t getAllTimesMaxVolume() const;
   int16_t getAllTimesMinVolume() const;
+
+  bool operator==(const SoundInfo&) const;
+
+  template<class Archive>
+  void serialize(Archive&);
 
 private:
   uint32_t timeSinceLastGoom = 0;
@@ -55,6 +62,16 @@ private:
   int16_t allTimesMinVolume;
   int16_t allTimesPositiveMaxVolume = 1;
   float maxAccelSinceLastReset = 0;
+};
+
+template<class Archive>
+void SoundInfo::serialize(Archive& ar)
+{
+  ar(CEREAL_NVP(timeSinceLastGoom), CEREAL_NVP(timeSinceLastBigGoom), CEREAL_NVP(goomLimit),
+     CEREAL_NVP(bigGoomLimit), CEREAL_NVP(goomPower), CEREAL_NVP(totalGoom), CEREAL_NVP(cycle),
+     CEREAL_NVP(volume), CEREAL_NVP(acceleration), CEREAL_NVP(allTimesMaxVolume),
+     CEREAL_NVP(allTimesMinVolume), CEREAL_NVP(allTimesPositiveMaxVolume),
+     CEREAL_NVP(maxAccelSinceLastReset));
 };
 
 inline uint32_t SoundInfo::getTimeSinceLastGoom() const

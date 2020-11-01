@@ -39,16 +39,8 @@ TentacleTweaker::TentacleTweaker(std::unique_ptr<DampingFunction> dampingFun,
 }
 
 
-Tentacle2D::Tentacle2D(const size_t _ID, std::unique_ptr<TentacleTweaker> twker)
-  : ID(_ID),
-    tweaker{std::move(twker)},
-    xvec(),
-    yvec(),
-    vecs(std::make_tuple(std::ref(xvec), std::ref(yvec))),
-    dampedYVec(),
-    dampingCache(),
-    dampedVecs(std::make_tuple(std::ref(xvec), std::ref(dampedYVec))),
-    specialPostProcessingNodes{0, 0, {}}
+Tentacle2D::Tentacle2D(const size_t _ID, std::unique_ptr<TentacleTweaker> twker) noexcept
+  : ID(_ID), tweaker{std::move(twker)}
 {
 }
 
@@ -303,11 +295,9 @@ const Tentacle2D::XandYVectors& Tentacle2D::getDampedXandYVectors() const
 Tentacle3D::Tentacle3D(std::unique_ptr<Tentacle2D> t,
                        const Pixel& headCol,
                        const Pixel& headColLow,
-                       const V3d& h)
+                       const V3d& h) noexcept
   : tentacle{std::move(t)},
-    colorizer{nullptr},
     specialColorNodes{0, tentacle->getNumNodes(), {}},
-    specialNodesColorMap{nullptr},
     headColor{headCol},
     headColorLow{headColLow},
     head{h}
@@ -318,11 +308,10 @@ Tentacle3D::Tentacle3D(std::unique_ptr<Tentacle2D> t,
                        const TentacleColorizer& col,
                        const Pixel& headCol,
                        const Pixel& headColLow,
-                       const V3d& h)
+                       const V3d& h) noexcept
   : tentacle{std::move(t)},
     colorizer{&col},
     specialColorNodes{0, tentacle->getNumNodes(), {}},
-    specialNodesColorMap{nullptr},
     headColor{headCol},
     headColorLow{headColLow},
     head{h}
@@ -435,7 +424,7 @@ std::vector<V3d> Tentacle3D::getVertices() const
   return vec3d;
 }
 
-Tentacles3D::Tentacles3D() : tentacles()
+Tentacles3D::Tentacles3D() noexcept : tentacles()
 {
 }
 

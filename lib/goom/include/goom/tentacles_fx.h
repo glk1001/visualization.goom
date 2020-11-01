@@ -4,6 +4,7 @@
 #include "goom_graphic.h"
 #include "goom_visual_fx.h"
 
+#include <cereal/access.hpp>
 #include <istream>
 #include <memory>
 #include <ostream>
@@ -17,9 +18,9 @@ class PluginInfo;
 class TentaclesFx : public VisualFx
 {
 public:
-  TentaclesFx() noexcept = delete;
-  explicit TentaclesFx(const PluginInfo*);
-  ~TentaclesFx() noexcept = default;
+  TentaclesFx() noexcept;
+  explicit TentaclesFx(const std::shared_ptr<const PluginInfo>&) noexcept;
+  ~TentaclesFx() noexcept;
   TentaclesFx(const TentaclesFx&) = delete;
   TentaclesFx& operator=(const TentaclesFx&) = delete;
 
@@ -37,10 +38,16 @@ public:
   void log(const StatsLogValueFunc&) const override;
   void finish() override;
 
+  bool operator==(const TentaclesFx&) const;
+
 private:
   bool enabled = true;
   class TentaclesImpl;
   std::unique_ptr<TentaclesImpl> fxImpl;
+
+  friend class cereal::access;
+  template<class Archive>
+  void serialize(Archive&);
 };
 
 } // namespace goom

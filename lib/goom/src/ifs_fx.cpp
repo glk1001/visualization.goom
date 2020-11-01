@@ -51,9 +51,12 @@
 #include <array>
 
 #undef NDEBUG
+#include <array>
 #include <cassert>
 #include <cereal/archives/json.hpp>
+#include <cereal/types/array.hpp>
 #include <cereal/types/memory.hpp>
+#include <cereal/types/vector.hpp>
 #include <cmath>
 #include <cstdint>
 #include <fstream>
@@ -86,6 +89,12 @@ struct IfsPoint
 {
   uint32_t x = 0;
   uint32_t y = 0;
+
+  template<class Archive>
+  void serialize(Archive& ar)
+  {
+    ar(x, y);
+  };
 };
 
 using Dbl = float;
@@ -114,12 +123,28 @@ struct Similitude
   Flt Cy;
   Flt R;
   Flt R2;
+
+  bool operator==(const Similitude& s) const = default;
+  /**
+  bool operator==(const Similitude& s) const
+  {
+    return c_x == s.c_x && c_y == s.c_y && r == s.r && r2 == s.r2 && A == s.A && A2 == s.A2 &&
+           Ct == s.Ct && St == s.St && Ct2 == s.Ct2 && St2 == s.St2 && Cx == s.Cx && Cy == s.Cy &&
+           R == s.R && R2 == s.R2;
+  }
+  **/
+
+  template<class Archive>
+  void serialize(Archive& ar)
+  {
+    ar(c_x, c_y, r, r2, A, A2, Ct, St, Ct2, St2, Cx, Cy, R, R2);
+  };
 };
 
 struct Fractal
 {
   uint32_t numSimi = 0;
-  Similitude components[5 * maxSimi];
+  std::array<Similitude, 5 * maxSimi> components{};
   uint32_t depth = 0;
   uint32_t count = 0;
   uint32_t speed = 0;
@@ -136,12 +161,19 @@ struct Fractal
   std::vector<IfsPoint> buffer1{};
   std::vector<IfsPoint> buffer2{};
 
+  bool operator==(const Fractal& f) const
+  {
+    return numSimi == f.numSimi && components == f.components && depth == f.depth &&
+           count == f.count && speed == f.speed && width == f.width && height == f.height &&
+           lx == f.lx && ly == f.ly && rMean == f.rMean && drMean == f.drMean &&
+           dr2Mean == f.dr2Mean && curPt == f.curPt && maxPt == f.maxPt;
+  }
+
   template<class Archive>
   void serialize(Archive& ar)
   {
-    ar(numSimi,
-       //components[5 * maxSimi];
-       depth, count, speed, width, height, lx, ly, rMean, drMean, dr2Mean, curPt, maxPt);
+    ar(numSimi, components, depth, count, speed, width, height, lx, ly, rMean, drMean, dr2Mean,
+       curPt, maxPt);
   };
 };
 
@@ -171,11 +203,17 @@ public:
 
   Pixel getMixedColor(const Pixel& baseColor, const float tmix);
 
+  bool operator==(const Colorizer& c) const
+  {
+    return countSinceColorMapChange == c.countSinceColorMapChange &&
+           colorMapChangeCompleted == c.colorMapChangeCompleted && colorMode == c.colorMode &&
+           tBetweenColors == c.tBetweenColors;
+  }
+
   template<class Archive>
   void serialize(Archive& ar)
   {
-    ar(countSinceColorMapChange, colorMapChangeCompleted, colorMapChangeCompleted, colorMode,
-       tBetweenColors);
+    ar(countSinceColorMapChange, colorMapChangeCompleted, colorMode, tBetweenColors);
 
     auto mixerMapName = mixerMap->getMapName();
     ar(cereal::make_nvp("mixerMap", mixerMapName));
@@ -329,18 +367,31 @@ inline Int32ChannelArray getChannelArray(const Pixel& p)
 
 struct IfsUpdateData
 {
-  Pixel couleur;
-  Int32ChannelArray v;
-  Int32ChannelArray col;
-  int justChanged;
-  int mode;
-  int cycle;
+  Pixel couleur{0xc0c0c0c0};
+  Int32ChannelArray v = {2, 4, 3, 2};
+  Int32ChannelArray col = {2, 4, 3, 2};
+  int justChanged = 0;
+  int mode = MOD_MERVER;
+  int cycle = 0;
+
+  bool operator==(const IfsUpdateData& u) const
+  {
+    return couleur.rgba() == u.couleur.rgba() && v == u.v && col == u.col &&
+           justChanged == u.justChanged && mode == u.mode && cycle == u.cycle;
+  }
+
+  template<class Archive>
+  void serialize(Archive& ar)
+  {
+    ar(couleur, v, col, justChanged, mode, cycle);
+  };
 };
 
 class IfsFx::IfsImpl
 {
 public:
-  explicit IfsImpl(const PluginInfo*);
+  IfsImpl() noexcept : goomInfo{nullptr}, draw{} {}
+  explicit IfsImpl(const std::shared_ptr<const PluginInfo>&);
   ~IfsImpl();
   IfsImpl(const IfsImpl&) = delete;
   IfsImpl& operator=(const IfsImpl&) = delete;
@@ -351,18 +402,13 @@ public:
   void renew();
   void updateIncr();
 
-  template<class Archive>
-  void serialize(Archive& ar)
-  {
-    ar(colorizer, draw, useOldStyleDrawPixel, buffSettings, countSinceOverexposed, initialized,
-       root);
-  };
+  bool operator==(const IfsImpl&) const;
 
 private:
-  const PluginInfo* const goomInfo;
+  std::shared_ptr<const PluginInfo> goomInfo;
 
   GoomDraw draw;
-  Colorizer colorizer;
+  Colorizer colorizer{};
   bool useOldStyleDrawPixel = false;
   FXBuffSettings buffSettings{};
 
@@ -392,7 +438,7 @@ private:
   const std::vector<IfsPoint>& drawIfs();
   void drawFractal();
 
-  IfsUpdateData updateData;
+  IfsUpdateData updateData{};
 
   void changeColormaps();
   void updatePixelBuffers(Pixel* prevBuff,
@@ -416,15 +462,30 @@ private:
   static Flt dbl_to_flt(const Dbl);
   static Flt div_by_unit(const Flt);
   static Flt div_by_2units(const Flt);
+
+  friend class cereal::access;
+  template<class Archive>
+  void save(Archive&) const;
+  template<class Archive>
+  void load(Archive&);
 };
 
 
-IfsFx::IfsFx(const PluginInfo* info) : fxImpl{new IfsImpl{info}}
+IfsFx::IfsFx() noexcept : fxImpl{new IfsImpl{}}
+{
+}
+
+IfsFx::IfsFx(const std::shared_ptr<const PluginInfo>& info) noexcept : fxImpl{new IfsImpl{info}}
 {
 }
 
 IfsFx::~IfsFx() noexcept
 {
+}
+
+bool IfsFx::operator==(const IfsFx& i) const
+{
+  return fxImpl->operator==(*i.fxImpl);
 }
 
 void IfsFx::setBuffSettings(const FXBuffSettings& settings)
@@ -491,20 +552,39 @@ void IfsFx::renew()
   fxImpl->renew();
 }
 
-IfsFx::IfsImpl::IfsImpl(const PluginInfo* info)
-  : goomInfo{info},
-    draw{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height},
-    colorizer{},
-    // clang-format off
-    updateData{
-      .couleur{ Pixel{0xc0c0c0c0} },
-      .v = { 2, 4, 3, 2 },
-      .col = { 2, 4, 3, 2 },
-      .justChanged = 0,
-      .mode = MOD_MERVER,
-      .cycle = 0,
-    }
-// clang-format on
+template<class Archive>
+void IfsFx::serialize(Archive& ar)
+{
+  ar(CEREAL_NVP(enabled), CEREAL_NVP(fxImpl));
+}
+
+// Need to explicitly instantiate template functions for serialization.
+template void IfsFx::serialize<cereal::JSONOutputArchive>(cereal::JSONOutputArchive&);
+template void IfsFx::serialize<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
+
+template void IfsFx::IfsImpl::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive&) const;
+template void IfsFx::IfsImpl::load<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
+
+template<class Archive>
+void IfsFx::IfsImpl::save(Archive& ar) const
+{
+  ar(CEREAL_NVP(goomInfo), CEREAL_NVP(root), CEREAL_NVP(draw), CEREAL_NVP(colorizer),
+     CEREAL_NVP(useOldStyleDrawPixel), CEREAL_NVP(allowOverexposed),
+     CEREAL_NVP(countSinceOverexposed), CEREAL_NVP(curPt), CEREAL_NVP(ifs_incr),
+     CEREAL_NVP(decay_ifs), CEREAL_NVP(recay_ifs), CEREAL_NVP(updateData));
+}
+
+template<class Archive>
+void IfsFx::IfsImpl::load(Archive& ar)
+{
+  ar(CEREAL_NVP(goomInfo), CEREAL_NVP(root), CEREAL_NVP(draw), CEREAL_NVP(colorizer),
+     CEREAL_NVP(useOldStyleDrawPixel), CEREAL_NVP(allowOverexposed),
+     CEREAL_NVP(countSinceOverexposed), CEREAL_NVP(curPt), CEREAL_NVP(ifs_incr),
+     CEREAL_NVP(decay_ifs), CEREAL_NVP(recay_ifs), CEREAL_NVP(updateData));
+}
+
+IfsFx::IfsImpl::IfsImpl(const std::shared_ptr<const PluginInfo>& info)
+  : goomInfo{info}, draw{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height}
 {
   root = std::make_unique<Fractal>();
 
@@ -561,7 +641,7 @@ IfsFx::IfsImpl::IfsImpl(const PluginInfo* info)
   fractal->lx = (fractal->width - 1) / 2;
   fractal->ly = (fractal->height - 1) / 2;
 
-  randomSimis(fractal, fractal->components, 5 * maxSimi);
+  randomSimis(fractal, fractal->components.data(), 5 * maxSimi);
 
 #ifndef NO_LOGGING
   for (size_t i = 0; i < 5 * maxSimi; i++)
@@ -575,6 +655,25 @@ IfsFx::IfsImpl::IfsImpl(const PluginInfo* info)
 
 IfsFx::IfsImpl::~IfsImpl()
 {
+}
+
+bool IfsFx::IfsImpl::operator==(const IfsImpl& i) const
+{
+  if (goomInfo == nullptr && i.goomInfo != nullptr)
+  {
+    return false;
+  }
+  if (goomInfo != nullptr && i.goomInfo == nullptr)
+  {
+    return false;
+  }
+
+  return ((goomInfo == nullptr && i.goomInfo == nullptr) || (*goomInfo == *i.goomInfo)) &&
+         *root == *i.root && draw == i.draw && colorizer == i.colorizer &&
+         useOldStyleDrawPixel == i.useOldStyleDrawPixel && allowOverexposed == i.allowOverexposed &&
+         countSinceOverexposed == i.countSinceOverexposed && curPt == i.curPt &&
+         ifs_incr == i.ifs_incr && decay_ifs == i.decay_ifs && recay_ifs == i.recay_ifs &&
+         updateData == i.updateData;
 }
 
 void IfsFx::IfsImpl::setBuffSettings(const FXBuffSettings& settings)
@@ -814,7 +913,7 @@ inline void IfsFx::IfsImpl::transform(Similitude* Simi, Flt xo, Flt yo, Flt* x, 
 
 void IfsFx::IfsImpl::trace(Fractal* F, const Flt xo, const Flt yo)
 {
-  Similitude* Cur = curF->components;
+  Similitude* Cur = curF->components.data();
   //  logDebug("data->Cur_F->numSimi = {}, xo = {}, yo = {}", data->Cur_F->numSimi, xo, yo);
   for (int i = static_cast<int>(curF->numSimi); i; --i, Cur++)
   {
@@ -867,7 +966,7 @@ const std::vector<IfsPoint>& IfsFx::IfsImpl::drawIfs()
   const Dbl u2 = 3.0 * v * uu;
   const Dbl u3 = u * uu;
 
-  Similitude* S = fractal->components;
+  Similitude* S = fractal->components.data();
   Similitude* S1 = S + fractal->numSimi;
   Similitude* S2 = S1 + fractal->numSimi;
   Similitude* S3 = S2 + fractal->numSimi;
@@ -891,7 +990,7 @@ const std::vector<IfsPoint>& IfsFx::IfsImpl::drawIfs()
   }
   else
   {
-    S = fractal->components;
+    S = fractal->components.data();
     S1 = S + fractal->numSimi;
     S2 = S1 + fractal->numSimi;
     S3 = S2 + fractal->numSimi;
@@ -909,8 +1008,10 @@ const std::vector<IfsPoint>& IfsFx::IfsImpl::drawIfs()
       *S1 = *S4;
     }
 
-    IfsImpl::randomSimis(fractal, fractal->components + 3 * fractal->numSimi, fractal->numSimi);
-    IfsImpl::randomSimis(fractal, fractal->components + 4 * fractal->numSimi, fractal->numSimi);
+    IfsImpl::randomSimis(fractal, fractal->components.data() + 3 * fractal->numSimi,
+                         fractal->numSimi);
+    IfsImpl::randomSimis(fractal, fractal->components.data() + 4 * fractal->numSimi,
+                         fractal->numSimi);
 
     fractal->count = 0;
   }
@@ -923,7 +1024,7 @@ void IfsFx::IfsImpl::drawFractal()
   Fractal* fractal = root.get();
   int i;
   Similitude* Cur;
-  for (Cur = fractal->components, i = static_cast<int>(fractal->numSimi); i; --i, Cur++)
+  for (Cur = fractal->components.data(), i = static_cast<int>(fractal->numSimi); i; --i, Cur++)
   {
     Cur->Cx = IfsImpl::dbl_to_flt(Cur->c_x);
     Cur->Cy = IfsImpl::dbl_to_flt(Cur->c_y);
@@ -941,13 +1042,13 @@ void IfsFx::IfsImpl::drawFractal()
   curF = fractal;
   buff = fractal->buffer2.data();
   int j;
-  for (Cur = fractal->components, i = static_cast<int>(fractal->numSimi); i; --i, Cur++)
+  for (Cur = fractal->components.data(), i = static_cast<int>(fractal->numSimi); i; --i, Cur++)
   {
     const Flt xo = Cur->Cx;
     const Flt yo = Cur->Cy;
     logDebug("F->numSimi = {}, xo = {}, yo = {}", fractal->numSimi, xo, yo);
     Similitude* Simi;
-    for (Simi = fractal->components, j = static_cast<int>(fractal->numSimi); j; --j, Simi++)
+    for (Simi = fractal->components.data(), j = static_cast<int>(fractal->numSimi); j; --j, Simi++)
     {
       if (Simi == Cur)
       {

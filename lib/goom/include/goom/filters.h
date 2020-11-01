@@ -4,6 +4,7 @@
 #include "goom_graphic.h"
 #include "goom_visual_fx.h"
 
+#include <cereal/access.hpp>
 #include <cstdint>
 #include <istream>
 #include <memory>
@@ -128,6 +129,8 @@ struct ZoomFilterData
   static constexpr float maxVPlaneEffectAmplitude = 0.0035;
   float vPlaneEffectAmplitude = defaultVPlaneEffectAmplitude;
 
+  bool operator==(const ZoomFilterData&) const = default;
+
   template<class Archive>
   void serialize(Archive&);
 };
@@ -143,8 +146,8 @@ class PluginInfo;
 class ZoomFilterFx : public VisualFx
 {
 public:
-  ZoomFilterFx() noexcept = delete;
-  explicit ZoomFilterFx(const PluginInfo*);
+  ZoomFilterFx() noexcept;
+  explicit ZoomFilterFx(const std::shared_ptr<const PluginInfo>&) noexcept;
   ~ZoomFilterFx() noexcept;
   ZoomFilterFx(const ZoomFilterFx&) = delete;
   ZoomFilterFx& operator=(const ZoomFilterFx&) = delete;
@@ -168,10 +171,16 @@ public:
   void log(const StatsLogValueFunc&) const override;
   void finish() override;
 
+  bool operator==(const ZoomFilterFx&) const;
+
 private:
   bool enabled = true;
   class ZoomFilterImpl;
   std::unique_ptr<ZoomFilterImpl> fxImpl;
+
+  friend class cereal::access;
+  template<class Archive>
+  void serialize(Archive&);
 };
 
 } // namespace goom

@@ -20,10 +20,8 @@ class json;
 class GoomDraw
 {
 public:
+  GoomDraw();
   GoomDraw(const uint32_t screenWidth, const uint32_t screenHeight);
-
-  template<class Archive>
-  void serialize(Archive&);
 
   uint32_t getScreenWidth() const;
   uint32_t getScreenHeight() const;
@@ -80,14 +78,17 @@ public:
             const std::vector<Pixel>& colors,
             const uint8_t thickness);
 
+  bool operator==(const GoomDraw&) const;
+
+  template<class Archive>
+  void serialize(Archive&);
+
 private:
   uint32_t screenWidth;
   uint32_t screenHeight;
   bool allowOverexposed = false;
   float buffIntensity = 1;
   uint32_t intBuffIntensity = channel_limits<uint32_t>::max();
-
-  GoomDraw();
 };
 
 template<class Archive>

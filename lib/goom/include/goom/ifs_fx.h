@@ -8,6 +8,7 @@
 #include "goom_graphic.h"
 #include "goom_visual_fx.h"
 
+#include <cereal/access.hpp>
 #include <istream>
 #include <memory>
 #include <ostream>
@@ -21,8 +22,8 @@ class PluginInfo;
 class IfsFx : public VisualFx
 {
 public:
-  IfsFx() noexcept = delete;
-  explicit IfsFx(const PluginInfo*);
+  IfsFx() noexcept;
+  explicit IfsFx(const std::shared_ptr<const PluginInfo>&) noexcept;
   ~IfsFx() noexcept;
   IfsFx(const IfsFx&) = delete;
   IfsFx& operator=(const IfsFx&) = delete;
@@ -44,10 +45,16 @@ public:
   void log(const StatsLogValueFunc&) const override;
   void finish() override;
 
+  bool operator==(const IfsFx&) const;
+
 private:
   bool enabled = true;
   class IfsImpl;
   std::unique_ptr<IfsImpl> fxImpl;
+
+  friend class cereal::access;
+  template<class Archive>
+  void serialize(Archive&);
 };
 
 } // namespace goom

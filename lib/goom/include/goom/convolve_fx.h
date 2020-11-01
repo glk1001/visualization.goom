@@ -18,8 +18,8 @@ class PluginInfo;
 class ConvolveFx : public VisualFx
 {
 public:
-  ConvolveFx() noexcept = delete;
-  explicit ConvolveFx(const PluginInfo*);
+  ConvolveFx() noexcept;
+  explicit ConvolveFx(const std::shared_ptr<const PluginInfo>&) noexcept;
   ~ConvolveFx() noexcept;
   ConvolveFx(const ConvolveFx&) = delete;
   ConvolveFx& operator=(const ConvolveFx&) = delete;
@@ -38,6 +38,8 @@ public:
 
   void log(const StatsLogValueFunc&) const override;
   void finish() override;
+
+  bool operator==(const ConvolveFx&) const;
 
 private:
   bool enabled = true;

@@ -10,6 +10,8 @@
 #undef NO_LOGGING
 #include "goomutils/logging.h"
 
+#include <cereal/archives/json.hpp>
+#include <cereal/types/memory.hpp>
 #include <cstdint>
 #include <istream>
 #include <memory>
@@ -27,10 +29,11 @@ inline bool changeDotColorsEvent()
   return probabilityOfMInN(1, 3);
 }
 
-class GoomDots::GoomDotsImpl
+class GoomDotsFx::GoomDotsImpl
 {
 public:
-  explicit GoomDotsImpl(const PluginInfo*);
+  GoomDotsImpl() noexcept;
+  explicit GoomDotsImpl(const std::shared_ptr<const PluginInfo>&) noexcept;
   GoomDotsImpl(const GoomDotsImpl&) = delete;
   GoomDotsImpl& operator=(const GoomDotsImpl&) = delete;
 
@@ -38,22 +41,22 @@ public:
 
   void apply(Pixel* prevBuff, Pixel* currentBuff);
 
+  bool operator==(const GoomDotsImpl&) const;
+
 private:
-  const PluginInfo* const goomInfo;
-  const uint32_t screenWidth;
-  const uint32_t screenHeight;
-  const uint32_t pointWidth;
-  const uint32_t pointHeight;
+  std::shared_ptr<const PluginInfo> goomInfo{};
+  uint32_t pointWidth = 0;
+  uint32_t pointHeight = 0;
 
-  const float pointWidthDiv2;
-  const float pointHeightDiv2;
-  const float pointWidthDiv3;
-  const float pointHeightDiv3;
+  float pointWidthDiv2 = 0;
+  float pointHeightDiv2 = 0;
+  float pointWidthDiv3 = 0;
+  float pointHeightDiv3 = 0;
 
-  GoomDraw draw;
-  FXBuffSettings buffSettings;
+  GoomDraw draw{};
+  FXBuffSettings buffSettings{};
 
-  utils::WeightedColorMaps colorMaps;
+  utils::WeightedColorMaps colorMaps{};
   const utils::ColorMap* colorMap1 = nullptr;
   const utils::ColorMap* colorMap2 = nullptr;
   const utils::ColorMap* colorMap3 = nullptr;
@@ -79,43 +82,59 @@ private:
                  const float t4,
                  const uint32_t cycle,
                  const uint32_t radius);
+
+  friend class cereal::access;
+  template<class Archive>
+  void save(Archive&) const;
+  template<class Archive>
+  void load(Archive&);
 };
 
-GoomDots::GoomDots(const PluginInfo* info) : fxImpl{new GoomDotsImpl{info}}
+GoomDotsFx::GoomDotsFx() noexcept : fxImpl{new GoomDotsImpl{}}
 {
 }
 
-GoomDots::~GoomDots() noexcept
+GoomDotsFx::GoomDotsFx(const std::shared_ptr<const PluginInfo>& info) noexcept
+  : fxImpl{new GoomDotsImpl{info}}
 {
 }
 
-void GoomDots::setBuffSettings(const FXBuffSettings& settings)
+GoomDotsFx::~GoomDotsFx() noexcept
+{
+}
+
+bool GoomDotsFx::operator==(const GoomDotsFx& d) const
+{
+  return fxImpl->operator==(*d.fxImpl);
+}
+
+void GoomDotsFx::setBuffSettings(const FXBuffSettings& settings)
 {
   fxImpl->setBuffSettings(settings);
 }
 
-void GoomDots::start()
+void GoomDotsFx::start()
 {
 }
 
-void GoomDots::finish()
+void GoomDotsFx::finish()
 {
 }
 
-std::string GoomDots::getFxName() const
+std::string GoomDotsFx::getFxName() const
 {
   return "goom dots";
 }
 
-void GoomDots::saveState(std::ostream&) const
+void GoomDotsFx::saveState(std::ostream&) const
 {
 }
 
-void GoomDots::loadState(std::istream&)
+void GoomDotsFx::loadState(std::istream&)
 {
 }
 
-void GoomDots::apply(Pixel* prevBuff, Pixel* currentBuff)
+void GoomDotsFx::apply(Pixel* prevBuff, Pixel* currentBuff)
 {
   if (!enabled)
   {
@@ -124,18 +143,53 @@ void GoomDots::apply(Pixel* prevBuff, Pixel* currentBuff)
   fxImpl->apply(prevBuff, currentBuff);
 }
 
-GoomDots::GoomDotsImpl::GoomDotsImpl(const PluginInfo* info)
+template<class Archive>
+void GoomDotsFx::serialize(Archive& ar)
+{
+  ar(CEREAL_NVP(enabled), CEREAL_NVP(fxImpl));
+}
+
+// Need to explicitly instantiate template functions for serialization.
+template void GoomDotsFx::serialize<cereal::JSONOutputArchive>(cereal::JSONOutputArchive&);
+template void GoomDotsFx::serialize<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
+
+template void GoomDotsFx::GoomDotsImpl::save<cereal::JSONOutputArchive>(
+    cereal::JSONOutputArchive&) const;
+template void GoomDotsFx::GoomDotsImpl::load<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
+
+template<class Archive>
+void GoomDotsFx::GoomDotsImpl::save(Archive& ar) const
+{
+  ar(CEREAL_NVP(goomInfo), CEREAL_NVP(pointWidth), CEREAL_NVP(pointHeight),
+     CEREAL_NVP(pointWidthDiv2), CEREAL_NVP(pointHeightDiv2), CEREAL_NVP(pointWidthDiv3),
+     CEREAL_NVP(pointHeightDiv3), CEREAL_NVP(draw), CEREAL_NVP(buffSettings),
+     CEREAL_NVP(middleColor), CEREAL_NVP(useSingleBufferOnly), CEREAL_NVP(useGrayScale),
+     CEREAL_NVP(loopvar));
+}
+
+template<class Archive>
+void GoomDotsFx::GoomDotsImpl::load(Archive& ar)
+{
+  ar(CEREAL_NVP(goomInfo), CEREAL_NVP(pointWidth), CEREAL_NVP(pointHeight),
+     CEREAL_NVP(pointWidthDiv2), CEREAL_NVP(pointHeightDiv2), CEREAL_NVP(pointWidthDiv3),
+     CEREAL_NVP(pointHeightDiv3), CEREAL_NVP(draw), CEREAL_NVP(buffSettings),
+     CEREAL_NVP(middleColor), CEREAL_NVP(useSingleBufferOnly), CEREAL_NVP(useGrayScale),
+     CEREAL_NVP(loopvar));
+}
+
+GoomDotsFx::GoomDotsImpl::GoomDotsImpl() noexcept
+{
+}
+
+GoomDotsFx::GoomDotsImpl::GoomDotsImpl(const std::shared_ptr<const PluginInfo>& info) noexcept
   : goomInfo(info),
-    screenWidth{goomInfo->getScreenInfo().width},
-    screenHeight{goomInfo->getScreenInfo().height},
-    pointWidth{(screenWidth * 2) / 5},
-    pointHeight{(screenHeight * 2) / 5},
+    pointWidth{(static_cast<uint32_t>(goomInfo->getScreenInfo().width) * 2) / 5},
+    pointHeight{(static_cast<uint32_t>(goomInfo->getScreenInfo().height) * 2) / 5},
     pointWidthDiv2{static_cast<float>(pointWidth / 2.0F)},
     pointHeightDiv2{static_cast<float>(pointHeight / 2.0F)},
     pointWidthDiv3{static_cast<float>(pointWidth / 3.0F)},
     pointHeightDiv3{static_cast<float>(pointHeight / 3.0F)},
-    draw{screenWidth, screenHeight},
-    buffSettings{},
+    draw{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height},
     colorMaps{Weights<ColorMapGroup>{{
         {ColorMapGroup::perceptuallyUniformSequential, 10},
         {ColorMapGroup::sequential, 20},
@@ -150,14 +204,34 @@ GoomDots::GoomDotsImpl::GoomDotsImpl(const PluginInfo* info)
   changeColors();
 }
 
-void GoomDots::GoomDotsImpl::setBuffSettings(const FXBuffSettings& settings)
+bool GoomDotsFx::GoomDotsImpl::operator==(const GoomDotsImpl& d) const
+{
+  if (goomInfo == nullptr && d.goomInfo != nullptr)
+  {
+    return false;
+  }
+  if (goomInfo != nullptr && d.goomInfo == nullptr)
+  {
+    return false;
+  }
+
+  return ((goomInfo == nullptr && d.goomInfo == nullptr) || (*goomInfo == *d.goomInfo)) &&
+         pointWidth == d.pointWidth && pointHeight == d.pointHeight &&
+         pointWidthDiv2 == d.pointWidthDiv2 && pointHeightDiv2 == d.pointHeightDiv2 &&
+         pointWidthDiv3 == d.pointWidthDiv3 && pointHeightDiv3 == d.pointHeightDiv3 &&
+         draw == d.draw && buffSettings == d.buffSettings && middleColor == d.middleColor &&
+         useSingleBufferOnly == d.useSingleBufferOnly && useGrayScale == d.useGrayScale &&
+         loopvar == d.loopvar;
+}
+
+void GoomDotsFx::GoomDotsImpl::setBuffSettings(const FXBuffSettings& settings)
 {
   buffSettings = settings;
   draw.setBuffIntensity(buffSettings.buffIntensity);
   draw.setAllowOverexposed(buffSettings.allowOverexposed);
 }
 
-void GoomDots::GoomDotsImpl::changeColors()
+void GoomDotsFx::GoomDotsImpl::changeColors()
 {
   colorMap1 = &colorMaps.getRandomColorMap();
   colorMap2 = &colorMaps.getRandomColorMap();
@@ -170,7 +244,7 @@ void GoomDots::GoomDotsImpl::changeColors()
   useGrayScale = probabilityOfMInN(1, 10);
 }
 
-void GoomDots::GoomDotsImpl::apply(Pixel* prevBuff, Pixel* currentBuff)
+void GoomDotsFx::GoomDotsImpl::apply(Pixel* prevBuff, Pixel* currentBuff)
 {
   uint32_t radius = 3;
   if ((goomInfo->getSoundInfo().getTimeSinceLastGoom() == 0) || changeDotColorsEvent())
@@ -255,9 +329,9 @@ void GoomDots::GoomDotsImpl::apply(Pixel* prevBuff, Pixel* currentBuff)
   }
 }
 
-std::vector<Pixel> GoomDots::GoomDotsImpl::getColors(const Pixel& color0,
-                                                     const Pixel& color1,
-                                                     const size_t numPts)
+std::vector<Pixel> GoomDotsFx::GoomDotsImpl::getColors(const Pixel& color0,
+                                                       const Pixel& color1,
+                                                       const size_t numPts)
 {
   std::vector<Pixel> colors(numPts);
   constexpr float t_min = 0.0;
@@ -282,7 +356,7 @@ std::vector<Pixel> GoomDots::GoomDotsImpl::getColors(const Pixel& color0,
   return colors;
 }
 
-float GoomDots::GoomDotsImpl::getLargeSoundFactor(const SoundInfo& soundInfo) const
+float GoomDotsFx::GoomDotsImpl::getLargeSoundFactor(const SoundInfo& soundInfo) const
 {
   float largefactor = soundInfo.getSpeed() / 150.0f + soundInfo.getVolume() / 1.5f;
   if (largefactor > 1.5f)
@@ -292,24 +366,25 @@ float GoomDots::GoomDotsImpl::getLargeSoundFactor(const SoundInfo& soundInfo) co
   return largefactor;
 }
 
-void GoomDots::GoomDotsImpl::dotFilter(Pixel* prevBuff,
-                                       Pixel* currentBuff,
-                                       const std::vector<Pixel>& colors,
-                                       const float t1,
-                                       const float t2,
-                                       const float t3,
-                                       const float t4,
-                                       const uint32_t cycle,
-                                       const uint32_t radius)
+void GoomDotsFx::GoomDotsImpl::dotFilter(Pixel* prevBuff,
+                                         Pixel* currentBuff,
+                                         const std::vector<Pixel>& colors,
+                                         const float t1,
+                                         const float t2,
+                                         const float t3,
+                                         const float t4,
+                                         const uint32_t cycle,
+                                         const uint32_t radius)
 {
   const uint32_t xOffset = static_cast<uint32_t>(t1 * cos(static_cast<float>(cycle) / t3));
   const uint32_t yOffset = static_cast<uint32_t>(t2 * sin(static_cast<float>(cycle) / t4));
-  const int x0 = static_cast<int>(screenWidth / 2 + xOffset);
-  const int y0 = static_cast<int>(screenHeight / 2 + yOffset);
+  const int x0 = static_cast<int>(goomInfo->getScreenInfo().width / 2 + xOffset);
+  const int y0 = static_cast<int>(goomInfo->getScreenInfo().height / 2 + yOffset);
 
   const uint32_t diameter = 2 * radius;
-  const int screenWidthLessDiameter = static_cast<int>(screenWidth - diameter);
-  const int screenHeightLessDiameter = static_cast<int>(screenHeight - diameter);
+  const int screenWidthLessDiameter = static_cast<int>(goomInfo->getScreenInfo().width - diameter);
+  const int screenHeightLessDiameter =
+      static_cast<int>(goomInfo->getScreenInfo().height - diameter);
 
   if ((x0 < static_cast<int>(diameter)) || (y0 < static_cast<int>(diameter)) ||
       (x0 >= screenWidthLessDiameter) || (y0 >= screenHeightLessDiameter))

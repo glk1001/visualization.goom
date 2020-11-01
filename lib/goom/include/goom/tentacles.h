@@ -109,7 +109,7 @@ private:
 public:
   static constexpr size_t minNumNodes = 10;
 
-  explicit Tentacle2D(const size_t ID, std::unique_ptr<TentacleTweaker> tweaker);
+  explicit Tentacle2D(const size_t ID, std::unique_ptr<TentacleTweaker> tweaker) noexcept;
   Tentacle2D(const Tentacle2D&) = delete;
   Tentacle2D& operator=(const Tentacle2D&) = delete;
 
@@ -170,17 +170,17 @@ public:
   void turnOnAllAdjusts();
 
 private:
-  const size_t ID;
-  std::unique_ptr<TentacleTweaker> tweaker;
+  size_t ID{};
+  std::unique_ptr<TentacleTweaker> tweaker{};
   size_t iterNum = 0;
   size_t numNodes = 0;
   bool startedIterating = false;
-  std::vector<double> xvec;
-  std::vector<double> yvec;
-  XandYVectors vecs;
-  std::vector<double> dampedYVec;
-  std::vector<double> dampingCache;
-  XandYVectors dampedVecs;
+  std::vector<double> xvec{};
+  std::vector<double> yvec{};
+  XandYVectors vecs{std::make_tuple(std::ref(xvec), std::ref(yvec))};
+  std::vector<double> dampedYVec{};
+  std::vector<double> dampingCache{};
+  XandYVectors dampedVecs{std::make_tuple(std::ref(xvec), std::ref(dampedYVec))};
   double xmin = 0;
   double xmax = 0;
   double ymin = 0;
@@ -197,7 +197,7 @@ private:
   float getNextY(const size_t nodeNum);
   float getDampedVal(const size_t nodeNum, const float val) const;
   std::vector<double> postProcessYVals(const std::vector<double>& yvec) const;
-  SpecialNodes specialPostProcessingNodes;
+  SpecialNodes specialPostProcessingNodes{0, 0, {}};
   void updateDampedVals(const std::vector<double>& yvals);
   double damp(const size_t nodeNum) const;
   void validateSettings() const;
@@ -222,12 +222,12 @@ public:
   explicit Tentacle3D(std::unique_ptr<Tentacle2D>,
                       const Pixel& headColor,
                       const Pixel& headColorLow,
-                      const V3d& head);
+                      const V3d& head) noexcept;
   explicit Tentacle3D(std::unique_ptr<Tentacle2D>,
                       const TentacleColorizer& colorizer,
                       const Pixel& headColor,
                       const Pixel& headColorLow,
-                      const V3d& head);
+                      const V3d& head) noexcept;
   Tentacle3D(Tentacle3D&&) noexcept;
   Tentacle3D(const Tentacle3D&) = delete;
   Tentacle3D& operator=(const Tentacle3D&) = delete;
@@ -261,13 +261,13 @@ public:
   std::vector<V3d> getVertices() const;
 
 private:
-  std::unique_ptr<Tentacle2D> tentacle;
-  const TentacleColorizer* const colorizer;
+  std::unique_ptr<Tentacle2D> tentacle{};
+  const TentacleColorizer* const colorizer = nullptr;
   SpecialNodes specialColorNodes;
-  const utils::ColorMap* specialNodesColorMap;
-  const Pixel headColor;
-  const Pixel headColorLow;
-  V3d head;
+  const utils::ColorMap* specialNodesColorMap = nullptr;
+  const Pixel headColor{};
+  const Pixel headColorLow{};
+  V3d head{};
   bool reverseColorMix = false;
   bool allowOverexposed = true;
 };
@@ -293,7 +293,7 @@ private:
   };
 
 public:
-  Tentacles3D();
+  Tentacles3D() noexcept;
 
   void addTentacle(Tentacle3D&&);
 
@@ -306,7 +306,7 @@ public:
   void setAllowOverexposed(const bool val);
 
 private:
-  std::vector<Tentacle3D> tentacles;
+  std::vector<Tentacle3D> tentacles{};
 };
 
 inline double TentacleTweaker::getDamping(const double x)

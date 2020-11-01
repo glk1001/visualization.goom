@@ -22,6 +22,13 @@ GoomDraw::GoomDraw(const uint32_t screenW, const uint32_t screenH)
   setAllowOverexposed(true);
 }
 
+bool GoomDraw::operator==(const GoomDraw& d) const
+{
+  return screenWidth == d.screenWidth && screenHeight == d.screenHeight &&
+         allowOverexposed == d.allowOverexposed && buffIntensity == d.buffIntensity &&
+         intBuffIntensity == d.intBuffIntensity;
+}
+
 void GoomDraw::circle(Pixel* buff, const int x0, const int y0, const int radius, const Pixel& color)
 {
   drawCircle(buff, x0, y0, radius, color, intBuffIntensity, allowOverexposed, screenWidth,

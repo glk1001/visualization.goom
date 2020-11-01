@@ -22,7 +22,7 @@
 #include "goomutils/goomrand.h"
 #include "goomutils/logging_control.h"
 #include "goomutils/mathutils.h"
-// #undef NO_LOGGING
+//#undef NO_LOGGING
 #include "goomutils/logging.h"
 #include "v3d.h"
 
@@ -373,7 +373,8 @@ constexpr float maxCoefVitesse = +2.01;
 class ZoomFilterFx::ZoomFilterImpl
 {
 public:
-  explicit ZoomFilterImpl(const PluginInfo*) noexcept;
+  ZoomFilterImpl() noexcept;
+  explicit ZoomFilterImpl(const std::shared_ptr<const PluginInfo>&) noexcept;
   ~ZoomFilterImpl() noexcept;
   ZoomFilterImpl(const ZoomFilterImpl&) = delete;
   ZoomFilterImpl& operator=(const ZoomFilterImpl&) = delete;
@@ -386,22 +387,17 @@ public:
                          const int32_t switchIncr,
                          const float switchMult);
 
-  void log(const StatsLogValueFunc& logVal) const;
+  void log(const StatsLogValueFunc&) const;
 
-  template<class Archive>
-  void serialize(Archive& ar)
-  {
-    ar(CEREAL_NVP(filterData), CEREAL_NVP(buffSettings), CEREAL_NVP(generalSpeed),
-       CEREAL_NVP(interlaceStart), CEREAL_NVP(tranDiffFactor));
-  };
+  bool operator==(const ZoomFilterImpl&) const;
 
 private:
-  const uint32_t screenWidth;
-  const uint32_t screenHeight;
-  const float ratioPixmapToNormalizedCoord;
-  const float ratioNormalizedCoordToPixmap;
-  const float minNormCoordVal;
-  ZoomFilterData filterData;
+  uint32_t screenWidth = 0;
+  uint32_t screenHeight = 0;
+  float ratioPixmapToNormalizedCoord = 0;
+  float ratioNormalizedCoordToPixmap = 0;
+  float minNormCoordVal = 0;
+  ZoomFilterData filterData{};
   FXBuffSettings buffSettings{};
 
   float toNormalizedCoord(const int32_t pixmapCoord);
@@ -443,7 +439,29 @@ private:
   Pixel getBlockyMixedColor(const CoeffArray& coeffs, const PixelArray& colors) const;
   static Pixel getPixelColor(const Pixel* buffer, const uint32_t pos);
   static void setPixelColor(Pixel* buffer, const uint32_t pos, const Pixel&);
+
+  friend class cereal::access;
+  template<class Archive>
+  void save(Archive&) const;
+  template<class Archive>
+  void load(Archive&);
 };
+
+/**
+bool ZoomFilterData::operator==(const ZoomFilterData& f) const
+{
+  return mode == f.mode &&
+         vitesse == f.vitesse &&
+         middleX == f.middleX && ), CEREAL_NVP(middleY),
+         CEREAL_NVP(reverse), CEREAL_NVP(hPlaneEffect), CEREAL_NVP(vPlaneEffect),
+         CEREAL_NVP(waveEffect), CEREAL_NVP(hypercosEffect), CEREAL_NVP(noisify),
+         CEREAL_NVP(noiseFactor), CEREAL_NVP(blockyWavy), CEREAL_NVP(waveFreqFactor),
+         CEREAL_NVP(waveAmplitude), CEREAL_NVP(waveEffectType), CEREAL_NVP(scrunchAmplitude),
+         CEREAL_NVP(speedwayAmplitude), CEREAL_NVP(amuletteAmplitude), CEREAL_NVP(crystalBallAmplitude),
+         CEREAL_NVP(hypercosFreq), CEREAL_NVP(hypercosAmplitude), CEREAL_NVP(hPlaneEffectAmplitude),
+         CEREAL_NVP(vPlaneEffectAmplitude));
+}
+**/
 
 template<class Archive>
 void ZoomFilterData::serialize(Archive& ar)
@@ -458,13 +476,91 @@ void ZoomFilterData::serialize(Archive& ar)
      CEREAL_NVP(vPlaneEffectAmplitude));
 }
 
-ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl(const PluginInfo* goomInfo) noexcept
+template<class Archive>
+void ZoomFilterFx::serialize(Archive& ar)
+{
+  ar(CEREAL_NVP(enabled), CEREAL_NVP(fxImpl));
+}
+
+// Need to explicitly instantiate template functions for serialization.
+template void ZoomFilterFx::serialize<cereal::JSONOutputArchive>(cereal::JSONOutputArchive&);
+template void ZoomFilterFx::serialize<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
+
+template void ZoomFilterFx::ZoomFilterImpl::save<cereal::JSONOutputArchive>(
+    cereal::JSONOutputArchive&) const;
+template void ZoomFilterFx::ZoomFilterImpl::load<cereal::JSONInputArchive>(
+    cereal::JSONInputArchive&);
+
+template<class Archive>
+void ZoomFilterFx::ZoomFilterImpl::save(Archive& ar) const
+{
+  ar(CEREAL_NVP(screenWidth), CEREAL_NVP(screenHeight), CEREAL_NVP(ratioPixmapToNormalizedCoord),
+     CEREAL_NVP(ratioNormalizedCoordToPixmap), CEREAL_NVP(minNormCoordVal), CEREAL_NVP(filterData),
+     CEREAL_NVP(buffSettings), CEREAL_NVP(generalSpeed), CEREAL_NVP(interlaceStart),
+     CEREAL_NVP(tranDiffFactor));
+}
+
+template<class Archive>
+void ZoomFilterFx::ZoomFilterImpl::load(Archive& ar)
+{
+  ar(CEREAL_NVP(screenWidth), CEREAL_NVP(screenHeight), CEREAL_NVP(ratioPixmapToNormalizedCoord),
+     CEREAL_NVP(ratioNormalizedCoordToPixmap), CEREAL_NVP(minNormCoordVal), CEREAL_NVP(filterData),
+     CEREAL_NVP(buffSettings), CEREAL_NVP(generalSpeed), CEREAL_NVP(interlaceStart),
+     CEREAL_NVP(tranDiffFactor));
+}
+
+bool ZoomFilterFx::ZoomFilterImpl::operator==(const ZoomFilterImpl& f) const
+{
+  bool result = screenWidth == f.screenWidth && screenHeight == f.screenHeight &&
+                ratioPixmapToNormalizedCoord == f.ratioPixmapToNormalizedCoord &&
+                ratioNormalizedCoordToPixmap == f.ratioNormalizedCoordToPixmap &&
+                minNormCoordVal == f.minNormCoordVal && filterData == f.filterData &&
+                buffSettings == f.buffSettings && generalSpeed == f.generalSpeed &&
+                interlaceStart == f.interlaceStart && tranDiffFactor == f.tranDiffFactor;
+  if (!result)
+  {
+    logDebug("result == {}", result);
+    logDebug("screenWidth = {}, f.screenWidth = {}", screenWidth, f.screenWidth);
+    logDebug("screenHeight = {}, f.screenHeight = {}", screenHeight, f.screenHeight);
+    logDebug("ratioPixmapToNormalizedCoord = {}, f.ratioPixmapToNormalizedCoord = {}",
+             ratioPixmapToNormalizedCoord, f.ratioPixmapToNormalizedCoord);
+    logDebug("ratioNormalizedCoordToPixmap = {}, f.ratioNormalizedCoordToPixmap = {}",
+             ratioNormalizedCoordToPixmap, f.ratioNormalizedCoordToPixmap);
+    logDebug("minNormCoordVal = {}, f.minNormCoordVal = {}", minNormCoordVal, f.minNormCoordVal);
+    logDebug("buffSettings.allowOverexposed = {}, f.buffSettings.allowOverexposed = {}",
+             buffSettings.allowOverexposed, f.buffSettings.allowOverexposed);
+    logDebug("buffSettings.buffIntensity = {}, f.buffSettings.buffIntensity = {}",
+             buffSettings.buffIntensity, f.buffSettings.buffIntensity);
+    logDebug("generalSpeed = {}, f.generalSpeed = {}", generalSpeed, f.generalSpeed);
+    logDebug("interlaceStart = {}, f.interlaceStart = {}", interlaceStart, f.interlaceStart);
+  }
+  return result;
+}
+
+ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl() noexcept
+  : freeTranXSrce{},
+    freeTranYSrce{},
+    tranXSrce{nullptr},
+    tranYSrce{nullptr},
+    freeTranXDest{},
+    freeTranYDest{},
+    tranXDest{nullptr},
+    tranYDest{nullptr},
+    freeTranXTemp{},
+    freeTranYTemp{},
+    tranXTemp{nullptr},
+    tranYTemp{nullptr},
+    firedec{}
+{
+}
+
+ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl(
+    const std::shared_ptr<const PluginInfo>& goomInfo) noexcept
   : screenWidth{goomInfo->getScreenInfo().width},
     screenHeight{goomInfo->getScreenInfo().height},
     ratioPixmapToNormalizedCoord{2.0F / static_cast<float>(screenWidth)},
     ratioNormalizedCoordToPixmap{1.0F / ratioPixmapToNormalizedCoord},
     minNormCoordVal{ratioPixmapToNormalizedCoord / buffPointNumFlt},
-    filterData{},
     freeTranXSrce(goomInfo->getScreenInfo().size + 128),
     freeTranYSrce(goomInfo->getScreenInfo().size + 128),
     tranXSrce{(int32_t*)((1 + (uintptr_t((freeTranXSrce.data()))) / 128) * 128)},
@@ -528,12 +624,22 @@ void ZoomFilterFx::ZoomFilterImpl::log(const StatsLogValueFunc& logVal) const
   stats.log(logVal);
 }
 
-ZoomFilterFx::ZoomFilterFx(const PluginInfo* info) : fxImpl{new ZoomFilterImpl{info}}
+ZoomFilterFx::ZoomFilterFx() noexcept : fxImpl{new ZoomFilterImpl{}}
+{
+}
+
+ZoomFilterFx::ZoomFilterFx(const std::shared_ptr<const PluginInfo>& info) noexcept
+  : fxImpl{new ZoomFilterImpl{info}}
 {
 }
 
 ZoomFilterFx::~ZoomFilterFx() noexcept
 {
+}
+
+bool ZoomFilterFx::operator==(const ZoomFilterFx& f) const
+{
+  return fxImpl->operator==(*f.fxImpl);
 }
 
 void ZoomFilterFx::setBuffSettings(const FXBuffSettings& settings)

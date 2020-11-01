@@ -26,6 +26,7 @@ struct FXBuffSettings
 {
   float buffIntensity = 0.5;
   bool allowOverexposed = true;
+  bool operator==(const FXBuffSettings&) const = default;
   template<class Archive>
   void serialize(Archive&);
 };

@@ -36,23 +36,12 @@ inline bool changeCurrentColorMapEvent()
 const size_t TentacleDriver::changeCurrentColorMapGroupEveryNUpdates = 400;
 const size_t TentacleDriver::changeTentacleColorMapEveryNUpdates = 100;
 
-TentacleDriver::TentacleDriver(const ColorMaps* cm, const uint32_t screenW, const uint32_t screenH)
-  : iterParamsGroups{},
-    screenWidth{screenW},
-    screenHeight{screenH},
-    draw{screenWidth, screenHeight},
-    buffSettings{},
-    colorMaps{cm},
-    colorizers{},
-    constPrevYWeightFunc(),
-    constCurrentYWeightFunc(),
-    weightsHandler{constPrevYWeightFunc, constCurrentYWeightFunc},
-    tentacles{},
-    tentacleParams{},
-    roughenTimer{roughenIterLength},
-    glitchTimer{glitchIterLength},
-    glitchColorGroup{&colorMaps->getRandomColorMap()},
-    iterTimers{&glitchTimer, &roughenTimer}
+TentacleDriver::TentacleDriver() noexcept
+{
+}
+
+TentacleDriver::TentacleDriver(const uint32_t screenW, const uint32_t screenH) noexcept
+  : screenWidth{screenW}, screenHeight{screenH}, draw{screenWidth, screenHeight}
 {
   const IterParamsGroup iter1 = {
       {100, 0.600, 1.0, {1.5, -10.0, +10.0, m_pi}, 70.0},
@@ -113,7 +102,7 @@ void TentacleDriver::init(const TentacleLayout& layout)
   tentacleParams.resize(numTentacles);
 
   constexpr V3d initialHeadPos = {0, 0, 0};
-  const ColorMap* specialColorMap = &colorMaps->getRandomColorMap(ColorMapGroup::qualitative);
+  const ColorMap* specialColorMap = &colorMaps.getRandomColorMap(ColorMapGroup::qualitative);
   const std::vector<size_t> specialColorNodes = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
   logDebug("Got color maps.");
 
@@ -121,7 +110,7 @@ void TentacleDriver::init(const TentacleLayout& layout)
   const float tStep = 1.0F / static_cast<float>(numInParamGroup - 1);
   logDebug("numInTentacleGroup = {}, tStep = {:.2f}.", numInParamGroup, tStep);
 
-  const utils::ColorMapGroup initialColorMapGroup = colorMaps->getRandomGroup();
+  const utils::ColorMapGroup initialColorMapGroup = colorMaps.getRandomGroup();
 
   size_t paramsIndex = 0;
   float t = 0;
@@ -141,7 +130,7 @@ void TentacleDriver::init(const TentacleLayout& layout)
     tentacleParams[i] = params;
 
     std::unique_ptr<TentacleColorMapColorizer> colorizer{
-        new TentacleColorMapColorizer{*colorMaps, initialColorMapGroup, params.numNodes}};
+        new TentacleColorMapColorizer{initialColorMapGroup, params.numNodes}};
     colorizers.push_back(std::move(colorizer));
 
     std::unique_ptr<Tentacle2D> tentacle2D{createNewTentacle2D(i, params)};
@@ -280,8 +269,8 @@ std::unique_ptr<TentacleTweaker> TentacleDriver::createNewTweaker(
 
   return std::unique_ptr<TentacleTweaker>{new TentacleTweaker{
       std::move(dampingFunc), std::bind(&TentacleDriver::beforeIter, this, _1, _2, _3, _4),
-      &(weightsHandler.getPrevYWeightFunc()), &(weightsHandler.getCurrentYWeightFunc()),
-      weightsReset, weightsAdjust}};
+      &weightsHandler.getPrevYWeightFunc(), &weightsHandler.getCurrentYWeightFunc(), weightsReset,
+      weightsAdjust}};
 }
 
 void TentacleDriver::startIterating()
@@ -392,7 +381,7 @@ std::vector<utils::ColorMapGroup> TentacleDriver::getNextColorMapGroups() const
   std::vector<utils::ColorMapGroup> groups(numDifferentGroups);
   for (size_t i = 0; i < numDifferentGroups; i++)
   {
-    groups[i] = colorMaps->getRandomGroup();
+    groups[i] = colorMaps.getRandomGroup();
   }
 
   std::vector<utils::ColorMapGroup> nextColorMapGroups(colorizers.size());
@@ -504,7 +493,7 @@ void TentacleDriver::beforeIter(const size_t ID,
 
 void TentacleDriver::freshStart()
 {
-  const utils::ColorMapGroup nextColorMapGroup = colorMaps->getRandomGroup();
+  const utils::ColorMapGroup nextColorMapGroup = colorMaps.getRandomGroup();
   for (auto& c : colorizers)
   {
     c->setColorMapGroup(nextColorMapGroup);
@@ -691,12 +680,10 @@ inline void TentacleDriver::translateV3d(const V3d& vadd, V3d& vinOut)
   vinOut.z += vadd.z;
 }
 
-TentacleColorMapColorizer::TentacleColorMapColorizer(const ColorMaps& cm,
-                                                     const utils::ColorMapGroup cmg,
+TentacleColorMapColorizer::TentacleColorMapColorizer(const utils::ColorMapGroup cmg,
                                                      const size_t nNodes)
-  : colorMaps{&cm},
-    currentColorMapGroup{cmg},
-    colorMap{&colorMaps->getRandomColorMap(currentColorMapGroup)},
+  : currentColorMapGroup{cmg},
+    colorMap{&colorMaps.getRandomColorMap(currentColorMapGroup)},
     prevColorMap{colorMap},
     tTransition{0},
     numNodes{nNodes}
@@ -718,7 +705,7 @@ void TentacleColorMapColorizer::changeColorMap()
   // Save the current color map to do smooth transitions to next color map.
   prevColorMap = colorMap;
   tTransition = 1.0;
-  colorMap = &colorMaps->getRandomColorMap(currentColorMapGroup);
+  colorMap = &colorMaps.getRandomColorMap(currentColorMapGroup);
 }
 
 Pixel TentacleColorMapColorizer::getColor(const size_t nodeNum) const
@@ -869,9 +856,9 @@ const std::vector<V3d>& CirclesTentacleLayout::getPoints() const
   return points;
 }
 
-SimpleWeightHandler::SimpleWeightHandler(ConstantSequenceFunction& prevYWeightFun,
-                                         ConstantSequenceFunction& currentYWeightFun)
-  : prevYWeightFunc(&prevYWeightFun), currentYWeightFunc(&currentYWeightFun)
+SimpleWeightHandler::SimpleWeightHandler(const ConstantSequenceFunction& prevYWeightFun,
+                                         const ConstantSequenceFunction& currentYWeightFun)
+  : prevYWeightFunc(prevYWeightFun), currentYWeightFunc(currentYWeightFun)
 {
 }
 
@@ -882,8 +869,8 @@ void SimpleWeightHandler::weightsReset([[maybe_unused]] const size_t ID,
 {
   basePrevYWeight = basePrevYWgt;
   baseCurrentYWeight = baseCurrentYWgt;
-  prevYWeightFunc->setConstVal(basePrevYWeight);
-  currentYWeightFunc->setConstVal(baseCurrentYWeight);
+  prevYWeightFunc.setConstVal(basePrevYWeight);
+  currentYWeightFunc.setConstVal(baseCurrentYWeight);
 }
 
 void SimpleWeightHandler::weightsAdjust([[maybe_unused]] const size_t ID,
@@ -892,15 +879,15 @@ void SimpleWeightHandler::weightsAdjust([[maybe_unused]] const size_t ID,
                                         [[maybe_unused]] const float prevY,
                                         [[maybe_unused]] const float currentY)
 {
-  prevYWeightFunc->setConstVal(basePrevYWeight * getRandInRange(0.7f, 1.4f));
-  currentYWeightFunc->setConstVal(1.0 - prevYWeightFunc->getConstVal());
+  prevYWeightFunc.setConstVal(basePrevYWeight * getRandInRange(0.7f, 1.4f));
+  currentYWeightFunc.setConstVal(1.0 - prevYWeightFunc.getConstVal());
 }
 
-RandWeightHandler::RandWeightHandler(RandSequenceFunction& prevYWeightFun,
-                                     RandSequenceFunction& currentYWeightFun,
+RandWeightHandler::RandWeightHandler(const RandSequenceFunction& prevYWeightFun,
+                                     const RandSequenceFunction& currentYWeightFun,
                                      const float _r0,
                                      const float _r1)
-  : prevYWeightFunc(&prevYWeightFun), currentYWeightFunc(&currentYWeightFun), r0(_r0), r1(_r1)
+  : prevYWeightFunc(prevYWeightFun), currentYWeightFunc(currentYWeightFun), r0(_r0), r1(_r1)
 {
 }
 
@@ -910,10 +897,10 @@ void RandWeightHandler::weightsReset([[maybe_unused]] const size_t ID,
                                      const float basePrevYWgt,
                                      const float baseCurrentYWgt)
 {
-  prevYWeightFunc->setX0(r0 * basePrevYWgt);
-  prevYWeightFunc->setX1(r1 * basePrevYWgt);
-  currentYWeightFunc->setX0(r0 * baseCurrentYWgt);
-  currentYWeightFunc->setX1(r1 * baseCurrentYWgt);
+  prevYWeightFunc.setX0(r0 * basePrevYWgt);
+  prevYWeightFunc.setX1(r1 * basePrevYWgt);
+  currentYWeightFunc.setX0(r0 * baseCurrentYWgt);
+  currentYWeightFunc.setX1(r1 * baseCurrentYWgt);
 }
 
 void RandWeightHandler::weightsAdjust([[maybe_unused]] const size_t ID,

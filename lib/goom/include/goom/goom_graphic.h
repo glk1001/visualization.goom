@@ -3,6 +3,7 @@
 
 #include "goom_config.h"
 
+#include <cereal/archives/json.hpp>
 #include <cstdint>
 
 namespace goom
@@ -98,13 +99,25 @@ public:
   uint32_t rgba() const;
   void set_rgba(const uint32_t v);
 
+  bool operator==(const Pixel&) const;
+
+  template<class Archive>
+  void serialize(Archive&);
+
 private:
-  union
+  union Color
   {
     Channels channels;
     uint32_t intVal;
-  } color;
+  };
+  Color color;
 };
+
+template<class Archive>
+void Pixel::serialize(Archive& ar)
+{
+  ar(color.intVal);
+}
 
 inline Pixel::Pixel() : color{.channels{}}
 {
@@ -116,6 +129,11 @@ inline Pixel::Pixel(const Channels& c) : color{.channels{c}}
 
 inline Pixel::Pixel(const uint32_t v) : color{.intVal{v}}
 {
+}
+
+inline bool Pixel::operator==(const Pixel& p) const
+{
+  return rgba() == p.rgba();
 }
 
 inline uint8_t Pixel::r() const

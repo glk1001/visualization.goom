@@ -17,6 +17,8 @@
 #include "v3d.h"
 
 #include <algorithm>
+#include <cereal/archives/json.hpp>
+#include <cereal/types/memory.hpp>
 #include <cmath>
 #include <cstdint>
 #include <istream>
@@ -377,7 +379,8 @@ void TentacleStats::changeTentacleDriver(const uint32_t driverIndex)
 class TentaclesFx::TentaclesImpl
 {
 public:
-  explicit TentaclesImpl(const PluginInfo*);
+  TentaclesImpl() noexcept;
+  explicit TentaclesImpl(const std::shared_ptr<const PluginInfo>&) noexcept;
   ~TentaclesImpl() noexcept = default;
   TentaclesImpl(const TentaclesImpl&) = delete;
   TentaclesImpl& operator=(const TentaclesImpl&) = delete;
@@ -389,11 +392,22 @@ public:
 
   void logStats(const StatsLogValueFunc logVal);
 
+  bool operator==(const TentaclesImpl&) const;
+
 private:
-  const PluginInfo* const goomInfo;
-  WeightedColorMaps colorMaps;
-  const ColorMap* dominantColorMap;
-  Pixel dominantColor;
+  std::shared_ptr<const PluginInfo> goomInfo{};
+  WeightedColorMaps colorMaps{Weights<ColorMapGroup>{{
+      {ColorMapGroup::perceptuallyUniformSequential, 10},
+      {ColorMapGroup::sequential, 10},
+      {ColorMapGroup::sequential2, 10},
+      {ColorMapGroup::cyclic, 10},
+      {ColorMapGroup::diverging, 20},
+      {ColorMapGroup::diverging_black, 20},
+      {ColorMapGroup::qualitative, 10},
+      {ColorMapGroup::misc, 20},
+  }}};
+  const ColorMap* dominantColorMap = nullptr;
+  Pixel dominantColor{};
   void changeDominantColor();
 
   bool updatingWithDraw = false;
@@ -410,7 +424,7 @@ private:
   static constexpr float distt2Min = 8.0;
   static constexpr float distt2Max = 1000;
   float distt2Offset = 0;
-  float rot; // entre 0 et m_two_pi
+  float rot = 0; // entre 0 et m_two_pi
   float rotAtStartOfPrettyMove = 0;
   bool doRotation = false;
   static float getStableRotationOffset(const float cycleVal);
@@ -419,11 +433,12 @@ private:
   int32_t prettyMoveCheckStopMark = 0;
   static constexpr uint32_t prettyMoveHappeningMin = 100;
   static constexpr uint32_t prettyMoveHappeningMax = 200;
-  int32_t prePrettyMoveLock = 0;
   float distt2OffsetPreStep = 0;
+
   bool prettyMoveReadyToStart = false;
   static constexpr int32_t minPrePrettyMoveLock = 200;
   static constexpr int32_t maxPrePrettyMoveLock = 500;
+  int32_t prePrettyMoveLock = 0;
   int32_t postPrettyMoveLock = 0;
   float prettyMoveLerpMix = 1.0 / 16.0; // original goom value
   void isPrettyMoveHappeningUpdate(const float acceleration);
@@ -439,18 +454,51 @@ private:
   void incCounters();
 
   static constexpr size_t numDrivers = 4;
-  std::vector<std::unique_ptr<TentacleDriver>> drivers;
+  std::vector<std::unique_ptr<TentacleDriver>> drivers{};
   TentacleDriver* currentDriver = nullptr;
   TentacleDriver* getNextDriver() const;
-  const Weights<size_t> driverWeights;
+  // clang-format off
+  const Weights<size_t> driverWeights{{
+      {0, 5},
+      {1, 15},
+      {2, 15},
+      {3, 15},
+  }};
+  const std::vector<CirclesTentacleLayout> layouts{
+      {10,  60, {16, 10,  6,  4, 2}, 0},
+      {10,  60, {20, 16, 10,  4, 2}, 0},
+      {10,  80, {30, 20, 14,  6, 4}, 0},
+      {10,  90, {40, 26, 20, 12, 6}, 0},
+  };
+  // clang-format on
 
+  void setupDrivers();
   void init();
-  mutable TentacleStats stats;
+  mutable TentacleStats stats{};
+
+  friend class cereal::access;
+  template<class Archive>
+  void save(Archive&) const;
+  template<class Archive>
+  void load(Archive&);
 };
 
-// TODO PASS GoomINFO to wrapper
-TentaclesFx::TentaclesFx(const PluginInfo* info) : fxImpl{new TentaclesImpl{info}}
+TentaclesFx::TentaclesFx() noexcept : fxImpl{new TentaclesImpl{}}
 {
+}
+
+TentaclesFx::TentaclesFx(const std::shared_ptr<const PluginInfo>& info) noexcept
+  : fxImpl{new TentaclesImpl{info}}
+{
+}
+
+TentaclesFx::~TentaclesFx() noexcept
+{
+}
+
+bool TentaclesFx::operator==(const TentaclesFx& t) const
+{
+  return fxImpl->operator==(*t.fxImpl);
 }
 
 void TentaclesFx::setBuffSettings(const FXBuffSettings& settings)
@@ -504,38 +552,61 @@ void TentaclesFx::loadState(std::istream&)
 {
 }
 
-TentaclesFx::TentaclesImpl::TentaclesImpl(const PluginInfo* info)
+template<class Archive>
+void TentaclesFx::serialize(Archive& ar)
+{
+  ar(CEREAL_NVP(enabled), CEREAL_NVP(fxImpl));
+}
+
+// Need to explicitly instantiate template functions for serialization.
+template void TentaclesFx::serialize<cereal::JSONOutputArchive>(cereal::JSONOutputArchive&);
+template void TentaclesFx::serialize<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
+
+template void TentaclesFx::TentaclesImpl::save<cereal::JSONOutputArchive>(
+    cereal::JSONOutputArchive&) const;
+template void TentaclesFx::TentaclesImpl::load<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
+
+template<class Archive>
+void TentaclesFx::TentaclesImpl::save(Archive& ar) const
+{
+  ar(CEREAL_NVP(goomInfo), CEREAL_NVP(dominantColor), CEREAL_NVP(updatingWithDraw),
+     CEREAL_NVP(cycle), CEREAL_NVP(cycleInc), CEREAL_NVP(lig), CEREAL_NVP(ligs), CEREAL_NVP(distt),
+     CEREAL_NVP(distt2), CEREAL_NVP(distt2Offset), CEREAL_NVP(rot),
+     CEREAL_NVP(rotAtStartOfPrettyMove), CEREAL_NVP(doRotation), CEREAL_NVP(isPrettyMoveHappening),
+     CEREAL_NVP(prettyMoveHappeningTimer), CEREAL_NVP(prettyMoveCheckStopMark),
+     CEREAL_NVP(distt2OffsetPreStep), CEREAL_NVP(prettyMoveReadyToStart),
+     CEREAL_NVP(prePrettyMoveLock), CEREAL_NVP(postPrettyMoveLock), CEREAL_NVP(prettyMoveLerpMix),
+     CEREAL_NVP(countSinceHighAccelLastMarked), CEREAL_NVP(countSinceColorChangeLastMarked));
+}
+
+template<class Archive>
+void TentaclesFx::TentaclesImpl::load(Archive& ar)
+{
+  ar(CEREAL_NVP(goomInfo), CEREAL_NVP(dominantColor), CEREAL_NVP(updatingWithDraw),
+     CEREAL_NVP(cycle), CEREAL_NVP(cycleInc), CEREAL_NVP(lig), CEREAL_NVP(ligs), CEREAL_NVP(distt),
+     CEREAL_NVP(distt2), CEREAL_NVP(distt2Offset), CEREAL_NVP(rot),
+     CEREAL_NVP(rotAtStartOfPrettyMove), CEREAL_NVP(doRotation), CEREAL_NVP(isPrettyMoveHappening),
+     CEREAL_NVP(prettyMoveHappeningTimer), CEREAL_NVP(prettyMoveCheckStopMark),
+     CEREAL_NVP(distt2OffsetPreStep), CEREAL_NVP(prettyMoveReadyToStart),
+     CEREAL_NVP(prePrettyMoveLock), CEREAL_NVP(postPrettyMoveLock), CEREAL_NVP(prettyMoveLerpMix),
+     CEREAL_NVP(countSinceHighAccelLastMarked), CEREAL_NVP(countSinceColorChangeLastMarked));
+}
+
+TentaclesFx::TentaclesImpl::TentaclesImpl() noexcept
+{
+}
+
+TentaclesFx::TentaclesImpl::TentaclesImpl(const std::shared_ptr<const PluginInfo>& info) noexcept
   : goomInfo{info},
-    colorMaps{Weights<ColorMapGroup>{{
-        {ColorMapGroup::perceptuallyUniformSequential, 10},
-        {ColorMapGroup::sequential, 10},
-        {ColorMapGroup::sequential2, 10},
-        {ColorMapGroup::cyclic, 10},
-        {ColorMapGroup::diverging, 20},
-        {ColorMapGroup::diverging_black, 20},
-        {ColorMapGroup::qualitative, 10},
-        {ColorMapGroup::misc, 20},
-    }}},
     dominantColorMap{&colorMaps.getRandomColorMap()},
     dominantColor{ColorMap::getRandomColor(*dominantColorMap)},
-    rot{getStableRotationOffset(0)},
-    drivers{},
-    driverWeights{{
-        {0, 5},
-        {1, 15},
-        {2, 15},
-        {3, 15},
-    }},
-    stats{}
+    rot{getStableRotationOffset(0)}
 {
-  // clang-format off
-  const std::vector<CirclesTentacleLayout> layouts{
-      {10,  60, {16, 10,  6,  4, 2}, 0},
-      {10,  60, {20, 16, 10,  4, 2}, 0},
-      {10,  80, {30, 20, 14,  6, 4}, 0},
-      {10,  90, {40, 26, 20, 12, 6}, 0},
-  };
-  // clang-format on
+  setupDrivers();
+}
+
+void TentaclesFx::TentaclesImpl::setupDrivers()
+{
   // const GridTentacleLayout layout{ -100, 100, xRowLen, -100, 100, numXRows, 0 };
   if (numDrivers != layouts.size())
   {
@@ -552,8 +623,8 @@ colorMaps.setWeights(colorGroupWeights);
 
   for (size_t i = 0; i < numDrivers; i++)
   {
-    drivers.emplace_back(new TentacleDriver{&colorMaps, goomInfo->getScreenInfo().width,
-                                            goomInfo->getScreenInfo().height});
+    drivers.emplace_back(
+        new TentacleDriver{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height});
   }
 
   if (numDrivers != driverWeights.getNumElements())
@@ -571,6 +642,33 @@ colorMaps.setWeights(colorGroupWeights);
   currentDriver = getNextDriver();
   currentDriver->startIterating();
   init();
+}
+
+bool TentaclesFx::TentaclesImpl::operator==(const TentaclesImpl& t) const
+{
+  if (goomInfo == nullptr && t.goomInfo != nullptr)
+  {
+    return false;
+  }
+  if (goomInfo != nullptr && t.goomInfo == nullptr)
+  {
+    return false;
+  }
+
+  return ((goomInfo == nullptr && t.goomInfo == nullptr) || (*goomInfo == *t.goomInfo)) &&
+         dominantColor == t.dominantColor && updatingWithDraw == t.updatingWithDraw &&
+         cycle == t.cycle && cycleInc == t.cycleInc && lig == t.lig && ligs == t.ligs &&
+         distt == t.distt && distt2 == t.distt2 && distt2Offset == t.distt2Offset && rot == t.rot &&
+         rotAtStartOfPrettyMove == t.rotAtStartOfPrettyMove && doRotation == t.doRotation &&
+         isPrettyMoveHappening == t.isPrettyMoveHappening &&
+         prettyMoveHappeningTimer == t.prettyMoveHappeningTimer &&
+         prettyMoveCheckStopMark == t.prettyMoveCheckStopMark &&
+         distt2OffsetPreStep == t.distt2OffsetPreStep &&
+         prettyMoveReadyToStart == t.prettyMoveReadyToStart &&
+         prePrettyMoveLock == t.prePrettyMoveLock && postPrettyMoveLock == t.postPrettyMoveLock &&
+         prettyMoveLerpMix == t.prettyMoveLerpMix &&
+         countSinceHighAccelLastMarked == t.countSinceHighAccelLastMarked &&
+         countSinceColorChangeLastMarked == t.countSinceColorChangeLastMarked;
 }
 
 inline void TentaclesFx::TentaclesImpl::setBuffSettings(const FXBuffSettings& settings)
@@ -939,10 +1037,10 @@ void TentaclesFx::TentaclesImpl::prettyMove(const float acceleration)
 
   rot = std::clamp(std::lerp(rot, rotOffset, prettyMoveLerpMix), 0.0f, m_two_pi);
 
-  logInfo("happening = {}, lock = {}, oldRot = {:.03f}, rot = {:.03f}, rotOffset = {:.03f}, "
+  logInfo("happening = {}, lock = {}, rot = {:.03f}, rotOffset = {:.03f}, "
           "lerpMix = {:.03f}, cycle = {:.03f}, doRotation = {}",
-          prettyMoveHappeningTimer, postPrettyMoveLock, oldRot, rot, rotOffset, prettyMoveLerpMix,
-          cycle, doRotation);
+          prettyMoveHappeningTimer, postPrettyMoveLock, rot, rotOffset, prettyMoveLerpMix, cycle,
+          doRotation);
 }
 
 } // namespace goom

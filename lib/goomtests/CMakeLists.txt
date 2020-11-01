@@ -9,6 +9,7 @@ add_executable(test_main
     src/test_main.cpp
     src/test_colorutils.cpp
     src/test_goomrand.cpp
+    src/test_save_restore.cpp
     src/test_strutils.cpp
 )
 
@@ -24,9 +25,14 @@ target_include_directories(test_main
     PUBLIC 
         "/home/greg/Prj/github/catch2/include"
         "/home/greg/Prj/github/xbmc/visualization.goom/lib/goom/include/goom"  
-        "/home/greg/Prj/github/xbmc/visualization.goom/lib/goomutils/include/goomutils"  
-        ${CMAKE_SOURCE_DIR}/lib/magic_enum/include
+        "/home/greg/Prj/github/xbmc/visualization.goom/lib/goomutils/include/goomutils"
+)  
+
+target_include_directories(test_main 
+    SYSTEM PUBLIC 
         ${CMAKE_SOURCE_DIR}/lib/fmt/include
+        ${CMAKE_SOURCE_DIR}/lib/cereal/include
+        ${CMAKE_SOURCE_DIR}/lib/magic_enum/include
 )
 
 # Hacking?????????????????????????

@@ -13,8 +13,8 @@
 #include "filters.h"
 #include "flying_stars_fx.h"
 #include "gfontlib.h"
+#include "goom/goom_dots_fx.h"
 #include "goom_config.h"
-#include "goom_dots_fx.h"
 #include "goom_graphic.h"
 #include "goom_plugin_info.h"
 #include "goom_visual_fx.h"
@@ -130,7 +130,7 @@ public:
 
   bool happens(const GoomEvent) const;
   GoomFilterEvent getRandomFilterEvent() const;
-  GoomLine::LineType getRandomLineTypeEvent() const;
+  LinesFx::LineType getRandomLineTypeEvent() const;
 
 private:
   PluginInfo* goomInfo = nullptr;
@@ -197,14 +197,14 @@ private:
   } };
 
   static constexpr
-  std::array<std::pair<GoomLine::LineType, size_t>, GoomLine::numLineTypes> weightedLineEvents{{
-    { GoomLine::LineType::circle, 8 },
-    { GoomLine::LineType::hline,  2 },
-    { GoomLine::LineType::vline,  2 },
+  std::array<std::pair<LinesFx::LineType, size_t>, LinesFx::numLineTypes> weightedLineEvents{{
+    { LinesFx::LineType::circle, 8 },
+    { LinesFx::LineType::hline,  2 },
+    { LinesFx::LineType::vline,  2 },
   }};
   // clang-format on
   const Weights<GoomFilterEvent> filterWeights;
-  const Weights<GoomLine::LineType> lineTypeWeights;
+  const Weights<LinesFx::LineType> lineTypeWeights;
 };
 
 using GoomEvent = GoomEvents::GoomEvent;
@@ -914,7 +914,7 @@ struct GoomMessage
 
 struct GoomVisualFx
 {
-  explicit GoomVisualFx(PluginInfo*);
+  explicit GoomVisualFx(const std::shared_ptr<const PluginInfo>&);
   std::unique_ptr<ZoomFilterFx> zoomFilter_fx;
   std::unique_ptr<IfsFx> ifs_fx;
   std::unique_ptr<VisualFx> star_fx;
@@ -925,13 +925,13 @@ struct GoomVisualFx
   std::vector<VisualFx*> list;
 };
 
-GoomVisualFx::GoomVisualFx(PluginInfo* goomInfo)
+GoomVisualFx::GoomVisualFx(const std::shared_ptr<const PluginInfo>& goomInfo)
   : zoomFilter_fx{new ZoomFilterFx{goomInfo}},
     ifs_fx{new IfsFx{goomInfo}},
     star_fx{new FlyingStarsFx{goomInfo}},
     convolve_fx{new ConvolveFx{goomInfo}},
     tentacles_fx{new TentaclesFx{goomInfo}},
-    goomDots{new GoomDots{goomInfo}},
+    goomDots{new GoomDotsFx{goomInfo}},
     // clang-format off
     list{
       zoomFilter_fx.get(),
@@ -1022,7 +1022,7 @@ public:
   };
 
 private:
-  std::unique_ptr<WritablePluginInfo> goomInfo;
+  const std::shared_ptr<WritablePluginInfo> goomInfo;
   GoomImageBuffers imageBuffers;
   GoomVisualFx visualFx;
   GoomStats stats{};
@@ -1035,8 +1035,8 @@ private:
   GoomData goomData{};
 
   // Line Fx
-  GoomLine gmline1;
-  GoomLine gmline2;
+  LinesFx gmline1;
+  LinesFx gmline2;
 
   void initBuffers();
   bool changeFilterModeEventHappens();
@@ -1072,7 +1072,7 @@ private:
   void chooseGoomLine(float* param1,
                       float* param2,
                       Pixel* couleur,
-                      GoomLine::LineType* mode,
+                      LinesFx::LineType* mode,
                       float* amplitude,
                       const int far);
 
@@ -1169,17 +1169,24 @@ GoomControl::GoomControlImp::GoomControlImp(const uint16_t resx,
                                             const int seed)
   : goomInfo{new WritablePluginInfo{resx, resy}},
     imageBuffers{resx, resy},
-    visualFx{goomInfo.get()},
-    gmline1{goomInfo.get(), GoomLine::LineType::hline,  static_cast<float>(resy),
-            lBlack,         GoomLine::LineType::circle, 0.4f * static_cast<float>(resy),
-            lGreen},
-    gmline2{goomInfo.get(),
-            GoomLine::LineType::hline,
-            0,
-            lBlack,
-            GoomLine::LineType::circle,
-            0.2f * static_cast<float>(resy),
-            lRed}
+    visualFx{
+        std::const_pointer_cast<const PluginInfo>(std::dynamic_pointer_cast<PluginInfo>(goomInfo))},
+    gmline1{
+        std::const_pointer_cast<const PluginInfo>(std::dynamic_pointer_cast<PluginInfo>(goomInfo)),
+        LinesFx::LineType::hline,
+        static_cast<float>(resy),
+        lBlack,
+        LinesFx::LineType::circle,
+        0.4f * static_cast<float>(resy),
+        lGreen},
+    gmline2{
+        std::const_pointer_cast<const PluginInfo>(std::dynamic_pointer_cast<PluginInfo>(goomInfo)),
+        LinesFx::LineType::hline,
+        0,
+        lBlack,
+        LinesFx::LineType::circle,
+        0.2f * static_cast<float>(resy),
+        lRed}
 {
   logDebug("Initialize goom: resx = {}, resy = {}, seed = {}.", resx, resy, seed);
 
@@ -1367,7 +1374,7 @@ void GoomControl::GoomControlImp::update(const int16_t data[NUM_AUDIO_SAMPLES][A
 void GoomControl::GoomControlImp::chooseGoomLine(float* param1,
                                                  float* param2,
                                                  Pixel* couleur,
-                                                 GoomLine::LineType* mode,
+                                                 LinesFx::LineType* mode,
                                                  float* amplitude,
                                                  const int far)
 {
@@ -1376,7 +1383,7 @@ void GoomControl::GoomControlImp::chooseGoomLine(float* param1,
 
   switch (*mode)
   {
-    case GoomLine::LineType::circle:
+    case LinesFx::LineType::circle:
       if (far)
       {
         *param1 = *param2 = 0.47f;
@@ -1398,7 +1405,7 @@ void GoomControl::GoomControlImp::chooseGoomLine(float* param1,
         *param1 = *param2 = getScreenHeight() * 0.35F;
       }
       break;
-    case GoomLine::LineType::hline:
+    case LinesFx::LineType::hline:
       if (goomEvent.happens(GoomEvent::changeHLineParams) || far)
       {
         *param1 = getScreenHeight() / 7.0F;
@@ -1410,7 +1417,7 @@ void GoomControl::GoomControlImp::chooseGoomLine(float* param1,
         *amplitude = 2.0f;
       }
       break;
-    case GoomLine::LineType::vline:
+    case LinesFx::LineType::vline:
       if (goomEvent.happens(GoomEvent::changeVLineParams) || far)
       {
         *param1 = getScreenWidth() / 7.0f;
@@ -2139,7 +2146,7 @@ void GoomControl::GoomControlImp::stopRequest()
   float param2 = 0;
   float amplitude = 0;
   Pixel couleur{};
-  GoomLine::LineType mode;
+  LinesFx::LineType mode;
   chooseGoomLine(&param1, &param2, &couleur, &mode, &amplitude, 1);
   couleur = getBlackLineColor();
 
@@ -2181,7 +2188,7 @@ void GoomControl::GoomControlImp::stopRandomLineChangeMode()
       float param2 = 0;
       float amplitude = 0;
       Pixel couleur1{};
-      GoomLine::LineType mode;
+      LinesFx::LineType mode;
       chooseGoomLine(&param1, &param2, &couleur1, &mode, &amplitude, goomData.stop_lines);
 
       Pixel couleur2 = gmline2.getRandomLineColor();
@@ -2228,7 +2235,7 @@ void GoomControl::GoomControlImp::displayLines(
     float param2 = 0;
     float amplitude = 0;
     Pixel couleur1{};
-    GoomLine::LineType mode;
+    LinesFx::LineType mode;
     chooseGoomLine(&param1, &param2, &couleur1, &mode, &amplitude, goomData.stop_lines);
 
     Pixel couleur2 = gmline2.getRandomLineColor();
@@ -2419,7 +2426,7 @@ inline GoomEvents::GoomFilterEvent GoomEvents::getRandomFilterEvent() const
   return nextEvent;
 }
 
-inline GoomLine::LineType GoomEvents::getRandomLineTypeEvent() const
+inline LinesFx::LineType GoomEvents::getRandomLineTypeEvent() const
 {
   return lineTypeWeights.getRandomWeighted();
 }

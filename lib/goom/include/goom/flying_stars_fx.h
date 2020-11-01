@@ -4,6 +4,7 @@
 #include "goom_graphic.h"
 #include "goom_visual_fx.h"
 
+#include <cereal/access.hpp>
 #include <istream>
 #include <memory>
 #include <ostream>
@@ -17,9 +18,9 @@ class PluginInfo;
 class FlyingStarsFx : public VisualFx
 {
 public:
-  FlyingStarsFx() noexcept = delete;
-  explicit FlyingStarsFx(const PluginInfo*);
-  ~FlyingStarsFx() noexcept = default;
+  FlyingStarsFx() noexcept;
+  explicit FlyingStarsFx(const std::shared_ptr<const PluginInfo>&) noexcept;
+  ~FlyingStarsFx() noexcept;
   FlyingStarsFx(const FlyingStarsFx&) = delete;
   FlyingStarsFx& operator=(const FlyingStarsFx&) = delete;
 
@@ -36,10 +37,16 @@ public:
   void log(const StatsLogValueFunc&) const override;
   void finish() override;
 
+  bool operator==(const FlyingStarsFx&) const;
+
 private:
   bool enabled = true;
   class FlyingStarsImpl;
   std::unique_ptr<FlyingStarsImpl> fxImpl;
+
+  friend class cereal::access;
+  template<class Archive>
+  void serialize(Archive&);
 };
 
 } // namespace goom

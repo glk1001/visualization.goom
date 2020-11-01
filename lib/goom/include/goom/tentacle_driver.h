@@ -8,6 +8,7 @@
 #include "tentacles.h"
 #include "v3d.h"
 
+#include <cereal/archives/json.hpp>
 #include <cstdint>
 #include <memory>
 #include <vector>
@@ -37,10 +38,10 @@ private:
 class SimpleWeightHandler
 {
 public:
-  explicit SimpleWeightHandler(utils::ConstantSequenceFunction& prevYWeightFunc,
-                               utils::ConstantSequenceFunction& currentYWeightFunc);
-  utils::ConstantSequenceFunction& getPrevYWeightFunc() const { return *prevYWeightFunc; }
-  utils::ConstantSequenceFunction& getCurrentYWeightFunc() const { return *currentYWeightFunc; }
+  explicit SimpleWeightHandler(const utils::ConstantSequenceFunction& prevYWeightFunc,
+                               const utils::ConstantSequenceFunction& currentYWeightFunc);
+  utils::ConstantSequenceFunction& getPrevYWeightFunc() { return prevYWeightFunc; }
+  utils::ConstantSequenceFunction& getCurrentYWeightFunc() { return currentYWeightFunc; }
   void weightsReset(const size_t ID,
                     const size_t numNodes,
                     const float basePrevYWeight,
@@ -52,8 +53,8 @@ public:
                      const float currentY);
 
 private:
-  utils::ConstantSequenceFunction* prevYWeightFunc;
-  utils::ConstantSequenceFunction* currentYWeightFunc;
+  utils::ConstantSequenceFunction prevYWeightFunc;
+  utils::ConstantSequenceFunction currentYWeightFunc;
   float basePrevYWeight = 0;
   float baseCurrentYWeight = 0;
 };
@@ -61,12 +62,12 @@ private:
 class RandWeightHandler
 {
 public:
-  explicit RandWeightHandler(utils::RandSequenceFunction& prevYWeightFunc,
-                             utils::RandSequenceFunction& currentYWeightFunc,
+  explicit RandWeightHandler(const utils::RandSequenceFunction& prevYWeightFunc,
+                             const utils::RandSequenceFunction& currentYWeightFunc,
                              const float r0,
                              const float r1);
-  utils::RandSequenceFunction& getPrevYWeightFunc() const { return *prevYWeightFunc; }
-  utils::RandSequenceFunction& getCurrentYWeightFunc() const { return *currentYWeightFunc; }
+  utils::RandSequenceFunction& getPrevYWeightFunc() { return prevYWeightFunc; }
+  utils::RandSequenceFunction& getCurrentYWeightFunc() { return currentYWeightFunc; }
   void weightsReset(const size_t ID,
                     const size_t numIters,
                     const size_t numNodes,
@@ -79,8 +80,8 @@ public:
                      const float currentY);
 
 private:
-  utils::RandSequenceFunction* prevYWeightFunc;
-  utils::RandSequenceFunction* currentYWeightFunc;
+  utils::RandSequenceFunction prevYWeightFunc;
+  utils::RandSequenceFunction currentYWeightFunc;
   const float r0;
   const float r1;
 };
@@ -103,9 +104,8 @@ public:
     multiGroups,
   };
 
-  explicit TentacleDriver(const utils::ColorMaps*,
-                          const uint32_t screenWidth,
-                          const uint32_t screenHeight);
+  TentacleDriver() noexcept;
+  explicit TentacleDriver(const uint32_t screenWidth, const uint32_t screenHeight) noexcept;
   TentacleDriver(const TentacleDriver&) = delete;
   TentacleDriver& operator=(const TentacleDriver&) = delete;
 
@@ -150,38 +150,38 @@ private:
     IterationParams last;
     IterationParams getNext(const float t) const;
   };
-  std::vector<IterParamsGroup> iterParamsGroups;
+  std::vector<IterParamsGroup> iterParamsGroups{};
 
   void updateTentaclesLayout(const TentacleLayout&);
 
-  const uint32_t screenWidth;
-  const uint32_t screenHeight;
-  GoomDraw draw;
-  FXBuffSettings buffSettings;
-  const utils::ColorMaps* colorMaps;
-  std::vector<std::unique_ptr<TentacleColorizer>> colorizers;
-  utils::ConstantSequenceFunction constPrevYWeightFunc;
-  utils::ConstantSequenceFunction constCurrentYWeightFunc;
-  SimpleWeightHandler weightsHandler;
+  uint32_t screenWidth = 0;
+  uint32_t screenHeight = 0;
+  GoomDraw draw{};
+  FXBuffSettings buffSettings{};
+  const utils::ColorMaps colorMaps{};
+  std::vector<std::unique_ptr<TentacleColorizer>> colorizers{};
+  utils::ConstantSequenceFunction constPrevYWeightFunc{};
+  utils::ConstantSequenceFunction constCurrentYWeightFunc{};
+  SimpleWeightHandler weightsHandler{constPrevYWeightFunc, constCurrentYWeightFunc};
   // RandWeightHandler weightsHandler;
 
   size_t updateNum = 0;
-  Tentacles3D tentacles;
+  Tentacles3D tentacles{};
   const float iterZeroYVal = 10.0;
   size_t numTentacles = 0;
-  std::vector<IterationParams> tentacleParams;
+  std::vector<IterationParams> tentacleParams{};
   static const size_t changeCurrentColorMapGroupEveryNUpdates;
   static const size_t changeTentacleColorMapEveryNUpdates;
   std::vector<utils::ColorMapGroup> getNextColorMapGroups() const;
 
-  IterTimer roughenTimer;
   static constexpr size_t roughenEveryNUpdates = 30000000;
   static constexpr size_t roughenIterLength = 10;
+  IterTimer roughenTimer{roughenIterLength};
 
-  IterTimer glitchTimer;
   static constexpr size_t doGlitchEveryNUpdates = 30;
   static constexpr size_t glitchIterLength = 10;
-  const utils::ColorMap* glitchColorGroup;
+  IterTimer glitchTimer{glitchIterLength};
+  const utils::ColorMap* glitchColorGroup{&colorMaps.getRandomColorMap()};
   float glitchLower = -1.5;
   float glitchUpper = +1.5;
 
@@ -198,7 +198,7 @@ private:
                   const size_t iterNum,
                   const std::vector<double>& xvec,
                   std::vector<double>& yvec);
-  std::vector<IterTimer*> iterTimers;
+  const std::vector<IterTimer*> iterTimers{&glitchTimer, &roughenTimer};
   void updateIterTimers();
   void checkForTimerEvents();
   void plot3D(const Tentacle3D& tentacle,
@@ -217,9 +217,7 @@ private:
 class TentacleColorMapColorizer : public TentacleColorizer
 {
 public:
-  explicit TentacleColorMapColorizer(const utils::ColorMaps&,
-                                     const utils::ColorMapGroup,
-                                     const size_t numNodes);
+  explicit TentacleColorMapColorizer(const utils::ColorMapGroup, const size_t numNodes);
   TentacleColorMapColorizer(const TentacleColorMapColorizer&) = delete;
   TentacleColorMapColorizer& operator=(const TentacleColorMapColorizer&) = delete;
 
@@ -229,7 +227,7 @@ public:
   Pixel getColor(const size_t nodeNum) const override;
 
 private:
-  const utils::ColorMaps* colorMaps;
+  const utils::ColorMaps colorMaps{};
   utils::ColorMapGroup currentColorMapGroup;
   const utils::ColorMap* colorMap;
   const utils::ColorMap* prevColorMap;
@@ -253,7 +251,7 @@ public:
   const std::vector<V3d>& getPoints() const override;
 
 private:
-  std::vector<V3d> points;
+  std::vector<V3d> points{};
 };
 
 class CirclesTentacleLayout : public TentacleLayout
@@ -269,7 +267,7 @@ public:
   static std::vector<size_t> getCircleSamples(const size_t numCircles, const size_t totalPoints);
 
 private:
-  std::vector<V3d> points;
+  std::vector<V3d> points{};
 };
 
 } // namespace goom

@@ -15,8 +15,37 @@ SoundInfo::SoundInfo() noexcept
 {
 }
 
+SoundInfo::SoundInfo(const SoundInfo& s) noexcept
+  : timeSinceLastGoom{s.timeSinceLastGoom},
+    timeSinceLastBigGoom{s.timeSinceLastBigGoom},
+    goomLimit{s.goomLimit},
+    bigGoomLimit{s.bigGoomLimit},
+    goomPower{s.goomPower},
+    totalGoom{s.totalGoom},
+    cycle{s.cycle},
+    volume{s.volume},
+    acceleration{s.acceleration},
+    speed{s.speed},
+    allTimesMaxVolume{s.allTimesMaxVolume},
+    allTimesMinVolume{s.allTimesMinVolume},
+    allTimesPositiveMaxVolume{s.allTimesPositiveMaxVolume},
+    maxAccelSinceLastReset{s.maxAccelSinceLastReset}
+{
+}
+
 SoundInfo::~SoundInfo() noexcept
 {
+}
+
+bool SoundInfo::operator==(const SoundInfo& s) const
+{
+  return timeSinceLastGoom == s.timeSinceLastGoom &&
+         timeSinceLastBigGoom == s.timeSinceLastBigGoom && goomLimit == s.goomLimit &&
+         bigGoomLimit == s.bigGoomLimit && goomPower == s.goomPower && totalGoom == s.totalGoom &&
+         cycle == s.cycle && volume == s.volume && acceleration == s.acceleration &&
+         allTimesMaxVolume == s.allTimesMaxVolume && allTimesMinVolume == s.allTimesMinVolume &&
+         allTimesPositiveMaxVolume == s.allTimesPositiveMaxVolume &&
+         maxAccelSinceLastReset == s.maxAccelSinceLastReset;
 }
 
 void SoundInfo::processSample(const int16_t soundData[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN])

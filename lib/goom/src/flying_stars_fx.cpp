@@ -11,10 +11,12 @@
 #include <algorithm>
 #include <array>
 #include <cereal/archives/json.hpp>
+#include <cereal/types/memory.hpp>
 #include <cereal/types/vector.hpp>
 #include <cmath>
 #include <cstddef>
 #include <fstream>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -162,8 +164,16 @@ struct Star
   float ay = 0;
   float age = 0;
   float vage = 0;
+  // TODO: Cereal for these pointers????
   const ColorMap* currentColorMap = nullptr;
   const ColorMap* currentLowColorMap = nullptr;
+
+  bool operator==(const Star& s) const
+  {
+    return x == s.x && y == s.y && vx == s.vx && vy == s.vy && ax == s.ax && ay == s.ay &&
+           age == s.age && vage == s.vage;
+  }
+
   template<class Archive>
   void serialize(Archive& ar)
   {
@@ -174,7 +184,8 @@ struct Star
 class FlyingStarsFx::FlyingStarsImpl
 {
 public:
-  explicit FlyingStarsImpl(const PluginInfo*);
+  FlyingStarsImpl() noexcept;
+  explicit FlyingStarsImpl(const std::shared_ptr<const PluginInfo>&) noexcept;
   FlyingStarsImpl(const FlyingStarsImpl&) = delete;
   FlyingStarsImpl& operator=(const FlyingStarsImpl&) = delete;
 
@@ -184,17 +195,12 @@ public:
 
   void log(const StatsLogValueFunc& logVal) const;
 
-  template<class Archive>
-  void serialize(Archive& ar)
-  {
-    ar(fx_mode, maxStars, stars, maxStarAge, min_age, max_age, buffSettings, useSingleBufferOnly,
-       draw);
-  }
+  bool operator==(const FlyingStarsImpl&) const;
 
 private:
-  const PluginInfo* const goomInfo;
+  std::shared_ptr<const PluginInfo> goomInfo{};
 
-  ColorMaps colorMaps;
+  ColorMaps colorMaps{};
   const WeightedColorMaps lowColorMaps{Weights<ColorMapGroup>{{
       {ColorMapGroup::perceptuallyUniformSequential, 0},
       {ColorMapGroup::sequential, 0},
@@ -209,7 +215,7 @@ private:
   StarModes fx_mode = StarModes::fireworks;
   static constexpr size_t maxStarsLimit = 1024;
   size_t maxStars = maxStarsLimit;
-  std::vector<Star> stars;
+  std::vector<Star> stars{};
   uint32_t maxStarAge = 15;
 
   // Fireworks Largest Bombs
@@ -219,8 +225,8 @@ private:
 
   FXBuffSettings buffSettings{};
   bool useSingleBufferOnly = true;
-  GoomDraw draw;
-  StarsStats stats;
+  GoomDraw draw{};
+  StarsStats stats{};
 
   void soundEventOccured();
   static void updateStar(Star*);
@@ -233,10 +239,30 @@ private:
                 const float radius,
                 float vage,
                 const float gravity);
+
+  friend class cereal::access;
+  template<class Archive>
+  void save(Archive&) const;
+  template<class Archive>
+  void load(Archive&);
 };
 
-FlyingStarsFx::FlyingStarsFx(const PluginInfo* info) : fxImpl{new FlyingStarsImpl{info}}
+FlyingStarsFx::FlyingStarsFx() noexcept : fxImpl{new FlyingStarsImpl{}}
 {
+}
+
+FlyingStarsFx::FlyingStarsFx(const std::shared_ptr<const PluginInfo>& info) noexcept
+  : fxImpl{new FlyingStarsImpl{info}}
+{
+}
+
+FlyingStarsFx::~FlyingStarsFx() noexcept
+{
+}
+
+bool FlyingStarsFx::operator==(const FlyingStarsFx& f) const
+{
+  return fxImpl->operator==(*f.fxImpl);
 }
 
 void FlyingStarsFx::setBuffSettings(const FXBuffSettings& settings)
@@ -284,14 +310,64 @@ void FlyingStarsFx::apply(Pixel* prevBuff, Pixel* currentBuff)
   fxImpl->updateBuffers(prevBuff, currentBuff);
 }
 
-FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl(const PluginInfo* info)
-  : goomInfo{info},
-    colorMaps{},
-    stars{},
-    draw{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height},
-    stats{}
+template<class Archive>
+void FlyingStarsFx::serialize(Archive& ar)
+{
+  ar(CEREAL_NVP(enabled), CEREAL_NVP(fxImpl));
+}
+
+// Need to explicitly instantiate template functions for serialization.
+template void FlyingStarsFx::serialize<cereal::JSONOutputArchive>(cereal::JSONOutputArchive&);
+template void FlyingStarsFx::serialize<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
+
+template void FlyingStarsFx::FlyingStarsImpl::save<cereal::JSONOutputArchive>(
+    cereal::JSONOutputArchive&) const;
+template void FlyingStarsFx::FlyingStarsImpl::load<cereal::JSONInputArchive>(
+    cereal::JSONInputArchive&);
+
+template<class Archive>
+void FlyingStarsFx::FlyingStarsImpl::save(Archive& ar) const
+{
+  ar(CEREAL_NVP(goomInfo), CEREAL_NVP(fx_mode), CEREAL_NVP(maxStars), CEREAL_NVP(stars),
+     CEREAL_NVP(maxStarAge), CEREAL_NVP(min_age), CEREAL_NVP(max_age), CEREAL_NVP(buffSettings),
+     CEREAL_NVP(useSingleBufferOnly), CEREAL_NVP(draw));
+}
+
+template<class Archive>
+void FlyingStarsFx::FlyingStarsImpl::load(Archive& ar)
+{
+  ar(CEREAL_NVP(goomInfo), CEREAL_NVP(fx_mode), CEREAL_NVP(maxStars), CEREAL_NVP(stars),
+     CEREAL_NVP(maxStarAge), CEREAL_NVP(min_age), CEREAL_NVP(max_age), CEREAL_NVP(buffSettings),
+     CEREAL_NVP(useSingleBufferOnly), CEREAL_NVP(draw));
+}
+
+FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl() noexcept
+{
+}
+
+FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl(
+    const std::shared_ptr<const PluginInfo>& info) noexcept
+  : goomInfo{info}, draw{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height}
 {
   stars.reserve(maxStarsLimit);
+}
+
+bool FlyingStarsFx::FlyingStarsImpl::operator==(const FlyingStarsImpl& f) const
+{
+  if (goomInfo == nullptr && f.goomInfo != nullptr)
+  {
+    return false;
+  }
+  if (goomInfo != nullptr && f.goomInfo == nullptr)
+  {
+    return false;
+  }
+
+  return ((goomInfo == nullptr && f.goomInfo == nullptr) || (*goomInfo == *f.goomInfo)) &&
+         fx_mode == f.fx_mode && maxStars == f.maxStars && stars == f.stars &&
+         maxStarAge == f.maxStarAge && min_age == f.min_age && max_age == f.max_age &&
+         buffSettings == f.buffSettings && useSingleBufferOnly == f.useSingleBufferOnly &&
+         draw == f.draw;
 }
 
 void FlyingStarsFx::FlyingStarsImpl::setBuffSettings(const FXBuffSettings& settings)

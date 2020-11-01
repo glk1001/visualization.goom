@@ -10,6 +10,7 @@
 #include "goom_config.h"
 #include "goom_graphic.h"
 
+#include <cereal/access.hpp>
 #include <cstddef>
 #include <istream>
 #include <memory>
@@ -25,7 +26,7 @@ Pixel getBlackLineColor();
 Pixel getGreenLineColor();
 Pixel getRedLineColor();
 
-class GoomLine
+class LinesFx
 {
 public:
   enum class LineType
@@ -37,17 +38,19 @@ public:
   };
   static constexpr size_t numLineTypes = static_cast<size_t>(LineType::_size);
 
+  LinesFx() noexcept;
+
   // construit un effet de line (une ligne horitontale pour commencer)
-  GoomLine(const PluginInfo* goomInfo,
-           const LineType srceID,
-           const float srceParam,
-           const Pixel& srceColor,
-           const LineType destID,
-           const float destParam,
-           const Pixel& destColor);
-  ~GoomLine() noexcept;
-  GoomLine(const GoomLine&) = delete;
-  GoomLine& operator=(const GoomLine&) = delete;
+  LinesFx(const std::shared_ptr<const PluginInfo>&,
+          const LineType srceID,
+          const float srceParam,
+          const Pixel& srceColor,
+          const LineType destID,
+          const float destParam,
+          const Pixel& destColor) noexcept;
+  ~LinesFx() noexcept;
+  LinesFx(const LinesFx&) = delete;
+  LinesFx& operator=(const LinesFx&) = delete;
 
   Pixel getRandomLineColor();
 
@@ -65,10 +68,16 @@ public:
   void saveState(std::ostream&) const;
   void loadState(std::istream&);
 
+  bool operator==(const LinesFx&) const;
+
 private:
   bool enabled = true;
-  class GoomLineImp;
-  std::unique_ptr<GoomLineImp> lineImp;
+  class LinesImpl;
+  std::unique_ptr<LinesImpl> fxImpl;
+
+  friend class cereal::access;
+  template<class Archive>
+  void serialize(Archive&);
 };
 
 } // namespace goom
