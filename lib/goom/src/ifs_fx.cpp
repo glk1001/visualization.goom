@@ -74,7 +74,7 @@ inline bool changeCurrentColorMapEvent()
 
 inline bool megaChangeColorMapEvent()
 {
-  return probabilityOfMInN(1, 10);
+  return probabilityOfMInN(5, 10);
 }
 
 inline bool allowOverexposedEvent()
@@ -231,11 +231,11 @@ Colorizer::ColorMode Colorizer::getNextColorMode()
   // clang-format off
   static const Weights<Colorizer::ColorMode> colorModeWeights{{
     { Colorizer::ColorMode::mapColors,           15 },
-    { Colorizer::ColorMode::megaMapColorChange,  70 },
+    { Colorizer::ColorMode::megaMapColorChange, 100 },
     { Colorizer::ColorMode::mixColors,           10 },
     { Colorizer::ColorMode::megaMixColorChange,  10 },
     { Colorizer::ColorMode::reverseMixColors,    10 },
-    { Colorizer::ColorMode::singleColors,         1 },
+    { Colorizer::ColorMode::singleColors,         5 },
   }};
   // clang-format on
 
@@ -345,12 +345,11 @@ public:
   IfsImpl(const IfsImpl&) = delete;
   IfsImpl& operator=(const IfsImpl&) = delete;
 
+  void applyNoDraw();
   void updateIfs(Pixel* prevBuff, Pixel* currentBuff);
   void setBuffSettings(const FXBuffSettings&);
   void renew();
   void updateIncr();
-  void updateDecay();
-  void updateDecayAndRecay();
 
   template<class Archive>
   void serialize(Archive& ar)
@@ -385,6 +384,8 @@ private:
   int ifs_incr = 1; // dessiner l'ifs (0 = non: > = increment)
   int decay_ifs = 0; // disparition de l'ifs
   int recay_ifs = 0; // dedisparition de l'ifs
+  void updateDecay();
+  void updateDecayAndRecay();
   static Dbl gaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S);
   static Dbl halfGaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S);
   static constexpr Dbl get_1_minus_exp_neg_S(const Dbl S);
@@ -460,6 +461,16 @@ void IfsFx::loadState(std::istream& f)
   archive_in(*fxImpl);
 }
 
+void IfsFx::applyNoDraw()
+{
+  if (!enabled)
+  {
+    return;
+  }
+
+  fxImpl->applyNoDraw();
+}
+
 void IfsFx::apply(Pixel* prevBuff, Pixel* currentBuff)
 {
   if (!enabled)
@@ -473,16 +484,6 @@ void IfsFx::apply(Pixel* prevBuff, Pixel* currentBuff)
 void IfsFx::updateIncr()
 {
   fxImpl->updateIncr();
-}
-
-void IfsFx::updateDecay()
-{
-  fxImpl->updateDecay();
-}
-
-void IfsFx::updateDecayAndRecay()
-{
-  fxImpl->updateDecayAndRecay();
 }
 
 void IfsFx::renew()
@@ -597,8 +598,16 @@ void IfsFx::IfsImpl::changeColormaps()
   updateData.couleur = ColorMap::getRandomColor(colorizer.getColorMaps().getRandomColorMap());
 }
 
+void IfsFx::IfsImpl::applyNoDraw()
+{
+  updateDecayAndRecay();
+  updateDecay();
+}
+
 void IfsFx::IfsImpl::updateIfs(Pixel* prevBuff, Pixel* currentBuff)
 {
+  updateDecayAndRecay();
+
   if (getIfsIncr() <= 0)
   {
     return;

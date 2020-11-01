@@ -1641,11 +1641,6 @@ void GoomControl::GoomControlImp::changeState()
     }
     visualFx.ifs_fx->updateIncr();
   }
-  else
-  {
-    // Pretty delicate  has to be done otherwise Ifs' disappear.
-    visualFx.ifs_fx->updateDecay();
-  }
 
   if (!states.isCurrentlyDrawable(GoomDrawable::scope))
   {
@@ -2339,10 +2334,9 @@ void GoomControl::GoomControlImp::displayLinesIfInAGoom(
 
 void GoomControl::GoomControlImp::applyIfsIfRequired()
 {
-  visualFx.ifs_fx->updateDecayAndRecay();
-
   if (!curGDrawables.contains(GoomDrawable::IFS))
   {
+    visualFx.ifs_fx->applyNoDraw();
     return;
   }
 

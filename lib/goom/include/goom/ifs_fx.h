@@ -29,13 +29,12 @@ public:
 
   void renew();
   void updateIncr();
-  void updateDecay();
-  void updateDecayAndRecay();
 
   void setBuffSettings(const FXBuffSettings&) override;
 
   void start() override;
 
+  void applyNoDraw() override;
   void apply(Pixel* prevBuff, Pixel* currentBuff) override;
 
   std::string getFxName() const override;
