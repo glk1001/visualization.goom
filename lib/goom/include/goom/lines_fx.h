@@ -8,66 +8,56 @@
  */
 
 #include "goom_config.h"
-#include "goom_draw.h"
 #include "goom_graphic.h"
-#include "goomutils/colormap.h"
 
 #include <cstddef>
-#include <cstdint>
 #include <istream>
+#include <memory>
 #include <ostream>
 #include <string>
 
 namespace goom
 {
 
-struct GMUnitPointer
-{
-  float x;
-  float y;
-  float angle;
-};
+class PluginInfo;
 
-struct PluginInfo;
+Pixel getBlackLineColor();
+Pixel getGreenLineColor();
+Pixel getRedLineColor();
 
-// les ID possibles...
-enum class LineType
-{
-  circle = 0, // (param = radius)
-  hline, // (param = y)
-  vline, // (param = x)
-  _size // must be last - gives number of enums
-};
-constexpr size_t numLineTypes = static_cast<size_t>(LineType::_size);
-
-// tableau de points
-class GMLine
+class GoomLine
 {
 public:
+  enum class LineType
+  {
+    circle = 0, // (param = radius)
+    hline, // (param = y)
+    vline, // (param = x)
+    _size // must be last - gives number of enums
+  };
+  static constexpr size_t numLineTypes = static_cast<size_t>(LineType::_size);
+
   // construit un effet de line (une ligne horitontale pour commencer)
-  GMLine(const PluginInfo* goomInfo,
-         const uint16_t rx,
-         const uint16_t ry,
-         const LineType IDsrc,
-         const float paramS,
-         const Pixel& srcColor,
-         const LineType IDdest,
-         const float paramD,
-         const Pixel& destColor);
-  GMLine(const GMLine&) = delete;
-  GMLine& operator=(const GMLine&) = delete;
+  GoomLine(const PluginInfo* goomInfo,
+           const LineType srceID,
+           const float srceParam,
+           const Pixel& srceColor,
+           const LineType destID,
+           const float destParam,
+           const Pixel& destColor);
+  ~GoomLine() noexcept;
+  GoomLine(const GoomLine&) = delete;
+  GoomLine& operator=(const GoomLine&) = delete;
 
   Pixel getRandomLineColor();
 
   float getPower() const;
   void setPower(const float val);
 
-  void setResolution(const uint32_t rx, const uint32_t ry);
-
-  void switchGoomLines(const LineType dest,
-                       const float param,
-                       const float amplitude,
-                       const Pixel& color);
+  void switchGoomLines(const LineType newDestID,
+                       const float newParam,
+                       const float newAmplitude,
+                       const Pixel& newColor);
 
   void drawGoomLines(const int16_t data[AUDIO_SAMPLE_LEN], Pixel* prevBuff, Pixel* currentBuff);
 
@@ -76,37 +66,10 @@ public:
   void loadState(std::istream&);
 
 private:
-  const PluginInfo* const goomInfo;
-  GoomDraw draw;
-  utils::ColorMaps colorMaps{};
-
-  uint16_t screenX;
-  uint16_t screenY;
-
-  const size_t nbPoints = AUDIO_SAMPLE_LEN;
-  GMUnitPointer points[AUDIO_SAMPLE_LEN];
-  GMUnitPointer points2[AUDIO_SAMPLE_LEN];
-
-  float power = 0;
-  float powinc = 0;
-
-  LineType IDdest;
-  float param;
-  float amplitudeF = 1;
-  float amplitude = 1;
-
-  // pour l'instant je stocke la couleur a terme, on stockera le mode couleur et l'on animera
-  Pixel color;
-  Pixel color2;
-
-  void goomLinesMove();
-  static void generateLine(
-      const LineType id, const float param, const uint32_t rx, const uint32_t ry, GMUnitPointer* l);
+  bool enabled = true;
+  class GoomLineImp;
+  std::unique_ptr<GoomLineImp> lineImp;
 };
-
-Pixel getBlackLineColor();
-Pixel getGreenLineColor();
-Pixel getRedLineColor();
 
 } // namespace goom
 #endif

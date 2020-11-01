@@ -2,7 +2,6 @@
 #define _GOOM_CONTROL_H
 
 #include "goom_config.h"
-#include "goom_plugin_info.h"
 
 #include <cstdint>
 #include <istream>

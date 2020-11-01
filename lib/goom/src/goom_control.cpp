@@ -130,7 +130,7 @@ public:
 
   bool happens(const GoomEvent) const;
   GoomFilterEvent getRandomFilterEvent() const;
-  LineType getRandomLineTypeEvent() const;
+  GoomLine::LineType getRandomLineTypeEvent() const;
 
 private:
   PluginInfo* goomInfo = nullptr;
@@ -196,14 +196,15 @@ private:
     { GoomFilterEvent::normalMode,                  2 },
   } };
 
-  static constexpr std::array<std::pair<LineType, size_t>, numLineTypes> weightedLineEvents{{
-    { LineType::circle, 8 },
-    { LineType::hline,  2 },
-    { LineType::vline,  2 },
+  static constexpr
+  std::array<std::pair<GoomLine::LineType, size_t>, GoomLine::numLineTypes> weightedLineEvents{{
+    { GoomLine::LineType::circle, 8 },
+    { GoomLine::LineType::hline,  2 },
+    { GoomLine::LineType::vline,  2 },
   }};
   // clang-format on
   const Weights<GoomFilterEvent> filterWeights;
-  const Weights<LineType> lineTypeWeights;
+  const Weights<GoomLine::LineType> lineTypeWeights;
 };
 
 using GoomEvent = GoomEvents::GoomEvent;
@@ -248,14 +249,14 @@ const GoomStates::WeightedStatesArray GoomStates::states{{
   {
     .weight = 200,
     .drawables {{
-      { .fx = GoomDrawable::IFS,       .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::IFS,       .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
       { .fx = GoomDrawable::dots,      .buffSettings = { .buffIntensity = 0.1, .allowOverexposed = false } },
     }},
   },
   {
     .weight = 200,
     .drawables {{
-      { .fx = GoomDrawable::IFS,       .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::IFS,       .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
       { .fx = GoomDrawable::stars,     .buffSettings = { .buffIntensity = 0.1, .allowOverexposed = true  } },
     }},
   },
@@ -364,7 +365,7 @@ const GoomStates::WeightedStatesArray GoomStates::states{{
     .weight = 60,
     .drawables {{
       { .fx = GoomDrawable::stars,     .buffSettings = { .buffIntensity = 0.2, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::lines,     .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::lines,     .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
       { .fx = GoomDrawable::scope,     .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
       { .fx = GoomDrawable::farScope,  .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
     }},
@@ -1034,8 +1035,8 @@ private:
   GoomData goomData{};
 
   // Line Fx
-  GMLine gmline1;
-  GMLine gmline2;
+  GoomLine gmline1;
+  GoomLine gmline2;
 
   void initBuffers();
   bool changeFilterModeEventHappens();
@@ -1071,7 +1072,7 @@ private:
   void chooseGoomLine(float* param1,
                       float* param2,
                       Pixel* couleur,
-                      LineType* mode,
+                      GoomLine::LineType* mode,
                       float* amplitude,
                       const int far);
 
@@ -1169,22 +1170,14 @@ GoomControl::GoomControlImp::GoomControlImp(const uint16_t resx,
   : goomInfo{new WritablePluginInfo{resx, resy}},
     imageBuffers{resx, resy},
     visualFx{goomInfo.get()},
-    gmline1{goomInfo.get(),
-            resx,
-            resy,
-            LineType::hline,
-            static_cast<float>(resy),
-            lBlack,
-            LineType::circle,
-            0.4f * static_cast<float>(resy),
+    gmline1{goomInfo.get(), GoomLine::LineType::hline,  static_cast<float>(resy),
+            lBlack,         GoomLine::LineType::circle, 0.4f * static_cast<float>(resy),
             lGreen},
     gmline2{goomInfo.get(),
-            resx,
-            resy,
-            LineType::hline,
+            GoomLine::LineType::hline,
             0,
             lBlack,
-            LineType::circle,
+            GoomLine::LineType::circle,
             0.2f * static_cast<float>(resy),
             lRed}
 {
@@ -1371,15 +1364,19 @@ void GoomControl::GoomControlImp::update(const int16_t data[NUM_AUDIO_SAMPLES][A
   logDebug("About to return.");
 }
 
-void GoomControl::GoomControlImp::chooseGoomLine(
-    float* param1, float* param2, Pixel* couleur, LineType* mode, float* amplitude, const int far)
+void GoomControl::GoomControlImp::chooseGoomLine(float* param1,
+                                                 float* param2,
+                                                 Pixel* couleur,
+                                                 GoomLine::LineType* mode,
+                                                 float* amplitude,
+                                                 const int far)
 {
   *amplitude = 1.0f;
   *mode = goomEvent.getRandomLineTypeEvent();
 
   switch (*mode)
   {
-    case LineType::circle:
+    case GoomLine::LineType::circle:
       if (far)
       {
         *param1 = *param2 = 0.47f;
@@ -1401,7 +1398,7 @@ void GoomControl::GoomControlImp::chooseGoomLine(
         *param1 = *param2 = getScreenHeight() * 0.35F;
       }
       break;
-    case LineType::hline:
+    case GoomLine::LineType::hline:
       if (goomEvent.happens(GoomEvent::changeHLineParams) || far)
       {
         *param1 = getScreenHeight() / 7.0F;
@@ -1413,7 +1410,7 @@ void GoomControl::GoomControlImp::chooseGoomLine(
         *amplitude = 2.0f;
       }
       break;
-    case LineType::vline:
+    case GoomLine::LineType::vline:
       if (goomEvent.happens(GoomEvent::changeVLineParams) || far)
       {
         *param1 = getScreenWidth() / 7.0f;
@@ -2147,7 +2144,7 @@ void GoomControl::GoomControlImp::stopRequest()
   float param2 = 0;
   float amplitude = 0;
   Pixel couleur{};
-  LineType mode;
+  GoomLine::LineType mode;
   chooseGoomLine(&param1, &param2, &couleur, &mode, &amplitude, 1);
   couleur = getBlackLineColor();
 
@@ -2189,7 +2186,7 @@ void GoomControl::GoomControlImp::stopRandomLineChangeMode()
       float param2 = 0;
       float amplitude = 0;
       Pixel couleur1{};
-      LineType mode;
+      GoomLine::LineType mode;
       chooseGoomLine(&param1, &param2, &couleur1, &mode, &amplitude, goomData.stop_lines);
 
       Pixel couleur2 = gmline2.getRandomLineColor();
@@ -2236,7 +2233,7 @@ void GoomControl::GoomControlImp::displayLines(
     float param2 = 0;
     float amplitude = 0;
     Pixel couleur1{};
-    LineType mode;
+    GoomLine::LineType mode;
     chooseGoomLine(&param1, &param2, &couleur1, &mode, &amplitude, goomData.stop_lines);
 
     Pixel couleur2 = gmline2.getRandomLineColor();
@@ -2428,7 +2425,7 @@ inline GoomEvents::GoomFilterEvent GoomEvents::getRandomFilterEvent() const
   return nextEvent;
 }
 
-inline LineType GoomEvents::getRandomLineTypeEvent() const
+inline GoomLine::LineType GoomEvents::getRandomLineTypeEvent() const
 {
   return lineTypeWeights.getRandomWeighted();
 }
