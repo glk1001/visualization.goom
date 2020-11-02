@@ -152,31 +152,6 @@ public:
   virtual float getNext() = 0;
 };
 
-class ConstantSequenceFunction : public SequenceFunction
-{
-public:
-  explicit ConstantSequenceFunction(const float v = 0) : val{v} {}
-  float getNext() override { return val; }
-  float getConstVal() { return val; }
-  void setConstVal(const double v) { val = v; }
-
-private:
-  float val;
-};
-
-class RandSequenceFunction : public SequenceFunction
-{
-public:
-  explicit RandSequenceFunction(const float _x0 = 0, const float _x1 = 1) : x0{_x0}, x1{_x1} {}
-  float getNext() override { return getRandInRange(x0, x1); }
-  void setX0(const double val) { x0 = val; }
-  void setX1(const double val) { x1 = val; }
-
-private:
-  float x0;
-  float x1;
-};
-
 class SineWaveMultiplier : public SequenceFunction
 {
 public:

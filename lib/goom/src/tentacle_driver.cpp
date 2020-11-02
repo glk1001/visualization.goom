@@ -102,9 +102,6 @@ void TentacleDriver::init(const TentacleLayout& layout)
   tentacleParams.resize(numTentacles);
 
   constexpr V3d initialHeadPos = {0, 0, 0};
-  const ColorMap* specialColorMap = &colorMaps.getRandomColorMap(ColorMapGroup::qualitative);
-  const std::vector<size_t> specialColorNodes = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-  logDebug("Got color maps.");
 
   const size_t numInParamGroup = numTentacles / iterParamsGroups.size();
   const float tStep = 1.0F / static_cast<float>(numInParamGroup - 1);
@@ -141,8 +138,6 @@ void TentacleDriver::init(const TentacleLayout& layout)
     const Pixel headColorLow = headColor;
     Tentacle3D tentacle{std::move(tentacle2D), *colorizers[colorizers.size() - 1], headColor,
                         headColorLow, initialHeadPos};
-
-    tentacle.setSpecialColorNodes(*specialColorMap, specialColorNodes);
 
     tentacles.addTentacle(std::move(tentacle));
 
@@ -253,15 +248,7 @@ std::unique_ptr<TentacleTweaker> TentacleDriver::createNewTweaker(
 {
   using namespace std::placeholders;
 
-  TentacleTweaker::WeightFunctionsResetter weightsReset =
-      std::bind(&SimpleWeightHandler::weightsReset, &weightsHandler, _1, _2, _3, _4);
-  TentacleTweaker::WeightFunctionsAdjuster weightsAdjust =
-      std::bind(&SimpleWeightHandler::weightsAdjust, &weightsHandler, _1, _2, _3, _4, _5);
-
-  return std::unique_ptr<TentacleTweaker>{new TentacleTweaker{
-      std::move(dampingFunc), std::bind(&TentacleDriver::beforeIter, this, _1, _2, _3, _4),
-      &weightsHandler.getPrevYWeightFunc(), &weightsHandler.getCurrentYWeightFunc(), weightsReset,
-      weightsAdjust}};
+  return std::unique_ptr<TentacleTweaker>{new TentacleTweaker{std::move(dampingFunc)}};
 }
 
 void TentacleDriver::startIterating()
@@ -391,27 +378,16 @@ void TentacleDriver::checkForTimerEvents()
     {
       colorizers[i]->setColorMapGroup(nextGroups[i]);
     }
-  }
-}
-
-void TentacleDriver::beforeIter(const size_t ID,
-                                const size_t iterNum,
-                                const std::vector<double>& xvec,
-                                std::vector<double>& yvec)
-{
-  if (iterNum == 1)
-  {
-    for (size_t i = 0; i < xvec.size(); i++)
+    if (colorMode != ColorModes::minimal)
     {
-      //      yvec[i] = (*dampingFunc)(xvec[i]);
-      yvec[i] = getRandInRange(-10.0f, +10.0f);
+      for (size_t i = 0; i < colorizers.size(); i++)
+      {
+        if (changeCurrentColorMapEvent())
+        {
+          colorizers[i]->changeColorMap();
+        }
+      }
     }
-  }
-
-  if ((colorMode != ColorModes::minimal) &&
-      (iterNum % changeTentacleColorMapEveryNUpdates == 0 || changeCurrentColorMapEvent()))
-  {
-    colorizers[ID]->changeColorMap();
   }
 }
 
@@ -442,7 +418,7 @@ void TentacleDriver::update(const float angle,
   updateIterTimers();
   checkForTimerEvents();
 
-  const float iterZeroLerpFactor = 0.9;
+  constexpr float iterZeroLerpFactor = 0.9;
 
   for (size_t i = 0; i < numTentacles; i++)
   {
@@ -778,33 +754,6 @@ size_t CirclesTentacleLayout::getNumPoints() const
 const std::vector<V3d>& CirclesTentacleLayout::getPoints() const
 {
   return points;
-}
-
-SimpleWeightHandler::SimpleWeightHandler(const ConstantSequenceFunction& prevYWeightFun,
-                                         const ConstantSequenceFunction& currentYWeightFun)
-  : prevYWeightFunc(prevYWeightFun), currentYWeightFunc(currentYWeightFun)
-{
-}
-
-void SimpleWeightHandler::weightsReset([[maybe_unused]] const size_t ID,
-                                       [[maybe_unused]] const size_t nmNodes,
-                                       const float basePrevYWgt,
-                                       const float baseCurrentYWgt)
-{
-  basePrevYWeight = basePrevYWgt;
-  baseCurrentYWeight = baseCurrentYWgt;
-  prevYWeightFunc.setConstVal(basePrevYWeight);
-  currentYWeightFunc.setConstVal(baseCurrentYWeight);
-}
-
-void SimpleWeightHandler::weightsAdjust([[maybe_unused]] const size_t ID,
-                                        [[maybe_unused]] const size_t iterNum,
-                                        [[maybe_unused]] const size_t nodeNum,
-                                        [[maybe_unused]] const float prevY,
-                                        [[maybe_unused]] const float currentY)
-{
-  prevYWeightFunc.setConstVal(basePrevYWeight * getRandInRange(0.7f, 1.4f));
-  currentYWeightFunc.setConstVal(1.0 - prevYWeightFunc.getConstVal());
 }
 
 } // namespace goom

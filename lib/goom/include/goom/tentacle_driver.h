@@ -35,30 +35,6 @@ private:
   size_t count = 0;
 };
 
-class SimpleWeightHandler
-{
-public:
-  explicit SimpleWeightHandler(const utils::ConstantSequenceFunction& prevYWeightFunc,
-                               const utils::ConstantSequenceFunction& currentYWeightFunc);
-  utils::ConstantSequenceFunction& getPrevYWeightFunc() { return prevYWeightFunc; }
-  utils::ConstantSequenceFunction& getCurrentYWeightFunc() { return currentYWeightFunc; }
-  void weightsReset(const size_t ID,
-                    const size_t numNodes,
-                    const float basePrevYWeight,
-                    const float baseCurrentYWeight);
-  void weightsAdjust(const size_t ID,
-                     const size_t iterNum,
-                     const size_t nodeNum,
-                     const float prevY,
-                     const float currentY);
-
-private:
-  utils::ConstantSequenceFunction prevYWeightFunc;
-  utils::ConstantSequenceFunction currentYWeightFunc;
-  float basePrevYWeight = 0;
-  float baseCurrentYWeight = 0;
-};
-
 class TentacleLayout
 {
 public:
@@ -131,9 +107,6 @@ private:
   FXBuffSettings buffSettings{};
   const utils::ColorMaps colorMaps{};
   std::vector<std::unique_ptr<TentacleColorizer>> colorizers{};
-  utils::ConstantSequenceFunction constPrevYWeightFunc{};
-  utils::ConstantSequenceFunction constCurrentYWeightFunc{};
-  SimpleWeightHandler weightsHandler{constPrevYWeightFunc, constCurrentYWeightFunc};
 
   size_t updateNum = 0;
   Tentacles3D tentacles{};
@@ -153,10 +126,6 @@ private:
       const IterationParams&, const size_t tentacleLen) const;
   std::unique_ptr<utils::DampingFunction> createNewLinearDampingFunction(
       const IterationParams&, const size_t tentacleLen) const;
-  void beforeIter(const size_t ID,
-                  const size_t iterNum,
-                  const std::vector<double>& xvec,
-                  std::vector<double>& yvec);
   const std::vector<IterTimer*> iterTimers{};
   void updateIterTimers();
   void checkForTimerEvents();

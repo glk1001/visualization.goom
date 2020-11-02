@@ -23,18 +23,8 @@ namespace goom
 
 using namespace goom::utils;
 
-TentacleTweaker::TentacleTweaker(std::unique_ptr<DampingFunction> dampingFun,
-                                 BeforeIterFunction beforeIterFun,
-                                 SequenceFunction* prevYWeightFun,
-                                 SequenceFunction* currentYWeightFun,
-                                 WeightFunctionsResetter weightFunsReset,
-                                 WeightFunctionsAdjuster weightFunsAdj)
-  : dampingFunc{std::move(dampingFun)},
-    beforeIterFunc{beforeIterFun},
-    prevYWeightFunc{prevYWeightFun},
-    currentYWeightFunc{currentYWeightFun},
-    weightFuncsReset{weightFunsReset},
-    weightFuncsAdjuster{weightFunsAdj}
+TentacleTweaker::TentacleTweaker(std::unique_ptr<DampingFunction> dampingFun) noexcept
+  : dampingFunc{std::move(dampingFun)}
 {
 }
 
@@ -116,8 +106,6 @@ void Tentacle2D::startIterating()
 {
   validateSettings();
 
-  tweaker->resetWeightsFunction(ID, numNodes, basePrevYWeight, baseCurrentYWeight);
-
   startedIterating = true;
   iterNum = 0;
 
@@ -134,9 +122,9 @@ void Tentacle2D::startIterating()
   double y = ymin;
   for (size_t i = 0; i < numNodes; ++i)
   {
-    xvec[i] = x;
-    yvec[i] = 0;
     dampingCache[i] = tweaker->getDamping(x);
+    xvec[i] = x;
+    yvec[i] = dampingCache[i];
 
     x += xstep;
     y += ystep;
@@ -147,51 +135,13 @@ void Tentacle2D::iterate()
 {
   iterNum++;
 
-  beforeIter();
-
   yvec[0] = getFirstY();
   for (size_t i = 1; i < numNodes; i++)
   {
     yvec[i] = getNextY(i);
   }
 
-  if (!doPostProcessing)
-  {
-    updateDampedVals(yvec);
-  }
-  else
-  {
-    updateDampedVals(postProcessYVals(yvec));
-  }
-
-  specialPostProcessingNodes.incNodes();
-}
-
-std::vector<double> Tentacle2D::postProcessYVals(const std::vector<double>& yvec) const
-{
-  std::vector<double> yvals(numNodes);
-  for (size_t i = 0; i < numNodes; i++)
-  {
-    const double y = yvec[i];
-    if (y == 0.0)
-    {
-      yvals[i] = y;
-    }
-    else
-    {
-      //      const double sign = std::signbit(y) ? -1.0 : +1.0;
-      //      yvals[i] = sign*std::pow(std::fabs(y), 1.4);
-      if (!specialPostProcessingNodes.isSpecialNode(i))
-      {
-        yvals[i] = y;
-      }
-      else
-      {
-        yvals[i] = y + getRandInRange(-0.1f, 0.1f);
-      }
-    }
-  }
-  return yvals;
+  updateDampedVals(yvec);
 }
 
 void Tentacle2D::updateDampedVals(const std::vector<double>& yvals)
@@ -246,19 +196,7 @@ inline float Tentacle2D::getNextY(const size_t nodeNum)
   const double prevY = yvec[nodeNum - 1];
   const double currentY = yvec[nodeNum];
 
-  if (doCurrentYWeightAdjust)
-  {
-    tweaker->adjustWeightsFunction(ID, iterNum, nodeNum, prevY, currentY);
-  }
-
-  const float prevYWgt = doPrevYWeightAdjust ? tweaker->getNextPrevYWeight() : basePrevYWeight;
-  //  logInfo("node {}: prevYWgt = {:.2}, prevYWeight = {:.2}", nodeNum, prevYWgt, basePrevYWeight);
-
-  const float currentYWgt =
-      doCurrentYWeightAdjust ? tweaker->getNextCurrentYWeight() : baseCurrentYWeight;
-  //  logInfo("node {}: currentYWgt = {:.2}, currentYWeight = {:.2}", nodeNum, currentYWgt, baseCurrentYWeight);
-
-  return prevYWgt * prevY + currentYWgt * currentY;
+  return basePrevYWeight * prevY + baseCurrentYWeight * currentY;
 }
 
 inline float Tentacle2D::getDampedVal(const size_t nodeNum, const float val) const
@@ -297,7 +235,6 @@ Tentacle3D::Tentacle3D(std::unique_ptr<Tentacle2D> t,
                        const Pixel& headColLow,
                        const V3d& h) noexcept
   : tentacle{std::move(t)},
-    specialColorNodes{0, tentacle->getNumNodes(), {}},
     headColor{headCol},
     headColorLow{headColLow},
     head{h}
@@ -311,7 +248,6 @@ Tentacle3D::Tentacle3D(std::unique_ptr<Tentacle2D> t,
                        const V3d& h) noexcept
   : tentacle{std::move(t)},
     colorizer{&col},
-    specialColorNodes{0, tentacle->getNumNodes(), {}},
     headColor{headCol},
     headColorLow{headColLow},
     head{h}
@@ -321,19 +257,10 @@ Tentacle3D::Tentacle3D(std::unique_ptr<Tentacle2D> t,
 Tentacle3D::Tentacle3D(Tentacle3D&& o) noexcept
   : tentacle{std::move(o.tentacle)},
     colorizer{o.colorizer},
-    specialColorNodes{o.specialColorNodes},
-    specialNodesColorMap{o.specialNodesColorMap},
     headColor{o.headColor},
     headColorLow{o.headColorLow},
     head{o.head}
 {
-}
-
-void Tentacle3D::setSpecialColorNodes(const ColorMap& cm, const std::vector<size_t>& nodes)
-{
-  specialNodesColorMap = &cm;
-  specialColorNodes = SpecialNodes{0, tentacle->getNumNodes(), nodes};
-  specialColorNodes.setIncAmount(5);
 }
 
 Pixel Tentacle3D::getColor(const size_t nodeNum) const
@@ -345,12 +272,6 @@ std::tuple<Pixel, Pixel> Tentacle3D::getMixedColors(const size_t nodeNum,
                                                     const Pixel& color,
                                                     const Pixel& colorLow) const
 {
-  //  if (specialColorNodes.isSpecialNode(nodeNum)) {
-  //    const size_t colorNum = specialNodesColorMap->numColors()*nodeNum/get2DTentacle().getNumNodes();
-  //    const uint32_t specialColor = specialNodesColorMap->getColor(colorNum);
-  //    return std::make_tuple(specialColor, specialColor);
-  //  }
-
   if (nodeNum < Tentacle2D::minNumNodes)
   {
     // Color the tentacle head
@@ -438,53 +359,6 @@ void Tentacles3D::setAllowOverexposed(const bool val)
   for (auto& t : tentacles)
   {
     t.setAllowOverexposed(val);
-  }
-}
-
-SpecialNodes::SpecialNodes(const size_t v0, const size_t v1, const std::vector<size_t>& nods)
-  : minVal(v0), maxVal(v1), incAmount{1}, incDirection{+1}, nodes{nods}
-{
-}
-
-void SpecialNodes::clear()
-{
-  nodes.clear();
-}
-
-bool SpecialNodes::isSpecialNode(const size_t checkNode) const
-{
-  for (const size_t i : nodes)
-  {
-    if (i == checkNode)
-    {
-      return true;
-    }
-  }
-  return false;
-}
-
-void SpecialNodes::incNodes()
-{
-  if (incDirection > 0)
-  {
-    if (static_cast<long>(nodes[nodes.size() - 1] + incAmount) > static_cast<long>(maxVal))
-    {
-      incDirection = -1;
-      return;
-    }
-  }
-  else if (incDirection < 0)
-  {
-    if (static_cast<long>(nodes[0] - incAmount) < static_cast<long>(minVal))
-    {
-      incDirection = +1;
-      return;
-    }
-  }
-
-  for (size_t& i : nodes)
-  {
-    i = static_cast<size_t>(static_cast<long>(i) + incDirection * static_cast<long>(incAmount));
   }
 }
 
