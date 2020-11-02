@@ -59,33 +59,6 @@ private:
   float baseCurrentYWeight = 0;
 };
 
-class RandWeightHandler
-{
-public:
-  explicit RandWeightHandler(const utils::RandSequenceFunction& prevYWeightFunc,
-                             const utils::RandSequenceFunction& currentYWeightFunc,
-                             const float r0,
-                             const float r1);
-  utils::RandSequenceFunction& getPrevYWeightFunc() { return prevYWeightFunc; }
-  utils::RandSequenceFunction& getCurrentYWeightFunc() { return currentYWeightFunc; }
-  void weightsReset(const size_t ID,
-                    const size_t numIters,
-                    const size_t numNodes,
-                    const float basePrevYWeight,
-                    const float baseCurrentYWeight);
-  void weightsAdjust(const size_t ID,
-                     const size_t iterNum,
-                     const size_t nodeNum,
-                     const float prevY,
-                     const float currentY);
-
-private:
-  utils::RandSequenceFunction prevYWeightFunc;
-  utils::RandSequenceFunction currentYWeightFunc;
-  const float r0;
-  const float r1;
-};
-
 class TentacleLayout
 {
 public:
@@ -129,8 +102,6 @@ public:
               Pixel* prevBuff,
               Pixel* currentBuff);
 
-  void setRoughTentacles(const bool val);
-  void setGlitchValues(const float lower, const float upper);
   void setReverseColorMix(const bool val);
   void multiplyIterZeroYValWaveFreq(const float val);
 
@@ -163,7 +134,6 @@ private:
   utils::ConstantSequenceFunction constPrevYWeightFunc{};
   utils::ConstantSequenceFunction constCurrentYWeightFunc{};
   SimpleWeightHandler weightsHandler{constPrevYWeightFunc, constCurrentYWeightFunc};
-  // RandWeightHandler weightsHandler;
 
   size_t updateNum = 0;
   Tentacles3D tentacles{};
@@ -173,17 +143,6 @@ private:
   static const size_t changeCurrentColorMapGroupEveryNUpdates;
   static const size_t changeTentacleColorMapEveryNUpdates;
   std::vector<utils::ColorMapGroup> getNextColorMapGroups() const;
-
-  static constexpr size_t roughenEveryNUpdates = 30000000;
-  static constexpr size_t roughenIterLength = 10;
-  IterTimer roughenTimer{roughenIterLength};
-
-  static constexpr size_t doGlitchEveryNUpdates = 30;
-  static constexpr size_t glitchIterLength = 10;
-  IterTimer glitchTimer{glitchIterLength};
-  const utils::ColorMap* glitchColorGroup{&colorMaps.getRandomColorMap()};
-  float glitchLower = -1.5;
-  float glitchUpper = +1.5;
 
   std::unique_ptr<Tentacle2D> createNewTentacle2D(const size_t ID, const IterationParams&);
   std::unique_ptr<TentacleTweaker> createNewTweaker(
@@ -198,7 +157,7 @@ private:
                   const size_t iterNum,
                   const std::vector<double>& xvec,
                   std::vector<double>& yvec);
-  const std::vector<IterTimer*> iterTimers{&glitchTimer, &roughenTimer};
+  const std::vector<IterTimer*> iterTimers{};
   void updateIterTimers();
   void checkForTimerEvents();
   void plot3D(const Tentacle3D& tentacle,

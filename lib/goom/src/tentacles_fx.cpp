@@ -731,12 +731,11 @@ void TentaclesFx::TentaclesImpl::updateWithNoDraw()
 
 void TentaclesFx::TentaclesImpl::init()
 {
-  currentDriver->setRoughTentacles(false);
   currentDriver->freshStart();
   //  currentDriver->setColorMode(static_cast<TentacleDriver::ColorModes>(getRandInRange(0u, 2u)));
   currentDriver->setColorMode(static_cast<TentacleDriver::ColorModes>(getRandInRange(1u, 2u)));
   //  currentDriver->setColorMode(TentacleDriver::ColorModes::oneGroupForAll);
-  currentDriver->setReverseColorMix(probabilityOfMInN(1, 2));
+  currentDriver->setReverseColorMix(probabilityOfMInN(1, 2000));
 
   distt = std::lerp(disttMin, disttMax, 0.3);
   distt2 = distt2Min;
@@ -894,7 +893,6 @@ void TentaclesFx::TentaclesImpl::prettyMoveStart(const float acceleration, const
   distt2Offset = (1.0F / (1.10F - acceleration)) * getRandInRange(distt2Min, distt2Max);
   rotAtStartOfPrettyMove = rot;
   cycleInc = getRandInRange(cycleIncMin, cycleIncMax);
-  currentDriver->setRoughTentacles(true);
 }
 
 /****
@@ -908,7 +906,6 @@ void TentaclesFx::TentaclesImpl::prettyMoveFinish()
 {
   prettyMoveHappeningTimer = 0;
   distt2Offset = 0;
-  currentDriver->setRoughTentacles(false);
 }
 
 void TentaclesFx::TentaclesImpl::isPrettyMoveHappeningUpdate(const float acceleration)

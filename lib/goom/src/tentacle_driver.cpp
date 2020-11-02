@@ -203,10 +203,6 @@ std::unique_ptr<Tentacle2D> TentacleDriver::createNewTentacle2D(const size_t ID,
            tentacle->getCurrentYWeight(), tentacle->getNumNodes());
 
   tentacle->setDoDamping(true);
-  tentacle->setPostProcessing(false);
-  tentacle->setDoPrevYWeightAdjust(false);
-  tentacle->setDoCurrentYWeightAdjust(false);
-  //    tentacle->turnOffAllAdjusts();
 
   return tentacle;
 }
@@ -256,11 +252,6 @@ std::unique_ptr<TentacleTweaker> TentacleDriver::createNewTweaker(
     const IterationParams&, std::unique_ptr<DampingFunction> dampingFunc)
 {
   using namespace std::placeholders;
-
-  //  TentacleTweaker::WeightFunctionsResetter weightsReset =
-  //      std::bind(&RandWeightHandler::weightsReset, &weightsHandler, _1, _2, _3, _4);
-  //  TentacleTweaker::WeightFunctionsAdjuster weightsAdjust =
-  //      std::bind(&RandWeightHandler::weightsAdjust, &weightsHandler, _1, _2, _3, _4);
 
   TentacleTweaker::WeightFunctionsResetter weightsReset =
       std::bind(&SimpleWeightHandler::weightsReset, &weightsHandler, _1, _2, _3, _4);
@@ -340,12 +331,6 @@ void TentacleDriver::multiplyIterZeroYValWaveFreq(const float val)
   }
 }
 
-void TentacleDriver::setGlitchValues(const float lower, const float upper)
-{
-  glitchLower = lower;
-  glitchUpper = upper;
-}
-
 void TentacleDriver::setReverseColorMix(const bool val)
 {
   for (auto& t : tentacles)
@@ -359,15 +344,6 @@ void TentacleDriver::updateIterTimers()
   for (auto* t : iterTimers)
   {
     t->next();
-  }
-}
-
-void TentacleDriver::setRoughTentacles(const bool val)
-{
-  for (auto& tentacle : tentacles)
-  {
-    tentacle.get2DTentacle().setDoPrevYWeightAdjust(val);
-    tentacle.get2DTentacle().setDoCurrentYWeightAdjust(val);
   }
 }
 
@@ -416,36 +392,6 @@ void TentacleDriver::checkForTimerEvents()
       colorizers[i]->setColorMapGroup(nextGroups[i]);
     }
   }
-
-  if (roughenTimer.getCurrentCount() == 0)
-  {
-    setRoughTentacles(false);
-  }
-  if (updateNum % roughenEveryNUpdates == 0)
-  {
-    //  logDebug("Update num = {}: starting roughenTimer.", updateNum);
-    roughenTimer.start();
-    setRoughTentacles(true);
-  }
-
-  /**
-  if (updateNum % doGlitchEveryNUpdates == 0) {
-//    logDebug("Update num = {}: starting glitchTimer.", updateNum);
-    glitchTimer.start();
-  }
-  **/
-  /**
-  if (updateNum % doDominantColorEveryNUpdates == 0) {
-    if (updateNum % (2*doDominantColorEveryNUpdates) == 0) {
-      logDebug("Update num = {}: get new dominantColor", updateNum);
-      dominantColorGroup = &getRandomColorGroup();
-      logDebug("Update num = {}: got new dominantColorGroup", updateNum);
-      dominantColor = getRandomColor(*dominantColorGroup);
-      logDebug("Update num = {}: new dominantColor = {}", updateNum, dominantColor);
-    }
-    dominantColor = getEvolvedColor(dominantColor);
-  }
-  **/
 }
 
 void TentacleDriver::beforeIter(const size_t ID,
@@ -460,28 +406,6 @@ void TentacleDriver::beforeIter(const size_t ID,
       //      yvec[i] = (*dampingFunc)(xvec[i]);
       yvec[i] = getRandInRange(-10.0f, +10.0f);
     }
-  }
-
-  if ((std::fabs(glitchUpper - glitchLower) > 0.001) && (glitchTimer.getCurrentCount() > 0))
-  {
-    for (double& y : yvec)
-    {
-      y += getRandInRange(glitchLower, glitchUpper);
-    }
-    /**
-//    logDebug("iter = {} and tentacle {} and resetGlitchTimer.getCurrentCount() = {}.",
-//        iterNum, ID, glitchTimer.getCurrentCount());
-    if (glitchTimer.atStart()) {
-      for (double& y : yvec) {
-        y += getRandInRange(glitchLower, glitchUpper);
-      }
-//      logDebug("Pushing color for iter = {} and tentacle {}.", iterNum, ID);
-      colorizers[ID]->pushColorMap(glitchColorGroup);
-    } else if (glitchTimer.getCurrentCount() == 1) {
-//      logDebug("Popping color for iter = {} and tentacle {}.", iterNum, ID);
-      colorizers[ID]->popColorMap();
-    }
-    **/
   }
 
   if ((colorMode != ColorModes::minimal) &&
@@ -881,34 +805,6 @@ void SimpleWeightHandler::weightsAdjust([[maybe_unused]] const size_t ID,
 {
   prevYWeightFunc.setConstVal(basePrevYWeight * getRandInRange(0.7f, 1.4f));
   currentYWeightFunc.setConstVal(1.0 - prevYWeightFunc.getConstVal());
-}
-
-RandWeightHandler::RandWeightHandler(const RandSequenceFunction& prevYWeightFun,
-                                     const RandSequenceFunction& currentYWeightFun,
-                                     const float _r0,
-                                     const float _r1)
-  : prevYWeightFunc(prevYWeightFun), currentYWeightFunc(currentYWeightFun), r0(_r0), r1(_r1)
-{
-}
-
-void RandWeightHandler::weightsReset([[maybe_unused]] const size_t ID,
-                                     [[maybe_unused]] const size_t numItrs,
-                                     [[maybe_unused]] const size_t nmNodes,
-                                     const float basePrevYWgt,
-                                     const float baseCurrentYWgt)
-{
-  prevYWeightFunc.setX0(r0 * basePrevYWgt);
-  prevYWeightFunc.setX1(r1 * basePrevYWgt);
-  currentYWeightFunc.setX0(r0 * baseCurrentYWgt);
-  currentYWeightFunc.setX1(r1 * baseCurrentYWgt);
-}
-
-void RandWeightHandler::weightsAdjust([[maybe_unused]] const size_t ID,
-                                      [[maybe_unused]] const size_t iterNum,
-                                      [[maybe_unused]] const size_t nodeNum,
-                                      [[maybe_unused]] const float prevY,
-                                      [[maybe_unused]] const float currentY)
-{
 }
 
 } // namespace goom

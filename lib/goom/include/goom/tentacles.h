@@ -154,21 +154,6 @@ public:
   bool getDoDamping() const;
   void setDoDamping(const bool val);
 
-  bool getDoPrevYWeightAdjust() const;
-  void setDoPrevYWeightAdjust(const bool val);
-
-  bool getDoCurrentYWeightAdjust() const;
-  void setDoCurrentYWeightAdjust(const bool val);
-
-  bool getPostProcessing() const;
-  void setPostProcessing(const bool val);
-
-  bool getDoErrorAdjust() const;
-  void setDoErrorAdjust(const bool val);
-
-  void turnOffAllAdjusts();
-  void turnOnAllAdjusts();
-
 private:
   size_t ID{};
   std::unique_ptr<TentacleTweaker> tweaker{};
@@ -190,9 +175,9 @@ private:
   double iterZeroYVal = 0.9;
   double iterZeroLerpFactor = 0.8;
   bool doDamping = true;
-  bool doPostProcessing = false;
-  bool doPrevYWeightAdjust = false;
-  bool doCurrentYWeightAdjust = false;
+  const bool doPostProcessing = false;
+  const bool doPrevYWeightAdjust = false;
+  const bool doCurrentYWeightAdjust = false;
   float getFirstY();
   float getNextY(const size_t nodeNum);
   float getDampedVal(const size_t nodeNum, const float val) const;
@@ -473,50 +458,6 @@ inline void Tentacle2D::setDoDamping(const bool val)
 {
   doDamping = val;
 };
-
-inline bool Tentacle2D::getDoPrevYWeightAdjust() const
-{
-  return doPrevYWeightAdjust;
-}
-inline void Tentacle2D::setDoPrevYWeightAdjust(const bool val)
-{
-  doPrevYWeightAdjust = val;
-}
-
-inline bool Tentacle2D::getDoCurrentYWeightAdjust() const
-{
-  return doCurrentYWeightAdjust;
-}
-inline void Tentacle2D::setDoCurrentYWeightAdjust(const bool val)
-{
-  doCurrentYWeightAdjust = val;
-}
-
-inline bool Tentacle2D::getPostProcessing() const
-{
-  return doPostProcessing;
-}
-
-inline void Tentacle2D::setPostProcessing(const bool val)
-{
-  doPostProcessing = val;
-}
-
-inline void Tentacle2D::turnOffAllAdjusts()
-{
-  setDoDamping(false);
-  setPostProcessing(false);
-  setDoPrevYWeightAdjust(false);
-  setDoCurrentYWeightAdjust(false);
-}
-
-inline void Tentacle2D::turnOnAllAdjusts()
-{
-  setDoDamping(true);
-  setPostProcessing(true);
-  setDoPrevYWeightAdjust(true);
-  setDoCurrentYWeightAdjust(true);
-}
 
 inline void Tentacle2D::beforeIter()
 {
