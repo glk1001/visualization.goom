@@ -5,10 +5,12 @@
 #include "goom_graphic.h"
 #include "goom_visual_fx.h"
 #include "goomutils/colormap.h"
+#include "goomutils/mathutils.h"
 #include "tentacles.h"
 #include "v3d.h"
 
 #include <cereal/archives/json.hpp>
+#include <cereal/types/vector.hpp>
 #include <cstdint>
 #include <memory>
 #include <vector>
@@ -81,6 +83,11 @@ public:
   void setReverseColorMix(const bool val);
   void multiplyIterZeroYValWaveFreq(const float val);
 
+  bool operator==(const TentacleDriver&) const;
+
+  template<class Archive>
+  void serialize(Archive&);
+
 private:
   ColorModes colorMode = ColorModes::multiGroups;
   struct IterationParams
@@ -90,12 +97,18 @@ private:
     float iterZeroYValWaveFreq = 1.0;
     utils::SineWaveMultiplier iterZeroYValWave{};
     float length = 50;
+    bool operator==(const IterationParams&) const;
+    template<class Archive>
+    void serialize(Archive&);
   };
   struct IterParamsGroup
   {
-    IterationParams first;
-    IterationParams last;
+    IterationParams first{};
+    IterationParams last{};
+    bool operator==(const IterParamsGroup&) const;
     IterationParams getNext(const float t) const;
+    template<class Archive>
+    void serialize(Archive&);
   };
   std::vector<IterParamsGroup> iterParamsGroups{};
 
@@ -110,7 +123,7 @@ private:
 
   size_t updateNum = 0;
   Tentacles3D tentacles{};
-  const float iterZeroYVal = 10.0;
+  static constexpr float iterZeroYVal = 10.0;
   size_t numTentacles = 0;
   std::vector<IterationParams> tentacleParams{};
   static const size_t changeCurrentColorMapGroupEveryNUpdates;
@@ -137,7 +150,8 @@ private:
 class TentacleColorMapColorizer : public TentacleColorizer
 {
 public:
-  explicit TentacleColorMapColorizer(const utils::ColorMapGroup, const size_t numNodes);
+  TentacleColorMapColorizer() noexcept = default;
+  explicit TentacleColorMapColorizer(const utils::ColorMapGroup, const size_t numNodes) noexcept;
   TentacleColorMapColorizer(const TentacleColorMapColorizer&) = delete;
   TentacleColorMapColorizer& operator=(const TentacleColorMapColorizer&) = delete;
 
@@ -146,9 +160,16 @@ public:
   void changeColorMap() override;
   Pixel getColor(const size_t nodeNum) const override;
 
+  bool operator==(const TentacleColorMapColorizer&) const;
+
+  template<class Archive>
+  void save(Archive&) const;
+  template<class Archive>
+  void load(Archive&);
+
 private:
-  const size_t numNodes;
-  utils::ColorMapGroup currentColorMapGroup;
+  size_t numNodes = 0;
+  utils::ColorMapGroup currentColorMapGroup{};
   const utils::ColorMaps colorMaps{};
   const utils::ColorMap* colorMap{};
   const utils::ColorMap* prevColorMap{};
@@ -190,5 +211,53 @@ private:
   std::vector<V3d> points{};
 };
 
+template<class Archive>
+void TentacleDriver::serialize(Archive& ar)
+{
+  ar(CEREAL_NVP(colorMode), CEREAL_NVP(iterParamsGroups), CEREAL_NVP(screenWidth),
+     CEREAL_NVP(screenHeight), CEREAL_NVP(draw), CEREAL_NVP(buffSettings), CEREAL_NVP(colorizers),
+     CEREAL_NVP(updateNum), CEREAL_NVP(tentacles), CEREAL_NVP(numTentacles),
+     CEREAL_NVP(tentacleParams));
+}
+
+template<class Archive>
+void TentacleDriver::IterationParams::serialize(Archive& ar)
+{
+  ar(CEREAL_NVP(numNodes), CEREAL_NVP(prevYWeight), CEREAL_NVP(iterZeroYValWave),
+     CEREAL_NVP(length));
+}
+
+template<class Archive>
+void TentacleDriver::IterParamsGroup::serialize(Archive& ar)
+{
+  ar(CEREAL_NVP(first), CEREAL_NVP(last));
+}
+
+template<class Archive>
+void TentacleColorMapColorizer::save(Archive& ar) const
+{
+  const utils::colordata::ColorMapName colorMapName = colorMap->getMapName();
+  const utils::colordata::ColorMapName prevColorMapName = prevColorMap->getMapName();
+  ar(CEREAL_NVP(numNodes), CEREAL_NVP(currentColorMapGroup), CEREAL_NVP(colorMapName),
+     CEREAL_NVP(prevColorMapName), CEREAL_NVP(tTransition));
+}
+
+template<class Archive>
+void TentacleColorMapColorizer::load(Archive& ar)
+{
+  utils::colordata::ColorMapName colorMapName;
+  utils::colordata::ColorMapName prevColorMapName;
+  ar(CEREAL_NVP(numNodes), CEREAL_NVP(currentColorMapGroup), CEREAL_NVP(colorMapName),
+     CEREAL_NVP(prevColorMapName), CEREAL_NVP(tTransition));
+  colorMap = &colorMaps.getColorMap(colorMapName);
+  prevColorMap = &colorMaps.getColorMap(prevColorMapName);
+}
+
 } // namespace goom
+
+// NOTE: Cereal is not happy with these calls inside the 'goom' namespace.
+//   But they work OK here.
+CEREAL_REGISTER_TYPE(goom::TentacleColorMapColorizer);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::TentacleColorizer, goom::TentacleColorMapColorizer);
+
 #endif

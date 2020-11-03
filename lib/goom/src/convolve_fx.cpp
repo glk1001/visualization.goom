@@ -11,10 +11,10 @@
 #include <cereal/types/memory.hpp>
 #include <cmath>
 #include <cstdint>
-#include <fstream>
-#include <istream>
-#include <ostream>
 #include <string>
+
+CEREAL_REGISTER_TYPE(goom::ConvolveFx);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::VisualFx, goom::ConvolveFx);
 
 namespace goom
 {
@@ -89,18 +89,6 @@ std::string ConvolveFx::getFxName() const
   return "Convolve FX";
 }
 
-void ConvolveFx::saveState(std::ostream& f) const
-{
-  cereal::JSONOutputArchive archiveOut(f);
-  archiveOut(*fxImpl);
-}
-
-void ConvolveFx::loadState(std::istream& f)
-{
-  cereal::JSONInputArchive archive_in(f);
-  archive_in(*fxImpl);
-}
-
 void ConvolveFx::convolve(const Pixel* currentBuff, uint32_t* outputBuff)
 {
   if (!enabled)
@@ -139,15 +127,6 @@ void ConvolveFx::ConvolveImpl::load(Archive& ar)
      CEREAL_NVP(flashIntensity), CEREAL_NVP(factor));
 }
 
-ConvolveFx::ConvolveImpl::ConvolveImpl() noexcept
-{
-}
-
-ConvolveFx::ConvolveImpl::ConvolveImpl(const std::shared_ptr<const PluginInfo>& info) noexcept
-  : goomInfo{info}
-{
-}
-
 bool ConvolveFx::ConvolveImpl::operator==(const ConvolveImpl& c) const
 {
   if (goomInfo == nullptr && c.goomInfo != nullptr)
@@ -163,6 +142,15 @@ bool ConvolveFx::ConvolveImpl::operator==(const ConvolveImpl& c) const
          std::fabs(screenBrightness - c.screenBrightness) < 0.000001 &&
          std::fabs(flashIntensity - c.flashIntensity) < 0.000001 &&
          std::fabs(factor - c.factor) < 0.000001 && buffSettings == c.buffSettings;
+}
+
+ConvolveFx::ConvolveImpl::ConvolveImpl() noexcept
+{
+}
+
+ConvolveFx::ConvolveImpl::ConvolveImpl(const std::shared_ptr<const PluginInfo>& info) noexcept
+  : goomInfo{info}
+{
 }
 
 inline void ConvolveFx::ConvolveImpl::setBuffSettings(const FXBuffSettings& settings)

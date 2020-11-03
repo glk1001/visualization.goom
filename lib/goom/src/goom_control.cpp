@@ -32,6 +32,7 @@
 #include <array>
 #include <cereal/archives/json.hpp>
 #include <cereal/types/memory.hpp>
+#include <cereal/types/unordered_set.hpp>
 #include <cereal/types/vector.hpp>
 #include <chrono>
 #include <cmath>
@@ -830,10 +831,13 @@ struct LogStatsVisitor
 class GoomImageBuffers
 {
 public:
-  explicit GoomImageBuffers(const uint16_t resx, const uint16_t resy);
+  GoomImageBuffers() noexcept = default;
+  explicit GoomImageBuffers(const uint16_t resx, const uint16_t resy) noexcept;
   ~GoomImageBuffers() noexcept;
   GoomImageBuffers(const GoomImageBuffers&) = delete;
   GoomImageBuffers& operator=(const GoomImageBuffers&) = delete;
+
+  void setResolution(const uint16_t resx, const uint16_t resy);
 
   Pixel* getP1() const { return p1; }
   Pixel* getP2() const { return p2; }
@@ -847,12 +851,12 @@ public:
   void rotateBuffers();
 
 private:
-  std::vector<Pixel*> buffs;
-  Pixel* p1;
-  Pixel* p2;
+  std::vector<Pixel*> buffs{};
+  Pixel* p1{};
+  Pixel* p2{};
   uint32_t* outputBuff = nullptr;
-  size_t nextBuff;
-  size_t buffInc;
+  size_t nextBuff = 0;
+  size_t buffInc = 1;
   static std::vector<Pixel*> getPixelBuffs(const uint16_t resx, const uint16_t resy);
 };
 
@@ -867,7 +871,7 @@ std::vector<Pixel*> GoomImageBuffers::getPixelBuffs(const uint16_t resx, const u
   return newBuffs;
 }
 
-GoomImageBuffers::GoomImageBuffers(const uint16_t resx, const uint16_t resy)
+GoomImageBuffers::GoomImageBuffers(const uint16_t resx, const uint16_t resy) noexcept
   : buffs{getPixelBuffs(resx, resy)},
     p1{buffs[0]},
     p2{buffs[1]},
@@ -882,6 +886,15 @@ GoomImageBuffers::~GoomImageBuffers() noexcept
   {
     delete[] b;
   }
+}
+
+void GoomImageBuffers::setResolution(const uint16_t resx, const uint16_t resy)
+{
+  buffs = getPixelBuffs(resx, resy);
+  p1 = buffs[0];
+  p2 = buffs[1];
+  nextBuff = maxNumBuffs == 2 ? 0 : 2;
+  buffInc = 1;
 }
 
 void GoomImageBuffers::setBuffInc(const size_t i)
@@ -909,40 +922,92 @@ struct GoomMessage
   std::string message = "";
   uint32_t numberOfLinesInMessage = 0;
   uint32_t affiche = 0;
-};
 
+  bool operator==(const GoomMessage&) const = default;
+
+  template<class Archive>
+  void serialize(Archive& ar)
+  {
+    ar(CEREAL_NVP(message), CEREAL_NVP(numberOfLinesInMessage), CEREAL_NVP(affiche));
+  };
+};
 
 struct GoomVisualFx
 {
-  explicit GoomVisualFx(const std::shared_ptr<const PluginInfo>&);
-  std::unique_ptr<ZoomFilterFx> zoomFilter_fx;
-  std::unique_ptr<IfsFx> ifs_fx;
-  std::unique_ptr<VisualFx> star_fx;
-  std::unique_ptr<ConvolveFx> convolve_fx;
-  std::unique_ptr<VisualFx> tentacles_fx;
-  std::unique_ptr<VisualFx> goomDots;
+  GoomVisualFx() noexcept = default;
+  explicit GoomVisualFx(const std::shared_ptr<const PluginInfo>&) noexcept;
 
-  std::vector<VisualFx*> list;
+  std::shared_ptr<ConvolveFx> convolve_fx{};
+  std::shared_ptr<ZoomFilterFx> zoomFilter_fx{};
+  std::shared_ptr<FlyingStarsFx> star_fx{};
+  std::shared_ptr<GoomDotsFx> goomDots_fx{};
+  std::shared_ptr<IfsFx> ifs_fx{};
+  std::shared_ptr<TentaclesFx> tentacles_fx{};
+
+  std::vector<std::shared_ptr<VisualFx>> list{};
+
+  bool operator==(const GoomVisualFx&) const;
+
+  template<class Archive>
+  void serialize(Archive& ar)
+  {
+    ar(CEREAL_NVP(zoomFilter_fx), CEREAL_NVP(ifs_fx), CEREAL_NVP(star_fx), CEREAL_NVP(convolve_fx),
+       CEREAL_NVP(tentacles_fx), CEREAL_NVP(goomDots_fx), CEREAL_NVP(list));
+  };
 };
 
-GoomVisualFx::GoomVisualFx(const std::shared_ptr<const PluginInfo>& goomInfo)
-  : zoomFilter_fx{new ZoomFilterFx{goomInfo}},
-    ifs_fx{new IfsFx{goomInfo}},
+GoomVisualFx::GoomVisualFx(const std::shared_ptr<const PluginInfo>& goomInfo) noexcept
+  : convolve_fx{new ConvolveFx{goomInfo}},
+    zoomFilter_fx{new ZoomFilterFx{goomInfo}},
     star_fx{new FlyingStarsFx{goomInfo}},
-    convolve_fx{new ConvolveFx{goomInfo}},
+    goomDots_fx{new GoomDotsFx{goomInfo}},
+    ifs_fx{new IfsFx{goomInfo}},
     tentacles_fx{new TentaclesFx{goomInfo}},
-    goomDots{new GoomDotsFx{goomInfo}},
     // clang-format off
     list{
-      zoomFilter_fx.get(),
-      ifs_fx.get(),
-      star_fx.get(),
-      convolve_fx.get(),
-      tentacles_fx.get(),
-      goomDots.get(),
+      convolve_fx,
+      zoomFilter_fx,
+      star_fx,
+      ifs_fx,
+      goomDots_fx,
+      tentacles_fx,
     }
 // clang-format on
 {
+}
+
+bool GoomVisualFx::operator==(const GoomVisualFx& f) const
+{
+  bool result = *convolve_fx == *f.convolve_fx && *zoomFilter_fx == *f.zoomFilter_fx &&
+                *star_fx == *f.star_fx && *goomDots_fx == *f.goomDots_fx && *ifs_fx == *f.ifs_fx &&
+                *tentacles_fx == *f.tentacles_fx;
+
+  if (!result)
+  {
+    logDebug("result == {}", result);
+    logDebug("convolve_fx == f.convolve_fx = {}", *convolve_fx == *f.convolve_fx);
+    logDebug("zoomFilter_fx == f.zoomFilter_fx = {}", *zoomFilter_fx == *f.zoomFilter_fx);
+    logDebug("star_fx == f.star_fx = {}", *star_fx == *f.star_fx);
+    logDebug("goomDots_fx == f.goomDots_fx = {}", *goomDots_fx == *f.goomDots_fx);
+    logDebug("ifs_fx == f.ifs_fx = {}", *ifs_fx == *f.ifs_fx);
+    logDebug("tentacles_fx == f.tentacles_fx = {}", *tentacles_fx == *f.tentacles_fx);
+    return result;
+  }
+
+  for (size_t i = 0; i < list.size(); i++)
+  {
+    if (typeid(*list[i]) != typeid(*f.list[i]))
+    {
+      logDebug("lists not same type at index {}.", i);
+      return false;
+    }
+    if (list[i]->getFxName() != f.list[i]->getFxName())
+    {
+      logDebug("list {} not same name as list {}.", list[i]->getFxName(), f.list[i]->getFxName());
+      return false;
+    }
+  }
+  return true;
 }
 
 struct GoomData
@@ -962,6 +1027,8 @@ struct GoomData
   char titleText[1024];
   ZoomFilterData zoomFilterData{};
 
+  bool operator==(const GoomData&) const;
+
   template<class Archive>
   void serialize(Archive& ar)
   {
@@ -972,13 +1039,29 @@ struct GoomData
   };
 };
 
+bool GoomData::operator==(const GoomData& d) const
+{
+  return lockvar == d.lockvar && stop_lines == d.stop_lines &&
+         cyclesSinceLastChange == d.cyclesSinceLastChange &&
+         drawLinesDuration == d.drawLinesDuration && lineMode == d.lineMode &&
+         switchMult == d.switchMult && switchIncr == d.switchIncr &&
+         stateSelectionBlocker == d.stateSelectionBlocker &&
+         previousZoomSpeed == d.previousZoomSpeed && timeOfTitleDisplay == d.timeOfTitleDisplay &&
+         zoomFilterData == d.zoomFilterData;
+}
+
 class WritablePluginInfo : public PluginInfo
 {
 public:
+  WritablePluginInfo() noexcept;
   WritablePluginInfo(const uint16_t width, const uint16_t height) noexcept;
 
   void processSoundSample(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN]);
 };
+
+WritablePluginInfo::WritablePluginInfo() noexcept : PluginInfo{}
+{
+}
 
 WritablePluginInfo::WritablePluginInfo(const uint16_t width, const uint16_t height) noexcept
   : PluginInfo{width, height}
@@ -991,17 +1074,15 @@ inline void WritablePluginInfo::processSoundSample(
   PluginInfo::processSoundSample(data);
 }
 
-class GoomControl::GoomControlImp
+class GoomControl::GoomControlImpl
 {
 public:
-  GoomControlImp() noexcept = delete;
-  GoomControlImp(const uint16_t resx, const uint16_t resy, const int seed);
-  ~GoomControlImp();
-  void swap(GoomControl::GoomControlImp& other) noexcept = delete;
+  GoomControlImpl() noexcept;
+  GoomControlImpl(const uint16_t resx, const uint16_t resy) noexcept;
+  ~GoomControlImpl() noexcept;
+  void swap(GoomControl::GoomControlImpl& other) noexcept = delete;
 
-  void saveState(std::ostream&) const;
-  void restoreState(std::istream&);
-
+  uint32_t* getScreenBuffer() const;
   void setScreenBuffer(uint32_t* buffer);
   uint16_t getScreenWidth() const;
   uint16_t getScreenHeight() const;
@@ -1015,16 +1096,12 @@ public:
               const char* songTitle,
               const char* message);
 
-  template<class Archive>
-  void serialize(Archive& ar)
-  {
-    ar(CEREAL_NVP(goomInfo), CEREAL_NVP(timeInState), CEREAL_NVP(cycle));
-  };
+  bool operator==(const GoomControlImpl&) const;
 
 private:
-  const std::shared_ptr<WritablePluginInfo> goomInfo;
-  GoomImageBuffers imageBuffers;
-  GoomVisualFx visualFx;
+  std::shared_ptr<WritablePluginInfo> goomInfo{};
+  GoomImageBuffers imageBuffers{};
+  GoomVisualFx visualFx{};
   GoomStats stats{};
   GoomStates states{};
   GoomEvents goomEvent{};
@@ -1035,8 +1112,8 @@ private:
   GoomData goomData{};
 
   // Line Fx
-  LinesFx gmline1;
-  LinesFx gmline2;
+  LinesFx gmline1{};
+  LinesFx gmline2{};
 
   void initBuffers();
   bool changeFilterModeEventHappens();
@@ -1104,11 +1181,31 @@ private:
   void bigBreak(ZoomFilterData**);
 
   void updateMessage(const char* message);
+
+  friend class cereal::access;
+  template<class Archive>
+  void save(Archive&) const;
+  template<class Archive>
+  void load(Archive&);
 };
 
+uint64_t GoomControl::getRandSeed()
+{
+  return goom::utils::getRandSeed();
+}
 
-GoomControl::GoomControl(const uint16_t resx, const uint16_t resy, const int seed)
-  : controller{new GoomControlImp{resx, resy, seed}}
+void GoomControl::setRandSeed(const uint64_t seed)
+{
+  logDebug("Set goom seed = {}.", seed);
+  goom::utils::setRandSeed(seed);
+}
+
+GoomControl::GoomControl() noexcept : controller{new GoomControlImpl{}}
+{
+}
+
+GoomControl::GoomControl(const uint16_t resx, const uint16_t resy) noexcept
+  : controller{new GoomControlImpl{resx, resy}}
 {
 }
 
@@ -1116,14 +1213,23 @@ GoomControl::~GoomControl() noexcept
 {
 }
 
+bool GoomControl::operator==(const GoomControl& c) const
+{
+  return controller->operator==(*c.controller);
+}
+
 void GoomControl::saveState(std::ostream& f) const
 {
-  controller->saveState(f);
+  cereal::JSONOutputArchive archive(f);
+  archive(*this);
 }
 
 void GoomControl::restoreState(std::istream& f)
 {
-  controller->restoreState(f);
+  uint32_t* outputBuffer = controller->getScreenBuffer();
+  cereal::JSONInputArchive archive(f);
+  archive(*this);
+  controller->setScreenBuffer(outputBuffer);
 }
 
 void GoomControl::setScreenBuffer(uint32_t* buffer)
@@ -1160,13 +1266,84 @@ void GoomControl::update(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN]
   controller->update(data, forceMode, fps, songTitle, message);
 }
 
+template<class Archive>
+void GoomControl::serialize(Archive& ar)
+{
+  ar(CEREAL_NVP(controller));
+}
+
+// Need to explicitly instantiate template functions for serialization.
+template void GoomControl::serialize<cereal::JSONOutputArchive>(cereal::JSONOutputArchive&);
+template void GoomControl::serialize<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
+
+template void GoomControl::GoomControlImpl::save<cereal::JSONOutputArchive>(
+    cereal::JSONOutputArchive&) const;
+template void GoomControl::GoomControlImpl::load<cereal::JSONInputArchive>(
+    cereal::JSONInputArchive&);
+
+template<class Archive>
+void GoomControl::GoomControlImpl::save(Archive& ar) const
+{
+  ar(CEREAL_NVP(goomInfo), CEREAL_NVP(timeInState), CEREAL_NVP(cycle), CEREAL_NVP(visualFx),
+     CEREAL_NVP(curGDrawables), CEREAL_NVP(messageData), CEREAL_NVP(goomData), CEREAL_NVP(gmline1),
+     CEREAL_NVP(gmline2));
+}
+
+template<class Archive>
+void GoomControl::GoomControlImpl::load(Archive& ar)
+{
+  ar(CEREAL_NVP(goomInfo), CEREAL_NVP(timeInState), CEREAL_NVP(cycle), CEREAL_NVP(visualFx),
+     CEREAL_NVP(curGDrawables), CEREAL_NVP(messageData), CEREAL_NVP(goomData), CEREAL_NVP(gmline1),
+     CEREAL_NVP(gmline2));
+
+  imageBuffers.setResolution(goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height);
+}
+
+bool GoomControl::GoomControlImpl::operator==(const GoomControlImpl& c) const
+{
+  if (goomInfo == nullptr && c.goomInfo != nullptr)
+  {
+    return false;
+  }
+  if (goomInfo != nullptr && c.goomInfo == nullptr)
+  {
+    return false;
+  }
+
+  bool result = ((goomInfo == nullptr && c.goomInfo == nullptr) || (*goomInfo == *c.goomInfo)) &&
+                timeInState == c.timeInState && cycle == c.cycle && visualFx == c.visualFx &&
+                curGDrawables == c.curGDrawables && messageData == c.messageData &&
+                goomData == c.goomData && gmline1 == c.gmline1 && gmline2 == c.gmline2;
+
+  if (!result)
+  {
+    logDebug("result == {}", result);
+    logDebug("goomInfo->getScreenInfo().width = {}", goomInfo->getScreenInfo().width);
+    logDebug("c.goomInfo->getScreenInfo().width = {}", c.goomInfo->getScreenInfo().width);
+    logDebug("goomInfo->getScreenInfo().height = {}", goomInfo->getScreenInfo().height);
+    logDebug("c.goomInfo->getScreenInfo().height = {}", c.goomInfo->getScreenInfo().height);
+    logDebug("timeInState = {}, c.timeInState = {}", timeInState, c.timeInState);
+    logDebug("cycle = {}, c.cycle = {}", cycle, c.cycle);
+    logDebug("visualFx == c.visualFx = {}", visualFx == c.visualFx);
+    logDebug("curGDrawables == c.curGDrawables = {}", curGDrawables == c.curGDrawables);
+    logDebug("messageData == c.messageData = {}", messageData == c.messageData);
+    logDebug("goomData == c.goomData = {}", goomData == c.goomData);
+    logDebug("gmline1 == c.gmline1 = {}", gmline1 == c.gmline1);
+    logDebug("gmline2 == c.gmline2 = {}", gmline2 == c.gmline2);
+  }
+  return result;
+}
+
 static const Pixel lRed = getRedLineColor();
 static const Pixel lGreen = getGreenLineColor();
 static const Pixel lBlack = getBlackLineColor();
 
-GoomControl::GoomControlImp::GoomControlImp(const uint16_t resx,
-                                            const uint16_t resy,
-                                            const int seed)
+GoomControl::GoomControlImpl::GoomControlImpl() noexcept
+{
+  gfont_load();
+}
+
+GoomControl::GoomControlImpl::GoomControlImpl(const uint16_t resx, const uint16_t resy) noexcept
   : goomInfo{new WritablePluginInfo{resx, resy}},
     imageBuffers{resx, resy},
     visualFx{
@@ -1188,44 +1365,36 @@ GoomControl::GoomControlImp::GoomControlImp(const uint16_t resx,
         0.2f * static_cast<float>(resy),
         lRed}
 {
-  logDebug("Initialize goom: resx = {}, resy = {}, seed = {}.", resx, resy, seed);
-
-  if (seed > 0)
-  {
-    setRandSeed(static_cast<uint64_t>(seed));
-  }
+  logDebug("Initialize goom: resx = {}, resy = {}.", resx, resy);
 
   gfont_load();
 }
 
-GoomControl::GoomControlImp::~GoomControlImp()
+GoomControl::GoomControlImpl::~GoomControlImpl() noexcept
 {
 }
 
-void GoomControl::GoomControlImp::setScreenBuffer(uint32_t* buffer)
+uint32_t* GoomControl::GoomControlImpl::getScreenBuffer() const
+{
+  return imageBuffers.getOutputBuff();
+}
+
+void GoomControl::GoomControlImpl::setScreenBuffer(uint32_t* buffer)
 {
   imageBuffers.setOutputBuff(buffer);
 }
 
-uint16_t GoomControl::GoomControlImp::getScreenWidth() const
+uint16_t GoomControl::GoomControlImpl::getScreenWidth() const
 {
   return goomInfo->getScreenInfo().width;
 }
 
-uint16_t GoomControl::GoomControlImp::getScreenHeight() const
+uint16_t GoomControl::GoomControlImpl::getScreenHeight() const
 {
   return goomInfo->getScreenInfo().height;
 }
 
-void GoomControl::GoomControlImp::saveState(std::ostream& f) const
-{
-}
-
-void GoomControl::GoomControlImp::restoreState(std::istream& f)
-{
-}
-
-inline bool GoomControl::GoomControlImp::changeFilterModeEventHappens()
+inline bool GoomControl::GoomControlImpl::changeFilterModeEventHappens()
 {
   // If we're in amulette mode and the state contains tentacles,
   // then get out with a different probability.
@@ -1239,7 +1408,7 @@ inline bool GoomControl::GoomControlImp::changeFilterModeEventHappens()
   return goomEvent.happens(GoomEvent::changeFilterMode);
 }
 
-void GoomControl::GoomControlImp::start()
+void GoomControl::GoomControlImpl::start()
 {
   timeInState = 0;
   changeState();
@@ -1269,7 +1438,7 @@ static void logStatsValue(const std::string& module,
   std::visit(LogStatsVisitor{module, name}, value);
 }
 
-void GoomControl::GoomControlImp::finish()
+void GoomControl::GoomControlImpl::finish()
 {
   for (auto& v : visualFx.list)
   {
@@ -1288,11 +1457,11 @@ void GoomControl::GoomControlImp::finish()
   }
 }
 
-void GoomControl::GoomControlImp::update(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
-                                         const int forceMode,
-                                         const float fps,
-                                         const char* songTitle,
-                                         const char* message)
+void GoomControl::GoomControlImpl::update(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
+                                          const int forceMode,
+                                          const float fps,
+                                          const char* songTitle,
+                                          const char* message)
 {
   stats.updateChange(states.getCurrentStateIndex(), goomData.zoomFilterData.mode);
 
@@ -1371,12 +1540,12 @@ void GoomControl::GoomControlImp::update(const int16_t data[NUM_AUDIO_SAMPLES][A
   logDebug("About to return.");
 }
 
-void GoomControl::GoomControlImp::chooseGoomLine(float* param1,
-                                                 float* param2,
-                                                 Pixel* couleur,
-                                                 LinesFx::LineType* mode,
-                                                 float* amplitude,
-                                                 const int far)
+void GoomControl::GoomControlImpl::chooseGoomLine(float* param1,
+                                                  float* param2,
+                                                  Pixel* couleur,
+                                                  LinesFx::LineType* mode,
+                                                  float* amplitude,
+                                                  const int far)
 {
   *amplitude = 1.0f;
   *mode = goomEvent.getRandomLineTypeEvent();
@@ -1437,7 +1606,7 @@ void GoomControl::GoomControlImp::chooseGoomLine(float* param1,
   *couleur = gmline1.getRandomLineColor();
 }
 
-void GoomControl::GoomControlImp::changeFilterModeIfMusicChanges(const int forceMode)
+void GoomControl::GoomControlImpl::changeFilterModeIfMusicChanges(const int forceMode)
 {
   logDebug("forceMode = {}", forceMode);
   if (forceMode == -1)
@@ -1471,7 +1640,7 @@ inline ZoomFilterData::HypercosEffect getHypercosEffect(const bool active)
                      static_cast<uint32_t>(ZoomFilterData::HypercosEffect::_size)));
 }
 
-void GoomControl::GoomControlImp::setNextFilterMode()
+void GoomControl::GoomControlImpl::setNextFilterMode()
 {
   //  goomData.zoomFilterData.vitesse = 127;
   //  goomData.zoomFilterData.middleX = 16;
@@ -1606,7 +1775,7 @@ void GoomControl::GoomControlImp::setNextFilterMode()
   }
 }
 
-void GoomControl::GoomControlImp::changeFilterMode()
+void GoomControl::GoomControlImpl::changeFilterMode()
 {
   logDebug("Time to change the filter mode.");
 
@@ -1620,7 +1789,7 @@ void GoomControl::GoomControlImp::changeFilterMode()
   stats.ifsRenew();
 }
 
-void GoomControl::GoomControlImp::changeState()
+void GoomControl::GoomControlImpl::changeState()
 {
   const size_t oldStateIndex = states.getCurrentStateIndex();
   for (size_t numTry = 0; numTry < 10; numTry++)
@@ -1667,7 +1836,7 @@ void GoomControl::GoomControlImp::changeState()
   }
 }
 
-void GoomControl::GoomControlImp::changeMilieu()
+void GoomControl::GoomControlImpl::changeMilieu()
 {
 
   if ((goomData.zoomFilterData.mode == ZoomFilterMode::waterMode) ||
@@ -1773,7 +1942,7 @@ void GoomControl::GoomControlImp::changeMilieu()
   //      ZoomFilterData::minVPlaneEffectAmplitude, ZoomFilterData::maxVPlaneEffectAmplitude);
 }
 
-void GoomControl::GoomControlImp::bigNormalUpdate(ZoomFilterData** pzfd)
+void GoomControl::GoomControlImpl::bigNormalUpdate(ZoomFilterData** pzfd)
 {
   if (goomData.stateSelectionBlocker)
   {
@@ -1898,7 +2067,7 @@ void GoomControl::GoomControlImp::bigNormalUpdate(ZoomFilterData** pzfd)
   }
 }
 
-void GoomControl::GoomControlImp::megaLentUpdate(ZoomFilterData** pzfd)
+void GoomControl::GoomControlImpl::megaLentUpdate(ZoomFilterData** pzfd)
 {
   logDebug("mega lent change");
   *pzfd = &goomData.zoomFilterData;
@@ -1909,7 +2078,7 @@ void GoomControl::GoomControlImp::megaLentUpdate(ZoomFilterData** pzfd)
   goomData.switchMult = 1.0f;
 }
 
-void GoomControl::GoomControlImp::bigUpdate(ZoomFilterData** pzfd)
+void GoomControl::GoomControlImpl::bigUpdate(ZoomFilterData** pzfd)
 {
   stats.doBigUpdate();
 
@@ -1933,7 +2102,7 @@ void GoomControl::GoomControlImp::bigUpdate(ZoomFilterData** pzfd)
 
 /* Changement d'effet de zoom !
  */
-void GoomControl::GoomControlImp::changeZoomEffect(ZoomFilterData* pzfd, const int forceMode)
+void GoomControl::GoomControlImpl::changeZoomEffect(ZoomFilterData* pzfd, const int forceMode)
 {
   if (!goomEvent.happens(GoomEvent::changeBlockyWavyToOn))
   {
@@ -2011,7 +2180,7 @@ void GoomControl::GoomControlImp::changeZoomEffect(ZoomFilterData* pzfd, const i
   }
 }
 
-void GoomControl::GoomControlImp::applyTentaclesIfRequired()
+void GoomControl::GoomControlImpl::applyTentaclesIfRequired()
 {
   if (!curGDrawables.contains(GoomDrawable::tentacles))
   {
@@ -2025,7 +2194,7 @@ void GoomControl::GoomControlImp::applyTentaclesIfRequired()
   visualFx.tentacles_fx->apply(imageBuffers.getP2(), imageBuffers.getP1());
 }
 
-void GoomControl::GoomControlImp::applyStarsIfRequired()
+void GoomControl::GoomControlImpl::applyStarsIfRequired()
 {
   if (!curGDrawables.contains(GoomDrawable::stars))
   {
@@ -2040,7 +2209,7 @@ void GoomControl::GoomControlImp::applyStarsIfRequired()
 
 #ifdef SHOW_STATE_TEXT_ON_SCREEN
 
-void GoomControl::GoomControlImp::displayStateText()
+void GoomControl::GoomControlImpl::displayStateText()
 {
   std::string message = "";
 
@@ -2071,9 +2240,9 @@ void GoomControl::GoomControlImp::displayStateText()
 
 #endif
 
-void GoomControl::GoomControlImp::displayText(const char* songTitle,
-                                              const char* message,
-                                              const float fps)
+void GoomControl::GoomControlImpl::displayText(const char* songTitle,
+                                               const char* message,
+                                               const float fps)
 {
   updateMessage(message);
 
@@ -2112,7 +2281,7 @@ void GoomControl::GoomControlImp::displayText(const char* songTitle,
 /*
  * Met a jour l'affichage du message defilant
  */
-void GoomControl::GoomControlImp::updateMessage(const char* message)
+void GoomControl::GoomControlImpl::updateMessage(const char* message)
 {
   if (message)
   {
@@ -2136,7 +2305,7 @@ void GoomControl::GoomControlImp::updateMessage(const char* message)
   }
 }
 
-void GoomControl::GoomControlImp::stopRequest()
+void GoomControl::GoomControlImpl::stopRequest()
 {
   logDebug("goomData.stop_lines = {},"
            " curGDrawables.contains(GoomDrawable::scope) = {}",
@@ -2158,7 +2327,7 @@ void GoomControl::GoomControlImp::stopRequest()
 
 /* arret aleatore.. changement de mode de ligne..
   */
-void GoomControl::GoomControlImp::stopRandomLineChangeMode()
+void GoomControl::GoomControlImpl::stopRandomLineChangeMode()
 {
   if (goomData.lineMode != goomData.drawLinesDuration)
   {
@@ -2210,7 +2379,7 @@ void GoomControl::GoomControlImp::stopRandomLineChangeMode()
   }
 }
 
-void GoomControl::GoomControlImp::displayLines(
+void GoomControl::GoomControlImpl::displayLines(
     const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN])
 {
   if (!curGDrawables.contains(GoomDrawable::lines))
@@ -2252,7 +2421,7 @@ void GoomControl::GoomControlImp::displayLines(
   }
 }
 
-void GoomControl::GoomControlImp::bigBreakIfMusicIsCalm(ZoomFilterData** pzfd)
+void GoomControl::GoomControlImpl::bigBreakIfMusicIsCalm(ZoomFilterData** pzfd)
 {
   logDebug("sound getSpeed() = {:.2}, goomData.zoomFilterData.vitesse = {}, "
            "cycle = {}",
@@ -2265,30 +2434,30 @@ void GoomControl::GoomControlImp::bigBreakIfMusicIsCalm(ZoomFilterData** pzfd)
   }
 }
 
-void GoomControl::GoomControlImp::bigBreak(ZoomFilterData** pzfd)
+void GoomControl::GoomControlImpl::bigBreak(ZoomFilterData** pzfd)
 {
   *pzfd = &goomData.zoomFilterData;
   goomData.zoomFilterData.vitesse += 3;
 }
 
-void GoomControl::GoomControlImp::forceFilterMode(const int forceMode, ZoomFilterData** pzfd)
+void GoomControl::GoomControlImpl::forceFilterMode(const int forceMode, ZoomFilterData** pzfd)
 {
   *pzfd = &goomData.zoomFilterData;
   (*pzfd)->mode = static_cast<ZoomFilterMode>(forceMode - 1);
 }
 
-void GoomControl::GoomControlImp::lowerSpeed(ZoomFilterData** pzfd)
+void GoomControl::GoomControlImpl::lowerSpeed(ZoomFilterData** pzfd)
 {
   *pzfd = &goomData.zoomFilterData;
   goomData.zoomFilterData.vitesse++;
 }
 
-void GoomControl::GoomControlImp::stopDecrementing(ZoomFilterData** pzfd)
+void GoomControl::GoomControlImpl::stopDecrementing(ZoomFilterData** pzfd)
 {
   *pzfd = &goomData.zoomFilterData;
 }
 
-void GoomControl::GoomControlImp::bigUpdateIfNotLocked(ZoomFilterData** pzfd)
+void GoomControl::GoomControlImpl::bigUpdateIfNotLocked(ZoomFilterData** pzfd)
 {
   logDebug("goomData.lockvar = {}", goomData.lockvar);
   if (goomData.lockvar == 0)
@@ -2299,7 +2468,7 @@ void GoomControl::GoomControlImp::bigUpdateIfNotLocked(ZoomFilterData** pzfd)
   logDebug("sound getTimeSinceLastGoom() = {}", goomInfo->getSoundInfo().getTimeSinceLastGoom());
 }
 
-void GoomControl::GoomControlImp::forceFilterModeIfSet(ZoomFilterData** pzfd, const int forceMode)
+void GoomControl::GoomControlImpl::forceFilterModeIfSet(ZoomFilterData** pzfd, const int forceMode)
 {
   constexpr size_t numFilterFx = static_cast<size_t>(ZoomFilterMode::_size);
 
@@ -2315,7 +2484,7 @@ void GoomControl::GoomControlImp::forceFilterModeIfSet(ZoomFilterData** pzfd, co
   }
 }
 
-void GoomControl::GoomControlImp::stopIfRequested()
+void GoomControl::GoomControlImpl::stopIfRequested()
 {
   logDebug("goomData.stop_lines = {}, curGState->scope = {}", goomData.stop_lines,
            states.isCurrentlyDrawable(GoomDrawable::scope));
@@ -2325,7 +2494,7 @@ void GoomControl::GoomControlImp::stopIfRequested()
   }
 }
 
-void GoomControl::GoomControlImp::displayLinesIfInAGoom(
+void GoomControl::GoomControlImpl::displayLinesIfInAGoom(
     const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN])
 {
   logDebug("goomData.lineMode = {} != 0 || sound getTimeSinceLastGoom() = {}", goomData.lineMode,
@@ -2339,7 +2508,7 @@ void GoomControl::GoomControlImp::displayLinesIfInAGoom(
   }
 }
 
-void GoomControl::GoomControlImp::applyIfsIfRequired()
+void GoomControl::GoomControlImpl::applyIfsIfRequired()
 {
   if (!curGDrawables.contains(GoomDrawable::IFS))
   {
@@ -2353,7 +2522,7 @@ void GoomControl::GoomControlImp::applyIfsIfRequired()
   visualFx.ifs_fx->apply(imageBuffers.getP2(), imageBuffers.getP1());
 }
 
-void GoomControl::GoomControlImp::regularlyLowerTheSpeed(ZoomFilterData** pzfd)
+void GoomControl::GoomControlImpl::regularlyLowerTheSpeed(ZoomFilterData** pzfd)
 {
   logDebug("goomData.zoomFilterData.vitesse = {}, cycle = {}", goomData.zoomFilterData.vitesse,
            cycle);
@@ -2365,7 +2534,7 @@ void GoomControl::GoomControlImp::regularlyLowerTheSpeed(ZoomFilterData** pzfd)
   }
 }
 
-void GoomControl::GoomControlImp::stopDecrementingAfterAWhile(ZoomFilterData** pzfd)
+void GoomControl::GoomControlImpl::stopDecrementingAfterAWhile(ZoomFilterData** pzfd)
 {
   logDebug("cycle = {}, goomData.zoomFilterData.pertedec = {}", cycle,
            goomData.zoomFilterData.pertedec);
@@ -2377,7 +2546,7 @@ void GoomControl::GoomControlImp::stopDecrementingAfterAWhile(ZoomFilterData** p
   }
 }
 
-void GoomControl::GoomControlImp::drawDotsIfRequired()
+void GoomControl::GoomControlImpl::drawDotsIfRequired()
 {
   if (!curGDrawables.contains(GoomDrawable::dots))
   {
@@ -2386,7 +2555,7 @@ void GoomControl::GoomControlImp::drawDotsIfRequired()
 
   logDebug("goomInfo->curGDrawables points is set.");
   stats.doDots();
-  visualFx.goomDots->apply(imageBuffers.getP2(), imageBuffers.getP1());
+  visualFx.goomDots_fx->apply(imageBuffers.getP2(), imageBuffers.getP1());
   logDebug("sound getTimeSinceLastGoom() = {}", goomInfo->getSoundInfo().getTimeSinceLastGoom());
 }
 

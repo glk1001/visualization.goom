@@ -5,9 +5,7 @@
 #include "goom_visual_fx.h"
 
 #include <cereal/access.hpp>
-#include <istream>
 #include <memory>
-#include <ostream>
 #include <string>
 
 namespace goom
@@ -26,15 +24,12 @@ public:
 
   void convolve(const Pixel* currentBuff, uint32_t* outputBuff);
 
+  std::string getFxName() const override;
   void setBuffSettings(const FXBuffSettings&) override;
 
   void start() override;
 
   void apply(Pixel*, Pixel*) override{};
-
-  std::string getFxName() const override;
-  void saveState(std::ostream&) const override;
-  void loadState(std::istream&) override;
 
   void log(const StatsLogValueFunc&) const override;
   void finish() override;

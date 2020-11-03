@@ -194,6 +194,23 @@ void LinesFx::LinesImpl::load(Archive& ar)
      CEREAL_NVP(color), CEREAL_NVP(color2));
 }
 
+bool LinesFx::LinesImpl::operator==(const LinesImpl& l) const
+{
+  if (goomInfo == nullptr && l.goomInfo != nullptr)
+  {
+    return false;
+  }
+  if (goomInfo != nullptr && l.goomInfo == nullptr)
+  {
+    return false;
+  }
+
+  return ((goomInfo == nullptr && l.goomInfo == nullptr) || (*goomInfo == *l.goomInfo)) &&
+         draw == l.draw && power == l.power && powinc == l.powinc && destID == l.destID &&
+         param == l.param && amplitudeF == l.amplitudeF && amplitude == l.amplitude &&
+         color == l.color && color2 == l.color2;
+}
+
 LinesFx::LinesImpl::LinesImpl() noexcept
 {
 }
@@ -216,23 +233,6 @@ LinesFx::LinesImpl::LinesImpl(const std::shared_ptr<const PluginInfo>& info,
   generateLine(destID, destParam, points2);
 
   switchGoomLines(destID, destParam, 1.0, destColor);
-}
-
-bool LinesFx::LinesImpl::operator==(const LinesImpl& l) const
-{
-  if (goomInfo == nullptr && l.goomInfo != nullptr)
-  {
-    return false;
-  }
-  if (goomInfo != nullptr && l.goomInfo == nullptr)
-  {
-    return false;
-  }
-
-  return ((goomInfo == nullptr && l.goomInfo == nullptr) || (*goomInfo == *l.goomInfo)) &&
-         draw == l.draw && power == l.power && powinc == l.powinc && destID == l.destID &&
-         param == l.param && amplitudeF == l.amplitudeF && amplitude == l.amplitude &&
-         color == l.color && color2 == l.color2;
 }
 
 void LinesFx::LinesImpl::generateLine(const LineType id, const float param, GMUnitPointer* l)

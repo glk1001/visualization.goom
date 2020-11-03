@@ -59,11 +59,13 @@
 #include <cereal/types/vector.hpp>
 #include <cmath>
 #include <cstdint>
-#include <fstream>
 #include <memory>
 #include <stdexcept>
 #include <string>
 #include <vector>
+
+CEREAL_REGISTER_TYPE(goom::IfsFx);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::VisualFx, goom::IfsFx);
 
 namespace goom
 {
@@ -390,9 +392,9 @@ struct IfsUpdateData
 class IfsFx::IfsImpl
 {
 public:
-  IfsImpl() noexcept : goomInfo{nullptr}, draw{} {}
-  explicit IfsImpl(const std::shared_ptr<const PluginInfo>&);
-  ~IfsImpl();
+  IfsImpl() noexcept {}
+  explicit IfsImpl(const std::shared_ptr<const PluginInfo>&) noexcept;
+  ~IfsImpl() noexcept;
   IfsImpl(const IfsImpl&) = delete;
   IfsImpl& operator=(const IfsImpl&) = delete;
 
@@ -405,9 +407,9 @@ public:
   bool operator==(const IfsImpl&) const;
 
 private:
-  std::shared_ptr<const PluginInfo> goomInfo;
+  std::shared_ptr<const PluginInfo> goomInfo{};
 
-  GoomDraw draw;
+  GoomDraw draw{};
   Colorizer colorizer{};
   bool useOldStyleDrawPixel = false;
   FXBuffSettings buffSettings{};
@@ -510,18 +512,6 @@ std::string IfsFx::getFxName() const
   return "IFS FX";
 }
 
-void IfsFx::saveState(std::ostream& f) const
-{
-  cereal::JSONOutputArchive archiveOut(f);
-  archiveOut(*fxImpl);
-}
-
-void IfsFx::loadState(std::istream& f)
-{
-  cereal::JSONInputArchive archive_in(f);
-  archive_in(*fxImpl);
-}
-
 void IfsFx::applyNoDraw()
 {
   if (!enabled)
@@ -583,7 +573,26 @@ void IfsFx::IfsImpl::load(Archive& ar)
      CEREAL_NVP(decay_ifs), CEREAL_NVP(recay_ifs), CEREAL_NVP(updateData));
 }
 
-IfsFx::IfsImpl::IfsImpl(const std::shared_ptr<const PluginInfo>& info)
+bool IfsFx::IfsImpl::operator==(const IfsImpl& i) const
+{
+  if (goomInfo == nullptr && i.goomInfo != nullptr)
+  {
+    return false;
+  }
+  if (goomInfo != nullptr && i.goomInfo == nullptr)
+  {
+    return false;
+  }
+
+  return ((goomInfo == nullptr && i.goomInfo == nullptr) || (*goomInfo == *i.goomInfo)) &&
+         *root == *i.root && draw == i.draw && colorizer == i.colorizer &&
+         useOldStyleDrawPixel == i.useOldStyleDrawPixel && allowOverexposed == i.allowOverexposed &&
+         countSinceOverexposed == i.countSinceOverexposed && curPt == i.curPt &&
+         ifs_incr == i.ifs_incr && decay_ifs == i.decay_ifs && recay_ifs == i.recay_ifs &&
+         updateData == i.updateData;
+}
+
+IfsFx::IfsImpl::IfsImpl(const std::shared_ptr<const PluginInfo>& info) noexcept
   : goomInfo{info}, draw{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height}
 {
   root = std::make_unique<Fractal>();
@@ -653,27 +662,8 @@ IfsFx::IfsImpl::IfsImpl(const std::shared_ptr<const PluginInfo>& info)
 #endif
 }
 
-IfsFx::IfsImpl::~IfsImpl()
+IfsFx::IfsImpl::~IfsImpl() noexcept
 {
-}
-
-bool IfsFx::IfsImpl::operator==(const IfsImpl& i) const
-{
-  if (goomInfo == nullptr && i.goomInfo != nullptr)
-  {
-    return false;
-  }
-  if (goomInfo != nullptr && i.goomInfo == nullptr)
-  {
-    return false;
-  }
-
-  return ((goomInfo == nullptr && i.goomInfo == nullptr) || (*goomInfo == *i.goomInfo)) &&
-         *root == *i.root && draw == i.draw && colorizer == i.colorizer &&
-         useOldStyleDrawPixel == i.useOldStyleDrawPixel && allowOverexposed == i.allowOverexposed &&
-         countSinceOverexposed == i.countSinceOverexposed && curPt == i.curPt &&
-         ifs_incr == i.ifs_incr && decay_ifs == i.decay_ifs && recay_ifs == i.recay_ifs &&
-         updateData == i.updateData;
 }
 
 void IfsFx::IfsImpl::setBuffSettings(const FXBuffSettings& settings)

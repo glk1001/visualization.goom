@@ -68,8 +68,8 @@ public:
 
 protected:
   const static size_t g_num_audio_buffers_in_circular_buffer = 16;
-  //  const goom::GoomControl goomPluginInfo() const { return m_goom; };
-  //  goom::PluginInfo* goomPluginInfo() { return m_goom; };
+  const goom::GoomControl& getGoomControl() const { return *m_goomControl; };
+  goom::GoomControl& getGoomControl() { return *m_goomControl; };
   int AudioBufferLen() const { return m_audioBufferLen; };
   int TexWidth() const { return m_tex_width; };
   int TexHeight() const { return m_tex_height; };

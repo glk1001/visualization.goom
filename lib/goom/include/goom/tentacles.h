@@ -5,6 +5,10 @@
 #include "goomutils/colormap.h"
 #include "goomutils/mathutils.h"
 
+#include <cereal/archives/json.hpp>
+#include <cereal/types/memory.hpp>
+#include <cereal/types/tuple.hpp>
+#include <cereal/types/vector.hpp>
 #include <functional>
 #include <memory>
 #include <tuple>
@@ -17,7 +21,7 @@ namespace goom
 class TentacleColorizer
 {
 public:
-  virtual ~TentacleColorizer() {}
+  virtual ~TentacleColorizer() noexcept = default;
   virtual utils::ColorMapGroup getColorMapGroup() const = 0;
   virtual void setColorMapGroup(const utils::ColorMapGroup) = 0;
   virtual void changeColorMap() = 0;
@@ -32,6 +36,7 @@ private:
 public:
   static constexpr size_t minNumNodes = 10;
 
+  Tentacle2D() noexcept;
   explicit Tentacle2D(const size_t ID,
                       const size_t numNodes,
                       const double xmin,
@@ -78,6 +83,11 @@ public:
   bool getDoDamping() const;
   void setDoDamping(const bool val);
 
+  bool operator==(const Tentacle2D&) const;
+
+  template<class Archive>
+  void serialize(Archive&);
+
 private:
   size_t ID = 0;
   size_t numNodes = 0;
@@ -97,7 +107,7 @@ private:
   std::vector<double> dampedYVec{};
   std::vector<double> dampingCache{};
   XandYVectors dampedVecs{std::make_tuple(std::ref(xvec), std::ref(dampedYVec))};
-  std::unique_ptr<utils::DampingFunction> dampingFunc;
+  std::unique_ptr<utils::DampingFunction> dampingFunc{};
   bool doDamping = true;
 
   float getFirstY();
@@ -127,11 +137,20 @@ struct V3d
   float y = 0;
   float z = 0;
   bool ignore = false;
+
+  bool operator==(const V3d&) const = default;
+
+  template<class Archive>
+  void serialize(Archive& ar)
+  {
+    ar(CEREAL_NVP(x), CEREAL_NVP(y), CEREAL_NVP(z), CEREAL_NVP(ignore));
+  }
 };
 
 class Tentacle3D
 {
 public:
+  Tentacle3D() noexcept = default;
   explicit Tentacle3D(std::unique_ptr<Tentacle2D>,
                       const Pixel& headColor,
                       const Pixel& headColorLow,
@@ -170,11 +189,16 @@ public:
 
   std::vector<V3d> getVertices() const;
 
+  bool operator==(const Tentacle3D&) const;
+
+  template<class Archive>
+  void serialize(Archive&);
+
 private:
   std::unique_ptr<Tentacle2D> tentacle{};
   std::shared_ptr<const TentacleColorizer> colorizer{};
-  const Pixel headColor{};
-  const Pixel headColorLow{};
+  Pixel headColor{};
+  Pixel headColorLow{};
   V3d head{};
   bool reverseColorMix = false;
   bool allowOverexposed = true;
@@ -201,7 +225,7 @@ private:
   };
 
 public:
-  Tentacles3D() noexcept;
+  Tentacles3D() noexcept = default;
 
   void addTentacle(Tentacle3D&&);
 
@@ -212,6 +236,11 @@ public:
   Tentacle3D& operator[](const size_t i) { return tentacles.at(i); }
 
   void setAllowOverexposed(const bool val);
+
+  bool operator==(const Tentacles3D&) const;
+
+  template<class Archive>
+  void serialize(Archive&);
 
 private:
   std::vector<Tentacle3D> tentacles{};
@@ -303,9 +332,32 @@ inline void Tentacle2D::finishIterating()
   startedIterating = false;
 }
 
+template<class Archive>
+void Tentacle2D::serialize(Archive& ar)
+{
+  ar(CEREAL_NVP(ID), CEREAL_NVP(numNodes), CEREAL_NVP(xmin), CEREAL_NVP(xmax), CEREAL_NVP(ymin),
+     CEREAL_NVP(ymax), CEREAL_NVP(basePrevYWeight), CEREAL_NVP(baseCurrentYWeight),
+     CEREAL_NVP(iterZeroYVal), CEREAL_NVP(iterZeroLerpFactor), CEREAL_NVP(iterNum),
+     CEREAL_NVP(startedIterating), CEREAL_NVP(xvec), CEREAL_NVP(yvec), CEREAL_NVP(dampedYVec),
+     CEREAL_NVP(dampingCache), CEREAL_NVP(dampingFunc), CEREAL_NVP(doDamping));
+}
+
 inline Tentacle3D& Tentacles3D::Iter::operator*() const
 {
   return (*tentacles)[pos];
+}
+
+template<class Archive>
+void Tentacle3D::serialize(Archive& ar)
+{
+  ar(CEREAL_NVP(tentacle), CEREAL_NVP(colorizer), CEREAL_NVP(headColor), CEREAL_NVP(headColorLow),
+     CEREAL_NVP(head), CEREAL_NVP(reverseColorMix), CEREAL_NVP(allowOverexposed));
+}
+
+template<class Archive>
+void Tentacles3D::serialize(Archive& ar)
+{
+  ar(CEREAL_NVP(tentacles));
 }
 
 } // namespace goom

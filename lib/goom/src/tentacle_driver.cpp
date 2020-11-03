@@ -65,6 +65,76 @@ TentacleDriver::TentacleDriver(const uint32_t screenW, const uint32_t screenH) n
   logDebug("Constructed TentacleDriver.");
 }
 
+bool TentacleDriver::IterationParams::operator==(const IterationParams& p) const
+{
+  return numNodes == p.numNodes && prevYWeight == p.prevYWeight &&
+         iterZeroYValWaveFreq == p.iterZeroYValWave && iterZeroYValWave == p.iterZeroYValWave &&
+         length == p.length;
+}
+
+bool TentacleDriver::IterParamsGroup::operator==(const IterParamsGroup& p) const
+{
+  return first == p.first && last == p.last;
+}
+
+bool TentacleDriver::operator==(const TentacleDriver& t) const
+{
+  const bool result = colorMode == t.colorMode && iterParamsGroups == t.iterParamsGroups &&
+                      screenWidth == t.screenWidth && screenHeight == t.screenHeight &&
+                      draw == t.draw && buffSettings == t.buffSettings &&
+                      updateNum == t.updateNum && tentacles == t.tentacles &&
+                      numTentacles == t.numTentacles && tentacleParams == t.tentacleParams;
+
+  if (result)
+  {
+    for (size_t i = 0; i < colorizers.size(); i++)
+    {
+      if (typeid(*colorizers[i]) != typeid(*t.colorizers[i]))
+      {
+        logInfo("TentacleDriver colorizers not of same type at index {}", i);
+        return false;
+      }
+      const TentacleColorMapColorizer* c1 =
+          dynamic_cast<const TentacleColorMapColorizer*>(colorizers[i].get());
+      if (c1 == nullptr)
+      {
+        continue;
+      }
+      const TentacleColorMapColorizer* c2 =
+          dynamic_cast<const TentacleColorMapColorizer*>(t.colorizers[i].get());
+      if (c2 == nullptr)
+      {
+        logInfo("TentacleDriver colorizers not of same type at index {}", i);
+        return false;
+      }
+      if (*c1 != *c2)
+      {
+        logInfo("TentacleDriver colorizers not the same at index {}", i);
+        return false;
+      }
+    }
+  }
+  logInfo("colorizers == t.colorizers = true");
+
+  logInfo("TentacleDriver result == {}", result);
+  if (!result)
+  {
+    logInfo("TentacleDriver result == {}", result);
+    logInfo("colorMode = {}, t.colorMode = {}", colorMode, t.colorMode);
+    logInfo("iterParamsGroups == t.iterParamsGroups = {}", iterParamsGroups == t.iterParamsGroups);
+    logInfo("screenWidth = {}, t.screenWidth = {}", screenWidth, t.screenWidth);
+    logInfo("screenHeight = {}, t.screenHeight = {}", screenHeight, t.screenHeight);
+    logInfo("draw == t.draw = {}", draw == t.draw);
+    logInfo("buffSettings == t.buffSettings = {}", buffSettings == t.buffSettings);
+    logInfo("updateNum = {}, t.updateNum = {}", updateNum, t.updateNum);
+    logInfo("tentacles == t.tentacles = {}", tentacles == t.tentacles);
+    logInfo("numTentacles = {}, t.numTentacles = {}", numTentacles, t.numTentacles);
+    logInfo("tentacleParams == t.tentacleParams = {}", tentacleParams == t.tentacleParams);
+  }
+
+  return result;
+}
+
 void TentacleDriver::setBuffSettings(const FXBuffSettings& settings)
 {
   buffSettings = settings;
@@ -380,8 +450,9 @@ void TentacleDriver::update(const float angle,
     tentacle2D.iterate();
 
     logDebug("Update num = {}, tentacle = {}, doing plot with angle = {}, "
-             "distance = {}, distance2 = {}, color = {} and colorLow = {}, doDraw = {}.",
-             updateNum, tentacle2D.getID(), angle, distance, distance2, color, colorLow, doDraw);
+             "distance = {}, distance2 = {}, color = {} and colorLow = {}.",
+             updateNum, tentacle2D.getID(), angle, distance, distance2, color.rgba(),
+             colorLow.rgba());
 
     plot3D(tentacle, color, colorLow, angle, distance, distance2, prevBuff, currentBuff);
   }
@@ -465,9 +536,10 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
       const auto [color, colorLow] = getMixedColors(nodeNum);
       const std::vector<Pixel> colors{color, colorLow};
 
-      logInfo("draw_line {}: dominantColor = {:#x}, dominantColorLow = {:#x}.", nodeNum,
-              dominantColor, dominantColorLow);
-      logInfo("draw_line {}: color = {:#x}, colorLow = {:#x}.", nodeNum, color, colorLow);
+      logDebug("draw_line {}: dominantColor = {:#x}, dominantColorLow = {:#x}.", nodeNum,
+               dominantColor.rgba(), dominantColorLow.rgba());
+      logDebug("draw_line {}: color = {:#x}, colorLow = {:#x}.", nodeNum, color.rgba(),
+               colorLow.rgba());
 
       // TODO buff right way around ??????????????????????????????????????????????????????????????
       std::vector<Pixel*> buffs{currentBuff, prevBuff};
@@ -527,12 +599,31 @@ inline void TentacleDriver::translateV3d(const V3d& vadd, V3d& vinOut)
 }
 
 TentacleColorMapColorizer::TentacleColorMapColorizer(const utils::ColorMapGroup cmg,
-                                                     const size_t nNodes)
+                                                     const size_t nNodes) noexcept
   : numNodes{nNodes},
     currentColorMapGroup{cmg},
     colorMap{&colorMaps.getRandomColorMap(currentColorMapGroup)},
     prevColorMap{colorMap}
 {
+}
+
+bool TentacleColorMapColorizer::operator==(const TentacleColorMapColorizer& t) const
+{
+  const bool result = numNodes == t.numNodes && currentColorMapGroup == t.currentColorMapGroup &&
+                      colorMap == t.colorMap && prevColorMap == t.prevColorMap &&
+                      tTransition == t.tTransition;
+  if (!result)
+  {
+    logInfo("TentacleColorMapColorizer result == {}", result);
+    logInfo("numNodes = {}, t.numNodes = {}", numNodes, t.numNodes);
+    logInfo("currentColorMapGroup = {}, t.currentColorMapGroup = {}", currentColorMapGroup,
+            t.currentColorMapGroup);
+    logInfo("colorMap == t.colorMap = {}", colorMap == t.colorMap);
+    logInfo("prevColorMap == t.prevColorMap = {}", prevColorMap == t.prevColorMap);
+    logInfo("tTransition = {}, t.tTransition = {}", tTransition, t.tTransition);
+  }
+
+  return result;
 }
 
 utils::ColorMapGroup TentacleColorMapColorizer::getColorMapGroup() const

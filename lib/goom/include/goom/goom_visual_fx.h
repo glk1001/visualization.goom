@@ -42,16 +42,13 @@ class VisualFx
 public:
   virtual ~VisualFx() {}
 
+  virtual std::string getFxName() const = 0;
   virtual void setBuffSettings(const FXBuffSettings&) = 0;
 
   virtual void start(){};
 
   virtual void applyNoDraw(){};
   virtual void apply(Pixel* prevBuff, Pixel* currentBuff) = 0;
-
-  virtual std::string getFxName() const = 0;
-  virtual void saveState(std::ostream&) const = 0;
-  virtual void loadState(std::istream&) = 0;
 
   virtual void log(const StatsLogValueFunc&) const {};
   virtual void finish(){};

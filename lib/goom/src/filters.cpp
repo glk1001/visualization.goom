@@ -35,10 +35,14 @@
 #include <cereal/types/vector.hpp>
 #include <cmath>
 #include <cstdint>
-#include <fstream>
 #include <stdexcept>
 #include <string>
 #include <vector>
+
+CEREAL_REGISTER_TYPE(goom::ZoomFilterFx);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::VisualFx, goom::ZoomFilterFx);
+
+static constexpr bool serializeBuffers = false;
 
 namespace goom
 {
@@ -394,6 +398,7 @@ public:
 private:
   uint32_t screenWidth = 0;
   uint32_t screenHeight = 0;
+  uint32_t bufferSize = 0;
   float ratioPixmapToNormalizedCoord = 0;
   float ratioNormalizedCoordToPixmap = 0;
   float minNormCoordVal = 0;
@@ -429,6 +434,9 @@ private:
 
   // modif d'optim by Jeko : precalcul des 4 coefs resultant des 2 pos
   uint32_t precalcCoeffs[buffPointNum][buffPointNum];
+
+  void init();
+  void initBuffers();
 
   void makeZoomBufferStripe(const uint32_t interlaceIncrement);
   void c_zoom(const Pixel* srceBuff, Pixel* destBuff);
@@ -494,63 +502,97 @@ template void ZoomFilterFx::ZoomFilterImpl::load<cereal::JSONInputArchive>(
 template<class Archive>
 void ZoomFilterFx::ZoomFilterImpl::save(Archive& ar) const
 {
-  ar(CEREAL_NVP(screenWidth), CEREAL_NVP(screenHeight), CEREAL_NVP(ratioPixmapToNormalizedCoord),
-     CEREAL_NVP(ratioNormalizedCoordToPixmap), CEREAL_NVP(minNormCoordVal), CEREAL_NVP(filterData),
-     CEREAL_NVP(buffSettings), CEREAL_NVP(generalSpeed), CEREAL_NVP(interlaceStart),
-     CEREAL_NVP(tranDiffFactor));
+  ar(CEREAL_NVP(screenWidth), CEREAL_NVP(screenHeight), CEREAL_NVP(bufferSize),
+     CEREAL_NVP(ratioPixmapToNormalizedCoord), CEREAL_NVP(ratioNormalizedCoordToPixmap),
+     CEREAL_NVP(minNormCoordVal), CEREAL_NVP(filterData), CEREAL_NVP(buffSettings),
+     CEREAL_NVP(generalSpeed), CEREAL_NVP(interlaceStart), CEREAL_NVP(tranDiffFactor));
+
+  if (serializeBuffers)
+  {
+    ar(CEREAL_NVP(freeTranXSrce), CEREAL_NVP(freeTranYSrce), CEREAL_NVP(freeTranXDest),
+       CEREAL_NVP(freeTranYDest), CEREAL_NVP(freeTranXTemp), CEREAL_NVP(freeTranYTemp),
+       CEREAL_NVP(firedec));
+  }
 }
 
 template<class Archive>
 void ZoomFilterFx::ZoomFilterImpl::load(Archive& ar)
 {
-  ar(CEREAL_NVP(screenWidth), CEREAL_NVP(screenHeight), CEREAL_NVP(ratioPixmapToNormalizedCoord),
-     CEREAL_NVP(ratioNormalizedCoordToPixmap), CEREAL_NVP(minNormCoordVal), CEREAL_NVP(filterData),
-     CEREAL_NVP(buffSettings), CEREAL_NVP(generalSpeed), CEREAL_NVP(interlaceStart),
-     CEREAL_NVP(tranDiffFactor));
+  ar(CEREAL_NVP(screenWidth), CEREAL_NVP(screenHeight), CEREAL_NVP(bufferSize),
+     CEREAL_NVP(ratioPixmapToNormalizedCoord), CEREAL_NVP(ratioNormalizedCoordToPixmap),
+     CEREAL_NVP(minNormCoordVal), CEREAL_NVP(filterData), CEREAL_NVP(buffSettings),
+     CEREAL_NVP(generalSpeed), CEREAL_NVP(interlaceStart), CEREAL_NVP(tranDiffFactor));
+
+  if (serializeBuffers)
+  {
+    ar(CEREAL_NVP(freeTranXSrce), CEREAL_NVP(freeTranYSrce), CEREAL_NVP(freeTranXDest),
+       CEREAL_NVP(freeTranYDest), CEREAL_NVP(freeTranXTemp), CEREAL_NVP(freeTranYTemp),
+       CEREAL_NVP(firedec));
+  }
+  else
+  {
+    freeTranXSrce.resize(bufferSize + 128);
+    freeTranYSrce.resize(bufferSize + 128);
+    freeTranXDest.resize(bufferSize + 128);
+    freeTranYDest.resize(bufferSize + 128);
+    freeTranXTemp.resize(bufferSize + 128);
+    freeTranYTemp.resize(bufferSize + 128);
+    firedec.resize(screenHeight);
+  }
+
+  initBuffers();
 }
 
 bool ZoomFilterFx::ZoomFilterImpl::operator==(const ZoomFilterImpl& f) const
 {
   bool result = screenWidth == f.screenWidth && screenHeight == f.screenHeight &&
+                bufferSize == f.bufferSize &&
                 ratioPixmapToNormalizedCoord == f.ratioPixmapToNormalizedCoord &&
                 ratioNormalizedCoordToPixmap == f.ratioNormalizedCoordToPixmap &&
                 minNormCoordVal == f.minNormCoordVal && filterData == f.filterData &&
                 buffSettings == f.buffSettings && generalSpeed == f.generalSpeed &&
                 interlaceStart == f.interlaceStart && tranDiffFactor == f.tranDiffFactor;
+
+  if (serializeBuffers)
+  {
+    result = result && freeTranXSrce == f.freeTranXSrce && freeTranYSrce == f.freeTranYSrce &&
+             freeTranXDest == f.freeTranXDest && freeTranYDest == f.freeTranYDest &&
+             freeTranXTemp == f.freeTranXTemp && freeTranYTemp == f.freeTranYTemp &&
+             firedec == f.firedec;
+  }
+
   if (!result)
   {
-    logDebug("result == {}", result);
-    logDebug("screenWidth = {}, f.screenWidth = {}", screenWidth, f.screenWidth);
-    logDebug("screenHeight = {}, f.screenHeight = {}", screenHeight, f.screenHeight);
-    logDebug("ratioPixmapToNormalizedCoord = {}, f.ratioPixmapToNormalizedCoord = {}",
-             ratioPixmapToNormalizedCoord, f.ratioPixmapToNormalizedCoord);
-    logDebug("ratioNormalizedCoordToPixmap = {}, f.ratioNormalizedCoordToPixmap = {}",
-             ratioNormalizedCoordToPixmap, f.ratioNormalizedCoordToPixmap);
-    logDebug("minNormCoordVal = {}, f.minNormCoordVal = {}", minNormCoordVal, f.minNormCoordVal);
-    logDebug("buffSettings.allowOverexposed = {}, f.buffSettings.allowOverexposed = {}",
-             buffSettings.allowOverexposed, f.buffSettings.allowOverexposed);
-    logDebug("buffSettings.buffIntensity = {}, f.buffSettings.buffIntensity = {}",
-             buffSettings.buffIntensity, f.buffSettings.buffIntensity);
-    logDebug("generalSpeed = {}, f.generalSpeed = {}", generalSpeed, f.generalSpeed);
-    logDebug("interlaceStart = {}, f.interlaceStart = {}", interlaceStart, f.interlaceStart);
+    logInfo("result == {}", result);
+    logInfo("screenWidth = {}, f.screenWidth = {}", screenWidth, f.screenWidth);
+    logInfo("screenHeight = {}, f.screenHeight = {}", screenHeight, f.screenHeight);
+    logInfo("bufferSize = {}, f.bufferSize = {}", bufferSize, f.bufferSize);
+    logInfo("ratioPixmapToNormalizedCoord = {}, f.ratioPixmapToNormalizedCoord = {}",
+            ratioPixmapToNormalizedCoord, f.ratioPixmapToNormalizedCoord);
+    logInfo("ratioNormalizedCoordToPixmap = {}, f.ratioNormalizedCoordToPixmap = {}",
+            ratioNormalizedCoordToPixmap, f.ratioNormalizedCoordToPixmap);
+    logInfo("minNormCoordVal = {}, f.minNormCoordVal = {}", minNormCoordVal, f.minNormCoordVal);
+    logInfo("buffSettings.allowOverexposed = {}, f.buffSettings.allowOverexposed = {}",
+            buffSettings.allowOverexposed, f.buffSettings.allowOverexposed);
+    logInfo("buffSettings.buffIntensity = {}, f.buffSettings.buffIntensity = {}",
+            buffSettings.buffIntensity, f.buffSettings.buffIntensity);
+    logInfo("generalSpeed = {}, f.generalSpeed = {}", generalSpeed, f.generalSpeed);
+    logInfo("interlaceStart = {}, f.interlaceStart = {}", interlaceStart, f.interlaceStart);
+    if (serializeBuffers)
+    {
+      logInfo("freeTranXSrce == f.freeTranXSrce = {}", freeTranXSrce == f.freeTranXSrce);
+      logInfo("freeTranYSrce == f.freeTranYSrce = {}", freeTranYSrce == f.freeTranYSrce);
+      logInfo("freeTranXDest == f.freeTranXDest = {}", freeTranXDest == f.freeTranXDest);
+      logInfo("freeTranYDest == f.freeTranYDest = {}", freeTranYDest == f.freeTranYDest);
+      logInfo("freeTranXTemp == f.freeTranXTemp = {}", freeTranXTemp == f.freeTranXTemp);
+      logInfo("freeTranYTemp == f.freeTranYTemp = {}", freeTranYTemp == f.freeTranYTemp);
+      logInfo("firedec == f.firedec = {}", firedec == f.firedec);
+    }
   }
   return result;
 }
 
 ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl() noexcept
-  : freeTranXSrce{},
-    freeTranYSrce{},
-    tranXSrce{nullptr},
-    tranYSrce{nullptr},
-    freeTranXDest{},
-    freeTranYDest{},
-    tranXDest{nullptr},
-    tranYDest{nullptr},
-    freeTranXTemp{},
-    freeTranYTemp{},
-    tranXTemp{nullptr},
-    tranYTemp{nullptr},
-    firedec{}
 {
 }
 
@@ -558,39 +600,53 @@ ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl(
     const std::shared_ptr<const PluginInfo>& goomInfo) noexcept
   : screenWidth{goomInfo->getScreenInfo().width},
     screenHeight{goomInfo->getScreenInfo().height},
+    bufferSize{goomInfo->getScreenInfo().size},
     ratioPixmapToNormalizedCoord{2.0F / static_cast<float>(screenWidth)},
     ratioNormalizedCoordToPixmap{1.0F / ratioPixmapToNormalizedCoord},
     minNormCoordVal{ratioPixmapToNormalizedCoord / buffPointNumFlt},
-    freeTranXSrce(goomInfo->getScreenInfo().size + 128),
-    freeTranYSrce(goomInfo->getScreenInfo().size + 128),
-    tranXSrce{(int32_t*)((1 + (uintptr_t((freeTranXSrce.data()))) / 128) * 128)},
-    tranYSrce{(int32_t*)((1 + (uintptr_t((freeTranYSrce.data()))) / 128) * 128)},
-    freeTranXDest(goomInfo->getScreenInfo().size + 128),
-    freeTranYDest(goomInfo->getScreenInfo().size + 128),
-    tranXDest{(int32_t*)((1 + (uintptr_t((freeTranXDest.data()))) / 128) * 128)},
-    tranYDest{(int32_t*)((1 + (uintptr_t((freeTranYDest.data()))) / 128) * 128)},
-    freeTranXTemp(goomInfo->getScreenInfo().size + 128),
-    freeTranYTemp(goomInfo->getScreenInfo().size + 128),
-    tranXTemp{(int32_t*)((1 + (uintptr_t((freeTranXTemp.data()))) / 128) * 128)},
-    tranYTemp{(int32_t*)((1 + (uintptr_t((freeTranYTemp.data()))) / 128) * 128)},
+    freeTranXSrce(bufferSize + 128),
+    freeTranYSrce(bufferSize + 128),
+    freeTranXDest(bufferSize + 128),
+    freeTranYDest(bufferSize + 128),
+    freeTranXTemp(bufferSize + 128),
+    freeTranYTemp(bufferSize + 128),
     firedec(screenHeight)
 {
-  filterData.middleX = goomInfo->getScreenInfo().width / 2;
-  filterData.middleY = goomInfo->getScreenInfo().height / 2;
-
-  generatePrecalCoef(precalcCoeffs);
-  generateWaterFXHorizontalBuffer();
-  makeZoomBufferStripe(goomInfo->getScreenInfo().height);
-
-  // Copy the data from temp to dest and source
-  memcpy(tranXSrce, tranXTemp, goomInfo->getScreenInfo().size * sizeof(int32_t));
-  memcpy(tranYSrce, tranYTemp, goomInfo->getScreenInfo().size * sizeof(int32_t));
-  memcpy(tranXDest, tranXTemp, goomInfo->getScreenInfo().size * sizeof(int32_t));
-  memcpy(tranYDest, tranYTemp, goomInfo->getScreenInfo().size * sizeof(int32_t));
+  init();
 }
 
 ZoomFilterFx::ZoomFilterImpl::~ZoomFilterImpl() noexcept
 {
+}
+
+void ZoomFilterFx::ZoomFilterImpl::init()
+{
+  initBuffers();
+
+  filterData.middleX = screenWidth / 2;
+  filterData.middleY = screenHeight / 2;
+
+  generatePrecalCoef(precalcCoeffs);
+  generateWaterFXHorizontalBuffer();
+  makeZoomBufferStripe(screenHeight);
+
+  // Copy the data from temp to dest and source
+  memcpy(tranXSrce, tranXTemp, bufferSize * sizeof(int32_t));
+  memcpy(tranYSrce, tranYTemp, bufferSize * sizeof(int32_t));
+  memcpy(tranXDest, tranXTemp, bufferSize * sizeof(int32_t));
+  memcpy(tranYDest, tranYTemp, bufferSize * sizeof(int32_t));
+}
+
+void ZoomFilterFx::ZoomFilterImpl::initBuffers()
+{
+  tranXSrce = (int32_t*)((1 + (uintptr_t((freeTranXSrce.data()))) / 128) * 128);
+  tranYSrce = (int32_t*)((1 + (uintptr_t((freeTranYSrce.data()))) / 128) * 128);
+
+  tranXDest = (int32_t*)((1 + (uintptr_t((freeTranXDest.data()))) / 128) * 128);
+  tranYDest = (int32_t*)((1 + (uintptr_t((freeTranYDest.data()))) / 128) * 128);
+
+  tranXTemp = (int32_t*)((1 + (uintptr_t((freeTranXTemp.data()))) / 128) * 128);
+  tranYTemp = (int32_t*)((1 + (uintptr_t((freeTranYTemp.data()))) / 128) * 128);
 }
 
 void ZoomFilterFx::ZoomFilterImpl::setBuffSettings(const FXBuffSettings& settings)
@@ -663,18 +719,6 @@ void ZoomFilterFx::log(const StatsLogValueFunc& logVal) const
 std::string ZoomFilterFx::getFxName() const
 {
   return "ZoomFilter FX";
-}
-
-void ZoomFilterFx::saveState(std::ostream& f) const
-{
-  cereal::JSONOutputArchive archiveOut(f);
-  archiveOut(*fxImpl);
-}
-
-void ZoomFilterFx::loadState(std::istream& f)
-{
-  cereal::JSONInputArchive archive_in(f);
-  archive_in(*fxImpl);
 }
 
 void ZoomFilterFx::apply(Pixel*, Pixel*)

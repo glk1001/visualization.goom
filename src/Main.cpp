@@ -334,10 +334,11 @@ inline void CVisualizationGoom::PushUsedPixels(std::shared_ptr<uint32_t> pixels)
 
 void CVisualizationGoom::Process()
 {
-  constexpr int seed = 0; // goom will supply a random seed
-  // constexpr int seed = 1; // goom will use same random sequence
+  // goom will use same random sequence if following is uncommented
+  // goom::GoomControl::setRandSeed(1);
+
   m_goomControl.reset(new goom::GoomControl{static_cast<uint16_t>(m_tex_width),
-                                            static_cast<uint16_t>(m_tex_height), seed});
+                                            static_cast<uint16_t>(m_tex_height)});
   if (!m_goomControl)
   {
     kodi::Log(ADDON_LOG_FATAL, "CVisualizationGoom: Goom could not be initialized!");

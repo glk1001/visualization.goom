@@ -13,11 +13,12 @@
 #include <cereal/archives/json.hpp>
 #include <cereal/types/memory.hpp>
 #include <cstdint>
-#include <istream>
 #include <memory>
-#include <ostream>
 #include <string>
 #include <vector>
+
+CEREAL_REGISTER_TYPE(goom::GoomDotsFx);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::VisualFx, goom::GoomDotsFx);
 
 namespace goom
 {
@@ -126,14 +127,6 @@ std::string GoomDotsFx::getFxName() const
   return "goom dots";
 }
 
-void GoomDotsFx::saveState(std::ostream&) const
-{
-}
-
-void GoomDotsFx::loadState(std::istream&)
-{
-}
-
 void GoomDotsFx::apply(Pixel* prevBuff, Pixel* currentBuff)
 {
   if (!enabled)
@@ -177,6 +170,26 @@ void GoomDotsFx::GoomDotsImpl::load(Archive& ar)
      CEREAL_NVP(loopvar));
 }
 
+bool GoomDotsFx::GoomDotsImpl::operator==(const GoomDotsImpl& d) const
+{
+  if (goomInfo == nullptr && d.goomInfo != nullptr)
+  {
+    return false;
+  }
+  if (goomInfo != nullptr && d.goomInfo == nullptr)
+  {
+    return false;
+  }
+
+  return ((goomInfo == nullptr && d.goomInfo == nullptr) || (*goomInfo == *d.goomInfo)) &&
+         pointWidth == d.pointWidth && pointHeight == d.pointHeight &&
+         pointWidthDiv2 == d.pointWidthDiv2 && pointHeightDiv2 == d.pointHeightDiv2 &&
+         pointWidthDiv3 == d.pointWidthDiv3 && pointHeightDiv3 == d.pointHeightDiv3 &&
+         draw == d.draw && buffSettings == d.buffSettings && middleColor == d.middleColor &&
+         useSingleBufferOnly == d.useSingleBufferOnly && useGrayScale == d.useGrayScale &&
+         loopvar == d.loopvar;
+}
+
 GoomDotsFx::GoomDotsImpl::GoomDotsImpl() noexcept
 {
 }
@@ -202,26 +215,6 @@ GoomDotsFx::GoomDotsImpl::GoomDotsImpl(const std::shared_ptr<const PluginInfo>& 
     }}}
 {
   changeColors();
-}
-
-bool GoomDotsFx::GoomDotsImpl::operator==(const GoomDotsImpl& d) const
-{
-  if (goomInfo == nullptr && d.goomInfo != nullptr)
-  {
-    return false;
-  }
-  if (goomInfo != nullptr && d.goomInfo == nullptr)
-  {
-    return false;
-  }
-
-  return ((goomInfo == nullptr && d.goomInfo == nullptr) || (*goomInfo == *d.goomInfo)) &&
-         pointWidth == d.pointWidth && pointHeight == d.pointHeight &&
-         pointWidthDiv2 == d.pointWidthDiv2 && pointHeightDiv2 == d.pointHeightDiv2 &&
-         pointWidthDiv3 == d.pointWidthDiv3 && pointHeightDiv3 == d.pointHeightDiv3 &&
-         draw == d.draw && buffSettings == d.buffSettings && middleColor == d.middleColor &&
-         useSingleBufferOnly == d.useSingleBufferOnly && useGrayScale == d.useGrayScale &&
-         loopvar == d.loopvar;
 }
 
 void GoomDotsFx::GoomDotsImpl::setBuffSettings(const FXBuffSettings& settings)

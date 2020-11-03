@@ -5,9 +5,7 @@
 #include "goom_visual_fx.h"
 
 #include <cereal/access.hpp>
-#include <istream>
 #include <memory>
-#include <ostream>
 #include <string>
 
 namespace goom
@@ -24,15 +22,12 @@ public:
   GoomDotsFx(const GoomDotsFx&) = delete;
   GoomDotsFx& operator=(const GoomDotsFx&) = delete;
 
+  std::string getFxName() const override;
   void setBuffSettings(const FXBuffSettings&) override;
 
   void start() override;
 
   void apply(Pixel* prevBuff, Pixel* currentBuff) override;
-
-  std::string getFxName() const override;
-  void saveState(std::ostream&) const override;
-  void loadState(std::istream&) override;
 
   void finish() override;
 

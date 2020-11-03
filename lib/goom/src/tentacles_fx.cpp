@@ -9,7 +9,7 @@
 #include "goomutils/goomrand.h"
 #include "goomutils/logging_control.h"
 #include "goomutils/mathutils.h"
-//#undef NO_LOGGING
+#undef NO_LOGGING
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
 #include "tentacle_driver.h"
@@ -19,15 +19,17 @@
 #include <algorithm>
 #include <cereal/archives/json.hpp>
 #include <cereal/types/memory.hpp>
+#include <cereal/types/vector.hpp>
 #include <cmath>
 #include <cstdint>
-#include <istream>
 #include <memory>
-#include <ostream>
 #include <stdexcept>
 #include <string>
 #include <tuple>
 #include <vector>
+
+CEREAL_REGISTER_TYPE(goom::TentaclesFx);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::VisualFx, goom::TentaclesFx);
 
 namespace goom
 {
@@ -544,14 +546,6 @@ std::string TentaclesFx::getFxName() const
   return "Tentacles FX";
 }
 
-void TentaclesFx::saveState(std::ostream&) const
-{
-}
-
-void TentaclesFx::loadState(std::istream&)
-{
-}
-
 template<class Archive>
 void TentaclesFx::serialize(Archive& ar)
 {
@@ -576,7 +570,8 @@ void TentaclesFx::TentaclesImpl::save(Archive& ar) const
      CEREAL_NVP(prettyMoveHappeningTimer), CEREAL_NVP(prettyMoveCheckStopMark),
      CEREAL_NVP(distt2OffsetPreStep), CEREAL_NVP(prettyMoveReadyToStart),
      CEREAL_NVP(prePrettyMoveLock), CEREAL_NVP(postPrettyMoveLock), CEREAL_NVP(prettyMoveLerpMix),
-     CEREAL_NVP(countSinceHighAccelLastMarked), CEREAL_NVP(countSinceColorChangeLastMarked));
+     CEREAL_NVP(countSinceHighAccelLastMarked), CEREAL_NVP(countSinceColorChangeLastMarked),
+     CEREAL_NVP(drivers));
 }
 
 template<class Archive>
@@ -589,7 +584,66 @@ void TentaclesFx::TentaclesImpl::load(Archive& ar)
      CEREAL_NVP(prettyMoveHappeningTimer), CEREAL_NVP(prettyMoveCheckStopMark),
      CEREAL_NVP(distt2OffsetPreStep), CEREAL_NVP(prettyMoveReadyToStart),
      CEREAL_NVP(prePrettyMoveLock), CEREAL_NVP(postPrettyMoveLock), CEREAL_NVP(prettyMoveLerpMix),
-     CEREAL_NVP(countSinceHighAccelLastMarked), CEREAL_NVP(countSinceColorChangeLastMarked));
+     CEREAL_NVP(countSinceHighAccelLastMarked), CEREAL_NVP(countSinceColorChangeLastMarked),
+     CEREAL_NVP(drivers));
+}
+
+bool TentaclesFx::TentaclesImpl::operator==(const TentaclesImpl& t) const
+{
+  if (goomInfo == nullptr && t.goomInfo != nullptr)
+  {
+    return false;
+  }
+  if (goomInfo != nullptr && t.goomInfo == nullptr)
+  {
+    return false;
+  }
+
+  bool result = ((goomInfo == nullptr && t.goomInfo == nullptr) || (*goomInfo == *t.goomInfo)) &&
+                dominantColor == t.dominantColor && updatingWithDraw == t.updatingWithDraw &&
+                cycle == t.cycle && cycleInc == t.cycleInc && lig == t.lig && ligs == t.ligs &&
+                distt == t.distt && distt2 == t.distt2 && distt2Offset == t.distt2Offset &&
+                rot == t.rot && rotAtStartOfPrettyMove == t.rotAtStartOfPrettyMove &&
+                doRotation == t.doRotation && isPrettyMoveHappening == t.isPrettyMoveHappening &&
+                prettyMoveHappeningTimer == t.prettyMoveHappeningTimer &&
+                prettyMoveCheckStopMark == t.prettyMoveCheckStopMark &&
+                distt2OffsetPreStep == t.distt2OffsetPreStep &&
+                prettyMoveReadyToStart == t.prettyMoveReadyToStart &&
+                prePrettyMoveLock == t.prePrettyMoveLock &&
+                postPrettyMoveLock == t.postPrettyMoveLock &&
+                prettyMoveLerpMix == t.prettyMoveLerpMix &&
+                countSinceHighAccelLastMarked == t.countSinceHighAccelLastMarked &&
+                countSinceColorChangeLastMarked == t.countSinceColorChangeLastMarked;
+
+  if (result)
+  {
+    for (size_t i = 0; i < drivers.size(); i++)
+    {
+      if (*drivers[i] != *t.drivers[i])
+      {
+        logInfo("TentaclesFx driver differs at index {}", i);
+        return false;
+      }
+    }
+  }
+
+  if (!result)
+  {
+    logInfo("TentaclesFx result == {}", result);
+    logInfo("dominantColor == t.dominantColor = {}", dominantColor == t.dominantColor);
+    logInfo("updatingWithDraw == t.updatingWithDraw = {}", updatingWithDraw == t.updatingWithDraw);
+    logInfo("cycle == t.cycle = {}", cycle == t.cycle);
+    logInfo("cycleInc == t.cycleInc = {}", cycleInc == t.cycleInc);
+    logInfo("lig == t.lig = {}", lig == t.lig);
+    logInfo("ligs == t.ligs = {}", ligs == t.ligs);
+    logInfo("distt == t.distt = {}", distt == t.distt);
+    logInfo("distt2 == t.distt2 = {}", distt2 == t.distt2);
+    logInfo("distt2Offset == t.distt2Offset = {}", distt2Offset == t.distt2Offset);
+    logInfo("rot == t.rot = {}", rot == t.rot);
+    logInfo("drivers == t.drivers = {}", drivers == t.drivers);
+  }
+
+  return result;
 }
 
 TentaclesFx::TentaclesImpl::TentaclesImpl() noexcept
@@ -642,33 +696,6 @@ colorMaps.setWeights(colorGroupWeights);
   currentDriver = getNextDriver();
   currentDriver->startIterating();
   init();
-}
-
-bool TentaclesFx::TentaclesImpl::operator==(const TentaclesImpl& t) const
-{
-  if (goomInfo == nullptr && t.goomInfo != nullptr)
-  {
-    return false;
-  }
-  if (goomInfo != nullptr && t.goomInfo == nullptr)
-  {
-    return false;
-  }
-
-  return ((goomInfo == nullptr && t.goomInfo == nullptr) || (*goomInfo == *t.goomInfo)) &&
-         dominantColor == t.dominantColor && updatingWithDraw == t.updatingWithDraw &&
-         cycle == t.cycle && cycleInc == t.cycleInc && lig == t.lig && ligs == t.ligs &&
-         distt == t.distt && distt2 == t.distt2 && distt2Offset == t.distt2Offset && rot == t.rot &&
-         rotAtStartOfPrettyMove == t.rotAtStartOfPrettyMove && doRotation == t.doRotation &&
-         isPrettyMoveHappening == t.isPrettyMoveHappening &&
-         prettyMoveHappeningTimer == t.prettyMoveHappeningTimer &&
-         prettyMoveCheckStopMark == t.prettyMoveCheckStopMark &&
-         distt2OffsetPreStep == t.distt2OffsetPreStep &&
-         prettyMoveReadyToStart == t.prettyMoveReadyToStart &&
-         prePrettyMoveLock == t.prePrettyMoveLock && postPrettyMoveLock == t.postPrettyMoveLock &&
-         prettyMoveLerpMix == t.prettyMoveLerpMix &&
-         countSinceHighAccelLastMarked == t.countSinceHighAccelLastMarked &&
-         countSinceColorChangeLastMarked == t.countSinceColorChangeLastMarked;
 }
 
 inline void TentaclesFx::TentaclesImpl::setBuffSettings(const FXBuffSettings& settings)
@@ -733,9 +760,9 @@ void TentaclesFx::TentaclesImpl::init()
 {
   currentDriver->freshStart();
   //  currentDriver->setColorMode(static_cast<TentacleDriver::ColorModes>(getRandInRange(0u, 2u)));
-  currentDriver->setColorMode(static_cast<TentacleDriver::ColorModes>(getRandInRange(1u, 2u)));
+  //  currentDriver->setColorMode(static_cast<TentacleDriver::ColorModes>(getRandInRange(1u, 2u)));
   //  currentDriver->setColorMode(TentacleDriver::ColorModes::oneGroupForAll);
-  currentDriver->setReverseColorMix(probabilityOfMInN(1, 2000));
+  currentDriver->setReverseColorMix(probabilityOfMInN(1999, 2000));
 
   distt = std::lerp(disttMin, disttMax, 0.3);
   distt2 = distt2Min;
@@ -1034,10 +1061,10 @@ void TentaclesFx::TentaclesImpl::prettyMove(const float acceleration)
 
   rot = std::clamp(std::lerp(rot, rotOffset, prettyMoveLerpMix), 0.0f, m_two_pi);
 
-  logInfo("happening = {}, lock = {}, rot = {:.03f}, rotOffset = {:.03f}, "
-          "lerpMix = {:.03f}, cycle = {:.03f}, doRotation = {}",
-          prettyMoveHappeningTimer, postPrettyMoveLock, rot, rotOffset, prettyMoveLerpMix, cycle,
-          doRotation);
+  logDebug("happening = {}, lock = {}, rot = {:.03f}, rotOffset = {:.03f}, "
+           "lerpMix = {:.03f}, cycle = {:.03f}, doRotation = {}",
+           prettyMoveHappeningTimer, postPrettyMoveLock, rot, rotOffset, prettyMoveLerpMix, cycle,
+           doRotation);
 }
 
 } // namespace goom

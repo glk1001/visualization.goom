@@ -15,11 +15,13 @@
 #include <cereal/types/vector.hpp>
 #include <cmath>
 #include <cstddef>
-#include <fstream>
 #include <memory>
 #include <stdexcept>
 #include <string>
 #include <vector>
+
+CEREAL_REGISTER_TYPE(goom::FlyingStarsFx);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::VisualFx, goom::FlyingStarsFx);
 
 namespace goom
 {
@@ -288,18 +290,6 @@ std::string FlyingStarsFx::getFxName() const
   return "Flying Stars FX";
 }
 
-void FlyingStarsFx::saveState(std::ostream& f) const
-{
-  cereal::JSONOutputArchive archiveOut(f);
-  archiveOut(*fxImpl);
-}
-
-void FlyingStarsFx::loadState(std::istream& f)
-{
-  cereal::JSONInputArchive archive_in(f);
-  archive_in(*fxImpl);
-}
-
 void FlyingStarsFx::apply(Pixel* prevBuff, Pixel* currentBuff)
 {
   if (!enabled)
@@ -341,17 +331,6 @@ void FlyingStarsFx::FlyingStarsImpl::load(Archive& ar)
      CEREAL_NVP(useSingleBufferOnly), CEREAL_NVP(draw));
 }
 
-FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl() noexcept
-{
-}
-
-FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl(
-    const std::shared_ptr<const PluginInfo>& info) noexcept
-  : goomInfo{info}, draw{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height}
-{
-  stars.reserve(maxStarsLimit);
-}
-
 bool FlyingStarsFx::FlyingStarsImpl::operator==(const FlyingStarsImpl& f) const
 {
   if (goomInfo == nullptr && f.goomInfo != nullptr)
@@ -368,6 +347,17 @@ bool FlyingStarsFx::FlyingStarsImpl::operator==(const FlyingStarsImpl& f) const
          maxStarAge == f.maxStarAge && min_age == f.min_age && max_age == f.max_age &&
          buffSettings == f.buffSettings && useSingleBufferOnly == f.useSingleBufferOnly &&
          draw == f.draw;
+}
+
+FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl() noexcept
+{
+}
+
+FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl(
+    const std::shared_ptr<const PluginInfo>& info) noexcept
+  : goomInfo{info}, draw{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height}
+{
+  stars.reserve(maxStarsLimit);
 }
 
 void FlyingStarsFx::FlyingStarsImpl::setBuffSettings(const FXBuffSettings& settings)

@@ -18,8 +18,9 @@ int main(int argc, char* argv[])
     std::clog << s << std::endl;
   };
   addLogHandler("console-log", f_console_log);
-  setLogLevel(Logging::LogLevel::debug);
-  //logStart();
+  setLogLevel(Logging::LogLevel::info);
+  setLogLevelForFiles(Logging::LogLevel::info);
+  logStart();
   logInfo("Start unit tests...");
 
   int result = Catch::Session().run(argc, argv);

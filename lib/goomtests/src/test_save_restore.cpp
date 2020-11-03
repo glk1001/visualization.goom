@@ -2,6 +2,7 @@
 #include "goom/convolve_fx.h"
 #include "goom/filters.h"
 #include "goom/flying_stars_fx.h"
+#include "goom/goom_control.h"
 #include "goom/goom_dots_fx.h"
 #include "goom/goom_draw.h"
 #include "goom/goom_plugin_info.h"
@@ -312,4 +313,42 @@ TEST_CASE("save/restore tentacles", "[saveRestoreTentacles]")
   //  std::cout << ssCheck.str() << std::endl;
 
   REQUIRE(tentaclesFx == tentaclesFxRestored);
+}
+
+TEST_CASE("save/restore goom control", "[saveRestoreGoomControl]")
+{
+  std::unique_ptr<uint32_t> outputBuff{getNewOutputBuffer()};
+
+  constexpr uint64_t seed = 10;
+  GoomControl::setRandSeed(seed);
+  GoomControl goomControl{screenWidth, screenHeight};
+  goomControl.setScreenBuffer(outputBuff.get());
+  int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN];
+  for (size_t i = 0; i < 100; i++)
+  {
+    goomControl.update(data, 0, 0.0F, "Hello Test", "");
+  }
+  std::stringstream ss;
+  {
+    cereal::JSONOutputArchive archive(ss);
+    archive(goomControl);
+  }
+  //  std::cout << ss.str() << std::endl;
+
+  GoomControl goomControlRestored{};
+  REQUIRE(goomControl != goomControlRestored);
+  {
+    cereal::JSONInputArchive archive(ss);
+    archive(goomControlRestored);
+    goomControlRestored.setScreenBuffer(outputBuff.get());
+  }
+  std::stringstream ssCheck;
+  {
+    cereal::JSONOutputArchive archive(ssCheck);
+    archive(goomControlRestored);
+  }
+  //  std::cout << "Restored ifs\n";
+  //  std::cout << ssCheck.str() << std::endl;
+
+  REQUIRE(goomControl == goomControlRestored);
 }

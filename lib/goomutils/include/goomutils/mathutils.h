@@ -4,6 +4,9 @@
 #include "goomrand.h"
 
 #include <array>
+#include <cereal/archives/json.hpp>
+#include <cereal/types/tuple.hpp>
+#include <cereal/types/vector.hpp>
 #include <cmath>
 #include <cstdlib>
 #include <memory>
@@ -35,7 +38,7 @@ constexpr float sq_distance(const float x, const float y)
 class VertNum
 {
 public:
-  explicit VertNum(const int xw) : xwidth(xw) {}
+  explicit VertNum(const int xw) noexcept : xwidth(xw) {}
   int getRowZeroVertNum(const int x) const { return x; }
   int operator()(const int x, const int z) const { return z * xwidth + x; }
   //  int getPrevRowVertNum(const int vertNum) const { return vertNum - xwidth; }
@@ -53,21 +56,27 @@ private:
 class RangeMapper
 {
 public:
-  explicit RangeMapper(const double x0, const double x1);
+  RangeMapper() noexcept = default;
+  explicit RangeMapper(const double x0, const double x1) noexcept;
   double operator()(const double r0, const double r1, const double x) const;
   double getXMin() const { return xmin; }
   double getXMax() const { return xmax; }
 
+  bool operator==(const RangeMapper&) const = default;
+
+  template<class Archive>
+  void serialize(Archive&);
+
 private:
-  double xmin;
-  double xmax;
-  double xwidth;
+  double xmin = 0;
+  double xmax = 0;
+  double xwidth = 0;
 };
 
 class DampingFunction
 {
 public:
-  virtual ~DampingFunction() {}
+  virtual ~DampingFunction() noexcept {}
   virtual double operator()(const double x) = 0;
 };
 
@@ -80,8 +89,12 @@ public:
 class LogDampingFunction : public DampingFunction
 {
 public:
-  explicit LogDampingFunction(const double amplitude, const double xmin, const double xStart = 2.0);
+  explicit LogDampingFunction(const double amplitude,
+                              const double xmin,
+                              const double xStart = 2.0) noexcept;
   double operator()(const double x) override;
+
+  bool operator==(const LogDampingFunction&) const = default;
 
 private:
   const double amplitude;
@@ -94,6 +107,7 @@ private:
 class ExpDampingFunction : public DampingFunction
 {
 public:
+  ExpDampingFunction() noexcept = default;
   explicit ExpDampingFunction(const double amplitude,
                               const double xToStartRise,
                               const double yAtStartToRise,
@@ -103,52 +117,75 @@ public:
   double kVal() const { return k; }
   double bVal() const { return b; }
 
+  bool operator==(const ExpDampingFunction&) const = default;
+
+  template<class Archive>
+  void serialize(Archive&);
+
 private:
-  const double amplitude;
-  double k;
-  double b;
+  double amplitude = 1;
+  double k = 1;
+  double b = 1;
 };
 
 class FlatDampingFunction : public DampingFunction
 {
 public:
-  explicit FlatDampingFunction(const double y);
+  FlatDampingFunction() noexcept = default;
+  explicit FlatDampingFunction(const double y) noexcept;
   double operator()(const double x) override;
 
+  bool operator==(const FlatDampingFunction&) const = default;
+
+  template<class Archive>
+  void serialize(Archive&);
+
 private:
-  const double y;
+  double y = 0;
 };
 
 class LinearDampingFunction : public DampingFunction
 {
 public:
+  LinearDampingFunction() noexcept = default;
   explicit LinearDampingFunction(const double x0,
                                  const double y0,
                                  const double x1,
-                                 const double y1);
+                                 const double y1) noexcept;
   double operator()(const double x) override;
 
+  bool operator==(const LinearDampingFunction&) const = default;
+
+  template<class Archive>
+  void serialize(Archive&);
+
 private:
-  const double m;
-  const double x1;
-  const double y1;
+  double m = 1;
+  double x1 = 0;
+  double y1 = 1;
 };
 
 class PiecewiseDampingFunction : public DampingFunction
 {
 public:
+  PiecewiseDampingFunction() noexcept = default;
   explicit PiecewiseDampingFunction(
-      std::vector<std::tuple<double, double, std::unique_ptr<DampingFunction>>>& pieces);
+      std::vector<std::tuple<double, double, std::unique_ptr<DampingFunction>>>& pieces) noexcept;
   double operator()(const double x) override;
 
+  bool operator==(const PiecewiseDampingFunction&) const = default;
+
+  template<class Archive>
+  void serialize(Archive&);
+
 private:
-  std::vector<std::tuple<double, double, std::unique_ptr<DampingFunction>>> pieces;
+  std::vector<std::tuple<double, double, std::unique_ptr<DampingFunction>>> pieces{};
 };
 
 class SequenceFunction
 {
 public:
-  virtual ~SequenceFunction() {}
+  virtual ~SequenceFunction() noexcept {}
   virtual float getNext() = 0;
 };
 
@@ -158,7 +195,7 @@ public:
   SineWaveMultiplier(const float frequency = 1.0,
                      const float lower = -1.0,
                      const float upper = 1.0,
-                     const float x0 = 0.0);
+                     const float x0 = 0.0) noexcept;
 
   float getNext() override;
 
@@ -176,6 +213,11 @@ public:
 
   void setPiStepFrac(const float val) { piStepFrac = val; }
 
+  bool operator==(const SineWaveMultiplier&) const;
+
+  template<class Archive>
+  void serialize(Archive&);
+
 private:
   RangeMapper rangeMapper;
   float frequency;
@@ -188,8 +230,8 @@ private:
 class IncreasingFunction
 {
 public:
-  explicit IncreasingFunction(const double xmin, const double xmax);
-  virtual ~IncreasingFunction() {}
+  explicit IncreasingFunction(const double xmin, const double xmax) noexcept;
+  virtual ~IncreasingFunction() noexcept {}
   virtual double operator()(const double x) = 0;
 
 protected:
@@ -201,7 +243,9 @@ protected:
 class ExpIncreasingFunction : public IncreasingFunction
 {
 public:
-  explicit ExpIncreasingFunction(const double xmin, const double xmax, const double k = 0.1);
+  explicit ExpIncreasingFunction(const double xmin,
+                                 const double xmax,
+                                 const double k = 0.1) noexcept;
   double operator()(const double x) override;
 
 private:
@@ -213,7 +257,7 @@ class LogIncreasingFunction : public IncreasingFunction
 public:
   explicit LogIncreasingFunction(const double amplitude,
                                  const double xmin,
-                                 const double xStart = 2.0);
+                                 const double xStart = 2.0) noexcept;
   double operator()(const double x) override;
 
 private:
@@ -222,13 +266,20 @@ private:
   const double xStart;
 };
 
-inline IncreasingFunction::IncreasingFunction(const double x0, const double x1) : xmin(x0), xmax(x1)
+inline IncreasingFunction::IncreasingFunction(const double x0, const double x1) noexcept
+  : xmin(x0), xmax(x1)
 {
 }
 
-inline RangeMapper::RangeMapper(const double x0, const double x1)
+inline RangeMapper::RangeMapper(const double x0, const double x1) noexcept
   : xmin(x0), xmax(x1), xwidth(xmax - xmin)
 {
+}
+
+template<class Archive>
+void RangeMapper::serialize(Archive& ar)
+{
+  ar(CEREAL_NVP(xmin), CEREAL_NVP(xmax), CEREAL_NVP(xwidth));
 }
 
 inline double RangeMapper::operator()(const double r0, const double r1, const double x) const
@@ -236,5 +287,37 @@ inline double RangeMapper::operator()(const double r0, const double r1, const do
   return std::lerp(r0, r1, (x - xmin) / xwidth);
 }
 
+template<class Archive>
+void SineWaveMultiplier::serialize(Archive& ar)
+{
+  ar(CEREAL_NVP(rangeMapper), CEREAL_NVP(frequency), CEREAL_NVP(lower), CEREAL_NVP(upper),
+     CEREAL_NVP(piStepFrac), CEREAL_NVP(x));
+}
+
+template<class Archive>
+void FlatDampingFunction::serialize(Archive& ar)
+{
+  ar(CEREAL_NVP(y));
+}
+
+template<class Archive>
+void ExpDampingFunction::serialize(Archive& ar)
+{
+  ar(CEREAL_NVP(amplitude), CEREAL_NVP(k), CEREAL_NVP(b));
+}
+
+template<class Archive>
+void LinearDampingFunction::serialize(Archive& ar)
+{
+  ar(CEREAL_NVP(m), CEREAL_NVP(x1), CEREAL_NVP(y1));
+}
+
+template<class Archive>
+void PiecewiseDampingFunction::serialize(Archive& ar)
+{
+  ar(CEREAL_NVP(pieces));
+}
+
 } // namespace goom::utils
+
 #endif

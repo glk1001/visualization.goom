@@ -1,6 +1,8 @@
 #include "goomutils/mathutils.h"
 
 #include <array>
+#include <cereal/archives/json.hpp>
+#include <cereal/types/memory.hpp>
 #include <cmath>
 #include <format>
 #include <memory>
@@ -8,10 +10,33 @@
 #include <tuple>
 #include <vector>
 
+// NOTE: Cereal is not happy with these calls inside the 'goom' namespace.
+//   But they work OK here.
+CEREAL_REGISTER_TYPE(goom::utils::SineWaveMultiplier);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::utils::SequenceFunction,
+                                     goom::utils::SineWaveMultiplier);
+
+CEREAL_REGISTER_TYPE(goom::utils::FlatDampingFunction);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::utils::DampingFunction,
+                                     goom::utils::FlatDampingFunction);
+
+CEREAL_REGISTER_TYPE(goom::utils::ExpDampingFunction);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::utils::DampingFunction, goom::utils::ExpDampingFunction);
+
+CEREAL_REGISTER_TYPE(goom::utils::LinearDampingFunction);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::utils::DampingFunction,
+                                     goom::utils::LinearDampingFunction);
+
+CEREAL_REGISTER_TYPE(goom::utils::PiecewiseDampingFunction);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::utils::DampingFunction,
+                                     goom::utils::PiecewiseDampingFunction);
+
 namespace goom::utils
 {
 
-ExpIncreasingFunction::ExpIncreasingFunction(const double x0, const double x1, const double _k)
+ExpIncreasingFunction::ExpIncreasingFunction(const double x0,
+                                             const double x1,
+                                             const double _k) noexcept
   : IncreasingFunction(x1, x0), k(_k)
 {
 }
@@ -21,7 +46,9 @@ double ExpIncreasingFunction::operator()(const double x)
   return 1.0 - std::exp(-k * std::fabs(x));
 }
 
-LogIncreasingFunction::LogIncreasingFunction(const double amp, const double xm, const double xStrt)
+LogIncreasingFunction::LogIncreasingFunction(const double amp,
+                                             const double xm,
+                                             const double xStrt) noexcept
   : IncreasingFunction(xm, 10000000000), amplitude(amp), xmin(xm), xStart(xStrt)
 {
 }
@@ -32,7 +59,9 @@ double LogIncreasingFunction::operator()(const double x)
 }
 
 
-LogDampingFunction::LogDampingFunction(const double amp, const double xm, const double xStrt)
+LogDampingFunction::LogDampingFunction(const double amp,
+                                       const double xm,
+                                       const double xStrt) noexcept
   : amplitude(amp), xmin(xm), xStart(xStrt)
 {
 }
@@ -78,7 +107,7 @@ double ExpDampingFunction::operator()(const double x)
   return amplitude * (1.0 + std::exp(k * (x - b)));
 }
 
-FlatDampingFunction::FlatDampingFunction(const double y_) : y{y_}
+FlatDampingFunction::FlatDampingFunction(const double y_) noexcept : y{y_}
 {
 }
 
@@ -90,7 +119,7 @@ double FlatDampingFunction::operator()([[maybe_unused]] const double x)
 LinearDampingFunction::LinearDampingFunction(const double x0_,
                                              const double y0_,
                                              const double x1_,
-                                             const double y1_)
+                                             const double y1_) noexcept
   : m{(y1_ - y0_) / (x1_ - x0_)}, x1{x1_}, y1{y1_}
 {
 }
@@ -101,7 +130,7 @@ double LinearDampingFunction::operator()(const double x)
 }
 
 PiecewiseDampingFunction::PiecewiseDampingFunction(
-    std::vector<std::tuple<double, double, std::unique_ptr<DampingFunction>>>& p)
+    std::vector<std::tuple<double, double, std::unique_ptr<DampingFunction>>>& p) noexcept
   : pieces{std::move(p)}
 {
 }
@@ -121,9 +150,16 @@ double PiecewiseDampingFunction::operator()(const double x)
 SineWaveMultiplier::SineWaveMultiplier(const float freq,
                                        const float lwr,
                                        const float upr,
-                                       const float x0)
+                                       const float x0) noexcept
   : x{x0}, frequency{freq}, lower{lwr}, upper{upr}, piStepFrac{1.0 / 16.0}, rangeMapper{-1, +1}
 {
+}
+
+bool SineWaveMultiplier::operator==(const SineWaveMultiplier& s) const
+{
+  return true;
+  return rangeMapper == s.rangeMapper && frequency == s.frequency && lower == s.lower &&
+         upper == s.upper && piStepFrac == s.piStepFrac && x == s.x;
 }
 
 float SineWaveMultiplier::getNext()
