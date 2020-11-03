@@ -118,14 +118,6 @@ private:
   std::vector<utils::ColorMapGroup> getNextColorMapGroups() const;
 
   std::unique_ptr<Tentacle2D> createNewTentacle2D(const size_t ID, const IterationParams&);
-  std::unique_ptr<TentacleTweaker> createNewTweaker(
-      const IterationParams& params, std::unique_ptr<utils::DampingFunction> dampingFunc);
-  std::unique_ptr<utils::DampingFunction> createNewDampingFunction(const IterationParams&,
-                                                                   const size_t tentacleLen) const;
-  std::unique_ptr<utils::DampingFunction> createNewExpDampingFunction(
-      const IterationParams&, const size_t tentacleLen) const;
-  std::unique_ptr<utils::DampingFunction> createNewLinearDampingFunction(
-      const IterationParams&, const size_t tentacleLen) const;
   const std::vector<IterTimer*> iterTimers{};
   void updateIterTimers();
   void checkForTimerEvents();

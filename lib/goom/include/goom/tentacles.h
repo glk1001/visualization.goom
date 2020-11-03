@@ -7,7 +7,6 @@
 
 #include <functional>
 #include <memory>
-#include <stdexcept>
 #include <tuple>
 #include <vector>
 #include <vivid/vivid.h>
@@ -25,21 +24,6 @@ public:
   virtual Pixel getColor(const size_t nodeNum) const = 0;
 };
 
-class TentacleTweaker
-{
-public:
-public:
-  explicit TentacleTweaker(std::unique_ptr<utils::DampingFunction> dampingFunc) noexcept;
-  TentacleTweaker(const TentacleTweaker&) = delete;
-  TentacleTweaker& operator=(const TentacleTweaker&) = delete;
-
-  double getDamping(const double x);
-  void setDampingFunc(utils::DampingFunction& dampingFunc);
-
-private:
-  std::unique_ptr<utils::DampingFunction> dampingFunc;
-};
-
 class Tentacle2D
 {
 private:
@@ -48,7 +32,14 @@ private:
 public:
   static constexpr size_t minNumNodes = 10;
 
-  explicit Tentacle2D(const size_t ID, std::unique_ptr<TentacleTweaker> tweaker) noexcept;
+  explicit Tentacle2D(const size_t ID,
+                      const size_t numNodes,
+                      const double xmin,
+                      const double xmax,
+                      const double ymin,
+                      const double ymax,
+                      const double basePrevYWeight,
+                      const double baseCurrentYWeight) noexcept;
   Tentacle2D(const Tentacle2D&) = delete;
   Tentacle2D& operator=(const Tentacle2D&) = delete;
 
@@ -72,16 +63,11 @@ public:
 
   double getYMin() const;
   double getYMax() const;
-  void setYDimensions(const double y0, const double y1);
 
   size_t getNumNodes() const;
-  void setNumNodes(const size_t val);
 
   double getPrevYWeight() const;
-  void setPrevYWeight(const double val);
-
   double getCurrentYWeight() const;
-  void setCurrentYWeight(const double val);
 
   double getIterZeroYVal() const;
   void setIterZeroYVal(const double val);
@@ -93,17 +79,8 @@ public:
   void setDoDamping(const bool val);
 
 private:
-  size_t ID{};
-  std::unique_ptr<TentacleTweaker> tweaker{};
-  size_t iterNum = 0;
+  size_t ID = 0;
   size_t numNodes = 0;
-  bool startedIterating = false;
-  std::vector<double> xvec{};
-  std::vector<double> yvec{};
-  XandYVectors vecs{std::make_tuple(std::ref(xvec), std::ref(yvec))};
-  std::vector<double> dampedYVec{};
-  std::vector<double> dampingCache{};
-  XandYVectors dampedVecs{std::make_tuple(std::ref(xvec), std::ref(dampedYVec))};
   double xmin = 0;
   double xmax = 0;
   double ymin = 0;
@@ -112,10 +89,20 @@ private:
   double baseCurrentYWeight = 0.230;
   double iterZeroYVal = 0.9;
   double iterZeroLerpFactor = 0.8;
+  size_t iterNum = 0;
+  bool startedIterating = false;
+  std::vector<double> xvec{};
+  std::vector<double> yvec{};
+  XandYVectors vecs{std::make_tuple(std::ref(xvec), std::ref(yvec))};
+  std::vector<double> dampedYVec{};
+  std::vector<double> dampingCache{};
+  XandYVectors dampedVecs{std::make_tuple(std::ref(xvec), std::ref(dampedYVec))};
+  std::unique_ptr<utils::DampingFunction> dampingFunc;
   bool doDamping = true;
 
   float getFirstY();
   float getNextY(const size_t nodeNum);
+  double getDamping(const double x);
   float getDampedVal(const size_t nodeNum, const float val) const;
   void updateDampedVals(const std::vector<double>& yvals);
   double damp(const size_t nodeNum) const;
@@ -125,6 +112,13 @@ private:
   void validateNumNodes() const;
   void validatePrevYWeight() const;
   void validateCurrentYWeight() const;
+
+  using DampingFuncPtr = std::unique_ptr<utils::DampingFunction>;
+  static DampingFuncPtr createDampingFunc(const double prevYWeight,
+                                          const double xmin,
+                                          const double xmax);
+  static DampingFuncPtr createExpDampingFunc(const double xmin, const double xmax);
+  static DampingFuncPtr createLinearDampingFunc(const double xmin, const double xmax);
 };
 
 struct V3d
@@ -223,11 +217,6 @@ private:
   std::vector<Tentacle3D> tentacles{};
 };
 
-inline double TentacleTweaker::getDamping(const double x)
-{
-  return (*dampingFunc)(x);
-}
-
 inline size_t Tentacle2D::getID() const
 {
   return ID;
@@ -257,37 +246,14 @@ inline size_t Tentacle2D::getNumNodes() const
   return numNodes;
 }
 
-inline void Tentacle2D::setNumNodes(const size_t val)
-{
-  if (startedIterating)
-  {
-    throw std::runtime_error("Can't set numNodes dimensions after iteration start.");
-  }
-
-  numNodes = val;
-  validateNumNodes();
-}
-
 inline double Tentacle2D::getPrevYWeight() const
 {
   return basePrevYWeight;
 }
 
-inline void Tentacle2D::setPrevYWeight(const double val)
-{
-  basePrevYWeight = val;
-  validatePrevYWeight();
-}
-
 inline double Tentacle2D::getCurrentYWeight() const
 {
   return baseCurrentYWeight;
-}
-
-inline void Tentacle2D::setCurrentYWeight(const double val)
-{
-  baseCurrentYWeight = val;
-  validateCurrentYWeight();
 }
 
 inline size_t Tentacle2D::getIterNum() const
@@ -309,18 +275,6 @@ inline double Tentacle2D::getXMax() const
   return xmax;
 }
 
-inline void Tentacle2D::setXDimensions(const double x0, const double x1)
-{
-  if (startedIterating)
-  {
-    throw std::runtime_error("Can't set x dimensions after iteration start.");
-  }
-
-  xmin = x0;
-  xmax = x1;
-  validateXDimensions();
-}
-
 inline double Tentacle2D::getYMin() const
 {
   return ymin;
@@ -328,18 +282,6 @@ inline double Tentacle2D::getYMin() const
 inline double Tentacle2D::getYMax() const
 {
   return ymax;
-}
-
-inline void Tentacle2D::setYDimensions(const double y0, const double y1)
-{
-  if (startedIterating)
-  {
-    throw std::runtime_error("Can't set y dimensions after iteration start.");
-  }
-
-  ymin = y0;
-  ymax = y1;
-  validateYDimensions();
 }
 
 inline bool Tentacle2D::getDoDamping() const
@@ -350,6 +292,11 @@ inline void Tentacle2D::setDoDamping(const bool val)
 {
   doDamping = val;
 };
+
+inline double Tentacle2D::getDamping(const double x)
+{
+  return (*dampingFunc)(x);
+}
 
 inline void Tentacle2D::finishIterating()
 {

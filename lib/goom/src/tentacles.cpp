@@ -10,7 +10,6 @@
 #include <assert.h>
 #include <cmath>
 #include <format>
-#include <functional>
 #include <limits>
 #include <memory>
 #include <stdexcept>
@@ -23,15 +22,44 @@ namespace goom
 
 using namespace goom::utils;
 
-TentacleTweaker::TentacleTweaker(std::unique_ptr<DampingFunction> dampingFun) noexcept
-  : dampingFunc{std::move(dampingFun)}
+
+Tentacle2D::Tentacle2D(const size_t _ID,
+                       const size_t _numNodes,
+                       const double _xmin,
+                       const double _xmax,
+                       const double _ymin,
+                       const double _ymax,
+                       const double _basePrevYWeight,
+                       const double _baseCurrentYWeight) noexcept
+  : ID{_ID},
+    numNodes{_numNodes},
+    xmin{_xmin},
+    xmax{_xmax},
+    ymin{_ymin},
+    ymax{_ymax},
+    basePrevYWeight{_basePrevYWeight},
+    baseCurrentYWeight{_baseCurrentYWeight},
+    dampingFunc{createDampingFunc(basePrevYWeight, xmin, xmax)}
 {
 }
 
-
-Tentacle2D::Tentacle2D(const size_t _ID, std::unique_ptr<TentacleTweaker> twker) noexcept
-  : ID(_ID), tweaker{std::move(twker)}
+void Tentacle2D::setXDimensions(const double x0, const double x1)
 {
+  if (startedIterating)
+  {
+    throw std::runtime_error("Can't set x dimensions after iteration start.");
+  }
+
+  if (std::fabs(xmin - x0) < 0.00001 && std::fabs(xmax - x1) < 0.00001)
+  {
+    return;
+  }
+
+  xmin = x0;
+  xmax = x1;
+  validateXDimensions();
+
+  dampingFunc = createDampingFunc(basePrevYWeight, xmin, xmax);
 }
 
 void Tentacle2D::validateSettings() const
@@ -96,7 +124,6 @@ void Tentacle2D::iterateNTimes(const size_t n)
   startIterating();
   for (size_t i = 0; i < n; i++)
   {
-    //    logInfo("Iteration: {}", i+1);
     iterate();
   }
   finishIterating();
@@ -122,9 +149,9 @@ void Tentacle2D::startIterating()
   double y = ymin;
   for (size_t i = 0; i < numNodes; ++i)
   {
-    dampingCache[i] = tweaker->getDamping(x);
+    dampingCache[i] = getDamping(x);
     xvec[i] = x;
-    yvec[i] = dampingCache[i];
+    yvec[i] = 0.1 * dampingCache[i];
 
     x += xstep;
     y += ystep;
@@ -228,6 +255,40 @@ const Tentacle2D::XandYVectors& Tentacle2D::getDampedXandYVectors() const
   }
 
   return dampedVecs;
+}
+
+Tentacle2D::DampingFuncPtr Tentacle2D::createDampingFunc(const double prevYWeight,
+                                                         const double xmin,
+                                                         const double xmax)
+{
+  if (prevYWeight < 0.6)
+  {
+    return createLinearDampingFunc(xmin, xmax);
+  }
+  return createExpDampingFunc(xmin, xmax);
+}
+
+Tentacle2D::DampingFuncPtr Tentacle2D::createExpDampingFunc(const double xmin, const double xmax)
+{
+  const double xRiseStart = xmin + 0.25 * xmax;
+  constexpr double dampStart = 5;
+  constexpr double dampMax = 30;
+
+  return DampingFuncPtr{new ExpDampingFunction{0.1, xRiseStart, dampStart, xmax, dampMax}};
+}
+
+Tentacle2D::DampingFuncPtr Tentacle2D::createLinearDampingFunc(const double xmin, const double xmax)
+{
+  constexpr float yScale = 30;
+
+  std::vector<std::tuple<double, double, DampingFuncPtr>> pieces{};
+  pieces.emplace_back(
+      std::make_tuple(xmin, 0.1 * xmax, DampingFuncPtr{new FlatDampingFunction{0.1}}));
+  pieces.emplace_back(
+      std::make_tuple(0.1 * xmax, 10 * xmax,
+                      DampingFuncPtr{new LinearDampingFunction{0.1 * xmax, 0.1, xmax, yScale}}));
+
+  return DampingFuncPtr{new PiecewiseDampingFunction{pieces}};
 }
 
 Tentacle3D::Tentacle3D(std::unique_ptr<Tentacle2D> t,

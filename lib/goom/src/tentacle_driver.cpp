@@ -180,17 +180,12 @@ std::unique_ptr<Tentacle2D> TentacleDriver::createNewTentacle2D(const size_t ID,
   const double tent2d_xmax = tent2d_xmin + tentacleLen;
 
   std::unique_ptr<Tentacle2D> tentacle{
-      new Tentacle2D{ID, std::move(createNewTweaker(
-                             params, std::move(createNewDampingFunction(params, tentacleLen))))}};
+      new Tentacle2D{ID, params.numNodes,
+                     //  size_t(static_cast<float>(params.numNodes) * getRandInRange(0.9f, 1.1f))
+                     tent2d_xmin, tent2d_xmax, tent2d_ymin, tent2d_ymax, params.prevYWeight,
+                     1.0 - params.prevYWeight}};
   logDebug("Created new tentacle2D {}.", ID);
 
-  tentacle->setXDimensions(tent2d_xmin, tent2d_xmax);
-  tentacle->setYDimensions(tent2d_ymin, tent2d_ymax);
-
-  tentacle->setPrevYWeight(params.prevYWeight);
-  tentacle->setCurrentYWeight(1.0 - params.prevYWeight);
-  //  tentacle->setNumNodes(size_t(static_cast<float>(params.numNodes) * getRandInRange(0.9f, 1.1f)));
-  tentacle->setNumNodes(params.numNodes);
   logDebug("tentacle {:3}:"
            " tentacleLen = {:4}, tent2d_xmin = {:7.2f}, tent2d_xmax = {:5.2f},"
            " prevYWeight = {:5.2f}, curYWeight = {:5.2f}, numNodes = {:5}",
@@ -200,55 +195,6 @@ std::unique_ptr<Tentacle2D> TentacleDriver::createNewTentacle2D(const size_t ID,
   tentacle->setDoDamping(true);
 
   return tentacle;
-}
-
-std::unique_ptr<DampingFunction> TentacleDriver::createNewDampingFunction(
-    const IterationParams& params, const size_t tentacleLen) const
-{
-  if (params.prevYWeight < 0.6)
-  {
-    return createNewLinearDampingFunction(params, tentacleLen);
-  }
-  return createNewExpDampingFunction(params, tentacleLen);
-}
-
-std::unique_ptr<DampingFunction> TentacleDriver::createNewExpDampingFunction(
-    const IterationParams&, const size_t tentacleLen) const
-{
-  const double tent2d_xmax = tent2d_xmin + tentacleLen;
-
-  const double xRiseStart = tent2d_xmin + 0.25 * tent2d_xmax;
-  constexpr double dampStart = 5;
-  constexpr double dampMax = 30;
-
-  return std::unique_ptr<DampingFunction>{
-      new ExpDampingFunction{0.1, xRiseStart, dampStart, tent2d_xmax, dampMax}};
-}
-
-std::unique_ptr<DampingFunction> TentacleDriver::createNewLinearDampingFunction(
-    const IterationParams&, const size_t tentacleLen) const
-{
-  const double tent2d_xmax = tent2d_xmin + tentacleLen;
-
-  constexpr float yScale = 30;
-
-  std::vector<std::tuple<double, double, std::unique_ptr<DampingFunction>>> pieces{};
-  pieces.emplace_back(
-      std::make_tuple(tent2d_xmin, 0.1 * tent2d_xmax,
-                      std::unique_ptr<DampingFunction>{new FlatDampingFunction{0.1}}));
-  pieces.emplace_back(std::make_tuple(0.1 * tent2d_xmax, 10 * tent2d_xmax,
-                                      std::unique_ptr<DampingFunction>{new LinearDampingFunction{
-                                          0.1 * tent2d_xmax, 0.1, tent2d_xmax, yScale}}));
-
-  return std::unique_ptr<DampingFunction>{new PiecewiseDampingFunction{pieces}};
-}
-
-std::unique_ptr<TentacleTweaker> TentacleDriver::createNewTweaker(
-    const IterationParams&, std::unique_ptr<DampingFunction> dampingFunc)
-{
-  using namespace std::placeholders;
-
-  return std::unique_ptr<TentacleTweaker>{new TentacleTweaker{std::move(dampingFunc)}};
 }
 
 void TentacleDriver::startIterating()
