@@ -137,7 +137,7 @@ public:
                       const Pixel& headColorLow,
                       const V3d& head) noexcept;
   explicit Tentacle3D(std::unique_ptr<Tentacle2D>,
-                      const TentacleColorizer& colorizer,
+                      const std::shared_ptr<const TentacleColorizer>&,
                       const Pixel& headColor,
                       const Pixel& headColorLow,
                       const V3d& head) noexcept;
@@ -172,7 +172,7 @@ public:
 
 private:
   std::unique_ptr<Tentacle2D> tentacle{};
-  const TentacleColorizer* const colorizer = nullptr;
+  std::shared_ptr<const TentacleColorizer> colorizer{};
   const Pixel headColor{};
   const Pixel headColorLow{};
   V3d head{};

@@ -303,15 +303,11 @@ Tentacle3D::Tentacle3D(std::unique_ptr<Tentacle2D> t,
 }
 
 Tentacle3D::Tentacle3D(std::unique_ptr<Tentacle2D> t,
-                       const TentacleColorizer& col,
+                       const std::shared_ptr<const TentacleColorizer>& col,
                        const Pixel& headCol,
                        const Pixel& headColLow,
                        const V3d& h) noexcept
-  : tentacle{std::move(t)},
-    colorizer{&col},
-    headColor{headCol},
-    headColorLow{headColLow},
-    head{h}
+  : tentacle{std::move(t)}, colorizer{col}, headColor{headCol}, headColorLow{headColLow}, head{h}
 {
 }
 

@@ -38,7 +38,7 @@ private:
 class TentacleLayout
 {
 public:
-  virtual ~TentacleLayout() {}
+  virtual ~TentacleLayout() noexcept = default;
   virtual size_t getNumPoints() const = 0;
   const virtual std::vector<V3d>& getPoints() const = 0;
 };
@@ -106,7 +106,7 @@ private:
   GoomDraw draw{};
   FXBuffSettings buffSettings{};
   const utils::ColorMaps colorMaps{};
-  std::vector<std::unique_ptr<TentacleColorizer>> colorizers{};
+  std::vector<std::shared_ptr<TentacleColorizer>> colorizers{};
 
   size_t updateNum = 0;
   Tentacles3D tentacles{};
@@ -147,14 +147,14 @@ public:
   Pixel getColor(const size_t nodeNum) const override;
 
 private:
-  const utils::ColorMaps colorMaps{};
+  const size_t numNodes;
   utils::ColorMapGroup currentColorMapGroup;
-  const utils::ColorMap* colorMap;
-  const utils::ColorMap* prevColorMap;
+  const utils::ColorMaps colorMaps{};
+  const utils::ColorMap* colorMap{};
+  const utils::ColorMap* prevColorMap{};
   static constexpr uint32_t maxCountSinceColormapChange = 100;
   static constexpr float transitionStep = 1.0 / static_cast<float>(maxCountSinceColormapChange);
-  mutable float tTransition;
-  const size_t numNodes;
+  mutable float tTransition = 0;
 };
 
 class GridTentacleLayout : public TentacleLayout

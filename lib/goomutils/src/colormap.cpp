@@ -17,7 +17,7 @@ using colordata::ColorMapName;
 std::vector<ColorMap, ColorMap::ColorMapAllocator> ColorMaps::colorMaps{};
 ColorMaps::GroupColorNames ColorMaps::groups{nullptr};
 
-ColorMaps::ColorMaps()
+ColorMaps::ColorMaps() noexcept
 {
 }
 

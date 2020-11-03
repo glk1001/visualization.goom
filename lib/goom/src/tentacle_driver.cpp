@@ -126,7 +126,7 @@ void TentacleDriver::init(const TentacleLayout& layout)
     t += tStep;
     tentacleParams[i] = params;
 
-    std::unique_ptr<TentacleColorMapColorizer> colorizer{
+    std::shared_ptr<TentacleColorMapColorizer> colorizer{
         new TentacleColorMapColorizer{initialColorMapGroup, params.numNodes}};
     colorizers.push_back(std::move(colorizer));
 
@@ -136,7 +136,7 @@ void TentacleDriver::init(const TentacleLayout& layout)
     // To hide the annoying flapping tentacle head, make near the head very dark.
     const Pixel headColor = getIntColor(5, 5, 5);
     const Pixel headColorLow = headColor;
-    Tentacle3D tentacle{std::move(tentacle2D), *colorizers[colorizers.size() - 1], headColor,
+    Tentacle3D tentacle{std::move(tentacle2D), colorizers[colorizers.size() - 1], headColor,
                         headColorLow, initialHeadPos};
 
     tentacles.addTentacle(std::move(tentacle));
@@ -528,11 +528,10 @@ inline void TentacleDriver::translateV3d(const V3d& vadd, V3d& vinOut)
 
 TentacleColorMapColorizer::TentacleColorMapColorizer(const utils::ColorMapGroup cmg,
                                                      const size_t nNodes)
-  : currentColorMapGroup{cmg},
+  : numNodes{nNodes},
+    currentColorMapGroup{cmg},
     colorMap{&colorMaps.getRandomColorMap(currentColorMapGroup)},
-    prevColorMap{colorMap},
-    tTransition{0},
-    numNodes{nNodes}
+    prevColorMap{colorMap}
 {
 }
 

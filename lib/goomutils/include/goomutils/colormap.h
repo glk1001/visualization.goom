@@ -76,10 +76,9 @@ class ColorMaps
 public:
   using ColorMapNames = std::vector<colordata::ColorMapName>;
 
-  ColorMaps();
-  ColorMaps(const ColorMaps&) = delete;
+  ColorMaps() noexcept;
   virtual ~ColorMaps() noexcept = default;
-
+  ColorMaps(const ColorMaps&) = delete;
   ColorMaps& operator=(const ColorMaps&) = delete;
 
   size_t getNumColorMaps() const;
