@@ -6,6 +6,7 @@
 #include <limits>
 #include <string>
 #include <tuple>
+#include <vector>
 
 using namespace goom::utils;
 
@@ -41,6 +42,47 @@ TEST_CASE("save/restore random state", "[saveRestoreRandState]")
   r = getRand();
   REQUIRE(seed == getRandSeed());
   REQUIRE(r == r_justAfterSave);
+}
+
+TEST_CASE("repeatable random sequence", "[repeatableRandomSequence]")
+{
+  const uint64_t seed = 1000;
+
+  setRandSeed(seed);
+  REQUIRE(seed == getRandSeed());
+  std::vector<uint32_t> seq1(1000);
+  std::vector<float> fseq1(1000);
+  for (size_t i = 0; i < 1000; i++)
+  {
+    seq1[i] = getRand();
+    fseq1[i] = getRandInRange(0.0F, 1.0F);
+  }
+
+  setRandSeed(seed);
+  REQUIRE(seed == getRandSeed());
+  std::vector<uint32_t> seq2(1000);
+  std::vector<float> fseq2(1000);
+  for (size_t i = 0; i < 1000; i++)
+  {
+    seq2[i] = getRand();
+    fseq2[i] = getRandInRange(0.0F, 1.0F);
+  }
+
+  setRandSeed(seed + 1);
+  REQUIRE(seed + 1 == getRandSeed());
+  std::vector<uint32_t> seq3(1000);
+  std::vector<float> fseq3(1000);
+  for (size_t i = 0; i < 1000; i++)
+  {
+    seq3[i] = getRand();
+    fseq3[i] = getRandInRange(0.0F, 1.0F);
+  }
+
+  REQUIRE(seq1 == seq2);
+  REQUIRE(seq1 != seq3);
+
+  REQUIRE(fseq1 == fseq2);
+  REQUIRE(fseq1 != fseq3);
 }
 
 template<typename valtype>

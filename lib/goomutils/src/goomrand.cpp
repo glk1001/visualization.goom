@@ -1,5 +1,8 @@
 #include "goomutils/goomrand.h"
 
+#include "goomutils/logging_control.h"
+//#undef NO_LOGGING
+#include "goomutils/logging.h"
 #include "goomutils/splitmix.hpp"
 #include "goomutils/xoshiro.hpp"
 
@@ -19,7 +22,13 @@ namespace goom::utils
 const uint32_t randMax = (xoshiro256plus64::max() > std::numeric_limits<uint32_t>::max())
                              ? std::numeric_limits<uint32_t>::max()
                              : xoshiro256plus64::max();
+
+// NOTE: C++ std::uniform_int_distribution is too expensive (about double) so we use Xoshiro
+//   and multiplication/shift technique. For timings, see tests/test_goomrand.cpp.
+// thread_local xoshiro256starstar64 eng { getRandSeed() };
+
 thread_local uint64_t randSeed = std::random_device{}();
+thread_local xoshiro256plus64 xoshiroEng{getRandSeed()};
 
 uint64_t getRandSeed()
 {
@@ -29,12 +38,8 @@ uint64_t getRandSeed()
 void setRandSeed(const uint64_t seed)
 {
   randSeed = seed;
+  xoshiroEng = getRandSeed();
 }
-
-// NOTE: C++ std::uniform_int_distribution is too expensive (about double) so we use Xoshiro
-//   and multiplication/shift technique. For timings, see tests/test_goomrand.cpp.
-// thread_local xoshiro256starstar64 eng { getRandSeed() };
-thread_local xoshiro256plus64 xoshiroEng{getRandSeed()};
 
 inline uint32_t randXoshiroFunc(const uint32_t n0, const uint32_t n1)
 {
@@ -72,6 +77,12 @@ uint32_t getRandInRange(const uint32_t n0, const uint32_t n1)
     throw std::logic_error("uint n0 >= n1");
   }
 #endif
+#ifndef NO_LOGGING
+  const uint32_t randVal = randXoshiroFunc(n0, n1);
+  logDebug("randVal = {}", randVal);
+  return randVal;
+#endif
+
   return randXoshiroFunc(n0, n1);
 }
 
@@ -98,9 +109,8 @@ float getRandInRange(const float x0, const float x1)
   }
 #endif
 
-  thread_local xoshiro256plus64 eng{std::random_device{}()};
-  static const float eng_max = static_cast<float>(eng.max());
-  const float t = static_cast<float>(eng()) / eng_max;
+  static const float eng_max = static_cast<float>(randMax);
+  const float t = static_cast<float>(randXoshiroFunc(0, randMax)) / eng_max;
   return std::lerp(x0, x1, t);
   //  thread_local std::uniform_real_distribution<> dis(0, 1);
   //  return std::lerp(x0, x1, static_cast<float>(dis(eng)));
