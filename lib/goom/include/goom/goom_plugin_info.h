@@ -50,6 +50,15 @@ private:
   std::unique_ptr<SoundInfo> soundInfo;
 };
 
+class WritablePluginInfo : public PluginInfo
+{
+public:
+  WritablePluginInfo() noexcept;
+  WritablePluginInfo(const uint16_t width, const uint16_t height) noexcept;
+
+  void processSoundSample(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN]);
+};
+
 
 inline PluginInfo::PluginInfo() noexcept : screen{0, 0, 0}, soundInfo{nullptr}
 {
@@ -85,6 +94,21 @@ inline const SoundInfo& PluginInfo::getSoundInfo() const
 inline void PluginInfo::processSoundSample(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN])
 {
   soundInfo->processSample(data);
+}
+
+inline WritablePluginInfo::WritablePluginInfo() noexcept : PluginInfo{}
+{
+}
+
+inline WritablePluginInfo::WritablePluginInfo(const uint16_t width, const uint16_t height) noexcept
+  : PluginInfo{width, height}
+{
+}
+
+inline void WritablePluginInfo::processSoundSample(
+    const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN])
+{
+  PluginInfo::processSoundSample(data);
 }
 
 } // namespace goom

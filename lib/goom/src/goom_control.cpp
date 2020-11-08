@@ -1050,30 +1050,6 @@ bool GoomData::operator==(const GoomData& d) const
          zoomFilterData == d.zoomFilterData;
 }
 
-class WritablePluginInfo : public PluginInfo
-{
-public:
-  WritablePluginInfo() noexcept;
-  WritablePluginInfo(const uint16_t width, const uint16_t height) noexcept;
-
-  void processSoundSample(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN]);
-};
-
-WritablePluginInfo::WritablePluginInfo() noexcept : PluginInfo{}
-{
-}
-
-WritablePluginInfo::WritablePluginInfo(const uint16_t width, const uint16_t height) noexcept
-  : PluginInfo{width, height}
-{
-}
-
-inline void WritablePluginInfo::processSoundSample(
-    const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN])
-{
-  PluginInfo::processSoundSample(data);
-}
-
 class GoomControl::GoomControlImpl
 {
 public:

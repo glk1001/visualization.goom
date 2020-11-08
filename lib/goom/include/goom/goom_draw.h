@@ -12,11 +12,6 @@
 namespace goom
 {
 
-namespace nhlohmann
-{
-class json;
-}
-
 class GoomDraw
 {
 public:
