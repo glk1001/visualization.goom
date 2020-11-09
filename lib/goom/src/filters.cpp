@@ -14,6 +14,7 @@
 
 #include "filters.h"
 
+#include "colorutils.h"
 #include "goom_config.h"
 #include "goom_graphic.h"
 #include "goom_plugin_info.h"
@@ -21,9 +22,9 @@
 #include "goom_visual_fx.h"
 #include "goomutils/goomrand.h"
 #include "goomutils/logging_control.h"
-#include "goomutils/mathutils.h"
 //#undef NO_LOGGING
 #include "goomutils/logging.h"
+#include "goomutils/mathutils.h"
 #include "v3d.h"
 
 #include <algorithm>
@@ -666,7 +667,7 @@ inline float ZoomFilterFx::ZoomFilterImpl::toNormalizedCoord(const int32_t pixma
 
 inline int32_t ZoomFilterFx::ZoomFilterImpl::toPixmapCoord(const float normalizedCoord)
 {
-  return static_cast<int32_t>(ratioNormalizedCoordToPixmap * normalizedCoord);
+  return static_cast<int32_t>(std::lround(ratioNormalizedCoordToPixmap * normalizedCoord));
 }
 
 void ZoomFilterFx::ZoomFilterImpl::log(const StatsLogValueFunc& logVal) const
@@ -900,45 +901,75 @@ void ZoomFilterFx::ZoomFilterImpl::c_zoom(const Pixel* srceBuff, Pixel* destBuff
   const uint32_t tran_ax = (screenWidth - 1) << perteDec;
   const uint32_t tran_ay = (screenHeight - 1) << perteDec;
 
-  for (uint32_t destPos = 0; destPos < screenWidth * screenHeight; destPos++)
+  uint32_t destPos = 0;
+  for (uint32_t destY = 0; destY < screenHeight; destY++)
   {
-    const uint32_t tran_px = static_cast<uint32_t>(
-        tranXSrce[destPos] +
-        (((tranXDest[destPos] - tranXSrce[destPos]) * tranDiffFactor) >> buffPointNum));
-    const uint32_t tran_py = static_cast<uint32_t>(
-        tranYSrce[destPos] +
-        (((tranYDest[destPos] - tranYSrce[destPos]) * tranDiffFactor) >> buffPointNum));
-
-    if ((tran_px >= tran_ax) || (tran_py >= tran_ay))
+    for (uint32_t destX = 0; destX < screenWidth; destX++)
     {
-      stats.doCZoomOutOfRange();
-      setPixelColor(destBuff, destPos, Pixel{0U});
-    }
-    else
-    {
-      // coeff en modulo 15
-      const CoeffArray coeffs{.intVal = precalcCoeffs[tran_px & perteMask][tran_py & perteMask]};
+      const uint32_t tran_px = static_cast<uint32_t>(
+          tranXSrce[destPos] +
+          (((tranXDest[destPos] - tranXSrce[destPos]) * tranDiffFactor) >> buffPointNum));
+      const uint32_t tran_py = static_cast<uint32_t>(
+          tranYSrce[destPos] +
+          (((tranYDest[destPos] - tranYSrce[destPos]) * tranDiffFactor) >> buffPointNum));
 
-      const uint32_t srcePos = (tran_px >> perteDec) + screenWidth * (tran_py >> perteDec);
-      const PixelArray colors = {
-          getPixelColor(srceBuff, srcePos),
-          getPixelColor(srceBuff, srcePos + 1),
-          getPixelColor(srceBuff, srcePos + screenWidth),
-          getPixelColor(srceBuff, srcePos + screenWidth + 1),
-      };
-
-      if (filterData.blockyWavy)
+      if ((tran_px >= tran_ax) || (tran_py >= tran_ay))
       {
-        stats.doGetBlockyMixedColor();
-        const Pixel newColor = getBlockyMixedColor(coeffs, colors);
-        setPixelColor(destBuff, destPos, newColor);
+        stats.doCZoomOutOfRange();
+        setPixelColor(destBuff, destPos, Pixel{0U});
       }
       else
       {
-        stats.doGetMixedColor();
-        const Pixel newColor = getMixedColor(coeffs, colors);
-        setPixelColor(destBuff, destPos, newColor);
+        const uint32_t srcePos = (tran_px >> perteDec) + screenWidth * (tran_py >> perteDec);
+        // coeff en modulo 15
+        const size_t xIndex = tran_px & perteMask;
+        const size_t yIndex = tran_py & perteMask;
+        const CoeffArray coeffs{.intVal = precalcCoeffs[xIndex][yIndex]};
+
+        const PixelArray colors = {
+            getPixelColor(srceBuff, srcePos),
+            getPixelColor(srceBuff, srcePos + 1),
+            getPixelColor(srceBuff, srcePos + screenWidth),
+            getPixelColor(srceBuff, srcePos + screenWidth + 1),
+        };
+
+        if (filterData.blockyWavy)
+        {
+          stats.doGetBlockyMixedColor();
+          const Pixel newColor = getBlockyMixedColor(coeffs, colors);
+          setPixelColor(destBuff, destPos, newColor);
+        }
+        else
+        {
+          stats.doGetMixedColor();
+          const Pixel newColor = getMixedColor(coeffs, colors);
+          setPixelColor(destBuff, destPos, newColor);
+
+          //        if (600 < (tran_px >> perteDec) && (tran_px >> perteDec) < 680 &&
+          //            320 < (tran_py >> perteDec) && (tran_py >> perteDec) < 400)
+          if (colors[0].rgba() > 0xFF000000)
+          {
+            logInfo("srcePos == {}", srcePos);
+            logInfo("destPos == {}", destPos);
+            logInfo("tran_px >> perteDec == {}", tran_px >> perteDec);
+            logInfo("tran_py >> perteDec == {}", tran_py >> perteDec);
+            logInfo("tran_px == {}", tran_px);
+            logInfo("tran_py == {}", tran_py);
+            logInfo("tran_px & perteMask == {}", tran_px & perteMask);
+            logInfo("tran_py & perteMask == {}", tran_py & perteMask);
+            logInfo("coeffs[0] == {:x}", coeffs.c[0]);
+            logInfo("coeffs[1] == {:x}", coeffs.c[1]);
+            logInfo("coeffs[2] == {:x}", coeffs.c[2]);
+            logInfo("coeffs[3] == {:x}", coeffs.c[3]);
+            logInfo("colors[0] == {:x}", colors[0].rgba());
+            logInfo("colors[1] == {:x}", colors[1].rgba());
+            logInfo("colors[2] == {:x}", colors[2].rgba());
+            logInfo("colors[3] == {:x}", colors[3].rgba());
+            logInfo("newColor == {:x}", newColor.rgba());
+          }
+        }
       }
+      destPos++;
     }
   }
 }
@@ -967,18 +998,16 @@ void ZoomFilterFx::ZoomFilterImpl::makeZoomBufferStripe(const uint32_t interlace
   // Position of the pixel to compute in pixmap coordinates
   for (uint32_t y = static_cast<uint32_t>(interlaceStart); y < maxEnd; y++)
   {
-    uint32_t brutPos = y * screenWidth;
+    uint32_t tranPos = y * screenWidth;
     float normX = -toNormalizedCoord(static_cast<int32_t>(filterData.middleX));
     for (uint32_t x = 0; x < screenWidth; x++)
     {
       const v2g vector = getZoomVector(normX, normY);
 
-      tranXTemp[brutPos] =
-          std::lround(toPixmapCoord((normX - vector.x + normMiddleX) * buffPointNumFlt));
-      tranYTemp[brutPos] =
-          std::lround(toPixmapCoord((normY - vector.y + normMiddleY) * buffPointNumFlt));
+      tranXTemp[tranPos] = toPixmapCoord((normX - vector.x + normMiddleX) * buffPointNumFlt);
+      tranYTemp[tranPos] = toPixmapCoord((normY - vector.y + normMiddleY) * buffPointNumFlt);
 
-      brutPos++;
+      tranPos++;
       incNormalizedCoord(normX);
     }
     incNormalizedCoord(normY);

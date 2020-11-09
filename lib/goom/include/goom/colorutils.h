@@ -14,6 +14,7 @@ namespace goom
 Pixel getIntColor(const uint8_t r, const uint8_t g, const uint8_t b);
 
 Pixel getColorAdd(const Pixel& color1, const Pixel& color2, const bool allowOverexposed);
+Pixel getColorSubtract(const Pixel& color1, const Pixel& color2);
 Pixel getBrighterColorInt(const uint32_t brightness,
                           const Pixel& color,
                           const bool allowOverexposed);
@@ -34,6 +35,15 @@ uint32_t getLuma(const Pixel& color);
 inline uint32_t colorChannelAdd(const uint8_t c1, const uint8_t c2)
 {
   return static_cast<uint32_t>(c1) + static_cast<uint32_t>(c2);
+}
+
+inline uint32_t colorChannelSubtract(const uint8_t c1, const uint8_t c2)
+{
+  if (c1 < c2)
+  {
+    return 0;
+  }
+  return static_cast<uint32_t>(c1) - static_cast<uint32_t>(c2);
 }
 
 inline Pixel getColorAdd(const Pixel& color1, const Pixel& color2, const bool allowOverexposed)
@@ -60,6 +70,21 @@ inline Pixel getColorAdd(const Pixel& color1, const Pixel& color2, const bool al
       .g = static_cast<uint8_t>((newG & 0xffffff00) ? 0xff : newG),
       .b = static_cast<uint8_t>((newB & 0xffffff00) ? 0xff : newB),
       .a = static_cast<uint8_t>((newA & 0xffffff00) ? 0xff : newA),
+  }};
+}
+
+inline Pixel getColorSubtract(const Pixel& color1, const Pixel& color2)
+{
+  const uint32_t newR = colorChannelSubtract(color1.r(), color2.r());
+  const uint32_t newG = colorChannelSubtract(color1.g(), color2.g());
+  const uint32_t newB = colorChannelSubtract(color1.b(), color2.b());
+  const uint32_t newA = colorChannelSubtract(color1.a(), color2.a());
+
+  return Pixel{{
+      .r = static_cast<uint8_t>(newR),
+      .g = static_cast<uint8_t>(newG),
+      .b = static_cast<uint8_t>(newB),
+      .a = static_cast<uint8_t>(newA),
   }};
 }
 
@@ -103,7 +128,7 @@ inline Pixel getBrighterColor(const float brightness,
                               const Pixel& color,
                               const bool allowOverexposed)
 {
-  assert(brightness >= 0.0 && brightness <= 1.0);
+  assert(brightness >= 0.0 && brightness <= 2.0);
   const uint32_t br = static_cast<uint32_t>(std::round(brightness * 256 + 0.0001f));
   return getBrighterColorInt(br, color, allowOverexposed);
 }
