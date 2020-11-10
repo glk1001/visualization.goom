@@ -89,7 +89,7 @@ public:
   void serialize(Archive&);
 
 private:
-  ColorModes colorMode = ColorModes::multiGroups;
+  ColorModes colorMode = ColorModes::oneGroupForAll;
   struct IterationParams
   {
     size_t numNodes = 200;

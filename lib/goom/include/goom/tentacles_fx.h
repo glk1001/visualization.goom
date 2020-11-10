@@ -25,6 +25,8 @@ public:
   std::string getFxName() const override;
   void setBuffSettings(const FXBuffSettings&) override;
 
+  void freshStart();
+
   void start() override;
 
   void applyNoDraw() override;

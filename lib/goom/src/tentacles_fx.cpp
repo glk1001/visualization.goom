@@ -388,6 +388,7 @@ public:
   TentaclesImpl& operator=(const TentaclesImpl&) = delete;
 
   void setBuffSettings(const FXBuffSettings&);
+  void freshStart();
 
   void update(Pixel* prevBuff, Pixel* currentBuff);
   void updateWithNoDraw();
@@ -506,6 +507,11 @@ bool TentaclesFx::operator==(const TentaclesFx& t) const
 void TentaclesFx::setBuffSettings(const FXBuffSettings& settings)
 {
   fxImpl->setBuffSettings(settings);
+}
+
+void TentaclesFx::freshStart()
+{
+  fxImpl->freshStart();
 }
 
 void TentaclesFx::start()
@@ -756,13 +762,28 @@ void TentaclesFx::TentaclesImpl::updateWithNoDraw()
   changeDominantColor();
 }
 
+void TentaclesFx::TentaclesImpl::freshStart()
+{
+  currentDriver->freshStart();
+}
+
 void TentaclesFx::TentaclesImpl::init()
 {
   currentDriver->freshStart();
-  //  currentDriver->setColorMode(static_cast<TentacleDriver::ColorModes>(getRandInRange(0u, 2u)));
-  //  currentDriver->setColorMode(static_cast<TentacleDriver::ColorModes>(getRandInRange(1u, 2u)));
-  //  currentDriver->setColorMode(TentacleDriver::ColorModes::oneGroupForAll);
-  currentDriver->setReverseColorMix(probabilityOfMInN(1999, 2000));
+
+  if (probabilityOfMInN(1, 500))
+  {
+    currentDriver->setColorMode(TentacleDriver::ColorModes::minimal);
+  }
+  else if (probabilityOfMInN(1, 500))
+  {
+    currentDriver->setColorMode(TentacleDriver::ColorModes::multiGroups);
+  }
+  else
+  {
+    currentDriver->setColorMode(TentacleDriver::ColorModes::oneGroupForAll);
+  }
+  currentDriver->setReverseColorMix(probabilityOfMInN(3, 10));
 
   distt = std::lerp(disttMin, disttMax, 0.3);
   distt2 = distt2Min;
