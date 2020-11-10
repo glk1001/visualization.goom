@@ -47,6 +47,7 @@
 // #undef NO_LOGGING
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
+#include "goomutils/strutils.h"
 
 #include <array>
 
@@ -71,11 +72,6 @@ namespace goom
 {
 
 using namespace goom::utils;
-
-inline bool changeCurrentColorMapEvent()
-{
-  return probabilityOfMInN(1, 10);
-}
 
 inline bool megaChangeColorMapEvent()
 {
@@ -182,23 +178,14 @@ struct Fractal
 class Colorizer
 {
 public:
-  enum class ColorMode
-  {
-    mapColors,
-    mixColors,
-    reverseMixColors,
-    megaMapColorChange,
-    megaMixColorChange,
-    singleColors,
-  };
-
   Colorizer() noexcept;
   Colorizer(const Colorizer&) = delete;
   Colorizer& operator=(const Colorizer&) = delete;
 
   const ColorMaps& getColorMaps() const;
 
-  ColorMode getColorMode() const;
+  IfsFx::ColorMode getColorMode() const;
+  void setForcedColorMode(const IfsFx::ColorMode);
   void changeColorMode();
 
   void changeColorMaps();
@@ -226,8 +213,16 @@ public:
   };
 
 private:
-  const ColorMaps colorMaps;
-  ColorMapGroup currentColorMapGroup;
+  WeightedColorMaps colorMaps{Weights<ColorMapGroup>{{
+      {ColorMapGroup::perceptuallyUniformSequential, 10},
+      {ColorMapGroup::sequential, 10},
+      {ColorMapGroup::sequential2, 10},
+      {ColorMapGroup::cyclic, 10},
+      {ColorMapGroup::diverging, 20},
+      {ColorMapGroup::diverging_black, 1},
+      {ColorMapGroup::qualitative, 10},
+      {ColorMapGroup::misc, 20},
+  }}};
   const ColorMap* mixerMap;
   const ColorMap* prevMixerMap;
   mutable uint32_t countSinceColorMapChange = 0;
@@ -235,19 +230,14 @@ private:
   static constexpr uint32_t maxColorMapChangeCompleted = 10000;
   uint32_t colorMapChangeCompleted = minColorMapChangeCompleted;
 
-  ColorMode colorMode;
-  float tBetweenColors; // in [0, 1]
-  static ColorMode getNextColorMode();
+  IfsFx::ColorMode colorMode = IfsFx::ColorMode::mapColors;
+  IfsFx::ColorMode forcedColorMode = IfsFx::ColorMode::_null;
+  float tBetweenColors = 0.5; // in [0, 1]
+  static IfsFx::ColorMode getNextColorMode();
   Pixel getNextMixerMapColor(const float t) const;
 };
 
-Colorizer::Colorizer() noexcept
-  : colorMaps{},
-    currentColorMapGroup{colorMaps.getRandomGroup()},
-    mixerMap{&colorMaps.getRandomColorMap(currentColorMapGroup)},
-    prevMixerMap{mixerMap},
-    colorMode{ColorMode::mapColors},
-    tBetweenColors{0.5}
+Colorizer::Colorizer() noexcept : mixerMap{&colorMaps.getRandomColorMap()}, prevMixerMap{mixerMap}
 {
 }
 
@@ -256,26 +246,40 @@ inline const ColorMaps& Colorizer::getColorMaps() const
   return colorMaps;
 }
 
-inline Colorizer::ColorMode Colorizer::getColorMode() const
+inline IfsFx::ColorMode Colorizer::getColorMode() const
 {
   return colorMode;
 }
 
-void Colorizer::changeColorMode()
+inline void Colorizer::setForcedColorMode(const IfsFx::ColorMode c)
 {
-  colorMode = getNextColorMode();
+  forcedColorMode = c;
 }
 
-Colorizer::ColorMode Colorizer::getNextColorMode()
+void Colorizer::changeColorMode()
+{
+  if (forcedColorMode != IfsFx::ColorMode::_null)
+  {
+    colorMode = forcedColorMode;
+  }
+  else
+  {
+    colorMode = getNextColorMode();
+  }
+}
+
+IfsFx::ColorMode Colorizer::getNextColorMode()
 {
   // clang-format off
-  static const Weights<Colorizer::ColorMode> colorModeWeights{{
-    { Colorizer::ColorMode::mapColors,           15 },
-    { Colorizer::ColorMode::megaMapColorChange, 100 },
-    { Colorizer::ColorMode::mixColors,           10 },
-    { Colorizer::ColorMode::megaMixColorChange,  10 },
-    { Colorizer::ColorMode::reverseMixColors,    10 },
-    { Colorizer::ColorMode::singleColors,         5 },
+  static const Weights<IfsFx::ColorMode> colorModeWeights{{
+    { IfsFx::ColorMode::mapColors,           15 },
+    { IfsFx::ColorMode::megaMapColorChange, 100 },
+    { IfsFx::ColorMode::mixColors,           10 },
+    { IfsFx::ColorMode::megaMixColorChange,  10 },
+    { IfsFx::ColorMode::reverseMixColors,    10 },
+    { IfsFx::ColorMode::singleColors,         5 },
+    { IfsFx::ColorMode::sineMixColors,       15 },
+    { IfsFx::ColorMode::sineMapColors,       15 },
   }};
   // clang-format on
 
@@ -284,12 +288,10 @@ Colorizer::ColorMode Colorizer::getNextColorMode()
 
 void Colorizer::changeColorMaps()
 {
-  if (changeCurrentColorMapEvent())
-  {
-    currentColorMapGroup = colorMaps.getRandomGroup();
-  }
   prevMixerMap = mixerMap;
-  mixerMap = &colorMaps.getRandomColorMap(currentColorMapGroup);
+  mixerMap = &colorMaps.getRandomColorMap();
+  //  logInfo("prevMixerMap = {}", enumToString(prevMixerMap->getMapName()));
+  //  logInfo("mixerMap = {}", enumToString(mixerMap->getMapName()));
   colorMapChangeCompleted = getRandInRange(minColorMapChangeCompleted, maxColorMapChangeCompleted);
   tBetweenColors = getRandInRange(0.2F, 0.8F);
   countSinceColorMapChange = colorMapChangeCompleted;
@@ -312,26 +314,42 @@ inline Pixel Colorizer::getMixedColor(const Pixel& baseColor, const float tmix)
 {
   switch (colorMode)
   {
-    case ColorMode::mapColors:
-    case ColorMode::megaMapColorChange:
+    case IfsFx::ColorMode::mapColors:
+    case IfsFx::ColorMode::megaMapColorChange:
     {
       const float tBright = static_cast<float>(getLuma(baseColor)) / channel_limits<float>::max();
       return getNextMixerMapColor(tBright);
     }
-    case ColorMode::mixColors:
-    case ColorMode::megaMixColorChange:
+    case IfsFx::ColorMode::mixColors:
+    case IfsFx::ColorMode::megaMixColorChange:
     {
       const Pixel mixColor = getNextMixerMapColor(tmix);
       return ColorMap::colorMix(mixColor, baseColor, tBetweenColors);
     }
-    case ColorMode::reverseMixColors:
+    case IfsFx::ColorMode::reverseMixColors:
     {
       const Pixel mixColor = getNextMixerMapColor(tmix);
       return ColorMap::colorMix(baseColor, mixColor, tBetweenColors);
     }
-    case ColorMode::singleColors:
+    case IfsFx::ColorMode::singleColors:
     {
       return baseColor;
+    }
+    case IfsFx::ColorMode::sineMixColors:
+    case IfsFx::ColorMode::sineMapColors:
+    {
+      static float freq = 20;
+      static const float xStep = 0.1;
+      static float x = 0;
+
+      const Pixel mixColor = getNextMixerMapColor(0.5 * (1.0F + std::sin(freq * x)));
+      x += xStep;
+      if (colorMode == IfsFx::ColorMode::sineMapColors)
+      {
+        //logInfo("Returning color {:x}", mixColor.rgba());
+        return mixColor;
+      };
+      return ColorMap::colorMix(baseColor, mixColor, tBetweenColors);
     }
     default:
       throw std::logic_error("Unknown ColorMode");
@@ -401,6 +419,8 @@ public:
   void applyNoDraw();
   void updateIfs(Pixel* prevBuff, Pixel* currentBuff);
   void setBuffSettings(const FXBuffSettings&);
+  IfsFx::ColorMode getColorMode() const;
+  void setColorMode(const IfsFx::ColorMode);
   void renew();
   void updateIncr();
 
@@ -530,6 +550,16 @@ void IfsFx::apply(Pixel* prevBuff, Pixel* currentBuff)
   }
 
   fxImpl->updateIfs(prevBuff, currentBuff);
+}
+
+IfsFx::ColorMode IfsFx::getColorMode() const
+{
+  return fxImpl->getColorMode();
+}
+
+void IfsFx::setColorMode(const ColorMode c)
+{
+  fxImpl->setColorMode(c);
 }
 
 void IfsFx::updateIncr()
@@ -669,6 +699,16 @@ IfsFx::IfsImpl::~IfsImpl() noexcept
 void IfsFx::IfsImpl::setBuffSettings(const FXBuffSettings& settings)
 {
   buffSettings = settings;
+}
+
+IfsFx::ColorMode IfsFx::IfsImpl::getColorMode() const
+{
+  return colorizer.getColorMode();
+}
+
+void IfsFx::IfsImpl::setColorMode(const IfsFx::ColorMode c)
+{
+  return colorizer.setForcedColorMode(c);
 }
 
 void IfsFx::IfsImpl::renew()
@@ -1063,8 +1103,8 @@ void IfsFx::IfsImpl::updatePixelBuffers(Pixel* prevBuff,
                                         const std::vector<IfsPoint>& points,
                                         const Pixel& color)
 {
-  bool doneColorChange = colorizer.getColorMode() != Colorizer::ColorMode::megaMapColorChange &&
-                         colorizer.getColorMode() != Colorizer::ColorMode::megaMixColorChange;
+  bool doneColorChange = colorizer.getColorMode() != IfsFx::ColorMode::megaMapColorChange &&
+                         colorizer.getColorMode() != IfsFx::ColorMode::megaMixColorChange;
   const float tStep = numPoints == 1 ? 0.0F : (1.0F - 0.0F) / static_cast<float>(numPoints - 1);
   float t = -tStep;
 

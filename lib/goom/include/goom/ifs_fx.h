@@ -20,11 +20,29 @@ class PluginInfo;
 class IfsFx : public VisualFx
 {
 public:
+  enum class ColorMode
+  {
+    _null = -1,
+    mapColors,
+    mixColors,
+    reverseMixColors,
+    megaMapColorChange,
+    megaMixColorChange,
+    singleColors,
+    sineMixColors,
+    sineMapColors,
+  };
+
   IfsFx() noexcept;
   explicit IfsFx(const std::shared_ptr<const PluginInfo>&) noexcept;
   ~IfsFx() noexcept;
   IfsFx(const IfsFx&) = delete;
   IfsFx& operator=(const IfsFx&) = delete;
+
+  // If not colorMode is not set, or set to '_null', returns
+  // random weighted color mode.
+  ColorMode getColorMode() const;
+  void setColorMode(const ColorMode);
 
   void renew();
   void updateIncr();
