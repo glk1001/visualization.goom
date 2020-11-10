@@ -52,6 +52,7 @@
 #include <array>
 
 #undef NDEBUG
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <cereal/archives/json.hpp>
@@ -717,7 +718,7 @@ void IfsFx::IfsImpl::renew()
   colorizer.changeColorMode();
   updateAllowOverexposed();
 
-  root->speed = static_cast<uint32_t>(getRandInRange(1.11F, 5.1F) /
+  root->speed = static_cast<uint32_t>(std::min(getRandInRange(1.11F, 20.0F), 10.0F) /
                                       (1.1F - goomInfo->getSoundInfo().getAcceleration()));
 }
 
@@ -997,19 +998,19 @@ const std::vector<IfsPoint>& IfsFx::IfsImpl::drawIfs()
   const Dbl u3 = u * uu;
 
   Similitude* S = fractal->components.data();
-  Similitude* S1 = S + fractal->numSimi;
+  Similitude* S0 = S + fractal->numSimi;
+  Similitude* S1 = S0 + fractal->numSimi;
   Similitude* S2 = S1 + fractal->numSimi;
   Similitude* S3 = S2 + fractal->numSimi;
-  Similitude* S4 = S3 + fractal->numSimi;
 
-  for (int i = static_cast<int>(fractal->numSimi); i; --i, S++, S1++, S2++, S3++, S4++)
+  for (size_t i = 0; i < fractal->numSimi; i++)
   {
-    S->c_x = u0 * S1->c_x + u1 * S2->c_x + u2 * S3->c_x + u3 * S4->c_x;
-    S->c_y = u0 * S1->c_y + u1 * S2->c_y + u2 * S3->c_y + u3 * S4->c_y;
-    S->r = u0 * S1->r + u1 * S2->r + u2 * S3->r + u3 * S4->r;
-    S->r2 = u0 * S1->r2 + u1 * S2->r2 + u2 * S3->r2 + u3 * S4->r2;
-    S->A = u0 * S1->A + u1 * S2->A + u2 * S3->A + u3 * S4->A;
-    S->A2 = u0 * S1->A2 + u1 * S2->A2 + u2 * S3->A2 + u3 * S4->A2;
+    S[i].c_x = u0 * S0[i].c_x + u1 * S1[i].c_x + u2 * S2[i].c_x + u3 * S3[i].c_x;
+    S[i].c_y = u0 * S0[i].c_y + u1 * S1[i].c_y + u2 * S2[i].c_y + u3 * S3[i].c_y;
+    S[i].r = u0 * S0[i].r + u1 * S1[i].r + u2 * S2[i].r + u3 * S3[i].r;
+    S[i].r2 = u0 * S0[i].r2 + u1 * S1[i].r2 + u2 * S2[i].r2 + u3 * S3[i].r2;
+    S[i].A = u0 * S0[i].A + u1 * S1[i].A + u2 * S2[i].A + u3 * S3[i].A;
+    S[i].A2 = u0 * S0[i].A2 + u1 * S1[i].A2 + u2 * S2[i].A2 + u3 * S3[i].A2;
   }
 
   drawFractal();
@@ -1021,21 +1022,21 @@ const std::vector<IfsPoint>& IfsFx::IfsImpl::drawIfs()
   else
   {
     S = fractal->components.data();
-    S1 = S + fractal->numSimi;
+    S0 = S + fractal->numSimi;
+    S1 = S0 + fractal->numSimi;
     S2 = S1 + fractal->numSimi;
     S3 = S2 + fractal->numSimi;
-    S4 = S3 + fractal->numSimi;
 
-    for (int i = static_cast<int>(fractal->numSimi); i; --i, S++, S1++, S2++, S3++, S4++)
+    for (size_t i = 0; i < fractal->numSimi; i++)
     {
-      S2->c_x = 2.0 * S4->c_x - S3->c_x;
-      S2->c_y = 2.0 * S4->c_y - S3->c_y;
-      S2->r = 2.0 * S4->r - S3->r;
-      S2->r2 = 2.0 * S4->r2 - S3->r2;
-      S2->A = 2.0 * S4->A - S3->A;
-      S2->A2 = 2.0 * S4->A2 - S3->A2;
+      S1[i].c_x = 2.0 * S3[i].c_x - S2[i].c_x;
+      S1[i].c_y = 2.0 * S3[i].c_y - S2[i].c_y;
+      S1[i].r = 2.0 * S3[i].r - S2[i].r;
+      S1[i].r2 = 2.0 * S3[i].r2 - S2[i].r2;
+      S1[i].A = 2.0 * S3[i].A - S2[i].A;
+      S1[i].A2 = 2.0 * S3[i].A2 - S2[i].A2;
 
-      *S1 = *S4;
+      S0[i] = S3[i];
     }
 
     IfsImpl::randomSimis(fractal, fractal->components.data() + 3 * fractal->numSimi,
