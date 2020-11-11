@@ -462,16 +462,16 @@ private:
   TentacleDriver* getNextDriver() const;
   // clang-format off
   const Weights<size_t> driverWeights{{
-      {0, 5},
+      {0,  5},
       {1, 15},
       {2, 15},
-      {3, 15},
+      {3,  5},
   }};
   const std::vector<CirclesTentacleLayout> layouts{
-      {10,  60, {16, 10,  6,  4, 2}, 0},
-      {10,  60, {20, 16, 10,  4, 2}, 0},
-      {10,  80, {30, 20, 14,  6, 4}, 0},
-      {10,  90, {40, 26, 20, 12, 6}, 0},
+      {10,  80, {16, 12,  8,  6, 4}, 0},
+      {10,  80, {20, 16, 12,  6, 4}, 0},
+      {10, 100, {30, 20, 14,  6, 4}, 0},
+      {10, 110, {40, 26, 20, 12, 6}, 0},
   };
   // clang-format on
 

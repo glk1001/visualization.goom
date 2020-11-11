@@ -30,7 +30,7 @@ using namespace goom::utils;
 
 inline bool changeCurrentColorMapEvent()
 {
-  return probabilityOfMInN(1, 5);
+  return probabilityOfMInN(3, 5);
 }
 
 const size_t TentacleDriver::changeCurrentColorMapGroupEveryNUpdates = 400;
@@ -44,16 +44,16 @@ TentacleDriver::TentacleDriver(const uint32_t screenW, const uint32_t screenH) n
   : screenWidth{screenW}, screenHeight{screenH}, draw{screenWidth, screenHeight}
 {
   const IterParamsGroup iter1 = {
-      {100, 0.600, 1.0, {1.5, -10.0, +10.0, m_pi}, 70.0},
-      {125, 0.700, 2.0, {1.0, -10.0, +10.0, 0.0}, 75.0},
+      {100, 0.600, 1.0, {1.5, -10.0, +10.0, m_pi}, 100.0},
+      {125, 0.700, 2.0, {1.0, -10.0, +10.0, 0.0}, 105.0},
   };
   const IterParamsGroup iter2 = {
-      {125, 0.700, 0.5, {1.0, -10.0, +10.0, 0.0}, 70.0},
-      {150, 0.800, 1.5, {1.5, -10.0, +10.0, m_pi}, 75.0},
+      {125, 0.700, 0.5, {1.0, -10.0, +10.0, 0.0}, 100.0},
+      {150, 0.800, 1.5, {1.5, -10.0, +10.0, m_pi}, 105.0},
   };
   const IterParamsGroup iter3 = {
-      {150, 0.800, 1.5, {1.5, -10.0, +10.0, m_pi}, 70.0},
-      {200, 0.900, 2.5, {1.0, -10.0, +10.0, 0.0}, 75.0},
+      {150, 0.800, 1.5, {1.5, -10.0, +10.0, m_pi}, 100.0},
+      {200, 0.900, 2.5, {1.0, -10.0, +10.0, 0.0}, 105.0},
   };
 
   iterParamsGroups = {
@@ -244,9 +244,8 @@ std::unique_ptr<Tentacle2D> TentacleDriver::createNewTentacle2D(const size_t ID,
 {
   logDebug("Creating new tentacle2D {}...", ID);
 
-  //  const size_t tentacleLen =
-  //      size_t(getRandInRange(0.99f, 1.01f) * static_cast<float>(params.length));
-  const size_t tentacleLen = params.length;
+  const size_t tentacleLen = getRandInRange(0.99f, 1.01f) * static_cast<float>(params.length);
+  //const size_t tentacleLen = params.length;
   const double tent2d_xmax = tent2d_xmin + tentacleLen;
 
   std::unique_ptr<Tentacle2D> tentacle{
