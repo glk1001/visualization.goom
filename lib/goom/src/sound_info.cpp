@@ -4,10 +4,73 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <format>
 #include <limits>
+#include <stdexcept>
+#include <vector>
 
 namespace goom
 {
+
+inline int16_t floatToInt16(const float f)
+{
+  if (f >= 1.0f)
+  {
+    return std::numeric_limits<int16_t>::max();
+  }
+  else if (f < -1.0f)
+  {
+    return -std::numeric_limits<int16_t>::max();
+  }
+  else
+  {
+    return static_cast<int16_t>(f * static_cast<float>(std::numeric_limits<int16_t>::max()));
+  }
+}
+
+AudioSamples::AudioSamples(const size_t numSampleChannels,
+                           const float floatAudioData[NUM_AUDIO_SAMPLES * AUDIO_SAMPLE_LEN])
+  : numDistinctChannels{numSampleChannels}, sampleArrays(numChannels)
+{
+  if (numSampleChannels == 0 || numSampleChannels > 2)
+  {
+    throw std::logic_error(
+        std20::format("Invalid 'numSampleChannels == {}. Must be '1' or '2'.", numSampleChannels));
+  }
+
+  sampleArrays[0].resize(AUDIO_SAMPLE_LEN);
+  sampleArrays[1].resize(AUDIO_SAMPLE_LEN);
+
+  if (numChannels == 1)
+  {
+    for (size_t i = 0; i < AUDIO_SAMPLE_LEN; i++)
+    {
+      sampleArrays[0][i] = floatToInt16(floatAudioData[i]);
+      sampleArrays[1][i] = sampleArrays[0][i];
+    }
+  }
+  else
+  {
+    int fpos = 0;
+    for (size_t i = 0; i < AUDIO_SAMPLE_LEN; i++)
+    {
+      sampleArrays[0][i] = floatToInt16(floatAudioData[fpos]);
+      fpos++;
+      sampleArrays[1][i] = floatToInt16(floatAudioData[fpos]);
+      fpos++;
+    }
+  }
+}
+
+const std::vector<int16_t>& AudioSamples::getSample(const size_t channelIndex) const
+{
+  return sampleArrays.at(channelIndex);
+}
+
+std::vector<int16_t>& AudioSamples::getSample(const size_t channelIndex)
+{
+  return sampleArrays.at(channelIndex);
+}
 
 SoundInfo::SoundInfo() noexcept
   : allTimesMaxVolume{std::numeric_limits<int16_t>::min()},
@@ -48,25 +111,26 @@ bool SoundInfo::operator==(const SoundInfo& s) const
          maxAccelSinceLastReset == s.maxAccelSinceLastReset;
 }
 
-void SoundInfo::processSample(const int16_t soundData[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN])
+void SoundInfo::processSample(const AudioSamples& samples)
 {
   // Find the min/max of volumes
   int16_t incVar = 0;
   int16_t maxVar = std::numeric_limits<int16_t>::min();
   int16_t minVar = std::numeric_limits<int16_t>::max();
-  for (size_t i = 0; i < AUDIO_SAMPLE_LEN; i++)
+  const std::vector<int16_t>& soundData = samples.getSample(0);
+  for (size_t i = 0; i < soundData.size(); i++)
   {
-    if (incVar < soundData[0][i])
+    if (incVar < soundData[i])
     {
-      incVar = soundData[0][i];
+      incVar = soundData[i];
     }
-    if (maxVar < soundData[0][i])
+    if (maxVar < soundData[i])
     {
-      maxVar = soundData[0][i];
+      maxVar = soundData[i];
     }
-    if (minVar > soundData[0][i])
+    if (minVar > soundData[i])
     {
-      minVar = soundData[0][i];
+      minVar = soundData[i];
     }
   }
 

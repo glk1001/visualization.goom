@@ -59,7 +59,7 @@ public:
                        const float newAmplitude,
                        const Pixel& newColor);
 
-  void drawGoomLines(const int16_t data[AUDIO_SAMPLE_LEN], Pixel* prevBuff, Pixel* currentBuff);
+  void drawGoomLines(const std::vector<int16_t>& soundData, Pixel* prevBuff, Pixel* currentBuff);
 
   std::string getFxName() const;
   void saveState(std::ostream&) const;
@@ -158,11 +158,11 @@ void LinesFx::switchGoomLines(const LineType newDestID,
   fxImpl->switchGoomLines(newDestID, newParam, newAmplitude, newColor);
 }
 
-void LinesFx::drawGoomLines(const int16_t data[AUDIO_SAMPLE_LEN],
+void LinesFx::drawGoomLines(const std::vector<int16_t>& soundData,
                             Pixel* prevBuff,
                             Pixel* currentBuff)
 {
-  fxImpl->drawGoomLines(data, prevBuff, currentBuff);
+  fxImpl->drawGoomLines(soundData, prevBuff, currentBuff);
 }
 
 template<class Archive>
@@ -385,7 +385,7 @@ Pixel LinesFx::LinesImpl::getRandomLineColor()
   return ColorMap::getRandomColor(colorMaps.getRandomColorMap());
 }
 
-std::vector<float> simpleMovingAverage(const int16_t x[AUDIO_SAMPLE_LEN], const uint32_t winLen)
+std::vector<float> simpleMovingAverage(const std::vector<int16_t>& x, const uint32_t winLen)
 {
   int32_t temp = 0;
   for (size_t i = 0; i < winLen - 1; i++)
@@ -405,18 +405,18 @@ std::vector<float> simpleMovingAverage(const int16_t x[AUDIO_SAMPLE_LEN], const 
   return result;
 }
 
-inline std::vector<float> getDataPoints(const int16_t x[AUDIO_SAMPLE_LEN])
+inline std::vector<float> getDataPoints(const std::vector<int16_t>& x)
 {
   //  return std::vector<float>{x, x + AUDIO_SAMPLE_LEN};
   if (probabilityOfMInN(9999, 10000))
   {
-    return std::vector<float>{x, x + AUDIO_SAMPLE_LEN};
+    return std::vector<float>{x.data(), x.data() + AUDIO_SAMPLE_LEN};
   }
 
   return simpleMovingAverage(x, 5);
 }
 
-void LinesFx::LinesImpl::drawGoomLines(const int16_t audioData[AUDIO_SAMPLE_LEN],
+void LinesFx::LinesImpl::drawGoomLines(const std::vector<int16_t>& soundData,
                                        Pixel* prevBuff,
                                        Pixel* currentBuff)
 {
@@ -456,7 +456,7 @@ void LinesFx::LinesImpl::drawGoomLines(const int16_t audioData[AUDIO_SAMPLE_LEN]
     return std::make_tuple(x, y, modColor);
   };
 
-  const std::vector<float> data = getDataPoints(audioData);
+  const std::vector<float> data = getDataPoints(soundData);
   auto [x1, y1, modColor] = getNextPoint(pt, data[0]);
   constexpr uint8_t thickness = 1;
 

@@ -48,6 +48,9 @@
 #include <variant>
 #include <vector>
 
+CEREAL_REGISTER_TYPE(goom::WritablePluginInfo);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::PluginInfo, goom::WritablePluginInfo);
+
 // #define SHOW_STATE_TEXT_ON_SCREEN
 
 namespace goom
@@ -1066,7 +1069,7 @@ public:
   void start();
   void finish();
 
-  void update(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
+  void update(const AudioSamples&,
               const int forceMode,
               const float fps,
               const char* songTitle,
@@ -1130,8 +1133,8 @@ private:
                       const int far);
 
   // si on est dans un goom : afficher les lignes
-  void displayLinesIfInAGoom(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN]);
-  void displayLines(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN]);
+  void displayLinesIfInAGoom(const AudioSamples&);
+  void displayLines(const AudioSamples&);
 
   // arret demande
   void stopRequest();
@@ -1233,13 +1236,13 @@ void GoomControl::finish()
   controller->finish();
 }
 
-void GoomControl::update(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
+void GoomControl::update(const AudioSamples& soundData,
                          const int forceMode,
                          const float fps,
                          const char* songTitle,
                          const char* message)
 {
-  controller->update(data, forceMode, fps, songTitle, message);
+  controller->update(soundData, forceMode, fps, songTitle, message);
 }
 
 template<class Archive>
@@ -1433,7 +1436,7 @@ void GoomControl::GoomControlImpl::finish()
   }
 }
 
-void GoomControl::GoomControlImpl::update(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
+void GoomControl::GoomControlImpl::update(const AudioSamples& soundData,
                                           const int forceMode,
                                           const float fps,
                                           const char* songTitle,
@@ -1449,7 +1452,7 @@ void GoomControl::GoomControlImpl::update(const int16_t data[NUM_AUDIO_SAMPLES][
   logDebug("sound getTimeSinceLastGoom() = {}", goomInfo->getSoundInfo().getTimeSinceLastGoom());
 
   /* ! etude du signal ... */
-  goomInfo->processSoundSample(data);
+  goomInfo->processSoundSample(soundData);
 
   applyIfsIfRequired();
 
@@ -1503,7 +1506,7 @@ void GoomControl::GoomControlImpl::update(const int16_t data[NUM_AUDIO_SAMPLES][
   // Gestion du Scope - Scope management
   stopIfRequested();
   stopRandomLineChangeMode();
-  displayLinesIfInAGoom(data);
+  displayLinesIfInAGoom(soundData);
 
   // affichage et swappage des buffers...
   visualFx.convolve_fx->convolve(imageBuffers.getP1(), imageBuffers.getOutputBuff());
@@ -2355,8 +2358,7 @@ void GoomControl::GoomControlImpl::stopRandomLineChangeMode()
   }
 }
 
-void GoomControl::GoomControlImpl::displayLines(
-    const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN])
+void GoomControl::GoomControlImpl::displayLines(const AudioSamples& soundData)
 {
   if (!curGDrawables.contains(GoomDrawable::lines))
   {
@@ -2369,8 +2371,8 @@ void GoomControl::GoomControlImpl::displayLines(
 
   gmline2.setPower(gmline1.getPower());
 
-  gmline1.drawGoomLines(data[0], imageBuffers.getP1(), imageBuffers.getP2());
-  gmline2.drawGoomLines(data[1], imageBuffers.getP1(), imageBuffers.getP2());
+  gmline1.drawGoomLines(soundData.getSample(0), imageBuffers.getP1(), imageBuffers.getP2());
+  gmline2.drawGoomLines(soundData.getSample(1), imageBuffers.getP1(), imageBuffers.getP2());
 
   if (((cycle % 121) == 9) && goomEvent.happens(GoomEvent::changeGoomLine) &&
       ((goomData.lineMode == 0) || (goomData.lineMode == goomData.drawLinesDuration)))
@@ -2470,8 +2472,7 @@ void GoomControl::GoomControlImpl::stopIfRequested()
   }
 }
 
-void GoomControl::GoomControlImpl::displayLinesIfInAGoom(
-    const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN])
+void GoomControl::GoomControlImpl::displayLinesIfInAGoom(const AudioSamples& soundData)
 {
   logDebug("goomData.lineMode = {} != 0 || sound getTimeSinceLastGoom() = {}", goomData.lineMode,
            goomInfo->getSoundInfo().getTimeSinceLastGoom());
@@ -2480,7 +2481,7 @@ void GoomControl::GoomControlImpl::displayLinesIfInAGoom(
     logDebug("goomData.lineMode = {} != 0 || sound getTimeSinceLastGoom() = {} < 5",
              goomData.lineMode, goomInfo->getSoundInfo().getTimeSinceLastGoom());
 
-    displayLines(data);
+    displayLines(soundData);
   }
 }
 

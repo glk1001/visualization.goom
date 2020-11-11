@@ -21,7 +21,7 @@
 
 #include "Main.h"
 
-#include "AudioData.h"
+#include "goom/sound_info.h"
 #include "goomutils/logging_control.h"
 #undef NO_LOGGING
 #include "goomutils/logging.h"
@@ -427,8 +427,7 @@ void CVisualizationGoom::UpdateGoomBuffer(const char* title,
                                           const float floatAudioData[],
                                           std::shared_ptr<uint32_t>& pixels)
 {
-  static int16_t audioData[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN];
-  FillAudioDataBuffer(audioData, floatAudioData, m_channels);
+  const goom::AudioSamples audioData{m_channels, floatAudioData};
   m_goomControl->setScreenBuffer(pixels.get());
   m_goomControl->update(audioData, 0, 0.0f, title, "");
 }

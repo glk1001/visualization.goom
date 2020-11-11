@@ -16,6 +16,7 @@
 #include <memory>
 #include <ostream>
 #include <string>
+#include <vector>
 
 namespace goom
 {
@@ -62,7 +63,7 @@ public:
                        const float newAmplitude,
                        const Pixel& newColor);
 
-  void drawGoomLines(const int16_t data[AUDIO_SAMPLE_LEN], Pixel* prevBuff, Pixel* currentBuff);
+  void drawGoomLines(const std::vector<int16_t>& soundData, Pixel* prevBuff, Pixel* currentBuff);
 
   std::string getFxName() const;
   void saveState(std::ostream&) const;

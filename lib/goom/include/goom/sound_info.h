@@ -6,9 +6,34 @@
 #include <cereal/archives/json.hpp>
 #include <cereal/types/memory.hpp>
 #include <cstdint>
+#include <vector>
 
 namespace goom
 {
+
+class AudioSamples
+{
+public:
+  static constexpr size_t numChannels = 2;
+
+  // AudioSample object: numSampleChannels = 1 or 2.
+  //   If numSampleChannels = 1, then the first  AUDIO_SAMPLE_LEN values of
+  //   'floatAudioData' are used to for two channels
+  //   If numSampleChannels = 2, then the 'floatAudioData' must interleave the two channels
+  //   one after the other. So 'floatAudioData[0]' is channel 0, 'floatAudioData[1]'
+  //   is channel 1, 'floatAudioData[2]' is channel 0, 'floatAudioData[3]' is channel 1, etc.
+  AudioSamples(const size_t numSampleChannels,
+               const float floatAudioData[NUM_AUDIO_SAMPLES * AUDIO_SAMPLE_LEN]);
+
+  size_t getNumDistinctChannels() const { return numDistinctChannels; }
+  const std::vector<int16_t>& getSample(const size_t channelIndex) const;
+  std::vector<int16_t>& getSample(const size_t channelIndex);
+
+private:
+  const size_t numDistinctChannels;
+  using SampleArray = std::vector<int16_t>;
+  std::vector<SampleArray> sampleArrays;
+};
 
 class SoundInfo
 {
@@ -17,7 +42,7 @@ public:
   SoundInfo(const SoundInfo&) noexcept;
   ~SoundInfo() noexcept;
 
-  void processSample(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN]);
+  void processSample(const AudioSamples&);
 
   // Note: a Goom is just a sound event...
   uint32_t getTimeSinceLastGoom() const; // >= 0

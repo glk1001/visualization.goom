@@ -75,7 +75,7 @@ protected:
   int TexHeight() const { return m_tex_height; };
   int GoomBufferLen() const { return m_goomBufferLen; };
   const std::string& CurrentSongName() const { return m_currentSongName; };
-  int NumChannels() const { return m_channels; };
+  size_t NumChannels() const { return m_channels; };
   virtual void NoActiveBufferAvailable() {}
   virtual void AudioDataQueueTooBig() {}
   virtual void SkippedAudioData() {}
@@ -102,7 +102,7 @@ private:
   int m_window_xpos;
   int m_window_ypos;
 
-  int m_channels;
+  size_t m_channels;
   std::string m_currentSongName;
   std::string m_lastSongName;
   bool m_titleChange = false;

@@ -12,6 +12,8 @@
 namespace goom
 {
 
+class AudioSamples;
+
 class GoomControl
 {
 public:
@@ -42,7 +44,7 @@ public:
    *      - NULL if it is not the start of the song
    *      - only have a value at the start of the song
    */
-  void update(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN],
+  void update(const AudioSamples&,
               const int forceMode,
               const float fps,
               const char* songTitle,

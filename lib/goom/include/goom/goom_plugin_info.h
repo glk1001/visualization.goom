@@ -30,6 +30,7 @@ public:
   PluginInfo() noexcept;
   PluginInfo(const uint16_t width, const uint16_t height) noexcept;
   PluginInfo(const PluginInfo&) noexcept;
+  virtual ~PluginInfo() noexcept = default;
 
   const Screen getScreenInfo() const;
   const SoundInfo& getSoundInfo() const;
@@ -43,7 +44,7 @@ public:
   };
 
 protected:
-  void processSoundSample(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN]);
+  virtual void processSoundSample(const AudioSamples&);
 
 private:
   Screen screen;
@@ -56,7 +57,7 @@ public:
   WritablePluginInfo() noexcept;
   WritablePluginInfo(const uint16_t width, const uint16_t height) noexcept;
 
-  void processSoundSample(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN]);
+  void processSoundSample(const AudioSamples&) override;
 };
 
 
@@ -91,9 +92,9 @@ inline const SoundInfo& PluginInfo::getSoundInfo() const
   return *soundInfo;
 }
 
-inline void PluginInfo::processSoundSample(const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN])
+inline void PluginInfo::processSoundSample(const AudioSamples& soundData)
 {
-  soundInfo->processSample(data);
+  soundInfo->processSample(soundData);
 }
 
 inline WritablePluginInfo::WritablePluginInfo() noexcept : PluginInfo{}
@@ -105,10 +106,9 @@ inline WritablePluginInfo::WritablePluginInfo(const uint16_t width, const uint16
 {
 }
 
-inline void WritablePluginInfo::processSoundSample(
-    const int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN])
+inline void WritablePluginInfo::processSoundSample(const AudioSamples& soundData)
 {
-  PluginInfo::processSoundSample(data);
+  PluginInfo::processSoundSample(soundData);
 }
 
 } // namespace goom

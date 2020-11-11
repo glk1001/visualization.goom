@@ -8,12 +8,15 @@
 #include "goom/goom_plugin_info.h"
 #include "goom/ifs_fx.h"
 #include "goom/lines_fx.h"
+#include "goom/sound_info.h"
 #include "goom/tentacles_fx.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <iostream>
 #include <memory>
 #include <sstream>
+#include <vector>
 
 using namespace goom;
 
@@ -323,10 +326,12 @@ TEST_CASE("save/restore goom control", "[saveRestoreGoomControl]")
   GoomControl::setRandSeed(seed);
   GoomControl goomControl{screenWidth, screenHeight};
   goomControl.setScreenBuffer(outputBuff.get());
-  int16_t data[NUM_AUDIO_SAMPLES][AUDIO_SAMPLE_LEN];
+  std::vector<float> soundData(NUM_AUDIO_SAMPLES * AUDIO_SAMPLE_LEN);
+  std::fill(soundData.begin(), soundData.end(), 0.5);
+  const AudioSamples audioSamples{2, soundData.data()};
   for (size_t i = 0; i < 100; i++)
   {
-    goomControl.update(data, 0, 0.0F, "Hello Test", "");
+    goomControl.update(audioSamples, 0, 0.0F, "Hello Test", "");
   }
   std::stringstream ss;
   {
