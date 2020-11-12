@@ -946,7 +946,7 @@ void IfsFx::IfsImpl::trace(Fractal* F, const Flt xo, const Flt yo)
 {
   Similitude* Cur = curF->components.data();
   //  logDebug("data->Cur_F->numSimi = {}, xo = {}, yo = {}", data->Cur_F->numSimi, xo, yo);
-  for (int i = static_cast<int>(curF->numSimi); i; --i, Cur++)
+  for (size_t i = 0; i < curF->numSimi; i++)
   {
     Flt x, y;
     transform(Cur, xo, yo, &x, &y);
@@ -965,6 +965,8 @@ void IfsFx::IfsImpl::trace(Fractal* F, const Flt xo, const Flt yo)
       trace(F, x, y);
       F->depth++;
     }
+
+    Cur++;
   }
 }
 
