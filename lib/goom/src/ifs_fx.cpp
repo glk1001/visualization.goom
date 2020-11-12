@@ -769,17 +769,17 @@ void IfsFx::IfsImpl::updateIfs(Pixel* prevBuff, Pixel* currentBuff)
 
   updateData.couleur = getPixel(updateData.col);
 
-  logDebug("updateData.col[ALPHA] = {}", updateData.col[ALPHA]);
-  logDebug("updateData.col[BLEU] = {}", updateData.col[BLEU]);
-  logDebug("updateData.col[VERT] = {}", updateData.col[VERT]);
-  logDebug("updateData.col[ROUGE] = {}", updateData.col[ROUGE]);
+  logDebug("updateData.col[ALPHA] = {:x}", updateData.col[ALPHA]);
+  logDebug("updateData.col[BLEU] = {:x}", updateData.col[BLEU]);
+  logDebug("updateData.col[VERT] = {:x}", updateData.col[VERT]);
+  logDebug("updateData.col[ROUGE] = {:x}", updateData.col[ROUGE]);
 
-  logDebug("updateData.v[ALPHA] = {}", updateData.v[ALPHA]);
-  logDebug("updateData.v[BLEU] = {}", updateData.v[BLEU]);
-  logDebug("updateData.v[VERT] = {}", updateData.v[VERT]);
-  logDebug("updateData.v[ROUGE] = {}", updateData.v[ROUGE]);
+  logDebug("updateData.v[ALPHA] = {:x}", updateData.v[ALPHA]);
+  logDebug("updateData.v[BLEU] = {:x}", updateData.v[BLEU]);
+  logDebug("updateData.v[VERT] = {:x}", updateData.v[VERT]);
+  logDebug("updateData.v[ROUGE] = {:x}", updateData.v[ROUGE]);
 
-  logDebug("updateData.mode = {}", updateData.mode);
+  logDebug("updateData.mode = {:x}", updateData.mode);
 }
 
 void IfsFx::IfsImpl::updateIncr()
@@ -826,6 +826,54 @@ void IfsFx::IfsImpl::updateDecayAndRecay()
 inline int IfsFx::IfsImpl::getIfsIncr() const
 {
   return ifs_incr;
+}
+
+inline void IfsFx::IfsImpl::drawPixel(Pixel* prevBuff,
+                                      Pixel* currentBuff,
+                                      const uint32_t x,
+                                      const uint32_t y,
+                                      const Pixel& ifsColor,
+                                      const float tmix)
+{
+  if (useOldStyleDrawPixel)
+  {
+    const Pixel prevBuffColor = draw.getPixelRGB(prevBuff, x, y);
+    const Pixel mixedColor = colorizer.getMixedColor(ifsColor, tmix);
+    const Pixel finalColor = getColorAdd(prevBuffColor, mixedColor, allowOverexposed);
+    draw.setPixelRGBNoBlend(currentBuff, x, y, finalColor);
+  }
+  else
+  {
+    // TODO buff right way around ??????????????????????????????????????????????????????????????
+    std::vector<Pixel*> buffs{currentBuff, prevBuff};
+    const std::vector<Pixel> colors{colorizer.getMixedColor(ifsColor, tmix), ifsColor};
+    draw.setPixelRGB(buffs, x, y, colors);
+  }
+}
+
+void IfsFx::IfsImpl::updateAllowOverexposed()
+{
+  if (buffSettings.allowOverexposed)
+  {
+    return;
+  }
+
+  if (allowOverexposed)
+  {
+    if (countSinceOverexposed == 0)
+    {
+      allowOverexposed = false;
+    }
+    else
+    {
+      countSinceOverexposed--;
+    }
+  }
+  else if (allowOverexposedEvent())
+  {
+    allowOverexposed = true;
+    countSinceOverexposed = maxCountSinceOverexposed;
+  }
 }
 
 Dbl IfsFx::IfsImpl::gaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S)
@@ -878,68 +926,16 @@ void IfsFx::IfsImpl::randomSimis(const Fractal* fractal, Similitude* cur, uint32
   }
 }
 
-inline void IfsFx::IfsImpl::drawPixel(Pixel* prevBuff,
-                                      Pixel* currentBuff,
-                                      const uint32_t x,
-                                      const uint32_t y,
-                                      const Pixel& ifsColor,
-                                      const float tmix)
+inline void IfsFx::IfsImpl::transform(Similitude* simi, Flt xo, Flt yo, Flt* x, Flt* y)
 {
-  if (useOldStyleDrawPixel)
-  {
-    const Pixel prevBuffColor = draw.getPixelRGB(prevBuff, x, y);
-    const Pixel mixedColor = colorizer.getMixedColor(ifsColor, tmix);
-    const Pixel finalColor = getColorAdd(prevBuffColor, mixedColor, allowOverexposed);
-    draw.setPixelRGBNoBlend(currentBuff, x, y, finalColor);
-  }
-  else
-  {
-    // TODO buff right way around ??????????????????????????????????????????????????????????????
-    std::vector<Pixel*> buffs{currentBuff, prevBuff};
-    const std::vector<Pixel> colors{colorizer.getMixedColor(ifsColor, tmix), ifsColor};
-    draw.setPixelRGB(buffs, x, y, colors);
-  }
-}
+  xo = div_by_unit((xo - simi->Cx) * simi->R);
+  yo = div_by_unit((yo - simi->Cy) * simi->R);
 
-void IfsFx::IfsImpl::updateAllowOverexposed()
-{
-  if (buffSettings.allowOverexposed)
-  {
-    return;
-  }
+  const Flt xx = div_by_unit((xo - simi->Cx) * simi->R2);
+  const Flt yy = div_by_unit((-yo - simi->Cy) * simi->R2);
 
-  if (allowOverexposed)
-  {
-    if (countSinceOverexposed == 0)
-    {
-      allowOverexposed = false;
-    }
-    else
-    {
-      countSinceOverexposed--;
-    }
-  }
-  else if (allowOverexposedEvent())
-  {
-    allowOverexposed = true;
-    countSinceOverexposed = maxCountSinceOverexposed;
-  }
-}
-
-inline void IfsFx::IfsImpl::transform(Similitude* Simi, Flt xo, Flt yo, Flt* x, Flt* y)
-{
-  xo = xo - Simi->Cx;
-  xo = div_by_unit(xo * Simi->R);
-  yo = yo - Simi->Cy;
-  yo = div_by_unit(yo * Simi->R);
-
-  Flt xx = xo - Simi->Cx;
-  xx = div_by_unit(xx * Simi->R2);
-  Flt yy = -yo - Simi->Cy;
-  yy = div_by_unit(yy * Simi->R2);
-
-  *x = div_by_unit(xo * Simi->Ct - yo * Simi->St + xx * Simi->Ct2 - yy * Simi->St2) + Simi->Cx;
-  *y = div_by_unit(xo * Simi->St + yo * Simi->Ct + xx * Simi->St2 + yy * Simi->Ct2) + Simi->Cy;
+  *x = div_by_unit(xo * simi->Ct - yo * simi->St + xx * simi->Ct2 - yy * simi->St2) + simi->Cx;
+  *y = div_by_unit(xo * simi->St + yo * simi->Ct + xx * simi->St2 + yy * simi->Ct2) + simi->Cy;
 }
 
 void IfsFx::IfsImpl::trace(Fractal* F, const Flt xo, const Flt yo)
