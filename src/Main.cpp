@@ -80,8 +80,8 @@ CVisualizationGoom::~CVisualizationGoom()
 // Called when a new soundtrack is played
 //-----------------------------------------------------------------------------
 bool CVisualizationGoom::Start(int iChannels,
-                               int iSamplesPerSec,
-                               int iBitsPerSample,
+                               [[maybe_unused]] int iSamplesPerSec,
+                               [[maybe_unused]] int iBitsPerSample,
                                std::string szSongName)
 {
   if (m_started)
@@ -190,8 +190,8 @@ bool CVisualizationGoom::OnEnabled()
 //-----------------------------------------------------------------------------
 void CVisualizationGoom::AudioData(const float* pAudioData,
                                    int iAudioDataLength,
-                                   float* pFreqData,
-                                   int iFreqDataLength)
+                                   [[maybe_unused]] float* pFreqData,
+                                   [[maybe_unused]] int iFreqDataLength)
 {
   if (!m_started)
   {

@@ -337,10 +337,7 @@ Tentacle3D::Tentacle3D(std::unique_ptr<Tentacle2D> t,
                        const Pixel& headCol,
                        const Pixel& headColLow,
                        const V3d& h) noexcept
-  : tentacle{std::move(t)},
-    headColor{headCol},
-    headColorLow{headColLow},
-    head{h}
+  : tentacle{std::move(t)}, headColor{headCol}, headColorLow{headColLow}, head{h}
 {
 }
 

@@ -76,7 +76,7 @@ ExpDampingFunction::ExpDampingFunction(const double amp,
                                        const double yAtStartToRise,
                                        const double xmax,
                                        const double yAtXMax)
-  : k{0}, b{0}, amplitude(amp)
+  : amplitude(amp)
 {
   constexpr double minAmp = 0.00001;
   if (std::fabs(amplitude) < minAmp)
@@ -151,7 +151,7 @@ SineWaveMultiplier::SineWaveMultiplier(const float freq,
                                        const float lwr,
                                        const float upr,
                                        const float x0) noexcept
-  : x{x0}, frequency{freq}, lower{lwr}, upper{upr}, piStepFrac{1.0 / 16.0}, rangeMapper{-1, +1}
+  : rangeMapper{-1, +1}, frequency{freq}, lower{lwr}, upper{upr}, piStepFrac{1.0 / 16.0}, x{x0}
 {
 }
 

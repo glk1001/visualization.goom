@@ -70,7 +70,7 @@ protected:
   const static size_t g_num_audio_buffers_in_circular_buffer = 16;
   const goom::GoomControl& getGoomControl() const { return *m_goomControl; };
   goom::GoomControl& getGoomControl() { return *m_goomControl; };
-  int AudioBufferLen() const { return m_audioBufferLen; };
+  size_t AudioBufferLen() const { return m_audioBufferLen; };
   int TexWidth() const { return m_tex_width; };
   int TexHeight() const { return m_tex_height; };
   int GoomBufferLen() const { return m_goomBufferLen; };
@@ -94,8 +94,8 @@ private:
   int m_tex_width = GOOM_TEXTURE_WIDTH;
   int m_tex_height = GOOM_TEXTURE_HEIGHT;
   size_t m_goomBufferSize;
-  int m_goomBufferLen;
-  int m_audioBufferLen;
+  size_t m_goomBufferLen;
+  size_t m_audioBufferLen;
 
   int m_window_width;
   int m_window_height;

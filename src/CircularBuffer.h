@@ -28,12 +28,14 @@ template<typename T>
 class circular_buffer
 {
 public:
-  circular_buffer(unsigned p_size) : readptr(0), writeptr(0), size(p_size), used(0)
+  circular_buffer(unsigned p_size) : size{p_size}
   {
     buffer.resize(p_size);
   }
+
   unsigned data_available() { return used; }
   unsigned free_space() { return size - used; }
+
   bool write(const T* src, unsigned count)
   {
     if (count > free_space())
@@ -51,6 +53,7 @@ public:
     }
     return true;
   }
+
   unsigned read(T* dst, unsigned count)
   {
     unsigned done = 0;
@@ -73,13 +76,16 @@ public:
     }
     return done;
   }
+
   void reset() { readptr = writeptr = used = 0; }
+
   void resize(unsigned p_size)
   {
     size = p_size;
     buffer.resize(p_size);
     reset();
   }
+
   bool test_silence() const
   {
     T* begin = (T*)&buffer[0];
@@ -94,6 +100,9 @@ public:
   }
 
 private:
-  std::vector<T> buffer;
-  unsigned readptr, writeptr, used, size;
+  std::vector<T> buffer{};
+  unsigned readptr = 0;
+  unsigned writeptr = 0;
+  unsigned used = 0;
+  unsigned size;
 };

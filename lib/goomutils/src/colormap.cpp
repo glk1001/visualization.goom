@@ -1,9 +1,9 @@
-#include "goomutils/colormap.h"
+#include "colormap.h"
 
+#include "colordata/all_maps.h"
+#include "colordata/colormap_enums.h"
 #include "goom/goom_graphic.h"
-#include "goomutils/colordata/all_maps.h"
-#include "goomutils/colordata/colormap_enums.h"
-#include "goomutils/goomrand.h"
+#include "goomrand.h"
 
 #include <format>
 #include <vector>

@@ -1,32 +1,37 @@
-cmake_minimum_required( VERSION 3.8 )
+cmake_minimum_required(VERSION 3.13)
+
 project(goomutils LANGUAGES CXX)
 
-add_library( ${PROJECT_NAME} STATIC
-    src/all_maps.cpp
-    src/colormap.cpp
-    src/goomrand.cpp
-    src/logging.cpp
-    src/mathutils.cpp
-    src/strutils.cpp
-)
+if(WIN32)
+    add_definitions(-D_WIN32PC)
+endif()
 
-add_library(libs::vivid ALIAS ${PROJECT_NAME})
+add_library( ${PROJECT_NAME} 
+    STATIC
+        src/all_maps.cpp
+        src/colormap.cpp
+        src/goomrand.cpp
+        src/logging.cpp
+        src/mathutils.cpp
+        src/strutils.cpp
+)
 
 target_include_directories( ${PROJECT_NAME}
     PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:include>
+        ${LIBS_DIR}/goom/include
+        ${LIBS_DIR}/goomutils/include
     PRIVATE
-        ${CMAKE_SOURCE_DIR}/lib/goomutils/include/goomutils
-        ${CMAKE_SOURCE_DIR}/lib/goom/include
+        ${LIBS_DIR}/goomutils/include/goomutils
 )
 target_include_directories( ${PROJECT_NAME}
     SYSTEM PRIVATE
-        ${CMAKE_SOURCE_DIR}/lib/vivid/include
-        ${CMAKE_SOURCE_DIR}/lib/fmt/include
-        ${CMAKE_SOURCE_DIR}/lib/cereal/include
-        ${CMAKE_SOURCE_DIR}/lib/magic_enum/include
+        ${LIBS_DIR}/vivid/include
+        ${LIBS_DIR}/fmt/include
+        ${LIBS_DIR}/cereal/include
+        ${LIBS_DIR}/magic_enum/include
 )
 
-set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
-set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
+set_target_properties( ${PROJECT_NAME} 
+    PROPERTIES 
+        POSITION_INDEPENDENT_CODE ON
+)

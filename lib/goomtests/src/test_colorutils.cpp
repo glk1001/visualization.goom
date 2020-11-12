@@ -47,7 +47,7 @@ TEST_CASE("Color channels are brightened", "[color-channel-bright]")
   REQUIRE(getBrighterChannelColor(100, 2) == 100 * 2 / 255);
   REQUIRE(getBrighterChannelColor(11, 20) == 11 * 20 / 255);
   REQUIRE(getBrighterChannelColor(0, 20) == 0);
-  REQUIRE(getBrighterChannelColor(100, 20) == std::clamp(0, 100 * 20 / 255, 255));
+  REQUIRE(getBrighterChannelColor(100, 20) == std::clamp(0U, 100U * 20U / 255U, 255U));
 }
 
 TEST_CASE("Colors are brightened", "[color-bright]")

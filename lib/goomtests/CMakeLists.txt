@@ -1,11 +1,12 @@
-project(goomtests)
+cmake_minimum_required(VERSION 3.13)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR})
+project(goomtests LANGUAGES CXX)
 
-message(STATUS "Tests compile features = \"${COMMON_CXX_COMPILE_FEATURES}\".")
-message(STATUS "Tests C++ warnings = \"${COMMON_CXX_WARNINGS}\".")
+if(WIN32)
+    add_definitions(-D_WIN32PC)
+endif()
 
-add_executable(test_main
+add_executable( ${PROJECT_NAME}
     src/test_main.cpp
     src/test_colorutils.cpp
     src/test_goomrand.cpp
@@ -13,43 +14,28 @@ add_executable(test_main
     src/test_strutils.cpp
 )
 
-target_link_libraries(test_main
-    PRIVATE
+target_link_libraries( ${PROJECT_NAME}
+    PUBLIC
         goom
         goomutils
         vivid
         pthread
 )
 
-target_include_directories(test_main 
-    PUBLIC 
-        "/home/greg/Prj/github/catch2/include"
-        "/home/greg/Prj/github/xbmc/visualization.goom/lib/goom/include/goom"  
-        "/home/greg/Prj/github/xbmc/visualization.goom/lib/goomutils/include/goomutils"
+target_include_directories( ${PROJECT_NAME} 
+    PRIVATE 
+        ${LIBS_DIR}/catch2/include
+        ${LIBS_DIR}/goom/include/goom  
+        ${LIBS_DIR}/goomutils/include/goomutils
 )  
-
-target_include_directories(test_main 
-    SYSTEM PUBLIC 
-        ${CMAKE_SOURCE_DIR}/lib/fmt/include
-        ${CMAKE_SOURCE_DIR}/lib/cereal/include
-        ${CMAKE_SOURCE_DIR}/lib/magic_enum/include
+target_include_directories( ${PROJECT_NAME}
+    SYSTEM PRIVATE 
+        ${LIBS_DIR}/fmt/include
+        ${LIBS_DIR}/cereal/include
+        ${LIBS_DIR}/magic_enum/include
 )
 
-# Hacking?????????????????????????
-set(PARENT_LIB_DIR "/home/greg/Prj/github/xbmc/visualization.goom/build/visualization.goom-prefix/src/visualization.goom-build/lib")
-set(GOOM_LIB "${PARENT_LIB_DIR}/goom/libgoom.a")
-set(GOOMUTILS_LIB "${PARENT_LIB_DIR}/goomutils/libgoomutils.a")
-set(VIVID_LIB "${PARENT_LIB_DIR}/vivid/libvivid.a")
-
-#add_library(goom STATIC IMPORTED)
-#set_property(TARGET goom PROPERTY IMPORTED_LOCATION ${GOOM_LIB})
-
-add_library(goomutils STATIC IMPORTED)
-set_property(TARGET goomutils PROPERTY IMPORTED_LOCATION ${GOOMUTILS_LIB})
-
-add_library(vivid STATIC IMPORTED)
-set_property(TARGET vivid PROPERTY IMPORTED_LOCATION ${VIVID_LIB})
-
-set_target_properties(test_main PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${PROJECT_NAME}/bin
+set_target_properties( ${PROJECT_NAME} 
+    PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${PROJECT_NAME}/bin
 )

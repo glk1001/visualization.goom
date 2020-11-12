@@ -110,8 +110,6 @@ std::tuple<valtype, valtype> getMinMax(const size_t numLoop,
 
 TEST_CASE("uint32_t min max get random", "[uintMinMaxGetRandom]")
 {
-  constexpr uint64_t seed = 1000;
-
   // After a big enough loop, a good random distribution should have
   // covered the entire range: nMin <= n < nMax
   constexpr size_t numLoop = 100000;
@@ -134,8 +132,6 @@ TEST_CASE("uint32_t min max get random", "[uintMinMaxGetRandom]")
 
 TEST_CASE("int32_t min max get random", "[intMinMaxGetRandom]")
 {
-  constexpr uint64_t seed = 1000;
-
   // After a big enough loop, a good random distribution should have
   // covered the entire range: nMin <= n < nMax
   constexpr size_t numLoop = 100000;
@@ -174,8 +170,6 @@ TEST_CASE("int32_t min max get random", "[intMinMaxGetRandom]")
 
 TEST_CASE("float min max get random", "[fltMinMaxGetRandom]")
 {
-  constexpr uint64_t seed = 1000;
-
   // After a big enough loop, a good random distribution should have
   // covered the entire range: nMin <= n < nMax
   constexpr size_t numLoop = 1000000;
