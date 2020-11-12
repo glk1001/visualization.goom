@@ -110,17 +110,17 @@ struct Similitude
 {
   Dbl c_x;
   Dbl c_y;
-  Dbl r;
+  Dbl r1;
   Dbl r2;
-  Dbl A;
+  Dbl A1;
   Dbl A2;
-  Flt Ct;
-  Flt St;
+  Flt Ct1;
+  Flt St1;
   Flt Ct2;
   Flt St2;
   Flt Cx;
   Flt Cy;
-  Flt R;
+  Flt R1;
   Flt R2;
 
   bool operator==(const Similitude& s) const = default;
@@ -136,7 +136,7 @@ struct Similitude
   template<class Archive>
   void serialize(Archive& ar)
   {
-    ar(c_x, c_y, r, r2, A, A2, Ct, St, Ct2, St2, Cx, Cy, R, R2);
+    ar(c_x, c_y, r1, r2, A1, A2, Ct1, St1, Ct2, St2, Cx, Cy, R1, R2);
   };
 };
 
@@ -688,7 +688,7 @@ IfsFx::IfsImpl::IfsImpl(const std::shared_ptr<const PluginInfo>& info) noexcept
   {
     Similitude cur = fractal->components[i];
     logDebug("simi[{}]: c_x = {:.2}, c_y = {:.2}, r = {:.2}, r2 = {:.2}, A = {:.2}, A2 = {:.2}.", i,
-             cur.c_x, cur.c_y, cur.r, cur.r2, cur.A, cur.A2);
+             cur.c_x, cur.c_y, cur.r1, cur.r2, cur.A1, cur.A2);
   }
 #endif
 }
@@ -910,17 +910,17 @@ void IfsFx::IfsImpl::randomSimis(const Fractal* fractal, Similitude* cur, uint32
   {
     cur->c_x = gaussRand(0.0, 4.0, c_AS_factor);
     cur->c_y = gaussRand(0.0, 4.0, c_AS_factor);
-    cur->r = gaussRand(fractal->rMean, 3.0, r_AS_factor);
+    cur->r1 = gaussRand(fractal->rMean, 3.0, r_AS_factor);
     cur->r2 = halfGaussRand(0.0, 2.0, r2_AS_factor);
-    cur->A = gaussRand(0.0, 4.0, A_AS_factor) * (m_pi / 180.0);
+    cur->A1 = gaussRand(0.0, 4.0, A_AS_factor) * (m_pi / 180.0);
     cur->A2 = gaussRand(0.0, 4.0, A2_AS_factor) * (m_pi / 180.0);
-    cur->Ct = 0;
-    cur->St = 0;
+    cur->Ct1 = 0;
+    cur->St1 = 0;
     cur->Ct2 = 0;
     cur->St2 = 0;
     cur->Cx = 0;
     cur->Cy = 0;
-    cur->R = 0;
+    cur->R1 = 0;
     cur->R2 = 0;
     cur++;
   }
@@ -928,14 +928,16 @@ void IfsFx::IfsImpl::randomSimis(const Fractal* fractal, Similitude* cur, uint32
 
 inline void IfsFx::IfsImpl::transform(Similitude* simi, Flt xo, Flt yo, Flt* x, Flt* y)
 {
-  xo = div_by_unit((xo - simi->Cx) * simi->R);
-  yo = div_by_unit((yo - simi->Cy) * simi->R);
+  xo = div_by_unit((xo - simi->Cx) * simi->R1);
+  yo = div_by_unit((yo - simi->Cy) * simi->R1);
 
   const Flt xx = div_by_unit((xo - simi->Cx) * simi->R2);
-  const Flt yy = div_by_unit((-yo - simi->Cy) * simi->R2);
+  // NOTE: changed '-yo - simi->Cy' to 'yo - simi->Cy' for symmetry
+  //   reasons. Not sure it made any difference that's why I kept it.
+  const Flt yy = div_by_unit((yo - simi->Cy) * simi->R2);
 
-  *x = div_by_unit(xo * simi->Ct - yo * simi->St + xx * simi->Ct2 - yy * simi->St2) + simi->Cx;
-  *y = div_by_unit(xo * simi->St + yo * simi->Ct + xx * simi->St2 + yy * simi->Ct2) + simi->Cy;
+  *x = div_by_unit(xo * simi->Ct1 - yo * simi->St1 + xx * simi->Ct2 - yy * simi->St2) + simi->Cx;
+  *y = div_by_unit(xo * simi->St1 + yo * simi->Ct1 + xx * simi->St2 + yy * simi->Ct2) + simi->Cy;
 }
 
 void IfsFx::IfsImpl::trace(Fractal* F, const Flt xo, const Flt yo)
@@ -948,9 +950,9 @@ void IfsFx::IfsImpl::trace(Fractal* F, const Flt xo, const Flt yo)
     transform(Cur, xo, yo, &x, &y);
 
     buff->x =
-        static_cast<uint32_t>(static_cast<Flt>(F->lx) + div_by_2units(x * static_cast<int>(F->lx)));
+        static_cast<uint32_t>(static_cast<Flt>(F->lx) + div_by_2units(x * static_cast<Flt>(F->lx)));
     buff->y =
-        static_cast<uint32_t>(static_cast<Flt>(F->ly) - div_by_2units(y * static_cast<int>(F->ly)));
+        static_cast<uint32_t>(static_cast<Flt>(F->ly) - div_by_2units(y * static_cast<Flt>(F->ly)));
     buff++;
 
     curPt++;
@@ -987,28 +989,30 @@ const std::vector<IfsPoint>& IfsFx::IfsImpl::drawIfs()
   Fractal* fractal = root.get();
 
   const Dbl u = static_cast<Dbl>(fractal->count) * static_cast<Dbl>(fractal->speed) / 1000.0;
-  const Dbl uu = u * u;
+  const Dbl uSq = u * u;
   const Dbl v = 1.0 - u;
-  const Dbl vv = v * v;
-  const Dbl u0 = vv * v;
-  const Dbl u1 = 3.0 * vv * u;
-  const Dbl u2 = 3.0 * v * uu;
-  const Dbl u3 = u * uu;
+  const Dbl vSq = v * v;
+  const Dbl u0 = vSq * v;
+  const Dbl u1 = 3.0 * vSq * u;
+  const Dbl u2 = 3.0 * v * uSq;
+  const Dbl u3 = u * uSq;
 
-  Similitude* S = fractal->components.data();
-  Similitude* S0 = S + fractal->numSimi;
-  Similitude* S1 = S0 + fractal->numSimi;
-  Similitude* S2 = S1 + fractal->numSimi;
-  Similitude* S3 = S2 + fractal->numSimi;
+  Similitude* s = fractal->components.data();
+  Similitude* s0 = s + fractal->numSimi;
+  Similitude* s1 = s0 + fractal->numSimi;
+  Similitude* s2 = s1 + fractal->numSimi;
+  Similitude* s3 = s2 + fractal->numSimi;
 
   for (size_t i = 0; i < fractal->numSimi; i++)
   {
-    S[i].c_x = u0 * S0[i].c_x + u1 * S1[i].c_x + u2 * S2[i].c_x + u3 * S3[i].c_x;
-    S[i].c_y = u0 * S0[i].c_y + u1 * S1[i].c_y + u2 * S2[i].c_y + u3 * S3[i].c_y;
-    S[i].r = u0 * S0[i].r + u1 * S1[i].r + u2 * S2[i].r + u3 * S3[i].r;
-    S[i].r2 = u0 * S0[i].r2 + u1 * S1[i].r2 + u2 * S2[i].r2 + u3 * S3[i].r2;
-    S[i].A = u0 * S0[i].A + u1 * S1[i].A + u2 * S2[i].A + u3 * S3[i].A;
-    S[i].A2 = u0 * S0[i].A2 + u1 * S1[i].A2 + u2 * S2[i].A2 + u3 * S3[i].A2;
+    s[i].c_x = u0 * s0[i].c_x + u1 * s1[i].c_x + u2 * s2[i].c_x + u3 * s3[i].c_x;
+    s[i].c_y = u0 * s0[i].c_y + u1 * s1[i].c_y + u2 * s2[i].c_y + u3 * s3[i].c_y;
+
+    s[i].r1 = u0 * s0[i].r1 + u1 * s1[i].r1 + u2 * s2[i].r1 + u3 * s3[i].r1;
+    s[i].r2 = u0 * s0[i].r2 + u1 * s1[i].r2 + u2 * s2[i].r2 + u3 * s3[i].r2;
+
+    s[i].A1 = u0 * s0[i].A1 + u1 * s1[i].A1 + u2 * s2[i].A1 + u3 * s3[i].A1;
+    s[i].A2 = u0 * s0[i].A2 + u1 * s1[i].A2 + u2 * s2[i].A2 + u3 * s3[i].A2;
   }
 
   drawFractal();
@@ -1019,22 +1023,24 @@ const std::vector<IfsPoint>& IfsFx::IfsImpl::drawIfs()
   }
   else
   {
-    S = fractal->components.data();
-    S0 = S + fractal->numSimi;
-    S1 = S0 + fractal->numSimi;
-    S2 = S1 + fractal->numSimi;
-    S3 = S2 + fractal->numSimi;
+    s = fractal->components.data();
+    s0 = s + fractal->numSimi;
+    s1 = s0 + fractal->numSimi;
+    s2 = s1 + fractal->numSimi;
+    s3 = s2 + fractal->numSimi;
 
     for (size_t i = 0; i < fractal->numSimi; i++)
     {
-      S1[i].c_x = 2.0 * S3[i].c_x - S2[i].c_x;
-      S1[i].c_y = 2.0 * S3[i].c_y - S2[i].c_y;
-      S1[i].r = 2.0 * S3[i].r - S2[i].r;
-      S1[i].r2 = 2.0 * S3[i].r2 - S2[i].r2;
-      S1[i].A = 2.0 * S3[i].A - S2[i].A;
-      S1[i].A2 = 2.0 * S3[i].A2 - S2[i].A2;
+      s1[i].c_x = (2.0 * s3[i].c_x) - s2[i].c_x;
+      s1[i].c_y = (2.0 * s3[i].c_y) - s2[i].c_y;
 
-      S0[i] = S3[i];
+      s1[i].r1 = (2.0 * s3[i].r1) - s2[i].r1;
+      s1[i].r2 = (2.0 * s3[i].r2) - s2[i].r2;
+
+      s1[i].A1 = (2.0 * s3[i].A1) - s2[i].A1;
+      s1[i].A2 = (2.0 * s3[i].A2) - s2[i].A2;
+
+      s0[i] = s3[i];
     }
 
     IfsImpl::randomSimis(fractal, fractal->components.data() + 3 * fractal->numSimi,
@@ -1052,40 +1058,40 @@ void IfsFx::IfsImpl::drawFractal()
 {
   Fractal* fractal = root.get();
   int i;
-  Similitude* Cur;
-  for (Cur = fractal->components.data(), i = static_cast<int>(fractal->numSimi); i; --i, Cur++)
+  Similitude* cur;
+  for (cur = fractal->components.data(), i = static_cast<int>(fractal->numSimi); i; --i, cur++)
   {
-    Cur->Cx = IfsImpl::dbl_to_flt(Cur->c_x);
-    Cur->Cy = IfsImpl::dbl_to_flt(Cur->c_y);
+    cur->Cx = dbl_to_flt(cur->c_x);
+    cur->Cy = dbl_to_flt(cur->c_y);
 
-    Cur->Ct = IfsImpl::dbl_to_flt(cos(Cur->A));
-    Cur->St = IfsImpl::dbl_to_flt(sin(Cur->A));
-    Cur->Ct2 = IfsImpl::dbl_to_flt(cos(Cur->A2));
-    Cur->St2 = IfsImpl::dbl_to_flt(sin(Cur->A2));
+    cur->Ct1 = dbl_to_flt(cos(cur->A1));
+    cur->St1 = dbl_to_flt(sin(cur->A1));
+    cur->Ct2 = dbl_to_flt(cos(cur->A2));
+    cur->St2 = dbl_to_flt(sin(cur->A2));
 
-    Cur->R = IfsImpl::dbl_to_flt(Cur->r);
-    Cur->R2 = IfsImpl::dbl_to_flt(Cur->r2);
+    cur->R1 = dbl_to_flt(cur->r1);
+    cur->R2 = dbl_to_flt(cur->r2);
   }
 
   curPt = 0;
   curF = fractal;
   buff = fractal->buffer2.data();
   int j;
-  for (Cur = fractal->components.data(), i = static_cast<int>(fractal->numSimi); i; --i, Cur++)
+  for (cur = fractal->components.data(), i = static_cast<int>(fractal->numSimi); i; --i, cur++)
   {
-    const Flt xo = Cur->Cx;
-    const Flt yo = Cur->Cy;
+    const Flt xo = cur->Cx;
+    const Flt yo = cur->Cy;
     logDebug("F->numSimi = {}, xo = {}, yo = {}", fractal->numSimi, xo, yo);
-    Similitude* Simi;
-    for (Simi = fractal->components.data(), j = static_cast<int>(fractal->numSimi); j; --j, Simi++)
+    Similitude* simi;
+    for (simi = fractal->components.data(), j = static_cast<int>(fractal->numSimi); j; --j, simi++)
     {
-      if (Simi == Cur)
+      if (simi == cur)
       {
         continue;
       }
       Flt x;
       Flt y;
-      IfsImpl::transform(Simi, xo, yo, &x, &y);
+      IfsImpl::transform(simi, xo, yo, &x, &y);
       trace(fractal, x, y);
     }
   }
