@@ -1,10 +1,10 @@
 #include "flying_stars_fx.h"
 
-#include "colorutils.h"
 #include "goom_draw.h"
 #include "goom_plugin_info.h"
 #include "goom_visual_fx.h"
 #include "goomutils/colormap.h"
+#include "goomutils/colorutils.h"
 #include "goomutils/goomrand.h"
 #include "goomutils/mathutils.h"
 

@@ -12,7 +12,6 @@ endif()
 
 add_library(${PROJECT_NAME} 
     STATIC
-        src/colorutils.cpp
         src/convolve_fx.cpp
         src/draw_methods.cpp
         src/filters.cpp
@@ -27,9 +26,9 @@ add_library(${PROJECT_NAME}
         src/ifs_fx.cpp
         src/lines_fx.cpp
         src/sound_info.cpp
-        src/tentacles_fx.cpp
         src/tentacle_driver.cpp
         src/tentacles.cpp
+        src/tentacles_fx.cpp
 )
 
 target_include_directories(${PROJECT_NAME}

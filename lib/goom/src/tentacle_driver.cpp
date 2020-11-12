@@ -1,8 +1,8 @@
 #include "tentacle_driver.h"
 
-#include "colorutils.h"
 #include "goom_draw.h"
 #include "goomutils/colormap.h"
+#include "goomutils/colorutils.h"
 #include "goomutils/goomrand.h"
 #include "goomutils/logging_control.h"
 //#undef NO_LOGGING

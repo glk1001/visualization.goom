@@ -1,7 +1,7 @@
-#ifndef _GOOM_COLORUTILS_H
-#define _GOOM_COLORUTILS_H
+#ifndef LIB_GOOMUTILS_INCLUDE_GOOMUTILS_COLORUTILS_H_
+#define LIB_GOOMUTILS_INCLUDE_GOOMUTILS_COLORUTILS_H_
 
-#include "goom_graphic.h"
+#include "goom/goom_graphic.h"
 
 #include <algorithm>
 #include <cassert>

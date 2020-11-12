@@ -1,8 +1,8 @@
 #ifndef _DRAW_METHODS_H
 #define _DRAW_METHODS_H
 
-#include "colorutils.h"
 #include "goom_graphic.h"
+#include "goomutils/colorutils.h"
 
 #include <cstddef>
 #include <cstdint>

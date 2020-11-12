@@ -10,6 +10,7 @@ add_library( ${PROJECT_NAME}
     STATIC
         src/all_maps.cpp
         src/colormap.cpp
+        src/colorutils.cpp
         src/goomrand.cpp
         src/logging.cpp
         src/mathutils.cpp

@@ -14,12 +14,12 @@
 
 #include "filters.h"
 
-#include "colorutils.h"
 #include "goom_config.h"
 #include "goom_graphic.h"
 #include "goom_plugin_info.h"
 #include "goom_testing.h"
 #include "goom_visual_fx.h"
+#include "goomutils/colorutils.h"
 #include "goomutils/goomrand.h"
 #include "goomutils/logging_control.h"
 //#undef NO_LOGGING
