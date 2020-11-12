@@ -433,7 +433,6 @@ private:
   GoomDraw draw{};
   Colorizer colorizer{};
   bool useOldStyleDrawPixel = false;
-  bool reverseMixColor = false;
   FXBuffSettings buffSettings{};
 
   bool allowOverexposed = true;
@@ -591,7 +590,7 @@ template<class Archive>
 void IfsFx::IfsImpl::save(Archive& ar) const
 {
   ar(CEREAL_NVP(goomInfo), CEREAL_NVP(root), CEREAL_NVP(draw), CEREAL_NVP(colorizer),
-     CEREAL_NVP(useOldStyleDrawPixel), CEREAL_NVP(reverseMixColor), CEREAL_NVP(allowOverexposed),
+     CEREAL_NVP(useOldStyleDrawPixel), CEREAL_NVP(allowOverexposed),
      CEREAL_NVP(countSinceOverexposed), CEREAL_NVP(curPt), CEREAL_NVP(ifs_incr),
      CEREAL_NVP(decay_ifs), CEREAL_NVP(recay_ifs), CEREAL_NVP(updateData));
 }
@@ -600,7 +599,7 @@ template<class Archive>
 void IfsFx::IfsImpl::load(Archive& ar)
 {
   ar(CEREAL_NVP(goomInfo), CEREAL_NVP(root), CEREAL_NVP(draw), CEREAL_NVP(colorizer),
-     CEREAL_NVP(useOldStyleDrawPixel), CEREAL_NVP(reverseMixColor), CEREAL_NVP(allowOverexposed),
+     CEREAL_NVP(useOldStyleDrawPixel), CEREAL_NVP(allowOverexposed),
      CEREAL_NVP(countSinceOverexposed), CEREAL_NVP(curPt), CEREAL_NVP(ifs_incr),
      CEREAL_NVP(decay_ifs), CEREAL_NVP(recay_ifs), CEREAL_NVP(updateData));
 }
@@ -618,8 +617,7 @@ bool IfsFx::IfsImpl::operator==(const IfsImpl& i) const
 
   return ((goomInfo == nullptr && i.goomInfo == nullptr) || (*goomInfo == *i.goomInfo)) &&
          *root == *i.root && draw == i.draw && colorizer == i.colorizer &&
-         useOldStyleDrawPixel == i.useOldStyleDrawPixel && reverseMixColor == i.reverseMixColor &&
-         allowOverexposed == i.allowOverexposed &&
+         useOldStyleDrawPixel == i.useOldStyleDrawPixel && allowOverexposed == i.allowOverexposed &&
          countSinceOverexposed == i.countSinceOverexposed && curPt == i.curPt &&
          ifs_incr == i.ifs_incr && decay_ifs == i.decay_ifs && recay_ifs == i.recay_ifs &&
          updateData == i.updateData;
@@ -748,7 +746,6 @@ void IfsFx::IfsImpl::updateIfs(Pixel* prevBuff, Pixel* currentBuff)
   // TODO: trouver meilleur soluce pour increment (mettre le code de gestion de l'ifs dans ce fichier)
   //       find the best solution for increment (put the management code of the ifs in this file)
   useOldStyleDrawPixel = probabilityOfMInN(1, 50);
-  reverseMixColor = probabilityOfMInN(1, 5);
 
   updateData.cycle++;
   if (updateData.cycle >= 80)
@@ -899,17 +896,8 @@ inline void IfsFx::IfsImpl::drawPixel(Pixel* prevBuff,
   {
     // TODO buff right way around ??????????????????????????????????????????????????????????????
     std::vector<Pixel*> buffs{currentBuff, prevBuff};
-    const Pixel alteredIfsColor = getEvolvedColor(ifsColor);
-    if (reverseMixColor)
-    {
-      const std::vector<Pixel> colors{alteredIfsColor, colorizer.getMixedColor(ifsColor, tmix)};
-      draw.setPixelRGB(buffs, x, y, colors);
-    }
-    else
-    {
-      const std::vector<Pixel> colors{colorizer.getMixedColor(ifsColor, tmix), alteredIfsColor};
-      draw.setPixelRGB(buffs, x, y, colors);
-    }
+    const std::vector<Pixel> colors{colorizer.getMixedColor(ifsColor, tmix), ifsColor};
+    draw.setPixelRGB(buffs, x, y, colors);
   }
 }
 
