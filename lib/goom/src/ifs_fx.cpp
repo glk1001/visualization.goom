@@ -101,10 +101,10 @@ using Flt = int;
 
 constexpr size_t maxSimi = 6;
 
-#define MAX_DEPTH_2 10
-#define MAX_DEPTH_3 6
-#define MAX_DEPTH_4 4
-#define MAX_DEPTH_5 2
+constexpr size_t maxDepth2 = 10;
+constexpr size_t maxDepth3 = 6;
+constexpr size_t maxDepth4 = 4;
+constexpr size_t maxDepth5 = 2;
 
 struct Similitude
 {
@@ -145,20 +145,14 @@ struct Fractal
   Fractal() noexcept = default;
   Fractal(const std::shared_ptr<const PluginInfo>&) noexcept;
 
-  uint32_t width = 0;
-  uint32_t height = 0;
-
-  uint32_t lx = 0;
-  uint32_t ly = 0;
+  Flt getLx() const { return static_cast<Flt>(lx); }
+  Flt getLy() const { return static_cast<Flt>(ly); }
 
   uint32_t numSimi = 0;
   std::array<Similitude, 5 * maxSimi> components{};
   uint32_t depth = 0;
   uint32_t count = 0;
   uint32_t speed = 6;
-  Dbl rMean = 0;
-  Dbl drMean = 0;
-  Dbl dr2Mean = 0;
   uint32_t curPt = 0;
   uint32_t maxPt = 0;
 
@@ -171,18 +165,26 @@ struct Fractal
   {
     return numSimi == f.numSimi && components == f.components && depth == f.depth &&
            count == f.count && speed == f.speed && width == f.width && height == f.height &&
-           lx == f.lx && ly == f.ly && rMean == f.rMean && drMean == f.drMean &&
+           lx == f.lx && ly == f.ly && rMean == f.rMean && dr1Mean == f.dr1Mean &&
            dr2Mean == f.dr2Mean && curPt == f.curPt && maxPt == f.maxPt;
   }
 
   template<class Archive>
   void serialize(Archive& ar)
   {
-    ar(numSimi, components, depth, count, speed, width, height, lx, ly, rMean, drMean, dr2Mean,
+    ar(numSimi, components, depth, count, speed, width, height, lx, ly, rMean, dr1Mean, dr2Mean,
        curPt, maxPt);
   };
 
 private:
+  uint32_t width = 0;
+  uint32_t height = 0;
+  uint32_t lx = 0;
+  uint32_t ly = 0;
+  Dbl rMean = 0;
+  Dbl dr1Mean = 0;
+  Dbl dr2Mean = 0;
+
   static Dbl gaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S);
   static Dbl halfGaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S);
   static constexpr Dbl get_1_minus_exp_neg_S(const Dbl S);
@@ -198,28 +200,28 @@ Fractal::Fractal(const std::shared_ptr<const PluginInfo>& goomInfo) noexcept
   switch (numCentres)
   {
     case 3:
-      depth = MAX_DEPTH_3;
+      depth = maxDepth3;
       rMean = .6;
-      drMean = .4;
+      dr1Mean = .4;
       dr2Mean = .3;
       break;
     case 4:
-      depth = MAX_DEPTH_4;
+      depth = maxDepth4;
       rMean = .5;
-      drMean = .4;
+      dr1Mean = .4;
       dr2Mean = .3;
       break;
     case 5:
-      depth = MAX_DEPTH_5;
+      depth = maxDepth5;
       rMean = .5;
-      drMean = .4;
+      dr1Mean = .4;
       dr2Mean = .3;
       break;
     case 2:
     default:
-      depth = MAX_DEPTH_2;
+      depth = maxDepth2;
       rMean = .7;
-      drMean = .3;
+      dr1Mean = .3;
       dr2Mean = .4;
       break;
   }
@@ -259,19 +261,19 @@ Dbl Fractal::halfGaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_ex
 void Fractal::randomSimis(Similitude* cur, uint32_t i)
 {
   static const constinit Dbl c_AS_factor = 0.8f * get_1_minus_exp_neg_S(4.0);
-  static const constinit Dbl r_1_minus_exp_neg_S = get_1_minus_exp_neg_S(3.0);
+  static const constinit Dbl r1_1_minus_exp_neg_S = get_1_minus_exp_neg_S(3.0);
   static const constinit Dbl r2_1_minus_exp_neg_S = get_1_minus_exp_neg_S(2.0);
   static const constinit Dbl A_AS_factor = 360.0F * get_1_minus_exp_neg_S(4.0);
   static const constinit Dbl A2_AS_factor = A_AS_factor;
 
-  const Dbl r_AS_factor = drMean * r_1_minus_exp_neg_S;
+  const Dbl r1_AS_factor = dr1Mean * r1_1_minus_exp_neg_S;
   const Dbl r2_AS_factor = dr2Mean * r2_1_minus_exp_neg_S;
 
   while (i--)
   {
     cur->c_x = gaussRand(0.0, 4.0, c_AS_factor);
     cur->c_y = gaussRand(0.0, 4.0, c_AS_factor);
-    cur->r1 = gaussRand(rMean, 3.0, r_AS_factor);
+    cur->r1 = gaussRand(rMean, 3.0, r1_AS_factor);
     cur->r2 = halfGaussRand(0.0, 2.0, r2_AS_factor);
     cur->A1 = gaussRand(0.0, 4.0, A_AS_factor) * (m_pi / 180.0);
     cur->A2 = gaussRand(0.0, 4.0, A2_AS_factor) * (m_pi / 180.0);
@@ -559,7 +561,7 @@ private:
   IfsPoint* buff = nullptr;
   size_t curPt = 0;
   void trace(Fractal*, const Flt xo, const Flt yo);
-  static void transform(Similitude*, Flt xo, Flt yo, Flt* x, Flt* y);
+  static void transform(const Similitude*, Flt xo, Flt yo, Flt* x, Flt* y);
 
   bool initialized = false;
   int ifs_incr = 1; // dessiner l'ifs (0 = non: > = increment)
@@ -930,7 +932,7 @@ void IfsFx::IfsImpl::updateAllowOverexposed()
   }
 }
 
-inline void IfsFx::IfsImpl::transform(Similitude* simi, Flt xo, Flt yo, Flt* x, Flt* y)
+inline void IfsFx::IfsImpl::transform(const Similitude* simi, Flt xo, Flt yo, Flt* x, Flt* y)
 {
   xo = div_by_unit((xo - simi->Cx) * simi->R1);
   yo = div_by_unit((yo - simi->Cy) * simi->R1);
@@ -944,31 +946,29 @@ inline void IfsFx::IfsImpl::transform(Similitude* simi, Flt xo, Flt yo, Flt* x, 
   *y = div_by_unit(xo * simi->St1 + yo * simi->Ct1 + xx * simi->St2 + yy * simi->Ct2) + simi->Cy;
 }
 
-void IfsFx::IfsImpl::trace(Fractal* F, const Flt xo, const Flt yo)
+void IfsFx::IfsImpl::trace(Fractal* fractal, const Flt xo, const Flt yo)
 {
-  Similitude* Cur = curFractal->components.data();
+  Similitude* cur = curFractal->components.data();
   //  logDebug("data->Cur_F->numSimi = {}, xo = {}, yo = {}", data->Cur_F->numSimi, xo, yo);
   for (size_t i = 0; i < curFractal->numSimi; i++)
   {
     Flt x, y;
-    transform(Cur, xo, yo, &x, &y);
+    transform(cur, xo, yo, &x, &y);
 
-    buff->x =
-        static_cast<uint32_t>(static_cast<Flt>(F->lx) + div_by_2units(x * static_cast<Flt>(F->lx)));
-    buff->y =
-        static_cast<uint32_t>(static_cast<Flt>(F->ly) - div_by_2units(y * static_cast<Flt>(F->ly)));
+    buff->x = static_cast<uint32_t>(fractal->getLx() + div_by_2units(x * fractal->getLx()));
+    buff->y = static_cast<uint32_t>(fractal->getLy() - div_by_2units(y * fractal->getLy()));
     buff++;
 
     curPt++;
 
-    if (F->depth && ((x - xo) >> 4) && ((y - yo) >> 4))
+    if (fractal->depth && ((x - xo) >> 4) && ((y - yo) >> 4))
     {
-      F->depth--;
-      trace(F, x, y);
-      F->depth++;
+      fractal->depth--;
+      trace(fractal, x, y);
+      fractal->depth++;
     }
 
-    Cur++;
+    cur++;
   }
 }
 
