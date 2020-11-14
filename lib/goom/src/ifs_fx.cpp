@@ -51,7 +51,7 @@
 
 #include <array>
 
-#undef NDEBUG
+//#undef NDEBUG
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -101,10 +101,21 @@ using Flt = int;
 
 constexpr size_t maxSimi = 6;
 
-constexpr size_t maxDepth2 = 10;
-constexpr size_t maxDepth3 = 6;
-constexpr size_t maxDepth4 = 4;
-constexpr size_t maxDepth5 = 2;
+struct CentreType
+{
+  uint32_t depth;
+  Dbl rMean;
+  Dbl dr1Mean;
+  Dbl dr2Mean;
+};
+// clang-format off
+static const std::vector<CentreType> centreList = {
+  { .depth = 12, .rMean = 0.7, .dr1Mean = 0.3, .dr2Mean = 0.4 },
+  { .depth =  8, .rMean = 0.6, .dr1Mean = 0.4, .dr2Mean = 0.3 },
+  { .depth =  6, .rMean = 0.5, .dr1Mean = 0.4, .dr2Mean = 0.3 },
+  { .depth =  4, .rMean = 0.5, .dr1Mean = 0.4, .dr2Mean = 0.3 },
+};
+// clang-format on
 
 struct Similitude
 {
@@ -143,7 +154,7 @@ struct Similitude
 struct Fractal
 {
   Fractal() noexcept = default;
-  Fractal(const std::shared_ptr<const PluginInfo>&) noexcept;
+  explicit Fractal(const std::shared_ptr<const PluginInfo>&) noexcept;
 
   Flt getLx() const { return static_cast<Flt>(lx); }
   Flt getLy() const { return static_cast<Flt>(ly); }
@@ -196,35 +207,11 @@ Fractal::Fractal(const std::shared_ptr<const PluginInfo>& goomInfo) noexcept
     lx{(width - 1) / 2},
     ly{(height - 1) / 2}
 {
-  const uint32_t numCentres = getNRand(4) + 2;
-  switch (numCentres)
-  {
-    case 3:
-      depth = maxDepth3;
-      rMean = .6;
-      dr1Mean = .4;
-      dr2Mean = .3;
-      break;
-    case 4:
-      depth = maxDepth4;
-      rMean = .5;
-      dr1Mean = .4;
-      dr2Mean = .3;
-      break;
-    case 5:
-      depth = maxDepth5;
-      rMean = .5;
-      dr1Mean = .4;
-      dr2Mean = .3;
-      break;
-    case 2:
-    default:
-      depth = maxDepth2;
-      rMean = .7;
-      dr1Mean = .3;
-      dr2Mean = .4;
-      break;
-  }
+  const size_t numCentres = 2 + getNRand(centreList.size());
+  depth = centreList.at(numCentres - 2).depth;
+  rMean = centreList[numCentres - 2].rMean;
+  dr1Mean = centreList[numCentres - 2].dr1Mean;
+  dr2Mean = centreList[numCentres - 2].dr2Mean;
 
   numSimi = numCentres;
   maxPt = numSimi - 1;
@@ -233,6 +220,11 @@ Fractal::Fractal(const std::shared_ptr<const PluginInfo>& goomInfo) noexcept
     maxPt *= numSimi;
   }
 
+  if (maxPt > 100)
+  {
+    logWarn("maxPt = {}, numSimi = {}, numCentres = {}, depth = {}",
+        maxPt, numSimi, numCentres, depth);
+  }
   buffer1.resize(maxPt);
   buffer2.resize(maxPt);
 
@@ -561,7 +553,7 @@ private:
   IfsPoint* buff = nullptr;
   size_t curPt = 0;
   void trace(Fractal*, const Flt xo, const Flt yo);
-  static void transform(const Similitude*, Flt xo, Flt yo, Flt* x, Flt* y);
+  static void transform(const Similitude&, Flt xo, Flt yo, Flt* x, Flt* y);
 
   bool initialized = false;
   int ifs_incr = 1; // dessiner l'ifs (0 = non: > = increment)
@@ -932,28 +924,27 @@ void IfsFx::IfsImpl::updateAllowOverexposed()
   }
 }
 
-inline void IfsFx::IfsImpl::transform(const Similitude* simi, Flt xo, Flt yo, Flt* x, Flt* y)
+inline void IfsFx::IfsImpl::transform(const Similitude& simi, Flt xo, Flt yo, Flt* x, Flt* y)
 {
-  xo = div_by_unit((xo - simi->Cx) * simi->R1);
-  yo = div_by_unit((yo - simi->Cy) * simi->R1);
+  xo = div_by_unit((xo - simi.Cx) * simi.R1);
+  yo = div_by_unit((yo - simi.Cy) * simi.R1);
 
-  const Flt xx = div_by_unit((xo - simi->Cx) * simi->R2);
+  const Flt xx = div_by_unit((xo - simi.Cx) * simi.R2);
   // NOTE: changed '-yo - simi->Cy' to 'yo - simi->Cy' for symmetry
   //   reasons. Not sure it made any difference that's why I kept it.
-  const Flt yy = div_by_unit((yo - simi->Cy) * simi->R2);
+  const Flt yy = div_by_unit((yo - simi.Cy) * simi.R2);
 
-  *x = div_by_unit(xo * simi->Ct1 - yo * simi->St1 + xx * simi->Ct2 - yy * simi->St2) + simi->Cx;
-  *y = div_by_unit(xo * simi->St1 + yo * simi->Ct1 + xx * simi->St2 + yy * simi->Ct2) + simi->Cy;
+  *x = div_by_unit(xo * simi.Ct1 - yo * simi.St1 + xx * simi.Ct2 - yy * simi.St2) + simi.Cx;
+  *y = div_by_unit(xo * simi.St1 + yo * simi.Ct1 + xx * simi.St2 + yy * simi.Ct2) + simi.Cy;
 }
 
 void IfsFx::IfsImpl::trace(Fractal* fractal, const Flt xo, const Flt yo)
 {
-  Similitude* cur = curFractal->components.data();
   //  logDebug("data->Cur_F->numSimi = {}, xo = {}, yo = {}", data->Cur_F->numSimi, xo, yo);
   for (size_t i = 0; i < curFractal->numSimi; i++)
   {
     Flt x, y;
-    transform(cur, xo, yo, &x, &y);
+    transform(curFractal->components[i], xo, yo, &x, &y);
 
     buff->x = static_cast<uint32_t>(fractal->getLx() + div_by_2units(x * fractal->getLx()));
     buff->y = static_cast<uint32_t>(fractal->getLy() - div_by_2units(y * fractal->getLy()));
@@ -967,8 +958,6 @@ void IfsFx::IfsImpl::trace(Fractal* fractal, const Flt xo, const Flt yo)
       trace(fractal, x, y);
       fractal->depth++;
     }
-
-    cur++;
   }
 }
 
@@ -1094,7 +1083,7 @@ void IfsFx::IfsImpl::drawFractal()
       }
       Flt x;
       Flt y;
-      IfsImpl::transform(simi, xo, yo, &x, &y);
+      IfsImpl::transform(*simi, xo, yo, &x, &y);
       trace(fractal, x, y);
 
       simi++;
