@@ -39,6 +39,8 @@ public:
   IfsFx(const IfsFx&) = delete;
   IfsFx& operator=(const IfsFx&) = delete;
 
+  void init();
+
   // If not colorMode is not set, or set to '_null', returns
   // random weighted color mode.
   ColorMode getColorMode() const;

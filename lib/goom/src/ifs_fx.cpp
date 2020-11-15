@@ -99,7 +99,29 @@ struct IfsPoint
 using Dbl = float;
 using Flt = int;
 
-constexpr size_t maxSimi = 6;
+struct FltPoint
+{
+  Flt x = 0;
+  Flt y = 0;
+};
+
+static constexpr int fix = 12;
+
+inline Flt dbl_to_flt(const Dbl x)
+{
+  constexpr int unit = 1 << fix;
+  return static_cast<Flt>(static_cast<Dbl>(unit) * x);
+}
+
+inline Flt div_by_unit(const Flt x)
+{
+  return x >> fix;
+}
+
+inline Flt div_by_2units(const Flt x)
+{
+  return x >> (fix + 1);
+}
 
 struct CentreType
 {
@@ -110,10 +132,10 @@ struct CentreType
 };
 // clang-format off
 static const std::vector<CentreType> centreList = {
-  { .depth = 12, .rMean = 0.7, .dr1Mean = 0.3, .dr2Mean = 0.4 },
-  { .depth =  8, .rMean = 0.6, .dr1Mean = 0.4, .dr2Mean = 0.3 },
-  { .depth =  6, .rMean = 0.5, .dr1Mean = 0.4, .dr2Mean = 0.3 },
+  { .depth = 10, .rMean = 0.7, .dr1Mean = 0.3, .dr2Mean = 0.4 },
+  { .depth =  6, .rMean = 0.6, .dr1Mean = 0.4, .dr2Mean = 0.3 },
   { .depth =  4, .rMean = 0.5, .dr1Mean = 0.4, .dr2Mean = 0.3 },
+  { .depth =  2, .rMean = 0.5, .dr1Mean = 0.4, .dr2Mean = 0.3 },
 };
 // clang-format on
 
@@ -151,63 +173,72 @@ struct Similitude
   };
 };
 
-struct Fractal
+class Fractal
 {
+public:
   Fractal() noexcept = default;
   explicit Fractal(const std::shared_ptr<const PluginInfo>&) noexcept;
+  Fractal(const Fractal&) noexcept = delete;
+  Fractal& operator=(const Fractal&) = delete;
 
-  Flt getLx() const { return static_cast<Flt>(lx); }
-  Flt getLy() const { return static_cast<Flt>(ly); }
+  void init();
 
+  uint32_t getSpeed() const { return speed; }
+  void setSpeed(const uint32_t val) { speed = val; }
+
+  uint32_t getCurPt() const { return curPt; }
+
+  const std::vector<IfsPoint>& drawIfs();
+
+  bool operator==(const Fractal&) const;
+
+  template<class Archive>
+  void serialize(Archive&);
+
+private:
+  static constexpr size_t maxSimi = 6;
+  static constexpr size_t maxCountTimesSpeed = 1000;
+
+  uint32_t lx = 0;
+  uint32_t ly = 0;
   uint32_t numSimi = 0;
-  std::array<Similitude, 5 * maxSimi> components{};
   uint32_t depth = 0;
   uint32_t count = 0;
   uint32_t speed = 6;
-  uint32_t curPt = 0;
-  uint32_t maxPt = 0;
-
-  std::vector<IfsPoint> buffer1{};
-  std::vector<IfsPoint> buffer2{};
-
-  void randomSimis(Similitude* cur, uint32_t i);
-
-  bool operator==(const Fractal& f) const
-  {
-    return numSimi == f.numSimi && components == f.components && depth == f.depth &&
-           count == f.count && speed == f.speed && width == f.width && height == f.height &&
-           lx == f.lx && ly == f.ly && rMean == f.rMean && dr1Mean == f.dr1Mean &&
-           dr2Mean == f.dr2Mean && curPt == f.curPt && maxPt == f.maxPt;
-  }
-
-  template<class Archive>
-  void serialize(Archive& ar)
-  {
-    ar(numSimi, components, depth, count, speed, width, height, lx, ly, rMean, dr1Mean, dr2Mean,
-       curPt, maxPt);
-  };
-
-private:
-  uint32_t width = 0;
-  uint32_t height = 0;
-  uint32_t lx = 0;
-  uint32_t ly = 0;
   Dbl rMean = 0;
   Dbl dr1Mean = 0;
   Dbl dr2Mean = 0;
 
+  std::array<Similitude, 5 * maxSimi> components{};
+  uint32_t maxPt = 0;
+  uint32_t curPt = 0;
+
+  std::vector<IfsPoint> buffer1{};
+  std::vector<IfsPoint> buffer2{};
+  IfsPoint* buff = nullptr;
+
+  Flt getLx() const { return static_cast<Flt>(lx); }
+  Flt getLy() const { return static_cast<Flt>(ly); }
+  void drawFractal();
+  void randomSimis(Similitude*, const size_t num);
+  void trace(const FltPoint& po);
+  static FltPoint transform(const Similitude&, const FltPoint& po);
   static Dbl gaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S);
   static Dbl halfGaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S);
   static constexpr Dbl get_1_minus_exp_neg_S(const Dbl S);
 };
 
 Fractal::Fractal(const std::shared_ptr<const PluginInfo>& goomInfo) noexcept
-  : width{goomInfo->getScreenInfo().width}, // modif by JeKo
-    height{goomInfo->getScreenInfo().height}, // modif by JeKo
-    lx{(width - 1) / 2},
-    ly{(height - 1) / 2}
+  : lx{(static_cast<uint32_t>(goomInfo->getScreenInfo().width) - 1) / 2},
+    ly{(static_cast<uint32_t>(goomInfo->getScreenInfo().height) - 1) / 2}
+{
+  init();
+}
+
+void Fractal::init()
 {
   const size_t numCentres = 2 + getNRand(centreList.size());
+
   depth = centreList.at(numCentres - 2).depth;
   rMean = centreList[numCentres - 2].rMean;
   dr1Mean = centreList[numCentres - 2].dr1Mean;
@@ -231,6 +262,125 @@ Fractal::Fractal(const std::shared_ptr<const PluginInfo>& goomInfo) noexcept
   randomSimis(components.data(), 5 * maxSimi);
 }
 
+bool Fractal::operator==(const Fractal& f) const
+{
+  return numSimi == f.numSimi && components == f.components && depth == f.depth &&
+         count == f.count && speed == f.speed && lx == f.lx && ly == f.ly && rMean == f.rMean &&
+         dr1Mean == f.dr1Mean && dr2Mean == f.dr2Mean && curPt == f.curPt && maxPt == f.maxPt;
+}
+
+template<class Archive>
+void Fractal::serialize(Archive& ar)
+{
+  ar(numSimi, components, depth, count, speed, lx, ly, rMean, dr1Mean, dr2Mean, curPt, maxPt);
+};
+
+const std::vector<IfsPoint>& Fractal::drawIfs()
+{
+  const Dbl u = static_cast<Dbl>(count * speed) / static_cast<Dbl>(maxCountTimesSpeed);
+  const Dbl uSq = u * u;
+  const Dbl v = 1.0 - u;
+  const Dbl vSq = v * v;
+  const Dbl u0 = vSq * v;
+  const Dbl u1 = 3.0 * vSq * u;
+  const Dbl u2 = 3.0 * v * uSq;
+  const Dbl u3 = u * uSq;
+
+  Similitude* s = components.data();
+  Similitude* s0 = s + numSimi;
+  Similitude* s1 = s0 + numSimi;
+  Similitude* s2 = s1 + numSimi;
+  Similitude* s3 = s2 + numSimi;
+
+  for (size_t i = 0; i < numSimi; i++)
+  {
+    s[i].c_x = u0 * s0[i].c_x + u1 * s1[i].c_x + u2 * s2[i].c_x + u3 * s3[i].c_x;
+    s[i].c_y = u0 * s0[i].c_y + u1 * s1[i].c_y + u2 * s2[i].c_y + u3 * s3[i].c_y;
+
+    s[i].r1 = u0 * s0[i].r1 + u1 * s1[i].r1 + u2 * s2[i].r1 + u3 * s3[i].r1;
+    s[i].r2 = u0 * s0[i].r2 + u1 * s1[i].r2 + u2 * s2[i].r2 + u3 * s3[i].r2;
+
+    s[i].A1 = u0 * s0[i].A1 + u1 * s1[i].A1 + u2 * s2[i].A1 + u3 * s3[i].A1;
+    s[i].A2 = u0 * s0[i].A2 + u1 * s1[i].A2 + u2 * s2[i].A2 + u3 * s3[i].A2;
+  }
+
+  drawFractal();
+
+  if (count < maxCountTimesSpeed / speed)
+  {
+    count++;
+  }
+  else
+  {
+    s = components.data();
+    s0 = s + numSimi;
+    s1 = s0 + numSimi;
+    s2 = s1 + numSimi;
+    s3 = s2 + numSimi;
+
+    for (size_t i = 0; i < numSimi; i++)
+    {
+      s1[i].c_x = (2.0 * s3[i].c_x) - s2[i].c_x;
+      s1[i].c_y = (2.0 * s3[i].c_y) - s2[i].c_y;
+
+      s1[i].r1 = (2.0 * s3[i].r1) - s2[i].r1;
+      s1[i].r2 = (2.0 * s3[i].r2) - s2[i].r2;
+
+      s1[i].A1 = (2.0 * s3[i].A1) - s2[i].A1;
+      s1[i].A2 = (2.0 * s3[i].A2) - s2[i].A2;
+
+      s0[i] = s3[i];
+    }
+
+    randomSimis(components.data() + 3 * numSimi, numSimi);
+    randomSimis(components.data() + 4 * numSimi, numSimi);
+
+    count = 0;
+  }
+
+  return buffer2;
+}
+
+void Fractal::drawFractal()
+{
+  for (size_t i = 0; i < numSimi; i++)
+  {
+    Similitude& simi = components[i];
+
+    simi.Cx = dbl_to_flt(simi.c_x);
+    simi.Cy = dbl_to_flt(simi.c_y);
+
+    simi.Ct1 = dbl_to_flt(cos(simi.A1));
+    simi.St1 = dbl_to_flt(sin(simi.A1));
+    simi.Ct2 = dbl_to_flt(cos(simi.A2));
+    simi.St2 = dbl_to_flt(sin(simi.A2));
+
+    simi.R1 = dbl_to_flt(simi.r1);
+    simi.R2 = dbl_to_flt(simi.r2);
+  }
+
+  curPt = 0;
+  buff = buffer2.data();
+
+  for (size_t i = 0; i < numSimi; i++)
+  {
+    const Similitude& cur = components[i];
+    const FltPoint po{cur.Cx, cur.Cy};
+    for (size_t j = 0; j < numSimi; j++)
+    {
+      if (i != j)
+      {
+        trace(transform(components[j], po));
+      }
+    }
+  }
+
+  // Erase previous
+  buff = buffer1.data();
+  std::swap(buffer1, buffer2);
+}
+
+
 constexpr Dbl Fractal::get_1_minus_exp_neg_S(const Dbl S)
 {
   return 1.0 - std::exp(-S);
@@ -250,7 +400,7 @@ Dbl Fractal::halfGaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_ex
   return c + y;
 }
 
-void Fractal::randomSimis(Similitude* cur, uint32_t i)
+void Fractal::randomSimis(Similitude* simi, const size_t num)
 {
   static const constinit Dbl c_AS_factor = 0.8f * get_1_minus_exp_neg_S(4.0);
   static const constinit Dbl r1_1_minus_exp_neg_S = get_1_minus_exp_neg_S(3.0);
@@ -261,24 +411,61 @@ void Fractal::randomSimis(Similitude* cur, uint32_t i)
   const Dbl r1_AS_factor = dr1Mean * r1_1_minus_exp_neg_S;
   const Dbl r2_AS_factor = dr2Mean * r2_1_minus_exp_neg_S;
 
-  while (i--)
+  for (size_t i = 0; i < num; i++)
   {
-    cur->c_x = gaussRand(0.0, 4.0, c_AS_factor);
-    cur->c_y = gaussRand(0.0, 4.0, c_AS_factor);
-    cur->r1 = gaussRand(rMean, 3.0, r1_AS_factor);
-    cur->r2 = halfGaussRand(0.0, 2.0, r2_AS_factor);
-    cur->A1 = gaussRand(0.0, 4.0, A_AS_factor) * (m_pi / 180.0);
-    cur->A2 = gaussRand(0.0, 4.0, A2_AS_factor) * (m_pi / 180.0);
-    cur->Ct1 = 0;
-    cur->St1 = 0;
-    cur->Ct2 = 0;
-    cur->St2 = 0;
-    cur->Cx = 0;
-    cur->Cy = 0;
-    cur->R1 = 0;
-    cur->R2 = 0;
+    simi->c_x = gaussRand(0.0, 4.0, c_AS_factor);
+    simi->c_y = gaussRand(0.0, 4.0, c_AS_factor);
+    simi->r1 = gaussRand(rMean, 3.0, r1_AS_factor);
+    simi->r2 = halfGaussRand(0.0, 2.0, r2_AS_factor);
+    simi->A1 = gaussRand(0.0, 4.0, A_AS_factor) * (m_pi / 180.0);
+    simi->A2 = gaussRand(0.0, 4.0, A2_AS_factor) * (m_pi / 180.0);
+    simi->Ct1 = 0;
+    simi->St1 = 0;
+    simi->Ct2 = 0;
+    simi->St2 = 0;
+    simi->Cx = 0;
+    simi->Cy = 0;
+    simi->R1 = 0;
+    simi->R2 = 0;
 
-    cur++;
+    simi++;
+  }
+}
+
+inline FltPoint Fractal::transform(const Similitude& simi, const FltPoint& po)
+{
+  const Flt xo = div_by_unit((po.x - simi.Cx) * simi.R1);
+  const Flt yo = div_by_unit((po.y - simi.Cy) * simi.R1);
+
+  const Flt xx = div_by_unit((xo - simi.Cx) * simi.R2);
+  // NOTE: changed '-yo - simi->Cy' to 'yo - simi->Cy' for symmetry
+  //   reasons. Not sure it made any difference that's why I kept it.
+  const Flt yy = div_by_unit((yo - simi.Cy) * simi.R2);
+
+  return {
+      div_by_unit(xo * simi.Ct1 - yo * simi.St1 + xx * simi.Ct2 - yy * simi.St2) + simi.Cx,
+      div_by_unit(xo * simi.St1 + yo * simi.Ct1 + xx * simi.St2 + yy * simi.Ct2) + simi.Cy,
+  };
+}
+
+void Fractal::trace(const FltPoint& po)
+{
+  for (size_t i = 0; i < numSimi; i++)
+  {
+    const FltPoint p = transform(components[i], po);
+
+    buff->x = static_cast<uint32_t>(getLx() + div_by_2units(p.x * getLx()));
+    buff->y = static_cast<uint32_t>(getLy() - div_by_2units(p.y * getLy()));
+    buff++;
+
+    curPt++;
+
+    if (depth && ((p.x - po.x) >> 4) && ((p.y - po.y) >> 4))
+    {
+      depth--;
+      trace(p);
+      depth++;
+    }
   }
 }
 
@@ -299,25 +486,10 @@ public:
 
   Pixel getMixedColor(const Pixel& baseColor, const float tmix);
 
-  bool operator==(const Colorizer& c) const
-  {
-    return countSinceColorMapChange == c.countSinceColorMapChange &&
-           colorMapChangeCompleted == c.colorMapChangeCompleted && colorMode == c.colorMode &&
-           tBetweenColors == c.tBetweenColors;
-  }
+  bool operator==(const Colorizer&) const;
 
   template<class Archive>
-  void serialize(Archive& ar)
-  {
-    ar(countSinceColorMapChange, colorMapChangeCompleted, colorMode, tBetweenColors);
-
-    auto mixerMapName = mixerMap->getMapName();
-    ar(cereal::make_nvp("mixerMap", mixerMapName));
-    auto prevMixerMapName = prevMixerMap->getMapName();
-    ar(cereal::make_nvp("prevMixerMap", prevMixerMapName));
-    mixerMap = &colorMaps.getColorMap(mixerMapName);
-    prevMixerMap = &colorMaps.getColorMap(prevMixerMapName);
-  };
+  void serialize(Archive&);
 
 private:
   WeightedColorMaps colorMaps{Weights<ColorMapGroup>{{
@@ -347,6 +519,26 @@ private:
 Colorizer::Colorizer() noexcept : mixerMap{&colorMaps.getRandomColorMap()}, prevMixerMap{mixerMap}
 {
 }
+
+bool Colorizer::operator==(const Colorizer& c) const
+{
+  return countSinceColorMapChange == c.countSinceColorMapChange &&
+         colorMapChangeCompleted == c.colorMapChangeCompleted && colorMode == c.colorMode &&
+         tBetweenColors == c.tBetweenColors;
+}
+
+template<class Archive>
+void Colorizer::serialize(Archive& ar)
+{
+  ar(countSinceColorMapChange, colorMapChangeCompleted, colorMode, tBetweenColors);
+
+  auto mixerMapName = mixerMap->getMapName();
+  ar(cereal::make_nvp("mixerMap", mixerMapName));
+  auto prevMixerMapName = prevMixerMap->getMapName();
+  ar(cereal::make_nvp("prevMixerMap", prevMixerMapName));
+  mixerMap = &colorMaps.getColorMap(mixerMapName);
+  prevMixerMap = &colorMaps.getColorMap(prevMixerMapName);
+};
 
 inline const ColorMaps& Colorizer::getColorMaps() const
 {
@@ -463,9 +655,12 @@ inline Pixel Colorizer::getMixedColor(const Pixel& baseColor, const float tmix)
   }
 }
 
-#define MOD_MER 0
-#define MOD_FEU 1
-#define MOD_MERVER 2
+enum class ModType
+{
+  MOD_MER,
+  MOD_FEU,
+  MOD_MERVER
+};
 
 constexpr size_t numChannels = 4;
 using Int32ChannelArray = std::array<int32_t, numChannels>;
@@ -498,7 +693,7 @@ struct IfsUpdateData
   Int32ChannelArray v = {2, 4, 3, 2};
   Int32ChannelArray col = {2, 4, 3, 2};
   int justChanged = 0;
-  int mode = MOD_MERVER;
+  ModType mode = ModType::MOD_MERVER;
   int cycle = 0;
 
   bool operator==(const IfsUpdateData& u) const
@@ -523,6 +718,8 @@ public:
   IfsImpl(const IfsImpl&) = delete;
   IfsImpl& operator=(const IfsImpl&) = delete;
 
+  void init();
+
   void applyNoDraw();
   void updateIfs(Pixel* prevBuff, Pixel* currentBuff);
   void setBuffSettings(const FXBuffSettings&);
@@ -534,6 +731,8 @@ public:
   bool operator==(const IfsImpl&) const;
 
 private:
+  static constexpr int maxCountBeforeNextUpdate = 500;
+
   std::shared_ptr<const PluginInfo> goomInfo{};
 
   GoomDraw draw{};
@@ -546,14 +745,7 @@ private:
   static constexpr uint32_t maxCountSinceOverexposed = 100;
   void updateAllowOverexposed();
 
-  std::unique_ptr<Fractal> rootFractal = nullptr;
-  Fractal* curFractal = nullptr;
-
-  // Used by the Trace recursive method
-  IfsPoint* buff = nullptr;
-  size_t curPt = 0;
-  void trace(Fractal*, const Flt xo, const Flt yo);
-  static void transform(const Similitude&, Flt xo, Flt yo, Flt* x, Flt* y);
+  std::unique_ptr<Fractal> fractal = nullptr;
 
   bool initialized = false;
   int ifs_incr = 1; // dessiner l'ifs (0 = non: > = increment)
@@ -561,8 +753,6 @@ private:
   int recay_ifs = 0; // dedisparition de l'ifs
   void updateDecay();
   void updateDecayAndRecay();
-  const std::vector<IfsPoint>& drawIfs();
-  void drawFractal();
 
   IfsUpdateData updateData{};
 
@@ -583,10 +773,6 @@ private:
   void updateColorsModeMerver();
   void updateColorsModeFeu();
   int getIfsIncr() const;
-  static constexpr int fix = 12;
-  static Flt dbl_to_flt(const Dbl);
-  static Flt div_by_unit(const Flt);
-  static Flt div_by_2units(const Flt);
 
   friend class cereal::access;
   template<class Archive>
@@ -606,6 +792,11 @@ IfsFx::IfsFx(const std::shared_ptr<const PluginInfo>& info) noexcept : fxImpl{ne
 
 IfsFx::~IfsFx() noexcept
 {
+}
+
+void IfsFx::init()
+{
+  fxImpl->init();
 }
 
 bool IfsFx::operator==(const IfsFx& i) const
@@ -691,19 +882,19 @@ template void IfsFx::IfsImpl::load<cereal::JSONInputArchive>(cereal::JSONInputAr
 template<class Archive>
 void IfsFx::IfsImpl::save(Archive& ar) const
 {
-  ar(CEREAL_NVP(goomInfo), CEREAL_NVP(rootFractal), CEREAL_NVP(draw), CEREAL_NVP(colorizer),
+  ar(CEREAL_NVP(goomInfo), CEREAL_NVP(fractal), CEREAL_NVP(draw), CEREAL_NVP(colorizer),
      CEREAL_NVP(useOldStyleDrawPixel), CEREAL_NVP(allowOverexposed),
-     CEREAL_NVP(countSinceOverexposed), CEREAL_NVP(curPt), CEREAL_NVP(ifs_incr),
-     CEREAL_NVP(decay_ifs), CEREAL_NVP(recay_ifs), CEREAL_NVP(updateData));
+     CEREAL_NVP(countSinceOverexposed), CEREAL_NVP(ifs_incr), CEREAL_NVP(decay_ifs),
+     CEREAL_NVP(recay_ifs), CEREAL_NVP(updateData));
 }
 
 template<class Archive>
 void IfsFx::IfsImpl::load(Archive& ar)
 {
-  ar(CEREAL_NVP(goomInfo), CEREAL_NVP(rootFractal), CEREAL_NVP(draw), CEREAL_NVP(colorizer),
+  ar(CEREAL_NVP(goomInfo), CEREAL_NVP(fractal), CEREAL_NVP(draw), CEREAL_NVP(colorizer),
      CEREAL_NVP(useOldStyleDrawPixel), CEREAL_NVP(allowOverexposed),
-     CEREAL_NVP(countSinceOverexposed), CEREAL_NVP(curPt), CEREAL_NVP(ifs_incr),
-     CEREAL_NVP(decay_ifs), CEREAL_NVP(recay_ifs), CEREAL_NVP(updateData));
+     CEREAL_NVP(countSinceOverexposed), CEREAL_NVP(ifs_incr), CEREAL_NVP(decay_ifs),
+     CEREAL_NVP(recay_ifs), CEREAL_NVP(updateData));
 }
 
 bool IfsFx::IfsImpl::operator==(const IfsImpl& i) const
@@ -718,20 +909,19 @@ bool IfsFx::IfsImpl::operator==(const IfsImpl& i) const
   }
 
   return ((goomInfo == nullptr && i.goomInfo == nullptr) || (*goomInfo == *i.goomInfo)) &&
-         *rootFractal == *i.rootFractal && draw == i.draw && colorizer == i.colorizer &&
+         *fractal == *i.fractal && draw == i.draw && colorizer == i.colorizer &&
          useOldStyleDrawPixel == i.useOldStyleDrawPixel && allowOverexposed == i.allowOverexposed &&
-         countSinceOverexposed == i.countSinceOverexposed && curPt == i.curPt &&
-         ifs_incr == i.ifs_incr && decay_ifs == i.decay_ifs && recay_ifs == i.recay_ifs &&
-         updateData == i.updateData;
+         countSinceOverexposed == i.countSinceOverexposed && ifs_incr == i.ifs_incr &&
+         decay_ifs == i.decay_ifs && recay_ifs == i.recay_ifs && updateData == i.updateData;
 }
 
 IfsFx::IfsImpl::IfsImpl(const std::shared_ptr<const PluginInfo>& info) noexcept
   : goomInfo{info},
     draw{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height},
-    rootFractal{std::make_unique<Fractal>(goomInfo)}
+    fractal{std::make_unique<Fractal>(goomInfo)}
 {
 #ifndef NO_LOGGING
-  Fractal* fractal = rootFractal.get();
+  Fractal* fractal = fractal.get();
   for (size_t i = 0; i < 5 * maxSimi; i++)
   {
     Similitude cur = fractal->components[i];
@@ -743,6 +933,11 @@ IfsFx::IfsImpl::IfsImpl(const std::shared_ptr<const PluginInfo>& info) noexcept
 
 IfsFx::IfsImpl::~IfsImpl() noexcept
 {
+}
+
+void IfsFx::IfsImpl::init()
+{
+  fractal->init();
 }
 
 void IfsFx::IfsImpl::setBuffSettings(const FXBuffSettings& settings)
@@ -766,8 +961,8 @@ void IfsFx::IfsImpl::renew()
   colorizer.changeColorMode();
   updateAllowOverexposed();
 
-  rootFractal->speed = static_cast<uint32_t>(std::min(getRandInRange(1.11F, 20.0F), 10.0F) /
-                                             (1.1F - goomInfo->getSoundInfo().getAcceleration()));
+  fractal->setSpeed(static_cast<uint32_t>(std::min(getRandInRange(1.11F, 20.0F), 10.0F) /
+                                          (1.1F - goomInfo->getSoundInfo().getAcceleration())));
 }
 
 void IfsFx::IfsImpl::changeColormaps()
@@ -801,8 +996,8 @@ void IfsFx::IfsImpl::updateIfs(Pixel* prevBuff, Pixel* currentBuff)
     updateData.cycle = 0;
   }
 
-  const std::vector<IfsPoint>& points = drawIfs();
-  const size_t numPoints = curPt - 1;
+  const std::vector<IfsPoint>& points = fractal->drawIfs();
+  const size_t numPoints = fractal->getCurPt() - 1;
 
   const int cycle10 = (updateData.cycle < 40) ? updateData.cycle / 10 : 7 - updateData.cycle / 10;
   const Pixel color = getRightShiftedChannels(updateData.couleur, cycle10);
@@ -924,180 +1119,6 @@ void IfsFx::IfsImpl::updateAllowOverexposed()
   }
 }
 
-inline void IfsFx::IfsImpl::transform(const Similitude& simi, Flt xo, Flt yo, Flt* x, Flt* y)
-{
-  xo = div_by_unit((xo - simi.Cx) * simi.R1);
-  yo = div_by_unit((yo - simi.Cy) * simi.R1);
-
-  const Flt xx = div_by_unit((xo - simi.Cx) * simi.R2);
-  // NOTE: changed '-yo - simi->Cy' to 'yo - simi->Cy' for symmetry
-  //   reasons. Not sure it made any difference that's why I kept it.
-  const Flt yy = div_by_unit((yo - simi.Cy) * simi.R2);
-
-  *x = div_by_unit(xo * simi.Ct1 - yo * simi.St1 + xx * simi.Ct2 - yy * simi.St2) + simi.Cx;
-  *y = div_by_unit(xo * simi.St1 + yo * simi.Ct1 + xx * simi.St2 + yy * simi.Ct2) + simi.Cy;
-}
-
-void IfsFx::IfsImpl::trace(Fractal* fractal, const Flt xo, const Flt yo)
-{
-  //  logDebug("data->Cur_F->numSimi = {}, xo = {}, yo = {}", data->Cur_F->numSimi, xo, yo);
-  for (size_t i = 0; i < curFractal->numSimi; i++)
-  {
-    Flt x, y;
-    transform(curFractal->components[i], xo, yo, &x, &y);
-
-    buff->x = static_cast<uint32_t>(fractal->getLx() + div_by_2units(x * fractal->getLx()));
-    buff->y = static_cast<uint32_t>(fractal->getLy() - div_by_2units(y * fractal->getLy()));
-    buff++;
-
-    curPt++;
-
-    if (fractal->depth && ((x - xo) >> 4) && ((y - yo) >> 4))
-    {
-      fractal->depth--;
-      trace(fractal, x, y);
-      fractal->depth++;
-    }
-  }
-}
-
-inline Flt IfsFx::IfsImpl::dbl_to_flt(const Dbl x)
-{
-  constexpr int unit = 1 << fix;
-  return static_cast<Flt>(static_cast<Dbl>(unit) * x);
-}
-
-inline Flt IfsFx::IfsImpl::div_by_unit(const Flt x)
-{
-  return x >> fix;
-}
-
-inline Flt IfsFx::IfsImpl::div_by_2units(const Flt x)
-{
-  return x >> (fix + 1);
-}
-
-const std::vector<IfsPoint>& IfsFx::IfsImpl::drawIfs()
-{
-  Fractal* fractal = rootFractal.get();
-
-  const Dbl u = static_cast<Dbl>(fractal->count) * static_cast<Dbl>(fractal->speed) / 1000.0;
-  const Dbl uSq = u * u;
-  const Dbl v = 1.0 - u;
-  const Dbl vSq = v * v;
-  const Dbl u0 = vSq * v;
-  const Dbl u1 = 3.0 * vSq * u;
-  const Dbl u2 = 3.0 * v * uSq;
-  const Dbl u3 = u * uSq;
-
-  Similitude* s = fractal->components.data();
-  Similitude* s0 = s + fractal->numSimi;
-  Similitude* s1 = s0 + fractal->numSimi;
-  Similitude* s2 = s1 + fractal->numSimi;
-  Similitude* s3 = s2 + fractal->numSimi;
-
-  for (size_t i = 0; i < fractal->numSimi; i++)
-  {
-    s[i].c_x = u0 * s0[i].c_x + u1 * s1[i].c_x + u2 * s2[i].c_x + u3 * s3[i].c_x;
-    s[i].c_y = u0 * s0[i].c_y + u1 * s1[i].c_y + u2 * s2[i].c_y + u3 * s3[i].c_y;
-
-    s[i].r1 = u0 * s0[i].r1 + u1 * s1[i].r1 + u2 * s2[i].r1 + u3 * s3[i].r1;
-    s[i].r2 = u0 * s0[i].r2 + u1 * s1[i].r2 + u2 * s2[i].r2 + u3 * s3[i].r2;
-
-    s[i].A1 = u0 * s0[i].A1 + u1 * s1[i].A1 + u2 * s2[i].A1 + u3 * s3[i].A1;
-    s[i].A2 = u0 * s0[i].A2 + u1 * s1[i].A2 + u2 * s2[i].A2 + u3 * s3[i].A2;
-  }
-
-  drawFractal();
-
-  if (fractal->count < 1000 / fractal->speed)
-  {
-    fractal->count++;
-  }
-  else
-  {
-    s = fractal->components.data();
-    s0 = s + fractal->numSimi;
-    s1 = s0 + fractal->numSimi;
-    s2 = s1 + fractal->numSimi;
-    s3 = s2 + fractal->numSimi;
-
-    for (size_t i = 0; i < fractal->numSimi; i++)
-    {
-      s1[i].c_x = (2.0 * s3[i].c_x) - s2[i].c_x;
-      s1[i].c_y = (2.0 * s3[i].c_y) - s2[i].c_y;
-
-      s1[i].r1 = (2.0 * s3[i].r1) - s2[i].r1;
-      s1[i].r2 = (2.0 * s3[i].r2) - s2[i].r2;
-
-      s1[i].A1 = (2.0 * s3[i].A1) - s2[i].A1;
-      s1[i].A2 = (2.0 * s3[i].A2) - s2[i].A2;
-
-      s0[i] = s3[i];
-    }
-
-    fractal->randomSimis(fractal->components.data() + 3 * fractal->numSimi, fractal->numSimi);
-    fractal->randomSimis(fractal->components.data() + 4 * fractal->numSimi, fractal->numSimi);
-
-    fractal->count = 0;
-  }
-
-  return fractal->buffer2;
-}
-
-void IfsFx::IfsImpl::drawFractal()
-{
-  Fractal* fractal = rootFractal.get();
-  Similitude* cur = fractal->components.data();
-  for (size_t i = 0; i < fractal->numSimi; i++)
-  {
-    cur->Cx = dbl_to_flt(cur->c_x);
-    cur->Cy = dbl_to_flt(cur->c_y);
-
-    cur->Ct1 = dbl_to_flt(cos(cur->A1));
-    cur->St1 = dbl_to_flt(sin(cur->A1));
-    cur->Ct2 = dbl_to_flt(cos(cur->A2));
-    cur->St2 = dbl_to_flt(sin(cur->A2));
-
-    cur->R1 = dbl_to_flt(cur->r1);
-    cur->R2 = dbl_to_flt(cur->r2);
-
-    cur++;
-  }
-
-  curPt = 0;
-  curFractal = fractal;
-  buff = fractal->buffer2.data();
-  cur = fractal->components.data();
-  for (size_t i = 0; i < fractal->numSimi; i++)
-  {
-    const Flt xo = cur->Cx;
-    const Flt yo = cur->Cy;
-    Similitude* simi = fractal->components.data();
-    for (size_t j = 0; j < fractal->numSimi; j++)
-    {
-      if (simi == cur)
-      {
-        simi++;
-        continue;
-      }
-      Flt x;
-      Flt y;
-      IfsImpl::transform(*simi, xo, yo, &x, &y);
-      trace(fractal, x, y);
-
-      simi++;
-    }
-
-    cur++;
-  }
-
-  // Erase previous
-  fractal->curPt = curPt;
-  buff = fractal->buffer1.data();
-  std::swap(fractal->buffer1, fractal->buffer2);
-}
-
 void IfsFx::IfsImpl::updatePixelBuffers(Pixel* prevBuff,
                                         Pixel* currentBuff,
                                         const size_t numPoints,
@@ -1132,15 +1153,15 @@ void IfsFx::IfsImpl::updatePixelBuffers(Pixel* prevBuff,
 
 void IfsFx::IfsImpl::updateColors()
 {
-  if (updateData.mode == MOD_MER)
+  if (updateData.mode == ModType::MOD_MER)
   {
     updateColorsModeMer();
   }
-  else if (updateData.mode == MOD_MERVER)
+  else if (updateData.mode == ModType::MOD_MERVER)
   {
     updateColorsModeMerver();
   }
-  else if (updateData.mode == MOD_FEU)
+  else if (updateData.mode == ModType::MOD_FEU)
   {
     updateColorsModeFeu();
   }
@@ -1206,8 +1227,8 @@ void IfsFx::IfsImpl::updateColorsModeMer()
        probabilityOfMInN(1, 20)) &&
       (updateData.justChanged < 0))
   {
-    updateData.mode = probabilityOfMInN(2, 3) ? MOD_FEU : MOD_MERVER;
-    updateData.justChanged = 250;
+    updateData.mode = probabilityOfMInN(2, 3) ? ModType::MOD_FEU : ModType::MOD_MERVER;
+    updateData.justChanged = maxCountBeforeNextUpdate;
   }
 }
 
@@ -1271,8 +1292,8 @@ void IfsFx::IfsImpl::updateColorsModeMerver()
        probabilityOfMInN(1, 20)) &&
       (updateData.justChanged < 0))
   {
-    updateData.mode = probabilityOfMInN(2, 3) ? MOD_FEU : MOD_MER;
-    updateData.justChanged = 250;
+    updateData.mode = probabilityOfMInN(2, 3) ? ModType::MOD_FEU : ModType::MOD_MER;
+    updateData.justChanged = maxCountBeforeNextUpdate;
   }
 }
 
@@ -1343,8 +1364,8 @@ void IfsFx::IfsImpl::updateColorsModeFeu()
        probabilityOfMInN(1, 20)) &&
       (updateData.justChanged < 0))
   {
-    updateData.mode = probabilityOfMInN(1, 2) ? MOD_MER : MOD_MERVER;
-    updateData.justChanged = 250;
+    updateData.mode = probabilityOfMInN(1, 2) ? ModType::MOD_MER : ModType::MOD_MERVER;
+    updateData.justChanged = maxCountBeforeNextUpdate;
   }
 }
 

@@ -1770,6 +1770,8 @@ void GoomControl::GoomControlImpl::changeFilterMode()
 
 void GoomControl::GoomControlImpl::changeState()
 {
+  const auto oldGDrawables = states.getCurrentDrawables();
+
   const size_t oldStateIndex = states.getCurrentStateIndex();
   for (size_t numTry = 0; numTry < 10; numTry++)
   {
@@ -1789,7 +1791,11 @@ void GoomControl::GoomControlImpl::changeState()
 
   if (states.isCurrentlyDrawable(GoomDrawable::IFS))
   {
-    if (goomEvent.happens(GoomEvent::ifsRenew))
+    if (!oldGDrawables.contains(GoomDrawable::IFS))
+    {
+      visualFx.ifs_fx->init();
+    }
+    else if (goomEvent.happens(GoomEvent::ifsRenew))
     {
       visualFx.ifs_fx->renew();
       stats.ifsRenew();
