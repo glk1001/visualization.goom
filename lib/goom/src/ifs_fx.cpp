@@ -126,16 +126,17 @@ inline Flt div_by_2units(const Flt x)
 struct CentreType
 {
   uint32_t depth;
-  Dbl rMean;
+  Dbl r1Mean;
+  Dbl r2Mean;
   Dbl dr1Mean;
   Dbl dr2Mean;
 };
 // clang-format off
 static const std::vector<CentreType> centreList = {
-  { .depth = 10, .rMean = 0.7, .dr1Mean = 0.3, .dr2Mean = 0.4 },
-  { .depth =  6, .rMean = 0.6, .dr1Mean = 0.4, .dr2Mean = 0.3 },
-  { .depth =  4, .rMean = 0.5, .dr1Mean = 0.4, .dr2Mean = 0.3 },
-  { .depth =  2, .rMean = 0.5, .dr1Mean = 0.4, .dr2Mean = 0.3 },
+  { .depth = 10, .r1Mean = 0.7, .r2Mean = 0.0, .dr1Mean = 0.3, .dr2Mean = 0.4 },
+  { .depth =  6, .r1Mean = 0.6, .r2Mean = 0.0, .dr1Mean = 0.4, .dr2Mean = 0.3 },
+  { .depth =  4, .r1Mean = 0.5, .r2Mean = 0.0, .dr1Mean = 0.4, .dr2Mean = 0.3 },
+  { .depth =  2, .r1Mean = 0.5, .r2Mean = 0.0, .dr1Mean = 0.4, .dr2Mean = 0.3 },
 };
 // clang-format on
 
@@ -205,7 +206,8 @@ private:
   uint32_t depth = 0;
   uint32_t count = 0;
   uint32_t speed = 6;
-  Dbl rMean = 0;
+  Dbl r1Mean = 0;
+  Dbl r2Mean = 0;
   Dbl dr1Mean = 0;
   Dbl dr2Mean = 0;
 
@@ -240,7 +242,8 @@ void Fractal::init()
   const size_t numCentres = 2 + getNRand(centreList.size());
 
   depth = centreList.at(numCentres - 2).depth;
-  rMean = centreList[numCentres - 2].rMean;
+  r1Mean = centreList[numCentres - 2].r1Mean;
+  r2Mean = centreList[numCentres - 2].r2Mean;
   dr1Mean = centreList[numCentres - 2].dr1Mean;
   dr2Mean = centreList[numCentres - 2].dr2Mean;
 
@@ -265,14 +268,16 @@ void Fractal::init()
 bool Fractal::operator==(const Fractal& f) const
 {
   return numSimi == f.numSimi && components == f.components && depth == f.depth &&
-         count == f.count && speed == f.speed && lx == f.lx && ly == f.ly && rMean == f.rMean &&
-         dr1Mean == f.dr1Mean && dr2Mean == f.dr2Mean && curPt == f.curPt && maxPt == f.maxPt;
+         count == f.count && speed == f.speed && lx == f.lx && ly == f.ly && r1Mean == f.r1Mean &&
+         r2Mean == f.r2Mean && dr1Mean == f.dr1Mean && dr2Mean == f.dr2Mean && curPt == f.curPt &&
+         maxPt == f.maxPt;
 }
 
 template<class Archive>
 void Fractal::serialize(Archive& ar)
 {
-  ar(numSimi, components, depth, count, speed, lx, ly, rMean, dr1Mean, dr2Mean, curPt, maxPt);
+  ar(numSimi, components, depth, count, speed, lx, ly, r1Mean, r2Mean, dr1Mean, dr2Mean, curPt,
+     maxPt);
 };
 
 const std::vector<IfsPoint>& Fractal::drawIfs()
@@ -402,23 +407,23 @@ Dbl Fractal::halfGaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_ex
 
 void Fractal::randomSimis(Similitude* simi, const size_t num)
 {
-  static const constinit Dbl c_AS_factor = 0.8f * get_1_minus_exp_neg_S(4.0);
+  static const constinit Dbl c_factor = 0.8f * get_1_minus_exp_neg_S(4.0);
   static const constinit Dbl r1_1_minus_exp_neg_S = get_1_minus_exp_neg_S(3.0);
   static const constinit Dbl r2_1_minus_exp_neg_S = get_1_minus_exp_neg_S(2.0);
-  static const constinit Dbl A_AS_factor = 360.0F * get_1_minus_exp_neg_S(4.0);
-  static const constinit Dbl A2_AS_factor = A_AS_factor;
+  static const constinit Dbl A1_factor = 360.0F * get_1_minus_exp_neg_S(4.0);
+  static const constinit Dbl A2_factor = A1_factor;
 
-  const Dbl r1_AS_factor = dr1Mean * r1_1_minus_exp_neg_S;
-  const Dbl r2_AS_factor = dr2Mean * r2_1_minus_exp_neg_S;
+  const Dbl r1_factor = dr1Mean * r1_1_minus_exp_neg_S;
+  const Dbl r2_factor = dr2Mean * r2_1_minus_exp_neg_S;
 
   for (size_t i = 0; i < num; i++)
   {
-    simi->c_x = gaussRand(0.0, 4.0, c_AS_factor);
-    simi->c_y = gaussRand(0.0, 4.0, c_AS_factor);
-    simi->r1 = gaussRand(rMean, 3.0, r1_AS_factor);
-    simi->r2 = halfGaussRand(0.0, 2.0, r2_AS_factor);
-    simi->A1 = gaussRand(0.0, 4.0, A_AS_factor) * (m_pi / 180.0);
-    simi->A2 = gaussRand(0.0, 4.0, A2_AS_factor) * (m_pi / 180.0);
+    simi->c_x = gaussRand(0.0, 4.0, c_factor);
+    simi->c_y = gaussRand(0.0, 4.0, c_factor);
+    simi->r1 = gaussRand(r1Mean, 3.0, r1_factor);
+    simi->r2 = halfGaussRand(r2Mean, 2.0, r2_factor);
+    simi->A1 = gaussRand(0.0, 4.0, A1_factor) * (m_pi / 180.0);
+    simi->A2 = gaussRand(0.0, 4.0, A2_factor) * (m_pi / 180.0);
     simi->Ct1 = 0;
     simi->St1 = 0;
     simi->Ct2 = 0;
@@ -437,10 +442,8 @@ inline FltPoint Fractal::transform(const Similitude& simi, const FltPoint& po)
   const Flt xo = div_by_unit((po.x - simi.Cx) * simi.R1);
   const Flt yo = div_by_unit((po.y - simi.Cy) * simi.R1);
 
-  const Flt xx = div_by_unit((xo - simi.Cx) * simi.R2);
-  // NOTE: changed '-yo - simi->Cy' to 'yo - simi->Cy' for symmetry
-  //   reasons. Not sure it made any difference that's why I kept it.
-  const Flt yy = div_by_unit((yo - simi.Cy) * simi.R2);
+  const Flt xx = div_by_unit((+xo - simi.Cx) * simi.R2);
+  const Flt yy = div_by_unit((-yo - simi.Cy) * simi.R2);
 
   return {
       div_by_unit(xo * simi.Ct1 - yo * simi.St1 + xx * simi.Ct2 - yy * simi.St2) + simi.Cx,
