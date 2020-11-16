@@ -63,6 +63,7 @@ public:
   void init(const TentacleLayout&);
   size_t getNumTentacles() const;
 
+  const FXBuffSettings& getBuffSettings() const;
   void setBuffSettings(const FXBuffSettings&);
 
   ColorModes getColorMode() const;

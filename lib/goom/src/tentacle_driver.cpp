@@ -55,6 +55,20 @@ TentacleDriver::TentacleDriver(const uint32_t screenW, const uint32_t screenH) n
       {150, 0.800, 1.5, {1.5, -10.0, +10.0, m_pi}, 100.0},
       {200, 0.900, 2.5, {1.0, -10.0, +10.0, 0.0}, 105.0},
   };
+  /***
+  const IterParamsGroup iter1 = {
+      {100, 0.700, 1.0, {1.5, -10.0, +10.0, m_pi}, 100.0},
+      {125, 0.800, 2.0, {1.0, -10.0, +10.0, 0.0}, 105.0},
+  };
+  const IterParamsGroup iter2 = {
+      {125, 0.710, 0.5, {1.0, -10.0, +10.0, 0.0}, 100.0},
+      {150, 0.810, 1.5, {1.5, -10.0, +10.0, m_pi}, 105.0},
+  };
+  const IterParamsGroup iter3 = {
+      {150, 0.720, 1.5, {1.5, -10.0, +10.0, m_pi}, 100.0},
+      {200, 0.820, 2.5, {1.0, -10.0, +10.0, 0.0}, 105.0},
+  };
+  ***/
 
   iterParamsGroups = {
       iter1,
@@ -133,6 +147,11 @@ bool TentacleDriver::operator==(const TentacleDriver& t) const
   }
 
   return result;
+}
+
+const FXBuffSettings& TentacleDriver::getBuffSettings() const
+{
+  return buffSettings;
 }
 
 void TentacleDriver::setBuffSettings(const FXBuffSettings& settings)
@@ -318,7 +337,7 @@ void TentacleDriver::updateTentaclesLayout(const TentacleLayout& layout)
       Tentacle2D& tentacle2D = tentacle.get2DTentacle();
       const double xmin = tentacle2D.getXMin();
       const double xmax = tentacle2D.getXMax();
-      const double newXmax = xmin + 0.6 * (xmax - xmin);
+      const double newXmax = xmin + 0.5 * (xmax - xmin);
       tentacle2D.setXDimensions(xmin, newXmax);
     }
   }
@@ -452,12 +471,27 @@ void TentacleDriver::update(const float angle,
              "distance = {}, distance2 = {}, color = {} and colorLow = {}.",
              updateNum, tentacle2D.getID(), angle, distance, distance2, color.rgba(),
              colorLow.rgba());
+    logDebug("tentacle head = ({:.2f}, {:.2f}, {:.2f}).", tentacle.getHead().x,
+             tentacle.getHead().y, tentacle.getHead().z);
 
     plot3D(tentacle, color, colorLow, angle, distance, distance2, prevBuff, currentBuff);
   }
 }
 
 constexpr int coordIgnoreVal = -666;
+
+inline float getBrightnessCut(const Tentacle3D& tentacle, const float distance2)
+{
+  if (std::fabs(tentacle.getHead().x) < 10)
+  {
+    if (distance2 > 8)
+    {
+      return 0.2;
+    }
+    return 0.5;
+  }
+  return 1.0;
+}
 
 void TentacleDriver::plot3D(const Tentacle3D& tentacle,
                             const Pixel& dominantColor,
@@ -471,7 +505,7 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
   const std::vector<V3d> vertices = tentacle.getVertices();
   const size_t n = vertices.size();
 
-  V3d cam = {0, 0, 3}; // TODO ????????????????????????????????
+  V3d cam = {0, 0, -7}; // TODO ????????????????????????????????
   cam.z += distance2;
   cam.y += 2.0 * sin(-(angle - m_half_pi) / 4.3f);
   logDebug("cam = ({:.2f}, {:.2f}, {:.2f}).", cam.x, cam.y, cam.z);
@@ -493,17 +527,19 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
 
   const std::vector<v2d> v2 = projectV3dOntoV2d(v3, distance);
 
+  const float brightnessCut = getBrightnessCut(tentacle, distance2);
+
   // Faraway tentacles get smaller and draw_line adds them together making them look
   // very white and over-exposed. If we reduce the brightness, then all the combined
   // tentacles look less bright and white and more colors show through.
   using GetMixedColorsFunc = std::function<std::tuple<Pixel, Pixel>(const size_t nodeNum)>;
   GetMixedColorsFunc getMixedColors = [&](const size_t nodeNum) {
-    return tentacle.getMixedColors(nodeNum, dominantColor, dominantColorLow);
+    return tentacle.getMixedColors(nodeNum, dominantColor, dominantColorLow, brightnessCut);
   };
-  if (distance2 > 50)
+  if (distance2 > 30)
   {
-    const float randBrightness = getRandInRange(0.1f, 0.5f);
-    const float brightness = std::max(randBrightness, 50.0f / distance2);
+    const float randBrightness = getRandInRange(0.1f, 0.2f);
+    float brightness = std::max(randBrightness, 30.0F / distance2) * brightnessCut;
     getMixedColors = [&, brightness](const size_t nodeNum) {
       return tentacle.getMixedColors(nodeNum, dominantColor, dominantColorLow, brightness);
     };
@@ -537,8 +573,8 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
 
       logDebug("draw_line {}: dominantColor = {:#x}, dominantColorLow = {:#x}.", nodeNum,
                dominantColor.rgba(), dominantColorLow.rgba());
-      logDebug("draw_line {}: color = {:#x}, colorLow = {:#x}.", nodeNum, color.rgba(),
-               colorLow.rgba());
+      logDebug("draw_line {}: color = {:#x}, colorLow = {:#x}, brightnessCut = {:.2f}.", nodeNum,
+               color.rgba(), colorLow.rgba(), brightnessCut);
 
       // TODO buff right way around ??????????????????????????????????????????????????????????????
       std::vector<Pixel*> buffs{currentBuff, prevBuff};
@@ -557,21 +593,22 @@ std::vector<v2d> TentacleDriver::projectV3dOntoV2d(const std::vector<V3d>& v3, c
 
   for (size_t i = 0; i < v3.size(); ++i)
   {
-    logDebug("project_v3d_to_v2d {}: v3[i].x = {:.2f}, v3[i].y = {:.2f}, v2[i].z = {:.2f}.", i,
-             v3[i].x, v3[i].y, v3[i].z);
     if (!v3[i].ignore && (v3[i].z > 2))
     {
       const int Xp = static_cast<int>(distance * v3[i].x / v3[i].z);
       const int Yp = static_cast<int>(distance * v3[i].y / v3[i].z);
       v2[i].x = Xp + static_cast<int>(screenWidth >> 1);
       v2[i].y = -Yp + static_cast<int>(screenHeight >> 1);
-      logDebug("project_v3d_to_v2d {}: Xp = {}, Yp = {}, v2[i].x = {}, v2[i].y = {}.", i, Xp, Yp,
-               v2[i].x, v2[i].y);
+      logDebug("project_v3d_to_v2d i: {:3}: v3[].x = {:.2f}, v3[].y = {:.2f}, v2[].z = {:.2f}, Xp "
+               "= {}, Yp = {}, v2[].x = {}, v2[].y = {}.",
+               i, v3[i].x, v3[i].y, v3[i].z, Xp, Yp, v2[i].x, v2[i].y);
     }
     else
     {
       v2[i].x = v2[i].y = coordIgnoreVal;
-      logDebug("project_v3d_to_v2d {}: v2[i].x = {}, v2[i].y = {}.", i, v2[i].x, v2[i].y);
+      logDebug("project_v3d_to_v2d i: {:3}: v3[i].x = {:.2f}, v3[i].y = {:.2f}, v2[i].z = {:.2f}, "
+               "v2[i].x = {}, v2[i].y = {}.",
+               i, v3[i].x, v3[i].y, v3[i].z, v2[i].x, v2[i].y);
     }
   }
 
@@ -756,8 +793,8 @@ CirclesTentacleLayout::CirclesTentacleLayout(const float radiusMin,
            " angleRightStart = {:.2f}, angleRightFinish = {:.2f}",
            angleLeftStart, angleLeftFinish, angleRightStart, angleRightFinish);
 
-  const float angleOffsetStart = 0.10;
-  const float angleOffsetFinish = 0.30;
+  const float angleOffsetStart = 0.035 * m_pi;
+  const float angleOffsetFinish = 0.035 * m_pi;
   const float offsetStep =
       (angleOffsetStart - angleOffsetFinish) / static_cast<float>(numCircles - 1);
   const float radiusStep = (radiusMax - radiusMin) / static_cast<float>(numCircles - 1);

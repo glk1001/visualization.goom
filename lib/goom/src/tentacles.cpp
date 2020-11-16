@@ -193,7 +193,7 @@ void Tentacle2D::startIterating()
   {
     dampingCache[i] = getDamping(x);
     xvec[i] = x;
-    yvec[i] = 0.5 * dampingCache[i];
+    yvec[i] = 0.1 * dampingCache[i];
 
     x += xstep;
     y += ystep;

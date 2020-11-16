@@ -9,7 +9,7 @@
 #include "goomutils/goomrand.h"
 #include "goomutils/logging_control.h"
 #include "goomutils/mathutils.h"
-#undef NO_LOGGING
+//#undef NO_LOGGING
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
 #include "tentacle_driver.h"
@@ -387,6 +387,7 @@ public:
   TentaclesImpl(const TentaclesImpl&) = delete;
   TentaclesImpl& operator=(const TentaclesImpl&) = delete;
 
+  const FXBuffSettings& getBuffSettings() const;
   void setBuffSettings(const FXBuffSettings&);
   void freshStart();
 
@@ -471,7 +472,7 @@ private:
       {10,  80, {16, 12,  8,  6, 4}, 0},
       {10,  80, {20, 16, 12,  6, 4}, 0},
       {10, 100, {30, 20, 14,  6, 4}, 0},
-      {10, 110, {40, 26, 20, 12, 6}, 0},
+      {10, 110, {36, 26, 20, 12, 6}, 0},
   };
   // clang-format on
 
@@ -702,6 +703,11 @@ colorMaps.setWeights(colorGroupWeights);
   currentDriver = getNextDriver();
   currentDriver->startIterating();
   init();
+}
+
+inline const FXBuffSettings& TentaclesFx::TentaclesImpl::getBuffSettings() const
+{
+  return currentDriver->getBuffSettings();
 }
 
 inline void TentaclesFx::TentaclesImpl::setBuffSettings(const FXBuffSettings& settings)
