@@ -487,7 +487,7 @@ public:
 
   void changeColorMaps();
 
-  Pixel getMixedColor(const Pixel& baseColor, const float tmix);
+  Pixel getMixedColor(const Pixel& baseColor, const float tmix, const float x, const float y);
 
   bool operator==(const Colorizer&) const;
 
@@ -505,8 +505,10 @@ private:
       {ColorMapGroup::qualitative, 10},
       {ColorMapGroup::misc, 20},
   }}};
-  const ColorMap* mixerMap;
-  const ColorMap* prevMixerMap;
+  const ColorMap* mixerMap1;
+  const ColorMap* prevMixerMap1;
+  const ColorMap* mixerMap2;
+  const ColorMap* prevMixerMap2;
   mutable uint32_t countSinceColorMapChange = 0;
   static constexpr uint32_t minColorMapChangeCompleted = 100;
   static constexpr uint32_t maxColorMapChangeCompleted = 10000;
@@ -516,10 +518,14 @@ private:
   IfsFx::ColorMode forcedColorMode = IfsFx::ColorMode::_null;
   float tBetweenColors = 0.5; // in [0, 1]
   static IfsFx::ColorMode getNextColorMode();
-  Pixel getNextMixerMapColor(const float t) const;
+  Pixel getNextMixerMapColor(const float t, const float x, const float y) const;
 };
 
-Colorizer::Colorizer() noexcept : mixerMap{&colorMaps.getRandomColorMap()}, prevMixerMap{mixerMap}
+Colorizer::Colorizer() noexcept
+  : mixerMap1{&colorMaps.getRandomColorMap()},
+    prevMixerMap1{mixerMap1},
+    mixerMap2{&colorMaps.getRandomColorMap()},
+    prevMixerMap2{mixerMap2}
 {
 }
 
@@ -535,12 +541,19 @@ void Colorizer::serialize(Archive& ar)
 {
   ar(countSinceColorMapChange, colorMapChangeCompleted, colorMode, tBetweenColors);
 
-  auto mixerMapName = mixerMap->getMapName();
-  ar(cereal::make_nvp("mixerMap", mixerMapName));
-  auto prevMixerMapName = prevMixerMap->getMapName();
-  ar(cereal::make_nvp("prevMixerMap", prevMixerMapName));
-  mixerMap = &colorMaps.getColorMap(mixerMapName);
-  prevMixerMap = &colorMaps.getColorMap(prevMixerMapName);
+  auto mixerMapName1 = mixerMap1->getMapName();
+  ar(cereal::make_nvp("mixerMap1", mixerMapName1));
+  auto prevMixerMapName1 = prevMixerMap1->getMapName();
+  ar(cereal::make_nvp("prevMixerMap1", prevMixerMapName1));
+  mixerMap1 = &colorMaps.getColorMap(mixerMapName1);
+  prevMixerMap1 = &colorMaps.getColorMap(prevMixerMapName1);
+
+  auto mixerMapName2 = mixerMap2->getMapName();
+  ar(cereal::make_nvp("mixerMap2", mixerMapName2));
+  auto prevMixerMapName2 = prevMixerMap2->getMapName();
+  ar(cereal::make_nvp("prevMixerMap2", prevMixerMapName2));
+  mixerMap2 = &colorMaps.getColorMap(mixerMapName2);
+  prevMixerMap2 = &colorMaps.getColorMap(prevMixerMapName2);
 };
 
 inline const ColorMaps& Colorizer::getColorMaps() const
@@ -590,8 +603,10 @@ IfsFx::ColorMode Colorizer::getNextColorMode()
 
 void Colorizer::changeColorMaps()
 {
-  prevMixerMap = mixerMap;
-  mixerMap = &colorMaps.getRandomColorMap();
+  prevMixerMap1 = mixerMap1;
+  mixerMap1 = &colorMaps.getRandomColorMap();
+  prevMixerMap2 = mixerMap2;
+  mixerMap2 = &colorMaps.getRandomColorMap();
   //  logInfo("prevMixerMap = {}", enumToString(prevMixerMap->getMapName()));
   //  logInfo("mixerMap = {}", enumToString(mixerMap->getMapName()));
   colorMapChangeCompleted = getRandInRange(minColorMapChangeCompleted, maxColorMapChangeCompleted);
@@ -599,20 +614,26 @@ void Colorizer::changeColorMaps()
   countSinceColorMapChange = colorMapChangeCompleted;
 }
 
-inline Pixel Colorizer::getNextMixerMapColor(const float t) const
+inline Pixel Colorizer::getNextMixerMapColor(const float t, const float x, const float y) const
 {
-  const Pixel nextColor = mixerMap->getColor(t);
+  const Pixel nextColor = ColorMap::colorMix(mixerMap1->getColor(x), mixerMap2->getColor(y), t);
   if (countSinceColorMapChange == 0)
   {
     return nextColor;
   }
+
   const float tTransition =
       static_cast<float>(countSinceColorMapChange) / static_cast<float>(colorMapChangeCompleted);
   countSinceColorMapChange--;
-  return ColorMap::colorMix(nextColor, prevMixerMap->getColor(t), tTransition);
+  const Pixel prevNextColor =
+      ColorMap::colorMix(prevMixerMap1->getColor(x), prevMixerMap2->getColor(y), t);
+  return ColorMap::colorMix(nextColor, prevNextColor, tTransition);
 }
 
-inline Pixel Colorizer::getMixedColor(const Pixel& baseColor, const float tmix)
+inline Pixel Colorizer::getMixedColor(const Pixel& baseColor,
+                                      const float tmix,
+                                      const float x,
+                                      const float y)
 {
   switch (colorMode)
   {
@@ -620,17 +641,17 @@ inline Pixel Colorizer::getMixedColor(const Pixel& baseColor, const float tmix)
     case IfsFx::ColorMode::megaMapColorChange:
     {
       const float tBright = static_cast<float>(getLuma(baseColor)) / channel_limits<float>::max();
-      return getNextMixerMapColor(tBright);
+      return getNextMixerMapColor(tBright, x, y);
     }
     case IfsFx::ColorMode::mixColors:
     case IfsFx::ColorMode::megaMixColorChange:
     {
-      const Pixel mixColor = getNextMixerMapColor(tmix);
+      const Pixel mixColor = getNextMixerMapColor(tmix, x, y);
       return ColorMap::colorMix(mixColor, baseColor, tBetweenColors);
     }
     case IfsFx::ColorMode::reverseMixColors:
     {
-      const Pixel mixColor = getNextMixerMapColor(tmix);
+      const Pixel mixColor = getNextMixerMapColor(tmix, x, y);
       return ColorMap::colorMix(baseColor, mixColor, tBetweenColors);
     }
     case IfsFx::ColorMode::singleColors:
@@ -641,11 +662,11 @@ inline Pixel Colorizer::getMixedColor(const Pixel& baseColor, const float tmix)
     case IfsFx::ColorMode::sineMapColors:
     {
       static float freq = 20;
-      static const float xStep = 0.1;
-      static float x = 0;
+      static const float zStep = 0.1;
+      static float z = 0;
 
-      const Pixel mixColor = getNextMixerMapColor(0.5 * (1.0F + std::sin(freq * x)));
-      x += xStep;
+      const Pixel mixColor = getNextMixerMapColor(0.5 * (1.0F + std::sin(freq * z)), x, y);
+      z += zStep;
       if (colorMode == IfsFx::ColorMode::sineMapColors)
       {
         //logInfo("Returning color {:x}", mixColor.rgba());
@@ -1081,10 +1102,12 @@ inline void IfsFx::IfsImpl::drawPixel(Pixel* prevBuff,
                                       const Pixel& ifsColor,
                                       const float tmix)
 {
+  const float fx = x / static_cast<float>(goomInfo->getScreenInfo().width);
+  const float fy = y / static_cast<float>(goomInfo->getScreenInfo().height);
   if (useOldStyleDrawPixel)
   {
     const Pixel prevBuffColor = draw.getPixelRGB(prevBuff, x, y);
-    const Pixel mixedColor = colorizer.getMixedColor(ifsColor, tmix);
+    const Pixel mixedColor = colorizer.getMixedColor(ifsColor, tmix, fx, fy);
     const Pixel finalColor = getColorAdd(prevBuffColor, mixedColor, allowOverexposed);
     draw.setPixelRGBNoBlend(currentBuff, x, y, finalColor);
   }
@@ -1092,7 +1115,7 @@ inline void IfsFx::IfsImpl::drawPixel(Pixel* prevBuff,
   {
     // TODO buff right way around ??????????????????????????????????????????????????????????????
     std::vector<Pixel*> buffs{currentBuff, prevBuff};
-    const std::vector<Pixel> colors{colorizer.getMixedColor(ifsColor, tmix), ifsColor};
+    const std::vector<Pixel> colors{colorizer.getMixedColor(ifsColor, tmix, fx, fy), ifsColor};
     draw.setPixelRGB(buffs, x, y, colors);
   }
 }
