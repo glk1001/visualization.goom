@@ -88,6 +88,7 @@ struct IfsPoint
 {
   uint32_t x = 0;
   uint32_t y = 0;
+  uint32_t count = 0;
 
   template<class Archive>
   void serialize(Archive& ar)
@@ -174,6 +175,72 @@ struct Similitude
   };
 };
 
+class FractalHits
+{
+public:
+  FractalHits() noexcept = default;
+  FractalHits(const uint32_t width, const uint32_t height) noexcept;
+  void reset();
+  void addHit(const uint32_t x, const uint32_t y);
+  std::vector<IfsPoint> getBuffer() const;
+
+private:
+  const uint32_t width = 0;
+  const uint32_t height = 0;
+  std::vector<std::vector<uint32_t>> hitCounts{};
+  std::vector<IfsPoint> hits{};
+};
+
+FractalHits::FractalHits(const uint32_t w, const uint32_t h) noexcept
+  : width{w}, height{h}, hitCounts(height)
+{
+  for (auto& xHit : hitCounts)
+  {
+    xHit.resize(width);
+  }
+  hits.reserve(1000);
+}
+
+void FractalHits::reset()
+{
+  hits.resize(0);
+  for (auto& xHit : hitCounts)
+  {
+    std::fill(xHit.begin(), xHit.end(), 0);
+  }
+}
+
+void FractalHits::addHit(const uint32_t x, const uint32_t y)
+{
+  if (x >= width || y >= height)
+  {
+    return;
+  }
+
+  hitCounts[y][x]++;
+  if (hitCounts[y][x] == 1)
+  {
+    hits.emplace_back(IfsPoint{x, y, 1});
+  }
+}
+
+std::vector<IfsPoint> FractalHits::getBuffer() const
+{
+  //  std::vector<IfsPoint> buffer(hits.size());
+  std::vector<IfsPoint> buffer(0);
+  for (size_t i = 0; i < hits.size(); i++)
+  {
+    IfsPoint pt = hits[i];
+    pt.count = hitCounts[pt.y][pt.x];
+    //    buffer[i] = pt;
+    for (size_t j = 0; j < pt.count; j++)
+    {
+      buffer.emplace_back(pt);
+    }
+  }
+  return buffer;
+}
+
 class Fractal
 {
 public:
@@ -218,6 +285,10 @@ private:
   std::vector<IfsPoint> buffer1{};
   std::vector<IfsPoint> buffer2{};
   IfsPoint* buff = nullptr;
+  FractalHits hits1{};
+  FractalHits hits2{};
+  FractalHits* prevHits = nullptr;
+  FractalHits* currHits = nullptr;
 
   Flt getLx() const { return static_cast<Flt>(lx); }
   Flt getLy() const { return static_cast<Flt>(ly); }
@@ -232,13 +303,20 @@ private:
 
 Fractal::Fractal(const std::shared_ptr<const PluginInfo>& goomInfo) noexcept
   : lx{(static_cast<uint32_t>(goomInfo->getScreenInfo().width) - 1) / 2},
-    ly{(static_cast<uint32_t>(goomInfo->getScreenInfo().height) - 1) / 2}
+    ly{(static_cast<uint32_t>(goomInfo->getScreenInfo().height) - 1) / 2},
+    hits1{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height},
+    hits2{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height},
+    prevHits{&hits1},
+    currHits{&hits2}
 {
   init();
 }
 
 void Fractal::init()
 {
+  prevHits->reset();
+  currHits->reset();
+
   const size_t numCentres = 2 + getNRand(centreList.size());
 
   depth = centreList.at(numCentres - 2).depth;
@@ -310,6 +388,7 @@ const std::vector<IfsPoint>& Fractal::drawIfs()
   }
 
   drawFractal();
+  std::swap(prevHits, currHits);
 
   if (count < maxCountTimesSpeed / speed)
   {
@@ -457,8 +536,11 @@ void Fractal::trace(const FltPoint& po)
   {
     const FltPoint p = transform(components[i], po);
 
-    buff->x = static_cast<uint32_t>(getLx() + div_by_2units(p.x * getLx()));
-    buff->y = static_cast<uint32_t>(getLy() - div_by_2units(p.y * getLy()));
+    const uint32_t x = static_cast<uint32_t>(getLx() + div_by_2units(p.x * getLx()));
+    const uint32_t y = static_cast<uint32_t>(getLy() - div_by_2units(p.y * getLy()));
+    currHits->addHit(x, y);
+    buff->x = x;
+    buff->y = y;
     buff++;
 
     curPt++;
