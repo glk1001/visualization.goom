@@ -1509,7 +1509,7 @@ void GoomControl::GoomControlImpl::update(const AudioSamples& soundData,
   displayLinesIfInAGoom(soundData);
 
   // affichage et swappage des buffers...
-  visualFx.convolve_fx->convolve(imageBuffers.getP1(), imageBuffers.getOutputBuff());
+  visualFx.convolve_fx->convolve(imageBuffers.getP2(), imageBuffers.getOutputBuff());
 
   imageBuffers.setBuffInc(getRandInRange(1U, GoomImageBuffers::maxBuffInc + 1));
   imageBuffers.rotateBuffers();
@@ -2176,7 +2176,7 @@ void GoomControl::GoomControlImpl::applyTentaclesIfRequired()
   logDebug("curGDrawables tentacles is set.");
   stats.doTentacles();
   visualFx.tentacles_fx->setBuffSettings(states.getCurrentBuffSettings(GoomDrawable::tentacles));
-  visualFx.tentacles_fx->apply(imageBuffers.getP2(), imageBuffers.getP1());
+  visualFx.tentacles_fx->apply(imageBuffers.getP1(), imageBuffers.getP2());
 }
 
 void GoomControl::GoomControlImpl::applyStarsIfRequired()
@@ -2189,7 +2189,8 @@ void GoomControl::GoomControlImpl::applyStarsIfRequired()
   logDebug("curGDrawables stars is set.");
   stats.doStars();
   visualFx.star_fx->setBuffSettings(states.getCurrentBuffSettings(GoomDrawable::stars));
-  visualFx.star_fx->apply(imageBuffers.getP2(), imageBuffers.getP1());
+  //  visualFx.star_fx->apply(imageBuffers.getP2(), imageBuffers.getP1());
+  visualFx.star_fx->apply(imageBuffers.getP1(), imageBuffers.getP2());
 }
 
 #ifdef SHOW_STATE_TEXT_ON_SCREEN
@@ -2502,7 +2503,7 @@ void GoomControl::GoomControlImpl::applyIfsIfRequired()
   logDebug("curGDrawables IFS is set");
   stats.doIFS();
   visualFx.ifs_fx->setBuffSettings(states.getCurrentBuffSettings(GoomDrawable::IFS));
-  visualFx.ifs_fx->apply(imageBuffers.getP2(), imageBuffers.getP1());
+  visualFx.ifs_fx->apply(imageBuffers.getP1(), imageBuffers.getP2());
 }
 
 void GoomControl::GoomControlImpl::regularlyLowerTheSpeed(ZoomFilterData** pzfd)
@@ -2538,7 +2539,7 @@ void GoomControl::GoomControlImpl::drawDotsIfRequired()
 
   logDebug("goomInfo->curGDrawables points is set.");
   stats.doDots();
-  visualFx.goomDots_fx->apply(imageBuffers.getP2(), imageBuffers.getP1());
+  visualFx.goomDots_fx->apply(imageBuffers.getP1(), imageBuffers.getP2());
   logDebug("sound getTimeSinceLastGoom() = {}", goomInfo->getSoundInfo().getTimeSinceLastGoom());
 }
 

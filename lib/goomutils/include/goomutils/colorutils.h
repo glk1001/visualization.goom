@@ -13,6 +13,7 @@ namespace goom
 
 Pixel getIntColor(const uint8_t r, const uint8_t g, const uint8_t b);
 
+Pixel getColorAverage(const Pixel& color1, const Pixel& color2);
 Pixel getColorAdd(const Pixel& color1, const Pixel& color2, const bool allowOverexposed);
 Pixel getColorSubtract(const Pixel& color1, const Pixel& color2);
 Pixel getBrighterColorInt(const uint32_t brightness,
@@ -31,6 +32,17 @@ Pixel getEvolvedColor(const Pixel& baseColor);
 
 uint32_t getLuma(const Pixel& color);
 
+class GammaCorrection
+{
+public:
+  GammaCorrection(const float gamma, const float threshold);
+  Pixel getCorrection(const float brightness, const Pixel& color) const;
+
+private:
+  const float gammaReciprocal;
+  const float threshold;
+};
+
 
 inline uint32_t colorChannelAdd(const uint8_t c1, const uint8_t c2)
 {
@@ -44,6 +56,21 @@ inline uint32_t colorChannelSubtract(const uint8_t c1, const uint8_t c2)
     return 0;
   }
   return static_cast<uint32_t>(c1) - static_cast<uint32_t>(c2);
+}
+
+inline Pixel getColorAverage(const Pixel& color1, const Pixel& color2)
+{
+  const uint32_t newR = colorChannelAdd(color1.r(), color2.r()) >> 1;
+  const uint32_t newG = colorChannelAdd(color1.g(), color2.g()) >> 1;
+  const uint32_t newB = colorChannelAdd(color1.b(), color2.b()) >> 1;
+  const uint32_t newA = colorChannelAdd(color1.a(), color2.a()) >> 1;
+
+  return Pixel{{
+      .r = static_cast<uint8_t>(newR),
+      .g = static_cast<uint8_t>(newG),
+      .b = static_cast<uint8_t>(newB),
+      .a = static_cast<uint8_t>(newA),
+  }};
 }
 
 inline Pixel getColorAdd(const Pixel& color1, const Pixel& color2, const bool allowOverexposed)
@@ -180,6 +207,20 @@ inline uint32_t getLuma(const Pixel& color)
   const uint32_t g = color.g();
   const uint32_t b = color.b();
   return (r + r + b + g + g + g) >> 3;
+}
+
+inline GammaCorrection::GammaCorrection(const float gamma, const float thresh)
+  : gammaReciprocal(1.0F / gamma), threshold(thresh)
+{
+}
+
+inline Pixel GammaCorrection::getCorrection(const float brightness, const Pixel& color) const
+{
+  if (brightness < threshold)
+  {
+    return getBrighterColor(brightness, color, true);
+  }
+  return getBrighterColor(std::pow(brightness, gammaReciprocal), color, true);
 }
 
 } // namespace goom

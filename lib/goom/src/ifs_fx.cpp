@@ -89,6 +89,7 @@ struct IfsPoint
   uint32_t x = 0;
   uint32_t y = 0;
   uint32_t count = 0;
+  Pixel color{0U};
 
   template<class Archive>
   void serialize(Archive& ar)
@@ -143,20 +144,21 @@ static const std::vector<CentreType> centreList = {
 
 struct Similitude
 {
-  Dbl c_x;
-  Dbl c_y;
-  Dbl r1;
-  Dbl r2;
-  Dbl A1;
-  Dbl A2;
-  Flt Ct1;
-  Flt St1;
-  Flt Ct2;
-  Flt St2;
-  Flt Cx;
-  Flt Cy;
-  Flt R1;
-  Flt R2;
+  Dbl c_x = 0;
+  Dbl c_y = 0;
+  Dbl r1 = 0;
+  Dbl r2 = 0;
+  Dbl A1 = 0;
+  Dbl A2 = 0;
+  Flt Ct1 = 0;
+  Flt St1 = 0;
+  Flt Ct2 = 0;
+  Flt St2 = 0;
+  Flt Cx = 0;
+  Flt Cy = 0;
+  Flt R1 = 0;
+  Flt R2 = 0;
+  Pixel color{0U};
 
   bool operator==(const Similitude& s) const = default;
   /**
@@ -171,7 +173,7 @@ struct Similitude
   template<class Archive>
   void serialize(Archive& ar)
   {
-    ar(c_x, c_y, r1, r2, A1, A2, Ct1, St1, Ct2, St2, Cx, Cy, R1, R2);
+    ar(c_x, c_y, r1, r2, A1, A2, Ct1, St1, Ct2, St2, Cx, Cy, R1, R2, color);
   };
 };
 
@@ -181,20 +183,28 @@ public:
   FractalHits() noexcept = default;
   FractalHits(const uint32_t width, const uint32_t height) noexcept;
   void reset();
-  void addHit(const uint32_t x, const uint32_t y);
-  std::vector<IfsPoint> getBuffer() const;
+  void addHit(const uint32_t x, const uint32_t y, const Pixel&);
+  const std::vector<IfsPoint>& getBuffer();
+  uint32_t getMaxHitCount() const { return maxHitCount; }
 
 private:
   const uint32_t width = 0;
   const uint32_t height = 0;
-  std::vector<std::vector<uint32_t>> hitCounts{};
+  struct HitInfo
+  {
+    uint32_t count = 0;
+    Pixel color{0U};
+  };
+  std::vector<std::vector<HitInfo>> hitInfo{};
+  uint32_t maxHitCount = 0;
   std::vector<IfsPoint> hits{};
+  std::vector<IfsPoint> buffer{};
 };
 
 FractalHits::FractalHits(const uint32_t w, const uint32_t h) noexcept
-  : width{w}, height{h}, hitCounts(height)
+  : width{w}, height{h}, hitInfo(height)
 {
-  for (auto& xHit : hitCounts)
+  for (auto& xHit : hitInfo)
   {
     xHit.resize(width);
   }
@@ -203,40 +213,54 @@ FractalHits::FractalHits(const uint32_t w, const uint32_t h) noexcept
 
 void FractalHits::reset()
 {
+  maxHitCount = 0;
   hits.resize(0);
-  for (auto& xHit : hitCounts)
+  for (auto& xHit : hitInfo)
   {
-    std::fill(xHit.begin(), xHit.end(), 0);
+    // Optimization makes sense here:
+    // std::fill(xHit.begin(), xHit.end(), HitInfo{0, Pixel{0U}});
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wclass-memaccess"
+    std::memset(xHit.data(), 0, xHit.size() * sizeof(HitInfo));
+#pragma GCC diagnostic pop
   }
 }
 
-void FractalHits::addHit(const uint32_t x, const uint32_t y)
+void FractalHits::addHit(const uint32_t x, const uint32_t y, const Pixel& color)
 {
-  if (x >= width || y >= height)
+  const uint32_t ux = x & 0x7fffffff;
+  const uint32_t uy = y & 0x7fffffff;
+
+  if (ux >= width || uy >= height)
   {
     return;
   }
 
-  hitCounts[y][x]++;
-  if (hitCounts[y][x] == 1)
+  HitInfo& h = hitInfo[uy][ux];
+
+  h.color = getColorAverage(h.color, color);
+  h.count++;
+
+  if (h.count > maxHitCount)
   {
-    hits.emplace_back(IfsPoint{x, y, 1});
+    maxHitCount = h.count;
+  }
+
+  if (h.count == 1)
+  {
+    hits.emplace_back(IfsPoint{ux, uy, 1});
   }
 }
 
-std::vector<IfsPoint> FractalHits::getBuffer() const
+const std::vector<IfsPoint>& FractalHits::getBuffer()
 {
-  //  std::vector<IfsPoint> buffer(hits.size());
-  std::vector<IfsPoint> buffer(0);
+  buffer.resize(hits.size());
   for (size_t i = 0; i < hits.size(); i++)
   {
     IfsPoint pt = hits[i];
-    pt.count = hitCounts[pt.y][pt.x];
-    //    buffer[i] = pt;
-    for (size_t j = 0; j < pt.count; j++)
-    {
-      buffer.emplace_back(pt);
-    }
+    pt.count = hitInfo[pt.y][pt.x].count;
+    pt.color = hitInfo[pt.y][pt.x].color;
+    buffer[i] = pt;
   }
   return buffer;
 }
@@ -245,7 +269,7 @@ class Fractal
 {
 public:
   Fractal() noexcept = default;
-  explicit Fractal(const std::shared_ptr<const PluginInfo>&) noexcept;
+  Fractal(const std::shared_ptr<const PluginInfo>&, const ColorMaps&) noexcept;
   Fractal(const Fractal&) noexcept = delete;
   Fractal& operator=(const Fractal&) = delete;
 
@@ -254,7 +278,7 @@ public:
   uint32_t getSpeed() const { return speed; }
   void setSpeed(const uint32_t val) { speed = val; }
 
-  uint32_t getCurPt() const { return curPt; }
+  uint32_t getMaxHitCount() const { return curHits->getMaxHitCount(); }
 
   const std::vector<IfsPoint>& drawIfs();
 
@@ -267,6 +291,8 @@ private:
   static constexpr size_t maxSimi = 6;
   static constexpr size_t maxCountTimesSpeed = 1000;
 
+  const ColorMaps* colorMaps = nullptr;
+
   uint32_t lx = 0;
   uint32_t ly = 0;
   uint32_t numSimi = 0;
@@ -278,22 +304,17 @@ private:
   Dbl dr1Mean = 0;
   Dbl dr2Mean = 0;
 
-  std::array<Similitude, 5 * maxSimi> components{};
-  uint32_t maxPt = 0;
-  uint32_t curPt = 0;
+  std::vector<Similitude> components{};
 
-  std::vector<IfsPoint> buffer1{};
-  std::vector<IfsPoint> buffer2{};
-  IfsPoint* buff = nullptr;
   FractalHits hits1{};
   FractalHits hits2{};
   FractalHits* prevHits = nullptr;
-  FractalHits* currHits = nullptr;
+  FractalHits* curHits = nullptr;
 
   Flt getLx() const { return static_cast<Flt>(lx); }
   Flt getLy() const { return static_cast<Flt>(ly); }
   void drawFractal();
-  void randomSimis(Similitude*, const size_t num);
+  void randomSimis(const size_t start, const size_t num);
   void trace(const FltPoint& po);
   static FltPoint transform(const Similitude&, const FltPoint& po);
   static Dbl gaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S);
@@ -301,13 +322,15 @@ private:
   static constexpr Dbl get_1_minus_exp_neg_S(const Dbl S);
 };
 
-Fractal::Fractal(const std::shared_ptr<const PluginInfo>& goomInfo) noexcept
-  : lx{(static_cast<uint32_t>(goomInfo->getScreenInfo().width) - 1) / 2},
+Fractal::Fractal(const std::shared_ptr<const PluginInfo>& goomInfo, const ColorMaps& cm) noexcept
+  : colorMaps{&cm},
+    lx{(static_cast<uint32_t>(goomInfo->getScreenInfo().width) - 1) / 2},
     ly{(static_cast<uint32_t>(goomInfo->getScreenInfo().height) - 1) / 2},
+    components(5 * maxSimi),
     hits1{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height},
     hits2{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height},
     prevHits{&hits1},
-    currHits{&hits2}
+    curHits{&hits2}
 {
   init();
 }
@@ -315,7 +338,7 @@ Fractal::Fractal(const std::shared_ptr<const PluginInfo>& goomInfo) noexcept
 void Fractal::init()
 {
   prevHits->reset();
-  currHits->reset();
+  curHits->reset();
 
   const size_t numCentres = 2 + getNRand(centreList.size());
 
@@ -326,36 +349,24 @@ void Fractal::init()
   dr2Mean = centreList[numCentres - 2].dr2Mean;
 
   numSimi = numCentres;
-  maxPt = numSimi - 1;
-  for (uint32_t i = 0; i <= depth + 2; i++)
-  {
-    maxPt *= numSimi;
-  }
 
-  if (maxPt > 100)
+  for (size_t i = 0; i < 5; i++)
   {
-    logWarn("maxPt = {}, numSimi = {}, numCentres = {}, depth = {}",
-        maxPt, numSimi, numCentres, depth);
+    randomSimis(i * maxSimi, maxSimi);
   }
-  buffer1.resize(maxPt);
-  buffer2.resize(maxPt);
-
-  randomSimis(components.data(), 5 * maxSimi);
 }
 
 bool Fractal::operator==(const Fractal& f) const
 {
   return numSimi == f.numSimi && components == f.components && depth == f.depth &&
          count == f.count && speed == f.speed && lx == f.lx && ly == f.ly && r1Mean == f.r1Mean &&
-         r2Mean == f.r2Mean && dr1Mean == f.dr1Mean && dr2Mean == f.dr2Mean && curPt == f.curPt &&
-         maxPt == f.maxPt;
+         r2Mean == f.r2Mean && dr1Mean == f.dr1Mean && dr2Mean == f.dr2Mean;
 }
 
 template<class Archive>
 void Fractal::serialize(Archive& ar)
 {
-  ar(numSimi, components, depth, count, speed, lx, ly, r1Mean, r2Mean, dr1Mean, dr2Mean, curPt,
-     maxPt);
+  ar(numSimi, components, depth, count, speed, lx, ly, r1Mean, r2Mean, dr1Mean, dr2Mean);
 };
 
 const std::vector<IfsPoint>& Fractal::drawIfs()
@@ -387,8 +398,10 @@ const std::vector<IfsPoint>& Fractal::drawIfs()
     s[i].A2 = u0 * s0[i].A2 + u1 * s1[i].A2 + u2 * s2[i].A2 + u3 * s3[i].A2;
   }
 
+  curHits->reset();
   drawFractal();
-  std::swap(prevHits, currHits);
+  const std::vector<IfsPoint>& curBuffer = curHits->getBuffer();
+  std::swap(prevHits, curHits);
 
   if (count < maxCountTimesSpeed / speed)
   {
@@ -416,13 +429,13 @@ const std::vector<IfsPoint>& Fractal::drawIfs()
       s0[i] = s3[i];
     }
 
-    randomSimis(components.data() + 3 * numSimi, numSimi);
-    randomSimis(components.data() + 4 * numSimi, numSimi);
+    randomSimis(3 * numSimi, numSimi);
+    randomSimis(4 * numSimi, numSimi);
 
     count = 0;
   }
 
-  return buffer2;
+  return curBuffer;
 }
 
 void Fractal::drawFractal()
@@ -443,9 +456,6 @@ void Fractal::drawFractal()
     simi.R2 = dbl_to_flt(simi.r2);
   }
 
-  curPt = 0;
-  buff = buffer2.data();
-
   for (size_t i = 0; i < numSimi; i++)
   {
     const Similitude& cur = components[i];
@@ -458,10 +468,6 @@ void Fractal::drawFractal()
       }
     }
   }
-
-  // Erase previous
-  buff = buffer1.data();
-  std::swap(buffer1, buffer2);
 }
 
 
@@ -484,7 +490,7 @@ Dbl Fractal::halfGaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_ex
   return c + y;
 }
 
-void Fractal::randomSimis(Similitude* simi, const size_t num)
+void Fractal::randomSimis(const size_t start, const size_t num)
 {
   static const constinit Dbl c_factor = 0.8f * get_1_minus_exp_neg_S(4.0);
   static const constinit Dbl r1_1_minus_exp_neg_S = get_1_minus_exp_neg_S(3.0);
@@ -495,24 +501,26 @@ void Fractal::randomSimis(Similitude* simi, const size_t num)
   const Dbl r1_factor = dr1Mean * r1_1_minus_exp_neg_S;
   const Dbl r2_factor = dr2Mean * r2_1_minus_exp_neg_S;
 
-  for (size_t i = 0; i < num; i++)
-  {
-    simi->c_x = gaussRand(0.0, 4.0, c_factor);
-    simi->c_y = gaussRand(0.0, 4.0, c_factor);
-    simi->r1 = gaussRand(r1Mean, 3.0, r1_factor);
-    simi->r2 = halfGaussRand(r2Mean, 2.0, r2_factor);
-    simi->A1 = gaussRand(0.0, 4.0, A1_factor) * (m_pi / 180.0);
-    simi->A2 = gaussRand(0.0, 4.0, A2_factor) * (m_pi / 180.0);
-    simi->Ct1 = 0;
-    simi->St1 = 0;
-    simi->Ct2 = 0;
-    simi->St2 = 0;
-    simi->Cx = 0;
-    simi->Cy = 0;
-    simi->R1 = 0;
-    simi->R2 = 0;
+  const ColorMapGroup colorMapGroup = colorMaps->getRandomGroup();
 
-    simi++;
+  for (size_t i = start; i < start + num; i++)
+  {
+    components[i].c_x = gaussRand(0.0, 4.0, c_factor);
+    components[i].c_y = gaussRand(0.0, 4.0, c_factor);
+    components[i].r1 = gaussRand(r1Mean, 3.0, r1_factor);
+    components[i].r2 = halfGaussRand(r2Mean, 2.0, r2_factor);
+    components[i].A1 = gaussRand(0.0, 4.0, A1_factor) * (m_pi / 180.0);
+    components[i].A2 = gaussRand(0.0, 4.0, A2_factor) * (m_pi / 180.0);
+    components[i].Ct1 = 0;
+    components[i].St1 = 0;
+    components[i].Ct2 = 0;
+    components[i].St2 = 0;
+    components[i].Cx = 0;
+    components[i].Cy = 0;
+    components[i].R1 = 0;
+    components[i].R2 = 0;
+
+    components[i].color = ColorMap::getRandomColor(colorMaps->getRandomColorMap(colorMapGroup));
   }
 }
 
@@ -538,12 +546,8 @@ void Fractal::trace(const FltPoint& po)
 
     const uint32_t x = static_cast<uint32_t>(getLx() + div_by_2units(p.x * getLx()));
     const uint32_t y = static_cast<uint32_t>(getLy() - div_by_2units(p.y * getLy()));
-    currHits->addHit(x, y);
-    buff->x = x;
-    buff->y = y;
-    buff++;
 
-    curPt++;
+    curHits->addHit(x, y, components[i].color);
 
     if (depth && ((p.x - po.x) >> 4) && ((p.y - po.y) >> 4))
     {
@@ -569,7 +573,13 @@ public:
 
   void changeColorMaps();
 
-  Pixel getMixedColor(const Pixel& baseColor, const float tmix, const float x, const float y);
+  void setMaxHitCount(const uint32_t val);
+
+  Pixel getMixedColor(const Pixel& baseColor,
+                      const uint32_t hitCount,
+                      const float tmix,
+                      const float x,
+                      const float y);
 
   bool operator==(const Colorizer&) const;
 
@@ -598,6 +608,8 @@ private:
 
   IfsFx::ColorMode colorMode = IfsFx::ColorMode::mapColors;
   IfsFx::ColorMode forcedColorMode = IfsFx::ColorMode::_null;
+  uint32_t maxHitCount = 0;
+  float logMaxHitCount = 0;
   float tBetweenColors = 0.5; // in [0, 1]
   static IfsFx::ColorMode getNextColorMode();
   Pixel getNextMixerMapColor(const float t, const float x, const float y) const;
@@ -638,6 +650,12 @@ void Colorizer::serialize(Archive& ar)
   prevMixerMap2 = &colorMaps.getColorMap(prevMixerMapName2);
 };
 
+inline void Colorizer::setMaxHitCount(const uint32_t val)
+{
+  maxHitCount = val;
+  logMaxHitCount = std::log(maxHitCount);
+}
+
 inline const ColorMaps& Colorizer::getColorMaps() const
 {
   return colorMaps;
@@ -670,9 +688,9 @@ IfsFx::ColorMode Colorizer::getNextColorMode()
   // clang-format off
   static const Weights<IfsFx::ColorMode> colorModeWeights{{
     { IfsFx::ColorMode::mapColors,           15 },
-    { IfsFx::ColorMode::megaMapColorChange, 100 },
+    { IfsFx::ColorMode::megaMapColorChange,  20 },
     { IfsFx::ColorMode::mixColors,           10 },
-    { IfsFx::ColorMode::megaMixColorChange,  10 },
+    { IfsFx::ColorMode::megaMixColorChange,  15 },
     { IfsFx::ColorMode::reverseMixColors,    10 },
     { IfsFx::ColorMode::singleColors,         5 },
     { IfsFx::ColorMode::sineMixColors,       15 },
@@ -712,34 +730,34 @@ inline Pixel Colorizer::getNextMixerMapColor(const float t, const float x, const
   return ColorMap::colorMix(nextColor, prevNextColor, tTransition);
 }
 
-inline Pixel Colorizer::getMixedColor(const Pixel& baseColor,
-                                      const float tmix,
-                                      const float x,
-                                      const float y)
+inline Pixel Colorizer::getMixedColor(
+    const Pixel& baseColor, const uint32_t hitCount, const float tmix, const float x, const float y)
 {
+  //  const float hitFactor = std::max(0.4F, std::log(static_cast<float>(hitCount))/static_cast<float>(maxHitCount));
+  //  const float logAlpha = std::log(static_cast<float>(hitCount))/static_cast<float>(hitCount);
+  const float logAlpha = std::log(static_cast<float>(hitCount)) / logMaxHitCount;
+
+  Pixel mixColor{0U};
+  float t = tBetweenColors;
+
   switch (colorMode)
   {
     case IfsFx::ColorMode::mapColors:
     case IfsFx::ColorMode::megaMapColorChange:
-    {
-      const float tBright = static_cast<float>(getLuma(baseColor)) / channel_limits<float>::max();
-      return getNextMixerMapColor(tBright, x, y);
-    }
+      mixColor = getNextMixerMapColor(logAlpha, x, y);
+      t = tBetweenColors;
+      break;
+
     case IfsFx::ColorMode::mixColors:
-    case IfsFx::ColorMode::megaMixColorChange:
-    {
-      const Pixel mixColor = getNextMixerMapColor(tmix, x, y);
-      return ColorMap::colorMix(mixColor, baseColor, tBetweenColors);
-    }
     case IfsFx::ColorMode::reverseMixColors:
-    {
-      const Pixel mixColor = getNextMixerMapColor(tmix, x, y);
-      return ColorMap::colorMix(baseColor, mixColor, tBetweenColors);
-    }
+    case IfsFx::ColorMode::megaMixColorChange:
+      mixColor = getNextMixerMapColor(tmix, x, y);
+      break;
+
     case IfsFx::ColorMode::singleColors:
-    {
-      return baseColor;
-    }
+      mixColor = baseColor;
+      break;
+
     case IfsFx::ColorMode::sineMixColors:
     case IfsFx::ColorMode::sineMapColors:
     {
@@ -747,18 +765,31 @@ inline Pixel Colorizer::getMixedColor(const Pixel& baseColor,
       static const float zStep = 0.1;
       static float z = 0;
 
-      const Pixel mixColor = getNextMixerMapColor(0.5 * (1.0F + std::sin(freq * z)), x, y);
+      mixColor = getNextMixerMapColor(0.5 * (1.0F + std::sin(freq * z)), x, y);
       z += zStep;
       if (colorMode == IfsFx::ColorMode::sineMapColors)
       {
-        //logInfo("Returning color {:x}", mixColor.rgba());
-        return mixColor;
-      };
-      return ColorMap::colorMix(baseColor, mixColor, tBetweenColors);
+        t = tBetweenColors;
+      }
+      break;
     }
+
     default:
       throw std::logic_error("Unknown ColorMode");
   }
+
+  if (colorMode == IfsFx::ColorMode::reverseMixColors)
+  {
+    mixColor = ColorMap::colorMix(baseColor, mixColor, t);
+  }
+  else
+  {
+    mixColor = ColorMap::colorMix(mixColor, baseColor, t);
+  }
+
+  static GammaCorrection gammaCorrect{4.2, 0.1};
+
+  return gammaCorrect.getCorrection(logAlpha, mixColor);
 }
 
 enum class ModType
@@ -837,7 +868,7 @@ public:
   bool operator==(const IfsImpl&) const;
 
 private:
-  static constexpr int maxCountBeforeNextUpdate = 500;
+  static constexpr int maxCountBeforeNextUpdate = 1000;
 
   std::shared_ptr<const PluginInfo> goomInfo{};
 
@@ -867,11 +898,11 @@ private:
                           Pixel* currentBuff,
                           const size_t numPoints,
                           const std::vector<IfsPoint>& points,
+                          const uint32_t maxHitCount,
                           const Pixel& color);
   void drawPixel(Pixel* prevBuff,
                  Pixel* currentBuff,
-                 const uint32_t x,
-                 const uint32_t y,
+                 const IfsPoint&,
                  const Pixel& ifsColor,
                  const float tmix);
   void updateColors();
@@ -1024,7 +1055,7 @@ bool IfsFx::IfsImpl::operator==(const IfsImpl& i) const
 IfsFx::IfsImpl::IfsImpl(const std::shared_ptr<const PluginInfo>& info) noexcept
   : goomInfo{info},
     draw{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height},
-    fractal{std::make_unique<Fractal>(goomInfo)}
+    fractal{std::make_unique<Fractal>(goomInfo, colorizer.getColorMaps())}
 {
 #ifndef NO_LOGGING
   Fractal* fractal = fractal.get();
@@ -1067,7 +1098,7 @@ void IfsFx::IfsImpl::renew()
   colorizer.changeColorMode();
   updateAllowOverexposed();
 
-  fractal->setSpeed(static_cast<uint32_t>(std::min(getRandInRange(1.11F, 20.0F), 10.0F) /
+  fractal->setSpeed(static_cast<uint32_t>(std::min(getRandInRange(1.1F, 10.0F), 5.1F) /
                                           (1.1F - goomInfo->getSoundInfo().getAcceleration())));
 }
 
@@ -1103,12 +1134,13 @@ void IfsFx::IfsImpl::updateIfs(Pixel* prevBuff, Pixel* currentBuff)
   }
 
   const std::vector<IfsPoint>& points = fractal->drawIfs();
-  const size_t numPoints = fractal->getCurPt() - 1;
+  const size_t numPoints = points.size();
+  const uint32_t maxHitCount = fractal->getMaxHitCount();
 
   const int cycle10 = (updateData.cycle < 40) ? updateData.cycle / 10 : 7 - updateData.cycle / 10;
   const Pixel color = getRightShiftedChannels(updateData.couleur, cycle10);
 
-  updatePixelBuffers(prevBuff, currentBuff, numPoints, points, color);
+  updatePixelBuffers(prevBuff, currentBuff, numPoints, points, maxHitCount, color);
 
   updateData.justChanged--;
 
@@ -1179,26 +1211,26 @@ inline int IfsFx::IfsImpl::getIfsIncr() const
 
 inline void IfsFx::IfsImpl::drawPixel(Pixel* prevBuff,
                                       Pixel* currentBuff,
-                                      const uint32_t x,
-                                      const uint32_t y,
+                                      const IfsPoint& point,
                                       const Pixel& ifsColor,
                                       const float tmix)
 {
-  const float fx = x / static_cast<float>(goomInfo->getScreenInfo().width);
-  const float fy = y / static_cast<float>(goomInfo->getScreenInfo().height);
+  const float fx = point.x / static_cast<float>(goomInfo->getScreenInfo().width);
+  const float fy = point.y / static_cast<float>(goomInfo->getScreenInfo().height);
   if (useOldStyleDrawPixel)
   {
-    const Pixel prevBuffColor = draw.getPixelRGB(prevBuff, x, y);
-    const Pixel mixedColor = colorizer.getMixedColor(ifsColor, tmix, fx, fy);
+    const Pixel prevBuffColor = draw.getPixelRGB(prevBuff, point.x, point.y);
+    const Pixel mixedColor = colorizer.getMixedColor(point.color, point.count, tmix, fx, fy);
     const Pixel finalColor = getColorAdd(prevBuffColor, mixedColor, allowOverexposed);
-    draw.setPixelRGBNoBlend(currentBuff, x, y, finalColor);
+    draw.setPixelRGBNoBlend(prevBuff, point.x, point.y, finalColor);
   }
   else
   {
-    // TODO buff right way around ??????????????????????????????????????????????????????????????
-    std::vector<Pixel*> buffs{currentBuff, prevBuff};
-    const std::vector<Pixel> colors{colorizer.getMixedColor(ifsColor, tmix, fx, fy), ifsColor};
-    draw.setPixelRGB(buffs, x, y, colors);
+    //    const Pixel prevBuffColor = draw.getPixelRGB(prevBuff, point.x, point.y);
+    Pixel mixedColor = colorizer.getMixedColor(point.color, point.count, tmix, fx, fy);
+    //    mixedColor = ColorMap::colorMix(prevBuffColor, mixedColor, 0.7);
+    //    mixedColor = ColorMap::colorMix(ifsColor, mixedColor, 0.7);
+    draw.setPixelRGB(prevBuff, point.x, point.y, mixedColor);
   }
 }
 
@@ -1231,8 +1263,10 @@ void IfsFx::IfsImpl::updatePixelBuffers(Pixel* prevBuff,
                                         Pixel* currentBuff,
                                         const size_t numPoints,
                                         const std::vector<IfsPoint>& points,
+                                        const uint32_t maxHitCount,
                                         const Pixel& color)
 {
+  colorizer.setMaxHitCount(maxHitCount);
   bool doneColorChange = colorizer.getColorMode() != IfsFx::ColorMode::megaMapColorChange &&
                          colorizer.getColorMode() != IfsFx::ColorMode::megaMixColorChange;
   const float tStep = numPoints == 1 ? 0.0F : (1.0F - 0.0F) / static_cast<float>(numPoints - 1);
@@ -1255,7 +1289,7 @@ void IfsFx::IfsImpl::updatePixelBuffers(Pixel* prevBuff,
       doneColorChange = true;
     }
 
-    drawPixel(prevBuff, currentBuff, x, y, color, t);
+    drawPixel(prevBuff, currentBuff, points[i], color, t);
   }
 }
 
@@ -1337,6 +1371,7 @@ void IfsFx::IfsImpl::updateColorsModeMer()
   {
     updateData.mode = probabilityOfMInN(2, 3) ? ModType::MOD_FEU : ModType::MOD_MERVER;
     updateData.justChanged = maxCountBeforeNextUpdate;
+    renew();
   }
 }
 
@@ -1402,6 +1437,7 @@ void IfsFx::IfsImpl::updateColorsModeMerver()
   {
     updateData.mode = probabilityOfMInN(2, 3) ? ModType::MOD_FEU : ModType::MOD_MER;
     updateData.justChanged = maxCountBeforeNextUpdate;
+    renew();
   }
 }
 
@@ -1474,6 +1510,7 @@ void IfsFx::IfsImpl::updateColorsModeFeu()
   {
     updateData.mode = probabilityOfMInN(1, 2) ? ModType::MOD_MER : ModType::MOD_MERVER;
     updateData.justChanged = maxCountBeforeNextUpdate;
+    renew();
   }
 }
 
