@@ -408,6 +408,7 @@ void FlyingStarsFx::FlyingStarsImpl::updateBuffers(Pixel* prevBuff, Pixel* curre
     const float thicknessFactor = getRandInRange(1.0F, 3.0F);
 
     // draws the particule
+    static GammaCorrection gammaCorrect{4.2, 0.1};
     const int x0 = static_cast<int>(stars[i].x);
     const int y0 = static_cast<int>(stars[i].y);
     int x1 = x0;
@@ -416,7 +417,8 @@ void FlyingStarsFx::FlyingStarsImpl::updateBuffers(Pixel* prevBuff, Pixel* curre
     for (size_t j = 1; j <= numParts; j++)
     {
       const float t = static_cast<float>(j - 1) / static_cast<float>(numParts - 1);
-      const Pixel mixedColor{ColorMap::colorMix(color, lowColor, t)};
+      const Pixel mixedColor =
+          gammaCorrect.getCorrection(tAge, ColorMap::colorMix(color, lowColor, t));
       const int x2 = x0 - static_cast<int>(stars[i].vx * j);
       const int y2 = y0 - static_cast<int>(stars[i].vy * j);
       const uint8_t thickness = static_cast<uint8_t>(
