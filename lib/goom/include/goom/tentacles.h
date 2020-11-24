@@ -154,12 +154,14 @@ public:
   explicit Tentacle3D(std::unique_ptr<Tentacle2D>,
                       const Pixel& headColor,
                       const Pixel& headColorLow,
-                      const V3d& head) noexcept;
+                      const V3d& head,
+                      const size_t numHeadNodes) noexcept;
   explicit Tentacle3D(std::unique_ptr<Tentacle2D>,
                       const std::shared_ptr<const TentacleColorizer>&,
                       const Pixel& headColor,
                       const Pixel& headColorLow,
-                      const V3d& head) noexcept;
+                      const V3d& head,
+                      const size_t numHeadNodes) noexcept;
   Tentacle3D(Tentacle3D&&) noexcept;
   Tentacle3D(const Tentacle3D&) = delete;
   Tentacle3D& operator=(const Tentacle3D&) = delete;
@@ -187,6 +189,9 @@ public:
   const V3d& getHead() const { return head; }
   void setHead(const V3d& val) { head = val; }
 
+  size_t getNumHeadNodes() const { return numHeadNodes; }
+  void setNumHeadNodes(const size_t val) { numHeadNodes = val; }
+
   std::vector<V3d> getVertices() const;
 
   bool operator==(const Tentacle3D&) const;
@@ -200,6 +205,7 @@ private:
   Pixel headColor{};
   Pixel headColorLow{};
   V3d head{};
+  size_t numHeadNodes{};
   bool reverseColorMix = false;
   bool allowOverexposed = true;
 };
@@ -351,7 +357,8 @@ template<class Archive>
 void Tentacle3D::serialize(Archive& ar)
 {
   ar(CEREAL_NVP(tentacle), CEREAL_NVP(colorizer), CEREAL_NVP(headColor), CEREAL_NVP(headColorLow),
-     CEREAL_NVP(head), CEREAL_NVP(reverseColorMix), CEREAL_NVP(allowOverexposed));
+     CEREAL_NVP(head), CEREAL_NVP(numHeadNodes), CEREAL_NVP(reverseColorMix),
+     CEREAL_NVP(allowOverexposed));
 }
 
 template<class Archive>

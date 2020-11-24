@@ -225,8 +225,12 @@ void TentacleDriver::init(const TentacleLayout& layout)
     // To hide the annoying flapping tentacle head, make near the head very dark.
     const Pixel headColor = getIntColor(5, 5, 5);
     const Pixel headColorLow = headColor;
-    Tentacle3D tentacle{std::move(tentacle2D), colorizers[colorizers.size() - 1], headColor,
-                        headColorLow, initialHeadPos};
+    Tentacle3D tentacle{std::move(tentacle2D),
+                        colorizers[colorizers.size() - 1],
+                        headColor,
+                        headColorLow,
+                        initialHeadPos,
+                        Tentacle2D::minNumNodes};
 
     tentacles.addTentacle(std::move(tentacle));
 
@@ -337,8 +341,10 @@ void TentacleDriver::updateTentaclesLayout(const TentacleLayout& layout)
       Tentacle2D& tentacle2D = tentacle.get2DTentacle();
       const double xmin = tentacle2D.getXMin();
       const double xmax = tentacle2D.getXMax();
-      const double newXmax = xmin + 0.5 * (xmax - xmin);
+      const double newXmax = xmin + 1.0 * (xmax - xmin);
       tentacle2D.setXDimensions(xmin, newXmax);
+      tentacle.setNumHeadNodes(
+          std::max(6 * Tentacle2D::minNumNodes, tentacle.get2DTentacle().getNumNodes() / 2));
     }
   }
 }
@@ -468,7 +474,7 @@ void TentacleDriver::update(const float angle,
     tentacle2D.iterate();
 
     logDebug("Update num = {}, tentacle = {}, doing plot with angle = {}, "
-             "distance = {}, distance2 = {}, color = {} and colorLow = {}.",
+             "distance = {}, distance2 = {}, color = {:x} and colorLow = {:x}.",
              updateNum, tentacle2D.getID(), angle, distance, distance2, color.rgba(),
              colorLow.rgba());
     logDebug("tentacle head = ({:.2f}, {:.2f}, {:.2f}).", tentacle.getHead().x,
@@ -478,20 +484,20 @@ void TentacleDriver::update(const float angle,
   }
 }
 
-constexpr int coordIgnoreVal = -666;
-
 inline float getBrightnessCut(const Tentacle3D& tentacle, const float distance2)
 {
-  if (std::fabs(tentacle.getHead().x) < 10)
+  if (std::abs(tentacle.getHead().x) < 10)
   {
-    if (distance2 > 8)
+    if (distance2 < 8)
     {
-      return 0.2;
+      return 0.5;
     }
-    return 0.5;
+    return 0.2;
   }
   return 1.0;
 }
+
+constexpr int coordIgnoreVal = -666;
 
 void TentacleDriver::plot3D(const Tentacle3D& tentacle,
                             const Pixel& dominantColor,
@@ -505,16 +511,26 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
   const std::vector<V3d> vertices = tentacle.getVertices();
   const size_t n = vertices.size();
 
-  V3d cam = {0, 0, -7}; // TODO ????????????????????????????????
+  V3d cam = {0, 0, -3}; // TODO ????????????????????????????????
   cam.z += distance2;
   cam.y += 2.0 * sin(-(angle - m_half_pi) / 4.3f);
   logDebug("cam = ({:.2f}, {:.2f}, {:.2f}).", cam.x, cam.y, cam.z);
 
-  const float sina = sin(m_pi - angle);
-  const float cosa = cos(m_pi - angle);
-  logDebug("angle = {:.2f}, sina = {:.2}, cosa = {:.2},"
+  float angleAboutY = angle;
+  if (-10 < tentacle.getHead().x && tentacle.getHead().x < 0)
+  {
+    angleAboutY -= 0.05 * m_pi;
+  }
+  else if (0 <= tentacle.getHead().x && tentacle.getHead().x < 10)
+  {
+    angleAboutY += 0.05 * m_pi;
+  }
+
+  const float sina = sin(m_pi - angleAboutY);
+  const float cosa = cos(m_pi - angleAboutY);
+  logDebug("angle = {:.2f}, angleAboutY = {:.2f}, sina = {:.2}, cosa = {:.2},"
            " distance = {:.2f}, distance2 = {:.2f}.",
-           angle, sina, cosa, distance, distance2);
+           angle, angleAboutY, sina, cosa, distance, distance2);
 
   std::vector<V3d> v3{vertices};
   for (size_t i = 0; i < n; i++)
@@ -569,6 +585,19 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
                iy1);
 
       const auto [color, colorLow] = getMixedColors(nodeNum);
+      /**
+auto [color, colorLow] = getMixedColors(nodeNum);
+if (-10 < tentacle.getHead().x && tentacle.getHead().x < 0)
+{
+  color = Pixel{0xFFFFFFFF};
+  colorLow = color;
+}
+else if (0 <= tentacle.getHead().x && tentacle.getHead().x < 10)
+{
+  color = Pixel{0xFF00FF00};
+  colorLow = color;
+}
+**/
       const std::vector<Pixel> colors{color, colorLow};
 
       logDebug("draw_line {}: dominantColor = {:#x}, dominantColorLow = {:#x}.", nodeNum,
@@ -591,12 +620,19 @@ std::vector<v2d> TentacleDriver::projectV3dOntoV2d(const std::vector<V3d>& v3, c
 {
   std::vector<v2d> v2(v3.size());
 
+  const int Xp0 =
+      v3[0].ignore || (v3[0].z <= 2) ? 1 : static_cast<int>(distance * v3[0].x / v3[0].z);
+  const int Xpn = v3[v3.size() - 1].ignore || (v3[v3.size() - 1].z <= 2)
+                      ? 1
+                      : static_cast<int>(distance * v3[v3.size() - 1].x / v3[v3.size() - 1].z);
+  const float xSpread = std::min(1.0F, std::abs(Xp0 - Xpn) / 10.0F);
+
   for (size_t i = 0; i < v3.size(); ++i)
   {
     if (!v3[i].ignore && (v3[i].z > 2))
     {
-      const int Xp = static_cast<int>(distance * v3[i].x / v3[i].z);
-      const int Yp = static_cast<int>(distance * v3[i].y / v3[i].z);
+      const int Xp = static_cast<int>(xSpread * distance * v3[i].x / v3[i].z);
+      const int Yp = static_cast<int>(xSpread * distance * v3[i].y / v3[i].z);
       v2[i].x = Xp + static_cast<int>(screenWidth >> 1);
       v2[i].y = -Yp + static_cast<int>(screenHeight >> 1);
       logDebug("project_v3d_to_v2d i: {:3}: v3[].x = {:.2f}, v3[].y = {:.2f}, v2[].z = {:.2f}, Xp "

@@ -336,8 +336,13 @@ Tentacle2D::DampingFuncPtr Tentacle2D::createLinearDampingFunc(const double xmin
 Tentacle3D::Tentacle3D(std::unique_ptr<Tentacle2D> t,
                        const Pixel& headCol,
                        const Pixel& headColLow,
-                       const V3d& h) noexcept
-  : tentacle{std::move(t)}, headColor{headCol}, headColorLow{headColLow}, head{h}
+                       const V3d& h,
+                       const size_t numHdNodes) noexcept
+  : tentacle{std::move(t)},
+    headColor{headCol},
+    headColorLow{headColLow},
+    head{h},
+    numHeadNodes{numHdNodes}
 {
 }
 
@@ -345,8 +350,14 @@ Tentacle3D::Tentacle3D(std::unique_ptr<Tentacle2D> t,
                        const std::shared_ptr<const TentacleColorizer>& col,
                        const Pixel& headCol,
                        const Pixel& headColLow,
-                       const V3d& h) noexcept
-  : tentacle{std::move(t)}, colorizer{col}, headColor{headCol}, headColorLow{headColLow}, head{h}
+                       const V3d& h,
+                       const size_t numHdNodes) noexcept
+  : tentacle{std::move(t)},
+    colorizer{col},
+    headColor{headCol},
+    headColorLow{headColLow},
+    head{h},
+    numHeadNodes{numHdNodes}
 {
 }
 
@@ -355,7 +366,8 @@ Tentacle3D::Tentacle3D(Tentacle3D&& o) noexcept
     colorizer{o.colorizer},
     headColor{o.headColor},
     headColorLow{o.headColorLow},
-    head{o.head}
+    head{o.head},
+    numHeadNodes{o.numHeadNodes}
 {
 }
 
@@ -363,7 +375,7 @@ bool Tentacle3D::operator==(const Tentacle3D& t) const
 {
   const bool result = *tentacle == *t.tentacle && headColor == t.headColor &&
                       headColorLow == t.headColorLow && head == t.head &&
-                      reverseColorMix == t.reverseColorMix &&
+                      numHeadNodes == t.numHeadNodes && reverseColorMix == t.reverseColorMix &&
                       allowOverexposed == t.allowOverexposed;
 
   if (result)
@@ -417,11 +429,11 @@ std::tuple<Pixel, Pixel> Tentacle3D::getMixedColors(const size_t nodeNum,
                                                     const Pixel& color,
                                                     const Pixel& colorLow) const
 {
-  if (nodeNum < Tentacle2D::minNumNodes)
+  if (nodeNum < getNumHeadNodes())
   {
     // Color the tentacle head
-    const float t = 0.5 * (1.0 + static_cast<float>(nodeNum + 1) /
-                                     static_cast<float>(Tentacle2D::minNumNodes + 1));
+    const float t =
+        0.5 * (1.0 + static_cast<float>(nodeNum + 1) / static_cast<float>(getNumHeadNodes() + 1));
     const Pixel mixedHeadColor = ColorMap::colorMix(headColor, color, t);
     const Pixel mixedHeadColorLow = ColorMap::colorMix(headColorLow, colorLow, t);
     return std::make_tuple(mixedHeadColor, mixedHeadColorLow);
@@ -436,6 +448,14 @@ std::tuple<Pixel, Pixel> Tentacle3D::getMixedColors(const size_t nodeNum,
   const Pixel segmentColor = getColor(nodeNum);
   const Pixel mixedColor = ColorMap::colorMix(color, segmentColor, t);
   const Pixel mixedColorLow = ColorMap::colorMix(colorLow, segmentColor, t);
+
+  if (std::abs(getHead().x) < 10)
+  {
+    const float brightnessCut = t * t;
+    return std::make_tuple(getBrighterColor(brightnessCut, mixedColor, true),
+                           getBrighterColor(brightnessCut, mixedColorLow, true));
+  }
+
   return std::make_tuple(mixedColor, mixedColorLow);
 }
 
@@ -444,7 +464,7 @@ std::tuple<Pixel, Pixel> Tentacle3D::getMixedColors(const size_t nodeNum,
                                                     const Pixel& colorLow,
                                                     const float brightness) const
 {
-  if (nodeNum < Tentacle2D::minNumNodes)
+  if (nodeNum < getNumHeadNodes())
   {
     return getMixedColors(nodeNum, color, colorLow);
   }
@@ -452,8 +472,14 @@ std::tuple<Pixel, Pixel> Tentacle3D::getMixedColors(const size_t nodeNum,
   const auto [mixedColor, mixedColorLow] = getMixedColors(nodeNum, color, colorLow);
   const Pixel mixedColorPixel = mixedColor;
   const Pixel mixedColorLowPixel = mixedColorLow;
-  return std::make_tuple(getBrighterColor(brightness, mixedColorPixel, allowOverexposed),
-                         getBrighterColor(brightness, mixedColorLowPixel, allowOverexposed));
+  //constexpr float gamma = 4.2;
+  //const float brightnessWithGamma = std::pow(brightness, 1.0F / gamma);
+  const float brightnessWithGamma = brightness;
+  //  const float brightnessWithGamma = std::max(0.4F, std::pow(brightness * getLuma(color), 1.0F / gamma));
+  //  const float brightnessWithGammaLow = std::max(0.4F, std::pow(brightness * getLuma(colorLow), 1.0F / gamma));
+  return std::make_tuple(
+      getBrighterColor(brightnessWithGamma, mixedColorPixel, allowOverexposed),
+      getBrighterColor(brightnessWithGamma, mixedColorLowPixel, allowOverexposed));
 }
 
 double getMin(const std::vector<double>& vec)
@@ -480,11 +506,20 @@ std::vector<V3d> Tentacle3D::getVertices() const
   const float x0 = head.x;
   const float y0 = head.y - yvec2d[0];
   const float z0 = head.z - xvec2d[0];
+  float xStep = 0;
+  if (std::abs(x0) < 10)
+  {
+    const float xn = 0.1 * x0;
+    xStep = (x0 - xn) / static_cast<float>(n);
+  }
+  float x = x0;
   for (size_t i = 0; i < n; i++)
   {
-    vec3d[i].x = x0;
+    vec3d[i].x = x;
     vec3d[i].z = z0 + xvec2d[i];
     vec3d[i].y = y0 + yvec2d[i];
+
+    x -= xStep;
   }
 
   return vec3d;
