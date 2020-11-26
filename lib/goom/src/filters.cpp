@@ -386,8 +386,8 @@ public:
 
   void setBuffSettings(const FXBuffSettings&);
 
-  void zoomFilterFastRGB(const Pixel* pix1,
-                         Pixel* pix2,
+  void zoomFilterFastRGB(const PixelBuffer& pix1,
+                         PixelBuffer& pix2,
                          const ZoomFilterData* zf,
                          const int32_t switchIncr,
                          const float switchMult);
@@ -440,14 +440,14 @@ private:
   void initBuffers();
 
   void makeZoomBufferStripe(const uint32_t interlaceIncrement);
-  void c_zoom(const Pixel* srceBuff, Pixel* destBuff);
+  void c_zoom(const PixelBuffer& srceBuff, PixelBuffer& destBuff);
   void generateWaterFXHorizontalBuffer();
   v2g getZoomVector(const float normX, const float normY);
   static void generatePrecalCoef(uint32_t precalcCoeffs[16][16]);
   Pixel getMixedColor(const CoeffArray& coeffs, const PixelArray& colors) const;
   Pixel getBlockyMixedColor(const CoeffArray& coeffs, const PixelArray& colors) const;
-  static Pixel getPixelColor(const Pixel* buffer, const uint32_t pos);
-  static void setPixelColor(Pixel* buffer, const uint32_t pos, const Pixel&);
+  static Pixel getPixelColor(const PixelBuffer& buffer, const uint32_t pos);
+  static void setPixelColor(PixelBuffer& buffer, const uint32_t pos, const Pixel&);
 
   friend class cereal::access;
   template<class Archive>
@@ -722,13 +722,13 @@ std::string ZoomFilterFx::getFxName() const
   return "ZoomFilter FX";
 }
 
-void ZoomFilterFx::apply(Pixel*, Pixel*)
+void ZoomFilterFx::apply(PixelBuffer&, PixelBuffer&)
 {
   throw std::logic_error("ZoomFilterFx::apply should never be called.");
 }
 
-void ZoomFilterFx::zoomFilterFastRGB(const Pixel* pix1,
-                                     Pixel* pix2,
+void ZoomFilterFx::zoomFilterFastRGB(const PixelBuffer& pix1,
+                                     PixelBuffer& pix2,
                                      const ZoomFilterData* zf,
                                      const int switchIncr,
                                      const float switchMult)
@@ -754,8 +754,8 @@ void ZoomFilterFx::zoomFilterFastRGB(const Pixel* pix1,
  *  So that is why you have this name, for the nostalgy of the first days of goom
  *  when it was just a tiny program writen in Turbo Pascal on my i486...
  */
-void ZoomFilterFx::ZoomFilterImpl::zoomFilterFastRGB(const Pixel* pix1,
-                                                     Pixel* pix2,
+void ZoomFilterFx::ZoomFilterImpl::zoomFilterFastRGB(const PixelBuffer& pix1,
+                                                     PixelBuffer& pix2,
                                                      const ZoomFilterData* zf,
                                                      const int32_t switchIncr,
                                                      const float switchMult)
@@ -894,7 +894,7 @@ void ZoomFilterFx::ZoomFilterImpl::generatePrecalCoef(uint32_t precalcCoeffs[16]
 }
 
 // pure c version of the zoom filter
-void ZoomFilterFx::ZoomFilterImpl::c_zoom(const Pixel* srceBuff, Pixel* destBuff)
+void ZoomFilterFx::ZoomFilterImpl::c_zoom(const PixelBuffer& srceBuff, PixelBuffer& destBuff)
 {
   stats.doCZoom();
 
@@ -1296,16 +1296,17 @@ inline Pixel ZoomFilterFx::ZoomFilterImpl::getBlockyMixedColor(const CoeffArray&
   return getMixedColor(coeffs, reorderedColors);
 }
 
-inline Pixel ZoomFilterFx::ZoomFilterImpl::getPixelColor(const Pixel* buffer, const uint32_t pos)
+inline Pixel ZoomFilterFx::ZoomFilterImpl::getPixelColor(const PixelBuffer& buffer,
+                                                         const uint32_t pos)
 {
-  return buffer[pos];
+  return buffer(pos);
 }
 
-inline void ZoomFilterFx::ZoomFilterImpl::setPixelColor(Pixel* buffer,
+inline void ZoomFilterFx::ZoomFilterImpl::setPixelColor(PixelBuffer& buffer,
                                                         const uint32_t pos,
                                                         const Pixel& p)
 {
-  buffer[pos] = p;
+  buffer(pos) = p;
 }
 
 } // namespace goom

@@ -59,7 +59,9 @@ public:
                        const float newAmplitude,
                        const Pixel& newColor);
 
-  void drawGoomLines(const std::vector<int16_t>& soundData, Pixel* prevBuff, Pixel* currentBuff);
+  void drawGoomLines(const std::vector<int16_t>& soundData,
+                     PixelBuffer& prevBuff,
+                     PixelBuffer& currentBuff);
 
   std::string getFxName() const;
   void saveState(std::ostream&) const;
@@ -159,8 +161,8 @@ void LinesFx::switchGoomLines(const LineType newDestID,
 }
 
 void LinesFx::drawGoomLines(const std::vector<int16_t>& soundData,
-                            Pixel* prevBuff,
-                            Pixel* currentBuff)
+                            PixelBuffer& prevBuff,
+                            PixelBuffer& currentBuff)
 {
   fxImpl->drawGoomLines(soundData, prevBuff, currentBuff);
 }
@@ -417,10 +419,10 @@ inline std::vector<float> getDataPoints(const std::vector<int16_t>& x)
 }
 
 void LinesFx::LinesImpl::drawGoomLines(const std::vector<int16_t>& soundData,
-                                       Pixel* prevBuff,
-                                       Pixel* currentBuff)
+                                       PixelBuffer& prevBuff,
+                                       PixelBuffer& currentBuff)
 {
-  std::vector<Pixel*> buffs{currentBuff, prevBuff};
+  std::vector<PixelBuffer*> buffs{&currentBuff, &prevBuff};
   const GMUnitPointer* pt = &(points[0]);
   const Pixel lineColor = getLightenedColor(color, power);
 

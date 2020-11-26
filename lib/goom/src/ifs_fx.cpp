@@ -858,7 +858,7 @@ public:
   void init();
 
   void applyNoDraw();
-  void updateIfs(Pixel* prevBuff, Pixel* currentBuff);
+  void updateIfs(PixelBuffer& prevBuff, PixelBuffer& currentBuff);
   void setBuffSettings(const FXBuffSettings&);
   IfsFx::ColorMode getColorMode() const;
   void setColorMode(const IfsFx::ColorMode);
@@ -894,14 +894,14 @@ private:
   IfsUpdateData updateData{};
 
   void changeColormaps();
-  void updatePixelBuffers(Pixel* prevBuff,
-                          Pixel* currentBuff,
+  void updatePixelBuffers(PixelBuffer& prevBuff,
+                          PixelBuffer& currentBuff,
                           const size_t numPoints,
                           const std::vector<IfsPoint>& points,
                           const uint32_t maxHitCount,
                           const Pixel& color);
-  void drawPixel(Pixel* prevBuff,
-                 Pixel* currentBuff,
+  void drawPixel(PixelBuffer& prevBuff,
+                 PixelBuffer& currentBuff,
                  const IfsPoint&,
                  const Pixel& ifsColor,
                  const float tmix);
@@ -973,7 +973,7 @@ void IfsFx::applyNoDraw()
   fxImpl->applyNoDraw();
 }
 
-void IfsFx::apply(Pixel* prevBuff, Pixel* currentBuff)
+void IfsFx::apply(PixelBuffer& prevBuff, PixelBuffer& currentBuff)
 {
   if (!enabled)
   {
@@ -1114,7 +1114,7 @@ void IfsFx::IfsImpl::applyNoDraw()
   updateDecay();
 }
 
-void IfsFx::IfsImpl::updateIfs(Pixel* prevBuff, Pixel* currentBuff)
+void IfsFx::IfsImpl::updateIfs(PixelBuffer& prevBuff, PixelBuffer& currentBuff)
 {
   updateDecayAndRecay();
 
@@ -1209,8 +1209,8 @@ inline int IfsFx::IfsImpl::getIfsIncr() const
   return ifs_incr;
 }
 
-inline void IfsFx::IfsImpl::drawPixel(Pixel* prevBuff,
-                                      Pixel* currentBuff,
+inline void IfsFx::IfsImpl::drawPixel(PixelBuffer& prevBuff,
+                                      PixelBuffer& currentBuff,
                                       const IfsPoint& point,
                                       const Pixel& ifsColor,
                                       const float tmix)
@@ -1259,8 +1259,8 @@ void IfsFx::IfsImpl::updateAllowOverexposed()
   }
 }
 
-void IfsFx::IfsImpl::updatePixelBuffers(Pixel* prevBuff,
-                                        Pixel* currentBuff,
+void IfsFx::IfsImpl::updatePixelBuffers(PixelBuffer& prevBuff,
+                                        PixelBuffer& currentBuff,
                                         const size_t numPoints,
                                         const std::vector<IfsPoint>& points,
                                         const uint32_t maxHitCount,

@@ -11,7 +11,7 @@
 namespace goom
 {
 
-void drawCircle(Pixel* buff,
+void drawCircle(PixelBuffer&,
                 const int x0,
                 const int y0,
                 const int radius,
@@ -21,7 +21,7 @@ void drawCircle(Pixel* buff,
                 const uint32_t screenWidth,
                 const uint32_t screenHeight);
 
-void drawCircle(std::vector<Pixel*>& buffs,
+void drawCircle(std::vector<PixelBuffer*>&,
                 const int x0,
                 const int y0,
                 const int radius,
@@ -32,7 +32,7 @@ void drawCircle(std::vector<Pixel*>& buffs,
                 const uint32_t screenHeight);
 
 // colors.size() == radius
-void drawFilledCircle(Pixel* buff,
+void drawFilledCircle(PixelBuffer&,
                       const int x0,
                       const int y0,
                       const int radius,
@@ -42,7 +42,7 @@ void drawFilledCircle(Pixel* buff,
                       const uint32_t screenWidth,
                       const uint32_t screenHeight);
 
-void drawFilledCircle(std::vector<Pixel*>& buffs,
+void drawFilledCircle(std::vector<PixelBuffer*>&,
                       const int x0,
                       const int y0,
                       const int radius,
@@ -52,7 +52,7 @@ void drawFilledCircle(std::vector<Pixel*>& buffs,
                       const uint32_t screenWidth,
                       const uint32_t screenHeight);
 
-void drawLine(std::vector<Pixel*>& buffs,
+void drawLine(std::vector<PixelBuffer*>&,
               const int x1,
               const int y1,
               const int x2,
@@ -64,7 +64,7 @@ void drawLine(std::vector<Pixel*>& buffs,
               const uint32_t screenx,
               const uint32_t screeny);
 
-void drawLine(Pixel* buff,
+void drawLine(PixelBuffer&,
               int x1,
               int y1,
               int x2,
@@ -76,7 +76,7 @@ void drawLine(Pixel* buff,
               const uint32_t screenx,
               const uint32_t screeny);
 
-inline void drawPixels(std::vector<Pixel*>& buffs,
+inline void drawPixels(std::vector<PixelBuffer*>& buffs,
                        const int pos,
                        const std::vector<Pixel>& newColors,
                        const uint32_t buffIntensity,
@@ -86,8 +86,8 @@ inline void drawPixels(std::vector<Pixel*>& buffs,
   {
     const Pixel brighterPixColor =
         getBrighterColorInt(buffIntensity, newColors[i], allowOverexposed);
-    Pixel* const p = &(buffs[i][pos]);
-    *p = getColorAdd(*p, brighterPixColor, allowOverexposed);
+    Pixel& p = (*buffs[i])(static_cast<size_t>(pos));
+    p = getColorAdd(p, brighterPixColor, allowOverexposed);
 
     /***
 	ATTEMPT AT BLENDING - WON'T WORK THOUGH - BECAUSE OF MULTIPLE BUFFERS??

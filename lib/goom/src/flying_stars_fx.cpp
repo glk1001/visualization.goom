@@ -193,7 +193,7 @@ public:
 
   void setBuffSettings(const FXBuffSettings&);
 
-  void updateBuffers(Pixel* prevBuff, Pixel* currentBuff);
+  void updateBuffers(PixelBuffer& prevBuff, PixelBuffer& currentBuff);
 
   void log(const StatsLogValueFunc& logVal) const;
 
@@ -290,7 +290,7 @@ std::string FlyingStarsFx::getFxName() const
   return "Flying Stars FX";
 }
 
-void FlyingStarsFx::apply(Pixel* prevBuff, Pixel* currentBuff)
+void FlyingStarsFx::apply(PixelBuffer& prevBuff, PixelBuffer& currentBuff)
 {
   if (!enabled)
   {
@@ -371,7 +371,7 @@ void FlyingStarsFx::FlyingStarsImpl::log(const StatsLogValueFunc& logVal) const
   stats.log(logVal);
 }
 
-void FlyingStarsFx::FlyingStarsImpl::updateBuffers(Pixel* prevBuff, Pixel* currentBuff)
+void FlyingStarsFx::FlyingStarsImpl::updateBuffers(PixelBuffer& prevBuff, PixelBuffer& currentBuff)
 {
   maxStars = getRandInRange(100U, maxStarsLimit);
 
@@ -432,7 +432,7 @@ void FlyingStarsFx::FlyingStarsImpl::updateBuffers(Pixel* prevBuff, Pixel* curre
       else
       {
         const std::vector<Pixel> colors = {mixedColor, lowColor};
-        std::vector<Pixel*> buffs{currentBuff, prevBuff};
+        std::vector<PixelBuffer*> buffs{&currentBuff, &prevBuff};
         draw.line(buffs, x1, y1, x2, y2, colors, thickness);
       }
 

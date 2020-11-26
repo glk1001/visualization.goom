@@ -29,12 +29,13 @@ bool GoomDraw::operator==(const GoomDraw& d) const
          intBuffIntensity == d.intBuffIntensity;
 }
 
-void GoomDraw::circle(Pixel* buff, const int x0, const int y0, const int radius, const Pixel& color)
+void GoomDraw::circle(
+    PixelBuffer& buff, const int x0, const int y0, const int radius, const Pixel& color)
 {
   drawCircle(buff, x0, y0, radius, color, intBuffIntensity, allowOverexposed, screenWidth,
              screenHeight);
 }
-void GoomDraw::circle(std::vector<Pixel*> buffs,
+void GoomDraw::circle(std::vector<PixelBuffer*>& buffs,
                       const int x0,
                       const int y0,
                       const int radius,
@@ -44,14 +45,17 @@ void GoomDraw::circle(std::vector<Pixel*> buffs,
              screenHeight);
 }
 
-void GoomDraw::filledCircle(
-    Pixel* buff, const int x0, const int y0, const int radius, const std::vector<Pixel>& colors)
+void GoomDraw::filledCircle(PixelBuffer& buff,
+                            const int x0,
+                            const int y0,
+                            const int radius,
+                            const std::vector<Pixel>& colors)
 {
   drawFilledCircle(buff, x0, y0, radius, colors, intBuffIntensity, allowOverexposed, screenWidth,
                    screenHeight);
 }
 
-void GoomDraw::filledCircle(std::vector<Pixel*> buffs,
+void GoomDraw::filledCircle(std::vector<PixelBuffer*>& buffs,
                             const int x0,
                             const int y0,
                             const int radius,
@@ -61,7 +65,7 @@ void GoomDraw::filledCircle(std::vector<Pixel*> buffs,
                    screenWidth, screenHeight);
 }
 
-void GoomDraw::line(Pixel* buff,
+void GoomDraw::line(PixelBuffer& buff,
                     const int x1,
                     const int y1,
                     const int x2,
@@ -73,7 +77,7 @@ void GoomDraw::line(Pixel* buff,
            screenHeight);
 }
 
-void GoomDraw::line(std::vector<Pixel*> buffs,
+void GoomDraw::line(std::vector<PixelBuffer*>& buffs,
                     int x1,
                     int y1,
                     int x2,
@@ -85,15 +89,18 @@ void GoomDraw::line(std::vector<Pixel*> buffs,
            screenWidth, screenHeight);
 }
 
-void GoomDraw::setPixelRGB(Pixel* buff, const uint32_t x, const uint32_t y, const Pixel& color)
+void GoomDraw::setPixelRGB(PixelBuffer& buff,
+                           const uint32_t x,
+                           const uint32_t y,
+                           const Pixel& color)
 {
-  std::vector<Pixel*> buffs{buff};
+  std::vector<PixelBuffer*> buffs{&buff};
   std::vector<Pixel> colors{color};
   const int pos = static_cast<int>(x + (y * screenWidth));
   drawPixels(buffs, pos, colors, intBuffIntensity, allowOverexposed);
 }
 
-void GoomDraw::setPixelRGB(std::vector<Pixel*>& buffs,
+void GoomDraw::setPixelRGB(std::vector<PixelBuffer*>& buffs,
                            const uint32_t x,
                            const uint32_t y,
                            const std::vector<Pixel>& colors)

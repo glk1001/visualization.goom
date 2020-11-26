@@ -149,7 +149,7 @@ void gfont_load(void)
   free(font_pos);
 }
 
-void goom_draw_text(Pixel* buf,
+void goom_draw_text(PixelBuffer& buf,
                     const uint16_t resolx,
                     const uint16_t resoly,
                     int x,
@@ -259,22 +259,25 @@ void goom_draw_text(Pixel* buf,
             {
               if (transparency.rgba() == A_CHANNEL)
               {
-                buf[yy * int(resolx) + xx] = color;
+                buf(static_cast<size_t>(yy * int(resolx) + xx)) = color;
               }
               else
               {
-                Pixel back = buf[yy * int(resolx) + xx];
+                Pixel back = buf(static_cast<size_t>(yy * int(resolx) + xx));
                 unsigned int a1 = color.a();
                 unsigned int a2 = 255 - a1;
-                buf[yy * int(resolx) + xx].set_r((unsigned char)((((unsigned int)color.r() * a1) +
-                                                                  ((unsigned int)back.r() * a2)) >>
-                                                                 8));
-                buf[yy * int(resolx) + xx].set_g((unsigned char)((((unsigned int)color.g() * a1) +
-                                                                  ((unsigned int)back.g() * a2)) >>
-                                                                 8));
-                buf[yy * int(resolx) + xx].set_b((unsigned char)((((unsigned int)color.b() * a1) +
-                                                                  ((unsigned int)back.b() * a2)) >>
-                                                                 8));
+                buf(static_cast<size_t>(yy * int(resolx) + xx))
+                    .set_r((unsigned char)((((unsigned int)color.r() * a1) +
+                                            ((unsigned int)back.r() * a2)) >>
+                                           8));
+                buf(static_cast<size_t>(yy * int(resolx) + xx))
+                    .set_g((unsigned char)((((unsigned int)color.g() * a1) +
+                                            ((unsigned int)back.g() * a2)) >>
+                                           8));
+                buf(static_cast<size_t>(yy * int(resolx) + xx))
+                    .set_b((unsigned char)((((unsigned int)color.b() * a1) +
+                                            ((unsigned int)back.b() * a2)) >>
+                                           8));
               }
             }
           }

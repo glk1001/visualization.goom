@@ -3,8 +3,10 @@
 
 #include "goom_config.h"
 
+#include <algorithm>
 #include <cereal/archives/json.hpp>
 #include <cstdint>
+#include <vector>
 
 namespace goom
 {
@@ -113,6 +115,32 @@ private:
   Color color;
 };
 
+class PixelBuffer
+{
+public:
+  PixelBuffer(const uint16_t width, const uint16_t height) noexcept;
+  ~PixelBuffer() noexcept = default;
+
+  PixelBuffer(const PixelBuffer&) = delete;
+  PixelBuffer& operator=(const PixelBuffer&) = delete;
+
+  void fill(const Pixel&);
+
+  const std::vector<Pixel>& array() const;
+  std::vector<Pixel>& array();
+
+  const Pixel& operator()(const size_t pos) const;
+  Pixel& operator()(const size_t pos);
+
+  const Pixel& operator()(const size_t x, const size_t y) const;
+  Pixel& operator()(const size_t x, const size_t y);
+
+private:
+  const uint32_t width;
+  const uint32_t height;
+  std::vector<Pixel> buff;
+};
+
 template<class Archive>
 void Pixel::serialize(Archive& ar)
 {
@@ -184,6 +212,46 @@ inline uint32_t Pixel::rgba() const
 inline void Pixel::set_rgba(const uint32_t v)
 {
   color.intVal = v;
+}
+
+inline PixelBuffer::PixelBuffer(const uint16_t w, const uint16_t h) noexcept
+  : width{w}, height{h}, buff((width + 1) * (height + 1))
+{
+}
+
+inline void PixelBuffer::fill(const Pixel& color)
+{
+  std::fill(buff.begin(), buff.end(), color);
+}
+
+inline const std::vector<Pixel>& PixelBuffer::array() const
+{
+  return buff;
+}
+
+inline std::vector<Pixel>& PixelBuffer::array()
+{
+  return buff;
+}
+
+inline const Pixel& PixelBuffer::operator()(const size_t pos) const
+{
+  return buff[pos];
+}
+
+inline Pixel& PixelBuffer::operator()(const size_t pos)
+{
+  return buff[pos];
+}
+
+inline const Pixel& PixelBuffer::operator()(const size_t x, const size_t y) const
+{
+  return (*this)(y * width + x);
+}
+
+inline Pixel& PixelBuffer::operator()(const size_t x, const size_t y)
+{
+  return (*this)(y * width + x);
 }
 
 } // namespace goom

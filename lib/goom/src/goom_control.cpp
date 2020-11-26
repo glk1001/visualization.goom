@@ -842,8 +842,8 @@ public:
 
   void setResolution(const uint16_t resx, const uint16_t resy);
 
-  Pixel* getP1() const { return p1; }
-  Pixel* getP2() const { return p2; }
+  PixelBuffer& getP1() const { return *p1; }
+  PixelBuffer& getP2() const { return *p2; }
 
   uint32_t* getOutputBuff() const { return outputBuff; }
   void setOutputBuff(uint32_t* val) { outputBuff = val; }
@@ -854,30 +854,32 @@ public:
   void rotateBuffers();
 
 private:
-  std::vector<Pixel*> buffs{};
-  Pixel* p1{};
-  Pixel* p2{};
+  std::vector<std::unique_ptr<PixelBuffer>> buffs{};
+  PixelBuffer* p1{};
+  PixelBuffer* p2{};
   uint32_t* outputBuff = nullptr;
   size_t nextBuff = 0;
   size_t buffInc = 1;
-  static std::vector<Pixel*> getPixelBuffs(const uint16_t resx, const uint16_t resy);
+  static std::vector<std::unique_ptr<PixelBuffer>> getPixelBuffs(const uint16_t resx,
+                                                                 const uint16_t resy);
 };
 
-std::vector<Pixel*> GoomImageBuffers::getPixelBuffs(const uint16_t resx, const uint16_t resy)
+std::vector<std::unique_ptr<PixelBuffer>> GoomImageBuffers::getPixelBuffs(const uint16_t resx,
+                                                                          const uint16_t resy)
 {
-  std::vector<Pixel*> newBuffs(maxNumBuffs);
+  std::vector<std::unique_ptr<PixelBuffer>> newBuffs(maxNumBuffs);
   for (auto& b : newBuffs)
   {
     // Allocate one extra row and column to help the filter process handle edges.
-    b = new Pixel[static_cast<size_t>(resx + 1) * static_cast<size_t>(resy + 1)]{};
+    b.reset(new PixelBuffer{static_cast<uint16_t>(resx + 1), static_cast<uint16_t>(resy + 1)});
   }
   return newBuffs;
 }
 
 GoomImageBuffers::GoomImageBuffers(const uint16_t resx, const uint16_t resy) noexcept
   : buffs{getPixelBuffs(resx, resy)},
-    p1{buffs[0]},
-    p2{buffs[1]},
+    p1{buffs[0].get()},
+    p2{buffs[1].get()},
     nextBuff{maxNumBuffs == 2 ? 0 : 2},
     buffInc{1}
 {
@@ -885,17 +887,13 @@ GoomImageBuffers::GoomImageBuffers(const uint16_t resx, const uint16_t resy) noe
 
 GoomImageBuffers::~GoomImageBuffers() noexcept
 {
-  for (auto& b : buffs)
-  {
-    delete[] b;
-  }
 }
 
 void GoomImageBuffers::setResolution(const uint16_t resx, const uint16_t resy)
 {
   buffs = getPixelBuffs(resx, resy);
-  p1 = buffs[0];
-  p2 = buffs[1];
+  p1 = buffs[0].get();
+  p2 = buffs[1].get();
   nextBuff = maxNumBuffs == 2 ? 0 : 2;
   buffInc = 1;
 }
@@ -912,7 +910,7 @@ void GoomImageBuffers::setBuffInc(const size_t i)
 void GoomImageBuffers::rotateBuffers()
 {
   p1 = p2;
-  p2 = buffs[nextBuff];
+  p2 = buffs[nextBuff].get();
   nextBuff += +buffInc;
   if (nextBuff >= buffs.size())
   {

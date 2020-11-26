@@ -150,8 +150,8 @@ public:
   ZoomFilterFx(const ZoomFilterFx&) = delete;
   ZoomFilterFx& operator=(const ZoomFilterFx&) = delete;
 
-  void zoomFilterFastRGB(const Pixel* pix1,
-                         Pixel* pix2,
+  void zoomFilterFastRGB(const PixelBuffer& pix1,
+                         PixelBuffer& pix2,
                          const ZoomFilterData* zf,
                          const int switchIncr,
                          const float switchMult);
@@ -161,7 +161,7 @@ public:
 
   void start() override;
 
-  void apply(Pixel* prevBuff, Pixel* currentBuff) override;
+  void apply(PixelBuffer& prevBuff, PixelBuffer& currentBuff) override;
 
   void log(const StatsLogValueFunc&) const override;
   void finish() override;

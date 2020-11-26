@@ -29,7 +29,7 @@ public:
 
   void setBuffSettings(const FXBuffSettings&);
 
-  void convolve(const Pixel* currentBuff, uint32_t* outputBuff);
+  void convolve(const PixelBuffer& currentBuff, uint32_t* outputBuff);
 
   bool operator==(const ConvolveImpl&) const;
 
@@ -40,7 +40,7 @@ private:
   float factor = 0.5;
   FXBuffSettings buffSettings{};
 
-  void createOutputWithBrightness(const Pixel* src, uint32_t* dest, const uint32_t flashInt);
+  void createOutputWithBrightness(const PixelBuffer& src, uint32_t* dest, const uint32_t flashInt);
 
   friend class cereal::access;
   template<class Archive>
@@ -89,7 +89,7 @@ std::string ConvolveFx::getFxName() const
   return "Convolve FX";
 }
 
-void ConvolveFx::convolve(const Pixel* currentBuff, uint32_t* outputBuff)
+void ConvolveFx::convolve(const PixelBuffer& currentBuff, uint32_t* outputBuff)
 {
   if (!enabled)
   {
@@ -158,7 +158,7 @@ inline void ConvolveFx::ConvolveImpl::setBuffSettings(const FXBuffSettings& sett
   buffSettings = settings;
 }
 
-void ConvolveFx::ConvolveImpl::convolve(const Pixel* currentBuff, uint32_t* outputBuff)
+void ConvolveFx::ConvolveImpl::convolve(const PixelBuffer& currentBuff, uint32_t* outputBuff)
 {
   const float flash = (factor * flashIntensity + screenBrightness) / 100.0F;
   const uint32_t flashInt = static_cast<uint32_t>(std::round(flash * 256 + 0.0001F));
@@ -177,11 +177,11 @@ void ConvolveFx::ConvolveImpl::convolve(const Pixel* currentBuff, uint32_t* outp
   else
   {
     static_assert(sizeof(Pixel) == sizeof(uint32_t));
-    memcpy(outputBuff, currentBuff, goomInfo->getScreenInfo().size * sizeof(Pixel));
+    memcpy(outputBuff, currentBuff.array().data(), goomInfo->getScreenInfo().size * sizeof(Pixel));
   }
 }
 
-void ConvolveFx::ConvolveImpl::createOutputWithBrightness(const Pixel* src,
+void ConvolveFx::ConvolveImpl::createOutputWithBrightness(const PixelBuffer& src,
                                                           uint32_t* dest,
                                                           const uint32_t flashInt)
 {
@@ -190,7 +190,7 @@ void ConvolveFx::ConvolveImpl::createOutputWithBrightness(const Pixel* src,
   {
     for (uint32_t x = 0; x < goomInfo->getScreenInfo().width; x++)
     {
-      dest[i] = getBrighterColorInt(flashInt, src[i], buffSettings.allowOverexposed).rgba();
+      dest[i] = getBrighterColorInt(flashInt, src(i), buffSettings.allowOverexposed).rgba();
       i++;
     }
   }

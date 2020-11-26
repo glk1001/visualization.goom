@@ -78,8 +78,8 @@ public:
               const float distance2,
               const Pixel& color,
               const Pixel& colorLow,
-              Pixel* prevBuff,
-              Pixel* currentBuff);
+              PixelBuffer& prevBuff,
+              PixelBuffer& currentBuff);
 
   void setReverseColorMix(const bool val);
   void multiplyIterZeroYValWaveFreq(const float val);
@@ -141,8 +141,8 @@ private:
               const float angle,
               const float distance,
               const float distance2,
-              Pixel* prevBuff,
-              Pixel* currentBuff);
+              PixelBuffer& prevBuff,
+              PixelBuffer& currentBuff);
   std::vector<v2d> projectV3dOntoV2d(const std::vector<V3d>& v3, const float distance);
   static void rotateV3dAboutYAxis(const float sina, const float cosa, const V3d& vsrc, V3d& vdest);
   static void translateV3d(const V3d& vadd, V3d& vinOut);

@@ -40,7 +40,7 @@ public:
 
   void setBuffSettings(const FXBuffSettings&);
 
-  void apply(Pixel* prevBuff, Pixel* currentBuff);
+  void apply(PixelBuffer& prevBuff, PixelBuffer& currentBuff);
 
   bool operator==(const GoomDotsImpl&) const;
 
@@ -79,8 +79,8 @@ private:
 
   float getLargeSoundFactor(const SoundInfo&) const;
 
-  void dotFilter(Pixel* prevBuff,
-                 Pixel* currentBuff,
+  void dotFilter(PixelBuffer& prevBuff,
+                 PixelBuffer& currentBuff,
                  const std::vector<Pixel>& colors,
                  const float t1,
                  const float t2,
@@ -133,7 +133,7 @@ std::string GoomDotsFx::getFxName() const
   return "goom dots";
 }
 
-void GoomDotsFx::apply(Pixel* prevBuff, Pixel* currentBuff)
+void GoomDotsFx::apply(PixelBuffer& prevBuff, PixelBuffer& currentBuff)
 {
   if (!enabled)
   {
@@ -243,7 +243,7 @@ void GoomDotsFx::GoomDotsImpl::changeColors()
   useGrayScale = probabilityOfMInN(1, 10);
 }
 
-void GoomDotsFx::GoomDotsImpl::apply(Pixel* prevBuff, Pixel* currentBuff)
+void GoomDotsFx::GoomDotsImpl::apply(PixelBuffer& prevBuff, PixelBuffer& currentBuff)
 {
   uint32_t radius = 3;
   if ((goomInfo->getSoundInfo().getTimeSinceLastGoom() == 0) || changeDotColorsEvent())
@@ -368,8 +368,8 @@ float GoomDotsFx::GoomDotsImpl::getLargeSoundFactor(const SoundInfo& soundInfo) 
   return largefactor;
 }
 
-void GoomDotsFx::GoomDotsImpl::dotFilter(Pixel* prevBuff,
-                                         Pixel* currentBuff,
+void GoomDotsFx::GoomDotsImpl::dotFilter(PixelBuffer& prevBuff,
+                                         PixelBuffer& currentBuff,
                                          const std::vector<Pixel>& colors,
                                          const float t1,
                                          const float t2,
@@ -405,7 +405,7 @@ void GoomDotsFx::GoomDotsImpl::dotFilter(Pixel* prevBuff,
   }
   else
   {
-    std::vector<Pixel*> buffs{currentBuff, prevBuff};
+    std::vector<PixelBuffer*> buffs{&currentBuff, &prevBuff};
     std::vector<Pixel> prevBuffColors(colors.size());
     for (size_t i = 0; i < colors.size(); i++)
     {

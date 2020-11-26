@@ -10,7 +10,7 @@ namespace goom
 
 extern void gfont_load(void);
 
-extern void goom_draw_text(Pixel* buf,
+extern void goom_draw_text(PixelBuffer&,
                            const uint16_t resolx,
                            const uint16_t resoly,
                            int x,

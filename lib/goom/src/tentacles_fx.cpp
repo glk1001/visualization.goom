@@ -391,7 +391,7 @@ public:
   void setBuffSettings(const FXBuffSettings&);
   void freshStart();
 
-  void update(Pixel* prevBuff, Pixel* currentBuff);
+  void update(PixelBuffer& prevBuff, PixelBuffer& currentBuff);
   void updateWithNoDraw();
 
   void logStats(const StatsLogValueFunc logVal);
@@ -528,7 +528,7 @@ void TentaclesFx::log(const StatsLogValueFunc& logVal) const
   fxImpl->logStats(logVal);
 }
 
-void TentaclesFx::apply(Pixel* prevBuff, Pixel* currentBuff)
+void TentaclesFx::apply(PixelBuffer& prevBuff, PixelBuffer& currentBuff)
 {
   if (!enabled)
   {
@@ -811,7 +811,7 @@ void TentaclesFx::TentaclesImpl::init()
   }
 }
 
-void TentaclesFx::TentaclesImpl::update(Pixel* prevBuff, Pixel* currentBuff)
+void TentaclesFx::TentaclesImpl::update(PixelBuffer& prevBuff, PixelBuffer& currentBuff)
 {
   logDebug("Starting update.");
 

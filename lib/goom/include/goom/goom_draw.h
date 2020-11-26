@@ -27,37 +27,37 @@ public:
   float getBuffIntensity() const;
   void setBuffIntensity(const float val);
 
-  Pixel getPixelRGB(Pixel* buff, const uint32_t x, const uint32_t y) const;
-  void setPixelRGB(Pixel* buff, const uint32_t x, const uint32_t y, const Pixel& color);
+  Pixel getPixelRGB(const PixelBuffer&, const uint32_t x, const uint32_t y) const;
+  void setPixelRGB(PixelBuffer&, const uint32_t x, const uint32_t y, const Pixel& color);
   // Set the pixel but don't blend it with the existing pixel value.
-  void setPixelRGBNoBlend(Pixel* buff, const uint32_t x, const uint32_t y, const Pixel& color);
+  void setPixelRGBNoBlend(PixelBuffer&, const uint32_t x, const uint32_t y, const Pixel& color);
 
-  std::vector<Pixel> getPixelRGB(const std::vector<Pixel*>& buffs,
+  std::vector<Pixel> getPixelRGB(const std::vector<PixelBuffer*>&,
                                  const uint32_t x,
                                  const uint32_t y) const;
-  void setPixelRGB(std::vector<Pixel*>& buffs,
+  void setPixelRGB(std::vector<PixelBuffer*>&,
                    const uint32_t x,
                    const uint32_t y,
                    const std::vector<Pixel>& colors);
 
-  void circle(Pixel* buff, const int x0, const int y0, const int radius, const Pixel& color);
+  void circle(PixelBuffer&, const int x0, const int y0, const int radius, const Pixel& color);
 
-  void circle(std::vector<Pixel*> buffs,
+  void circle(std::vector<PixelBuffer*>&,
               const int x0,
               const int y0,
               const int radius,
               const std::vector<Pixel>& colors);
 
   void filledCircle(
-      Pixel* buff, const int x0, const int y0, const int radius, const std::vector<Pixel>& colors);
+      PixelBuffer&, const int x0, const int y0, const int radius, const std::vector<Pixel>& colors);
 
-  void filledCircle(std::vector<Pixel*> buffs,
+  void filledCircle(std::vector<PixelBuffer*>&,
                     const int x0,
                     const int y0,
                     const int radius,
                     const std::vector<std::vector<Pixel>>& colorSets);
 
-  void line(Pixel* buff,
+  void line(PixelBuffer&,
             const int x1,
             const int y1,
             const int x2,
@@ -65,7 +65,7 @@ public:
             const Pixel& color,
             const uint8_t thickness);
 
-  void line(std::vector<Pixel*> buffs,
+  void line(std::vector<PixelBuffer*>&,
             int x1,
             int y1,
             int x2,
@@ -92,20 +92,22 @@ void GoomDraw::serialize(Archive& ar)
   ar(screenWidth, screenHeight, allowOverexposed, buffIntensity, intBuffIntensity);
 }
 
-inline void GoomDraw::setPixelRGBNoBlend(Pixel* buff,
+inline void GoomDraw::setPixelRGBNoBlend(PixelBuffer& buff,
                                          const uint32_t x,
                                          const uint32_t y,
                                          const Pixel& color)
 {
-  buff[x + (y * screenWidth)] = color;
+  buff(x, y) = color;
 }
 
-inline Pixel GoomDraw::getPixelRGB(Pixel* buff, const uint32_t x, const uint32_t y) const
+inline Pixel GoomDraw::getPixelRGB(const PixelBuffer& buff,
+                                   const uint32_t x,
+                                   const uint32_t y) const
 {
-  return buff[x + (y * screenWidth)];
+  return buff(x, y);
 }
 
-inline std::vector<Pixel> GoomDraw::getPixelRGB(const std::vector<Pixel*>& buffs,
+inline std::vector<Pixel> GoomDraw::getPixelRGB(const std::vector<PixelBuffer*>& buffs,
                                                 const uint32_t x,
                                                 const uint32_t y) const
 {
@@ -113,7 +115,7 @@ inline std::vector<Pixel> GoomDraw::getPixelRGB(const std::vector<Pixel*>& buffs
   std::vector<Pixel> colors(buffs.size());
   for (size_t i = 0; i < buffs.size(); i++)
   {
-    colors[i] = (buffs[i])[pos];
+    colors[i] = (*buffs[i])(pos);
   }
   return colors;
 }

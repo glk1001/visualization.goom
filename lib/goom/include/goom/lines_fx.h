@@ -63,7 +63,9 @@ public:
                        const float newAmplitude,
                        const Pixel& newColor);
 
-  void drawGoomLines(const std::vector<int16_t>& soundData, Pixel* prevBuff, Pixel* currentBuff);
+  void drawGoomLines(const std::vector<int16_t>& soundData,
+                     PixelBuffer& prevBuff,
+                     PixelBuffer& currentBuff);
 
   std::string getFxName() const;
   void saveState(std::ostream&) const;
