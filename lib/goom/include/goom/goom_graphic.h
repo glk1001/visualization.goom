@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cereal/archives/json.hpp>
 #include <cstdint>
+#include <cstring>
 #include <vector>
 
 namespace goom
@@ -124,10 +125,16 @@ public:
   PixelBuffer(const PixelBuffer&) = delete;
   PixelBuffer& operator=(const PixelBuffer&) = delete;
 
+  uint32_t getWidth() const;
+  uint32_t getHeight() const;
+  uint32_t getBuffLen() const;
+  size_t getBuffSize() const;
+
   void fill(const Pixel&);
 
-  const std::vector<Pixel>& array() const;
-  std::vector<Pixel>& array();
+  const uint32_t* getIntBuff() const;
+  void copyTo(uint32_t* intBuff) const;
+  void copyFrom(const uint32_t* intBuff);
 
   const Pixel& operator()(const size_t pos) const;
   Pixel& operator()(const size_t pos);
@@ -138,6 +145,7 @@ public:
 private:
   const uint32_t width;
   const uint32_t height;
+  const size_t buffSize;
   std::vector<Pixel> buff;
 };
 
@@ -215,8 +223,28 @@ inline void Pixel::set_rgba(const uint32_t v)
 }
 
 inline PixelBuffer::PixelBuffer(const uint16_t w, const uint16_t h) noexcept
-  : width{w}, height{h}, buff((width + 1) * (height + 1))
+  : width{w}, height{h}, buffSize{width * height * sizeof(Pixel)}, buff((width + 1) * (height + 1))
 {
+}
+
+inline uint32_t PixelBuffer::getWidth() const
+{
+  return width;
+}
+
+inline uint32_t PixelBuffer::getHeight() const
+{
+  return height;
+}
+
+inline uint32_t PixelBuffer::getBuffLen() const
+{
+  return width * height;
+}
+
+inline size_t PixelBuffer::getBuffSize() const
+{
+  return buffSize;
 }
 
 inline void PixelBuffer::fill(const Pixel& color)
@@ -224,14 +252,24 @@ inline void PixelBuffer::fill(const Pixel& color)
   std::fill(buff.begin(), buff.end(), color);
 }
 
-inline const std::vector<Pixel>& PixelBuffer::array() const
+inline const uint32_t* PixelBuffer::getIntBuff() const
 {
-  return buff;
+  return reinterpret_cast<const uint32_t*>(buff.data());
 }
 
-inline std::vector<Pixel>& PixelBuffer::array()
+inline void PixelBuffer::copyTo(uint32_t* intBuff) const
 {
-  return buff;
+  static_assert(sizeof(Pixel) == sizeof(uint32_t));
+  std::memcpy(intBuff, getIntBuff(), buffSize);
+}
+
+inline void PixelBuffer::copyFrom(const uint32_t* intBuff)
+{
+  static_assert(sizeof(Pixel) == sizeof(uint32_t));
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wclass-memaccess"
+  std::memcpy(buff.data(), intBuff, buffSize);
+#pragma GCC diagnostic pop
 }
 
 inline const Pixel& PixelBuffer::operator()(const size_t pos) const

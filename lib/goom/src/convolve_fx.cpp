@@ -170,14 +170,15 @@ void ConvolveFx::ConvolveImpl::convolve(const PixelBuffer& currentBuff, uint32_t
   }
   factor *= decayRate;
 
-  if (std::fabs(1.0 - flash) > 0.02)
+  if (std::fabs(1.0 - flash) < 0.02)
   {
-    createOutputWithBrightness(currentBuff, outputBuff, flashInt);
+    //    currentBuff.copyTo(outputBuff);
+    static_assert(sizeof(Pixel) == sizeof(uint32_t));
+    memcpy(outputBuff, currentBuff.getIntBuff(), goomInfo->getScreenInfo().size * sizeof(Pixel));
   }
   else
   {
-    static_assert(sizeof(Pixel) == sizeof(uint32_t));
-    memcpy(outputBuff, currentBuff.array().data(), goomInfo->getScreenInfo().size * sizeof(Pixel));
+    createOutputWithBrightness(currentBuff, outputBuff, flashInt);
   }
 }
 
