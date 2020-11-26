@@ -451,8 +451,12 @@ void LinesFx::LinesImpl::drawGoomLines(const std::vector<int16_t>& soundData,
     const float fdata = getNormalizedData(dataVal);
     const int x = static_cast<int>(pt->x + cosa * amplitude * fdata);
     const int y = static_cast<int>(pt->y + sina * amplitude * fdata);
-    const float t = std::max(0.05f, fdata / static_cast<float>(maxNormalizedPeak));
-    const Pixel modColor = ColorMap::colorMix(lineColor, randColor, t);
+    const float maxBrightness =
+        getRandInRange(1.0F, 10.0F) * fdata / static_cast<float>(maxNormalizedPeak);
+    const float t = std::min(1.0F, maxBrightness);
+    static GammaCorrection gammaCorrect{4.2, 0.1};
+    const Pixel modColor =
+        gammaCorrect.getCorrection(t, ColorMap::colorMix(lineColor, randColor, t));
     return std::make_tuple(x, y, modColor);
   };
 
