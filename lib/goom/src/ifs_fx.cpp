@@ -735,7 +735,8 @@ inline Pixel Colorizer::getMixedColor(
 {
   //  const float hitFactor = std::max(0.4F, std::log(static_cast<float>(hitCount))/static_cast<float>(maxHitCount));
   //  const float logAlpha = std::log(static_cast<float>(hitCount))/static_cast<float>(hitCount);
-  const float logAlpha = std::log(static_cast<float>(hitCount)) / logMaxHitCount;
+  const float logAlpha =
+      maxHitCount <= 1 ? 1.0F : std::log(static_cast<float>(hitCount)) / logMaxHitCount;
 
   Pixel mixColor{0U};
   float t = tBetweenColors;

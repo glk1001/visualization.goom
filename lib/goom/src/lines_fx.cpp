@@ -10,6 +10,8 @@
 #include "goomutils/mathutils.h"
 
 #include <algorithm>
+#undef NDEBUG
+#include <cassert>
 #include <cereal/archives/json.hpp>
 #include <cereal/types/memory.hpp>
 #include <cmath>
@@ -409,7 +411,7 @@ std::vector<float> simpleMovingAverage(const std::vector<int16_t>& x, const uint
 
 inline std::vector<float> getDataPoints(const std::vector<int16_t>& x)
 {
-  //  return std::vector<float>{x, x + AUDIO_SAMPLE_LEN};
+  // return std::vector<float>{x.data(), x.data() + AUDIO_SAMPLE_LEN};
   if (probabilityOfMInN(9999, 10000))
   {
     return std::vector<float>{x.data(), x.data() + AUDIO_SAMPLE_LEN};
@@ -428,6 +430,8 @@ void LinesFx::LinesImpl::drawGoomLines(const std::vector<int16_t>& soundData,
 
   const float audioRange = static_cast<float>(goomInfo->getSoundInfo().getAllTimesMaxVolume() -
                                               goomInfo->getSoundInfo().getAllTimesMinVolume());
+  assert(audioRange >= 0.0);
+
   if (audioRange < 0.0001)
   {
     // No range - flatline audio
@@ -448,9 +452,11 @@ void LinesFx::LinesImpl::drawGoomLines(const std::vector<int16_t>& soundData,
   const Pixel randColor = getRandomLineColor();
 
   const auto getNextPoint = [&](const GMUnitPointer* pt, const float dataVal) {
+    assert(goomInfo->getSoundInfo().getAllTimesMinVolume() <= dataVal);
     const float cosa = cos(pt->angle) / 1000.0f;
     const float sina = sin(pt->angle) / 1000.0f;
     const float fdata = getNormalizedData(dataVal);
+    assert(fdata >= 0.0);
     const int x = static_cast<int>(pt->x + cosa * amplitude * fdata);
     const int y = static_cast<int>(pt->y + sina * amplitude * fdata);
     const float maxBrightness =

@@ -114,29 +114,32 @@ bool SoundInfo::operator==(const SoundInfo& s) const
 void SoundInfo::processSample(const AudioSamples& samples)
 {
   // Find the min/max of volumes
-  int16_t incVar = 0;
+  int16_t maxPosVar = 0;
   int16_t maxVar = std::numeric_limits<int16_t>::min();
   int16_t minVar = std::numeric_limits<int16_t>::max();
-  const std::vector<int16_t>& soundData = samples.getSample(0);
-  for (size_t i = 0; i < soundData.size(); i++)
+  for (size_t n = 0; n < AudioSamples::numChannels; n++)
   {
-    if (incVar < soundData[i])
+    const std::vector<int16_t>& soundData = samples.getSample(n);
+    for (size_t i = 0; i < soundData.size(); i++)
     {
-      incVar = soundData[i];
-    }
-    if (maxVar < soundData[i])
-    {
-      maxVar = soundData[i];
-    }
-    if (minVar > soundData[i])
-    {
-      minVar = soundData[i];
+      if (maxPosVar < soundData[i])
+      {
+        maxPosVar = soundData[i];
+      }
+      if (maxVar < soundData[i])
+      {
+        maxVar = soundData[i];
+      }
+      if (minVar > soundData[i])
+      {
+        minVar = soundData[i];
+      }
     }
   }
 
-  if (incVar > allTimesPositiveMaxVolume)
+  if (maxPosVar > allTimesPositiveMaxVolume)
   {
-    allTimesPositiveMaxVolume = incVar;
+    allTimesPositiveMaxVolume = maxPosVar;
   }
   if (maxVar > allTimesMaxVolume)
   {
@@ -148,7 +151,7 @@ void SoundInfo::processSample(const AudioSamples& samples)
   }
 
   // Volume sonore - TODO: why only positive volumes?
-  volume = static_cast<float>(incVar) / static_cast<float>(allTimesPositiveMaxVolume);
+  volume = static_cast<float>(maxPosVar) / static_cast<float>(allTimesPositiveMaxVolume);
 
   float difaccel = acceleration;
   acceleration = volume; // accel entre 0 et 1
