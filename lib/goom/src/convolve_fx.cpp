@@ -172,7 +172,7 @@ void ConvolveFx::ConvolveImpl::convolve(const PixelBuffer& currentBuff, uint32_t
 
   if (std::fabs(1.0 - flash) < 0.02)
   {
-    currentBuff.copyTo(outputBuff);
+    currentBuff.copyTo(outputBuff, goomInfo->getScreenInfo().size);
   }
   else
   {

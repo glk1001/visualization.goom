@@ -133,8 +133,8 @@ public:
   void fill(const Pixel&);
 
   const uint32_t* getIntBuff() const;
-  void copyTo(uint32_t* intBuff) const;
-  void copyFrom(const uint32_t* intBuff);
+  void copyTo(uint32_t* intBuff, const uint32_t length) const;
+  void copyFrom(const uint32_t* intBuff, const uint32_t length);
 
   const Pixel& operator()(const size_t pos) const;
   Pixel& operator()(const size_t pos);
@@ -223,7 +223,10 @@ inline void Pixel::set_rgba(const uint32_t v)
 }
 
 inline PixelBuffer::PixelBuffer(const uint16_t w, const uint16_t h) noexcept
-  : width{w}, height{h}, buffSize{width * height * sizeof(Pixel)}, buff((width + 1) * (height + 1))
+  : width{w},
+    height{h},
+    buffSize{static_cast<size_t>(width) * static_cast<size_t>(height) * sizeof(Pixel)},
+    buff(width * height)
 {
 }
 
@@ -257,18 +260,18 @@ inline const uint32_t* PixelBuffer::getIntBuff() const
   return reinterpret_cast<const uint32_t*>(buff.data());
 }
 
-inline void PixelBuffer::copyTo(uint32_t* intBuff) const
+inline void PixelBuffer::copyTo(uint32_t* intBuff, const uint32_t length) const
 {
   static_assert(sizeof(Pixel) == sizeof(uint32_t));
-  std::memcpy(intBuff, getIntBuff(), buffSize);
+  std::memcpy(intBuff, getIntBuff(), length * sizeof(Pixel));
 }
 
-inline void PixelBuffer::copyFrom(const uint32_t* intBuff)
+inline void PixelBuffer::copyFrom(const uint32_t* intBuff, const uint32_t length)
 {
   static_assert(sizeof(Pixel) == sizeof(uint32_t));
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wclass-memaccess"
-  std::memcpy(buff.data(), intBuff, buffSize);
+  std::memcpy(buff.data(), intBuff, length * sizeof(Pixel));
 #pragma GCC diagnostic pop
 }
 
