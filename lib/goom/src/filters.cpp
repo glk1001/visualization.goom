@@ -446,8 +446,6 @@ private:
   static void generatePrecalCoef(uint32_t precalcCoeffs[16][16]);
   Pixel getMixedColor(const CoeffArray& coeffs, const PixelArray& colors) const;
   Pixel getBlockyMixedColor(const CoeffArray& coeffs, const PixelArray& colors) const;
-  static Pixel getPixelColor(const PixelBuffer& buffer, const uint32_t pos);
-  static void setPixelColor(PixelBuffer& buffer, const uint32_t pos, const Pixel&);
 
   friend class cereal::access;
   template<class Archive>
@@ -901,11 +899,14 @@ void ZoomFilterFx::ZoomFilterImpl::c_zoom(const PixelBuffer& srceBuff, PixelBuff
   const uint32_t tran_ax = (screenWidth - 1) << perteDec;
   const uint32_t tran_ay = (screenHeight - 1) << perteDec;
 
-  uint32_t destPos = 0;
+#pragma omp parallel for
   for (uint32_t destY = 0; destY < screenHeight; destY++)
   {
+    const uint32_t destYtimesScreenWidth = destY * screenWidth;
     for (uint32_t destX = 0; destX < screenWidth; destX++)
     {
+      const uint32_t destPos = destYtimesScreenWidth + destX;
+	  
       const uint32_t tran_px = static_cast<uint32_t>(
           tranXSrce[destPos] +
           (((tranXDest[destPos] - tranXSrce[destPos]) * tranDiffFactor) >> buffPointNum));
@@ -916,7 +917,7 @@ void ZoomFilterFx::ZoomFilterImpl::c_zoom(const PixelBuffer& srceBuff, PixelBuff
       if ((tran_px >= tran_ax) || (tran_py >= tran_ay))
       {
         stats.doCZoomOutOfRange();
-        setPixelColor(destBuff, destPos, Pixel{0U});
+        destBuff(destPos) = Pixel{0U};
       }
       else
       {
@@ -927,26 +928,25 @@ void ZoomFilterFx::ZoomFilterImpl::c_zoom(const PixelBuffer& srceBuff, PixelBuff
         const CoeffArray coeffs{.intVal = precalcCoeffs[xIndex][yIndex]};
 
         const PixelArray colors = {
-            getPixelColor(srceBuff, srcePos),
-            getPixelColor(srceBuff, srcePos + 1),
-            getPixelColor(srceBuff, srcePos + screenWidth),
-            getPixelColor(srceBuff, srcePos + screenWidth + 1),
+            srceBuff(srcePos),
+            srceBuff(srcePos + 1),
+            srceBuff(srcePos + screenWidth),
+            srceBuff(srcePos + screenWidth + 1),
         };
 
         if (filterData.blockyWavy)
         {
           stats.doGetBlockyMixedColor();
           const Pixel newColor = getBlockyMixedColor(coeffs, colors);
-          setPixelColor(destBuff, destPos, newColor);
+          destBuff(destPos) = newColor;
         }
         else
         {
           stats.doGetMixedColor();
           const Pixel newColor = getMixedColor(coeffs, colors);
-          setPixelColor(destBuff, destPos, newColor);
+          destBuff(destPos) = newColor;
 
-          //        if (600 < (tran_px >> perteDec) && (tran_px >> perteDec) < 680 &&
-          //            320 < (tran_py >> perteDec) && (tran_py >> perteDec) < 400)
+#ifndef NO_LOGGING
           if (colors[0].rgba() > 0xFF000000)
           {
             logInfo("srcePos == {}", srcePos);
@@ -967,9 +967,9 @@ void ZoomFilterFx::ZoomFilterImpl::c_zoom(const PixelBuffer& srceBuff, PixelBuff
             logInfo("colors[3] == {:x}", colors[3].rgba());
             logInfo("newColor == {:x}", newColor.rgba());
           }
+#endif
         }
       }
-      destPos++;
     }
   }
 }
@@ -1294,19 +1294,6 @@ inline Pixel ZoomFilterFx::ZoomFilterImpl::getBlockyMixedColor(const CoeffArray&
   // The order col4, col3, col2, col1 gave a black tear - no so good.
   const PixelArray reorderedColors{colors[0], colors[2], colors[1], colors[3]};
   return getMixedColor(coeffs, reorderedColors);
-}
-
-inline Pixel ZoomFilterFx::ZoomFilterImpl::getPixelColor(const PixelBuffer& buffer,
-                                                         const uint32_t pos)
-{
-  return buffer(pos);
-}
-
-inline void ZoomFilterFx::ZoomFilterImpl::setPixelColor(PixelBuffer& buffer,
-                                                        const uint32_t pos,
-                                                        const Pixel& p)
-{
-  buffer(pos) = p;
 }
 
 } // namespace goom
