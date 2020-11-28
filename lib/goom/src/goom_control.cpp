@@ -40,6 +40,9 @@
 #include <format>
 #include <istream>
 #include <memory>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 #include <ostream>
 #include <stdexcept>
 #include <string>
@@ -1343,6 +1346,14 @@ GoomControl::GoomControlImpl::GoomControlImpl(const uint16_t resx, const uint16_
         lRed}
 {
   logDebug("Initialize goom: resx = {}, resy = {}.", resx, resy);
+
+#ifdef _OPENMP
+  const int numProcessors = omp_get_num_procs();
+  if (numProcessors > 1)
+  {
+    omp_set_num_threads(numProcessors - 1);
+  }
+#endif
 
   gfont_load();
 }

@@ -184,14 +184,10 @@ void ConvolveFx::ConvolveImpl::createOutputWithBrightness(const PixelBuffer& src
                                                           uint32_t* dest,
                                                           const uint32_t flashInt)
 {
-  size_t i = 0; // < screenWidth * screenHeight
-  for (uint32_t y = 0; y < goomInfo->getScreenInfo().height; y++)
+#pragma omp parallel for
+  for (size_t i = 0; i < goomInfo->getScreenInfo().size; i++)
   {
-    for (uint32_t x = 0; x < goomInfo->getScreenInfo().width; x++)
-    {
-      dest[i] = getBrighterColorInt(flashInt, src(i), buffSettings.allowOverexposed).rgba();
-      i++;
-    }
+    dest[i] = getBrighterColorInt(flashInt, src(i), buffSettings.allowOverexposed).rgba();
   }
 }
 
