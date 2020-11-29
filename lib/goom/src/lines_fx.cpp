@@ -417,7 +417,7 @@ inline std::vector<float> getDataPoints(const std::vector<int16_t>& x)
     return std::vector<float>{x.data(), x.data() + AUDIO_SAMPLE_LEN};
   }
 
-  return simpleMovingAverage(x, 5);
+  return simpleMovingAverage(x, 3);
 }
 
 void LinesFx::LinesImpl::drawGoomLines(const std::vector<int16_t>& soundData,
