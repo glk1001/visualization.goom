@@ -23,6 +23,7 @@
 #undef NO_LOGGING
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
+#include "goomutils/parallel_utils.h"
 #include "goomutils/strutils.h"
 #include "ifs_fx.h"
 #include "lines_fx.h"
@@ -40,9 +41,6 @@
 #include <format>
 #include <istream>
 #include <memory>
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 #include <ostream>
 #include <stdexcept>
 #include <string>
@@ -939,7 +937,7 @@ struct GoomMessage
 struct GoomVisualFx
 {
   GoomVisualFx() noexcept = default;
-  explicit GoomVisualFx(const std::shared_ptr<const PluginInfo>&) noexcept;
+  explicit GoomVisualFx(Parallel&, const std::shared_ptr<const PluginInfo>&) noexcept;
 
   std::shared_ptr<ConvolveFx> convolve_fx{};
   std::shared_ptr<ZoomFilterFx> zoomFilter_fx{};
@@ -960,9 +958,9 @@ struct GoomVisualFx
   };
 };
 
-GoomVisualFx::GoomVisualFx(const std::shared_ptr<const PluginInfo>& goomInfo) noexcept
-  : convolve_fx{new ConvolveFx{goomInfo}},
-    zoomFilter_fx{new ZoomFilterFx{goomInfo}},
+GoomVisualFx::GoomVisualFx(Parallel& p, const std::shared_ptr<const PluginInfo>& goomInfo) noexcept
+  : convolve_fx{new ConvolveFx{p, goomInfo}},
+    zoomFilter_fx{new ZoomFilterFx{p, goomInfo}},
     star_fx{new FlyingStarsFx{goomInfo}},
     goomDots_fx{new GoomDotsFx{goomInfo}},
     ifs_fx{new IfsFx{goomInfo}},
@@ -1079,6 +1077,7 @@ public:
   bool operator==(const GoomControlImpl&) const;
 
 private:
+  Parallel parallel;
   std::shared_ptr<WritablePluginInfo> goomInfo{};
   GoomImageBuffers imageBuffers{};
   GoomVisualFx visualFx{};
@@ -1318,16 +1317,17 @@ static const Pixel lRed = getRedLineColor();
 static const Pixel lGreen = getGreenLineColor();
 static const Pixel lBlack = getBlackLineColor();
 
-GoomControl::GoomControlImpl::GoomControlImpl() noexcept
+GoomControl::GoomControlImpl::GoomControlImpl() noexcept : parallel{}
 {
   gfont_load();
 }
 
 GoomControl::GoomControlImpl::GoomControlImpl(const uint16_t resx, const uint16_t resy) noexcept
-  : goomInfo{new WritablePluginInfo{resx, resy}},
+  : parallel{0}, // max cores
+    goomInfo{new WritablePluginInfo{resx, resy}},
     imageBuffers{resx, resy},
-    visualFx{
-        std::const_pointer_cast<const PluginInfo>(std::dynamic_pointer_cast<PluginInfo>(goomInfo))},
+    visualFx{parallel, std::const_pointer_cast<const PluginInfo>(
+                           std::dynamic_pointer_cast<PluginInfo>(goomInfo))},
     gmline1{
         std::const_pointer_cast<const PluginInfo>(std::dynamic_pointer_cast<PluginInfo>(goomInfo)),
         LinesFx::LineType::hline,
@@ -1346,14 +1346,6 @@ GoomControl::GoomControlImpl::GoomControlImpl(const uint16_t resx, const uint16_
         lRed}
 {
   logDebug("Initialize goom: resx = {}, resy = {}.", resx, resy);
-
-#ifdef _OPENMP
-  const int numProcessors = omp_get_num_procs();
-  if (numProcessors > 1)
-  {
-    omp_set_num_threads(numProcessors - 1);
-  }
-#endif
 
   gfont_load();
 }

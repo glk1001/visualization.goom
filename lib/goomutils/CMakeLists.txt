@@ -15,6 +15,7 @@ add_library( ${PROJECT_NAME}
         src/logging.cpp
         src/mathutils.cpp
         src/strutils.cpp
+        src/thread_pool.cpp
 )
 
 target_include_directories( ${PROJECT_NAME}

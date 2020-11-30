@@ -25,6 +25,7 @@
 //#undef NO_LOGGING
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
+#include "goomutils/parallel_utils.h"
 #include "v3d.h"
 
 #include <algorithm>
@@ -36,6 +37,8 @@
 #include <cereal/types/vector.hpp>
 #include <cmath>
 #include <cstdint>
+#include <execution>
+#include <numeric>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -379,7 +382,7 @@ class ZoomFilterFx::ZoomFilterImpl
 {
 public:
   ZoomFilterImpl() noexcept;
-  explicit ZoomFilterImpl(const std::shared_ptr<const PluginInfo>&) noexcept;
+  explicit ZoomFilterImpl(Parallel&, const std::shared_ptr<const PluginInfo>&) noexcept;
   ~ZoomFilterImpl() noexcept;
   ZoomFilterImpl(const ZoomFilterImpl&) = delete;
   ZoomFilterImpl& operator=(const ZoomFilterImpl&) = delete;
@@ -405,6 +408,8 @@ private:
   float minNormCoordVal = 0;
   ZoomFilterData filterData{};
   FXBuffSettings buffSettings{};
+
+  Parallel* parallel = nullptr;
 
   float toNormalizedCoord(const int32_t pixmapCoord);
   int32_t toPixmapCoord(const float normalizedCoord);
@@ -596,13 +601,14 @@ ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl() noexcept
 }
 
 ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl(
-    const std::shared_ptr<const PluginInfo>& goomInfo) noexcept
+    Parallel& p, const std::shared_ptr<const PluginInfo>& goomInfo) noexcept
   : screenWidth{goomInfo->getScreenInfo().width},
     screenHeight{goomInfo->getScreenInfo().height},
     bufferSize{goomInfo->getScreenInfo().size},
     ratioPixmapToNormalizedCoord{2.0F / static_cast<float>(screenWidth)},
     ratioNormalizedCoordToPixmap{1.0F / ratioPixmapToNormalizedCoord},
     minNormCoordVal{ratioPixmapToNormalizedCoord / buffPointNumFlt},
+    parallel{&p},
     freeTranXSrce(bufferSize + 128),
     freeTranYSrce(bufferSize + 128),
     freeTranXDest(bufferSize + 128),
@@ -683,8 +689,8 @@ ZoomFilterFx::ZoomFilterFx() noexcept : fxImpl{new ZoomFilterImpl{}}
 {
 }
 
-ZoomFilterFx::ZoomFilterFx(const std::shared_ptr<const PluginInfo>& info) noexcept
-  : fxImpl{new ZoomFilterImpl{info}}
+ZoomFilterFx::ZoomFilterFx(Parallel& p, const std::shared_ptr<const PluginInfo>& info) noexcept
+  : fxImpl{new ZoomFilterImpl{p, info}}
 {
 }
 
@@ -891,6 +897,13 @@ void ZoomFilterFx::ZoomFilterImpl::generatePrecalCoef(uint32_t precalcCoeffs[16]
   }
 }
 
+static std::vector<uint32_t> getIndexArray(const size_t bufferSize)
+{
+  std::vector<uint32_t> vec(bufferSize);
+  std::iota(vec.begin(), vec.end(), 0);
+  return vec;
+}
+
 // pure c version of the zoom filter
 void ZoomFilterFx::ZoomFilterImpl::c_zoom(const PixelBuffer& srceBuff, PixelBuffer& destBuff)
 {
@@ -899,9 +912,7 @@ void ZoomFilterFx::ZoomFilterImpl::c_zoom(const PixelBuffer& srceBuff, PixelBuff
   const uint32_t tran_ax = (screenWidth - 1) << perteDec;
   const uint32_t tran_ay = (screenHeight - 1) << perteDec;
 
-#pragma omp parallel for
-  for (uint32_t destPos = 0; destPos < bufferSize; destPos++)
-  {
+  const auto setDestPixel = [&](const uint32_t destPos) {
     const uint32_t tran_px = static_cast<uint32_t>(
         tranXSrce[destPos] +
         (((tranXDest[destPos] - tranXSrce[destPos]) * tranDiffFactor) >> buffPointNum));
@@ -965,7 +976,19 @@ void ZoomFilterFx::ZoomFilterImpl::c_zoom(const PixelBuffer& srceBuff, PixelBuff
 #endif
       }
     }
+  };
+
+  //  static const std::vector<uint32_t> indexArray{getIndexArray(bufferSize)};
+  //  std::for_each(std::execution::par_unseq, indexArray.begin(), indexArray.end(), setDestPixel);
+
+  parallel->forLoop(static_cast<int32_t>(bufferSize), setDestPixel);
+  /**
+  //#pragma omp parallel for
+  for (uint32_t destPos = 0; destPos < bufferSize; destPos++)
+  {
+    setDestPixel(destPos);
   }
+  **/
 }
 
 /*
@@ -985,17 +1008,17 @@ void ZoomFilterFx::ZoomFilterImpl::makeZoomBufferStripe(const uint32_t interlace
   const float normMiddleY = toNormalizedCoord(filterData.middleY);
 
   // Where (vertically) to stop generating the buffer stripe
-  const uint32_t maxEnd =
-      std::min(screenHeight, static_cast<uint32_t>(interlaceStart) + interlaceIncrement);
+  const int32_t maxEnd = std::min(static_cast<int32_t>(screenHeight),
+                                  interlaceStart + static_cast<int32_t>(interlaceIncrement));
 
   // Position of the pixel to compute in pixmap coordinates
-#pragma omp parallel for
-  for (uint32_t y = static_cast<uint32_t>(interlaceStart); y < maxEnd; y++)
-  {
-    const uint32_t yTimesScreenWidth = y * screenWidth;
+  const auto doStripeLine = [&](const uint32_t y) {
+    const uint32_t yOffset = y + static_cast<uint32_t>(interlaceStart);
+    const uint32_t yTimesScreenWidth = yOffset * screenWidth;
     const float normY =
-        toNormalizedCoord(static_cast<int32_t>(y) - static_cast<int32_t>(filterData.middleY));
+        toNormalizedCoord(static_cast<int32_t>(yOffset) - static_cast<int32_t>(filterData.middleY));
     float normX = -toNormalizedCoord(static_cast<int32_t>(filterData.middleX));
+
     for (uint32_t x = 0; x < screenWidth; x++)
     {
       const v2g vector = getZoomVector(normX, normY);
@@ -1006,10 +1029,19 @@ void ZoomFilterFx::ZoomFilterImpl::makeZoomBufferStripe(const uint32_t interlace
 
       incNormalizedCoord(normX);
     }
+  };
+
+  parallel->forLoop(maxEnd - interlaceStart, doStripeLine);
+
+  /**
+  for (uint32_t y = 0; y < (maxEnd - static_cast<uint32_t>(interlaceStart)); y++)
+  {
+    doStripeLine(y);
   }
+  **/
 
   interlaceStart += static_cast<int32_t>(interlaceIncrement);
-  if (maxEnd == screenHeight)
+  if (maxEnd == static_cast<int32_t>(screenHeight))
   {
     interlaceStart = -1;
   }

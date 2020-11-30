@@ -11,6 +11,7 @@
 #include "goom/lines_fx.h"
 #include "goom/sound_info.h"
 #include "goom/tentacles_fx.h"
+#include "goomutils/parallel_utils.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -87,8 +88,9 @@ TEST_CASE("save/restore convolve object", "[saveRestoreConvolve]")
 {
   std::unique_ptr<PixelBuffer> prevBuff{getNewBuffer()};
   std::unique_ptr<uint32_t> currentBuff{getNewOutputBuffer()};
+  utils::Parallel parallel{};
 
-  ConvolveFx convolveFx{getGoomInfo()};
+  ConvolveFx convolveFx{parallel, getGoomInfo()};
   for (size_t i = 0; i < 100; i++)
   {
     convolveFx.convolve(*prevBuff, currentBuff.get());
@@ -114,8 +116,9 @@ TEST_CASE("save/restore filter", "[saveRestoreFilter]")
 {
   std::unique_ptr<PixelBuffer> prevBuff{getNewBuffer()};
   std::unique_ptr<PixelBuffer> currentBuff{getNewBuffer()};
+  utils::Parallel parallel{};
 
-  ZoomFilterFx filterFx{getGoomInfo()};
+  ZoomFilterFx filterFx{parallel, getGoomInfo()};
   const ZoomFilterData* zf = nullptr;
   const int switchIncr = 1;
   const float switchMult = 1;

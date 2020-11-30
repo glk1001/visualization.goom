@@ -411,7 +411,7 @@ std::vector<float> simpleMovingAverage(const std::vector<int16_t>& x, const uint
 
 inline std::vector<float> getDataPoints(const std::vector<int16_t>& x)
 {
-  // return std::vector<float>{x.data(), x.data() + AUDIO_SAMPLE_LEN};
+  return std::vector<float>{x.data(), x.data() + AUDIO_SAMPLE_LEN};
   if (probabilityOfMInN(9999, 10000))
   {
     return std::vector<float>{x.data(), x.data() + AUDIO_SAMPLE_LEN};

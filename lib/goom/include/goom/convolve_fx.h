@@ -11,13 +11,18 @@
 namespace goom
 {
 
+namespace utils
+{
+class Parallel;
+}
+
 class PluginInfo;
 
 class ConvolveFx : public VisualFx
 {
 public:
   ConvolveFx() noexcept;
-  explicit ConvolveFx(const std::shared_ptr<const PluginInfo>&) noexcept;
+  explicit ConvolveFx(utils::Parallel&, const std::shared_ptr<const PluginInfo>&) noexcept;
   ~ConvolveFx() noexcept;
   ConvolveFx(const ConvolveFx&) = delete;
   ConvolveFx& operator=(const ConvolveFx&) = delete;

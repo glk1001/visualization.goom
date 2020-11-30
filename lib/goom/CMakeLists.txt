@@ -51,7 +51,3 @@ set_target_properties( ${PROJECT_NAME}
     PROPERTIES 
         POSITION_INDEPENDENT_CODE ON
 )
-
-find_package(OpenMP REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
-

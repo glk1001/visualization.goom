@@ -1273,7 +1273,6 @@ void IfsFx::IfsImpl::updatePixelBuffers(PixelBuffer& prevBuff,
   const float tStep = numPoints == 1 ? 0.0F : (1.0F - 0.0F) / static_cast<float>(numPoints - 1);
   float t = -tStep;
 
-#pragma omp parallel for
   for (size_t i = 0; i < numPoints; i += static_cast<size_t>(getIfsIncr()))
   {
     t += tStep;

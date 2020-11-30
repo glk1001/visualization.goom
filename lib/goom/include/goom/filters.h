@@ -139,13 +139,18 @@ struct ZoomFilterData
  * resx,resy : taille des buffers.
  */
 
+namespace utils
+{
+class Parallel;
+}
+
 class PluginInfo;
 
 class ZoomFilterFx : public VisualFx
 {
 public:
   ZoomFilterFx() noexcept;
-  explicit ZoomFilterFx(const std::shared_ptr<const PluginInfo>&) noexcept;
+  explicit ZoomFilterFx(utils::Parallel&, const std::shared_ptr<const PluginInfo>&) noexcept;
   ~ZoomFilterFx() noexcept;
   ZoomFilterFx(const ZoomFilterFx&) = delete;
   ZoomFilterFx& operator=(const ZoomFilterFx&) = delete;

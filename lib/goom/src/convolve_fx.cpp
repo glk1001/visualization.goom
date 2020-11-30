@@ -6,6 +6,7 @@
 #include "goomutils/colorutils.h"
 #include "goomutils/goomrand.h"
 #include "goomutils/mathutils.h"
+#include "goomutils/parallel_utils.h"
 
 #include <cereal/archives/json.hpp>
 #include <cereal/types/memory.hpp>
@@ -25,7 +26,9 @@ class ConvolveFx::ConvolveImpl
 {
 public:
   ConvolveImpl() noexcept;
-  explicit ConvolveImpl(const std::shared_ptr<const PluginInfo>&) noexcept;
+  explicit ConvolveImpl(Parallel&, const std::shared_ptr<const PluginInfo>&) noexcept;
+  ConvolveImpl(const ConvolveImpl&) = delete;
+  ConvolveImpl& operator=(const ConvolveImpl&) = delete;
 
   void setBuffSettings(const FXBuffSettings&);
 
@@ -34,6 +37,8 @@ public:
   bool operator==(const ConvolveImpl&) const;
 
 private:
+  Parallel* parallel = nullptr;
+  ;
   std::shared_ptr<const PluginInfo> goomInfo{};
   float screenBrightness = 100;
   float flashIntensity = 30;
@@ -53,8 +58,8 @@ ConvolveFx::ConvolveFx() noexcept : fxImpl{new ConvolveImpl{}}
 {
 }
 
-ConvolveFx::ConvolveFx(const std::shared_ptr<const PluginInfo>& info) noexcept
-  : fxImpl{new ConvolveImpl{info}}
+ConvolveFx::ConvolveFx(Parallel& p, const std::shared_ptr<const PluginInfo>& info) noexcept
+  : fxImpl{new ConvolveImpl{p, info}}
 {
 }
 
@@ -148,8 +153,9 @@ ConvolveFx::ConvolveImpl::ConvolveImpl() noexcept
 {
 }
 
-ConvolveFx::ConvolveImpl::ConvolveImpl(const std::shared_ptr<const PluginInfo>& info) noexcept
-  : goomInfo{info}
+ConvolveFx::ConvolveImpl::ConvolveImpl(Parallel& p,
+                                       const std::shared_ptr<const PluginInfo>& info) noexcept
+  : parallel{&p}, goomInfo{info}
 {
 }
 
@@ -184,11 +190,18 @@ void ConvolveFx::ConvolveImpl::createOutputWithBrightness(const PixelBuffer& src
                                                           uint32_t* dest,
                                                           const uint32_t flashInt)
 {
-#pragma omp parallel for
+  const auto setDestPixel = [&](const uint32_t i) {
+    dest[i] = getBrighterColorInt(flashInt, src(i), buffSettings.allowOverexposed).rgba();
+  };
+
+  parallel->forLoop(static_cast<int32_t>(goomInfo->getScreenInfo().size), setDestPixel);
+
+  /**
   for (size_t i = 0; i < goomInfo->getScreenInfo().size; i++)
   {
-    dest[i] = getBrighterColorInt(flashInt, src(i), buffSettings.allowOverexposed).rgba();
+    setDestPixel(i);
   }
+  **/
 }
 
 } // namespace goom
