@@ -20,6 +20,7 @@
 #include <cereal/archives/json.hpp>
 #include <cereal/types/memory.hpp>
 #include <cereal/types/vector.hpp>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <memory>
@@ -69,6 +70,8 @@ public:
 
   void reset();
   void log(const StatsLogValueFunc) const;
+  void updateStart();
+  void updateEnd();
   void changeDominantColorMap();
   void changeDominantColor();
   void updateWithDraw();
@@ -106,6 +109,11 @@ public:
   void setLastPrettyLerpMixValue(const float val);
 
 private:
+  uint64_t totalTimeInUpdatesMs = 0;
+  uint32_t minTimeInUpdatesMs = std::numeric_limits<uint32_t>::max();
+  uint32_t maxTimeInUpdatesMs = 0;
+  std::chrono::high_resolution_clock::time_point timeNowHiRes{};
+
   uint32_t numDominantColorMapChanges = 0;
   uint32_t numDominantColorChanges = 0;
   uint32_t numUpdatesWithDraw = 0;
@@ -146,6 +154,14 @@ void TentacleStats::log(const StatsLogValueFunc logVal) const
 {
   const constexpr char* module = "Tentacles";
 
+  const uint32_t numUpdates = numUpdatesWithDraw + numUpdatesWithNoDraw;
+  const int32_t avTimeInUpdateMs = std::lround(
+      numUpdates == 0 ? -1.0
+                      : static_cast<float>(totalTimeInUpdatesMs) / static_cast<float>(numUpdates));
+  logVal(module, "avTimeInUpdateMs", avTimeInUpdateMs);
+  logVal(module, "minTimeInUpdatesMs", minTimeInUpdatesMs);
+  logVal(module, "maxTimeInUpdatesMs", maxTimeInUpdatesMs);
+
   logVal(module, "lastNumTentacles", lastNumTentacles);
   logVal(module, "lastUpdatingWithDraw", lastUpdatingWithDraw);
   logVal(module, "lastCycle", lastCycle);
@@ -169,6 +185,7 @@ void TentacleStats::log(const StatsLogValueFunc logVal) const
 
   logVal(module, "numDominantColorMapChanges", numDominantColorMapChanges);
   logVal(module, "numDominantColorChanges", numDominantColorChanges);
+  logVal(module, "numUpdates", numUpdates);
   logVal(module, "numUpdatesWithDraw", numUpdatesWithDraw);
   logVal(module, "numUpdatesWithNoDraw", numUpdatesWithNoDraw);
   logVal(module, "numUpdatesWithPrettyMoveNoDraw", numUpdatesWithPrettyMoveNoDraw);
@@ -197,6 +214,11 @@ void TentacleStats::log(const StatsLogValueFunc logVal) const
 
 void TentacleStats::reset()
 {
+  totalTimeInUpdatesMs = 0;
+  minTimeInUpdatesMs = std::numeric_limits<uint32_t>::max();
+  maxTimeInUpdatesMs = 0;
+  timeNowHiRes = std::chrono::high_resolution_clock::now();
+
   numDominantColorMapChanges = 0;
   numDominantColorChanges = 0;
   numUpdatesWithDraw = 0;
@@ -208,6 +230,29 @@ void TentacleStats::reset()
   numCycleResets = 0;
   numPrettyMoveHappens = 0;
   std::fill(numDriverChanges.begin(), numDriverChanges.end(), 0);
+}
+
+inline void TentacleStats::updateStart()
+{
+  timeNowHiRes = std::chrono::high_resolution_clock::now();
+}
+
+inline void TentacleStats::updateEnd()
+{
+  const auto timeNow = std::chrono::high_resolution_clock::now();
+
+  using ms = std::chrono::milliseconds;
+  const ms diff = std::chrono::duration_cast<ms>(timeNow - timeNowHiRes);
+  const uint32_t timeInUpdateMs = static_cast<uint32_t>(diff.count());
+  if (timeInUpdateMs < minTimeInUpdatesMs)
+  {
+    minTimeInUpdatesMs = timeInUpdateMs;
+  }
+  else if (timeInUpdateMs > maxTimeInUpdatesMs)
+  {
+    maxTimeInUpdatesMs = timeInUpdateMs;
+  }
+  totalTimeInUpdatesMs += timeInUpdateMs;
 }
 
 inline void TentacleStats::changeDominantColorMap()
@@ -814,6 +859,7 @@ void TentaclesFx::TentaclesImpl::init()
 void TentaclesFx::TentaclesImpl::update(PixelBuffer& prevBuff, PixelBuffer& currentBuff)
 {
   logDebug("Starting update.");
+  stats.updateStart();
 
   incCounters();
 
@@ -900,6 +946,8 @@ void TentaclesFx::TentaclesImpl::update(PixelBuffer& prevBuff, PixelBuffer& curr
     currentDriver->update(m_half_pi - rot, distt, distt2, modColor, modColorLow, prevBuff,
                           currentBuff);
   }
+
+  stats.updateEnd();
 }
 
 void TentaclesFx::TentaclesImpl::changeDominantColor()

@@ -419,6 +419,7 @@ public:
   void setStateLastValue(const uint32_t stateIndex);
   void setZoomFilterLastValue(const ZoomFilterData* filterData);
   void setSeedLastValue(const uint64_t seed);
+  void setNumThreadsUsedValue(const size_t numThreads);
   void reset();
   void log(const StatsLogValueFunc) const;
   void updateChange(const size_t currentState, const ZoomFilterMode currentFilterMode);
@@ -452,8 +453,10 @@ private:
   uint32_t lastState = 0;
   const ZoomFilterData* lastZoomFilterData = nullptr;
   uint64_t lastSeed = 0;
+  size_t numThreadsUsed = 0;
 
-  uint32_t minTimeInUpdatesMs = 0;
+  uint64_t totalTimeInUpdatesMs = 0;
+  uint32_t minTimeInUpdatesMs = std::numeric_limits<uint32_t>::max();
   uint32_t maxTimeInUpdatesMs = 0;
   std::chrono::high_resolution_clock::time_point timeNowHiRes{};
   size_t stateAtMin = 0;
@@ -462,7 +465,6 @@ private:
   ZoomFilterMode filterModeAtMax = ZoomFilterMode::_null;
 
   uint32_t numUpdates = 0;
-  uint64_t totalTimeInUpdatesMs = 0;
   uint32_t totalStateChanges = 0;
   uint64_t totalStateDurations = 0;
   uint32_t totalFilterModeChanges = 0;
@@ -495,6 +497,7 @@ void GoomStats::reset()
   lastState = 0;
   lastZoomFilterData = nullptr;
   lastSeed = 0;
+  numThreadsUsed = 0;
 
   stateAtMin = 0;
   stateAtMax = 0;
@@ -540,6 +543,7 @@ void GoomStats::log(const StatsLogValueFunc logVal) const
   logVal(module, "startingSeed", startingSeed);
   logVal(module, "lastState", lastState);
   logVal(module, "lastSeed", lastSeed);
+  logVal(module, "numThreadsUsed", numThreadsUsed);
 
   if (!lastZoomFilterData)
   {
@@ -668,6 +672,11 @@ void GoomStats::setZoomFilterLastValue(const ZoomFilterData* filterData)
 void GoomStats::setSeedLastValue(const uint64_t seed)
 {
   lastSeed = seed;
+}
+
+void GoomStats::setNumThreadsUsedValue(const size_t n)
+{
+  numThreadsUsed = n;
 }
 
 inline void GoomStats::updateChange(const size_t currentState,
@@ -1428,6 +1437,7 @@ void GoomControl::GoomControlImpl::finish()
   stats.setStateLastValue(states.getCurrentStateIndex());
   stats.setZoomFilterLastValue(&goomData.zoomFilterData);
   stats.setSeedLastValue(getRandSeed());
+  stats.setNumThreadsUsedValue(parallel.getNumThreadsUsed());
 
   stats.log(logStatsValue);
 

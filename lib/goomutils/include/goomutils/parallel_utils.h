@@ -21,6 +21,8 @@ public:
   Parallel(const Parallel&) = delete;
   Parallel& operator=(const Parallel&) = delete;
 
+  size_t getNumThreadsUsed() const;
+
   template<typename Callable>
   void forLoop(const int32_t numIters, const Callable loopFunc);
 
@@ -34,6 +36,11 @@ inline Parallel::Parallel(const int32_t numPoolThreads) noexcept
                                          numPoolThreads)
                    : static_cast<size_t>(numPoolThreads)}
 {
+}
+
+inline size_t Parallel::getNumThreadsUsed() const
+{
+  return threadPool.NumWorkers();
 }
 
 //
