@@ -315,8 +315,9 @@ private:
   Flt getLy() const { return static_cast<Flt>(ly); }
   void drawFractal();
   void randomSimis(const size_t start, const size_t num);
-  void trace(const FltPoint& po);
-  static FltPoint transform(const Similitude&, const FltPoint& po);
+  void trace(const uint32_t curDepth, const FltPoint& p0);
+  void updateHits(const Similitude&, const FltPoint&);
+  static FltPoint transform(const Similitude&, const FltPoint& p0);
   static Dbl gaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S);
   static Dbl halfGaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S);
   static constexpr Dbl get_1_minus_exp_neg_S(const Dbl S);
@@ -458,13 +459,14 @@ void Fractal::drawFractal()
 
   for (size_t i = 0; i < numSimi; i++)
   {
-    const Similitude& cur = components[i];
-    const FltPoint po{cur.Cx, cur.Cy};
+    const FltPoint p0{components[i].Cx, components[i].Cy};
+
     for (size_t j = 0; j < numSimi; j++)
     {
       if (i != j)
       {
-        trace(transform(components[j], po));
+        const FltPoint p = transform(components[j], p0);
+        trace(depth, p);
       }
     }
   }
@@ -524,38 +526,46 @@ void Fractal::randomSimis(const size_t start, const size_t num)
   }
 }
 
-inline FltPoint Fractal::transform(const Similitude& simi, const FltPoint& po)
-{
-  const Flt xo = div_by_unit((po.x - simi.Cx) * simi.R1);
-  const Flt yo = div_by_unit((po.y - simi.Cy) * simi.R1);
-
-  const Flt xx = div_by_unit((+xo - simi.Cx) * simi.R2);
-  const Flt yy = div_by_unit((-yo - simi.Cy) * simi.R2);
-
-  return {
-      div_by_unit(xo * simi.Ct1 - yo * simi.St1 + xx * simi.Ct2 - yy * simi.St2) + simi.Cx,
-      div_by_unit(xo * simi.St1 + yo * simi.Ct1 + xx * simi.St2 + yy * simi.Ct2) + simi.Cy,
-  };
-}
-
-void Fractal::trace(const FltPoint& po)
+void Fractal::trace(const uint32_t curDepth, const FltPoint& p0)
 {
   for (size_t i = 0; i < numSimi; i++)
   {
-    const FltPoint p = transform(components[i], po);
+    const FltPoint p = transform(components[i], p0);
 
-    const uint32_t x = static_cast<uint32_t>(getLx() + div_by_2units(p.x * getLx()));
-    const uint32_t y = static_cast<uint32_t>(getLy() - div_by_2units(p.y * getLy()));
+    updateHits(components[i], p);
 
-    curHits->addHit(x, y, components[i].color);
-
-    if (depth && ((p.x - po.x) >> 4) && ((p.y - po.y) >> 4))
+    if (!curDepth)
     {
-      depth--;
-      trace(p);
-      depth++;
+      continue;
     }
+    if (((p.x - p0.x) >> 4) == 0 || ((p.y - p0.y) >> 4) == 0)
+    {
+      continue;
+    }
+
+    trace(curDepth - 1, p);
   }
+}
+
+inline FltPoint Fractal::transform(const Similitude& simi, const FltPoint& p0)
+{
+  const Flt x1 = div_by_unit((p0.x - simi.Cx) * simi.R1);
+  const Flt y1 = div_by_unit((p0.y - simi.Cy) * simi.R1);
+
+  const Flt x2 = div_by_unit((+x1 - simi.Cx) * simi.R2);
+  const Flt y2 = div_by_unit((-y1 - simi.Cy) * simi.R2);
+
+  return {
+      div_by_unit(x1 * simi.Ct1 - y1 * simi.St1 + x2 * simi.Ct2 - y2 * simi.St2) + simi.Cx,
+      div_by_unit(x1 * simi.St1 + y1 * simi.Ct1 + x2 * simi.St2 + y2 * simi.Ct2) + simi.Cy,
+  };
+}
+
+inline void Fractal::updateHits(const Similitude& simi, const FltPoint& p)
+{
+  const uint32_t x = static_cast<uint32_t>(getLx() + div_by_2units(p.x * getLx()));
+  const uint32_t y = static_cast<uint32_t>(getLy() - div_by_2units(p.y * getLy()));
+  curHits->addHit(x, y, simi.color);
 }
 
 class Colorizer
