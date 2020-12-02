@@ -194,14 +194,7 @@ void ConvolveFx::ConvolveImpl::createOutputWithBrightness(const PixelBuffer& src
     dest[i] = getBrighterColorInt(flashInt, src(i), buffSettings.allowOverexposed).rgba();
   };
 
-  parallel->forLoop(static_cast<int32_t>(goomInfo->getScreenInfo().size), setDestPixel);
-
-  /**
-  for (size_t i = 0; i < goomInfo->getScreenInfo().size; i++)
-  {
-    setDestPixel(i);
-  }
-  **/
+  parallel->forLoop(goomInfo->getScreenInfo().size, setDestPixel);
 }
 
 } // namespace goom

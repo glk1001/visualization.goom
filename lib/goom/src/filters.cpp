@@ -897,13 +897,6 @@ void ZoomFilterFx::ZoomFilterImpl::generatePrecalCoef(uint32_t precalcCoeffs[16]
   }
 }
 
-static std::vector<uint32_t> getIndexArray(const size_t bufferSize)
-{
-  std::vector<uint32_t> vec(bufferSize);
-  std::iota(vec.begin(), vec.end(), 0);
-  return vec;
-}
-
 // pure c version of the zoom filter
 void ZoomFilterFx::ZoomFilterImpl::c_zoom(const PixelBuffer& srceBuff, PixelBuffer& destBuff)
 {
@@ -978,17 +971,19 @@ void ZoomFilterFx::ZoomFilterImpl::c_zoom(const PixelBuffer& srceBuff, PixelBuff
     }
   };
 
-  //  static const std::vector<uint32_t> indexArray{getIndexArray(bufferSize)};
-  //  std::for_each(std::execution::par_unseq, indexArray.begin(), indexArray.end(), setDestPixel);
-
-  parallel->forLoop(static_cast<int32_t>(bufferSize), setDestPixel);
   /**
-  //#pragma omp parallel for
-  for (uint32_t destPos = 0; destPos < bufferSize; destPos++)
+  static std::vector<uint32_t> getIndexArray(const size_t bufferSize)
   {
-    setDestPixel(destPos);
+    std::vector<uint32_t> vec(bufferSize);
+    std::iota(vec.begin(), vec.end(), 0);
+    return vec;
   }
+
+  static const std::vector<uint32_t> indexArray{getIndexArray(bufferSize)};
+  std::for_each(std::execution::par_unseq, indexArray.begin(), indexArray.end(), setDestPixel);
   **/
+
+  parallel->forLoop(bufferSize, setDestPixel);
 }
 
 /*
@@ -1031,14 +1026,7 @@ void ZoomFilterFx::ZoomFilterImpl::makeZoomBufferStripe(const uint32_t interlace
     }
   };
 
-  parallel->forLoop(maxEnd - interlaceStart, doStripeLine);
-
-  /**
-  for (uint32_t y = 0; y < (maxEnd - static_cast<uint32_t>(interlaceStart)); y++)
-  {
-    doStripeLine(y);
-  }
-  **/
+  parallel->forLoop(static_cast<uint32_t>(maxEnd - interlaceStart), doStripeLine);
 
   interlaceStart += static_cast<int32_t>(interlaceIncrement);
   if (maxEnd == static_cast<int32_t>(screenHeight))

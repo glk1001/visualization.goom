@@ -24,7 +24,7 @@ public:
   size_t getNumThreadsUsed() const;
 
   template<typename Callable>
-  void forLoop(const int32_t numIters, const Callable loopFunc);
+  void forLoop(const uint32_t numIters, const Callable loopFunc);
 
 private:
   ThreadPool threadPool;
@@ -43,39 +43,40 @@ inline size_t Parallel::getNumThreadsUsed() const
   return threadPool.NumWorkers();
 }
 
-//
-/// \param n The number of iterations. I.e., { 0, 1, ..., n - 1 } will be visited.
-/// \param function The function that will be called in the for-loop. This can be specified as a lambda expression. The type should be equivalent to std::function<void(int)>.
 template<typename Callable>
-void Parallel::forLoop(const int32_t numIters, const Callable loopFunc)
+void Parallel::forLoop(const uint32_t numIters, const Callable loopFunc)
 {
-  const int32_t useNumThreads = threadPool.NumWorkers();
-  const int32_t numThreads = std::min(numIters, (useNumThreads == 0) ? 4 : useNumThreads);
+  const uint32_t numThreads = threadPool.NumWorkers();
 
-  const int32_t maxTasksPerThread = (numIters / numThreads) + (numIters % numThreads == 0 ? 0 : 1);
-  const int32_t numUnneededTasks = maxTasksPerThread * numThreads - numIters;
+  if (numIters < numThreads)
+  {
+    for (uint32_t i = 0; i < numIters; i++)
+    {
+      loopFunc(i);
+    }
+    return;
+  }
 
-  const auto loopContents = [&](const int32_t threadIndex) {
-    const int32_t numUnneededTasksSoFar = std::max(threadIndex - numThreads + numUnneededTasks, 0);
-    const int32_t inclusiveStartIndex = threadIndex * maxTasksPerThread - numUnneededTasksSoFar;
-    const int32_t exclusiveEndIndex = inclusiveStartIndex + maxTasksPerThread -
-                                      (threadIndex - numThreads + numUnneededTasks >= 0 ? 1 : 0);
+  const uint32_t chunkSize = numIters / numThreads; // >= 1
+  const uint32_t numLeftoverIters = numIters - numThreads * chunkSize;
 
-    for (uint32_t k = static_cast<uint32_t>(inclusiveStartIndex);
-         k < static_cast<uint32_t>(exclusiveEndIndex); k++)
+  const auto loopContents = [&](const uint32_t threadIndex) {
+    const uint32_t inclusiveStartIndex = threadIndex * chunkSize;
+    const uint32_t exclusiveEndIndex =
+        inclusiveStartIndex + chunkSize + (threadIndex < numThreads - 1 ? 0 : numLeftoverIters);
+
+    for (uint32_t k = inclusiveStartIndex; k < exclusiveEndIndex; k++)
     {
       loopFunc(k);
     }
   };
 
   std::vector<std::future<void>> futures{};
-  for (int32_t j = 0; j < numThreads; j++)
+  for (uint32_t j = 0; j < numThreads; j++)
   {
     futures.emplace_back(threadPool.ScheduleAndGetFuture(loopContents, j));
-    //    threadPool.ScheduleAndGetFuture(loopContents, j);
   }
 
-  //  threadPool.Wait();
   for (auto& f : futures)
   {
     f.wait();
