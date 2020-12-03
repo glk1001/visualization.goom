@@ -60,6 +60,8 @@ public:
 
   void reset();
   void log(const StatsLogValueFunc) const;
+  void updateStart();
+  void updateEnd();
   void doZoomVector();
   void doZoomVectorCrystalBallMode();
   void doZoomVectorAmuletteMode();
@@ -94,6 +96,12 @@ public:
   void setLastTranDiffFactor(const int val);
 
 private:
+  uint32_t numUpdates = 0;
+  uint64_t totalTimeInUpdatesMs = 0;
+  uint32_t minTimeInUpdatesMs = std::numeric_limits<uint32_t>::max();
+  uint32_t maxTimeInUpdatesMs = 0;
+  std::chrono::high_resolution_clock::time_point timeNowHiRes{};
+
   uint64_t numZoomVectors = 0;
   uint64_t numZoomVectorCrystalBallMode = 0;
   uint64_t numZoomVectorAmuletteMode = 0;
@@ -128,9 +136,52 @@ private:
   int32_t lastTranDiffFactor = -1000;
 };
 
+void FilterStats::reset()
+{
+  numUpdates = 0;
+  totalTimeInUpdatesMs = 0;
+  minTimeInUpdatesMs = std::numeric_limits<uint32_t>::max();
+  maxTimeInUpdatesMs = 0;
+  timeNowHiRes = std::chrono::high_resolution_clock::now();
+
+  numZoomVectors = 0;
+  numZoomVectorCrystalBallMode = 0;
+  numZoomVectorAmuletteMode = 0;
+  numZoomVectorWaveMode = 0;
+  numZoomVectorScrunchMode = 0;
+  numZoomVectorSpeedwayMode = 0;
+  numZoomVectorDefaultMode = 0;
+  numZoomVectorNoisify = 0;
+  numChangeZoomVectorNoiseFactor = 0;
+  numZoomVectorHypercosEffect = 0;
+  numZoomVectorHPlaneEffect = 0;
+  numZoomVectorVPlaneEffect = 0;
+  numMakeZoomBufferStripe = 0;
+  numGetMixedColor = 0;
+  numGetBlockyMixedColor = 0;
+  numCZoom = 0;
+  numGenerateWaterFXHorizontalBuffer = 0;
+  numZoomFilterFastRGB = 0;
+  numZoomFilterFastRGBChangeConfig = 0;
+  numZoomFilterFastRGBInterlaceStartEqualMinus1_1 = 0;
+  numZoomFilterFastRGBInterlaceStartEqualMinus1_2 = 0;
+  numZoomFilterFastRGBSwitchIncrNotZero = 0;
+  numZoomFilterFastRGBSwitchIncrNotEqual1 = 0;
+  numCZoomOutOfRange = 0;
+  numCoeffVitesseBelowMin = 0;
+  numCoeffVitesseAboveMax = 0;
+}
+
 void FilterStats::log(const StatsLogValueFunc logVal) const
 {
   const constexpr char* module = "Filter";
+
+  const int32_t avTimeInUpdateMs = std::lround(
+      numUpdates == 0 ? -1.0
+                      : static_cast<float>(totalTimeInUpdatesMs) / static_cast<float>(numUpdates));
+  logVal(module, "avTimeInUpdateMs", avTimeInUpdateMs);
+  logVal(module, "minTimeInUpdatesMs", minTimeInUpdatesMs);
+  logVal(module, "maxTimeInUpdatesMs", maxTimeInUpdatesMs);
 
   logVal(module, "lastGeneralSpeed", lastGeneralSpeed);
   logVal(module, "lastPrevX", lastPrevX);
@@ -168,34 +219,28 @@ void FilterStats::log(const StatsLogValueFunc logVal) const
   logVal(module, "numCoeffVitesseAboveMax", numCoeffVitesseAboveMax);
 }
 
-void FilterStats::reset()
+inline void FilterStats::updateStart()
 {
-  numZoomVectors = 0;
-  numZoomVectorCrystalBallMode = 0;
-  numZoomVectorAmuletteMode = 0;
-  numZoomVectorWaveMode = 0;
-  numZoomVectorScrunchMode = 0;
-  numZoomVectorSpeedwayMode = 0;
-  numZoomVectorDefaultMode = 0;
-  numZoomVectorNoisify = 0;
-  numChangeZoomVectorNoiseFactor = 0;
-  numZoomVectorHypercosEffect = 0;
-  numZoomVectorHPlaneEffect = 0;
-  numZoomVectorVPlaneEffect = 0;
-  numMakeZoomBufferStripe = 0;
-  numGetMixedColor = 0;
-  numGetBlockyMixedColor = 0;
-  numCZoom = 0;
-  numGenerateWaterFXHorizontalBuffer = 0;
-  numZoomFilterFastRGB = 0;
-  numZoomFilterFastRGBChangeConfig = 0;
-  numZoomFilterFastRGBInterlaceStartEqualMinus1_1 = 0;
-  numZoomFilterFastRGBInterlaceStartEqualMinus1_2 = 0;
-  numZoomFilterFastRGBSwitchIncrNotZero = 0;
-  numZoomFilterFastRGBSwitchIncrNotEqual1 = 0;
-  numCZoomOutOfRange = 0;
-  numCoeffVitesseBelowMin = 0;
-  numCoeffVitesseAboveMax = 0;
+  timeNowHiRes = std::chrono::high_resolution_clock::now();
+  numUpdates++;
+}
+
+inline void FilterStats::updateEnd()
+{
+  const auto timeNow = std::chrono::high_resolution_clock::now();
+
+  using ms = std::chrono::milliseconds;
+  const ms diff = std::chrono::duration_cast<ms>(timeNow - timeNowHiRes);
+  const uint32_t timeInUpdateMs = static_cast<uint32_t>(diff.count());
+  if (timeInUpdateMs < minTimeInUpdatesMs)
+  {
+    minTimeInUpdatesMs = timeInUpdateMs;
+  }
+  else if (timeInUpdateMs > maxTimeInUpdatesMs)
+  {
+    maxTimeInUpdatesMs = timeInUpdateMs;
+  }
+  totalTimeInUpdatesMs += timeInUpdateMs;
 }
 
 inline void FilterStats::doZoomVector()
@@ -766,6 +811,7 @@ void ZoomFilterFx::ZoomFilterImpl::zoomFilterFastRGB(const PixelBuffer& pix1,
 {
   logDebug("switchIncr = {}, switchMult = {:.2}", switchIncr, switchMult);
 
+  stats.updateStart();
   stats.doZoomFilterFastRGB();
 
   // changement de taille
@@ -845,6 +891,8 @@ void ZoomFilterFx::ZoomFilterImpl::zoomFilterFastRGB(const PixelBuffer& pix1,
   }
 
   c_zoom(pix1, pix2);
+
+  stats.updateEnd();
 }
 
 void ZoomFilterFx::ZoomFilterImpl::generatePrecalCoef(uint32_t precalcCoeffs[16][16])

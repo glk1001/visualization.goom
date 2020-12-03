@@ -150,11 +150,31 @@ private:
   float lastPrettyLerpMixValue = 0;
 };
 
+void TentacleStats::reset()
+{
+  totalTimeInUpdatesMs = 0;
+  minTimeInUpdatesMs = std::numeric_limits<uint32_t>::max();
+  maxTimeInUpdatesMs = 0;
+  timeNowHiRes = std::chrono::high_resolution_clock::now();
+
+  numDominantColorMapChanges = 0;
+  numDominantColorChanges = 0;
+  numUpdatesWithDraw = 0;
+  numUpdatesWithNoDraw = 0;
+  numUpdatesWithPrettyMoveNoDraw = 0;
+  numUpdatesWithPrettyMoveDraw = 0;
+  numLowToMediumAcceleration = 0;
+  numHighAcceleration = 0;
+  numCycleResets = 0;
+  numPrettyMoveHappens = 0;
+  std::fill(numDriverChanges.begin(), numDriverChanges.end(), 0);
+}
+
 void TentacleStats::log(const StatsLogValueFunc logVal) const
 {
   const constexpr char* module = "Tentacles";
 
-  const uint32_t numUpdates = numUpdatesWithDraw + numUpdatesWithNoDraw;
+  const uint32_t numUpdates = numUpdatesWithDraw;
   const int32_t avTimeInUpdateMs = std::lround(
       numUpdates == 0 ? -1.0
                       : static_cast<float>(totalTimeInUpdatesMs) / static_cast<float>(numUpdates));
@@ -210,26 +230,6 @@ void TentacleStats::log(const StatsLogValueFunc logVal) const
   }
   logVal(module, "numDriverTentacles", numTentaclesStr);
   logVal(module, "numDriverChangesStr", numDriverChangesStr);
-}
-
-void TentacleStats::reset()
-{
-  totalTimeInUpdatesMs = 0;
-  minTimeInUpdatesMs = std::numeric_limits<uint32_t>::max();
-  maxTimeInUpdatesMs = 0;
-  timeNowHiRes = std::chrono::high_resolution_clock::now();
-
-  numDominantColorMapChanges = 0;
-  numDominantColorChanges = 0;
-  numUpdatesWithDraw = 0;
-  numUpdatesWithNoDraw = 0;
-  numUpdatesWithPrettyMoveNoDraw = 0;
-  numUpdatesWithPrettyMoveDraw = 0;
-  numLowToMediumAcceleration = 0;
-  numHighAcceleration = 0;
-  numCycleResets = 0;
-  numPrettyMoveHappens = 0;
-  std::fill(numDriverChanges.begin(), numDriverChanges.end(), 0);
 }
 
 inline void TentacleStats::updateStart()

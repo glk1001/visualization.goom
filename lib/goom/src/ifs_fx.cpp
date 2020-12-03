@@ -74,6 +74,69 @@ namespace goom
 
 using namespace goom::utils;
 
+class IfsStats
+{
+public:
+  IfsStats() noexcept = default;
+
+  void reset();
+  void log(const StatsLogValueFunc) const;
+  void updateStart();
+  void updateEnd();
+
+private:
+  uint32_t numUpdates = 0;
+  uint64_t totalTimeInUpdatesMs = 0;
+  uint32_t minTimeInUpdatesMs = std::numeric_limits<uint32_t>::max();
+  uint32_t maxTimeInUpdatesMs = 0;
+  std::chrono::high_resolution_clock::time_point timeNowHiRes{};
+};
+
+void IfsStats::reset()
+{
+  numUpdates = 0;
+  totalTimeInUpdatesMs = 0;
+  minTimeInUpdatesMs = std::numeric_limits<uint32_t>::max();
+  maxTimeInUpdatesMs = 0;
+  timeNowHiRes = std::chrono::high_resolution_clock::now();
+}
+
+void IfsStats::log(const StatsLogValueFunc logVal) const
+{
+  const constexpr char* module = "Ifs";
+
+  const int32_t avTimeInUpdateMs = std::lround(
+      numUpdates == 0 ? -1.0
+                      : static_cast<float>(totalTimeInUpdatesMs) / static_cast<float>(numUpdates));
+  logVal(module, "avTimeInUpdateMs", avTimeInUpdateMs);
+  logVal(module, "minTimeInUpdatesMs", minTimeInUpdatesMs);
+  logVal(module, "maxTimeInUpdatesMs", maxTimeInUpdatesMs);
+}
+
+inline void IfsStats::updateStart()
+{
+  timeNowHiRes = std::chrono::high_resolution_clock::now();
+  numUpdates++;
+}
+
+inline void IfsStats::updateEnd()
+{
+  const auto timeNow = std::chrono::high_resolution_clock::now();
+
+  using ms = std::chrono::milliseconds;
+  const ms diff = std::chrono::duration_cast<ms>(timeNow - timeNowHiRes);
+  const uint32_t timeInUpdateMs = static_cast<uint32_t>(diff.count());
+  if (timeInUpdateMs < minTimeInUpdatesMs)
+  {
+    minTimeInUpdatesMs = timeInUpdateMs;
+  }
+  else if (timeInUpdateMs > maxTimeInUpdatesMs)
+  {
+    maxTimeInUpdatesMs = timeInUpdateMs;
+  }
+  totalTimeInUpdatesMs += timeInUpdateMs;
+}
+
 inline bool megaChangeColorMapEvent()
 {
   return probabilityOfMInN(5, 10);
@@ -876,6 +939,8 @@ public:
   void renew();
   void updateIncr();
 
+  void log(const StatsLogValueFunc&) const;
+
   bool operator==(const IfsImpl&) const;
 
 private:
@@ -903,6 +968,8 @@ private:
   void updateDecayAndRecay();
 
   IfsUpdateData updateData{};
+
+  IfsStats stats{};
 
   void changeColormaps();
   void updatePixelBuffers(PixelBuffer& prevBuff,
@@ -965,8 +1032,9 @@ void IfsFx::finish()
 {
 }
 
-void IfsFx::log(const StatsLogValueFunc&) const
+void IfsFx::log(const StatsLogValueFunc& logVal) const
 {
+  fxImpl->log(logVal);
 }
 
 std::string IfsFx::getFxName() const
@@ -1103,6 +1171,11 @@ void IfsFx::IfsImpl::setColorMode(const IfsFx::ColorMode c)
   return colorizer.setForcedColorMode(c);
 }
 
+void IfsFx::IfsImpl::log(const StatsLogValueFunc& logVal) const
+{
+  stats.log(logVal);
+}
+
 void IfsFx::IfsImpl::renew()
 {
   changeColormaps();
@@ -1127,6 +1200,8 @@ void IfsFx::IfsImpl::applyNoDraw()
 
 void IfsFx::IfsImpl::updateIfs(PixelBuffer& prevBuff, PixelBuffer& currentBuff)
 {
+  stats.updateStart();
+
   updateDecayAndRecay();
 
   if (getIfsIncr() <= 0)
@@ -1172,6 +1247,8 @@ void IfsFx::IfsImpl::updateIfs(PixelBuffer& prevBuff, PixelBuffer& currentBuff)
   logDebug("updateData.v[ROUGE] = {:x}", updateData.v[ROUGE]);
 
   logDebug("updateData.mode = {:x}", updateData.mode);
+
+  stats.updateEnd();
 }
 
 void IfsFx::IfsImpl::updateIncr()

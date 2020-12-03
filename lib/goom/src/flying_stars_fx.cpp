@@ -59,6 +59,20 @@ private:
   uint32_t numRemovedStars = 0;
 };
 
+void StarsStats::reset()
+{
+  numAddBombButTooManyStars = 0;
+  numAddBombs = 0;
+  numSoundEvents = 0;
+  numNoFxChosen = 0;
+  numFireworksFxChosen = 0;
+  numRainFxChosen = 0;
+  numFountainFxChosen = 0;
+  numUpdateStars = 0;
+  numDeadStars = 0;
+  numRemovedStars = 0;
+}
+
 void StarsStats::log(const StatsLogValueFunc logVal) const
 {
   const constexpr char* module = "Stars";
@@ -73,20 +87,6 @@ void StarsStats::log(const StatsLogValueFunc logVal) const
   logVal(module, "numFountainFxChosen", numFountainFxChosen);
   logVal(module, "numDeadStars", numDeadStars);
   logVal(module, "numRemovedStars", numRemovedStars);
-}
-
-void StarsStats::reset()
-{
-  numAddBombButTooManyStars = 0;
-  numAddBombs = 0;
-  numSoundEvents = 0;
-  numNoFxChosen = 0;
-  numFireworksFxChosen = 0;
-  numRainFxChosen = 0;
-  numFountainFxChosen = 0;
-  numUpdateStars = 0;
-  numDeadStars = 0;
-  numRemovedStars = 0;
 }
 
 inline void StarsStats::updateStars()
