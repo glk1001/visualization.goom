@@ -8,16 +8,16 @@
 namespace goom
 {
 
-extern void gfont_load(void);
+void gfont_load();
 
-extern void goom_draw_text(PixelBuffer&,
-                           const uint16_t resolx,
-                           const uint16_t resoly,
-                           int x,
-                           int y,
-                           const char* str,
-                           const float charspace,
-                           const int center);
+void goom_draw_text(PixelBuffer&,
+                    uint16_t resolx,
+                    uint16_t resoly,
+                    int x,
+                    int y,
+                    const char* str,
+                    float charspace,
+                    int center);
 
 } // namespace goom
 #endif

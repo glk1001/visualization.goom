@@ -86,21 +86,21 @@ class Pixel
 public:
   Pixel();
   explicit Pixel(const Channels&);
-  explicit Pixel(const uint32_t val);
+  explicit Pixel(uint32_t val);
   explicit Pixel(const uint8_t cop[4]);
 
-  uint8_t r() const;
-  uint8_t g() const;
-  uint8_t b() const;
-  uint8_t a() const;
+  [[nodiscard]] uint8_t r() const;
+  [[nodiscard]] uint8_t g() const;
+  [[nodiscard]] uint8_t b() const;
+  [[nodiscard]] uint8_t a() const;
 
-  void set_r(const uint8_t c);
-  void set_g(const uint8_t c);
-  void set_b(const uint8_t c);
-  void set_a(const uint8_t c);
+  void set_r(uint8_t c);
+  void set_g(uint8_t c);
+  void set_b(uint8_t c);
+  void set_a(uint8_t c);
 
-  uint32_t rgba() const;
-  void set_rgba(const uint32_t v);
+  [[nodiscard]] uint32_t rgba() const;
+  void set_rgba(uint32_t v);
 
   bool operator==(const Pixel&) const;
 
@@ -119,28 +119,28 @@ private:
 class PixelBuffer
 {
 public:
-  PixelBuffer(const uint16_t width, const uint16_t height) noexcept;
+  PixelBuffer(uint16_t width, uint16_t height) noexcept;
   ~PixelBuffer() noexcept = default;
 
   PixelBuffer(const PixelBuffer&) = delete;
   PixelBuffer& operator=(const PixelBuffer&) = delete;
 
-  uint32_t getWidth() const;
-  uint32_t getHeight() const;
-  uint32_t getBuffLen() const;
-  size_t getBuffSize() const;
+  [[nodiscard]] uint32_t getWidth() const;
+  [[nodiscard]] uint32_t getHeight() const;
+  [[nodiscard]] uint32_t getBuffLen() const;
+  [[nodiscard]] size_t getBuffSize() const;
 
   void fill(const Pixel&);
 
-  const uint32_t* getIntBuff() const;
-  void copyTo(uint32_t* intBuff, const uint32_t length) const;
-  void copyFrom(const uint32_t* intBuff, const uint32_t length);
+  [[nodiscard]] const uint32_t* getIntBuff() const;
+  void copyTo(uint32_t* intBuff, uint32_t length) const;
+  void copyFrom(const uint32_t* intBuff, uint32_t length);
 
-  const Pixel& operator()(const size_t pos) const;
-  Pixel& operator()(const size_t pos);
+  const Pixel& operator()(size_t pos) const;
+  Pixel& operator()(size_t pos);
 
-  const Pixel& operator()(const size_t x, const size_t y) const;
-  Pixel& operator()(const size_t x, const size_t y);
+  const Pixel& operator()(size_t x, size_t y) const;
+  Pixel& operator()(size_t x, size_t y);
 
 private:
   const uint32_t width;

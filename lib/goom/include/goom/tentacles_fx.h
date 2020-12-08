@@ -18,11 +18,11 @@ class TentaclesFx : public VisualFx
 public:
   TentaclesFx() noexcept;
   explicit TentaclesFx(const std::shared_ptr<const PluginInfo>&) noexcept;
-  ~TentaclesFx() noexcept;
+  ~TentaclesFx() noexcept override;
   TentaclesFx(const TentaclesFx&) = delete;
   TentaclesFx& operator=(const TentaclesFx&) = delete;
 
-  std::string getFxName() const override;
+  [[nodiscard]] std::string getFxName() const override;
   void setBuffSettings(const FXBuffSettings&) override;
 
   void freshStart();

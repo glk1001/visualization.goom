@@ -18,11 +18,11 @@ class GoomDotsFx : public VisualFx
 public:
   GoomDotsFx() noexcept;
   explicit GoomDotsFx(const std::shared_ptr<const PluginInfo>&) noexcept;
-  ~GoomDotsFx() noexcept;
+  ~GoomDotsFx() noexcept override;
   GoomDotsFx(const GoomDotsFx&) = delete;
   GoomDotsFx& operator=(const GoomDotsFx&) = delete;
 
-  std::string getFxName() const override;
+  [[nodiscard]] std::string getFxName() const override;
   void setBuffSettings(const FXBuffSettings&) override;
 
   void start() override;

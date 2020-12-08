@@ -29,8 +29,8 @@ public:
     if (count > 0)
       count--;
   }
-  bool atStart() const { return count == startCount; }
-  size_t getCurrentCount() const { return count; }
+  [[nodiscard]] bool atStart() const { return count == startCount; }
+  [[nodiscard]] size_t getCurrentCount() const { return count; }
 
 private:
   const size_t startCount;
@@ -41,8 +41,8 @@ class TentacleLayout
 {
 public:
   virtual ~TentacleLayout() noexcept = default;
-  virtual size_t getNumPoints() const = 0;
-  const virtual std::vector<V3d>& getPoints() const = 0;
+  [[nodiscard]] virtual size_t getNumPoints() const = 0;
+  [[nodiscard]] virtual const std::vector<V3d>& getPoints() const = 0;
 };
 
 class TentacleDriver
@@ -56,33 +56,33 @@ public:
   };
 
   TentacleDriver() noexcept;
-  explicit TentacleDriver(const uint32_t screenWidth, const uint32_t screenHeight) noexcept;
+  explicit TentacleDriver(uint32_t screenWidth, uint32_t screenHeight) noexcept;
   TentacleDriver(const TentacleDriver&) = delete;
   TentacleDriver& operator=(const TentacleDriver&) = delete;
 
   void init(const TentacleLayout&);
-  size_t getNumTentacles() const;
+  [[nodiscard]] size_t getNumTentacles() const;
 
-  const FXBuffSettings& getBuffSettings() const;
+  [[nodiscard]] const FXBuffSettings& getBuffSettings() const;
   void setBuffSettings(const FXBuffSettings&);
 
-  ColorModes getColorMode() const;
-  void setColorMode(const ColorModes);
+  [[nodiscard]] ColorModes getColorMode() const;
+  void setColorMode(ColorModes);
 
   void startIterating();
   void stopIterating();
 
   void freshStart();
-  void update(const float angle,
-              const float distance,
-              const float distance2,
+  void update(float angle,
+              float distance,
+              float distance2,
               const Pixel& color,
               const Pixel& colorLow,
               PixelBuffer& prevBuff,
               PixelBuffer& currentBuff);
 
-  void setReverseColorMix(const bool val);
-  void multiplyIterZeroYValWaveFreq(const float val);
+  void setReverseColorMix(bool val);
+  void multiplyIterZeroYValWaveFreq(float val);
 
   bool operator==(const TentacleDriver&) const;
 
@@ -107,7 +107,7 @@ private:
     IterationParams first{};
     IterationParams last{};
     bool operator==(const IterParamsGroup&) const;
-    IterationParams getNext(const float t) const;
+    [[nodiscard]] IterationParams getNext(float t) const;
     template<class Archive>
     void serialize(Archive&);
   };
@@ -129,22 +129,22 @@ private:
   std::vector<IterationParams> tentacleParams{};
   static const size_t changeCurrentColorMapGroupEveryNUpdates;
   static const size_t changeTentacleColorMapEveryNUpdates;
-  std::vector<utils::ColorMapGroup> getNextColorMapGroups() const;
+  [[nodiscard]] std::vector<utils::ColorMapGroup> getNextColorMapGroups() const;
 
-  std::unique_ptr<Tentacle2D> createNewTentacle2D(const size_t ID, const IterationParams&);
+  std::unique_ptr<Tentacle2D> createNewTentacle2D(size_t ID, const IterationParams&);
   const std::vector<IterTimer*> iterTimers{};
   void updateIterTimers();
   void checkForTimerEvents();
   void plot3D(const Tentacle3D& tentacle,
               const Pixel& dominantColor,
               const Pixel& dominantColorLow,
-              const float angle,
-              const float distance,
-              const float distance2,
+              float angle,
+              float distance,
+              float distance2,
               PixelBuffer& prevBuff,
               PixelBuffer& currentBuff);
-  std::vector<v2d> projectV3dOntoV2d(const std::vector<V3d>& v3, const float distance);
-  static void rotateV3dAboutYAxis(const float sina, const float cosa, const V3d& vsrc, V3d& vdest);
+  std::vector<v2d> projectV3dOntoV2d(const std::vector<V3d>& v3, float distance);
+  static void rotateV3dAboutYAxis(float sina, float cosa, const V3d& vsrc, V3d& vdest);
   static void translateV3d(const V3d& vadd, V3d& vinOut);
 };
 
@@ -157,9 +157,9 @@ public:
   TentacleColorMapColorizer& operator=(const TentacleColorMapColorizer&) = delete;
 
   utils::ColorMapGroup getColorMapGroup() const override;
-  void setColorMapGroup(const utils::ColorMapGroup) override;
+  void setColorMapGroup(utils::ColorMapGroup) override;
   void changeColorMap() override;
-  Pixel getColor(const size_t nodeNum) const override;
+  Pixel getColor(size_t nodeNum) const override;
 
   bool operator==(const TentacleColorMapColorizer&) const;
 
@@ -182,15 +182,10 @@ private:
 class GridTentacleLayout : public TentacleLayout
 {
 public:
-  GridTentacleLayout(const float xmin,
-                     const float xmax,
-                     const size_t xNum,
-                     const float ymin,
-                     const float ymax,
-                     const size_t yNum,
-                     const float zConst);
-  size_t getNumPoints() const override;
-  const std::vector<V3d>& getPoints() const override;
+  GridTentacleLayout(
+      float xmin, float xmax, size_t xNum, float ymin, float ymax, size_t yNum, float zConst);
+  [[nodiscard]] size_t getNumPoints() const override;
+  [[nodiscard]] const std::vector<V3d>& getPoints() const override;
 
 private:
   std::vector<V3d> points{};
@@ -199,14 +194,14 @@ private:
 class CirclesTentacleLayout : public TentacleLayout
 {
 public:
-  CirclesTentacleLayout(const float radiusMin,
-                        const float radiusMax,
+  CirclesTentacleLayout(float radiusMin,
+                        float radiusMax,
                         const std::vector<size_t>& numCircleSamples,
-                        const float zConst);
+                        float zConst);
   // Order of points is outer circle to inner.
-  size_t getNumPoints() const override;
-  const std::vector<V3d>& getPoints() const override;
-  static std::vector<size_t> getCircleSamples(const size_t numCircles, const size_t totalPoints);
+  [[nodiscard]] size_t getNumPoints() const override;
+  [[nodiscard]] const std::vector<V3d>& getPoints() const override;
+  static std::vector<size_t> getCircleSamples(size_t numCircles, size_t totalPoints);
 
 private:
   std::vector<V3d> points{};

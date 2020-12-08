@@ -164,7 +164,7 @@ bool SineWaveMultiplier::operator==(const SineWaveMultiplier& s) const
 
 float SineWaveMultiplier::getNext()
 {
-  const float val = rangeMapper(lower, upper, sin(frequency * x));
+  const float val = rangeMapper(lower, upper, std::sin(frequency * x));
   //logInfo("lower = {}, upper = {}, sin({}) = {}.", lower, upper, x, val);
   x += piStepFrac * m_pi;
   return val;

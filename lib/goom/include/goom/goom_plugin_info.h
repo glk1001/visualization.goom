@@ -28,12 +28,12 @@ public:
   };
 
   PluginInfo() noexcept;
-  PluginInfo(const uint16_t width, const uint16_t height) noexcept;
+  PluginInfo(uint16_t width, uint16_t height) noexcept;
   PluginInfo(const PluginInfo&) noexcept;
   virtual ~PluginInfo() noexcept = default;
 
-  const Screen getScreenInfo() const;
-  const SoundInfo& getSoundInfo() const;
+  [[nodiscard]] const Screen& getScreenInfo() const;
+  [[nodiscard]] const SoundInfo& getSoundInfo() const;
 
   bool operator==(const PluginInfo&) const;
 
@@ -55,7 +55,7 @@ class WritablePluginInfo : public PluginInfo
 {
 public:
   WritablePluginInfo() noexcept;
-  WritablePluginInfo(const uint16_t width, const uint16_t height) noexcept;
+  WritablePluginInfo(uint16_t width, uint16_t height) noexcept;
 
   void processSoundSample(const AudioSamples&) override;
 };
@@ -82,7 +82,7 @@ inline bool PluginInfo::operator==(const PluginInfo& p) const
          ((soundInfo == nullptr && p.soundInfo == nullptr) || (*soundInfo == *p.soundInfo));
 }
 
-inline const PluginInfo::Screen PluginInfo::getScreenInfo() const
+inline const PluginInfo::Screen& PluginInfo::getScreenInfo() const
 {
   return screen;
 }

@@ -151,17 +151,17 @@ class ZoomFilterFx : public VisualFx
 public:
   ZoomFilterFx() noexcept;
   explicit ZoomFilterFx(utils::Parallel&, const std::shared_ptr<const PluginInfo>&) noexcept;
-  ~ZoomFilterFx() noexcept;
+  ~ZoomFilterFx() noexcept override;
   ZoomFilterFx(const ZoomFilterFx&) = delete;
   ZoomFilterFx& operator=(const ZoomFilterFx&) = delete;
 
   void zoomFilterFastRGB(const PixelBuffer& pix1,
                          PixelBuffer& pix2,
                          const ZoomFilterData* zf,
-                         const int switchIncr,
-                         const float switchMult);
+                         int switchIncr,
+                         float switchMult);
 
-  std::string getFxName() const override;
+  [[nodiscard]] std::string getFxName() const override;
   void setBuffSettings(const FXBuffSettings&) override;
 
   void start() override;

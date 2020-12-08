@@ -35,7 +35,7 @@ public:
 
   IfsFx() noexcept;
   explicit IfsFx(const std::shared_ptr<const PluginInfo>&) noexcept;
-  ~IfsFx() noexcept;
+  ~IfsFx() noexcept override;
   IfsFx(const IfsFx&) = delete;
   IfsFx& operator=(const IfsFx&) = delete;
 
@@ -43,13 +43,13 @@ public:
 
   // If not colorMode is not set, or set to '_null', returns
   // random weighted color mode.
-  ColorMode getColorMode() const;
-  void setColorMode(const ColorMode);
+  [[nodiscard]] ColorMode getColorMode() const;
+  void setColorMode(ColorMode);
 
   void renew();
   void updateIncr();
 
-  std::string getFxName() const override;
+  [[nodiscard]] std::string getFxName() const override;
   void setBuffSettings(const FXBuffSettings&) override;
 
   void start() override;

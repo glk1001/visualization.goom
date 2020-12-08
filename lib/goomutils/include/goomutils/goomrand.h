@@ -14,7 +14,7 @@ namespace goom::utils
 {
 
 uint64_t getRandSeed();
-void setRandSeed(const uint64_t seed);
+void setRandSeed(uint64_t seed);
 extern const uint32_t randMax;
 
 void saveRandState(std::ostream&);
@@ -26,18 +26,18 @@ inline int getRandSignInt();
 inline float getRandSignFlt();
 
 // Return random positive integer in the range n0 <= n < n1.
-uint32_t getRandInRange(const uint32_t n0, const uint32_t n1);
+uint32_t getRandInRange(uint32_t n0, uint32_t n1);
 // Return random integer in the range 0 <= n < nmax.
-uint32_t getNRand(const uint32_t nmax);
+uint32_t getNRand(uint32_t nmax);
 // Return random integer in the range 0 <= n < randMax.
 uint32_t getRand();
 // Return random integer in the range n0 <= n < n1.
-int32_t getRandInRange(const int32_t n0, const int32_t n1);
+int32_t getRandInRange(int32_t n0, int32_t n1);
 // Return random float in the range x0 <= n <= x1.
-float getRandInRange(const float x0, const float x1);
+float getRandInRange(float x0, float x1);
 
 // Return prob(m/n)
-inline bool probabilityOfMInN(const uint32_t m, const uint32_t n);
+inline bool probabilityOfMInN(uint32_t m, uint32_t n);
 
 template<class E>
 class Weights
@@ -46,12 +46,12 @@ public:
   Weights() noexcept;
   explicit Weights(const std::vector<std::pair<E, size_t>>&);
 
-  void clearWeights(const size_t value);
-  size_t getNumElements() const;
-  void setWeight(const E, size_t value);
-  size_t getWeight(const E) const;
+  void clearWeights(size_t value);
+  [[nodiscard]] size_t getNumElements() const;
+  void setWeight(E, size_t value);
+  size_t getWeight(E) const;
 
-  size_t getSumOfWeights() const { return sumOfWeights; }
+  [[nodiscard]] size_t getSumOfWeights() const { return sumOfWeights; }
 
   E getRandomWeighted() const;
 

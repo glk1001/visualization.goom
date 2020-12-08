@@ -59,7 +59,7 @@ public:
   FilterStats() noexcept = default;
 
   void reset();
-  void log(const StatsLogValueFunc) const;
+  void log(const StatsLogValueFunc&) const;
   void updateStart();
   void updateEnd();
   void doZoomVector();
@@ -89,11 +89,11 @@ public:
   void coeffVitesseBelowMin();
   void coeffVitesseAboveMax();
 
-  void setLastGeneralSpeed(const float val);
-  void setLastPrevX(const uint32_t val);
-  void setLastPrevY(const uint32_t val);
-  void setLastInterlaceStart(const int val);
-  void setLastTranDiffFactor(const int val);
+  void setLastGeneralSpeed(float val);
+  void setLastPrevX(uint32_t val);
+  void setLastPrevY(uint32_t val);
+  void setLastInterlaceStart(int val);
+  void setLastTranDiffFactor(int val);
 
 private:
   uint32_t numUpdates = 0;
@@ -172,7 +172,7 @@ void FilterStats::reset()
   numCoeffVitesseAboveMax = 0;
 }
 
-void FilterStats::log(const StatsLogValueFunc logVal) const
+void FilterStats::log(const StatsLogValueFunc& logVal) const
 {
   const constexpr char* module = "Filter";
 
@@ -231,7 +231,7 @@ inline void FilterStats::updateEnd()
 
   using ms = std::chrono::milliseconds;
   const ms diff = std::chrono::duration_cast<ms>(timeNow - timeNowHiRes);
-  const uint32_t timeInUpdateMs = static_cast<uint32_t>(diff.count());
+  const auto timeInUpdateMs = static_cast<uint32_t>(diff.count());
   if (timeInUpdateMs < minTimeInUpdatesMs)
   {
     minTimeInUpdatesMs = timeInUpdateMs;
@@ -437,8 +437,8 @@ public:
   void zoomFilterFastRGB(const PixelBuffer& pix1,
                          PixelBuffer& pix2,
                          const ZoomFilterData* zf,
-                         const int32_t switchIncr,
-                         const float switchMult);
+                         int32_t switchIncr,
+                         float switchMult);
 
   void log(const StatsLogValueFunc&) const;
 
@@ -456,10 +456,10 @@ private:
 
   Parallel* parallel = nullptr;
 
-  float toNormalizedCoord(const int32_t pixmapCoord);
-  int32_t toPixmapCoord(const float normalizedCoord);
+  float toNormalizedCoord(int32_t pixmapCoord) const;
+  int32_t toPixmapCoord(float normalizedCoord) const;
 
-  void incNormalizedCoord(float& normalizedCoord);
+  void incNormalizedCoord(float& normalizedCoord) const;
 
   mutable FilterStats stats{};
 
@@ -484,15 +484,15 @@ private:
   std::vector<int32_t> firedec{};
 
   // modif d'optim by Jeko : precalcul des 4 coefs resultant des 2 pos
-  uint32_t precalcCoeffs[buffPointNum][buffPointNum];
+  uint32_t precalcCoeffs[buffPointNum][buffPointNum]{};
 
   void init();
   void initBuffers();
 
-  void makeZoomBufferStripe(const uint32_t interlaceIncrement);
+  void makeZoomBufferStripe(uint32_t interlaceIncrement);
   void c_zoom(const PixelBuffer& srceBuff, PixelBuffer& destBuff);
   void generateWaterFXHorizontalBuffer();
-  v2g getZoomVector(const float normX, const float normY);
+  v2g getZoomVector(float normX, float normY);
   static void generatePrecalCoef(uint32_t precalcCoeffs[16][16]);
   Pixel getMixedColor(const CoeffArray& coeffs, const PixelArray& colors) const;
   Pixel getBlockyMixedColor(const CoeffArray& coeffs, const PixelArray& colors) const;
@@ -641,9 +641,7 @@ bool ZoomFilterFx::ZoomFilterImpl::operator==(const ZoomFilterImpl& f) const
   return result;
 }
 
-ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl() noexcept
-{
-}
+ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl() noexcept = default;
 
 ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl(
     Parallel& p, const std::shared_ptr<const PluginInfo>& goomInfo) noexcept
@@ -665,9 +663,7 @@ ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl(
   init();
 }
 
-ZoomFilterFx::ZoomFilterImpl::~ZoomFilterImpl() noexcept
-{
-}
+ZoomFilterFx::ZoomFilterImpl::~ZoomFilterImpl() noexcept = default;
 
 void ZoomFilterFx::ZoomFilterImpl::init()
 {
@@ -704,17 +700,17 @@ void ZoomFilterFx::ZoomFilterImpl::setBuffSettings(const FXBuffSettings& setting
   buffSettings = settings;
 }
 
-inline void ZoomFilterFx::ZoomFilterImpl::incNormalizedCoord(float& normalizedCoord)
+inline void ZoomFilterFx::ZoomFilterImpl::incNormalizedCoord(float& normalizedCoord) const
 {
   normalizedCoord += ratioPixmapToNormalizedCoord;
 }
 
-inline float ZoomFilterFx::ZoomFilterImpl::toNormalizedCoord(const int32_t pixmapCoord)
+inline float ZoomFilterFx::ZoomFilterImpl::toNormalizedCoord(const int32_t pixmapCoord) const
 {
   return ratioPixmapToNormalizedCoord * static_cast<float>(pixmapCoord);
 }
 
-inline int32_t ZoomFilterFx::ZoomFilterImpl::toPixmapCoord(const float normalizedCoord)
+inline int32_t ZoomFilterFx::ZoomFilterImpl::toPixmapCoord(const float normalizedCoord) const
 {
   return static_cast<int32_t>(std::lround(ratioNormalizedCoordToPixmap * normalizedCoord));
 }
@@ -739,9 +735,7 @@ ZoomFilterFx::ZoomFilterFx(Parallel& p, const std::shared_ptr<const PluginInfo>&
 {
 }
 
-ZoomFilterFx::~ZoomFilterFx() noexcept
-{
-}
+ZoomFilterFx::~ZoomFilterFx() noexcept = default;
 
 bool ZoomFilterFx::operator==(const ZoomFilterFx& f) const
 {
@@ -954,10 +948,10 @@ void ZoomFilterFx::ZoomFilterImpl::c_zoom(const PixelBuffer& srceBuff, PixelBuff
   const uint32_t tran_ay = (screenHeight - 1) << perteDec;
 
   const auto setDestPixel = [&](const uint32_t destPos) {
-    const uint32_t tran_px = static_cast<uint32_t>(
+    const auto tran_px = static_cast<uint32_t>(
         tranXSrce[destPos] +
         (((tranXDest[destPos] - tranXSrce[destPos]) * tranDiffFactor) >> buffPointNum));
-    const uint32_t tran_py = static_cast<uint32_t>(
+    const auto tran_py = static_cast<uint32_t>(
         tranYSrce[destPos] +
         (((tranYDest[destPos] - tranYSrce[destPos]) * tranDiffFactor) >> buffPointNum));
 
@@ -1173,13 +1167,13 @@ v2g ZoomFilterFx::ZoomFilterImpl::getZoomVector(const float normX, const float n
       switch (filterData.waveEffectType)
       {
         case ZoomFilterData::WaveEffect::waveSinEffect:
-          periodicPart = sin(angle);
+          periodicPart = std::sin(angle);
           break;
         case ZoomFilterData::WaveEffect::waveCosEffect:
-          periodicPart = cos(angle);
+          periodicPart = std::cos(angle);
           break;
         case ZoomFilterData::WaveEffect::waveSinCosEffect:
-          periodicPart = sin(angle) + cos(angle);
+          periodicPart = std::sin(angle) + std::cos(angle);
           break;
         default:
           throw std::logic_error("Unknown WaveEffect enum");
@@ -1254,23 +1248,23 @@ v2g ZoomFilterFx::ZoomFilterImpl::getZoomVector(const float normX, const float n
       break;
     case ZoomFilterData::HypercosEffect::sinRectangular:
       stats.doZoomVectorHypercosEffect();
-      vx += filterData.hypercosAmplitude * sin(filterData.hypercosFreq * normX);
-      vy += filterData.hypercosAmplitude * sin(filterData.hypercosFreq * normY);
+      vx += filterData.hypercosAmplitude * std::sin(filterData.hypercosFreq * normX);
+      vy += filterData.hypercosAmplitude * std::sin(filterData.hypercosFreq * normY);
       break;
     case ZoomFilterData::HypercosEffect::cosRectangular:
       stats.doZoomVectorHypercosEffect();
-      vx += filterData.hypercosAmplitude * cos(filterData.hypercosFreq * normX);
-      vy += filterData.hypercosAmplitude * cos(filterData.hypercosFreq * normY);
+      vx += filterData.hypercosAmplitude * std::cos(filterData.hypercosFreq * normX);
+      vy += filterData.hypercosAmplitude * std::cos(filterData.hypercosFreq * normY);
       break;
     case ZoomFilterData::HypercosEffect::sinCurlSwirl:
       stats.doZoomVectorHypercosEffect();
-      vx += filterData.hypercosAmplitude * sin(filterData.hypercosFreq * normY);
-      vy += filterData.hypercosAmplitude * sin(filterData.hypercosFreq * normX);
+      vx += filterData.hypercosAmplitude * std::sin(filterData.hypercosFreq * normY);
+      vy += filterData.hypercosAmplitude * std::sin(filterData.hypercosFreq * normX);
       break;
     case ZoomFilterData::HypercosEffect::cosCurlSwirl:
       stats.doZoomVectorHypercosEffect();
-      vx += filterData.hypercosAmplitude * cos(filterData.hypercosFreq * normY);
-      vy += filterData.hypercosAmplitude * cos(filterData.hypercosFreq * normX);
+      vx += filterData.hypercosAmplitude * std::cos(filterData.hypercosFreq * normY);
+      vy += filterData.hypercosAmplitude * std::cos(filterData.hypercosFreq * normX);
       break;
     default:
       throw std::logic_error("Unknown filterData.hypercosEffect value");
@@ -1318,7 +1312,7 @@ inline Pixel ZoomFilterFx::ZoomFilterImpl::getMixedColor(const CoeffArray& coeff
   uint32_t newB = 0;
   for (size_t i = 0; i < numCoeffs; i++)
   {
-    const uint32_t coeff = static_cast<uint32_t>(coeffs.c[i]);
+    const auto coeff = static_cast<uint32_t>(coeffs.c[i]);
     newR += static_cast<uint32_t>(colors[i].r()) * coeff;
     newG += static_cast<uint32_t>(colors[i].g()) * coeff;
     newB += static_cast<uint32_t>(colors[i].b()) * coeff;

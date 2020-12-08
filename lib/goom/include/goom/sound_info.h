@@ -22,12 +22,12 @@ public:
   //   If numSampleChannels = 2, then the 'floatAudioData' must interleave the two channels
   //   one after the other. So 'floatAudioData[0]' is channel 0, 'floatAudioData[1]'
   //   is channel 1, 'floatAudioData[2]' is channel 0, 'floatAudioData[3]' is channel 1, etc.
-  AudioSamples(const size_t numSampleChannels,
+  AudioSamples(size_t numSampleChannels,
                const float floatAudioData[NUM_AUDIO_SAMPLES * AUDIO_SAMPLE_LEN]);
 
-  size_t getNumDistinctChannels() const { return numDistinctChannels; }
-  const std::vector<int16_t>& getSample(const size_t channelIndex) const;
-  std::vector<int16_t>& getSample(const size_t channelIndex);
+  [[nodiscard]] size_t getNumDistinctChannels() const { return numDistinctChannels; }
+  [[nodiscard]] const std::vector<int16_t>& getSample(size_t channelIndex) const;
+  std::vector<int16_t>& getSample(size_t channelIndex);
 
 private:
   const size_t numDistinctChannels;
@@ -45,17 +45,18 @@ public:
   void processSample(const AudioSamples&);
 
   // Note: a Goom is just a sound event...
-  uint32_t getTimeSinceLastGoom() const; // >= 0
-  uint32_t getTimeSinceLastBigGoom() const; // >= 0
-  uint32_t getTotalGoom() const; // number of goom since last reset (every 'cycleTime')
-  float getGoomPower() const; // power of the last Goom [0..1]
+  [[nodiscard]] uint32_t getTimeSinceLastGoom() const; // >= 0
+  [[nodiscard]] uint32_t getTimeSinceLastBigGoom() const; // >= 0
+  [[nodiscard]] uint32_t getTotalGoom()
+      const; // number of goom since last reset (every 'cycleTime')
+  [[nodiscard]] float getGoomPower() const; // power of the last Goom [0..1]
 
-  float getVolume() const; // [0..1]
-  float getSpeed() const; // speed of the sound [0..100]
-  float getAcceleration() const; // acceleration of the sound [0..1]
+  [[nodiscard]] float getVolume() const; // [0..1]
+  [[nodiscard]] float getSpeed() const; // speed of the sound [0..100]
+  [[nodiscard]] float getAcceleration() const; // acceleration of the sound [0..1]
 
-  int16_t getAllTimesMaxVolume() const;
-  int16_t getAllTimesMinVolume() const;
+  [[nodiscard]] int16_t getAllTimesMaxVolume() const;
+  [[nodiscard]] int16_t getAllTimesMinVolume() const;
 
   bool operator==(const SoundInfo&) const;
 
@@ -83,8 +84,8 @@ private:
   float acceleration = 0;
   float speed = 0;
 
-  int16_t allTimesMaxVolume;
-  int16_t allTimesMinVolume;
+  int16_t allTimesMaxVolume{};
+  int16_t allTimesMinVolume{};
   int16_t allTimesPositiveMaxVolume = 1;
   float maxAccelSinceLastReset = 0;
 };

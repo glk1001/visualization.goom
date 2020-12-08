@@ -68,13 +68,13 @@ public:
 
 protected:
   const static size_t g_num_audio_buffers_in_circular_buffer = 16;
-  const goom::GoomControl& getGoomControl() const { return *m_goomControl; };
+  [[nodiscard]] const goom::GoomControl& getGoomControl() const { return *m_goomControl; };
   goom::GoomControl& getGoomControl() { return *m_goomControl; };
   size_t AudioBufferLen() const { return m_audioBufferLen; };
   int TexWidth() const { return m_tex_width; };
   int TexHeight() const { return m_tex_height; };
   int GoomBufferLen() const { return m_goomBufferLen; };
-  const std::string& CurrentSongName() const { return m_currentSongName; };
+  [[nodiscard]] const std::string& CurrentSongName() const { return m_currentSongName; };
   size_t NumChannels() const { return m_channels; };
   virtual void NoActiveBufferAvailable() {}
   virtual void AudioDataQueueTooBig() {}
@@ -137,7 +137,7 @@ private:
   // Audio buffer storage
   const static size_t g_circular_buffer_size =
       g_num_audio_buffers_in_circular_buffer * NUM_AUDIO_SAMPLES * AUDIO_SAMPLE_LEN;
-  circular_buffer<float> m_buffer = g_circular_buffer_size;
+  circular_buffer<float> m_buffer{g_circular_buffer_size};
 
   // Goom process thread handles
   bool m_threadExit = false;

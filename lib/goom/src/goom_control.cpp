@@ -133,7 +133,7 @@ public:
     _size // must be last - gives number of enums
   };
 
-  bool happens(const GoomEvent) const;
+  bool happens(GoomEvent) const;
   GoomFilterEvent getRandomFilterEvent() const;
   LinesFx::LineType getRandomLineTypeEvent() const;
 
@@ -222,10 +222,10 @@ public:
 
   GoomStates();
 
-  bool isCurrentlyDrawable(const GoomDrawable) const;
-  size_t getCurrentStateIndex() const;
-  DrawablesState getCurrentDrawables() const;
-  const FXBuffSettings getCurrentBuffSettings(const GoomDrawable) const;
+  [[nodiscard]] bool isCurrentlyDrawable(GoomDrawable) const;
+  [[nodiscard]] size_t getCurrentStateIndex() const;
+  [[nodiscard]] DrawablesState getCurrentDrawables() const;
+  [[nodiscard]] FXBuffSettings getCurrentBuffSettings(GoomDrawable) const;
 
   void doRandomStateChange();
 
@@ -413,20 +413,20 @@ public:
   GoomStats& operator=(const GoomStats&) = delete;
 
   void setSongTitle(const std::string& songTitle);
-  void setStateStartValue(const uint32_t stateIndex);
-  void setZoomFilterStartValue(const ZoomFilterMode filterMode);
-  void setSeedStartValue(const uint64_t seed);
-  void setStateLastValue(const uint32_t stateIndex);
+  void setStateStartValue(uint32_t stateIndex);
+  void setZoomFilterStartValue(ZoomFilterMode filterMode);
+  void setSeedStartValue(uint64_t seed);
+  void setStateLastValue(uint32_t stateIndex);
   void setZoomFilterLastValue(const ZoomFilterData* filterData);
-  void setSeedLastValue(const uint64_t seed);
-  void setNumThreadsUsedValue(const size_t numThreads);
+  void setSeedLastValue(uint64_t seed);
+  void setNumThreadsUsedValue(size_t numThreads);
   void reset();
-  void log(const StatsLogValueFunc) const;
-  void updateChange(const size_t currentState, const ZoomFilterMode currentFilterMode);
-  void stateChange(const uint32_t timeInState);
-  void stateChange(const size_t index, const uint32_t timeInState);
+  void log(const StatsLogValueFunc&) const;
+  void updateChange(const size_t currentState, ZoomFilterMode currentFilterMode);
+  void stateChange(uint32_t timeInState);
+  void stateChange(size_t index, uint32_t timeInState);
   void filterModeChange();
-  void filterModeChange(const ZoomFilterMode);
+  void filterModeChange(ZoomFilterMode);
   void lockChange();
   void doIFS();
   void doDots();
@@ -439,7 +439,7 @@ public:
   void lastTimeGoomChange();
   void megaLentChange();
   void doNoise();
-  void setLastNoiseFactor(const float val);
+  void setLastNoiseFactor(float val);
   void ifsRenew();
   void changeLineColor();
   void doBlockyWavy();
@@ -533,7 +533,7 @@ void GoomStats::reset()
   numZoomFilterAllowOverexposed = 0;
 }
 
-void GoomStats::log(const StatsLogValueFunc logVal) const
+void GoomStats::log(const StatsLogValueFunc& logVal) const
 {
   const constexpr char* module = "goom_core";
 
@@ -687,7 +687,7 @@ inline void GoomStats::updateChange(const size_t currentState,
   {
     using ms = std::chrono::milliseconds;
     const ms diff = std::chrono::duration_cast<ms>(timeNow - timeNowHiRes);
-    const uint32_t timeInUpdateMs = static_cast<uint32_t>(diff.count());
+    const auto timeInUpdateMs = static_cast<uint32_t>(diff.count());
     if (timeInUpdateMs < minTimeInUpdatesMs)
     {
       minTimeInUpdatesMs = timeInUpdateMs;
@@ -845,22 +845,22 @@ class GoomImageBuffers
 {
 public:
   GoomImageBuffers() noexcept = default;
-  explicit GoomImageBuffers(const uint16_t resx, const uint16_t resy) noexcept;
+  explicit GoomImageBuffers(uint16_t resx, uint16_t resy) noexcept;
   ~GoomImageBuffers() noexcept;
   GoomImageBuffers(const GoomImageBuffers&) = delete;
   GoomImageBuffers& operator=(const GoomImageBuffers&) = delete;
 
-  void setResolution(const uint16_t resx, const uint16_t resy);
+  void setResolution(uint16_t resx, uint16_t resy);
 
-  PixelBuffer& getP1() const { return *p1; }
-  PixelBuffer& getP2() const { return *p2; }
+  [[nodiscard]] PixelBuffer& getP1() const { return *p1; }
+  [[nodiscard]] PixelBuffer& getP2() const { return *p2; }
 
-  uint32_t* getOutputBuff() const { return outputBuff; }
+  [[nodiscard]] uint32_t* getOutputBuff() const { return outputBuff; }
   void setOutputBuff(uint32_t* val) { outputBuff = val; }
 
   static constexpr size_t maxNumBuffs = 10;
   static constexpr size_t maxBuffInc = maxNumBuffs / 2;
-  void setBuffInc(const size_t i);
+  void setBuffInc(size_t i);
   void rotateBuffers();
 
 private:
@@ -870,8 +870,7 @@ private:
   uint32_t* outputBuff = nullptr;
   size_t nextBuff = 0;
   size_t buffInc = 1;
-  static std::vector<std::unique_ptr<PixelBuffer>> getPixelBuffs(const uint16_t resx,
-                                                                 const uint16_t resy);
+  static std::vector<std::unique_ptr<PixelBuffer>> getPixelBuffs(uint16_t resx, uint16_t resy);
 };
 
 std::vector<std::unique_ptr<PixelBuffer>> GoomImageBuffers::getPixelBuffs(const uint16_t resx,
@@ -895,9 +894,7 @@ GoomImageBuffers::GoomImageBuffers(const uint16_t resx, const uint16_t resy) noe
 {
 }
 
-GoomImageBuffers::~GoomImageBuffers() noexcept
-{
-}
+GoomImageBuffers::~GoomImageBuffers() noexcept = default;
 
 void GoomImageBuffers::setResolution(const uint16_t resx, const uint16_t resy)
 {
@@ -930,7 +927,7 @@ void GoomImageBuffers::rotateBuffers()
 
 struct GoomMessage
 {
-  std::string message = "";
+  std::string message;
   uint32_t numberOfLinesInMessage = 0;
   uint32_t affiche = 0;
 
@@ -1035,7 +1032,7 @@ struct GoomData
   uint32_t stateSelectionBlocker = 0;
   int32_t previousZoomSpeed = 128;
   int timeOfTitleDisplay = 0;
-  char titleText[1024];
+  char titleText[1024]{};
   ZoomFilterData zoomFilterData{};
 
   bool operator==(const GoomData&) const;
@@ -1065,7 +1062,7 @@ class GoomControl::GoomControlImpl
 {
 public:
   GoomControlImpl() noexcept;
-  GoomControlImpl(const uint16_t resx, const uint16_t resy) noexcept;
+  GoomControlImpl(uint16_t resx, uint16_t resy) noexcept;
   ~GoomControlImpl() noexcept;
   void swap(GoomControl::GoomControlImpl& other) noexcept = delete;
 
@@ -1077,11 +1074,8 @@ public:
   void start();
   void finish();
 
-  void update(const AudioSamples&,
-              const int forceMode,
-              const float fps,
-              const char* songTitle,
-              const char* message);
+  void update(
+      const AudioSamples&, int forceMode, float fps, const char* songTitle, const char* message);
 
   bool operator==(const GoomControlImpl&) const;
 
@@ -1103,7 +1097,6 @@ private:
   LinesFx gmline1{};
   LinesFx gmline2{};
 
-  void initBuffers();
   bool changeFilterModeEventHappens();
   void setNextFilterMode();
   void changeState();
@@ -1117,16 +1110,16 @@ private:
   void lowerSpeed(ZoomFilterData** pzfd);
 
   // on verifie qu'il ne se pas un truc interressant avec le son.
-  void changeFilterModeIfMusicChanges(const int forceMode);
+  void changeFilterModeIfMusicChanges(int forceMode);
 
   // Changement d'effet de zoom !
-  void changeZoomEffect(ZoomFilterData*, const int forceMode);
+  void changeZoomEffect(ZoomFilterData*, int forceMode);
 
   void applyIfsIfRequired();
   void applyTentaclesIfRequired();
   void applyStarsIfRequired();
 
-  void displayText(const char* songTitle, const char* message, const float fps);
+  void displayText(const char* songTitle, const char* message, float fps);
 
 #ifdef SHOW_STATE_TEXT_ON_SCREEN
   void displayStateText();
@@ -1139,7 +1132,7 @@ private:
                       Pixel* couleur,
                       LinesFx::LineType* mode,
                       float* amplitude,
-                      const int far);
+                      int far);
 
   // si on est dans un goom : afficher les lignes
   void displayLinesIfInAGoom(const AudioSamples&);
@@ -1153,8 +1146,8 @@ private:
   void stopRandomLineChangeMode();
 
   // Permet de forcer un effet.
-  void forceFilterModeIfSet(ZoomFilterData**, const int forceMode);
-  void forceFilterMode(const int forceMode, ZoomFilterData**);
+  void forceFilterModeIfSet(ZoomFilterData**, int forceMode);
+  void forceFilterMode(int forceMode, ZoomFilterData**);
 
   // arreter de decrémenter au bout d'un certain temps
   void stopDecrementingAfterAWhile(ZoomFilterData**);
@@ -1197,9 +1190,7 @@ GoomControl::GoomControl(const uint16_t resx, const uint16_t resy) noexcept
 {
 }
 
-GoomControl::~GoomControl() noexcept
-{
-}
+GoomControl::~GoomControl() noexcept = default;
 
 bool GoomControl::operator==(const GoomControl& c) const
 {
@@ -1223,16 +1214,6 @@ void GoomControl::restoreState(std::istream& f)
 void GoomControl::setScreenBuffer(uint32_t* buffer)
 {
   controller->setScreenBuffer(buffer);
-}
-
-uint16_t GoomControl::getScreenWidth() const
-{
-  return controller->getScreenWidth();
-}
-
-uint16_t GoomControl::getScreenHeight() const
-{
-  return controller->getScreenHeight();
 }
 
 void GoomControl::start()
@@ -1359,9 +1340,7 @@ GoomControl::GoomControlImpl::GoomControlImpl(const uint16_t resx, const uint16_
   gfont_load();
 }
 
-GoomControl::GoomControlImpl::~GoomControlImpl() noexcept
-{
-}
+GoomControl::GoomControlImpl::~GoomControlImpl() noexcept = default;
 
 uint32_t* GoomControl::GoomControlImpl::getScreenBuffer() const
 {
@@ -1954,7 +1933,7 @@ void GoomControl::GoomControlImpl::bigNormalUpdate(ZoomFilterData** pzfd)
   stats.lockChange();
   const int32_t newvit =
       stopSpeed + 1 -
-      static_cast<int32_t>(3.5f * log10(goomInfo->getSoundInfo().getSpeed() * 60 + 1));
+      static_cast<int32_t>(3.5F * std::log10(goomInfo->getSoundInfo().getSpeed() * 60 + 1));
   // retablir le zoom avant..
   if ((goomData.zoomFilterData.reverse) && (!(cycle % 13)) &&
       goomEvent.happens(GoomEvent::filterReverseOffAndStopSpeed))
@@ -2059,7 +2038,7 @@ void GoomControl::GoomControlImpl::bigNormalUpdate(ZoomFilterData** pzfd)
   if (goomData.lockvar > 150)
   {
     goomData.switchIncr = goomData.switchIncrAmount;
-    goomData.switchMult = 1.0f;
+    goomData.switchMult = 1.0F;
   }
 }
 
@@ -2466,7 +2445,7 @@ void GoomControl::GoomControlImpl::bigUpdateIfNotLocked(ZoomFilterData** pzfd)
 
 void GoomControl::GoomControlImpl::forceFilterModeIfSet(ZoomFilterData** pzfd, const int forceMode)
 {
-  constexpr size_t numFilterFx = static_cast<size_t>(ZoomFilterMode::_size);
+  constexpr auto numFilterFx = static_cast<size_t>(ZoomFilterMode::_size);
 
   logDebug("forceMode = {}", forceMode);
   if ((forceMode > 0) && (size_t(forceMode) <= numFilterFx))
@@ -2620,7 +2599,7 @@ inline GoomStates::DrawablesState GoomStates::getCurrentDrawables() const
   return currentDrawables;
 }
 
-const FXBuffSettings GoomStates::getCurrentBuffSettings(const GoomDrawable theFx) const
+FXBuffSettings GoomStates::getCurrentBuffSettings(const GoomDrawable theFx) const
 {
   for (const auto& d : states[currentStateIndex].drawables)
   {

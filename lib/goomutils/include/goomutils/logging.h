@@ -29,6 +29,7 @@ public:
   using HandlerFunc = std::function<void(const LogLevel, const std::string&)>;
 
   static Logging& getLogger();
+  Logging(const Logging& rhs) = delete;
   ~Logging() noexcept;
   void setLogFile(const std::string& logF);
   void addHandler(const std::string& name, const HandlerFunc&);
@@ -37,25 +38,21 @@ public:
   void flush();
   void suspend();
   void resume();
-  bool isLogging() const;
-  LogLevel getFileLogLevel() const;
-  void setFileLogLevel(const LogLevel lvl);
-  LogLevel getHandlersLogLevel() const;
-  void setHandlersLogLevel(const LogLevel lvl);
-  void log(const LogLevel lvl,
-           const int line_num,
-           const std::string& func_name,
-           const std::string& msg);
+  [[nodiscard]] bool isLogging() const;
+  [[nodiscard]] LogLevel getFileLogLevel() const;
+  void setFileLogLevel(LogLevel lvl);
+  [[nodiscard]] LogLevel getHandlersLogLevel() const;
+  void setHandlersLogLevel(LogLevel lvl);
+  void log(LogLevel lvl, int line_num, const std::string& func_name, const std::string& msg);
   template<typename... Args>
-  void log(const LogLevel lvl,
-           const int line_num,
+  void log(LogLevel lvl,
+           int line_num,
            const std::string& func_name,
            std::string_view format_str,
            const Args&... args);
 
 private:
   Logging() noexcept;
-  Logging(const Logging& rhs) = delete;
   Logging& operator=(const Logging& rhs) = delete;
   LogLevel cutoffFileLogLevel = LogLevel::info;
   LogLevel cutoffHandlersLogLevel = LogLevel::info;
@@ -66,8 +63,8 @@ private:
   std::mutex mutex{};
   static std::unique_ptr<Logging> logger;
   void doFlush();
-  void vlog(const LogLevel lvl,
-            const int line_num,
+  void vlog(LogLevel lvl,
+            int line_num,
             const std::string& func_name,
             std::string_view format_str,
             std20::format_args args);
@@ -102,7 +99,7 @@ inline bool Logging::isLogging() const
 }
 inline Logging& Logging::getLogger()
 {
-  return *logger.get();
+  return *logger;
 }
 
 template<typename... Args>

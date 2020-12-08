@@ -28,10 +28,7 @@ template<typename T>
 class circular_buffer
 {
 public:
-  circular_buffer(unsigned p_size) : size{p_size}
-  {
-    buffer.resize(p_size);
-  }
+  explicit circular_buffer(unsigned p_size) : size{p_size} { buffer.resize(p_size); }
 
   unsigned data_available() { return used; }
   unsigned free_space() { return size - used; }
@@ -86,7 +83,7 @@ public:
     reset();
   }
 
-  bool test_silence() const
+  [[nodiscard]] bool test_silence() const
   {
     T* begin = (T*)&buffer[0];
     T first = *begin;

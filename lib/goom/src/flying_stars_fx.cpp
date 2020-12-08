@@ -8,7 +8,6 @@
 #include "goomutils/goomrand.h"
 #include "goomutils/mathutils.h"
 
-#include <algorithm>
 #include <array>
 #include <cereal/archives/json.hpp>
 #include <cereal/types/memory.hpp>
@@ -34,7 +33,7 @@ public:
   StarsStats() noexcept = default;
 
   void reset();
-  void log(const StatsLogValueFunc) const;
+  void log(const StatsLogValueFunc&) const;
   void addBombButTooManyStars();
   void addBomb();
   void soundEventOccurred();
@@ -73,7 +72,7 @@ void StarsStats::reset()
   numRemovedStars = 0;
 }
 
-void StarsStats::log(const StatsLogValueFunc logVal) const
+void StarsStats::log(const StatsLogValueFunc& logVal) const
 {
   const constexpr char* module = "Stars";
 
@@ -230,17 +229,17 @@ private:
   GoomDraw draw{};
   StarsStats stats{};
 
-  void soundEventOccured();
+  void soundEventOccurred();
   static void updateStar(Star*);
-  Pixel getLowColor(const size_t starNum, const float tmix);
-  bool isStarDead(const Star&) const;
-  void addABomb(const utils::ColorMapGroup colorGroup,
+  Pixel getLowColor(size_t starNum, float tmix);
+  [[nodiscard]] bool isStarDead(const Star&) const;
+  void addABomb(utils::ColorMapGroup colorGroup,
                 const utils::ColorMap* lowColorMap,
-                const uint32_t mx,
-                const uint32_t my,
-                const float radius,
+                uint32_t mx,
+                uint32_t my,
+                float radius,
                 float vage,
-                const float gravity);
+                float gravity);
 
   friend class cereal::access;
   template<class Archive>
@@ -258,9 +257,7 @@ FlyingStarsFx::FlyingStarsFx(const std::shared_ptr<const PluginInfo>& info) noex
 {
 }
 
-FlyingStarsFx::~FlyingStarsFx() noexcept
-{
-}
+FlyingStarsFx::~FlyingStarsFx() noexcept = default;
 
 bool FlyingStarsFx::operator==(const FlyingStarsFx& f) const
 {
@@ -349,9 +346,7 @@ bool FlyingStarsFx::FlyingStarsImpl::operator==(const FlyingStarsImpl& f) const
          draw == f.draw;
 }
 
-FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl() noexcept
-{
-}
+FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl() noexcept = default;
 
 FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl(
     const std::shared_ptr<const PluginInfo>& info) noexcept
@@ -378,7 +373,7 @@ void FlyingStarsFx::FlyingStarsImpl::updateBuffers(PixelBuffer& prevBuff, PixelB
   // look for events
   if (goomInfo->getSoundInfo().getTimeSinceLastGoom() < 1)
   {
-    soundEventOccured();
+    soundEventOccurred();
     if (getNRand(20) == 1)
     {
       // Give a slight weight towards noFx mode by using numFX + 2.
@@ -490,7 +485,7 @@ inline Pixel FlyingStarsFx::FlyingStarsImpl::getLowColor(const size_t starNum, c
 /**
  * Ajoute de nouvelles particules au moment d'un evenement sonore.
  */
-void FlyingStarsFx::FlyingStarsImpl::soundEventOccured()
+void FlyingStarsFx::FlyingStarsImpl::soundEventOccurred()
 {
   stats.soundEventOccurred();
 

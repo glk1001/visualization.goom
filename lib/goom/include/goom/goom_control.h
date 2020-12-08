@@ -18,14 +18,11 @@ class GoomControl
 {
 public:
   static uint64_t getRandSeed();
-  static void setRandSeed(const uint64_t seed);
+  static void setRandSeed(uint64_t seed);
 
   GoomControl() noexcept;
-  GoomControl(const uint16_t resx, const uint16_t resy) noexcept;
+  GoomControl(uint16_t resx, uint16_t resy) noexcept;
   ~GoomControl() noexcept;
-
-  uint16_t getScreenWidth() const;
-  uint16_t getScreenHeight() const;
 
   void saveState(std::ostream&) const;
   void restoreState(std::istream&);
@@ -44,11 +41,8 @@ public:
    *      - NULL if it is not the start of the song
    *      - only have a value at the start of the song
    */
-  void update(const AudioSamples&,
-              const int forceMode,
-              const float fps,
-              const char* songTitle,
-              const char* message);
+  void update(
+      const AudioSamples&, int forceMode, float fps, const char* songTitle, const char* message);
 
   void finish();
 

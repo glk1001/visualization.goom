@@ -78,27 +78,9 @@ SoundInfo::SoundInfo() noexcept
 {
 }
 
-SoundInfo::SoundInfo(const SoundInfo& s) noexcept
-  : timeSinceLastGoom{s.timeSinceLastGoom},
-    timeSinceLastBigGoom{s.timeSinceLastBigGoom},
-    goomLimit{s.goomLimit},
-    bigGoomLimit{s.bigGoomLimit},
-    goomPower{s.goomPower},
-    totalGoom{s.totalGoom},
-    cycle{s.cycle},
-    volume{s.volume},
-    acceleration{s.acceleration},
-    speed{s.speed},
-    allTimesMaxVolume{s.allTimesMaxVolume},
-    allTimesMinVolume{s.allTimesMinVolume},
-    allTimesPositiveMaxVolume{s.allTimesPositiveMaxVolume},
-    maxAccelSinceLastReset{s.maxAccelSinceLastReset}
-{
-}
+SoundInfo::SoundInfo(const SoundInfo& s) noexcept = default;
 
-SoundInfo::~SoundInfo() noexcept
-{
-}
+SoundInfo::~SoundInfo() noexcept = default;
 
 bool SoundInfo::operator==(const SoundInfo& s) const
 {
@@ -120,19 +102,19 @@ void SoundInfo::processSample(const AudioSamples& samples)
   for (size_t n = 0; n < AudioSamples::numChannels; n++)
   {
     const std::vector<int16_t>& soundData = samples.getSample(n);
-    for (size_t i = 0; i < soundData.size(); i++)
+    for (short dataVal : soundData)
     {
-      if (maxPosVar < soundData[i])
+      if (maxPosVar < dataVal)
       {
-        maxPosVar = soundData[i];
+        maxPosVar = dataVal;
       }
-      if (maxVar < soundData[i])
+      if (maxVar < dataVal)
       {
-        maxVar = soundData[i];
+        maxVar = dataVal;
       }
-      if (minVar > soundData[i])
+      if (minVar > dataVal)
       {
-        minVar = soundData[i];
+        minVar = dataVal;
       }
     }
   }

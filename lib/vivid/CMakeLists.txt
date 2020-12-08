@@ -1,4 +1,4 @@
-cmake_minimum_required( VERSION 3.8 )
+cmake_minimum_required( VERSION 3.13 )
 project(
     vivid
     VERSION 1.1.2
@@ -7,8 +7,8 @@ project(
     LANGUAGES CXX
 )
 
-find_package( glm REQUIRED )
-message(STATUS "glm included")
+#find_package( glm REQUIRED )
+#message(STATUS "glm included")
 
 add_library( vivid STATIC
     src/adobe.cpp

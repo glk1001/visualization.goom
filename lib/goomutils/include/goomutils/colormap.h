@@ -20,18 +20,21 @@ public:
   ColorMap() noexcept = delete;
   ColorMap& operator=(const ColorMap&) = delete;
 
-  size_t getNumStops() const { return cmap.numStops(); }
-  colordata::ColorMapName getMapName() const { return mapName; }
-  Pixel getColor(const float t) const { return Pixel{vivid::Color{cmap.at(t)}.rgb32()}; }
+  [[nodiscard]] size_t getNumStops() const { return cmap.numStops(); }
+  [[nodiscard]] colordata::ColorMapName getMapName() const { return mapName; }
+  [[nodiscard]] Pixel getColor(const float t) const
+  {
+    return Pixel{vivid::Color{cmap.at(t)}.rgb32()};
+  }
 
-  static Pixel getRandomColor(const ColorMap&, const float t0 = 0, const float t1 = 1);
-  static Pixel colorMix(const Pixel& col1, const Pixel& col2, const float t);
-  static Pixel getLighterColor(const Pixel& color, const int incPercent);
+  static Pixel getRandomColor(const ColorMap&, float t0 = 0, float t1 = 1);
+  static Pixel colorMix(const Pixel& col1, const Pixel& col2, float t);
+  static Pixel getLighterColor(const Pixel& color, int incPercent);
 
 private:
   const colordata::ColorMapName mapName;
   const vivid::ColorMap cmap;
-  ColorMap(const colordata::ColorMapName, const vivid::ColorMap&);
+  ColorMap(colordata::ColorMapName, const vivid::ColorMap&);
   ColorMap(const ColorMap&);
   struct ColorMapAllocator : std::allocator<ColorMap>
   {
@@ -81,23 +84,23 @@ public:
   ColorMaps(const ColorMaps&) = delete;
   ColorMaps& operator=(const ColorMaps&) = delete;
 
-  size_t getNumColorMaps() const;
-  const ColorMap& getColorMap(const colordata::ColorMapName) const;
-  const ColorMapNames& getColorMapNames(const ColorMapGroup) const;
+  [[nodiscard]] size_t getNumColorMaps() const;
+  [[nodiscard]] const ColorMap& getColorMap(colordata::ColorMapName) const;
+  [[nodiscard]] const ColorMapNames& getColorMapNames(ColorMapGroup) const;
 
-  colordata::ColorMapName getRandomColorMapName() const;
-  colordata::ColorMapName getRandomColorMapName(const ColorMapGroup) const;
+  [[nodiscard]] colordata::ColorMapName getRandomColorMapName() const;
+  [[nodiscard]] colordata::ColorMapName getRandomColorMapName(ColorMapGroup) const;
 
-  const ColorMap& getRandomColorMap() const;
-  const ColorMap& getRandomColorMap(const ColorMapGroup) const;
+  [[nodiscard]] const ColorMap& getRandomColorMap() const;
+  [[nodiscard]] const ColorMap& getRandomColorMap(ColorMapGroup) const;
 
-  size_t getNumGroups() const;
-  virtual ColorMapGroup getRandomGroup() const;
+  [[nodiscard]] size_t getNumGroups() const;
+  [[nodiscard]] virtual ColorMapGroup getRandomGroup() const;
 
 protected:
   using GroupColorNames =
       std::array<const ColorMapNames*, static_cast<size_t>(ColorMapGroup::_size)>;
-  const GroupColorNames& getGroups() const { return groups; }
+  [[nodiscard]] const GroupColorNames& getGroups() const { return groups; }
   static void initGroups();
 
 private:
@@ -111,15 +114,15 @@ class WeightedColorMaps : public ColorMaps
 public:
   WeightedColorMaps();
   explicit WeightedColorMaps(const Weights<ColorMapGroup>&);
-  virtual ~WeightedColorMaps() noexcept override = default;
+  ~WeightedColorMaps() noexcept override = default;
 
-  const Weights<ColorMapGroup>& getWeights() const;
+  [[nodiscard]] const Weights<ColorMapGroup>& getWeights() const;
   void setWeights(const Weights<ColorMapGroup>&);
 
-  bool areWeightsActive() const;
-  void setWeightsActive(const bool value);
+  [[nodiscard]] bool areWeightsActive() const;
+  void setWeightsActive(bool value);
 
-  ColorMapGroup getRandomGroup() const override;
+  [[nodiscard]] ColorMapGroup getRandomGroup() const override;
 
 private:
   Weights<ColorMapGroup> weights;

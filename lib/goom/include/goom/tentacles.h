@@ -22,10 +22,10 @@ class TentacleColorizer
 {
 public:
   virtual ~TentacleColorizer() noexcept = default;
-  virtual utils::ColorMapGroup getColorMapGroup() const = 0;
-  virtual void setColorMapGroup(const utils::ColorMapGroup) = 0;
+  [[nodiscard]] virtual utils::ColorMapGroup getColorMapGroup() const = 0;
+  virtual void setColorMapGroup(utils::ColorMapGroup) = 0;
   virtual void changeColorMap() = 0;
-  virtual Pixel getColor(const size_t nodeNum) const = 0;
+  [[nodiscard]] virtual Pixel getColor(size_t nodeNum) const = 0;
 };
 
 class Tentacle2D
@@ -37,51 +37,51 @@ public:
   static constexpr size_t minNumNodes = 10;
 
   Tentacle2D() noexcept;
-  explicit Tentacle2D(const size_t ID,
-                      const size_t numNodes,
-                      const double xmin,
-                      const double xmax,
-                      const double ymin,
-                      const double ymax,
-                      const double basePrevYWeight,
-                      const double baseCurrentYWeight) noexcept;
+  explicit Tentacle2D(size_t ID,
+                      size_t numNodes,
+                      double xmin,
+                      double xmax,
+                      double ymin,
+                      double ymax,
+                      double basePrevYWeight,
+                      double baseCurrentYWeight) noexcept;
   Tentacle2D(const Tentacle2D&) = delete;
   Tentacle2D& operator=(const Tentacle2D&) = delete;
 
-  size_t getID() const;
+  [[nodiscard]] size_t getID() const;
 
   void startIterating();
   void finishIterating();
 
-  size_t getIterNum() const;
+  [[nodiscard]] size_t getIterNum() const;
   void iterate();
-  void iterateNTimes(const size_t n);
+  void iterateNTimes(size_t n);
 
-  const XandYVectors& getXandYVectors() const;
-  const XandYVectors& getDampedXandYVectors() const;
+  [[nodiscard]] const XandYVectors& getXandYVectors() const;
+  [[nodiscard]] const XandYVectors& getDampedXandYVectors() const;
 
-  double getLength() const;
+  [[nodiscard]] double getLength() const;
 
-  double getXMin() const;
-  double getXMax() const;
-  void setXDimensions(const double x0, const double y0);
+  [[nodiscard]] double getXMin() const;
+  [[nodiscard]] double getXMax() const;
+  void setXDimensions(double x0, double y0);
 
-  double getYMin() const;
-  double getYMax() const;
+  [[nodiscard]] double getYMin() const;
+  [[nodiscard]] double getYMax() const;
 
-  size_t getNumNodes() const;
+  [[nodiscard]] size_t getNumNodes() const;
 
-  double getPrevYWeight() const;
-  double getCurrentYWeight() const;
+  [[nodiscard]] double getPrevYWeight() const;
+  [[nodiscard]] double getCurrentYWeight() const;
 
-  double getIterZeroYVal() const;
-  void setIterZeroYVal(const double val);
+  [[nodiscard]] double getIterZeroYVal() const;
+  void setIterZeroYVal(double val);
 
-  double getIterZeroLerpFactor() const;
-  void setIterZeroLerpFactor(const double val);
+  [[nodiscard]] double getIterZeroLerpFactor() const;
+  void setIterZeroLerpFactor(double val);
 
-  bool getDoDamping() const;
-  void setDoDamping(const bool val);
+  [[nodiscard]] bool getDoDamping() const;
+  void setDoDamping(bool val);
 
   bool operator==(const Tentacle2D&) const;
 
@@ -111,11 +111,11 @@ private:
   bool doDamping = true;
 
   float getFirstY();
-  float getNextY(const size_t nodeNum);
-  double getDamping(const double x);
-  float getDampedVal(const size_t nodeNum, const float val) const;
+  float getNextY(size_t nodeNum);
+  double getDamping(double x);
+  [[nodiscard]] float getDampedVal(size_t nodeNum, float val) const;
   void updateDampedVals(const std::vector<double>& yvals);
-  double damp(const size_t nodeNum) const;
+  [[nodiscard]] double damp(size_t nodeNum) const;
   void validateSettings() const;
   void validateXDimensions() const;
   void validateYDimensions() const;
@@ -124,11 +124,9 @@ private:
   void validateCurrentYWeight() const;
 
   using DampingFuncPtr = std::unique_ptr<utils::DampingFunction>;
-  static DampingFuncPtr createDampingFunc(const double prevYWeight,
-                                          const double xmin,
-                                          const double xmax);
-  static DampingFuncPtr createExpDampingFunc(const double xmin, const double xmax);
-  static DampingFuncPtr createLinearDampingFunc(const double xmin, const double xmax);
+  static DampingFuncPtr createDampingFunc(double prevYWeight, double xmin, double xmax);
+  static DampingFuncPtr createExpDampingFunc(double xmin, double xmax);
+  static DampingFuncPtr createLinearDampingFunc(double xmin, double xmax);
 };
 
 struct V3d
@@ -155,44 +153,44 @@ public:
                       const Pixel& headColor,
                       const Pixel& headColorLow,
                       const V3d& head,
-                      const size_t numHeadNodes) noexcept;
+                      size_t numHeadNodes) noexcept;
   explicit Tentacle3D(std::unique_ptr<Tentacle2D>,
                       const std::shared_ptr<const TentacleColorizer>&,
                       const Pixel& headColor,
                       const Pixel& headColorLow,
                       const V3d& head,
-                      const size_t numHeadNodes) noexcept;
+                      size_t numHeadNodes) noexcept;
   Tentacle3D(Tentacle3D&&) noexcept;
   Tentacle3D(const Tentacle3D&) = delete;
   Tentacle3D& operator=(const Tentacle3D&) = delete;
 
   Tentacle2D& get2DTentacle() { return *tentacle; }
-  const Tentacle2D& get2DTentacle() const { return *tentacle; }
+  [[nodiscard]] const Tentacle2D& get2DTentacle() const { return *tentacle; }
 
-  size_t getID() const { return tentacle->getID(); }
+  [[nodiscard]] size_t getID() const { return tentacle->getID(); }
 
-  Pixel getColor(const size_t nodeNum) const;
-  std::tuple<Pixel, Pixel> getMixedColors(const size_t nodeNum,
-                                          const Pixel& color,
-                                          const Pixel& colorLow) const;
-  std::tuple<Pixel, Pixel> getMixedColors(const size_t nodeNum,
-                                          const Pixel& color,
-                                          const Pixel& colorLow,
-                                          const float brightness) const;
+  [[nodiscard]] Pixel getColor(size_t nodeNum) const;
+  [[nodiscard]] std::tuple<Pixel, Pixel> getMixedColors(size_t nodeNum,
+                                                        const Pixel& color,
+                                                        const Pixel& colorLow) const;
+  [[nodiscard]] std::tuple<Pixel, Pixel> getMixedColors(size_t nodeNum,
+                                                        const Pixel& color,
+                                                        const Pixel& colorLow,
+                                                        float brightness) const;
 
-  bool getReverseColorMix() const { return reverseColorMix; }
+  [[nodiscard]] bool getReverseColorMix() const { return reverseColorMix; }
   void setReverseColorMix(const bool val) { reverseColorMix = val; }
 
-  bool getAllowOverexposed() const { return allowOverexposed; }
+  [[nodiscard]] bool getAllowOverexposed() const { return allowOverexposed; }
   void setAllowOverexposed(const bool val) { allowOverexposed = val; }
 
-  const V3d& getHead() const { return head; }
+  [[nodiscard]] const V3d& getHead() const { return head; }
   void setHead(const V3d& val) { head = val; }
 
-  size_t getNumHeadNodes() const { return numHeadNodes; }
+  [[nodiscard]] size_t getNumHeadNodes() const { return numHeadNodes; }
   void setNumHeadNodes(const size_t val) { numHeadNodes = val; }
 
-  std::vector<V3d> getVertices() const;
+  [[nodiscard]] std::vector<V3d> getVertices() const;
 
   bool operator==(const Tentacle3D&) const;
 
@@ -241,7 +239,7 @@ public:
   const Tentacle3D& operator[](const size_t i) const { return tentacles.at(i); }
   Tentacle3D& operator[](const size_t i) { return tentacles.at(i); }
 
-  void setAllowOverexposed(const bool val);
+  void setAllowOverexposed(bool val);
 
   bool operator==(const Tentacles3D&) const;
 

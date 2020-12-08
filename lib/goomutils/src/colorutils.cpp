@@ -18,7 +18,7 @@ Pixel getIntColor(const uint8_t r, const uint8_t g, const uint8_t b)
 
 inline uint8_t lighten(const uint8_t value, const float power)
 {
-  const float t = static_cast<float>(value * std::log10(power) / 2.0);
+  const auto t = static_cast<float>(value * std::log10(power) / 2.0);
   if (t <= 0.0)
   {
     return 0;
@@ -44,7 +44,7 @@ inline Pixel evolvedColor(const Pixel& src,
                           const uint32_t mask,
                           const uint32_t incr)
 {
-  const int32_t color = static_cast<int32_t>(src.rgba() & (~mask));
+  const auto color = static_cast<int32_t>(src.rgba() & (~mask));
   uint32_t isrc = src.rgba() & mask;
   const uint32_t idest = dest.rgba() & mask;
 

@@ -108,14 +108,12 @@ bool TentacleDriver::operator==(const TentacleDriver& t) const
         logInfo("TentacleDriver colorizers not of same type at index {}", i);
         return false;
       }
-      const TentacleColorMapColorizer* c1 =
-          dynamic_cast<const TentacleColorMapColorizer*>(colorizers[i].get());
+      const auto* c1 = dynamic_cast<const TentacleColorMapColorizer*>(colorizers[i].get());
       if (c1 == nullptr)
       {
         continue;
       }
-      const TentacleColorMapColorizer* c2 =
-          dynamic_cast<const TentacleColorMapColorizer*>(t.colorizers[i].get());
+      const auto* c2 = dynamic_cast<const TentacleColorMapColorizer*>(t.colorizers[i].get());
       if (c2 == nullptr)
       {
         logInfo("TentacleDriver colorizers not of same type at index {}", i);
@@ -420,11 +418,11 @@ void TentacleDriver::checkForTimerEvents()
     }
     if (colorMode != ColorModes::minimal)
     {
-      for (size_t i = 0; i < colorizers.size(); i++)
+      for (auto& colorizer : colorizers)
       {
         if (changeCurrentColorMapEvent())
         {
-          colorizers[i]->changeColorMap();
+          colorizer->changeColorMap();
         }
       }
     }
@@ -434,12 +432,12 @@ void TentacleDriver::checkForTimerEvents()
 void TentacleDriver::freshStart()
 {
   const utils::ColorMapGroup nextColorMapGroup = colorMaps.getRandomGroup();
-  for (auto& c : colorizers)
+  for (auto& colorizer : colorizers)
   {
-    c->setColorMapGroup(nextColorMapGroup);
+    colorizer->setColorMapGroup(nextColorMapGroup);
     if (colorMode != ColorModes::minimal)
     {
-      c->changeColorMap();
+      colorizer->changeColorMap();
     }
   }
 }
@@ -513,7 +511,7 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
 
   V3d cam = {0, 0, -3}; // TODO ????????????????????????????????
   cam.z += distance2;
-  cam.y += 2.0 * sin(-(angle - m_half_pi) / 4.3f);
+  cam.y += 2.0 * std::sin(-(angle - m_half_pi) / 4.3f);
   logDebug("cam = ({:.2f}, {:.2f}, {:.2f}).", cam.x, cam.y, cam.z);
 
   float angleAboutY = angle;
@@ -526,8 +524,8 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
     angleAboutY += 0.05 * m_pi;
   }
 
-  const float sina = sin(m_pi - angleAboutY);
-  const float cosa = cos(m_pi - angleAboutY);
+  const float sina = std::sin(m_pi - angleAboutY);
+  const float cosa = std::cos(m_pi - angleAboutY);
   logDebug("angle = {:.2f}, angleAboutY = {:.2f}, sina = {:.2}, cosa = {:.2},"
            " distance = {:.2f}, distance2 = {:.2f}.",
            angle, angleAboutY, sina, cosa, distance, distance2);
@@ -563,10 +561,10 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
 
   for (size_t nodeNum = 0; nodeNum < v2.size() - 1; nodeNum++)
   {
-    const int ix0 = static_cast<int>(v2[nodeNum].x);
-    const int ix1 = static_cast<int>(v2[nodeNum + 1].x);
-    const int iy0 = static_cast<int>(v2[nodeNum].y);
-    const int iy1 = static_cast<int>(v2[nodeNum + 1].y);
+    const auto ix0 = static_cast<int>(v2[nodeNum].x);
+    const auto ix1 = static_cast<int>(v2[nodeNum + 1].x);
+    const auto iy0 = static_cast<int>(v2[nodeNum].y);
+    const auto iy1 = static_cast<int>(v2[nodeNum + 1].y);
 
     if (((ix0 == coordIgnoreVal) && (iy0 == coordIgnoreVal)) ||
         ((ix1 == coordIgnoreVal) && (iy1 == coordIgnoreVal)))
@@ -810,8 +808,8 @@ CirclesTentacleLayout::CirclesTentacleLayout(const float radiusMin,
     float angle = angleStart;
     for (size_t i = 0; i < numSample; i++)
     {
-      const float x = static_cast<float>(radius * cos(angle));
-      const float y = static_cast<float>(radius * sin(angle));
+      const auto x = static_cast<float>(radius * std::cos(angle));
+      const auto y = static_cast<float>(radius * std::sin(angle));
       const V3d point = {x, y, zConst};
       points.push_back(point);
 #ifndef NO_LOGGING

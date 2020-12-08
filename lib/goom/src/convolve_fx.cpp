@@ -1,11 +1,10 @@
 #include "convolve_fx.h"
 
 #include "goom_config.h"
+#include "goom_graphic.h"
 #include "goom_plugin_info.h"
 #include "goom_visual_fx.h"
 #include "goomutils/colorutils.h"
-#include "goomutils/goomrand.h"
-#include "goomutils/mathutils.h"
 #include "goomutils/parallel_utils.h"
 
 #include <cereal/archives/json.hpp>
@@ -45,7 +44,7 @@ private:
   float factor = 0.5;
   FXBuffSettings buffSettings{};
 
-  void createOutputWithBrightness(const PixelBuffer& src, uint32_t* dest, const uint32_t flashInt);
+  void createOutputWithBrightness(const PixelBuffer& src, uint32_t* dest, uint32_t flashInt);
 
   friend class cereal::access;
   template<class Archive>
@@ -63,9 +62,7 @@ ConvolveFx::ConvolveFx(Parallel& p, const std::shared_ptr<const PluginInfo>& inf
 {
 }
 
-ConvolveFx::~ConvolveFx() noexcept
-{
-}
+ConvolveFx::~ConvolveFx() noexcept = default;
 
 bool ConvolveFx::operator==(const ConvolveFx& c) const
 {
@@ -149,9 +146,7 @@ bool ConvolveFx::ConvolveImpl::operator==(const ConvolveImpl& c) const
          std::fabs(factor - c.factor) < 0.000001 && buffSettings == c.buffSettings;
 }
 
-ConvolveFx::ConvolveImpl::ConvolveImpl() noexcept
-{
-}
+ConvolveFx::ConvolveImpl::ConvolveImpl() noexcept = default;
 
 ConvolveFx::ConvolveImpl::ConvolveImpl(Parallel& p,
                                        const std::shared_ptr<const PluginInfo>& info) noexcept
@@ -167,7 +162,7 @@ inline void ConvolveFx::ConvolveImpl::setBuffSettings(const FXBuffSettings& sett
 void ConvolveFx::ConvolveImpl::convolve(const PixelBuffer& currentBuff, uint32_t* outputBuff)
 {
   const float flash = (factor * flashIntensity + screenBrightness) / 100.0F;
-  const uint32_t flashInt = static_cast<uint32_t>(std::round(flash * 256 + 0.0001F));
+  const auto flashInt = static_cast<uint32_t>(std::round(flash * 256 + 0.0001F));
   constexpr float increaseRate = 1.3;
   constexpr float decayRate = 0.955;
   if (goomInfo->getSoundInfo().getTimeSinceLastGoom() == 0)

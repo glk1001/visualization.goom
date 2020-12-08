@@ -42,32 +42,28 @@ public:
   LinesImpl() noexcept;
   // construit un effet de line (une ligne horitontale pour commencer)
   LinesImpl(const std::shared_ptr<const PluginInfo>& goomInfo,
-            const LineType srceID,
-            const float srceParam,
+            LineType srceID,
+            float srceParam,
             const Pixel& srceColor,
-            const LineType destID,
-            const float destParam,
+            LineType destID,
+            float destParam,
             const Pixel& destColor) noexcept;
   LinesImpl(const LinesImpl&) = delete;
   LinesImpl& operator=(const LinesImpl&) = delete;
 
   Pixel getRandomLineColor();
 
-  float getPower() const;
-  void setPower(const float val);
+  [[nodiscard]] float getPower() const;
+  void setPower(float val);
 
-  void switchGoomLines(const LineType newDestID,
-                       const float newParam,
-                       const float newAmplitude,
+  void switchGoomLines(LineType newDestID,
+                       float newParam,
+                       float newAmplitude,
                        const Pixel& newColor);
 
   void drawGoomLines(const std::vector<int16_t>& soundData,
                      PixelBuffer& prevBuff,
                      PixelBuffer& currentBuff);
-
-  std::string getFxName() const;
-  void saveState(std::ostream&) const;
-  void loadState(std::istream&);
 
   bool operator==(const LinesImpl&) const;
 
@@ -76,9 +72,8 @@ private:
   GoomDraw draw{};
   utils::ColorMaps colorMaps{};
 
-  const size_t nbPoints = AUDIO_SAMPLE_LEN;
-  GMUnitPointer points[AUDIO_SAMPLE_LEN];
-  GMUnitPointer points2[AUDIO_SAMPLE_LEN];
+  GMUnitPointer points[AUDIO_SAMPLE_LEN]{};
+  GMUnitPointer points2[AUDIO_SAMPLE_LEN]{};
 
   float power = 0;
   float powinc = 0;
@@ -93,7 +88,7 @@ private:
   Pixel color2{};
 
   void goomLinesMove();
-  void generateLine(const LineType id, const float param, GMUnitPointer*);
+  void generateLine(LineType id, float param, GMUnitPointer*);
 
   friend class cereal::access;
   template<class Archive>
@@ -117,26 +112,11 @@ LinesFx::LinesFx(const std::shared_ptr<const PluginInfo>& info,
 {
 }
 
-LinesFx::~LinesFx() noexcept
-{
-}
+LinesFx::~LinesFx() noexcept = default;
 
 bool LinesFx::operator==(const LinesFx& l) const
 {
   return fxImpl->operator==(*l.fxImpl);
-}
-
-std::string LinesFx::getFxName() const
-{
-  return "Line FX";
-}
-
-void LinesFx::saveState(std::ostream&) const
-{
-}
-
-void LinesFx::loadState(std::istream&)
-{
 }
 
 Pixel LinesFx::getRandomLineColor()
@@ -215,9 +195,7 @@ bool LinesFx::LinesImpl::operator==(const LinesImpl& l) const
          color == l.color && color2 == l.color2;
 }
 
-LinesFx::LinesImpl::LinesImpl() noexcept
-{
-}
+LinesFx::LinesImpl::LinesImpl() noexcept = default;
 
 LinesFx::LinesImpl::LinesImpl(const std::shared_ptr<const PluginInfo>& info,
                               const LineType srceID,
@@ -265,8 +243,8 @@ void LinesFx::LinesImpl::generateLine(const LineType id, const float param, GMUn
       for (uint32_t i = 0; i < AUDIO_SAMPLE_LEN; i++)
       {
         l[i].angle = m_two_pi * static_cast<float>(i) / static_cast<float>(AUDIO_SAMPLE_LEN);
-        const float cosa = param * cos(l[i].angle);
-        const float sina = param * sin(l[i].angle);
+        const float cosa = param * std::cos(l[i].angle);
+        const float sina = param * std::sin(l[i].angle);
         l[i].x = static_cast<float>(goomInfo->getScreenInfo().width) / 2.0f + cosa;
         l[i].y = static_cast<float>(goomInfo->getScreenInfo().height) / 2.0f + sina;
       }
@@ -295,8 +273,8 @@ void LinesFx::LinesImpl::goomLinesMove()
     points[i].angle = (points2[i].angle + 39.0f * points[i].angle) / 40.0f;
   }
 
-  unsigned char* c1 = reinterpret_cast<unsigned char*>(&color);
-  unsigned char* c2 = reinterpret_cast<unsigned char*>(&color2);
+  auto* c1 = reinterpret_cast<unsigned char*>(&color);
+  auto* c2 = reinterpret_cast<unsigned char*>(&color2);
   for (int i = 0; i < 4; i++)
   {
     int cc1 = *c1;
@@ -425,18 +403,18 @@ void LinesFx::LinesImpl::drawGoomLines(const std::vector<int16_t>& soundData,
                                        PixelBuffer& currentBuff)
 {
   std::vector<PixelBuffer*> buffs{&currentBuff, &prevBuff};
-  const GMUnitPointer* pt = &(points[0]);
+  const GMUnitPointer* pt0 = &(points[0]);
   const Pixel lineColor = getLightenedColor(color, power);
 
-  const float audioRange = static_cast<float>(goomInfo->getSoundInfo().getAllTimesMaxVolume() -
-                                              goomInfo->getSoundInfo().getAllTimesMinVolume());
+  const auto audioRange = static_cast<float>(goomInfo->getSoundInfo().getAllTimesMaxVolume() -
+                                             goomInfo->getSoundInfo().getAllTimesMinVolume());
   assert(audioRange >= 0.0);
 
   if (audioRange < 0.0001)
   {
     // No range - flatline audio
     const std::vector<Pixel> colors = {lineColor, lineColor};
-    draw.line(buffs, pt->x, pt->y, pt->x + AUDIO_SAMPLE_LEN, pt->y, colors, 1);
+    draw.line(buffs, pt0->x, pt0->y, pt0->x + AUDIO_SAMPLE_LEN, pt0->y, colors, 1);
     goomLinesMove();
     return;
   }
@@ -453,8 +431,8 @@ void LinesFx::LinesImpl::drawGoomLines(const std::vector<int16_t>& soundData,
 
   const auto getNextPoint = [&](const GMUnitPointer* pt, const float dataVal) {
     assert(goomInfo->getSoundInfo().getAllTimesMinVolume() <= dataVal);
-    const float cosa = cos(pt->angle) / 1000.0f;
-    const float sina = sin(pt->angle) / 1000.0f;
+    const float cosa = std::cos(pt->angle) / 1000.0f;
+    const float sina = std::sin(pt->angle) / 1000.0f;
     const float fdata = getNormalizedData(dataVal);
     assert(fdata >= 0.0);
     const int x = static_cast<int>(pt->x + cosa * amplitude * fdata);
@@ -469,7 +447,7 @@ void LinesFx::LinesImpl::drawGoomLines(const std::vector<int16_t>& soundData,
   };
 
   const std::vector<float> data = getDataPoints(soundData);
-  auto [x1, y1, modColor] = getNextPoint(pt, data[0]);
+  auto [x1, y1, modColor] = getNextPoint(pt0, data[0]);
   constexpr uint8_t thickness = 1;
 
   for (size_t i = 1; i < AUDIO_SAMPLE_LEN; i++)

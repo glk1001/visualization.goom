@@ -17,14 +17,14 @@ class Parallel
 public:
   // numPoolThreads > 0:  use this number of threads in pool
   // numPoolThreads <= 0: use max cores - this number of threads
-  explicit Parallel(const int32_t numPoolThreads = 0) noexcept;
+  explicit Parallel(int32_t numPoolThreads = 0) noexcept;
   Parallel(const Parallel&) = delete;
   Parallel& operator=(const Parallel&) = delete;
 
   size_t getNumThreadsUsed() const;
 
   template<typename Callable>
-  void forLoop(const uint32_t numIters, const Callable loopFunc);
+  void forLoop(uint32_t numIters, Callable loopFunc);
 
 private:
   ThreadPool threadPool;

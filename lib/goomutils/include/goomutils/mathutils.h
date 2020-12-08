@@ -39,10 +39,10 @@ class VertNum
 {
 public:
   explicit VertNum(const int xw) noexcept : xwidth(xw) {}
-  int getRowZeroVertNum(const int x) const { return x; }
+  [[nodiscard]] int getRowZeroVertNum(const int x) const { return x; }
   int operator()(const int x, const int z) const { return z * xwidth + x; }
   //  int getPrevRowVertNum(const int vertNum) const { return vertNum - xwidth; }
-  std::tuple<int, int> getXZ(const int vertNum) const
+  [[nodiscard]] std::tuple<int, int> getXZ(const int vertNum) const
   {
     const int z = vertNum / xwidth;
     const int x = vertNum % xwidth;
@@ -57,10 +57,10 @@ class RangeMapper
 {
 public:
   RangeMapper() noexcept = default;
-  explicit RangeMapper(const double x0, const double x1) noexcept;
-  double operator()(const double r0, const double r1, const double x) const;
-  double getXMin() const { return xmin; }
-  double getXMax() const { return xmax; }
+  explicit RangeMapper(double x0, double x1) noexcept;
+  double operator()(double r0, double r1, double x) const;
+  [[nodiscard]] double getXMin() const { return xmin; }
+  [[nodiscard]] double getXMax() const { return xmax; }
 
   bool operator==(const RangeMapper&) const = default;
 
@@ -76,8 +76,8 @@ private:
 class DampingFunction
 {
 public:
-  virtual ~DampingFunction() noexcept {}
-  virtual double operator()(const double x) = 0;
+  virtual ~DampingFunction() noexcept = default;
+  virtual double operator()(double x) = 0;
 };
 
 class NoDampingFunction : public DampingFunction
@@ -89,10 +89,8 @@ public:
 class LogDampingFunction : public DampingFunction
 {
 public:
-  explicit LogDampingFunction(const double amplitude,
-                              const double xmin,
-                              const double xStart = 2.0) noexcept;
-  double operator()(const double x) override;
+  explicit LogDampingFunction(double amplitude, double xmin, double xStart = 2.0) noexcept;
+  double operator()(double x) override;
 
   bool operator==(const LogDampingFunction&) const = default;
 
@@ -108,14 +106,11 @@ class ExpDampingFunction : public DampingFunction
 {
 public:
   ExpDampingFunction() noexcept = default;
-  explicit ExpDampingFunction(const double amplitude,
-                              const double xToStartRise,
-                              const double yAtStartToRise,
-                              const double xmax,
-                              const double yAtXMax);
-  double operator()(const double x) override;
-  double kVal() const { return k; }
-  double bVal() const { return b; }
+  explicit ExpDampingFunction(
+      double amplitude, double xToStartRise, double yAtStartToRise, double xmax, double yAtXMax);
+  double operator()(double x) override;
+  [[nodiscard]] double kVal() const { return k; }
+  [[nodiscard]] double bVal() const { return b; }
 
   bool operator==(const ExpDampingFunction&) const = default;
 
@@ -132,8 +127,8 @@ class FlatDampingFunction : public DampingFunction
 {
 public:
   FlatDampingFunction() noexcept = default;
-  explicit FlatDampingFunction(const double y) noexcept;
-  double operator()(const double x) override;
+  explicit FlatDampingFunction(double y) noexcept;
+  double operator()(double x) override;
 
   bool operator==(const FlatDampingFunction&) const = default;
 
@@ -148,11 +143,8 @@ class LinearDampingFunction : public DampingFunction
 {
 public:
   LinearDampingFunction() noexcept = default;
-  explicit LinearDampingFunction(const double x0,
-                                 const double y0,
-                                 const double x1,
-                                 const double y1) noexcept;
-  double operator()(const double x) override;
+  explicit LinearDampingFunction(double x0, double y0, double x1, double y1) noexcept;
+  double operator()(double x) override;
 
   bool operator==(const LinearDampingFunction&) const = default;
 
@@ -171,7 +163,7 @@ public:
   PiecewiseDampingFunction() noexcept = default;
   explicit PiecewiseDampingFunction(
       std::vector<std::tuple<double, double, std::unique_ptr<DampingFunction>>>& pieces) noexcept;
-  double operator()(const double x) override;
+  double operator()(double x) override;
 
   bool operator==(const PiecewiseDampingFunction&) const = default;
 
@@ -185,26 +177,26 @@ private:
 class SequenceFunction
 {
 public:
-  virtual ~SequenceFunction() noexcept {}
+  virtual ~SequenceFunction() noexcept = default;
   virtual float getNext() = 0;
 };
 
 class SineWaveMultiplier : public SequenceFunction
 {
 public:
-  SineWaveMultiplier(const float frequency = 1.0,
-                     const float lower = -1.0,
-                     const float upper = 1.0,
-                     const float x0 = 0.0) noexcept;
+  SineWaveMultiplier(float frequency = 1.0,
+                     float lower = -1.0,
+                     float upper = 1.0,
+                     float x0 = 0.0) noexcept;
 
   float getNext() override;
 
   void setX0(const float x0) { x = x0; }
-  float getFrequency() const { return frequency; }
+  [[nodiscard]] float getFrequency() const { return frequency; }
   void setFrequency(const float val) { frequency = val; }
 
-  float getLower() const { return lower; }
-  float getUpper() const { return upper; }
+  [[nodiscard]] float getLower() const { return lower; }
+  [[nodiscard]] float getUpper() const { return upper; }
   void setRange(const float lwr, const float upr)
   {
     lower = lwr;
@@ -230,9 +222,9 @@ private:
 class IncreasingFunction
 {
 public:
-  explicit IncreasingFunction(const double xmin, const double xmax) noexcept;
-  virtual ~IncreasingFunction() noexcept {}
-  virtual double operator()(const double x) = 0;
+  explicit IncreasingFunction(double xmin, double xmax) noexcept;
+  virtual ~IncreasingFunction() noexcept = default;
+  virtual double operator()(double x) = 0;
 
 protected:
   const double xmin;
@@ -243,10 +235,8 @@ protected:
 class ExpIncreasingFunction : public IncreasingFunction
 {
 public:
-  explicit ExpIncreasingFunction(const double xmin,
-                                 const double xmax,
-                                 const double k = 0.1) noexcept;
-  double operator()(const double x) override;
+  explicit ExpIncreasingFunction(double xmin, double xmax, double k = 0.1) noexcept;
+  double operator()(double x) override;
 
 private:
   const double k;
@@ -255,10 +245,8 @@ private:
 class LogIncreasingFunction : public IncreasingFunction
 {
 public:
-  explicit LogIncreasingFunction(const double amplitude,
-                                 const double xmin,
-                                 const double xStart = 2.0) noexcept;
-  double operator()(const double x) override;
+  explicit LogIncreasingFunction(double amplitude, double xmin, double xStart = 2.0) noexcept;
+  double operator()(double x) override;
 
 private:
   const double amplitude;

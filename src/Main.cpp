@@ -91,7 +91,7 @@ bool CVisualizationGoom::Start(int iChannels,
   }
 
   static const auto f_kodi_log = [](const Logging::LogLevel lvl, const std::string& s) {
-    AddonLog kodiLvl =
+    const auto kodiLvl =
         static_cast<AddonLog>(static_cast<size_t>(lvl) + 1); // map 'info' to 'notice'
     kodi::Log(kodiLvl, s.c_str());
   };

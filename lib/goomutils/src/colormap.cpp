@@ -17,9 +17,7 @@ using colordata::ColorMapName;
 std::vector<ColorMap, ColorMap::ColorMapAllocator> ColorMaps::colorMaps{};
 ColorMaps::GroupColorNames ColorMaps::groups{nullptr};
 
-ColorMaps::ColorMaps() noexcept
-{
-}
+ColorMaps::ColorMaps() noexcept = default;
 
 ColorMapName ColorMaps::getRandomColorMapName() const
 {
@@ -71,7 +69,7 @@ size_t ColorMaps::getNumColorMaps() const
 
 void ColorMaps::initColorMaps()
 {
-  if (colorMaps.size() != 0)
+  if (!colorMaps.empty())
   {
     return;
   }
@@ -153,9 +151,7 @@ ColorMap::ColorMap(const ColorMapName mapNm, const vivid::ColorMap& cm) : mapNam
 {
 }
 
-ColorMap::ColorMap(const ColorMap& other) : mapName(other.mapName), cmap(other.cmap)
-{
-}
+ColorMap::ColorMap(const ColorMap& other) = default;
 
 Pixel ColorMap::getRandomColor(const ColorMap& cg, const float t0, const float t1)
 {

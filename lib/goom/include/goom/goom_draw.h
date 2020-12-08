@@ -16,54 +16,46 @@ class GoomDraw
 {
 public:
   GoomDraw();
-  GoomDraw(const uint32_t screenWidth, const uint32_t screenHeight);
+  GoomDraw(uint32_t screenWidth, uint32_t screenHeight);
 
-  uint32_t getScreenWidth() const;
-  uint32_t getScreenHeight() const;
+  [[nodiscard]] bool getAllowOverexposed() const;
+  void setAllowOverexposed(bool val);
 
-  bool getAllowOverexposed() const;
-  void setAllowOverexposed(const bool val);
+  [[nodiscard]] float getBuffIntensity() const;
+  void setBuffIntensity(float val);
 
-  float getBuffIntensity() const;
-  void setBuffIntensity(const float val);
-
-  Pixel getPixelRGB(const PixelBuffer&, const uint32_t x, const uint32_t y) const;
-  void setPixelRGB(PixelBuffer&, const uint32_t x, const uint32_t y, const Pixel& color);
+  [[nodiscard]] Pixel getPixelRGB(const PixelBuffer&, uint32_t x, uint32_t y) const;
+  void setPixelRGB(PixelBuffer&, uint32_t x, uint32_t y, const Pixel& color) const;
   // Set the pixel but don't blend it with the existing pixel value.
-  void setPixelRGBNoBlend(PixelBuffer&, const uint32_t x, const uint32_t y, const Pixel& color);
+  void setPixelRGBNoBlend(PixelBuffer&, uint32_t x, uint32_t y, const Pixel& color);
 
-  std::vector<Pixel> getPixelRGB(const std::vector<PixelBuffer*>&,
-                                 const uint32_t x,
-                                 const uint32_t y) const;
+  [[nodiscard]] std::vector<Pixel> getPixelRGB(const std::vector<PixelBuffer*>&,
+                                               uint32_t x,
+                                               uint32_t y) const;
   void setPixelRGB(std::vector<PixelBuffer*>&,
-                   const uint32_t x,
-                   const uint32_t y,
-                   const std::vector<Pixel>& colors);
+                   uint32_t x,
+                   uint32_t y,
+                   const std::vector<Pixel>& colors) const;
 
-  void circle(PixelBuffer&, const int x0, const int y0, const int radius, const Pixel& color);
+  void circle(PixelBuffer&, int x0, int y0, int radius, const Pixel& color) const;
 
   void circle(std::vector<PixelBuffer*>&,
-              const int x0,
-              const int y0,
-              const int radius,
-              const std::vector<Pixel>& colors);
+              int x0,
+              int y0,
+              int radius,
+              const std::vector<Pixel>& colors) const;
 
   void filledCircle(
-      PixelBuffer&, const int x0, const int y0, const int radius, const std::vector<Pixel>& colors);
+      PixelBuffer&, int x0, int y0, int radius, const std::vector<Pixel>& colors) const;
 
   void filledCircle(std::vector<PixelBuffer*>&,
-                    const int x0,
-                    const int y0,
-                    const int radius,
-                    const std::vector<std::vector<Pixel>>& colorSets);
+                    int x0,
+                    int y0,
+                    int radius,
+                    const std::vector<std::vector<Pixel>>& colorSets) const;
 
-  void line(PixelBuffer&,
-            const int x1,
-            const int y1,
-            const int x2,
-            const int y2,
-            const Pixel& color,
-            const uint8_t thickness);
+  void line(
+      PixelBuffer&, int x1, int y1, int x2, int y2, const Pixel& color, uint8_t thickness) const;
 
   void line(std::vector<PixelBuffer*>&,
             int x1,
@@ -71,7 +63,7 @@ public:
             int x2,
             int y2,
             const std::vector<Pixel>& colors,
-            const uint8_t thickness);
+            uint8_t thickness) const;
 
   bool operator==(const GoomDraw&) const;
 
@@ -118,16 +110,6 @@ inline std::vector<Pixel> GoomDraw::getPixelRGB(const std::vector<PixelBuffer*>&
     colors[i] = (*buffs[i])(pos);
   }
   return colors;
-}
-
-inline uint32_t GoomDraw::getScreenWidth() const
-{
-  return screenWidth;
-}
-
-inline uint32_t GoomDraw::getScreenHeight() const
-{
-  return screenHeight;
 }
 
 inline bool GoomDraw::getAllowOverexposed() const

@@ -25,9 +25,7 @@ namespace goom
 
 using namespace goom::utils;
 
-Tentacle2D::Tentacle2D() noexcept
-{
-}
+Tentacle2D::Tentacle2D() noexcept = default;
 
 Tentacle2D::Tentacle2D(const size_t _ID,
                        const size_t _numNodes,
@@ -433,7 +431,7 @@ std::tuple<Pixel, Pixel> Tentacle3D::getMixedColors(const size_t nodeNum,
   {
     // Color the tentacle head
     const float t =
-        0.5 * (1.0 + static_cast<float>(nodeNum + 1) / static_cast<float>(getNumHeadNodes() + 1));
+        0.5F * (1.0F + static_cast<float>(nodeNum + 1) / static_cast<float>(getNumHeadNodes() + 1));
     const Pixel mixedHeadColor = ColorMap::colorMix(headColor, color, t);
     const Pixel mixedHeadColorLow = ColorMap::colorMix(headColorLow, colorLow, t);
     return std::make_tuple(mixedHeadColor, mixedHeadColorLow);

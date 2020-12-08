@@ -1,6 +1,5 @@
 #include "goomutils/logging.h"
 
-#include <fstream>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -84,7 +83,7 @@ void Logging::addHandler(const std::string& name, const HandlerFunc& f)
       return;
     }
   }
-  handlers.push_back(std::make_pair(name, f));
+  handlers.emplace_back(name, f);
 }
 
 void Logging::flush()
@@ -95,7 +94,7 @@ void Logging::flush()
 
 void Logging::doFlush()
 {
-  if (logFile == "")
+  if (logFile.empty())
   {
     return;
   }
@@ -109,7 +108,7 @@ void Logging::doFlush()
   {
     throw std::runtime_error("Could not open log file \"" + logFile + "\".");
   }
-  for (const auto entry : logEntries)
+  for (const auto& entry : logEntries)
   {
     f << entry << std::endl;
   }

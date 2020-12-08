@@ -12,6 +12,7 @@
 
 #include <cereal/archives/json.hpp>
 #include <cereal/types/memory.hpp>
+#include <cmath>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -72,23 +73,23 @@ private:
 
   void changeColors();
 
-  std::vector<Pixel> getColors(const Pixel& color0,
-                               const Pixel& color1,
-                               const float brightness,
-                               const size_t numPts);
+  [[nodiscard]] std::vector<Pixel> getColors(const Pixel& color0,
+                                             const Pixel& color1,
+                                             float brightness,
+                                             size_t numPts);
 
-  float getLargeSoundFactor(const SoundInfo&) const;
+  [[nodiscard]] float getLargeSoundFactor(const SoundInfo&) const;
 
   void dotFilter(PixelBuffer& prevBuff,
                  PixelBuffer& currentBuff,
                  const std::vector<Pixel>& colors,
-                 const float t1,
-                 const float t2,
-                 const float t3,
-                 const float t4,
-                 const float brightness,
-                 const uint32_t cycle,
-                 const uint32_t radius);
+                 float t1,
+                 float t2,
+                 float t3,
+                 float t4,
+                 float brightness,
+                 uint32_t cycle,
+                 uint32_t radius);
 
   friend class cereal::access;
   template<class Archive>
@@ -106,9 +107,7 @@ GoomDotsFx::GoomDotsFx(const std::shared_ptr<const PluginInfo>& info) noexcept
 {
 }
 
-GoomDotsFx::~GoomDotsFx() noexcept
-{
-}
+GoomDotsFx::~GoomDotsFx() noexcept = default;
 
 bool GoomDotsFx::operator==(const GoomDotsFx& d) const
 {
@@ -196,9 +195,7 @@ bool GoomDotsFx::GoomDotsImpl::operator==(const GoomDotsImpl& d) const
          loopvar == d.loopvar;
 }
 
-GoomDotsFx::GoomDotsImpl::GoomDotsImpl() noexcept
-{
-}
+GoomDotsFx::GoomDotsImpl::GoomDotsImpl() noexcept = default;
 
 GoomDotsFx::GoomDotsImpl::GoomDotsImpl(const std::shared_ptr<const PluginInfo>& info) noexcept
   : goomInfo(info),
@@ -379,14 +376,14 @@ void GoomDotsFx::GoomDotsImpl::dotFilter(PixelBuffer& prevBuff,
                                          const uint32_t cycle,
                                          const uint32_t radius)
 {
-  const uint32_t xOffset = static_cast<uint32_t>(t1 * cos(static_cast<float>(cycle) / t3));
-  const uint32_t yOffset = static_cast<uint32_t>(t2 * sin(static_cast<float>(cycle) / t4));
-  const int x0 = static_cast<int>(goomInfo->getScreenInfo().width / 2 + xOffset);
-  const int y0 = static_cast<int>(goomInfo->getScreenInfo().height / 2 + yOffset);
+  const auto xOffset = static_cast<uint32_t>(t1 * std::cos(static_cast<float>(cycle) / t3));
+  const auto yOffset = static_cast<uint32_t>(t2 * std::sin(static_cast<float>(cycle) / t4));
+  const auto x0 = static_cast<int>(goomInfo->getScreenInfo().width / 2 + xOffset);
+  const auto y0 = static_cast<int>(goomInfo->getScreenInfo().height / 2 + yOffset);
 
   const uint32_t diameter = 2 * radius;
-  const int screenWidthLessDiameter = static_cast<int>(goomInfo->getScreenInfo().width - diameter);
-  const int screenHeightLessDiameter =
+  const auto screenWidthLessDiameter = static_cast<int>(goomInfo->getScreenInfo().width - diameter);
+  const auto screenHeightLessDiameter =
       static_cast<int>(goomInfo->getScreenInfo().height - diameter);
 
   if ((x0 < static_cast<int>(diameter)) || (y0 < static_cast<int>(diameter)) ||
@@ -395,8 +392,8 @@ void GoomDotsFx::GoomDotsImpl::dotFilter(PixelBuffer& prevBuff,
     return;
   }
 
-  const int xmid = x0 + static_cast<int>(radius);
-  const int ymid = y0 + static_cast<int>(radius);
+  const auto xmid = x0 + static_cast<int>(radius);
+  const auto ymid = y0 + static_cast<int>(radius);
   if (useSingleBufferOnly)
   {
     draw.filledCircle(currentBuff, xmid, ymid, static_cast<int>(radius), colors);

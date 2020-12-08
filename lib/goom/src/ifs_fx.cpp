@@ -80,7 +80,7 @@ public:
   IfsStats() noexcept = default;
 
   void reset();
-  void log(const StatsLogValueFunc) const;
+  void log(const StatsLogValueFunc&) const;
   void updateStart();
   void updateEnd();
 
@@ -101,7 +101,7 @@ void IfsStats::reset()
   timeNowHiRes = std::chrono::high_resolution_clock::now();
 }
 
-void IfsStats::log(const StatsLogValueFunc logVal) const
+void IfsStats::log(const StatsLogValueFunc& logVal) const
 {
   const constexpr char* module = "Ifs";
 
@@ -125,7 +125,7 @@ inline void IfsStats::updateEnd()
 
   using ms = std::chrono::milliseconds;
   const ms diff = std::chrono::duration_cast<ms>(timeNow - timeNowHiRes);
-  const uint32_t timeInUpdateMs = static_cast<uint32_t>(diff.count());
+  const auto timeInUpdateMs = static_cast<uint32_t>(diff.count());
   if (timeInUpdateMs < minTimeInUpdatesMs)
   {
     minTimeInUpdatesMs = timeInUpdateMs;
@@ -244,11 +244,11 @@ class FractalHits
 {
 public:
   FractalHits() noexcept = default;
-  FractalHits(const uint32_t width, const uint32_t height) noexcept;
+  FractalHits(uint32_t width, uint32_t height) noexcept;
   void reset();
-  void addHit(const uint32_t x, const uint32_t y, const Pixel&);
-  const std::vector<IfsPoint>& getBuffer();
-  uint32_t getMaxHitCount() const { return maxHitCount; }
+  void addHit(uint32_t x, uint32_t y, const Pixel&);
+  [[nodiscard]] const std::vector<IfsPoint>& getBuffer();
+  [[nodiscard]] uint32_t getMaxHitCount() const { return maxHitCount; }
 
 private:
   const uint32_t width = 0;
@@ -338,12 +338,12 @@ public:
 
   void init();
 
-  uint32_t getSpeed() const { return speed; }
+  [[nodiscard]] uint32_t getSpeed() const { return speed; }
   void setSpeed(const uint32_t val) { speed = val; }
 
-  uint32_t getMaxHitCount() const { return curHits->getMaxHitCount(); }
+  [[nodiscard]] uint32_t getMaxHitCount() const { return curHits->getMaxHitCount(); }
 
-  const std::vector<IfsPoint>& drawIfs();
+  [[nodiscard]] const std::vector<IfsPoint>& drawIfs();
 
   bool operator==(const Fractal&) const;
 
@@ -374,16 +374,16 @@ private:
   FractalHits* prevHits = nullptr;
   FractalHits* curHits = nullptr;
 
-  Flt getLx() const { return static_cast<Flt>(lx); }
-  Flt getLy() const { return static_cast<Flt>(ly); }
+  [[nodiscard]] Flt getLx() const { return static_cast<Flt>(lx); }
+  [[nodiscard]] Flt getLy() const { return static_cast<Flt>(ly); }
   void drawFractal();
-  void randomSimis(const size_t start, const size_t num);
-  void trace(const uint32_t curDepth, const FltPoint& p0);
+  void randomSimis(size_t start, size_t num);
+  void trace(uint32_t curDepth, const FltPoint& p0);
   void updateHits(const Similitude&, const FltPoint&);
   static FltPoint transform(const Similitude&, const FltPoint& p0);
-  static Dbl gaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S);
-  static Dbl halfGaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S);
-  static constexpr Dbl get_1_minus_exp_neg_S(const Dbl S);
+  static Dbl gaussRand(Dbl c, Dbl S, Dbl A_mult_1_minus_exp_neg_S);
+  static Dbl halfGaussRand(Dbl c, Dbl S, Dbl A_mult_1_minus_exp_neg_S);
+  static constexpr Dbl get_1_minus_exp_neg_S(Dbl S);
 };
 
 Fractal::Fractal(const std::shared_ptr<const PluginInfo>& goomInfo, const ColorMaps& cm) noexcept
@@ -544,14 +544,14 @@ constexpr Dbl Fractal::get_1_minus_exp_neg_S(const Dbl S)
 Dbl Fractal::gaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S)
 {
   const Dbl x = getRandInRange(0.0f, 1.0f);
-  const Dbl y = A_mult_1_minus_exp_neg_S * (1.0 - exp(-x * x * S));
+  const Dbl y = A_mult_1_minus_exp_neg_S * (1.0 - std::exp(-x * x * S));
   return probabilityOfMInN(1, 2) ? c + y : c - y;
 }
 
 Dbl Fractal::halfGaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S)
 {
   const Dbl x = getRandInRange(0.0f, 1.0f);
-  const Dbl y = A_mult_1_minus_exp_neg_S * (1.0 - exp(-x * x * S));
+  const Dbl y = A_mult_1_minus_exp_neg_S * (1.0 - std::exp(-x * x * S));
   return c + y;
 }
 
@@ -626,8 +626,8 @@ inline FltPoint Fractal::transform(const Similitude& simi, const FltPoint& p0)
 
 inline void Fractal::updateHits(const Similitude& simi, const FltPoint& p)
 {
-  const uint32_t x = static_cast<uint32_t>(getLx() + div_by_2units(p.x * getLx()));
-  const uint32_t y = static_cast<uint32_t>(getLy() - div_by_2units(p.y * getLy()));
+  const auto x = static_cast<uint32_t>(getLx() + div_by_2units(p.x * getLx()));
+  const auto y = static_cast<uint32_t>(getLy() - div_by_2units(p.y * getLy()));
   curHits->addHit(x, y, simi.color);
 }
 
@@ -641,18 +641,15 @@ public:
   const ColorMaps& getColorMaps() const;
 
   IfsFx::ColorMode getColorMode() const;
-  void setForcedColorMode(const IfsFx::ColorMode);
+  void setForcedColorMode(IfsFx::ColorMode);
   void changeColorMode();
 
   void changeColorMaps();
 
-  void setMaxHitCount(const uint32_t val);
+  void setMaxHitCount(uint32_t val);
 
-  Pixel getMixedColor(const Pixel& baseColor,
-                      const uint32_t hitCount,
-                      const float tmix,
-                      const float x,
-                      const float y);
+  [[nodiscard]] Pixel getMixedColor(
+      const Pixel& baseColor, uint32_t hitCount, float tmix, float x, float y);
 
   bool operator==(const Colorizer&) const;
 
@@ -685,7 +682,7 @@ private:
   float logMaxHitCount = 0;
   float tBetweenColors = 0.5; // in [0, 1]
   static IfsFx::ColorMode getNextColorMode();
-  Pixel getNextMixerMapColor(const float t, const float x, const float y) const;
+  [[nodiscard]] Pixel getNextMixerMapColor(float t, float x, float y) const;
 };
 
 Colorizer::Colorizer() noexcept
@@ -811,7 +808,7 @@ inline Pixel Colorizer::getMixedColor(
   const float logAlpha =
       maxHitCount <= 1 ? 1.0F : std::log(static_cast<float>(hitCount)) / logMaxHitCount;
 
-  Pixel mixColor{0U};
+  Pixel mixColor;
   float t = tBetweenColors;
 
   switch (colorMode)
@@ -923,7 +920,7 @@ struct IfsUpdateData
 class IfsFx::IfsImpl
 {
 public:
-  IfsImpl() noexcept {}
+  IfsImpl() noexcept = default;
   explicit IfsImpl(const std::shared_ptr<const PluginInfo>&) noexcept;
   ~IfsImpl() noexcept;
   IfsImpl(const IfsImpl&) = delete;
@@ -935,7 +932,7 @@ public:
   void updateIfs(PixelBuffer& prevBuff, PixelBuffer& currentBuff);
   void setBuffSettings(const FXBuffSettings&);
   IfsFx::ColorMode getColorMode() const;
-  void setColorMode(const IfsFx::ColorMode);
+  void setColorMode(IfsFx::ColorMode);
   void renew();
   void updateIncr();
 
@@ -974,9 +971,9 @@ private:
   void changeColormaps();
   void updatePixelBuffers(PixelBuffer& prevBuff,
                           PixelBuffer& currentBuff,
-                          const size_t numPoints,
+                          size_t numPoints,
                           const std::vector<IfsPoint>& points,
-                          const uint32_t maxHitCount,
+                          uint32_t maxHitCount,
                           const Pixel& color);
   void drawPixel(PixelBuffer& prevBuff,
                  PixelBuffer& currentBuff,
@@ -987,7 +984,7 @@ private:
   void updateColorsModeMer();
   void updateColorsModeMerver();
   void updateColorsModeFeu();
-  int getIfsIncr() const;
+  [[nodiscard]] int getIfsIncr() const;
 
   friend class cereal::access;
   template<class Archive>
@@ -1005,9 +1002,7 @@ IfsFx::IfsFx(const std::shared_ptr<const PluginInfo>& info) noexcept : fxImpl{ne
 {
 }
 
-IfsFx::~IfsFx() noexcept
-{
-}
+IfsFx::~IfsFx() noexcept = default;
 
 void IfsFx::init()
 {
@@ -1147,9 +1142,7 @@ IfsFx::IfsImpl::IfsImpl(const std::shared_ptr<const PluginInfo>& info) noexcept
 #endif
 }
 
-IfsFx::IfsImpl::~IfsImpl() noexcept
-{
-}
+IfsFx::IfsImpl::~IfsImpl() noexcept = default;
 
 void IfsFx::IfsImpl::init()
 {

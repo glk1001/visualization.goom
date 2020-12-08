@@ -18,11 +18,11 @@ class FlyingStarsFx : public VisualFx
 public:
   FlyingStarsFx() noexcept;
   explicit FlyingStarsFx(const std::shared_ptr<const PluginInfo>&) noexcept;
-  ~FlyingStarsFx() noexcept;
+  ~FlyingStarsFx() noexcept override;
   FlyingStarsFx(const FlyingStarsFx&) = delete;
   FlyingStarsFx& operator=(const FlyingStarsFx&) = delete;
 
-  std::string getFxName() const override;
+  [[nodiscard]] std::string getFxName() const override;
   void setBuffSettings(const FXBuffSettings&) override;
 
   void start() override;

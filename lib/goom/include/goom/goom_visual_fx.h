@@ -40,9 +40,9 @@ void FXBuffSettings::serialize(Archive& ar)
 class VisualFx
 {
 public:
-  virtual ~VisualFx() {}
+  virtual ~VisualFx() = default;
 
-  virtual std::string getFxName() const = 0;
+  [[nodiscard]] virtual std::string getFxName() const = 0;
   virtual void setBuffSettings(const FXBuffSettings&) = 0;
 
   virtual void start(){};

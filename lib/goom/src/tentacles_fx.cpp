@@ -69,7 +69,7 @@ public:
   TentacleStats() noexcept = default;
 
   void reset();
-  void log(const StatsLogValueFunc) const;
+  void log(const StatsLogValueFunc&) const;
   void updateStart();
   void updateEnd();
   void changeDominantColorMap();
@@ -85,28 +85,28 @@ public:
   void changePrettyLerpMixLower();
   void changePrettyLerpMixHigher();
   void setNumTentacleDrivers(const std::vector<std::unique_ptr<TentacleDriver>>&);
-  void changeTentacleDriver(const uint32_t driverIndex);
+  void changeTentacleDriver(uint32_t driverIndex);
 
-  void setLastNumTentacles(const size_t val);
-  void setLastUpdatingWithDraw(const bool val);
-  void setLastCycle(const float val);
-  void setLastCycleInc(const float val);
-  void setLastLig(const float val);
-  void setLastLigs(const float val);
-  void setLastDistt(const float val);
-  void setLastDistt2(const float val);
-  void setLastDistt2Offset(const float val);
-  void setLastRot(const float val);
-  void setLastRotAtStartOfPrettyMove(const float val);
-  void setLastDoRotation(const bool val);
-  void setLastIsPrettyMoveHappening(const bool val);
-  void setLastPrettyMoveHappeningTimer(const int32_t val);
-  void setLastPrettyMoveCheckStopMark(const int32_t val);
-  void setLastPrePrettyMoveLock(const int32_t val);
-  void setLastDistt2OffsetPreStep(const float val);
-  void setLastPrettyMoveReadyToStart(const bool val);
-  void setLastPostPrettyMoveLock(const int32_t val);
-  void setLastPrettyLerpMixValue(const float val);
+  void setLastNumTentacles(size_t val);
+  void setLastUpdatingWithDraw(bool val);
+  void setLastCycle(float val);
+  void setLastCycleInc(float val);
+  void setLastLig(float val);
+  void setLastLigs(float val);
+  void setLastDistt(float val);
+  void setLastDistt2(float val);
+  void setLastDistt2Offset(float val);
+  void setLastRot(float val);
+  void setLastRotAtStartOfPrettyMove(float val);
+  void setLastDoRotation(bool val);
+  void setLastIsPrettyMoveHappening(bool val);
+  void setLastPrettyMoveHappeningTimer(int32_t val);
+  void setLastPrettyMoveCheckStopMark(int32_t val);
+  void setLastPrePrettyMoveLock(int32_t val);
+  void setLastDistt2OffsetPreStep(float val);
+  void setLastPrettyMoveReadyToStart(bool val);
+  void setLastPostPrettyMoveLock(int32_t val);
+  void setLastPrettyLerpMixValue(float val);
 
 private:
   uint64_t totalTimeInUpdatesMs = 0;
@@ -170,7 +170,7 @@ void TentacleStats::reset()
   std::fill(numDriverChanges.begin(), numDriverChanges.end(), 0);
 }
 
-void TentacleStats::log(const StatsLogValueFunc logVal) const
+void TentacleStats::log(const StatsLogValueFunc& logVal) const
 {
   const constexpr char* module = "Tentacles";
 
@@ -216,8 +216,8 @@ void TentacleStats::log(const StatsLogValueFunc logVal) const
   logVal(module, "numPrettyMoveHappens", numPrettyMoveHappens);
   logVal(module, "numTentacleDrivers", numTentacleDrivers);
   // TODO Make this a string util function
-  std::string numTentaclesStr = "";
-  std::string numDriverChangesStr = "";
+  std::string numTentaclesStr;
+  std::string numDriverChangesStr;
   for (size_t i = 0; i < numDriverTentacles.size(); i++)
   {
     if (i)
@@ -243,7 +243,7 @@ inline void TentacleStats::updateEnd()
 
   using ms = std::chrono::milliseconds;
   const ms diff = std::chrono::duration_cast<ms>(timeNow - timeNowHiRes);
-  const uint32_t timeInUpdateMs = static_cast<uint32_t>(diff.count());
+  const auto timeInUpdateMs = static_cast<uint32_t>(diff.count());
   if (timeInUpdateMs < minTimeInUpdatesMs)
   {
     minTimeInUpdatesMs = timeInUpdateMs;
@@ -432,14 +432,14 @@ public:
   TentaclesImpl(const TentaclesImpl&) = delete;
   TentaclesImpl& operator=(const TentaclesImpl&) = delete;
 
-  const FXBuffSettings& getBuffSettings() const;
+  [[nodiscard]] const FXBuffSettings& getBuffSettings() const;
   void setBuffSettings(const FXBuffSettings&);
   void freshStart();
 
   void update(PixelBuffer& prevBuff, PixelBuffer& currentBuff);
   void updateWithNoDraw();
 
-  void logStats(const StatsLogValueFunc logVal);
+  void logStats(const StatsLogValueFunc& logVal);
 
   bool operator==(const TentaclesImpl&) const;
 
@@ -476,7 +476,7 @@ private:
   float rot = 0; // entre 0 et m_two_pi
   float rotAtStartOfPrettyMove = 0;
   bool doRotation = false;
-  static float getStableRotationOffset(const float cycleVal);
+  static float getStableRotationOffset(float cycleVal);
   bool isPrettyMoveHappening = false;
   int32_t prettyMoveHappeningTimer = 0;
   int32_t prettyMoveCheckStopMark = 0;
@@ -490,11 +490,11 @@ private:
   int32_t prePrettyMoveLock = 0;
   int32_t postPrettyMoveLock = 0;
   float prettyMoveLerpMix = 1.0 / 16.0; // original goom value
-  void isPrettyMoveHappeningUpdate(const float acceleration);
+  void isPrettyMoveHappeningUpdate(float acceleration);
   void prettyMovePreStart();
-  void prettyMoveStart(const float acceleration, const int32_t timerVal = -1);
+  void prettyMoveStart(float acceleration, int32_t timerVal = -1);
   void prettyMoveFinish();
-  void prettyMove(const float acceleration);
+  void prettyMove(float acceleration);
   void prettyMoveWithNoDraw();
   std::tuple<Pixel, Pixel> getModColors();
 
@@ -541,9 +541,7 @@ TentaclesFx::TentaclesFx(const std::shared_ptr<const PluginInfo>& info) noexcept
 {
 }
 
-TentaclesFx::~TentaclesFx() noexcept
-{
-}
+TentaclesFx::~TentaclesFx() noexcept = default;
 
 bool TentaclesFx::operator==(const TentaclesFx& t) const
 {
@@ -698,9 +696,7 @@ bool TentaclesFx::TentaclesImpl::operator==(const TentaclesImpl& t) const
   return result;
 }
 
-TentaclesFx::TentaclesImpl::TentaclesImpl() noexcept
-{
-}
+TentaclesFx::TentaclesImpl::TentaclesImpl() noexcept = default;
 
 TentaclesFx::TentaclesImpl::TentaclesImpl(const std::shared_ptr<const PluginInfo>& info) noexcept
   : goomInfo{info},
@@ -766,7 +762,7 @@ inline void TentaclesFx::TentaclesImpl::incCounters()
   countSinceColorChangeLastMarked++;
 }
 
-void TentaclesFx::TentaclesImpl::logStats(const StatsLogValueFunc logVal)
+void TentaclesFx::TentaclesImpl::logStats(const StatsLogValueFunc& logVal)
 {
   stats.setLastNumTentacles(currentDriver->getNumTentacles());
   stats.setLastUpdatingWithDraw(updatingWithDraw);
@@ -1069,7 +1065,7 @@ inline TentacleDriver* TentaclesFx::TentaclesImpl::getNextDriver() const
 
 inline float TentaclesFx::TentaclesImpl::getStableRotationOffset(const float cycleVal)
 {
-  return (1.5F + sin(cycleVal) / 32.0F) * m_pi;
+  return (1.5F + std::sin(cycleVal) / 32.0F) * m_pi;
 }
 
 void TentaclesFx::TentaclesImpl::prettyMove(const float acceleration)

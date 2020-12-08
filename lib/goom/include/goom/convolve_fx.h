@@ -23,13 +23,13 @@ class ConvolveFx : public VisualFx
 public:
   ConvolveFx() noexcept;
   explicit ConvolveFx(utils::Parallel&, const std::shared_ptr<const PluginInfo>&) noexcept;
-  ~ConvolveFx() noexcept;
+  ~ConvolveFx() noexcept override;
   ConvolveFx(const ConvolveFx&) = delete;
   ConvolveFx& operator=(const ConvolveFx&) = delete;
 
   void convolve(const PixelBuffer& currentBuff, uint32_t* outputBuff);
 
-  std::string getFxName() const override;
+  [[nodiscard]] std::string getFxName() const override;
   void setBuffSettings(const FXBuffSettings&) override;
 
   void start() override;
