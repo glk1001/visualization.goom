@@ -6,7 +6,6 @@
 #include <ostream>
 #include <stdexcept>
 #include <string>
-#include <utility>
 
 namespace goom::utils
 {
@@ -19,7 +18,7 @@ Logging::Logging() noexcept
   setHandlersLogLevel(cutoffHandlersLogLevel);
 }
 
-Logging::~Logging()
+Logging::~Logging() noexcept
 {
   doFlush();
 }
@@ -55,14 +54,14 @@ void Logging::start()
   const std::lock_guard<std::mutex> lock{mutex};
   doLogging = true;
   logEntries.clear();
-};
+}
 
 void Logging::stop()
 {
   const std::lock_guard<std::mutex> lock{mutex};
   doLogging = false;
   doFlush();
-};
+}
 
 void Logging::setFileLogLevel(const Logging::LogLevel lvl)
 {

@@ -10,7 +10,6 @@
 
 #include <cmath>
 #include <cstdint>
-#include <istream>
 #include <limits>
 #include <ostream>
 #include <random>

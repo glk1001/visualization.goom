@@ -12,6 +12,7 @@
 #include <cmath>
 #include <cstdint>
 #include <string>
+#include <utility>
 
 CEREAL_REGISTER_TYPE(goom::ConvolveFx);
 CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::VisualFx, goom::ConvolveFx);
@@ -25,7 +26,7 @@ class ConvolveFx::ConvolveImpl
 {
 public:
   ConvolveImpl() noexcept;
-  explicit ConvolveImpl(Parallel&, const std::shared_ptr<const PluginInfo>&) noexcept;
+  explicit ConvolveImpl(Parallel&, std::shared_ptr<const PluginInfo>) noexcept;
   ConvolveImpl(const ConvolveImpl&) = delete;
   ConvolveImpl& operator=(const ConvolveImpl&) = delete;
 
@@ -148,9 +149,8 @@ bool ConvolveFx::ConvolveImpl::operator==(const ConvolveImpl& c) const
 
 ConvolveFx::ConvolveImpl::ConvolveImpl() noexcept = default;
 
-ConvolveFx::ConvolveImpl::ConvolveImpl(Parallel& p,
-                                       const std::shared_ptr<const PluginInfo>& info) noexcept
-  : parallel{&p}, goomInfo{info}
+ConvolveFx::ConvolveImpl::ConvolveImpl(Parallel& p, std::shared_ptr<const PluginInfo> info) noexcept
+  : parallel{&p}, goomInfo{std::move(info)}
 {
 }
 

@@ -98,7 +98,7 @@ void SoundInfo::serialize(Archive& ar)
      CEREAL_NVP(volume), CEREAL_NVP(acceleration), CEREAL_NVP(allTimesMaxVolume),
      CEREAL_NVP(allTimesMinVolume), CEREAL_NVP(allTimesPositiveMaxVolume),
      CEREAL_NVP(maxAccelSinceLastReset));
-};
+}
 
 inline uint32_t SoundInfo::getTimeSinceLastGoom() const
 {

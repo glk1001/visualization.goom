@@ -155,7 +155,7 @@ public:
                       const V3d& head,
                       size_t numHeadNodes) noexcept;
   explicit Tentacle3D(std::unique_ptr<Tentacle2D>,
-                      const std::shared_ptr<const TentacleColorizer>&,
+                      std::shared_ptr<const TentacleColorizer>,
                       const Pixel& headColor,
                       const Pixel& headColorLow,
                       const V3d& head,

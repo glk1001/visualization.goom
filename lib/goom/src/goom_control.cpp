@@ -22,14 +22,12 @@
 #include "goomutils/logging_control.h"
 #undef NO_LOGGING
 #include "goomutils/logging.h"
-#include "goomutils/mathutils.h"
 #include "goomutils/parallel_utils.h"
 #include "goomutils/strutils.h"
 #include "ifs_fx.h"
 #include "lines_fx.h"
 #include "tentacles_fx.h"
 
-#include <algorithm>
 #include <array>
 #include <cereal/archives/json.hpp>
 #include <cereal/types/memory.hpp>
@@ -38,10 +36,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
-#include <format>
-#include <istream>
 #include <memory>
-#include <ostream>
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
@@ -422,7 +417,7 @@ public:
   void setNumThreadsUsedValue(size_t numThreads);
   void reset();
   void log(const StatsLogValueFunc&) const;
-  void updateChange(const size_t currentState, ZoomFilterMode currentFilterMode);
+  void updateChange(size_t currentState, ZoomFilterMode currentFilterMode);
   void stateChange(uint32_t timeInState);
   void stateChange(size_t index, uint32_t timeInState);
   void filterModeChange();
@@ -446,7 +441,7 @@ public:
   void doZoomFilterAlloOverexposed();
 
 private:
-  std::string songTitle = "";
+  std::string songTitle{};
   uint32_t startingState = 0;
   ZoomFilterMode startingFilterMode = ZoomFilterMode::_size;
   uint64_t startingSeed = 0;

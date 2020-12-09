@@ -17,6 +17,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 CEREAL_REGISTER_TYPE(goom::FlyingStarsFx);
@@ -186,7 +187,7 @@ class FlyingStarsFx::FlyingStarsImpl
 {
 public:
   FlyingStarsImpl() noexcept;
-  explicit FlyingStarsImpl(const std::shared_ptr<const PluginInfo>&) noexcept;
+  explicit FlyingStarsImpl(std::shared_ptr<const PluginInfo>) noexcept;
   FlyingStarsImpl(const FlyingStarsImpl&) = delete;
   FlyingStarsImpl& operator=(const FlyingStarsImpl&) = delete;
 
@@ -348,9 +349,9 @@ bool FlyingStarsFx::FlyingStarsImpl::operator==(const FlyingStarsImpl& f) const
 
 FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl() noexcept = default;
 
-FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl(
-    const std::shared_ptr<const PluginInfo>& info) noexcept
-  : goomInfo{info}, draw{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height}
+FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl(std::shared_ptr<const PluginInfo> info) noexcept
+  : goomInfo{std::move(info)},
+    draw{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height}
 {
   stars.reserve(maxStarsLimit);
 }

@@ -64,6 +64,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 CEREAL_REGISTER_TYPE(goom::IfsFx);
@@ -921,7 +922,7 @@ class IfsFx::IfsImpl
 {
 public:
   IfsImpl() noexcept = default;
-  explicit IfsImpl(const std::shared_ptr<const PluginInfo>&) noexcept;
+  explicit IfsImpl(std::shared_ptr<const PluginInfo>) noexcept;
   ~IfsImpl() noexcept;
   IfsImpl(const IfsImpl&) = delete;
   IfsImpl& operator=(const IfsImpl&) = delete;
@@ -1126,8 +1127,8 @@ bool IfsFx::IfsImpl::operator==(const IfsImpl& i) const
          decay_ifs == i.decay_ifs && recay_ifs == i.recay_ifs && updateData == i.updateData;
 }
 
-IfsFx::IfsImpl::IfsImpl(const std::shared_ptr<const PluginInfo>& info) noexcept
-  : goomInfo{info},
+IfsFx::IfsImpl::IfsImpl(std::shared_ptr<const PluginInfo> info) noexcept
+  : goomInfo{std::move(info)},
     draw{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height},
     fractal{std::make_unique<Fractal>(goomInfo, colorizer.getColorMaps())}
 {

@@ -1,7 +1,6 @@
 #include "goomutils/mathutils.h"
 
 #include <array>
-#include <cereal/archives/json.hpp>
 #include <cereal/types/memory.hpp>
 #include <cmath>
 #include <format>

@@ -122,15 +122,15 @@ void drawFilledCircle(std::vector<PixelBuffer*>& buffs,
 }
 
 static void drawWuLine(std::vector<PixelBuffer*>& buffs,
-                       const int x1,
-                       const int y1,
-                       const int x2,
-                       const int y2,
+                       int x1,
+                       int y1,
+                       int x2,
+                       int y2,
                        const std::vector<Pixel>& colors,
-                       const uint32_t buffIntensity,
-                       const bool allowOverexposed,
-                       const uint32_t screenx,
-                       const uint32_t screeny);
+                       uint32_t buffIntensity,
+                       bool allowOverexposed,
+                       uint32_t screenx,
+                       uint32_t screeny);
 
 constexpr int LINE_THICKNESS_MIDDLE = 0;
 constexpr int LINE_THICKNESS_DRAW_CLOCKWISE = 1;
@@ -142,12 +142,12 @@ static void drawThickLine(std::vector<PixelBuffer*>& buffs,
                           int x1,
                           int y1,
                           const std::vector<Pixel>& colors,
-                          const uint32_t buffIntensity,
-                          const bool allowOverexposed,
-                          const uint8_t thickness,
-                          const uint8_t thicknessMode,
-                          const uint32_t screenWidth,
-                          const uint32_t screenHeight);
+                          uint32_t buffIntensity,
+                          bool allowOverexposed,
+                          uint8_t thickness,
+                          uint8_t thicknessMode,
+                          uint32_t screenWidth,
+                          uint32_t screenHeight);
 
 void drawLine(PixelBuffer& buff,
               const int x1,
@@ -251,7 +251,7 @@ static void wuLine(float x0, float y0, float x1, float y1, const PlotFunc& plot)
   const auto fpart = [](const float x) -> float { return x - std::floor(x); };
   const auto rfpart = [=](const float x) -> float { return 1 - fpart(x); };
 
-  const bool steep = abs(y1 - y0) > abs(x1 - x0);
+  const bool steep = std::abs(y1 - y0) > std::abs(x1 - x0);
   if (steep)
   {
     std::swap(x0, y0);
@@ -519,7 +519,7 @@ static void drawThickLine(std::vector<PixelBuffer*>& buffs,
                     screenWidth, screenHeight);
   }
 
-  const float brightness = 0.8 * 2.0 / thickness;
+  const float brightness = 0.8F * 2.0F / thickness;
 
   /**
     * For coordinate system with 0.0 top left

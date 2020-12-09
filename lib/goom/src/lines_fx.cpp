@@ -22,6 +22,7 @@
 #include <stdexcept>
 #include <string>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 namespace goom
@@ -41,7 +42,7 @@ class LinesFx::LinesImpl
 public:
   LinesImpl() noexcept;
   // construit un effet de line (une ligne horitontale pour commencer)
-  LinesImpl(const std::shared_ptr<const PluginInfo>& goomInfo,
+  LinesImpl(std::shared_ptr<const PluginInfo> goomInfo,
             LineType srceID,
             float srceParam,
             const Pixel& srceColor,
@@ -197,14 +198,14 @@ bool LinesFx::LinesImpl::operator==(const LinesImpl& l) const
 
 LinesFx::LinesImpl::LinesImpl() noexcept = default;
 
-LinesFx::LinesImpl::LinesImpl(const std::shared_ptr<const PluginInfo>& info,
+LinesFx::LinesImpl::LinesImpl(std::shared_ptr<const PluginInfo> info,
                               const LineType srceID,
                               const float srceParam,
                               const Pixel& srceColor,
                               const LineType theDestID,
                               const float destParam,
                               const Pixel& destColor) noexcept
-  : goomInfo{info},
+  : goomInfo{std::move(info)},
     draw{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height},
     destID{theDestID},
     param{destParam},

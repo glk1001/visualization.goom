@@ -5,7 +5,6 @@
 #include "goom/goom_graphic.h"
 #include "goomrand.h"
 
-#include <format>
 #include <vector>
 #include <vivid/vivid.h>
 

@@ -28,7 +28,6 @@
 #include "goomutils/parallel_utils.h"
 #include "v3d.h"
 
-#include <algorithm>
 #include <array>
 #undef NDEBUG
 #include <cassert>
@@ -37,7 +36,6 @@
 #include <cereal/types/vector.hpp>
 #include <cmath>
 #include <cstdint>
-#include <execution>
 #include <numeric>
 #include <stdexcept>
 #include <string>
