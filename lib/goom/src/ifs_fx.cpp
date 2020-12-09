@@ -1204,7 +1204,7 @@ void IfsFx::IfsImpl::updateIfs(PixelBuffer& prevBuff, PixelBuffer& currentBuff)
 
   // TODO: trouver meilleur soluce pour increment (mettre le code de gestion de l'ifs dans ce fichier)
   //       find the best solution for increment (put the management code of the ifs in this file)
-  useOldStyleDrawPixel = probabilityOfMInN(1, 50);
+  useOldStyleDrawPixel = probabilityOfMInN(49, 50);
 
   updateData.cycle++;
   if (updateData.cycle >= 80)
