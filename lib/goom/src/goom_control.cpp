@@ -2234,14 +2234,14 @@ void GoomControl::GoomControlImpl::displayText(const char* songTitle,
 
   if (goomData.timeOfTitleDisplay)
   {
-    goom_draw_text(imageBuffers.getP1(), getScreenWidth(), getScreenHeight(),
+    goom_draw_text(imageBuffers.getP2(), getScreenWidth(), getScreenHeight(),
                    static_cast<int>(getScreenWidth() / 2),
                    static_cast<int>(getScreenHeight() / 2 + 7), goomData.titleText,
                    static_cast<float>(190 - goomData.timeOfTitleDisplay) / 10.0f, 1);
     goomData.timeOfTitleDisplay--;
     if (goomData.timeOfTitleDisplay < 4)
     {
-      goom_draw_text(imageBuffers.getP2(), getScreenWidth(), getScreenHeight(),
+      goom_draw_text(imageBuffers.getP1(), getScreenWidth(), getScreenHeight(),
                      static_cast<int>(getScreenWidth() / 2),
                      static_cast<int>(getScreenHeight() / 2 + 7), goomData.titleText,
                      static_cast<float>(190 - goomData.timeOfTitleDisplay) / 10.0f, 1);
