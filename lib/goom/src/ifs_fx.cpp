@@ -405,7 +405,17 @@ void Fractal::init()
   prevHits->reset();
   curHits->reset();
 
-  const size_t numCentres = 2 + getNRand(centreList.size());
+  // clang-format off
+  static const Weights<size_t> centreWeights{{
+    {0, 10},
+    {1,  5},
+    {2,  3},
+    {3,  1},
+  }};
+  // clang-format on
+  assert(centreWeights.getNumElements() == centreList.size());
+
+  const size_t numCentres = 2 + centreWeights.getRandomWeighted();
 
   depth = centreList.at(numCentres - 2).depth;
   r1Mean = centreList[numCentres - 2].r1Mean;
