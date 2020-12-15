@@ -13,6 +13,7 @@ namespace goom
 
 Pixel getIntColor(uint8_t r, uint8_t g, uint8_t b);
 
+Pixel getColorAverage(const std::vector<Pixel>& colors);
 Pixel getColorAverage(const Pixel& color1, const Pixel& color2);
 Pixel getColorAdd(const Pixel& color1, const Pixel& color2, bool allowOverexposed);
 Pixel getColorSubtract(const Pixel& color1, const Pixel& color2);
@@ -54,6 +55,29 @@ inline uint32_t colorChannelSubtract(const uint8_t c1, const uint8_t c2)
     return 0;
   }
   return static_cast<uint32_t>(c1) - static_cast<uint32_t>(c2);
+}
+
+inline Pixel getColorAverage(const std::vector<Pixel>& colors)
+{
+  uint32_t newR = 0;
+  uint32_t newG = 0;
+  uint32_t newB = 0;
+  uint32_t newA = 0;
+
+  for (const auto& c : colors)
+  {
+    newR += static_cast<uint32_t>(c.r());
+    newG += static_cast<uint32_t>(c.g());
+    newB += static_cast<uint32_t>(c.b());
+    newA += static_cast<uint32_t>(c.a());
+  }
+
+  return Pixel{{
+      .r = static_cast<uint8_t>(newR / colors.size()),
+      .g = static_cast<uint8_t>(newG / colors.size()),
+      .b = static_cast<uint8_t>(newB / colors.size()),
+      .a = static_cast<uint8_t>(newA / colors.size()),
+  }};
 }
 
 inline Pixel getColorAverage(const Pixel& color1, const Pixel& color2)

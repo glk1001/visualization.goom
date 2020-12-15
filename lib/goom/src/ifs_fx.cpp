@@ -896,6 +896,83 @@ inline Pixel Colorizer::getMixedColor(
   return gammaCorrect.getCorrection(logAlpha, mixColor);
 }
 
+class LowDensityBlurrer
+{
+public:
+  LowDensityBlurrer() noexcept : screenWidth{0}, screenHeight{0}, width{0} {}
+  LowDensityBlurrer(uint32_t screenWidth, uint32_t screenHeight, uint32_t width) noexcept;
+
+  [[nodiscard]] uint32_t getWidth() const { return width; }
+  void setWidth(const uint32_t val);
+
+  void doBlur(std::vector<IfsPoint>&, PixelBuffer&) const;
+
+private:
+  const uint32_t screenWidth;
+  const uint32_t screenHeight;
+  uint32_t width;
+};
+
+inline LowDensityBlurrer::LowDensityBlurrer(const uint32_t screenW,
+                                            const uint32_t screenH,
+                                            const uint32_t w) noexcept
+  : screenWidth{screenW}, screenHeight{screenH}, width{w}
+{
+}
+
+void LowDensityBlurrer::setWidth(const uint32_t val)
+{
+  if (val != 3 && val != 5 && val != 7)
+  {
+    throw std::logic_error(std20::format("Invalid blur width {}.", val));
+  }
+  width = val;
+}
+
+void LowDensityBlurrer::doBlur(std::vector<IfsPoint>& lowDensityPoints, PixelBuffer& buff) const
+{
+  std::vector<Pixel> neighbours(width * width);
+
+  for (auto& p : lowDensityPoints)
+  {
+    const uint32_t x = p.x & 0x7fffffff;
+    const uint32_t y = p.y & 0x7fffffff;
+
+    if (x < (width / 2) || y < (width / 2) || x >= screenWidth - (width / 2) ||
+        y >= screenHeight - (width / 2))
+    {
+      p.count = 0; // just signal that no need to set buff
+      continue;
+    }
+
+    size_t n = 0;
+    uint32_t neighY = y - width / 2;
+    for (size_t i = 0; i < width; i++)
+    {
+      uint32_t neighX = x - width / 2;
+      for (size_t j = 0; j < width; j++)
+      {
+        neighbours[n] = buff(neighX, neighY);
+        n++;
+        neighX++;
+      }
+      neighY++;
+    }
+    p.color = getColorAverage(neighbours);
+  }
+
+  for (const auto& p : lowDensityPoints)
+  {
+    if (p.count == 0)
+    {
+      continue;
+    }
+    const uint32_t x = p.x & 0x7fffffff;
+    const uint32_t y = p.y & 0x7fffffff;
+    buff(x, y) = p.color;
+  }
+}
+
 enum class ModType
 {
   MOD_MER,
@@ -964,6 +1041,7 @@ public:
   void applyNoDraw();
   void updateIfs(PixelBuffer& prevBuff, PixelBuffer& currentBuff);
   void setBuffSettings(const FXBuffSettings&);
+  void updateLowDensityThreshold();
   IfsFx::ColorMode getColorMode() const;
   void setColorMode(IfsFx::ColorMode);
   void renew();
@@ -1003,9 +1081,12 @@ private:
   IfsStats stats{};
 
   void changeColormaps();
+  static constexpr uint32_t maxDensityCount = 20;
+  static constexpr uint32_t minDensityCount = 5;
+  uint32_t lowDensityCount = 10;
+  LowDensityBlurrer blurrer{};
   void updatePixelBuffers(PixelBuffer& prevBuff,
                           PixelBuffer& currentBuff,
-                          size_t numPoints,
                           const std::vector<IfsPoint>& points,
                           uint32_t maxHitCount,
                           const Pixel& color);
@@ -1164,7 +1245,8 @@ bool IfsFx::IfsImpl::operator==(const IfsImpl& i) const
 IfsFx::IfsImpl::IfsImpl(std::shared_ptr<const PluginInfo> info) noexcept
   : goomInfo{std::move(info)},
     draw{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height},
-    fractal{std::make_unique<Fractal>(goomInfo, colorizer.getColorMaps())}
+    fractal{std::make_unique<Fractal>(goomInfo, colorizer.getColorMaps())},
+    blurrer{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height, 3}
 {
 #ifndef NO_LOGGING
   Fractal* fractal = fractal.get();
@@ -1183,6 +1265,7 @@ IfsFx::IfsImpl::~IfsImpl() noexcept = default;
 void IfsFx::IfsImpl::init()
 {
   fractal->init();
+  updateLowDensityThreshold();
 }
 
 void IfsFx::IfsImpl::setBuffSettings(const FXBuffSettings& settings)
@@ -1254,13 +1337,12 @@ void IfsFx::IfsImpl::updateIfs(PixelBuffer& prevBuff, PixelBuffer& currentBuff)
   }
 
   const std::vector<IfsPoint>& points = fractal->drawIfs();
-  const size_t numPoints = points.size();
   const uint32_t maxHitCount = fractal->getMaxHitCount();
 
   const int cycle10 = (updateData.cycle < 40) ? updateData.cycle / 10 : 7 - updateData.cycle / 10;
   const Pixel color = getRightShiftedChannels(updateData.couleur, cycle10);
 
-  updatePixelBuffers(prevBuff, currentBuff, numPoints, points, maxHitCount, color);
+  updatePixelBuffers(prevBuff, currentBuff, points, maxHitCount, color);
 
   updateData.justChanged--;
 
@@ -1386,7 +1468,6 @@ void IfsFx::IfsImpl::updateAllowOverexposed()
 
 void IfsFx::IfsImpl::updatePixelBuffers(PixelBuffer& prevBuff,
                                         PixelBuffer& currentBuff,
-                                        const size_t numPoints,
                                         const std::vector<IfsPoint>& points,
                                         const uint32_t maxHitCount,
                                         const Pixel& color)
@@ -1394,9 +1475,11 @@ void IfsFx::IfsImpl::updatePixelBuffers(PixelBuffer& prevBuff,
   colorizer.setMaxHitCount(maxHitCount);
   bool doneColorChange = colorizer.getColorMode() != IfsFx::ColorMode::megaMapColorChange &&
                          colorizer.getColorMode() != IfsFx::ColorMode::megaMixColorChange;
+  const size_t numPoints = points.size();
   const float tStep = numPoints == 1 ? 0.0F : (1.0F - 0.0F) / static_cast<float>(numPoints - 1);
   float t = -tStep;
 
+  std::vector<IfsPoint> lowDensityPoints{};
   for (size_t i = 0; i < numPoints; i += static_cast<size_t>(getIfsIncr()))
   {
     t += tStep;
@@ -1415,7 +1498,36 @@ void IfsFx::IfsImpl::updatePixelBuffers(PixelBuffer& prevBuff,
     }
 
     drawPixel(prevBuff, currentBuff, points[i], color, t);
+
+    if (points[i].count <= lowDensityCount)
+    {
+      lowDensityPoints.emplace_back(points[i]);
+    }
   }
+
+  blurrer.doBlur(lowDensityPoints, prevBuff);
+}
+
+void IfsFx::IfsImpl::updateLowDensityThreshold()
+{
+  lowDensityCount = getRandInRange(minDensityCount, maxDensityCount);
+
+  uint32_t blurWidth;
+  constexpr uint32_t numWidths = 3;
+  constexpr uint32_t widthRange = (maxDensityCount - minDensityCount) / numWidths;
+  if (lowDensityCount <= minDensityCount + widthRange)
+  {
+    blurWidth = 7;
+  }
+  else if (lowDensityCount <= minDensityCount + 2 * widthRange)
+  {
+    blurWidth = 5;
+  }
+  else
+  {
+    blurWidth = 3;
+  }
+  blurrer.setWidth(blurWidth);
 }
 
 void IfsFx::IfsImpl::updateColors()
