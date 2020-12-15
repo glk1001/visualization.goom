@@ -13,6 +13,7 @@ namespace goom
 {
 
 class AudioSamples;
+class PixelBuffer;
 
 class GoomControl
 {
@@ -21,13 +22,13 @@ public:
   static void setRandSeed(uint64_t seed);
 
   GoomControl() noexcept;
-  GoomControl(uint16_t resx, uint16_t resy) noexcept;
+  GoomControl(uint32_t resx, uint32_t resy) noexcept;
   ~GoomControl() noexcept;
 
   void saveState(std::ostream&) const;
   void restoreState(std::istream&);
 
-  void setScreenBuffer(uint32_t* buffer);
+  void setScreenBuffer(PixelBuffer&);
   void start();
 
   /*

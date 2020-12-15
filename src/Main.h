@@ -27,6 +27,7 @@
 #include "CircularBuffer.h"
 #include "goom/goom_config.h"
 #include "goom/goom_control.h"
+#include "goom/goom_graphic.h"
 
 #include <condition_variable>
 #include <functional>
@@ -82,14 +83,14 @@ protected:
   virtual void AudioDataIncorrectReadLength() {}
   virtual void UpdateGoomBuffer(const char* title,
                                 const float floatAudioData[],
-                                std::shared_ptr<uint32_t>& pixels);
+                                std::shared_ptr<goom::PixelBuffer>& pixels);
 
 private:
   void Process();
   bool InitGLObjects();
   void InitQuadData();
-  std::shared_ptr<uint32_t> GetNextActivePixels();
-  void PushUsedPixels(std::shared_ptr<uint32_t> pixels);
+  std::shared_ptr<goom::PixelBuffer> GetNextActivePixels();
+  void PushUsedPixels(std::shared_ptr<goom::PixelBuffer> pixels);
 
   int m_tex_width = GOOM_TEXTURE_WIDTH;
   int m_tex_height = GOOM_TEXTURE_HEIGHT;
@@ -151,8 +152,8 @@ protected:
   static constexpr size_t g_maxActiveQueueLength = 20;
 
 private:
-  std::queue<std::shared_ptr<uint32_t>> m_activeQueue;
-  std::queue<std::shared_ptr<uint32_t>> m_storedQueue;
+  std::queue<std::shared_ptr<goom::PixelBuffer>> m_activeQueue;
+  std::queue<std::shared_ptr<goom::PixelBuffer>> m_storedQueue;
 
   // Start flag to know init was OK
   bool m_started = false;

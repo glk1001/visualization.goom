@@ -16,8 +16,8 @@ class PluginInfo
 public:
   struct Screen
   {
-    uint16_t width;
-    uint16_t height;
+    uint32_t width;
+    uint32_t height;
     uint32_t size; // == screen.height * screen.width.
     bool operator==(const Screen&) const = default;
     template<class Archive>
@@ -28,7 +28,7 @@ public:
   };
 
   PluginInfo() noexcept;
-  PluginInfo(uint16_t width, uint16_t height) noexcept;
+  PluginInfo(uint32_t width, uint32_t height) noexcept;
   PluginInfo(const PluginInfo&) noexcept;
   virtual ~PluginInfo() noexcept = default;
 
@@ -55,7 +55,7 @@ class WritablePluginInfo : public PluginInfo
 {
 public:
   WritablePluginInfo() noexcept;
-  WritablePluginInfo(uint16_t width, uint16_t height) noexcept;
+  WritablePluginInfo(uint32_t width, uint32_t height) noexcept;
 
   void processSoundSample(const AudioSamples&) override;
 };
@@ -65,9 +65,8 @@ inline PluginInfo::PluginInfo() noexcept : screen{0, 0, 0}, soundInfo{nullptr}
 {
 }
 
-inline PluginInfo::PluginInfo(const uint16_t width, const uint16_t height) noexcept
-  : screen{width, height, static_cast<uint32_t>(width) * static_cast<uint32_t>(height)},
-    soundInfo{std::make_unique<SoundInfo>()}
+inline PluginInfo::PluginInfo(const uint32_t width, const uint32_t height) noexcept
+  : screen{width, height, width * height}, soundInfo{std::make_unique<SoundInfo>()}
 {
 }
 
@@ -101,7 +100,7 @@ inline WritablePluginInfo::WritablePluginInfo() noexcept : PluginInfo{}
 {
 }
 
-inline WritablePluginInfo::WritablePluginInfo(const uint16_t width, const uint16_t height) noexcept
+inline WritablePluginInfo::WritablePluginInfo(const uint32_t width, const uint32_t height) noexcept
   : PluginInfo{width, height}
 {
 }

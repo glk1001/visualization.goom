@@ -1,7 +1,6 @@
 #ifndef _FLYING_STARS_FX_H
 #define _FLYING_STARS_FX_H
 
-#include "goom_graphic.h"
 #include "goom_visual_fx.h"
 
 #include <cereal/access.hpp>
@@ -12,6 +11,7 @@ namespace goom
 {
 
 class PluginInfo;
+class PixelBuffer;
 
 class FlyingStarsFx : public VisualFx
 {

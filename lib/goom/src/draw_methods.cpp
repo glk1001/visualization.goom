@@ -215,7 +215,7 @@ static void drawWuLine(std::vector<PixelBuffer*>& buffs,
   assert(buffs.size() == colors.size());
   std::vector<Pixel> tempColors = colors;
   auto plot = [&](const int x, const int y, const float brightness) -> void {
-    if (uint16_t(x) >= screenWidth || uint16_t(y) >= screenHeight)
+    if (static_cast<uint32_t>(x) >= screenWidth || static_cast<uint32_t>(y) >= screenHeight)
     {
       return;
     }
@@ -370,7 +370,7 @@ static void drawLineOverlap(std::vector<PixelBuffer*>& buffs,
   assert(buffs.size() == colors.size());
   std::vector<Pixel> tempColors = colors;
   auto plot = [&](const int x, const int y) -> void {
-    if (uint16_t(x) >= screenWidth || uint16_t(y) >= screenHeight)
+    if (static_cast<uint32_t>(x) >= screenWidth || static_cast<uint32_t>(y) >= screenHeight)
     {
       return;
     }

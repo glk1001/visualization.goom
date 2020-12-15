@@ -119,7 +119,7 @@ private:
 class PixelBuffer
 {
 public:
-  PixelBuffer(uint16_t width, uint16_t height) noexcept;
+  PixelBuffer(uint32_t width, uint32_t height) noexcept;
   ~PixelBuffer() noexcept = default;
 
   PixelBuffer(const PixelBuffer&) = delete;
@@ -131,10 +131,8 @@ public:
   [[nodiscard]] size_t getBuffSize() const;
 
   void fill(const Pixel&);
-
+  void copyTo(PixelBuffer&, uint32_t length) const;
   [[nodiscard]] const uint32_t* getIntBuff() const;
-  void copyTo(uint32_t* intBuff, uint32_t length) const;
-  void copyFrom(const uint32_t* intBuff, uint32_t length);
 
   const Pixel& operator()(size_t pos) const;
   Pixel& operator()(size_t pos);
@@ -147,6 +145,11 @@ private:
   const uint32_t height;
   const size_t buffSize;
   std::vector<Pixel> buff;
+
+  [[nodiscard]] uint32_t* getIntBuff();
+
+  void copyTo(uint32_t* intBuff, uint32_t length) const;
+  void copyFrom(const uint32_t* intBuff, uint32_t length);
 };
 
 template<class Archive>
@@ -222,7 +225,7 @@ inline void Pixel::set_rgba(const uint32_t v)
   color.intVal = v;
 }
 
-inline PixelBuffer::PixelBuffer(const uint16_t w, const uint16_t h) noexcept
+inline PixelBuffer::PixelBuffer(const uint32_t w, const uint32_t h) noexcept
   : width{w},
     height{h},
     buffSize{static_cast<size_t>(width) * static_cast<size_t>(height) * sizeof(Pixel)},
@@ -258,6 +261,16 @@ inline void PixelBuffer::fill(const Pixel& color)
 inline const uint32_t* PixelBuffer::getIntBuff() const
 {
   return reinterpret_cast<const uint32_t*>(buff.data());
+}
+
+inline uint32_t* PixelBuffer::getIntBuff()
+{
+  return reinterpret_cast<uint32_t*>(buff.data());
+}
+
+inline void PixelBuffer::copyTo(PixelBuffer& buff, const uint32_t length) const
+{
+  copyTo(buff.getIntBuff(), length);
 }
 
 inline void PixelBuffer::copyTo(uint32_t* intBuff, const uint32_t length) const

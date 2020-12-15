@@ -5,7 +5,6 @@
  * File created 11 april 2002 by JeKo <jeko@free.fr>
  */
 
-#include "goom_graphic.h"
 #include "goom_visual_fx.h"
 
 #include <cereal/access.hpp>
@@ -16,6 +15,7 @@ namespace goom
 {
 
 class PluginInfo;
+class PixelBuffer;
 
 class IfsFx : public VisualFx
 {

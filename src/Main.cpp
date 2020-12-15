@@ -26,6 +26,8 @@
 #undef NO_LOGGING
 #include "goomutils/logging.h"
 
+using goom::Pixel;
+using goom::PixelBuffer;
 using goom::utils::Logging;
 
 CVisualizationGoom::CVisualizationGoom()
@@ -108,8 +110,9 @@ bool CVisualizationGoom::Start(int iChannels,
   m_titleChange = true;
 
   // Make one init frame in black
-  std::shared_ptr<uint32_t> sp(new uint32_t[m_goomBufferLen], std::default_delete<uint32_t[]>());
-  memset(sp.get(), 0, m_goomBufferSize);
+  std::shared_ptr<PixelBuffer> sp{
+      new PixelBuffer{static_cast<uint32_t>(m_tex_width), static_cast<uint32_t>(m_tex_height)}};
+  sp->fill(Pixel{0U});
   m_activeQueue.push(sp);
 
   // Init GL parts
@@ -265,7 +268,7 @@ void CVisualizationGoom::Render()
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, m_textureId);
 
-  std::shared_ptr<uint32_t> pixels = GetNextActivePixels();
+  std::shared_ptr<PixelBuffer> pixels = GetNextActivePixels();
   if (pixels != nullptr)
   {
 #ifdef HAS_GL
@@ -281,7 +284,9 @@ void CVisualizationGoom::Render()
 
       // Bind to next PBO and update data directly on the mapped buffer.
       glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pboIds[nextPboIndex]);
-      std::memcpy(m_pboGoomBuffer[nextPboIndex], pixels.get(), m_goomBufferSize);
+      std::memcpy(m_pboGoomBuffer[nextPboIndex],
+                  std::const_pointer_cast<const PixelBuffer>(pixels)->getIntBuff(),
+                  m_goomBufferSize);
 
       glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER); // release pointer to mapping buffer
       glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
@@ -290,7 +295,7 @@ void CVisualizationGoom::Render()
 #endif
     {
       glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_tex_width, m_tex_height, GL_RGBA, GL_UNSIGNED_BYTE,
-                      pixels.get());
+                      std::const_pointer_cast<const PixelBuffer>(pixels)->getIntBuff());
     }
 
     PushUsedPixels(pixels);
@@ -310,9 +315,9 @@ void CVisualizationGoom::Render()
 #endif
 }
 
-inline std::shared_ptr<uint32_t> CVisualizationGoom::GetNextActivePixels()
+inline std::shared_ptr<PixelBuffer> CVisualizationGoom::GetNextActivePixels()
 {
-  std::shared_ptr<uint32_t> pixels(nullptr);
+  std::shared_ptr<PixelBuffer> pixels{};
   std::lock_guard<std::mutex> lk(m_mutex);
   if (m_activeQueue.empty())
   {
@@ -326,7 +331,7 @@ inline std::shared_ptr<uint32_t> CVisualizationGoom::GetNextActivePixels()
   return pixels;
 }
 
-inline void CVisualizationGoom::PushUsedPixels(std::shared_ptr<uint32_t> pixels)
+inline void CVisualizationGoom::PushUsedPixels(std::shared_ptr<PixelBuffer> pixels)
 {
   std::lock_guard<std::mutex> lk(m_mutex);
   m_storedQueue.push(pixels);
@@ -397,7 +402,7 @@ void CVisualizationGoom::Process()
     }
     lk.unlock();
 
-    std::shared_ptr<uint32_t> pixels;
+    std::shared_ptr<goom::PixelBuffer> pixels;
     lk.lock();
     if (!m_storedQueue.empty())
     {
@@ -406,8 +411,8 @@ void CVisualizationGoom::Process()
     }
     else
     {
-      std::shared_ptr<uint32_t> sp(new uint32_t[m_goomBufferLen],
-                                   std::default_delete<uint32_t[]>());
+      std::shared_ptr<PixelBuffer> sp{
+          new PixelBuffer{static_cast<uint32_t>(m_tex_width), static_cast<uint32_t>(m_tex_height)}};
       pixels = sp;
     }
     lk.unlock();
@@ -425,10 +430,10 @@ void CVisualizationGoom::Process()
 
 void CVisualizationGoom::UpdateGoomBuffer(const char* title,
                                           const float floatAudioData[],
-                                          std::shared_ptr<uint32_t>& pixels)
+                                          std::shared_ptr<PixelBuffer>& pixels)
 {
   const goom::AudioSamples audioData{m_channels, floatAudioData};
-  m_goomControl->setScreenBuffer(pixels.get());
+  m_goomControl->setScreenBuffer(*pixels);
   m_goomControl->update(audioData, 0, 0.0f, title, "");
 }
 

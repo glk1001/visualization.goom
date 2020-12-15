@@ -1,7 +1,6 @@
 #ifndef _CONVOLVE_FX_H
 #define _CONVOLVE_FX_H
 
-#include "goom_graphic.h"
 #include "goom_visual_fx.h"
 
 #include <cereal/access.hpp>
@@ -17,6 +16,7 @@ class Parallel;
 }
 
 class PluginInfo;
+class PixelBuffer;
 
 class ConvolveFx : public VisualFx
 {
@@ -27,7 +27,7 @@ public:
   ConvolveFx(const ConvolveFx&) = delete;
   ConvolveFx& operator=(const ConvolveFx&) = delete;
 
-  void convolve(const PixelBuffer& currentBuff, uint32_t* outputBuff);
+  void convolve(const PixelBuffer& currentBuff, PixelBuffer& outputBuff);
 
   [[nodiscard]] std::string getFxName() const override;
   void setBuffSettings(const FXBuffSettings&) override;

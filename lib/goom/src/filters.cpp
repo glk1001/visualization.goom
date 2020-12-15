@@ -1039,8 +1039,8 @@ void ZoomFilterFx::ZoomFilterImpl::makeZoomBufferStripe(const uint32_t interlace
 
   assert(interlaceStart >= 0);
 
-  const float normMiddleX = toNormalizedCoord(filterData.middleX);
-  const float normMiddleY = toNormalizedCoord(filterData.middleY);
+  const float normMiddleX = toNormalizedCoord(static_cast<int32_t>(filterData.middleX));
+  const float normMiddleY = toNormalizedCoord(static_cast<int32_t>(filterData.middleY));
 
   // Where (vertically) to stop generating the buffer stripe
   const int32_t maxEnd = std::min(static_cast<int32_t>(screenHeight),

@@ -1,7 +1,6 @@
 #ifndef _FILTERS_H
 #define _FILTERS_H
 
-#include "goom_graphic.h"
 #include "goom_visual_fx.h"
 
 #include <cereal/access.hpp>
@@ -11,6 +10,8 @@
 
 namespace goom
 {
+
+class PixelBuffer;
 
 enum class ZoomFilterMode
 {
@@ -35,8 +36,8 @@ struct ZoomFilterData
   //   hyper vite.. * * 0 = en avant hype vite.
   int32_t vitesse = 127;
   static constexpr uint8_t pertedec = 8; // NEVER SEEMS TO CHANGE
-  uint16_t middleX = 16;
-  uint16_t middleY = 1; // milieu de l'effet
+  uint32_t middleX = 16;
+  uint32_t middleY = 1; // milieu de l'effet
   bool reverse = true; // inverse la vitesse
 
   // @since June 2001

@@ -199,8 +199,8 @@ GoomDotsFx::GoomDotsImpl::GoomDotsImpl() noexcept = default;
 
 GoomDotsFx::GoomDotsImpl::GoomDotsImpl(const std::shared_ptr<const PluginInfo>& info) noexcept
   : goomInfo(info),
-    pointWidth{(static_cast<uint32_t>(goomInfo->getScreenInfo().width) * 2) / 5},
-    pointHeight{(static_cast<uint32_t>(goomInfo->getScreenInfo().height) * 2) / 5},
+    pointWidth{(goomInfo->getScreenInfo().width * 2) / 5},
+    pointHeight{(goomInfo->getScreenInfo().height * 2) / 5},
     pointWidthDiv2{static_cast<float>(pointWidth / 2.0F)},
     pointHeightDiv2{static_cast<float>(pointHeight / 2.0F)},
     pointWidthDiv3{static_cast<float>(pointWidth / 3.0F)},

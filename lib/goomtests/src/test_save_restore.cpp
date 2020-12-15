@@ -13,17 +13,15 @@
 #include "goom/tentacles_fx.h"
 #include "goomutils/parallel_utils.h"
 
-#include <algorithm>
 #include <cstdint>
 #include <iostream>
 #include <memory>
-#include <sstream>
 #include <vector>
 
 using namespace goom;
 
-constexpr uint16_t screenWidth = 100;
-constexpr uint16_t screenHeight = 100;
+constexpr uint32_t screenWidth = 100;
+constexpr uint32_t screenHeight = 100;
 static const std::shared_ptr<PluginInfo> goomInfo{new PluginInfo{screenWidth, screenHeight}};
 inline std::shared_ptr<const PluginInfo> getGoomInfo()
 {
@@ -33,12 +31,6 @@ inline std::shared_ptr<const PluginInfo> getGoomInfo()
 inline PixelBuffer* getNewBuffer()
 {
   return new PixelBuffer{screenWidth + 1, screenHeight + 1};
-}
-
-inline uint32_t* getNewOutputBuffer()
-{
-  return new uint32_t[static_cast<size_t>(screenWidth + 1) *
-                      static_cast<size_t>(screenHeight + 1)]{};
 }
 
 TEST_CASE("save/restore plugin info", "[saveRestorePluginInfo]")
@@ -87,13 +79,13 @@ TEST_CASE("save/restore goom draw", "[saveRestoreGoomDraw]")
 TEST_CASE("save/restore convolve object", "[saveRestoreConvolve]")
 {
   std::unique_ptr<PixelBuffer> prevBuff{getNewBuffer()};
-  std::unique_ptr<uint32_t> currentBuff{getNewOutputBuffer()};
+  std::unique_ptr<PixelBuffer> currentBuff{getNewBuffer()};
   utils::Parallel parallel{};
 
   ConvolveFx convolveFx{parallel, getGoomInfo()};
   for (size_t i = 0; i < 100; i++)
   {
-    convolveFx.convolve(*prevBuff, currentBuff.get());
+    convolveFx.convolve(*prevBuff, *currentBuff);
   }
   std::stringstream ss;
   {
@@ -324,12 +316,12 @@ TEST_CASE("save/restore tentacles", "[saveRestoreTentacles]")
 
 TEST_CASE("save/restore goom control", "[saveRestoreGoomControl]")
 {
-  std::unique_ptr<uint32_t> outputBuff{getNewOutputBuffer()};
+  std::unique_ptr<PixelBuffer> outputBuff{getNewBuffer()};
 
   constexpr uint64_t seed = 10;
   GoomControl::setRandSeed(seed);
   GoomControl goomControl{screenWidth, screenHeight};
-  goomControl.setScreenBuffer(outputBuff.get());
+  goomControl.setScreenBuffer(*outputBuff);
   std::vector<float> soundData(NUM_AUDIO_SAMPLES * AUDIO_SAMPLE_LEN);
   std::fill(soundData.begin(), soundData.end(), 0.5);
   const AudioSamples audioSamples{2, soundData.data()};
@@ -349,7 +341,7 @@ TEST_CASE("save/restore goom control", "[saveRestoreGoomControl]")
   {
     cereal::JSONInputArchive archive(ss);
     archive(goomControlRestored);
-    goomControlRestored.setScreenBuffer(outputBuff.get());
+    goomControlRestored.setScreenBuffer(*outputBuff);
   }
   std::stringstream ssCheck;
   {

@@ -1,7 +1,6 @@
 #ifndef LIBS_GOOM_INCLUDE_GOOM_GOOM_DOTS_FX_H_
 #define LIBS_GOOM_INCLUDE_GOOM_GOOM_DOTS_FX_H_
 
-#include "goom_graphic.h"
 #include "goom_visual_fx.h"
 
 #include <cereal/access.hpp>
@@ -12,6 +11,7 @@ namespace goom
 {
 
 class PluginInfo;
+class PixelBuffer;
 
 class GoomDotsFx : public VisualFx
 {

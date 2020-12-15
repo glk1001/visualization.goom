@@ -32,7 +32,7 @@ public:
 
   void setBuffSettings(const FXBuffSettings&);
 
-  void convolve(const PixelBuffer& currentBuff, uint32_t* outputBuff);
+  void convolve(const PixelBuffer& currentBuff, PixelBuffer& outputBuff);
 
   bool operator==(const ConvolveImpl&) const;
 
@@ -45,7 +45,7 @@ private:
   float factor = 0.5;
   FXBuffSettings buffSettings{};
 
-  void createOutputWithBrightness(const PixelBuffer& src, uint32_t* dest, uint32_t flashInt);
+  void createOutputWithBrightness(const PixelBuffer& src, PixelBuffer& dest, uint32_t flashInt);
 
   friend class cereal::access;
   template<class Archive>
@@ -92,7 +92,7 @@ std::string ConvolveFx::getFxName() const
   return "Convolve FX";
 }
 
-void ConvolveFx::convolve(const PixelBuffer& currentBuff, uint32_t* outputBuff)
+void ConvolveFx::convolve(const PixelBuffer& currentBuff, PixelBuffer& outputBuff)
 {
   if (!enabled)
   {
@@ -159,7 +159,7 @@ inline void ConvolveFx::ConvolveImpl::setBuffSettings(const FXBuffSettings& sett
   buffSettings = settings;
 }
 
-void ConvolveFx::ConvolveImpl::convolve(const PixelBuffer& currentBuff, uint32_t* outputBuff)
+void ConvolveFx::ConvolveImpl::convolve(const PixelBuffer& currentBuff, PixelBuffer& outputBuff)
 {
   const float flash = (factor * flashIntensity + screenBrightness) / 100.0F;
   const auto flashInt = static_cast<uint32_t>(std::round(flash * 256 + 0.0001F));
@@ -182,11 +182,11 @@ void ConvolveFx::ConvolveImpl::convolve(const PixelBuffer& currentBuff, uint32_t
 }
 
 void ConvolveFx::ConvolveImpl::createOutputWithBrightness(const PixelBuffer& src,
-                                                          uint32_t* dest,
+                                                          PixelBuffer& dest,
                                                           const uint32_t flashInt)
 {
   const auto setDestPixel = [&](const uint32_t i) {
-    dest[i] = getBrighterColorInt(flashInt, src(i), buffSettings.allowOverexposed).rgba();
+    dest(i) = getBrighterColorInt(flashInt, src(i), buffSettings.allowOverexposed);
   };
 
   parallel->forLoop(goomInfo->getScreenInfo().size, setDestPixel);

@@ -11,7 +11,6 @@
  */
 
 #include "goom_config.h"
-#include "goom_graphic.h"
 
 #include <cereal/archives/json.hpp>
 #include <cstdint>
@@ -21,6 +20,8 @@
 
 namespace goom
 {
+
+class PixelBuffer;
 
 struct FXBuffSettings
 {

@@ -840,18 +840,18 @@ class GoomImageBuffers
 {
 public:
   GoomImageBuffers() noexcept = default;
-  explicit GoomImageBuffers(uint16_t resx, uint16_t resy) noexcept;
+  explicit GoomImageBuffers(uint32_t resx, uint32_t resy) noexcept;
   ~GoomImageBuffers() noexcept;
   GoomImageBuffers(const GoomImageBuffers&) = delete;
   GoomImageBuffers& operator=(const GoomImageBuffers&) = delete;
 
-  void setResolution(uint16_t resx, uint16_t resy);
+  void setResolution(uint32_t resx, uint32_t resy);
 
   [[nodiscard]] PixelBuffer& getP1() const { return *p1; }
   [[nodiscard]] PixelBuffer& getP2() const { return *p2; }
 
-  [[nodiscard]] uint32_t* getOutputBuff() const { return outputBuff; }
-  void setOutputBuff(uint32_t* val) { outputBuff = val; }
+  [[nodiscard]] PixelBuffer& getOutputBuff() const { return *outputBuff; }
+  void setOutputBuff(PixelBuffer& val) { outputBuff = &val; }
 
   static constexpr size_t maxNumBuffs = 10;
   static constexpr size_t maxBuffInc = maxNumBuffs / 2;
@@ -862,25 +862,25 @@ private:
   std::vector<std::unique_ptr<PixelBuffer>> buffs{};
   PixelBuffer* p1{};
   PixelBuffer* p2{};
-  uint32_t* outputBuff = nullptr;
+  PixelBuffer* outputBuff{};
   size_t nextBuff = 0;
   size_t buffInc = 1;
-  static std::vector<std::unique_ptr<PixelBuffer>> getPixelBuffs(uint16_t resx, uint16_t resy);
+  static std::vector<std::unique_ptr<PixelBuffer>> getPixelBuffs(uint32_t resx, uint32_t resy);
 };
 
-std::vector<std::unique_ptr<PixelBuffer>> GoomImageBuffers::getPixelBuffs(const uint16_t resx,
-                                                                          const uint16_t resy)
+std::vector<std::unique_ptr<PixelBuffer>> GoomImageBuffers::getPixelBuffs(const uint32_t resx,
+                                                                          const uint32_t resy)
 {
   std::vector<std::unique_ptr<PixelBuffer>> newBuffs(maxNumBuffs);
   for (auto& b : newBuffs)
   {
     // Allocate one extra row and column to help the filter process handle edges.
-    b.reset(new PixelBuffer{static_cast<uint16_t>(resx + 1), static_cast<uint16_t>(resy + 1)});
+    b.reset(new PixelBuffer{resx + 1, resy + 1});
   }
   return newBuffs;
 }
 
-GoomImageBuffers::GoomImageBuffers(const uint16_t resx, const uint16_t resy) noexcept
+GoomImageBuffers::GoomImageBuffers(const uint32_t resx, const uint32_t resy) noexcept
   : buffs{getPixelBuffs(resx, resy)},
     p1{buffs[0].get()},
     p2{buffs[1].get()},
@@ -891,7 +891,7 @@ GoomImageBuffers::GoomImageBuffers(const uint16_t resx, const uint16_t resy) noe
 
 GoomImageBuffers::~GoomImageBuffers() noexcept = default;
 
-void GoomImageBuffers::setResolution(const uint16_t resx, const uint16_t resy)
+void GoomImageBuffers::setResolution(const uint32_t resx, const uint32_t resy)
 {
   buffs = getPixelBuffs(resx, resy);
   p1 = buffs[0].get();
@@ -1057,14 +1057,14 @@ class GoomControl::GoomControlImpl
 {
 public:
   GoomControlImpl() noexcept;
-  GoomControlImpl(uint16_t resx, uint16_t resy) noexcept;
+  GoomControlImpl(uint32_t resx, uint32_t resy) noexcept;
   ~GoomControlImpl() noexcept;
   void swap(GoomControl::GoomControlImpl& other) noexcept = delete;
 
-  uint32_t* getScreenBuffer() const;
-  void setScreenBuffer(uint32_t* buffer);
-  uint16_t getScreenWidth() const;
-  uint16_t getScreenHeight() const;
+  PixelBuffer& getScreenBuffer() const;
+  void setScreenBuffer(PixelBuffer&);
+  uint32_t getScreenWidth() const;
+  uint32_t getScreenHeight() const;
 
   void start();
   void finish();
@@ -1180,7 +1180,7 @@ GoomControl::GoomControl() noexcept : controller{new GoomControlImpl{}}
 {
 }
 
-GoomControl::GoomControl(const uint16_t resx, const uint16_t resy) noexcept
+GoomControl::GoomControl(const uint32_t resx, const uint32_t resy) noexcept
   : controller{new GoomControlImpl{resx, resy}}
 {
 }
@@ -1200,13 +1200,13 @@ void GoomControl::saveState(std::ostream& f) const
 
 void GoomControl::restoreState(std::istream& f)
 {
-  uint32_t* outputBuffer = controller->getScreenBuffer();
+  PixelBuffer& outputBuffer = controller->getScreenBuffer();
   cereal::JSONInputArchive archive(f);
   archive(*this);
   controller->setScreenBuffer(outputBuffer);
 }
 
-void GoomControl::setScreenBuffer(uint32_t* buffer)
+void GoomControl::setScreenBuffer(PixelBuffer& buffer)
 {
   controller->setScreenBuffer(buffer);
 }
@@ -1307,7 +1307,7 @@ GoomControl::GoomControlImpl::GoomControlImpl() noexcept : parallel{}
   gfont_load();
 }
 
-GoomControl::GoomControlImpl::GoomControlImpl(const uint16_t resx, const uint16_t resy) noexcept
+GoomControl::GoomControlImpl::GoomControlImpl(const uint32_t resx, const uint32_t resy) noexcept
   : parallel{0}, // max cores
     goomInfo{new WritablePluginInfo{resx, resy}},
     imageBuffers{resx, resy},
@@ -1337,22 +1337,22 @@ GoomControl::GoomControlImpl::GoomControlImpl(const uint16_t resx, const uint16_
 
 GoomControl::GoomControlImpl::~GoomControlImpl() noexcept = default;
 
-uint32_t* GoomControl::GoomControlImpl::getScreenBuffer() const
+PixelBuffer& GoomControl::GoomControlImpl::getScreenBuffer() const
 {
   return imageBuffers.getOutputBuff();
 }
 
-void GoomControl::GoomControlImpl::setScreenBuffer(uint32_t* buffer)
+void GoomControl::GoomControlImpl::setScreenBuffer(PixelBuffer& buffer)
 {
   imageBuffers.setOutputBuff(buffer);
 }
 
-uint16_t GoomControl::GoomControlImpl::getScreenWidth() const
+uint32_t GoomControl::GoomControlImpl::getScreenWidth() const
 {
   return goomInfo->getScreenInfo().width;
 }
 
-uint16_t GoomControl::GoomControlImpl::getScreenHeight() const
+uint32_t GoomControl::GoomControlImpl::getScreenHeight() const
 {
   return goomInfo->getScreenInfo().height;
 }

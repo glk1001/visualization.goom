@@ -411,8 +411,8 @@ private:
 
 Fractal::Fractal(const std::shared_ptr<const PluginInfo>& goomInfo, const ColorMaps& cm) noexcept
   : colorMaps{&cm},
-    lx{(static_cast<uint32_t>(goomInfo->getScreenInfo().width) - 1) / 2},
-    ly{(static_cast<uint32_t>(goomInfo->getScreenInfo().height) - 1) / 2},
+    lx{(goomInfo->getScreenInfo().width - 1) / 2},
+    ly{(goomInfo->getScreenInfo().height - 1) / 2},
     components(5 * maxSimi),
     hits1{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height},
     hits2{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height},
