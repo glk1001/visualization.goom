@@ -85,12 +85,17 @@ public:
   void updateStart();
   void updateEnd();
 
+  void updateIfsIncr(int val);
+  void setlastIfsIncr(int val);
+
 private:
   uint32_t numUpdates = 0;
   uint64_t totalTimeInUpdatesMs = 0;
   uint32_t minTimeInUpdatesMs = std::numeric_limits<uint32_t>::max();
   uint32_t maxTimeInUpdatesMs = 0;
   std::chrono::high_resolution_clock::time_point timeNowHiRes{};
+  int maxIfsIncr = -1000;
+  int lastIfsIncr = 0;
 };
 
 void IfsStats::reset()
@@ -100,6 +105,8 @@ void IfsStats::reset()
   minTimeInUpdatesMs = std::numeric_limits<uint32_t>::max();
   maxTimeInUpdatesMs = 0;
   timeNowHiRes = std::chrono::high_resolution_clock::now();
+  maxIfsIncr = -1000;
+  lastIfsIncr = 0;
 }
 
 void IfsStats::log(const StatsLogValueFunc& logVal) const
@@ -112,6 +119,8 @@ void IfsStats::log(const StatsLogValueFunc& logVal) const
   logVal(module, "avTimeInUpdateMs", avTimeInUpdateMs);
   logVal(module, "minTimeInUpdatesMs", minTimeInUpdatesMs);
   logVal(module, "maxTimeInUpdatesMs", maxTimeInUpdatesMs);
+  logVal(module, "maxIfsIncr", maxIfsIncr);
+  logVal(module, "lastIfsIncr", lastIfsIncr);
 }
 
 inline void IfsStats::updateStart()
@@ -136,6 +145,19 @@ inline void IfsStats::updateEnd()
     maxTimeInUpdatesMs = timeInUpdateMs;
   }
   totalTimeInUpdatesMs += timeInUpdateMs;
+}
+
+inline void IfsStats::updateIfsIncr(int val)
+{
+  if (val > maxIfsIncr)
+  {
+    maxIfsIncr = val;
+  }
+}
+
+inline void IfsStats::setlastIfsIncr(int val)
+{
+  lastIfsIncr = val;
 }
 
 inline bool megaChangeColorMapEvent()
@@ -208,36 +230,36 @@ static const std::vector<CentreType> centreList = {
 
 struct Similitude
 {
-  Dbl c_x = 0;
-  Dbl c_y = 0;
-  Dbl r1 = 0;
-  Dbl r2 = 0;
+  Dbl dbl_cx = 0;
+  Dbl dbl_cy = 0;
+  Dbl dbl_r1 = 0;
+  Dbl dbl_r2 = 0;
   Dbl A1 = 0;
   Dbl A2 = 0;
-  Flt Ct1 = 0;
-  Flt St1 = 0;
-  Flt Ct2 = 0;
-  Flt St2 = 0;
-  Flt Cx = 0;
-  Flt Cy = 0;
-  Flt R1 = 0;
-  Flt R2 = 0;
+  Flt cosA1 = 0;
+  Flt sinA1 = 0;
+  Flt cosA2 = 0;
+  Flt sinA2 = 0;
+  Flt cx = 0;
+  Flt cy = 0;
+  Flt r1 = 0;
+  Flt r2 = 0;
   Pixel color{0U};
 
   bool operator==(const Similitude& s) const = default;
   /**
   bool operator==(const Similitude& s) const
   {
-    return c_x == s.c_x && c_y == s.c_y && r == s.r && r2 == s.r2 && A == s.A && A2 == s.A2 &&
-           Ct == s.Ct && St == s.St && Ct2 == s.Ct2 && St2 == s.St2 && Cx == s.Cx && Cy == s.Cy &&
-           R == s.R && R2 == s.R2;
+    return dbl_cx == s.dbl_cx && dbl_cy == s.dbl_cy && r == s.r && dbl_r2 == s.dbl_r2 && A == s.A && A2 == s.A2 &&
+           Ct == s.Ct && St == s.St && cosA2 == s.cosA2 && sinA2 == s.sinA2 && cx == s.cx && cy == s.cy &&
+           R == s.R && r2 == s.r2;
   }
   **/
 
   template<class Archive>
   void serialize(Archive& ar)
   {
-    ar(c_x, c_y, r1, r2, A1, A2, Ct1, St1, Ct2, St2, Cx, Cy, R1, R2, color);
+    ar(dbl_cx, dbl_cy, dbl_r1, dbl_r2, A1, A2, cosA1, sinA1, cosA2, sinA2, cx, cy, r1, r2, color);
   };
 };
 
@@ -463,11 +485,11 @@ const std::vector<IfsPoint>& Fractal::drawIfs()
 
   for (size_t i = 0; i < numSimi; i++)
   {
-    s[i].c_x = u0 * s0[i].c_x + u1 * s1[i].c_x + u2 * s2[i].c_x + u3 * s3[i].c_x;
-    s[i].c_y = u0 * s0[i].c_y + u1 * s1[i].c_y + u2 * s2[i].c_y + u3 * s3[i].c_y;
+    s[i].dbl_cx = u0 * s0[i].dbl_cx + u1 * s1[i].dbl_cx + u2 * s2[i].dbl_cx + u3 * s3[i].dbl_cx;
+    s[i].dbl_cy = u0 * s0[i].dbl_cy + u1 * s1[i].dbl_cy + u2 * s2[i].dbl_cy + u3 * s3[i].dbl_cy;
 
-    s[i].r1 = u0 * s0[i].r1 + u1 * s1[i].r1 + u2 * s2[i].r1 + u3 * s3[i].r1;
-    s[i].r2 = u0 * s0[i].r2 + u1 * s1[i].r2 + u2 * s2[i].r2 + u3 * s3[i].r2;
+    s[i].dbl_r1 = u0 * s0[i].dbl_r1 + u1 * s1[i].dbl_r1 + u2 * s2[i].dbl_r1 + u3 * s3[i].dbl_r1;
+    s[i].dbl_r2 = u0 * s0[i].dbl_r2 + u1 * s1[i].dbl_r2 + u2 * s2[i].dbl_r2 + u3 * s3[i].dbl_r2;
 
     s[i].A1 = u0 * s0[i].A1 + u1 * s1[i].A1 + u2 * s2[i].A1 + u3 * s3[i].A1;
     s[i].A2 = u0 * s0[i].A2 + u1 * s1[i].A2 + u2 * s2[i].A2 + u3 * s3[i].A2;
@@ -492,11 +514,11 @@ const std::vector<IfsPoint>& Fractal::drawIfs()
 
     for (size_t i = 0; i < numSimi; i++)
     {
-      s1[i].c_x = (2.0 * s3[i].c_x) - s2[i].c_x;
-      s1[i].c_y = (2.0 * s3[i].c_y) - s2[i].c_y;
+      s1[i].dbl_cx = (2.0 * s3[i].dbl_cx) - s2[i].dbl_cx;
+      s1[i].dbl_cy = (2.0 * s3[i].dbl_cy) - s2[i].dbl_cy;
 
-      s1[i].r1 = (2.0 * s3[i].r1) - s2[i].r1;
-      s1[i].r2 = (2.0 * s3[i].r2) - s2[i].r2;
+      s1[i].dbl_r1 = (2.0 * s3[i].dbl_r1) - s2[i].dbl_r1;
+      s1[i].dbl_r2 = (2.0 * s3[i].dbl_r2) - s2[i].dbl_r2;
 
       s1[i].A1 = (2.0 * s3[i].A1) - s2[i].A1;
       s1[i].A2 = (2.0 * s3[i].A2) - s2[i].A2;
@@ -519,21 +541,21 @@ void Fractal::drawFractal()
   {
     Similitude& simi = components[i];
 
-    simi.Cx = dbl_to_flt(simi.c_x);
-    simi.Cy = dbl_to_flt(simi.c_y);
+    simi.cx = dbl_to_flt(simi.dbl_cx);
+    simi.cy = dbl_to_flt(simi.dbl_cy);
 
-    simi.Ct1 = dbl_to_flt(cos(simi.A1));
-    simi.St1 = dbl_to_flt(sin(simi.A1));
-    simi.Ct2 = dbl_to_flt(cos(simi.A2));
-    simi.St2 = dbl_to_flt(sin(simi.A2));
+    simi.cosA1 = dbl_to_flt(std::cos(simi.A1));
+    simi.sinA1 = dbl_to_flt(std::sin(simi.A1));
+    simi.cosA2 = dbl_to_flt(std::cos(simi.A2));
+    simi.sinA2 = dbl_to_flt(std::sin(simi.A2));
 
-    simi.R1 = dbl_to_flt(simi.r1);
-    simi.R2 = dbl_to_flt(simi.r2);
+    simi.r1 = dbl_to_flt(simi.dbl_r1);
+    simi.r2 = dbl_to_flt(simi.dbl_r2);
   }
 
   for (size_t i = 0; i < numSimi; i++)
   {
-    const FltPoint p0{components[i].Cx, components[i].Cy};
+    const FltPoint p0{components[i].cx, components[i].cy};
 
     for (size_t j = 0; j < numSimi; j++)
     {
@@ -581,20 +603,20 @@ void Fractal::randomSimis(const size_t start, const size_t num)
 
   for (size_t i = start; i < start + num; i++)
   {
-    components[i].c_x = gaussRand(0.0, 4.0, c_factor);
-    components[i].c_y = gaussRand(0.0, 4.0, c_factor);
-    components[i].r1 = gaussRand(r1Mean, 3.0, r1_factor);
-    components[i].r2 = halfGaussRand(r2Mean, 2.0, r2_factor);
+    components[i].dbl_cx = gaussRand(0.0, 4.0, c_factor);
+    components[i].dbl_cy = gaussRand(0.0, 4.0, c_factor);
+    components[i].dbl_r1 = gaussRand(r1Mean, 3.0, r1_factor);
+    components[i].dbl_r2 = halfGaussRand(r2Mean, 2.0, r2_factor);
     components[i].A1 = gaussRand(0.0, 4.0, A1_factor) * (m_pi / 180.0);
     components[i].A2 = gaussRand(0.0, 4.0, A2_factor) * (m_pi / 180.0);
-    components[i].Ct1 = 0;
-    components[i].St1 = 0;
-    components[i].Ct2 = 0;
-    components[i].St2 = 0;
-    components[i].Cx = 0;
-    components[i].Cy = 0;
-    components[i].R1 = 0;
-    components[i].R2 = 0;
+    components[i].cosA1 = 0;
+    components[i].sinA1 = 0;
+    components[i].cosA2 = 0;
+    components[i].sinA2 = 0;
+    components[i].cx = 0;
+    components[i].cy = 0;
+    components[i].r1 = 0;
+    components[i].r2 = 0;
 
     components[i].color = ColorMap::getRandomColor(colorMaps->getRandomColorMap(colorMapGroup));
   }
@@ -623,15 +645,15 @@ void Fractal::trace(const uint32_t curDepth, const FltPoint& p0)
 
 inline FltPoint Fractal::transform(const Similitude& simi, const FltPoint& p0)
 {
-  const Flt x1 = div_by_unit((p0.x - simi.Cx) * simi.R1);
-  const Flt y1 = div_by_unit((p0.y - simi.Cy) * simi.R1);
+  const Flt x1 = div_by_unit((p0.x - simi.cx) * simi.r1);
+  const Flt y1 = div_by_unit((p0.y - simi.cy) * simi.r1);
 
-  const Flt x2 = div_by_unit((+x1 - simi.Cx) * simi.R2);
-  const Flt y2 = div_by_unit((-y1 - simi.Cy) * simi.R2);
+  const Flt x2 = div_by_unit((+x1 - simi.cx) * simi.r2);
+  const Flt y2 = div_by_unit((-y1 - simi.cy) * simi.r2);
 
   return {
-      div_by_unit(x1 * simi.Ct1 - y1 * simi.St1 + x2 * simi.Ct2 - y2 * simi.St2) + simi.Cx,
-      div_by_unit(x1 * simi.St1 + y1 * simi.Ct1 + x2 * simi.St2 + y2 * simi.Ct2) + simi.Cy,
+      div_by_unit(x1 * simi.cosA1 - y1 * simi.sinA1 + x2 * simi.cosA2 - y2 * simi.sinA2) + simi.cx,
+      div_by_unit(x1 * simi.sinA1 + y1 * simi.cosA1 + x2 * simi.sinA2 + y2 * simi.cosA2) + simi.cy,
   };
 }
 
@@ -947,6 +969,7 @@ public:
   void renew();
   void updateIncr();
 
+  void finish();
   void log(const StatsLogValueFunc&) const;
 
   bool operator==(const IfsImpl&) const;
@@ -990,7 +1013,7 @@ private:
                  PixelBuffer& currentBuff,
                  const IfsPoint&,
                  const Pixel& ifsColor,
-                 const float tmix);
+                 float tmix);
   void updateColors();
   void updateColorsModeMer();
   void updateColorsModeMerver();
@@ -1036,6 +1059,7 @@ void IfsFx::start()
 
 void IfsFx::finish()
 {
+  fxImpl->finish();
 }
 
 void IfsFx::log(const StatsLogValueFunc& logVal) const
@@ -1147,8 +1171,9 @@ IfsFx::IfsImpl::IfsImpl(std::shared_ptr<const PluginInfo> info) noexcept
   for (size_t i = 0; i < 5 * maxSimi; i++)
   {
     Similitude cur = fractal->components[i];
-    logDebug("simi[{}]: c_x = {:.2}, c_y = {:.2}, r = {:.2}, r2 = {:.2}, A = {:.2}, A2 = {:.2}.", i,
-             cur.c_x, cur.c_y, cur.r1, cur.r2, cur.A1, cur.A2);
+    logDebug("simi[{}]: dbl_cx = {:.2}, dbl_cy = {:.2}, r = {:.2}, dbl_r2 = {:.2}, A = {:.2}, A2 = "
+             "{:.2}.",
+             i, cur.dbl_cx, cur.dbl_cy, cur.dbl_r1, cur.dbl_r2, cur.A1, cur.A2);
   }
 #endif
 }
@@ -1173,6 +1198,11 @@ IfsFx::ColorMode IfsFx::IfsImpl::getColorMode() const
 void IfsFx::IfsImpl::setColorMode(const IfsFx::ColorMode c)
 {
   return colorizer.setForcedColorMode(c);
+}
+
+void IfsFx::IfsImpl::finish()
+{
+  stats.setlastIfsIncr(ifs_incr);
 }
 
 void IfsFx::IfsImpl::log(const StatsLogValueFunc& logVal) const
@@ -1261,6 +1291,7 @@ void IfsFx::IfsImpl::updateIncr()
   {
     recay_ifs = 5;
     ifs_incr = 11;
+    stats.updateIfsIncr(ifs_incr);
     renew();
   }
 }
@@ -1294,6 +1325,8 @@ void IfsFx::IfsImpl::updateDecayAndRecay()
       ifs_incr = 1;
     }
   }
+
+  stats.updateIfsIncr(ifs_incr);
 }
 
 inline int IfsFx::IfsImpl::getIfsIncr() const
