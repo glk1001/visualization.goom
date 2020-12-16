@@ -360,6 +360,7 @@ public:
   Fractal& operator=(const Fractal&) = delete;
 
   void init();
+  void resetCurrentIFSFunc();
 
   [[nodiscard]] uint32_t getSpeed() const { return speed; }
   void setSpeed(const uint32_t val) { speed = val; }
@@ -403,7 +404,10 @@ private:
   void randomSimis(size_t start, size_t num);
   void trace(uint32_t curDepth, const FltPoint& p0);
   void updateHits(const Similitude&, const FltPoint&);
-  static FltPoint transform(const Similitude&, const FltPoint& p0);
+  using IFSFunc =
+      std::function<FltPoint(const Similitude& simi, float x1, float y1, float x2, float y2)>;
+  IFSFunc curFunc{};
+  FltPoint transform(const Similitude&, const FltPoint& p0);
   static Dbl gaussRand(Dbl c, Dbl S, Dbl A_mult_1_minus_exp_neg_S);
   static Dbl halfGaussRand(Dbl c, Dbl S, Dbl A_mult_1_minus_exp_neg_S);
   static constexpr Dbl get_1_minus_exp_neg_S(Dbl S);
@@ -420,6 +424,7 @@ Fractal::Fractal(const std::shared_ptr<const PluginInfo>& goomInfo, const ColorM
     curHits{&hits2}
 {
   init();
+  resetCurrentIFSFunc();
 }
 
 void Fractal::init()
@@ -450,6 +455,34 @@ void Fractal::init()
   for (size_t i = 0; i < 5; i++)
   {
     randomSimis(i * maxSimi, maxSimi);
+  }
+}
+
+void Fractal::resetCurrentIFSFunc()
+{
+  if (probabilityOfMInN(5, 10))
+  {
+    curFunc = [&](const Similitude& simi, const float x1, const float y1, const float x2,
+                  const float y2) -> FltPoint {
+      return {
+          div_by_unit(x1 * simi.sinA1 - y1 * simi.cosA1 + x2 * simi.sinA2 - y2 * simi.cosA2) +
+              simi.cx,
+          div_by_unit(x1 * simi.cosA1 + y1 * simi.sinA1 + x2 * simi.cosA2 + y2 * simi.sinA2) +
+              simi.cy,
+      };
+    };
+  }
+  else
+  {
+    curFunc = [&](const Similitude& simi, const float x1, const float y1, const float x2,
+                  const float y2) -> FltPoint {
+      return {
+          div_by_unit(x1 * simi.cosA1 - y1 * simi.sinA1 + x2 * simi.cosA2 - y2 * simi.sinA2) +
+              simi.cx,
+          div_by_unit(x1 * simi.sinA1 + y1 * simi.cosA1 + x2 * simi.sinA2 + y2 * simi.cosA2) +
+              simi.cy,
+      };
+    };
   }
 }
 
@@ -568,7 +601,6 @@ void Fractal::drawFractal()
   }
 }
 
-
 constexpr Dbl Fractal::get_1_minus_exp_neg_S(const Dbl S)
 {
   return 1.0 - std::exp(-S);
@@ -651,10 +683,7 @@ inline FltPoint Fractal::transform(const Similitude& simi, const FltPoint& p0)
   const Flt x2 = div_by_unit((+x1 - simi.cx) * simi.r2);
   const Flt y2 = div_by_unit((-y1 - simi.cy) * simi.r2);
 
-  return {
-      div_by_unit(x1 * simi.cosA1 - y1 * simi.sinA1 + x2 * simi.cosA2 - y2 * simi.sinA2) + simi.cx,
-      div_by_unit(x1 * simi.sinA1 + y1 * simi.cosA1 + x2 * simi.sinA2 + y2 * simi.cosA2) + simi.cy,
-  };
+  return curFunc(simi, x1, y1, x2, y2);
 }
 
 inline void Fractal::updateHits(const Similitude& simi, const FltPoint& p)
@@ -836,10 +865,10 @@ inline Pixel Colorizer::getNextMixerMapColor(const float t, const float x, const
 inline Pixel Colorizer::getMixedColor(
     const Pixel& baseColor, const uint32_t hitCount, const float tmix, const float x, const float y)
 {
-  //  const float hitFactor = std::max(0.4F, std::log(static_cast<float>(hitCount))/static_cast<float>(maxHitCount));
-  //  const float logAlpha = std::log(static_cast<float>(hitCount))/static_cast<float>(hitCount);
-  const float logAlpha =
-      maxHitCount <= 1 ? 1.0F : std::log(static_cast<float>(hitCount)) / logMaxHitCount;
+  constexpr float brightness = 1.9;
+  const float logAlpha = maxHitCount <= 1
+                             ? 1.0F
+                             : brightness * std::log(static_cast<float>(hitCount)) / logMaxHitCount;
 
   Pixel mixColor;
   float t = tBetweenColors;
@@ -869,7 +898,7 @@ inline Pixel Colorizer::getMixedColor(
       static const float zStep = 0.1;
       static float z = 0;
 
-      mixColor = getNextMixerMapColor(0.5 * (1.0F + std::sin(freq * z)), x, y);
+      mixColor = getNextMixerMapColor(0.5F * (1.0F + std::sin(freq * z)), x, y);
       z += zStep;
       if (colorMode == IfsFx::ColorMode::sineMapColors)
       {
@@ -891,7 +920,7 @@ inline Pixel Colorizer::getMixedColor(
     mixColor = ColorMap::colorMix(mixColor, baseColor, t);
   }
 
-  static GammaCorrection gammaCorrect{4.2, 0.1};
+  static GammaCorrection gammaCorrect{4.2, 0.01};
 
   return gammaCorrect.getCorrection(logAlpha, mixColor);
 }
@@ -903,7 +932,7 @@ public:
   LowDensityBlurrer(uint32_t screenWidth, uint32_t screenHeight, uint32_t width) noexcept;
 
   [[nodiscard]] uint32_t getWidth() const { return width; }
-  void setWidth(const uint32_t val);
+  void setWidth(uint32_t val);
 
   void doBlur(std::vector<IfsPoint>&, PixelBuffer&) const;
 
@@ -1478,6 +1507,8 @@ void IfsFx::IfsImpl::updatePixelBuffers(PixelBuffer& prevBuff,
   const size_t numPoints = points.size();
   const float tStep = numPoints == 1 ? 0.0F : (1.0F - 0.0F) / static_cast<float>(numPoints - 1);
   float t = -tStep;
+
+  fractal->resetCurrentIFSFunc();
 
   std::vector<IfsPoint> lowDensityPoints{};
   for (size_t i = 0; i < numPoints; i += static_cast<size_t>(getIfsIncr()))
