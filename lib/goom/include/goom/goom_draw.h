@@ -65,6 +65,8 @@ public:
             const std::vector<Pixel>& colors,
             uint8_t thickness) const;
 
+  void text(PixelBuffer&, int x, int y, const std::string& text, float charSpace, bool center);
+
   bool operator==(const GoomDraw&) const;
 
   template<class Archive>
@@ -76,6 +78,7 @@ private:
   bool allowOverexposed = false;
   float buffIntensity = 1;
   uint32_t intBuffIntensity = channel_limits<uint32_t>::max();
+  bool fontsLoaded = false;
 };
 
 template<class Archive>

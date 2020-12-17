@@ -12,9 +12,9 @@
 #include "convolve_fx.h"
 #include "filters.h"
 #include "flying_stars_fx.h"
-#include "gfontlib.h"
-#include "goom/goom_dots_fx.h"
 #include "goom_config.h"
+#include "goom_dots_fx.h"
+#include "goom_draw.h"
 #include "goom_graphic.h"
 #include "goom_plugin_info.h"
 #include "goom_visual_fx.h"
@@ -133,7 +133,7 @@ public:
   LinesFx::LineType getRandomLineTypeEvent() const;
 
 private:
-  PluginInfo* goomInfo = nullptr;
+  PluginInfo* goomInfo{};
   mutable GoomFilterEvent lastReturnedFilterEvent = GoomFilterEvent::_size;
 
   static constexpr size_t numGoomEvents = static_cast<size_t>(GoomEvent::_size);
@@ -246,6 +246,12 @@ private:
 
 // clang-format off
 const GoomStates::WeightedStatesArray GoomStates::states{{
+  {
+    .weight = 20,
+    .drawables {{
+      { .fx = GoomDrawable::IFS,       .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
+    }},
+  },
   {
     .weight = 200,
     .drawables {{
@@ -548,8 +554,7 @@ void GoomStats::log(const StatsLogValueFunc& logVal) const
   {
     logVal(module, "lastZoomFilterData->mode", enumToString(lastZoomFilterData->mode));
     logVal(module, "lastZoomFilterData->vitesse", lastZoomFilterData->vitesse);
-    logVal(module, "lastZoomFilterData->pertedec",
-           static_cast<uint32_t>(lastZoomFilterData->pertedec));
+    logVal(module, "lastZoomFilterData->pertedec", static_cast<uint32_t>(ZoomFilterData::pertedec));
     logVal(module, "lastZoomFilterData->middleX", lastZoomFilterData->middleX);
     logVal(module, "lastZoomFilterData->middleY", lastZoomFilterData->middleY);
     logVal(module, "lastZoomFilterData->reverse",
@@ -605,11 +610,10 @@ void GoomStats::log(const StatsLogValueFunc& logVal) const
   }
   for (size_t i = 0; i < stateDurations.size(); i++)
   {
-    const float avStateDuration =
-        numStateChanges[i] == 0
-            ? -1.0F
-            : static_cast<float>(stateDurations[i]) / static_cast<float>(numStateChanges[i]);
-    logVal(module, "averageState_" + std::to_string(i) + "_Duration", avStateDuration);
+    const float avStateTime = numStateChanges[i] == 0 ? -1.0F
+                                                      : static_cast<float>(stateDurations[i]) /
+                                                            static_cast<float>(numStateChanges[i]);
+    logVal(module, "averageState_" + std::to_string(i) + "_Duration", avStateTime);
   }
   logVal(module, "totalFilterModeChanges", totalFilterModeChanges);
   for (size_t i = 0; i < numFilterModeChanges.size(); i++)
@@ -875,7 +879,7 @@ std::vector<std::unique_ptr<PixelBuffer>> GoomImageBuffers::getPixelBuffs(const 
   for (auto& b : newBuffs)
   {
     // Allocate one extra row and column to help the filter process handle edges.
-    b.reset(new PixelBuffer{resx + 1, resy + 1});
+    b = std::make_unique<PixelBuffer>(resx + 1, resy + 1);
   }
   return newBuffs;
 }
@@ -1015,42 +1019,47 @@ bool GoomVisualFx::operator==(const GoomVisualFx& f) const
 
 struct GoomData
 {
-  int lockvar = 0; // pour empecher de nouveaux changements
-  int stop_lines = 0;
+  ZoomFilterData zoomFilterData{};
+
+  int lockVar = 0; // pour empecher de nouveaux changements
+  int stopLines = 0;
   int cyclesSinceLastChange = 0; // nombre de Cycle Depuis Dernier Changement
   int drawLinesDuration = 80; // duree de la transition entre afficher les lignes ou pas
   int lineMode = 80; // l'effet lineaire a dessiner
+
   static constexpr float switchMultAmount = 29.0 / 30.0;
   float switchMult = switchMultAmount;
   static constexpr int switchIncrAmount = 0x7f;
   int switchIncr = switchIncrAmount;
   uint32_t stateSelectionBlocker = 0;
   int32_t previousZoomSpeed = 128;
+
+  static constexpr int maxTitleDisplayTime = 300;
+  static constexpr int timeToFadeTitleDisplay = 50;
   int timeOfTitleDisplay = 0;
-  char titleText[1024]{};
-  ZoomFilterData zoomFilterData{};
+  std::string title{};
 
   bool operator==(const GoomData&) const;
 
   template<class Archive>
   void serialize(Archive& ar)
   {
-    ar(CEREAL_NVP(lockvar), CEREAL_NVP(stop_lines), CEREAL_NVP(cyclesSinceLastChange),
+    ar(CEREAL_NVP(lockVar), CEREAL_NVP(stopLines), CEREAL_NVP(cyclesSinceLastChange),
        CEREAL_NVP(drawLinesDuration), CEREAL_NVP(lineMode), CEREAL_NVP(switchMult),
        CEREAL_NVP(switchIncr), CEREAL_NVP(stateSelectionBlocker), CEREAL_NVP(previousZoomSpeed),
-       CEREAL_NVP(timeOfTitleDisplay), CEREAL_NVP(titleText), CEREAL_NVP(zoomFilterData));
+       CEREAL_NVP(timeOfTitleDisplay), CEREAL_NVP(title), CEREAL_NVP(zoomFilterData));
   };
 };
 
 bool GoomData::operator==(const GoomData& d) const
 {
-  return lockvar == d.lockvar && stop_lines == d.stop_lines &&
+  return lockVar == d.lockVar && stopLines == d.stopLines &&
          cyclesSinceLastChange == d.cyclesSinceLastChange &&
          drawLinesDuration == d.drawLinesDuration && lineMode == d.lineMode &&
          switchMult == d.switchMult && switchIncr == d.switchIncr &&
          stateSelectionBlocker == d.stateSelectionBlocker &&
          previousZoomSpeed == d.previousZoomSpeed && timeOfTitleDisplay == d.timeOfTitleDisplay &&
-         zoomFilterData == d.zoomFilterData;
+         title == d.title && zoomFilterData == d.zoomFilterData;
 }
 
 class GoomControl::GoomControlImpl
@@ -1087,6 +1096,7 @@ private:
   std::unordered_set<GoomDrawable> curGDrawables{};
   GoomMessage messageData{};
   GoomData goomData{};
+  GoomDraw draw{};
 
   // Line Fx
   LinesFx gmline1{};
@@ -1304,7 +1314,6 @@ static const Pixel lBlack = getBlackLineColor();
 
 GoomControl::GoomControlImpl::GoomControlImpl() noexcept : parallel{}
 {
-  gfont_load();
 }
 
 GoomControl::GoomControlImpl::GoomControlImpl(const uint32_t resx, const uint32_t resy) noexcept
@@ -1313,6 +1322,7 @@ GoomControl::GoomControlImpl::GoomControlImpl(const uint32_t resx, const uint32_
     imageBuffers{resx, resy},
     visualFx{parallel, std::const_pointer_cast<const PluginInfo>(
                            std::dynamic_pointer_cast<PluginInfo>(goomInfo))},
+    draw{resx, resy},
     gmline1{
         std::const_pointer_cast<const PluginInfo>(std::dynamic_pointer_cast<PluginInfo>(goomInfo)),
         LinesFx::LineType::hline,
@@ -1331,8 +1341,6 @@ GoomControl::GoomControlImpl::GoomControlImpl(const uint32_t resx, const uint32_
         lRed}
 {
   logDebug("Initialize goom: resx = {}, resy = {}.", resx, resy);
-
-  gfont_load();
 }
 
 GoomControl::GoomControlImpl::~GoomControlImpl() noexcept = default;
@@ -1439,29 +1447,29 @@ void GoomControl::GoomControlImpl::update(const AudioSamples& soundData,
   /* ! etude du signal ... */
   goomInfo->processSoundSample(soundData);
 
-  applyIfsIfRequired();
+  // applyIfsIfRequired();
 
   drawDotsIfRequired();
 
   /* par défaut pas de changement de zoom */
-  ZoomFilterData* pzfd = nullptr;
   if (forceMode != 0)
   {
     logDebug("forceMode = {}\n", forceMode);
   }
-
-  goomData.lockvar--;
-  if (goomData.lockvar < 0)
+  goomData.lockVar--;
+  if (goomData.lockVar < 0)
   {
-    goomData.lockvar = 0;
+    goomData.lockVar = 0;
   }
   stats.lockChange();
-  /* note pour ceux qui n'ont pas suivis : le lockvar permet d'empecher un */
+  /* note pour ceux qui n'ont pas suivis : le lockVar permet d'empecher un */
   /* changement d'etat du plugin juste apres un autre changement d'etat. oki */
-  // -- Note for those who have not followed: the lockvar prevents a change
+  // -- Note for those who have not followed: the lockVar prevents a change
   // of state of the plugin just after another change of state.
 
   changeFilterModeIfMusicChanges(forceMode);
+
+  ZoomFilterData* pzfd{};
 
   bigUpdateIfNotLocked(&pzfd);
 
@@ -1479,14 +1487,17 @@ void GoomControl::GoomControlImpl::update(const AudioSamples& soundData,
   visualFx.zoomFilter_fx->zoomFilterFastRGB(imageBuffers.getP1(), imageBuffers.getP2(), pzfd,
                                             goomData.switchIncr, goomData.switchMult);
 
+  // drawDotsIfRequired();
+  applyIfsIfRequired();
   applyTentaclesIfRequired();
-
   applyStarsIfRequired();
 
+  /**
 #ifdef SHOW_STATE_TEXT_ON_SCREEN
   displayStateText();
 #endif
   displayText(songTitle, message, fps);
+**/
 
   // Gestion du Scope - Scope management
   stopIfRequested();
@@ -1498,6 +1509,11 @@ void GoomControl::GoomControlImpl::update(const AudioSamples& soundData,
 
   imageBuffers.setBuffInc(getRandInRange(1U, GoomImageBuffers::maxBuffInc + 1));
   imageBuffers.rotateBuffers();
+
+#ifdef SHOW_STATE_TEXT_ON_SCREEN
+  displayStateText();
+#endif
+  displayText(songTitle, message, fps);
 
   cycle++;
 
@@ -1790,11 +1806,11 @@ void GoomControl::GoomControlImpl::changeState()
 
   if (!states.isCurrentlyDrawable(GoomDrawable::scope))
   {
-    goomData.stop_lines = 0xf000 & 5;
+    goomData.stopLines = 0xf000 & 5;
   }
   if (!states.isCurrentlyDrawable(GoomDrawable::farScope))
   {
-    goomData.stop_lines = 0;
+    goomData.stopLines = 0;
     goomData.lineMode = goomData.drawLinesDuration;
   }
 
@@ -1924,7 +1940,7 @@ void GoomControl::GoomControlImpl::bigNormalUpdate(ZoomFilterData** pzfd)
     changeState();
   }
 
-  goomData.lockvar = 50;
+  goomData.lockVar = 50;
   stats.lockChange();
   const int32_t newvit =
       stopSpeed + 1 -
@@ -1935,13 +1951,13 @@ void GoomControl::GoomControlImpl::bigNormalUpdate(ZoomFilterData** pzfd)
   {
     goomData.zoomFilterData.reverse = false;
     goomData.zoomFilterData.vitesse = stopSpeed - 2;
-    goomData.lockvar = 75;
+    goomData.lockVar = 75;
     stats.lockChange();
   }
   if (goomEvent.happens(GoomEvent::filterReverseOn))
   {
     goomData.zoomFilterData.reverse = true;
-    goomData.lockvar = 100;
+    goomData.lockVar = 100;
     stats.lockChange();
   }
 
@@ -1964,7 +1980,7 @@ void GoomControl::GoomControlImpl::bigNormalUpdate(ZoomFilterData** pzfd)
   {
     goomData.zoomFilterData.noisify = true;
     goomData.zoomFilterData.noiseFactor = 1;
-    goomData.lockvar *= 2;
+    goomData.lockVar *= 2;
     stats.lockChange();
     stats.doNoise();
   }
@@ -2026,13 +2042,13 @@ void GoomControl::GoomControlImpl::bigNormalUpdate(ZoomFilterData** pzfd)
     {
       goomData.zoomFilterData.vitesse = (newvit + goomData.zoomFilterData.vitesse * 7) / 8;
     }
-    goomData.lockvar += 50;
+    goomData.lockVar += 50;
     stats.lockChange();
   }
 
-  if (goomData.lockvar > 150)
+  if (goomData.lockVar > 150)
   {
-    goomData.switchIncr = goomData.switchIncrAmount;
+    goomData.switchIncr = GoomData::switchIncrAmount;
     goomData.switchMult = 1.0F;
   }
 }
@@ -2042,9 +2058,9 @@ void GoomControl::GoomControlImpl::megaLentUpdate(ZoomFilterData** pzfd)
   logDebug("mega lent change");
   *pzfd = &goomData.zoomFilterData;
   goomData.zoomFilterData.vitesse = stopSpeed - 1;
-  goomData.lockvar += 50;
+  goomData.lockVar += 50;
   stats.lockChange();
-  goomData.switchIncr = goomData.switchIncrAmount;
+  goomData.switchIncr = GoomData::switchIncrAmount;
   goomData.switchMult = 1.0f;
 }
 
@@ -2099,7 +2115,7 @@ void GoomControl::GoomControlImpl::changeZoomEffect(ZoomFilterData* pzfd, const 
     logDebug("pzfd != nullptr");
 
     goomData.cyclesSinceLastChange = 0;
-    goomData.switchIncr = goomData.switchIncrAmount;
+    goomData.switchIncr = GoomData::switchIncrAmount;
 
     int diff = goomData.zoomFilterData.vitesse - goomData.previousZoomSpeed;
     if (diff < 0)
@@ -2119,7 +2135,7 @@ void GoomControl::GoomControlImpl::changeZoomEffect(ZoomFilterData* pzfd, const 
         (forceMode > 0))
     {
       goomData.switchIncr = 0;
-      goomData.switchMult = goomData.switchMultAmount;
+      goomData.switchMult = GoomData::switchMultAmount;
 
       visualFx.ifs_fx->renew();
       stats.ifsRenew();
@@ -2203,8 +2219,8 @@ void GoomControl::GoomControlImpl::displayStateText()
   message += std20::format("noiseFactor: {}\n", goomData.zoomFilterData.noiseFactor);
   message += std20::format("cyclesSinceLastChange: {}\n", goomData.cyclesSinceLastChange);
   message += std20::format("lineMode: {}\n", goomData.lineMode);
-  message += std20::format("lockvar: {}\n", goomData.lockvar);
-  message += std20::format("stop_lines: {}\n", goomData.stop_lines);
+  message += std20::format("lockVar: {}\n", goomData.lockVar);
+  message += std20::format("stopLines: {}\n", goomData.stopLines);
 
   updateMessage(message.c_str());
 }
@@ -2219,32 +2235,32 @@ void GoomControl::GoomControlImpl::displayText(const char* songTitle,
 
   if (fps > 0)
   {
-    char text[256];
-    sprintf(text, "%2.0f fps", fps);
-    goom_draw_text(imageBuffers.getP1(), getScreenWidth(), getScreenHeight(), 10, 24, text, 1, 0);
+    const std::string text = std20::format("{.0f} fps", fps);
+    draw.text(imageBuffers.getP1(), 10, 24, text, 1, false);
   }
 
   if (songTitle)
   {
     stats.setSongTitle(songTitle);
-    strncpy(goomData.titleText, songTitle, 1023);
-    goomData.titleText[1023] = 0;
-    goomData.timeOfTitleDisplay = 200;
+    goomData.title = songTitle;
+    goomData.timeOfTitleDisplay = GoomData::maxTitleDisplayTime;
   }
 
   if (goomData.timeOfTitleDisplay)
   {
-    goom_draw_text(imageBuffers.getP2(), getScreenWidth(), getScreenHeight(),
-                   static_cast<int>(getScreenWidth() / 2),
-                   static_cast<int>(getScreenHeight() / 2 + 7), goomData.titleText,
-                   static_cast<float>(190 - goomData.timeOfTitleDisplay) / 10.0f, 1);
+    const auto xPos = static_cast<int>(getScreenWidth() / 2);
+    const auto yPos = static_cast<int>(getScreenHeight() / 2 + 7);
+    const auto spacing =
+        static_cast<float>(GoomData::maxTitleDisplayTime - goomData.timeOfTitleDisplay - 10) / 10;
+    constexpr bool center = true;
+
+    draw.text(imageBuffers.getOutputBuff(), xPos, yPos, goomData.title, spacing, center);
+
     goomData.timeOfTitleDisplay--;
-    if (goomData.timeOfTitleDisplay < 4)
+
+    if (goomData.timeOfTitleDisplay < GoomData::timeToFadeTitleDisplay)
     {
-      goom_draw_text(imageBuffers.getP1(), getScreenWidth(), getScreenHeight(),
-                     static_cast<int>(getScreenWidth() / 2),
-                     static_cast<int>(getScreenHeight() / 2 + 7), goomData.titleText,
-                     static_cast<float>(190 - goomData.timeOfTitleDisplay) / 10.0f, 1);
+      draw.text(imageBuffers.getP1(), xPos, yPos, goomData.title, spacing, center);
     }
   }
 }
@@ -2269,8 +2285,7 @@ void GoomControl::GoomControlImpl::updateMessage(const char* message)
       const uint32_t ypos =
           10 + messageData.affiche - (messageData.numberOfLinesInMessage - i) * 25;
 
-      goom_draw_text(imageBuffers.getP1(), getScreenWidth(), getScreenHeight(), 50,
-                     static_cast<int>(ypos), msgLines[i].c_str(), 1, 0);
+      draw.text(imageBuffers.getOutputBuff(), 50, static_cast<int>(ypos), msgLines[i], 1, false);
     }
     messageData.affiche--;
   }
@@ -2278,9 +2293,9 @@ void GoomControl::GoomControlImpl::updateMessage(const char* message)
 
 void GoomControl::GoomControlImpl::stopRequest()
 {
-  logDebug("goomData.stop_lines = {},"
+  logDebug("goomData.stopLines = {},"
            " curGDrawables.contains(GoomDrawable::scope) = {}",
-           goomData.stop_lines, curGDrawables.contains(GoomDrawable::scope));
+           goomData.stopLines, curGDrawables.contains(GoomDrawable::scope));
 
   float param1 = 0;
   float param2 = 0;
@@ -2293,7 +2308,7 @@ void GoomControl::GoomControlImpl::stopRequest()
   gmline1.switchGoomLines(mode, param1, amplitude, couleur);
   gmline2.switchGoomLines(mode, param2, amplitude, couleur);
   stats.switchLines();
-  goomData.stop_lines &= 0x0fff;
+  goomData.stopLines &= 0x0fff;
 }
 
 /* arret aleatore.. changement de mode de ligne..
@@ -2329,12 +2344,12 @@ void GoomControl::GoomControlImpl::stopRandomLineChangeMode()
       float amplitude = 0;
       Pixel couleur1{};
       LinesFx::LineType mode;
-      chooseGoomLine(&param1, &param2, &couleur1, &mode, &amplitude, goomData.stop_lines);
+      chooseGoomLine(&param1, &param2, &couleur1, &mode, &amplitude, goomData.stopLines);
 
       Pixel couleur2 = gmline2.getRandomLineColor();
-      if (goomData.stop_lines)
+      if (goomData.stopLines)
       {
-        goomData.stop_lines--;
+        goomData.stopLines--;
         if (goomEvent.happens(GoomEvent::changeLineToBlack))
         {
           couleur2 = couleur1 = getBlackLineColor();
@@ -2375,12 +2390,12 @@ void GoomControl::GoomControlImpl::displayLines(const AudioSamples& soundData)
     float amplitude = 0;
     Pixel couleur1{};
     LinesFx::LineType mode;
-    chooseGoomLine(&param1, &param2, &couleur1, &mode, &amplitude, goomData.stop_lines);
+    chooseGoomLine(&param1, &param2, &couleur1, &mode, &amplitude, goomData.stopLines);
 
     Pixel couleur2 = gmline2.getRandomLineColor();
-    if (goomData.stop_lines)
+    if (goomData.stopLines)
     {
-      goomData.stop_lines--;
+      goomData.stopLines--;
       if (goomEvent.happens(GoomEvent::changeLineToBlack))
       {
         couleur2 = couleur1 = getBlackLineColor();
@@ -2429,10 +2444,10 @@ void GoomControl::GoomControlImpl::stopDecrementing(ZoomFilterData** pzfd)
 
 void GoomControl::GoomControlImpl::bigUpdateIfNotLocked(ZoomFilterData** pzfd)
 {
-  logDebug("goomData.lockvar = {}", goomData.lockvar);
-  if (goomData.lockvar == 0)
+  logDebug("goomData.lockVar = {}", goomData.lockVar);
+  if (goomData.lockVar == 0)
   {
-    logDebug("goomData.lockvar = 0");
+    logDebug("goomData.lockVar = 0");
     bigUpdate(pzfd);
   }
   logDebug("sound getTimeSinceLastGoom() = {}", goomInfo->getSoundInfo().getTimeSinceLastGoom());
@@ -2456,9 +2471,9 @@ void GoomControl::GoomControlImpl::forceFilterModeIfSet(ZoomFilterData** pzfd, c
 
 void GoomControl::GoomControlImpl::stopIfRequested()
 {
-  logDebug("goomData.stop_lines = {}, curGState->scope = {}", goomData.stop_lines,
+  logDebug("goomData.stopLines = {}, curGState->scope = {}", goomData.stopLines,
            states.isCurrentlyDrawable(GoomDrawable::scope));
-  if ((goomData.stop_lines & 0xf000) || !states.isCurrentlyDrawable(GoomDrawable::scope))
+  if ((goomData.stopLines & 0xf000) || !states.isCurrentlyDrawable(GoomDrawable::scope))
   {
     stopRequest();
   }
@@ -2507,7 +2522,7 @@ void GoomControl::GoomControlImpl::stopDecrementingAfterAWhile(ZoomFilterData** 
 {
   logDebug("cycle = {}, goomData.zoomFilterData.pertedec = {}", cycle,
            goomData.zoomFilterData.pertedec);
-  if ((cycle % 101 == 0) && (goomData.zoomFilterData.pertedec == 7))
+  if ((cycle % 101 == 0) && (ZoomFilterData::pertedec == 7))
   {
     logDebug("cycle % 101 = 0 && goomData.zoomFilterData.pertedec = 7, ", cycle,
              goomData.zoomFilterData.vitesse);
@@ -2612,12 +2627,12 @@ inline void GoomStates::doRandomStateChange()
 }
 
 std::vector<std::pair<uint16_t, size_t>> GoomStates::getWeightedStates(
-    const GoomStates::WeightedStatesArray& states)
+    const GoomStates::WeightedStatesArray& theStates)
 {
-  std::vector<std::pair<uint16_t, size_t>> weightedVals(states.size());
-  for (size_t i = 0; i < states.size(); i++)
+  std::vector<std::pair<uint16_t, size_t>> weightedVals(theStates.size());
+  for (size_t i = 0; i < theStates.size(); i++)
   {
-    weightedVals[i] = std::make_pair(i, states[i].weight);
+    weightedVals[i] = std::make_pair(i, theStates[i].weight);
   }
   return weightedVals;
 }

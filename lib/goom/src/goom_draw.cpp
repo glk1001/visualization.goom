@@ -1,6 +1,7 @@
 #include "goom_draw.h"
 
 #include "draw_methods.h"
+#include "gfontlib.h"
 #include "goom_graphic.h"
 
 #include <cstdint>
@@ -85,6 +86,21 @@ void GoomDraw::line(std::vector<PixelBuffer*>& buffs,
 {
   drawLine(buffs, x1, y1, x2, y2, colors, intBuffIntensity, allowOverexposed, thickness,
            screenWidth, screenHeight);
+}
+
+void GoomDraw::text(PixelBuffer& buff,
+                    const int x,
+                    const int y,
+                    const std::string& text,
+                    const float charSpace,
+                    const bool center)
+{
+  if (!fontsLoaded)
+  {
+    gfont_load();
+    fontsLoaded = true;
+  }
+  goom_draw_text(buff, screenWidth, screenHeight, x, y, text.c_str(), charSpace, center);
 }
 
 void GoomDraw::setPixelRGB(PixelBuffer& buff,
