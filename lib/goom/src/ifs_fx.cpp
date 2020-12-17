@@ -162,12 +162,12 @@ inline void IfsStats::setlastIfsIncr(int val)
 
 inline bool megaChangeColorMapEvent()
 {
-  return probabilityOfMInN(5, 10);
+  return probabilityOfMInN(9, 10);
 }
 
 inline bool allowOverexposedEvent()
 {
-  return probabilityOfMInN(1, 50);
+  return probabilityOfMInN(10, 50);
 }
 
 struct IfsPoint
@@ -460,7 +460,7 @@ void Fractal::init()
 
 void Fractal::resetCurrentIFSFunc()
 {
-  if (probabilityOfMInN(5, 10))
+  if (probabilityOfMInN(0, 10))
   {
     curFunc = [&](const Similitude& simi, const float x1, const float y1, const float x2,
                   const float y2) -> FltPoint {
@@ -1088,7 +1088,6 @@ private:
 
   GoomDraw draw{};
   Colorizer colorizer{};
-  bool useOldStyleDrawPixel = false;
   FXBuffSettings buffSettings{};
 
   bool allowOverexposed = true;
@@ -1123,7 +1122,7 @@ private:
                  PixelBuffer& currentBuff,
                  const IfsPoint&,
                  const Pixel& ifsColor,
-                 float tmix);
+                 float tMix);
   void updateColors();
   void updateColorsModeMer();
   void updateColorsModeMerver();
@@ -1239,18 +1238,16 @@ template<class Archive>
 void IfsFx::IfsImpl::save(Archive& ar) const
 {
   ar(CEREAL_NVP(goomInfo), CEREAL_NVP(fractal), CEREAL_NVP(draw), CEREAL_NVP(colorizer),
-     CEREAL_NVP(useOldStyleDrawPixel), CEREAL_NVP(allowOverexposed),
-     CEREAL_NVP(countSinceOverexposed), CEREAL_NVP(ifs_incr), CEREAL_NVP(decay_ifs),
-     CEREAL_NVP(recay_ifs), CEREAL_NVP(updateData));
+     CEREAL_NVP(allowOverexposed), CEREAL_NVP(countSinceOverexposed), CEREAL_NVP(ifs_incr),
+     CEREAL_NVP(decay_ifs), CEREAL_NVP(recay_ifs), CEREAL_NVP(updateData));
 }
 
 template<class Archive>
 void IfsFx::IfsImpl::load(Archive& ar)
 {
   ar(CEREAL_NVP(goomInfo), CEREAL_NVP(fractal), CEREAL_NVP(draw), CEREAL_NVP(colorizer),
-     CEREAL_NVP(useOldStyleDrawPixel), CEREAL_NVP(allowOverexposed),
-     CEREAL_NVP(countSinceOverexposed), CEREAL_NVP(ifs_incr), CEREAL_NVP(decay_ifs),
-     CEREAL_NVP(recay_ifs), CEREAL_NVP(updateData));
+     CEREAL_NVP(allowOverexposed), CEREAL_NVP(countSinceOverexposed), CEREAL_NVP(ifs_incr),
+     CEREAL_NVP(decay_ifs), CEREAL_NVP(recay_ifs), CEREAL_NVP(updateData));
 }
 
 bool IfsFx::IfsImpl::operator==(const IfsImpl& i) const
@@ -1266,7 +1263,7 @@ bool IfsFx::IfsImpl::operator==(const IfsImpl& i) const
 
   return ((goomInfo == nullptr && i.goomInfo == nullptr) || (*goomInfo == *i.goomInfo)) &&
          *fractal == *i.fractal && draw == i.draw && colorizer == i.colorizer &&
-         useOldStyleDrawPixel == i.useOldStyleDrawPixel && allowOverexposed == i.allowOverexposed &&
+         allowOverexposed == i.allowOverexposed &&
          countSinceOverexposed == i.countSinceOverexposed && ifs_incr == i.ifs_incr &&
          decay_ifs == i.decay_ifs && recay_ifs == i.recay_ifs && updateData == i.updateData;
 }
@@ -1357,8 +1354,6 @@ void IfsFx::IfsImpl::updateIfs(PixelBuffer& prevBuff, PixelBuffer& currentBuff)
 
   // TODO: trouver meilleur soluce pour increment (mettre le code de gestion de l'ifs dans ce fichier)
   //       find the best solution for increment (put the management code of the ifs in this file)
-  useOldStyleDrawPixel = probabilityOfMInN(49, 50);
-
   updateData.cycle++;
   if (updateData.cycle >= 80)
   {
@@ -1449,25 +1444,16 @@ inline void IfsFx::IfsImpl::drawPixel(PixelBuffer& prevBuff,
                                       PixelBuffer& currentBuff,
                                       const IfsPoint& point,
                                       const Pixel& ifsColor,
-                                      const float tmix)
+                                      const float tMix)
 {
   const float fx = point.x / static_cast<float>(goomInfo->getScreenInfo().width);
   const float fy = point.y / static_cast<float>(goomInfo->getScreenInfo().height);
-  if (useOldStyleDrawPixel)
-  {
-    const Pixel prevBuffColor = draw.getPixelRGB(prevBuff, point.x, point.y);
-    const Pixel mixedColor = colorizer.getMixedColor(point.color, point.count, tmix, fx, fy);
-    const Pixel finalColor = getColorAdd(prevBuffColor, mixedColor, allowOverexposed);
-    draw.setPixelRGBNoBlend(prevBuff, point.x, point.y, finalColor);
-  }
-  else
-  {
-    //    const Pixel prevBuffColor = draw.getPixelRGB(prevBuff, point.x, point.y);
-    Pixel mixedColor = colorizer.getMixedColor(point.color, point.count, tmix, fx, fy);
-    //    mixedColor = ColorMap::colorMix(prevBuffColor, mixedColor, 0.7);
-    //    mixedColor = ColorMap::colorMix(ifsColor, mixedColor, 0.7);
-    draw.setPixelRGB(prevBuff, point.x, point.y, mixedColor);
-  }
+
+  Pixel mixedColor = colorizer.getMixedColor(point.color, point.count, tMix, fx, fy);
+  //  const std::vector<Pixel> colors{ColorMap::colorMix(ifsColor, mixedColor, 0.1), mixedColor};
+  const std::vector<Pixel> colors{mixedColor, mixedColor};
+  std::vector<PixelBuffer*> buffs{&currentBuff, &prevBuff};
+  draw.setPixelRGB(buffs, point.x, point.y, colors);
 }
 
 void IfsFx::IfsImpl::updateAllowOverexposed()
