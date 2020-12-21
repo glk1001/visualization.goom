@@ -224,7 +224,7 @@ static const std::vector<CentreType> centreList = {
   { .depth = 10, .r1Mean = 0.7, .r2Mean = 0.0, .dr1Mean = 0.3, .dr2Mean = 0.4 },
   { .depth =  6, .r1Mean = 0.6, .r2Mean = 0.0, .dr1Mean = 0.4, .dr2Mean = 0.3 },
   { .depth =  4, .r1Mean = 0.5, .r2Mean = 0.0, .dr1Mean = 0.4, .dr2Mean = 0.3 },
-  { .depth =  2, .r1Mean = 0.5, .r2Mean = 0.0, .dr1Mean = 0.4, .dr2Mean = 0.3 },
+  { .depth =  2, .r1Mean = 0.4, .r2Mean = 0.0, .dr1Mean = 0.5, .dr2Mean = 0.3 },
 };
 // clang-format on
 
@@ -711,7 +711,7 @@ public:
   void setMaxHitCount(uint32_t val);
 
   [[nodiscard]] Pixel getMixedColor(
-      const Pixel& baseColor, uint32_t hitCount, float tmix, float x, float y);
+      const Pixel& baseColor, uint32_t hitCount, float tMix, float x, float y);
 
   bool operator==(const Colorizer&) const;
 
@@ -823,7 +823,7 @@ IfsFx::ColorMode Colorizer::getNextColorMode()
     { IfsFx::ColorMode::megaMapColorChange,  20 },
     { IfsFx::ColorMode::mixColors,           10 },
     { IfsFx::ColorMode::megaMixColorChange,  15 },
-    { IfsFx::ColorMode::reverseMixColors,    10 },
+    { IfsFx::ColorMode::reverseMixColors,     5 },
     { IfsFx::ColorMode::singleColors,         5 },
     { IfsFx::ColorMode::sineMixColors,       15 },
     { IfsFx::ColorMode::sineMapColors,       15 },
@@ -863,7 +863,7 @@ inline Pixel Colorizer::getNextMixerMapColor(const float t, const float x, const
 }
 
 inline Pixel Colorizer::getMixedColor(
-    const Pixel& baseColor, const uint32_t hitCount, const float tmix, const float x, const float y)
+    const Pixel& baseColor, const uint32_t hitCount, const float tMix, const float x, const float y)
 {
   constexpr float brightness = 1.9;
   const float logAlpha = maxHitCount <= 1
@@ -871,20 +871,20 @@ inline Pixel Colorizer::getMixedColor(
                              : brightness * std::log(static_cast<float>(hitCount)) / logMaxHitCount;
 
   Pixel mixColor;
-  float t = tBetweenColors;
+  float tBaseMix = 1.0F - tBetweenColors;
 
   switch (colorMode)
   {
     case IfsFx::ColorMode::mapColors:
     case IfsFx::ColorMode::megaMapColorChange:
       mixColor = getNextMixerMapColor(logAlpha, x, y);
-      t = tBetweenColors;
+      tBaseMix = getRandInRange(0.1F, 0.3F);
       break;
 
     case IfsFx::ColorMode::mixColors:
     case IfsFx::ColorMode::reverseMixColors:
     case IfsFx::ColorMode::megaMixColorChange:
-      mixColor = getNextMixerMapColor(tmix, x, y);
+      mixColor = getNextMixerMapColor(tMix, x, y);
       break;
 
     case IfsFx::ColorMode::singleColors:
@@ -902,7 +902,7 @@ inline Pixel Colorizer::getMixedColor(
       z += zStep;
       if (colorMode == IfsFx::ColorMode::sineMapColors)
       {
-        t = tBetweenColors;
+        tBaseMix = 1.0F - tBetweenColors;
       }
       break;
     }
@@ -913,11 +913,11 @@ inline Pixel Colorizer::getMixedColor(
 
   if (colorMode == IfsFx::ColorMode::reverseMixColors)
   {
-    mixColor = ColorMap::colorMix(baseColor, mixColor, t);
+    mixColor = ColorMap::colorMix(mixColor, baseColor, tBaseMix);
   }
   else
   {
-    mixColor = ColorMap::colorMix(mixColor, baseColor, t);
+    mixColor = ColorMap::colorMix(baseColor, mixColor, tBaseMix);
   }
 
   static GammaCorrection gammaCorrect{4.2, 0.01};
@@ -1123,6 +1123,7 @@ private:
                  const IfsPoint&,
                  const Pixel& ifsColor,
                  float tMix);
+  void randomizeColors(std::vector<IfsPoint>&, PixelBuffer&) const;
   void updateColors();
   void updateColorsModeMer();
   void updateColorsModeMerver();
@@ -1523,6 +1524,21 @@ void IfsFx::IfsImpl::updatePixelBuffers(PixelBuffer& prevBuff,
   }
 
   blurrer.doBlur(lowDensityPoints, prevBuff);
+
+  if (static_cast<float>(lowDensityPoints.size()) / static_cast<float>(numPoints) > 0.8)
+  {
+    randomizeColors(lowDensityPoints, prevBuff);
+  }
+}
+
+void IfsFx::IfsImpl::randomizeColors(std::vector<IfsPoint>& points, PixelBuffer& buff) const
+{
+  for (const auto& p : points)
+  {
+    const uint32_t x = p.x & 0x7fffffff;
+    const uint32_t y = p.y & 0x7fffffff;
+    buff(x, y) = colorizer.getColorMaps().getRandomColorMap().getColor(getRandInRange(0.0F, 1.0F));
+  }
 }
 
 void IfsFx::IfsImpl::updateLowDensityThreshold()

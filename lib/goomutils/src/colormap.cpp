@@ -58,6 +58,7 @@ const ColorMap& ColorMaps::getColorMap(const ColorMapName name) const
 
 const ColorMaps::ColorMapNames& ColorMaps::getColorMapNames(const ColorMapGroup groupName) const
 {
+  initGroups();
   return *at(groups, groupName);
 }
 
