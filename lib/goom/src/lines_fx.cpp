@@ -9,18 +9,14 @@
 #include "goomutils/goomrand.h"
 #include "goomutils/mathutils.h"
 
-#include <algorithm>
 #undef NDEBUG
 #include <cassert>
 #include <cereal/archives/json.hpp>
 #include <cereal/types/memory.hpp>
 #include <cmath>
 #include <cstdint>
-#include <istream>
 #include <memory>
-#include <ostream>
 #include <stdexcept>
-#include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -36,10 +32,10 @@ public:
   LinesImpl() noexcept;
   // construit un effet de line (une ligne horitontale pour commencer)
   LinesImpl(std::shared_ptr<const PluginInfo> goomInfo,
-            LineType srceID,
+            LineType srceLineType,
             float srceParam,
             const Pixel& srceColor,
-            LineType destID,
+            LineType destLineType,
             float destParam,
             const Pixel& destColor) noexcept;
   LinesImpl(const LinesImpl&) = delete;
@@ -50,14 +46,11 @@ public:
   [[nodiscard]] float getPower() const;
   void setPower(float val);
 
-  void switchGoomLines(LineType newDestID,
-                       float newParam,
-                       float newAmplitude,
-                       const Pixel& newColor);
+  void switchLines(LineType newLineType, float newParam, float newAmplitude, const Pixel& newColor);
 
-  void drawGoomLines(const std::vector<int16_t>& soundData,
-                     PixelBuffer& prevBuff,
-                     PixelBuffer& currentBuff);
+  void drawLines(const std::vector<int16_t>& soundData,
+                 PixelBuffer& prevBuff,
+                 PixelBuffer& currentBuff);
 
   bool operator==(const LinesImpl&) const;
 
@@ -72,14 +65,14 @@ private:
     float y;
     float angle;
   };
-  std::vector<LinePoint> points{};
+  std::vector<LinePoint> points1{};
   std::vector<LinePoint> points2{};
-  void generateLine(LineType id, float param, std::vector<LinePoint>&);
+  void generateLine(LineType, float lineParam, std::vector<LinePoint>&);
 
   float power = 0;
   float powinc = 0;
 
-  LineType destID = LineType::circle;
+  LineType destLineType = LineType::circle;
   float param = 0;
   float amplitudeF = 1;
   float amplitude = 1;
@@ -102,13 +95,14 @@ LinesFx::LinesFx() noexcept : fxImpl{new LinesImpl{}}
 }
 
 LinesFx::LinesFx(const std::shared_ptr<const PluginInfo>& info,
-                 const LineType srceID,
+                 const LineType srceLineType,
                  const float srceParam,
                  const Pixel& srceColor,
-                 const LineType destID,
+                 const LineType destLineType,
                  const float destParam,
                  const Pixel& destColor) noexcept
-  : fxImpl{new LinesImpl{info, srceID, srceParam, srceColor, destID, destParam, destColor}}
+  : fxImpl{
+        new LinesImpl{info, srceLineType, srceParam, srceColor, destLineType, destParam, destColor}}
 {
 }
 
@@ -134,19 +128,19 @@ void LinesFx::setPower(const float val)
   fxImpl->setPower(val);
 }
 
-void LinesFx::switchGoomLines(const LineType newDestID,
-                              const float newParam,
-                              const float newAmplitude,
-                              const Pixel& newColor)
+void LinesFx::switchLines(LineType newLineType,
+                          const float newParam,
+                          const float newAmplitude,
+                          const Pixel& newColor)
 {
-  fxImpl->switchGoomLines(newDestID, newParam, newAmplitude, newColor);
+  fxImpl->switchLines(newLineType, newParam, newAmplitude, newColor);
 }
 
-void LinesFx::drawGoomLines(const std::vector<int16_t>& soundData,
-                            PixelBuffer& prevBuff,
-                            PixelBuffer& currentBuff)
+void LinesFx::drawLines(const std::vector<int16_t>& soundData,
+                        PixelBuffer& prevBuff,
+                        PixelBuffer& currentBuff)
 {
-  fxImpl->drawGoomLines(soundData, prevBuff, currentBuff);
+  fxImpl->drawLines(soundData, prevBuff, currentBuff);
 }
 
 template<class Archive>
@@ -166,7 +160,7 @@ template<class Archive>
 void LinesFx::LinesImpl::save(Archive& ar) const
 {
   ar(CEREAL_NVP(goomInfo), CEREAL_NVP(draw), CEREAL_NVP(power), CEREAL_NVP(powinc),
-     CEREAL_NVP(destID), CEREAL_NVP(param), CEREAL_NVP(amplitudeF), CEREAL_NVP(amplitude),
+     CEREAL_NVP(destLineType), CEREAL_NVP(param), CEREAL_NVP(amplitudeF), CEREAL_NVP(amplitude),
      CEREAL_NVP(color), CEREAL_NVP(color2));
 }
 
@@ -174,7 +168,7 @@ template<class Archive>
 void LinesFx::LinesImpl::load(Archive& ar)
 {
   ar(CEREAL_NVP(goomInfo), CEREAL_NVP(draw), CEREAL_NVP(power), CEREAL_NVP(powinc),
-     CEREAL_NVP(destID), CEREAL_NVP(param), CEREAL_NVP(amplitudeF), CEREAL_NVP(amplitude),
+     CEREAL_NVP(destLineType), CEREAL_NVP(param), CEREAL_NVP(amplitudeF), CEREAL_NVP(amplitude),
      CEREAL_NVP(color), CEREAL_NVP(color2));
 }
 
@@ -190,51 +184,51 @@ bool LinesFx::LinesImpl::operator==(const LinesImpl& l) const
   }
 
   return ((goomInfo == nullptr && l.goomInfo == nullptr) || (*goomInfo == *l.goomInfo)) &&
-         draw == l.draw && power == l.power && powinc == l.powinc && destID == l.destID &&
-         param == l.param && amplitudeF == l.amplitudeF && amplitude == l.amplitude &&
-         color == l.color && color2 == l.color2;
+         draw == l.draw && power == l.power && powinc == l.powinc &&
+         destLineType == l.destLineType && param == l.param && amplitudeF == l.amplitudeF &&
+         amplitude == l.amplitude && color == l.color && color2 == l.color2;
 }
 
 LinesFx::LinesImpl::LinesImpl() noexcept = default;
 
 LinesFx::LinesImpl::LinesImpl(std::shared_ptr<const PluginInfo> info,
-                              const LineType srceID,
+                              const LineType srceLineType,
                               const float srceParam,
                               const Pixel& srceColor,
-                              const LineType theDestID,
+                              const LineType destLineTyp,
                               const float destParam,
                               const Pixel& destColor) noexcept
   : goomInfo{std::move(info)},
     draw{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height},
-    points(AUDIO_SAMPLE_LEN),
+    points1(AUDIO_SAMPLE_LEN),
     points2(AUDIO_SAMPLE_LEN),
-    destID{theDestID},
+    destLineType{destLineTyp},
     param{destParam},
     color{srceColor},
     color2{destColor}
 {
-  generateLine(srceID, srceParam, points);
-  generateLine(destID, destParam, points2);
+  generateLine(srceLineType, srceParam, points1);
+  generateLine(destLineType, destParam, points2);
 
-  switchGoomLines(destID, destParam, 1.0, destColor);
+  switchLines(destLineType, destParam, 1.0, destColor);
 }
 
-void LinesFx::LinesImpl::generateLine(const LineType id,
-                                      const float param,
+void LinesFx::LinesImpl::generateLine(const LineType lineType,
+                                      const float lineParam,
                                       std::vector<LinePoint>& line)
 {
-  switch (id)
+  switch (lineType)
   {
     case LineType::hline:
     {
       const float xStep = static_cast<float>(goomInfo->getScreenInfo().width) /
-                          static_cast<float>(AUDIO_SAMPLE_LEN);
+                          static_cast<float>(AUDIO_SAMPLE_LEN - 1);
       float x = 0;
       for (auto& l : line)
       {
         l.angle = m_half_pi;
         l.x = x;
-        l.y = param;
+        l.y = lineParam;
 
         x += xStep;
       }
@@ -243,12 +237,12 @@ void LinesFx::LinesImpl::generateLine(const LineType id,
     case LineType::vline:
     {
       const float yStep = static_cast<float>(goomInfo->getScreenInfo().height) /
-                          static_cast<float>(AUDIO_SAMPLE_LEN);
+                          static_cast<float>(AUDIO_SAMPLE_LEN - 1);
       float y = 0;
       for (auto& l : line)
       {
         l.angle = 0;
-        l.x = param;
+        l.x = lineParam;
         l.y = y;
 
         y += yStep;
@@ -265,8 +259,8 @@ void LinesFx::LinesImpl::generateLine(const LineType id,
       for (auto& l : line)
       {
         l.angle = angle;
-        l.x = cx + param * std::cos(angle);
-        l.y = cy + param * std::sin(angle);
+        l.x = cx + lineParam * std::cos(angle);
+        l.y = cy + lineParam * std::sin(angle);
 
         angle += angleStep;
       }
@@ -291,9 +285,9 @@ void LinesFx::LinesImpl::goomLinesMove()
 {
   for (uint32_t i = 0; i < AUDIO_SAMPLE_LEN; i++)
   {
-    points[i].x = (points2[i].x + 39.0f * points[i].x) / 40.0f;
-    points[i].y = (points2[i].y + 39.0f * points[i].y) / 40.0f;
-    points[i].angle = (points2[i].angle + 39.0f * points[i].angle) / 40.0f;
+    points1[i].x = (points2[i].x + 39.0f * points1[i].x) / 40.0f;
+    points1[i].y = (points2[i].y + 39.0f * points1[i].y) / 40.0f;
+    points1[i].angle = (points2[i].angle + 39.0f * points1[i].angle) / 40.0f;
   }
 
   auto* c1 = reinterpret_cast<unsigned char*>(&color);
@@ -322,13 +316,13 @@ void LinesFx::LinesImpl::goomLinesMove()
   amplitude = (99.0f * amplitude + amplitudeF) / 100.0f;
 }
 
-void LinesFx::LinesImpl::switchGoomLines(const LineType newDestID,
-                                         const float newParam,
-                                         const float newAmplitude,
-                                         const Pixel& newColor)
+void LinesFx::LinesImpl::switchLines(LineType newLineType,
+                                     float newParam,
+                                     float newAmplitude,
+                                     const Pixel& newColor)
 {
-  generateLine(newDestID, param, points2);
-  destID = newDestID;
+  generateLine(newLineType, param, points2);
+  destLineType = newLineType;
   param = newParam;
   amplitudeF = newAmplitude;
   color2 = newColor;
@@ -421,12 +415,12 @@ inline std::vector<float> getDataPoints(const std::vector<int16_t>& x)
   return simpleMovingAverage(x, 3);
 }
 
-void LinesFx::LinesImpl::drawGoomLines(const std::vector<int16_t>& soundData,
-                                       PixelBuffer& prevBuff,
-                                       PixelBuffer& currentBuff)
+void LinesFx::LinesImpl::drawLines(const std::vector<int16_t>& soundData,
+                                   PixelBuffer& prevBuff,
+                                   PixelBuffer& currentBuff)
 {
   std::vector<PixelBuffer*> buffs{&currentBuff, &prevBuff};
-  const LinePoint* pt0 = &(points[0]);
+  const LinePoint* pt0 = &(points1[0]);
   const Pixel lineColor = getLightenedColor(color, power);
 
   const auto audioRange = static_cast<float>(goomInfo->getSoundInfo().getAllTimesMaxVolume() -
@@ -475,7 +469,7 @@ void LinesFx::LinesImpl::drawGoomLines(const std::vector<int16_t>& soundData,
 
   for (size_t i = 1; i < AUDIO_SAMPLE_LEN; i++)
   {
-    const LinePoint* const pt = &(points[i]);
+    const LinePoint* const pt = &(points1[i]);
     const auto [x2, y2, modColor] = getNextPoint(pt, data[i]);
 
     const std::vector<Pixel> colors = {modColor, lineColor};

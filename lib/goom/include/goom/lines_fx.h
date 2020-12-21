@@ -43,10 +43,10 @@ public:
 
   // construit un effet de line (une ligne horitontale pour commencer)
   LinesFx(const std::shared_ptr<const PluginInfo>&,
-          LineType srceID,
+          LineType srceLineType,
           float srceParam,
           const Pixel& srceColor,
-          LineType destID,
+          LineType destLineType,
           float destParam,
           const Pixel& destColor) noexcept;
   ~LinesFx() noexcept;
@@ -58,14 +58,11 @@ public:
   [[nodiscard]] float getPower() const;
   void setPower(float val);
 
-  void switchGoomLines(LineType newDestID,
-                       float newParam,
-                       float newAmplitude,
-                       const Pixel& newColor);
+  void switchLines(LineType newLineType, float newParam, float newAmplitude, const Pixel& newColor);
 
-  void drawGoomLines(const std::vector<int16_t>& soundData,
-                     PixelBuffer& prevBuff,
-                     PixelBuffer& currentBuff);
+  void drawLines(const std::vector<int16_t>& soundData,
+                 PixelBuffer& prevBuff,
+                 PixelBuffer& currentBuff);
 
   [[nodiscard]] std::string getFxName() const;
 

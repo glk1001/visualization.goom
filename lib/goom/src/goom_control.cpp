@@ -2305,8 +2305,8 @@ void GoomControl::GoomControlImpl::stopRequest()
   chooseGoomLine(&param1, &param2, &couleur, &mode, &amplitude, 1);
   couleur = getBlackLineColor();
 
-  gmline1.switchGoomLines(mode, param1, amplitude, couleur);
-  gmline2.switchGoomLines(mode, param2, amplitude, couleur);
+  gmline1.switchLines(mode, param1, amplitude, couleur);
+  gmline2.switchLines(mode, param2, amplitude, couleur);
   stats.switchLines();
   goomData.stopLines &= 0x0fff;
 }
@@ -2358,8 +2358,8 @@ void GoomControl::GoomControlImpl::stopRandomLineChangeMode()
 
       logDebug("goomData.lineMode = {} == {} = goomData.drawLinesDuration", goomData.lineMode,
                goomData.drawLinesDuration);
-      gmline1.switchGoomLines(mode, param1, amplitude, couleur1);
-      gmline2.switchGoomLines(mode, param2, amplitude, couleur2);
+      gmline1.switchLines(mode, param1, amplitude, couleur1);
+      gmline2.switchLines(mode, param2, amplitude, couleur2);
       stats.switchLines();
     }
   }
@@ -2378,8 +2378,8 @@ void GoomControl::GoomControlImpl::displayLines(const AudioSamples& soundData)
 
   gmline2.setPower(gmline1.getPower());
 
-  gmline1.drawGoomLines(soundData.getSample(0), imageBuffers.getP1(), imageBuffers.getP2());
-  gmline2.drawGoomLines(soundData.getSample(1), imageBuffers.getP1(), imageBuffers.getP2());
+  gmline1.drawLines(soundData.getSample(0), imageBuffers.getP1(), imageBuffers.getP2());
+  gmline2.drawLines(soundData.getSample(1), imageBuffers.getP1(), imageBuffers.getP2());
 
   if (((cycle % 121) == 9) && goomEvent.happens(GoomEvent::changeGoomLine) &&
       ((goomData.lineMode == 0) || (goomData.lineMode == goomData.drawLinesDuration)))
@@ -2401,8 +2401,8 @@ void GoomControl::GoomControlImpl::displayLines(const AudioSamples& soundData)
         couleur2 = couleur1 = getBlackLineColor();
       }
     }
-    gmline1.switchGoomLines(mode, param1, amplitude, couleur1);
-    gmline2.switchGoomLines(mode, param2, amplitude, couleur2);
+    gmline1.switchLines(mode, param1, amplitude, couleur1);
+    gmline2.switchLines(mode, param2, amplitude, couleur2);
   }
 }
 
