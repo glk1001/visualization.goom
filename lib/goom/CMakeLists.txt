@@ -29,6 +29,7 @@ add_library(${PROJECT_NAME}
         src/tentacle_driver.cpp
         src/tentacles.cpp
         src/tentacles_fx.cpp
+        src/text_draw.cpp
 )
 
 target_include_directories(${PROJECT_NAME}
@@ -45,6 +46,7 @@ target_include_directories(${PROJECT_NAME}
         ${LIBS_DIR}/cereal/include
         ${LIBS_DIR}/fmt/include
         ${LIBS_DIR}/magic_enum/include
+        /usr/include/freetype2
 )
 
 set_target_properties( ${PROJECT_NAME} 

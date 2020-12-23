@@ -15,6 +15,7 @@ Pixel getIntColor(uint8_t r, uint8_t g, uint8_t b);
 
 Pixel getColorAverage(const std::vector<Pixel>& colors);
 Pixel getColorAverage(const Pixel& color1, const Pixel& color2);
+Pixel getColorBlend(const Pixel& srceColor);
 Pixel getColorAdd(const Pixel& color1, const Pixel& color2, bool allowOverexposed);
 Pixel getColorSubtract(const Pixel& color1, const Pixel& color2);
 Pixel getBrighterColorInt(uint32_t brightness, const Pixel& color, bool allowOverexposed);
@@ -92,6 +93,33 @@ inline Pixel getColorAverage(const Pixel& color1, const Pixel& color2)
       .g = static_cast<uint8_t>(newG),
       .b = static_cast<uint8_t>(newB),
       .a = static_cast<uint8_t>(newA),
+  }};
+}
+
+inline Pixel getColorBlend(const Pixel& srce, const Pixel& dest)
+{
+  const auto srceR = static_cast<int>(srce.r());
+  const auto srceG = static_cast<int>(srce.g());
+  const auto srceB = static_cast<int>(srce.b());
+  const auto srceA = static_cast<int>(srce.a());
+  const auto destR = static_cast<int>(dest.r());
+  const auto destG = static_cast<int>(dest.g());
+  const auto destB = static_cast<int>(dest.b());
+  const auto destA = static_cast<int>(dest.a());
+
+  const auto newR =
+      static_cast<uint32_t>(destR + (srceA * (srceR - destR)) / channel_limits<int32_t>::max());
+  const auto newG =
+      static_cast<uint32_t>(destG + (srceA * (srceG - destG)) / channel_limits<int32_t>::max());
+  const auto newB =
+      static_cast<uint32_t>(destB + (srceA * (srceB - destB)) / channel_limits<int32_t>::max());
+  const auto newA = std::min(channel_limits<int32_t>::max(), srceA + destA);
+
+  return Pixel{{
+      .r = static_cast<u_int8_t>(newR),
+      .g = static_cast<u_int8_t>(newG),
+      .b = static_cast<u_int8_t>(newB),
+      .a = static_cast<u_int8_t>(newA),
   }};
 }
 
