@@ -1123,7 +1123,9 @@ private:
                  const IfsPoint&,
                  const Pixel& ifsColor,
                  float tMix);
-  void randomizeColors(std::vector<IfsPoint>&, PixelBuffer&) const;
+  void setLowDensityColors(std::vector<IfsPoint>& points,
+                           uint32_t maxLowDensityCount,
+                           std::vector<PixelBuffer*>& buffs) const;
   void updateColors();
   void updateColorsModeMer();
   void updateColorsModeMerver();
@@ -1497,6 +1499,8 @@ void IfsFx::IfsImpl::updatePixelBuffers(PixelBuffer& prevBuff,
 
   fractal->resetCurrentIFSFunc();
 
+  uint32_t maxLowDensityCount = 0;
+  uint32_t numSelectedPoints = 0;
   std::vector<IfsPoint> lowDensityPoints{};
   for (size_t i = 0; i < numPoints; i += static_cast<size_t>(getIfsIncr()))
   {
@@ -1515,29 +1519,47 @@ void IfsFx::IfsImpl::updatePixelBuffers(PixelBuffer& prevBuff,
       doneColorChange = true;
     }
 
+    numSelectedPoints++;
     drawPixel(prevBuff, currentBuff, points[i], color, t);
 
     if (points[i].count <= lowDensityCount)
     {
       lowDensityPoints.emplace_back(points[i]);
+      if (maxLowDensityCount < points[i].count)
+      {
+        maxLowDensityCount = points[i].count;
+      }
     }
   }
 
-  blurrer.doBlur(lowDensityPoints, prevBuff);
-
-  if (static_cast<float>(lowDensityPoints.size()) / static_cast<float>(numPoints) > 0.8)
+  if (static_cast<float>(lowDensityPoints.size()) / static_cast<float>(numSelectedPoints) > 0.40)
   {
-    randomizeColors(lowDensityPoints, prevBuff);
+    // Enough dense points to make blurring worthwhile.
+    blurrer.doBlur(lowDensityPoints, prevBuff);
+  }
+  else
+  {
+    std::vector<PixelBuffer*> buffs{&currentBuff, &prevBuff};
+    setLowDensityColors(lowDensityPoints, maxLowDensityCount, buffs);
   }
 }
 
-void IfsFx::IfsImpl::randomizeColors(std::vector<IfsPoint>& points, PixelBuffer& buff) const
+void IfsFx::IfsImpl::setLowDensityColors(std::vector<IfsPoint>& points,
+                                         uint32_t maxLowDensityCount,
+                                         std::vector<PixelBuffer*>& buffs) const
 {
+  const ColorMap& colorMap = colorizer.getColorMaps().getRandomColorMap();
+
   for (const auto& p : points)
   {
     const uint32_t x = p.x & 0x7fffffff;
     const uint32_t y = p.y & 0x7fffffff;
-    buff(x, y) = colorizer.getColorMaps().getRandomColorMap().getColor(getRandInRange(0.0F, 1.0F));
+    const float t = static_cast<float>(p.count) / static_cast<float>(maxLowDensityCount);
+    const Pixel color{colorMap.getColor(t)};
+    for (auto& b : buffs)
+    {
+      (*b)(x, y) = color;
+    }
   }
 }
 

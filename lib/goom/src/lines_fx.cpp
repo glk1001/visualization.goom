@@ -455,7 +455,7 @@ void LinesFx::LinesImpl::drawLines(const std::vector<int16_t>& soundData,
     const int x = static_cast<int>(pt->x + cosa * amplitude * fdata);
     const int y = static_cast<int>(pt->y + sina * amplitude * fdata);
     const float maxBrightness =
-        getRandInRange(1.0F, 2.0F) * fdata / static_cast<float>(maxNormalizedPeak);
+        getRandInRange(1.0F, 3.0F) * fdata / static_cast<float>(maxNormalizedPeak);
     const float t = std::min(1.0F, maxBrightness);
     static GammaCorrection gammaCorrect{4.2, 0.1};
     const Pixel modColor =
