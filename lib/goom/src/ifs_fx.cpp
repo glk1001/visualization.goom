@@ -88,6 +88,12 @@ public:
   void updateIfsIncr(int val);
   void setlastIfsIncr(int val);
 
+  void updateCycleChanges();
+  void updateStdIfsFunc();
+  void updateReverseIfsFunc();
+  void updateLowLowDensityBlurThreshold();
+  void updateHighLowDensityBlurThreshold();
+
 private:
   uint32_t numUpdates = 0;
   uint64_t totalTimeInUpdatesMs = 0;
@@ -96,6 +102,11 @@ private:
   std::chrono::high_resolution_clock::time_point timeNowHiRes{};
   int maxIfsIncr = -1000;
   int lastIfsIncr = 0;
+  uint32_t numCycleChanges = 0;
+  uint32_t numStdIfsFunc = 0;
+  uint32_t numReverseIfsFunc = 0;
+  uint32_t numLowLowDensityBlurThreshold = 0;
+  uint32_t numHighLowDensityBlurThreshold = 0;
 };
 
 void IfsStats::reset()
@@ -107,6 +118,11 @@ void IfsStats::reset()
   timeNowHiRes = std::chrono::high_resolution_clock::now();
   maxIfsIncr = -1000;
   lastIfsIncr = 0;
+  numCycleChanges = 0;
+  numStdIfsFunc = 0;
+  numReverseIfsFunc = 0;
+  numLowLowDensityBlurThreshold = 0;
+  numHighLowDensityBlurThreshold = 0;
 }
 
 void IfsStats::log(const StatsLogValueFunc& logVal) const
@@ -121,6 +137,11 @@ void IfsStats::log(const StatsLogValueFunc& logVal) const
   logVal(module, "maxTimeInUpdatesMs", maxTimeInUpdatesMs);
   logVal(module, "maxIfsIncr", maxIfsIncr);
   logVal(module, "lastIfsIncr", lastIfsIncr);
+  logVal(module, "numCycleChanges", numCycleChanges);
+  logVal(module, "numStdIfsFunc", numStdIfsFunc);
+  logVal(module, "numReverseIfsFunc", numReverseIfsFunc);
+  logVal(module, "numLowLowDensityBlurThreshold", numLowLowDensityBlurThreshold);
+  logVal(module, "numHighLowDensityBlurThreshold", numHighLowDensityBlurThreshold);
 }
 
 inline void IfsStats::updateStart()
@@ -158,6 +179,31 @@ inline void IfsStats::updateIfsIncr(int val)
 inline void IfsStats::setlastIfsIncr(int val)
 {
   lastIfsIncr = val;
+}
+
+void IfsStats::updateCycleChanges()
+{
+  numCycleChanges++;
+}
+
+void IfsStats::updateStdIfsFunc()
+{
+  numStdIfsFunc++;
+}
+
+void IfsStats::updateReverseIfsFunc()
+{
+  numReverseIfsFunc++;
+}
+
+void IfsStats::updateLowLowDensityBlurThreshold()
+{
+  numLowLowDensityBlurThreshold++;
+}
+
+void IfsStats::updateHighLowDensityBlurThreshold()
+{
+  numHighLowDensityBlurThreshold++;
 }
 
 inline bool megaChangeColorMapEvent()
@@ -355,7 +401,7 @@ class Fractal
 {
 public:
   Fractal() noexcept = default;
-  Fractal(const std::shared_ptr<const PluginInfo>&, const ColorMaps&) noexcept;
+  Fractal(const std::shared_ptr<const PluginInfo>&, const ColorMaps&, IfsStats*) noexcept;
   Fractal(const Fractal&) noexcept = delete;
   Fractal& operator=(const Fractal&) = delete;
 
@@ -378,7 +424,8 @@ private:
   static constexpr size_t maxSimi = 6;
   static constexpr size_t maxCountTimesSpeed = 1000;
 
-  const ColorMaps* colorMaps = nullptr;
+  const ColorMaps* colorMaps{};
+  IfsStats* stats{};
 
   uint32_t lx = 0;
   uint32_t ly = 0;
@@ -413,8 +460,11 @@ private:
   static constexpr Dbl get_1_minus_exp_neg_S(Dbl S);
 };
 
-Fractal::Fractal(const std::shared_ptr<const PluginInfo>& goomInfo, const ColorMaps& cm) noexcept
+Fractal::Fractal(const std::shared_ptr<const PluginInfo>& goomInfo,
+                 const ColorMaps& cm,
+                 IfsStats* s) noexcept
   : colorMaps{&cm},
+    stats{s},
     lx{(goomInfo->getScreenInfo().width - 1) / 2},
     ly{(goomInfo->getScreenInfo().height - 1) / 2},
     components(5 * maxSimi),
@@ -460,7 +510,7 @@ void Fractal::init()
 
 void Fractal::resetCurrentIFSFunc()
 {
-  if (probabilityOfMInN(0, 10))
+  if (probabilityOfMInN(3, 10))
   {
     curFunc = [&](const Similitude& simi, const float x1, const float y1, const float x2,
                   const float y2) -> FltPoint {
@@ -471,6 +521,7 @@ void Fractal::resetCurrentIFSFunc()
               simi.cy,
       };
     };
+    stats->updateReverseIfsFunc();
   }
   else
   {
@@ -483,6 +534,7 @@ void Fractal::resetCurrentIFSFunc()
               simi.cy,
       };
     };
+    stats->updateStdIfsFunc();
   }
 }
 
@@ -964,21 +1016,18 @@ void LowDensityBlurrer::doBlur(std::vector<IfsPoint>& lowDensityPoints, PixelBuf
 
   for (auto& p : lowDensityPoints)
   {
-    const uint32_t x = p.x & 0x7fffffff;
-    const uint32_t y = p.y & 0x7fffffff;
-
-    if (x < (width / 2) || y < (width / 2) || x >= screenWidth - (width / 2) ||
-        y >= screenHeight - (width / 2))
+    if (p.x < (width / 2) || p.y < (width / 2) || p.x >= screenWidth - (width / 2) ||
+        p.y >= screenHeight - (width / 2))
     {
       p.count = 0; // just signal that no need to set buff
       continue;
     }
 
     size_t n = 0;
-    uint32_t neighY = y - width / 2;
+    uint32_t neighY = p.y - width / 2;
     for (size_t i = 0; i < width; i++)
     {
-      uint32_t neighX = x - width / 2;
+      uint32_t neighX = p.x - width / 2;
       for (size_t j = 0; j < width; j++)
       {
         neighbours[n] = buff(neighX, neighY);
@@ -996,9 +1045,7 @@ void LowDensityBlurrer::doBlur(std::vector<IfsPoint>& lowDensityPoints, PixelBuf
     {
       continue;
     }
-    const uint32_t x = p.x & 0x7fffffff;
-    const uint32_t y = p.y & 0x7fffffff;
-    buff(x, y) = p.color;
+    buff(p.x, p.y) = p.color;
   }
 }
 
@@ -1113,6 +1160,9 @@ private:
   static constexpr uint32_t minDensityCount = 5;
   uint32_t lowDensityCount = 10;
   LowDensityBlurrer blurrer{};
+  float lowDensityBlurThreshold = 0.40;
+  bool useRandomLowDensityColors = false;
+  bool blurLowDensityColors(size_t numPoints, const std::vector<IfsPoint>& lowDensityPoints) const;
   void updatePixelBuffers(PixelBuffer& prevBuff,
                           PixelBuffer& currentBuff,
                           const std::vector<IfsPoint>& points,
@@ -1274,7 +1324,7 @@ bool IfsFx::IfsImpl::operator==(const IfsImpl& i) const
 IfsFx::IfsImpl::IfsImpl(std::shared_ptr<const PluginInfo> info) noexcept
   : goomInfo{std::move(info)},
     draw{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height},
-    fractal{std::make_unique<Fractal>(goomInfo, colorizer.getColorMaps())},
+    fractal{std::make_unique<Fractal>(goomInfo, colorizer.getColorMaps(), &stats)},
     blurrer{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height, 3}
 {
 #ifndef NO_LOGGING
@@ -1361,6 +1411,20 @@ void IfsFx::IfsImpl::updateIfs(PixelBuffer& prevBuff, PixelBuffer& currentBuff)
   if (updateData.cycle >= 80)
   {
     updateData.cycle = 0;
+    stats.updateCycleChanges();
+
+    if (probabilityOfMInN(10, 20))
+    {
+      lowDensityBlurThreshold = 0.99;
+      stats.updateHighLowDensityBlurThreshold();
+    }
+    else
+    {
+      lowDensityBlurThreshold = 0.40;
+      stats.updateLowLowDensityBlurThreshold();
+    }
+
+    fractal->resetCurrentIFSFunc();
   }
 
   const std::vector<IfsPoint>& points = fractal->drawIfs();
@@ -1497,8 +1561,6 @@ void IfsFx::IfsImpl::updatePixelBuffers(PixelBuffer& prevBuff,
   const float tStep = numPoints == 1 ? 0.0F : (1.0F - 0.0F) / static_cast<float>(numPoints - 1);
   float t = -tStep;
 
-  fractal->resetCurrentIFSFunc();
-
   uint32_t maxLowDensityCount = 0;
   uint32_t numSelectedPoints = 0;
   std::vector<IfsPoint> lowDensityPoints{};
@@ -1506,8 +1568,8 @@ void IfsFx::IfsImpl::updatePixelBuffers(PixelBuffer& prevBuff,
   {
     t += tStep;
 
-    const uint32_t x = points[i].x & 0x7fffffff;
-    const uint32_t y = points[i].y & 0x7fffffff;
+    const uint32_t x = points[i].x;
+    const uint32_t y = points[i].y;
     if ((x >= goomInfo->getScreenInfo().width) || (y >= goomInfo->getScreenInfo().height))
     {
       continue;
@@ -1532,7 +1594,7 @@ void IfsFx::IfsImpl::updatePixelBuffers(PixelBuffer& prevBuff,
     }
   }
 
-  if (static_cast<float>(lowDensityPoints.size()) / static_cast<float>(numSelectedPoints) > 0.40)
+  if (blurLowDensityColors(numSelectedPoints, lowDensityPoints))
   {
     // Enough dense points to make blurring worthwhile.
     blurrer.doBlur(lowDensityPoints, prevBuff);
@@ -1544,21 +1606,42 @@ void IfsFx::IfsImpl::updatePixelBuffers(PixelBuffer& prevBuff,
   }
 }
 
+inline bool IfsFx::IfsImpl::blurLowDensityColors(
+    const size_t numPoints, const std::vector<IfsPoint>& lowDensityPoints) const
+{
+  if (numPoints == 0)
+  {
+    return false;
+  }
+  return static_cast<float>(lowDensityPoints.size()) / static_cast<float>(numPoints) >
+         lowDensityBlurThreshold;
+}
+
 void IfsFx::IfsImpl::setLowDensityColors(std::vector<IfsPoint>& points,
                                          uint32_t maxLowDensityCount,
                                          std::vector<PixelBuffer*>& buffs) const
 {
+  const std::function<Pixel(const IfsPoint&)> getRandomColor = [&](const IfsPoint&) {
+    const float t = getRandInRange(0.0F, 1.0F);
+    return colorizer.getColorMaps().getRandomColorMap().getColor(t);
+  };
+
   const ColorMap& colorMap = colorizer.getColorMaps().getRandomColorMap();
+  const float reciprocalMaxLowDensityCount = 1.0F / static_cast<float>(maxLowDensityCount);
+  const std::function<Pixel(const IfsPoint&)> getSmoothColor = [&](const IfsPoint& p) {
+    const float t = reciprocalMaxLowDensityCount * static_cast<float>(p.count);
+    return colorMap.getColor(t);
+  };
+
+  const std::function<Pixel(const IfsPoint&)> getColor =
+      useRandomLowDensityColors ? getRandomColor : getSmoothColor;
 
   for (const auto& p : points)
   {
-    const uint32_t x = p.x & 0x7fffffff;
-    const uint32_t y = p.y & 0x7fffffff;
-    const float t = static_cast<float>(p.count) / static_cast<float>(maxLowDensityCount);
-    const Pixel color{colorMap.getColor(t)};
+    const Pixel color = getColor(p);
     for (auto& b : buffs)
     {
-      (*b)(x, y) = color;
+      (*b)(p.x, p.y) = color;
     }
   }
 }
