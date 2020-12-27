@@ -46,7 +46,8 @@ target_include_directories(${PROJECT_NAME}
         ${LIBS_DIR}/cereal/include
         ${LIBS_DIR}/fmt/include
         ${LIBS_DIR}/magic_enum/include
-        /usr/include/freetype2
+	/usr/include/freetype2
+#        Freetype::Freetype
 )
 
 set_target_properties( ${PROJECT_NAME} 

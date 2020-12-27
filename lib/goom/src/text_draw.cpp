@@ -25,6 +25,9 @@ public:
   void setFontSize(int val);
   void setOutlineWidth(float val);
 
+  void setFontColorFunc(const FontColorFunc&);
+  void setOutlineFontColorFunc(const FontColorFunc&);
+
   void draw(const std::string&, int xPen, int yPen, int& xNext, int& yNext, PixelBuffer&);
 
 private:
@@ -37,11 +40,13 @@ private:
   float outlineWidth = 3;
   std::string fontFilename{};
   std::vector<unsigned char> fontBuffer{};
-  Pixel fontColor{{.r = 100, .g = 90, .b = 150, .a = 100}};
-  Pixel outlineColor{{.r = 255, .g = 255, .b = 255, .a = 255}};
+
+  FontColorFunc getFontColor{};
+  FontColorFunc getOutlineFontColor{};
+
   void writeGlyph(wchar_t, FT_Face&, int xPen, int yPen, int& advance, PixelBuffer&) const;
   void writeGlyphSimple(wchar_t, FT_Face&, int xPen, int yPen, int& advance, PixelBuffer&) const;
-  void drawBitmap(FT_Bitmap*, FT_Int x, FT_Int y, PixelBuffer&) const;
+  void drawBitmap(FT_Bitmap*, FT_Int x, FT_Int y, wchar_t ch, PixelBuffer&) const;
 
   static constexpr int toStdPixelCoord(int freeTypeCoord);
   static constexpr int toFreeTypeCoord(int stdPixelCoord);
@@ -55,8 +60,13 @@ private:
   static Rect getBoundingRect(const Spans& outlineSpans, const Spans& spans);
   void RenderSpans(FT_Outline*, Spans*) const;
   static void RasterCallback(int y, int count, const FT_Span* spans, void* user);
-  void writeSpansToImage(
-      const Spans&, const Rect&, int xPen, int yPen, const Pixel& color, PixelBuffer&) const;
+  void writeSpansToImage(const Spans&,
+                         const Rect&,
+                         int xPen,
+                         int yPen,
+                         wchar_t ch,
+                         const FontColorFunc& getColor,
+                         PixelBuffer&) const;
 };
 
 TextDraw::TextDraw(const int screenW, const int screenH) noexcept
@@ -64,9 +74,7 @@ TextDraw::TextDraw(const int screenW, const int screenH) noexcept
 {
 }
 
-TextDraw::~TextDraw() noexcept
-{
-}
+TextDraw::~TextDraw() noexcept = default;
 
 void TextDraw::setFont(const std::string& filename)
 {
@@ -81,6 +89,16 @@ void TextDraw::setFontSize(int val)
 void TextDraw::setOutlineWidth(float val)
 {
   textDrawImpl->setOutlineWidth(val);
+}
+
+void TextDraw::setFontColorFunc(const FontColorFunc& val)
+{
+  textDrawImpl->setFontColorFunc(val);
+}
+
+void TextDraw::setOutlineFontColorFunc(const FontColorFunc& val)
+{
+  textDrawImpl->setOutlineFontColorFunc(val);
 }
 
 void TextDraw::draw(const std::string& str,
@@ -132,6 +150,16 @@ void TextDraw::TextDrawImpl::setOutlineWidth(float val)
   outlineWidth = val;
 }
 
+void TextDraw::TextDrawImpl::setFontColorFunc(const FontColorFunc& val)
+{
+  getFontColor = val;
+}
+
+void TextDraw::TextDrawImpl::setOutlineFontColorFunc(const FontColorFunc& val)
+{
+  getOutlineFontColor = val;
+}
+
 constexpr int TextDraw::TextDrawImpl::toStdPixelCoord(const int freeTypeCoord)
 {
   return freeTypeCoord >> 6;
@@ -167,7 +195,7 @@ void TextDraw::TextDrawImpl::draw(const std::string& str,
   for (const auto& c : str)
   {
     xNext += advance;
-    writeGlyph(c, face, xNext, yNext + 200, advance, buffer);
+    writeGlyph(c, face, xNext, yNext + 300, advance, buffer);
     writeGlyphSimple(c, face, xNext, yNext, advance, buffer);
   }
 }
@@ -175,6 +203,7 @@ void TextDraw::TextDrawImpl::draw(const std::string& str,
 void TextDraw::TextDrawImpl::drawBitmap(FT_Bitmap* bitmap,
                                         const FT_Int x,
                                         const FT_Int y,
+                                        const wchar_t ch,
                                         PixelBuffer& buffer) const
 {
   const auto xMax = static_cast<uint32_t>(x) + bitmap->width;
@@ -200,7 +229,8 @@ void TextDraw::TextDrawImpl::drawBitmap(FT_Bitmap* bitmap,
       }
       else
       {
-        buffer(static_cast<size_t>(i), static_cast<size_t>(j)) = fontColor;
+        buffer(static_cast<size_t>(i), static_cast<size_t>(j)) =
+            getFontColor(ch, p, q, bitmap->width, bitmap->rows);
       }
     }
   }
@@ -240,7 +270,7 @@ void TextDraw::TextDrawImpl::writeGlyphSimple(const wchar_t ch,
   }
 
   // now, draw to our target surface (convert position)
-  drawBitmap(&slot->bitmap, slot->bitmap_left, screenHeight - slot->bitmap_top, buff);
+  drawBitmap(&slot->bitmap, slot->bitmap_left, screenHeight - slot->bitmap_top, ch, buff);
 
   advance = toStdPixelCoord(slot->advance.x);
 }
@@ -341,10 +371,10 @@ void TextDraw::TextDrawImpl::writeGlyph(const wchar_t ch,
   const Rect rect = getBoundingRect(outlineSpans, spans);
 
   // Loop over the outline spans and just draw them into the image.
-  writeSpansToImage(outlineSpans, rect, xPen, yPen, outlineColor, buff);
+  writeSpansToImage(outlineSpans, rect, xPen, yPen, ch, getOutlineFontColor, buff);
 
   // Then loop over the regular glyph spans and blend them into the image.
-  writeSpansToImage(spans, rect, xPen, yPen, fontColor, buff);
+  writeSpansToImage(spans, rect, xPen, yPen, ch, getFontColor, buff);
 
 #if 0
   // This is unused in this test but you would need this to draw
@@ -405,7 +435,8 @@ void TextDraw::TextDrawImpl::writeSpansToImage(const Spans& spans,
                                                const Rect& rect,
                                                const int xPen,
                                                const int yPen,
-                                               const Pixel& color,
+                                               const wchar_t ch,
+                                               const FontColorFunc& getColor,
                                                PixelBuffer& buff) const
 {
   for (const auto& s : spans)
@@ -415,10 +446,9 @@ void TextDraw::TextDrawImpl::writeSpansToImage(const Spans& spans,
     {
       continue;
     }
-    const Pixel srceColor{
-        {.r = color.r(), .g = color.g(), .b = color.b(), .a = static_cast<uint8_t>(s.coverage)}};
 
     const int xPos0 = xPen + s.x - rect.xMin();
+    const float xf0 = s.x - rect.xMin();
     for (int w = 0; w < s.width; ++w)
     {
       const int xPos = xPos0 + w;
@@ -426,6 +456,10 @@ void TextDraw::TextDrawImpl::writeSpansToImage(const Spans& spans,
       {
         continue;
       }
+
+      const Pixel color = getColor(ch, xf0 + w, rect.Height() - (s.y - rect.yMin()), rect.Width(), rect.Height());
+      const Pixel srceColor{
+          {.r = color.r(), .g = color.g(), .b = color.b(), .a = static_cast<uint8_t>(s.coverage)}};
 
       Pixel& destColor = buff(static_cast<size_t>(xPos), static_cast<size_t>(yPos));
       destColor = getColorBlend(srceColor, destColor);
