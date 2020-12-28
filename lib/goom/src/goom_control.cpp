@@ -1317,7 +1317,7 @@ GoomControl::GoomControlImpl::GoomControlImpl() noexcept : parallel{}
 }
 
 GoomControl::GoomControlImpl::GoomControlImpl(const uint32_t resx, const uint32_t resy) noexcept
-  : parallel{0}, // max cores
+  : parallel{-1}, // max cores - 1
     goomInfo{new WritablePluginInfo{resx, resy}},
     imageBuffers{resx, resy},
     visualFx{parallel, std::const_pointer_cast<const PluginInfo>(
