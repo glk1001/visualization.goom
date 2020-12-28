@@ -14,27 +14,44 @@ class PixelBuffer;
 class TextDraw
 {
 public:
-  TextDraw(int screenWidth, int screenHeight) noexcept;
+  TextDraw(uint32_t screenWidth, uint32_t screenHeight) noexcept;
   ~TextDraw() noexcept;
+
+  enum class TextAlignment
+  {
+    left,
+    center,
+    right
+  };
+  void setAlignment(TextAlignment);
 
   void setFontSize(int val);
   void setOutlineWidth(float val);
+  void setCharSpacing(float val);
   void setFont(const std::string& filename);
+  void setText(const std::string&);
 
-  using FontColorFunc = std::function<Pixel(wchar_t ch, float x, float y, float width, float height)>;
+  using FontColorFunc =
+      std::function<Pixel(size_t textIndexOfChar, int x, int y, int width, int height)>;
   void setFontColorFunc(const FontColorFunc&);
   void setOutlineFontColorFunc(const FontColorFunc&);
 
-  class DrawStringInfo
-  {
-  public:
-    virtual ~DrawStringInfo() noexcept = default;
-    [[nodiscard]] virtual uint32_t getTotalWidth() const = 0;
-    [[nodiscard]] virtual uint32_t getTotalHeight() const = 0;
-  };
-  std::unique_ptr<DrawStringInfo> getDrawStringInfo(const std::string&);
+  void prepare();
 
-  void draw(const std::string&, int xPen, int yPen, int& xNext, int& yNext, PixelBuffer&);
+  struct Rect
+  {
+    int xmin{};
+    int xmax{};
+    int ymin{};
+    int ymax{};
+    [[nodiscard]] int width() const { return xmax - xmin + 1; }
+    [[nodiscard]] int height() const { return ymax - ymin + 1; }
+  };
+  [[nodiscard]] Rect getPreparedTextBoundingRect() const;
+  [[nodiscard]] int getBearingX() const;
+  [[nodiscard]] int getBearingY() const;
+
+  void draw(int xPen, int yPen, int& xNext, int& yNext, PixelBuffer&);
 
 private:
   class TextDrawImpl;

@@ -16,20 +16,27 @@ namespace goom
 class TextDraw::TextDrawImpl
 {
 public:
-  TextDrawImpl(int screenW, int screenH) noexcept;
+  TextDrawImpl(uint32_t screenW, uint32_t screenH) noexcept;
   ~TextDrawImpl() noexcept;
   TextDrawImpl(const TextDrawImpl&) noexcept = delete;
   TextDrawImpl& operator=(const TextDrawImpl&) = delete;
 
+  void setAlignment(TextAlignment);
   void setFont(const std::string& filename);
   void setFontSize(int val);
   void setOutlineWidth(float val);
+  void setCharSpacing(float val);
+  void setText(const std::string&);
 
   void setFontColorFunc(const FontColorFunc&);
   void setOutlineFontColorFunc(const FontColorFunc&);
 
-  std::unique_ptr<DrawStringInfo> getDrawStringInfo(const std::string&);
-  void draw(const std::string&, int xPen, int yPen, int& xNext, int& yNext, PixelBuffer&);
+  void prepare();
+  [[nodiscard]] Rect getPreparedTextBoundingRect() const;
+  [[nodiscard]] int getBearingX() const;
+  [[nodiscard]] int getBearingY() const;
+
+  void draw(int xPen, int yPen, int& xNext, int& yNext, PixelBuffer&);
 
 private:
   const int screenWidth;
@@ -39,92 +46,100 @@ private:
   uint32_t horizontalResolution = 90;
   uint32_t verticalResolution = 90;
   float outlineWidth = 3;
+  float charSpacing = 0;
   std::string fontFilename{};
   std::vector<unsigned char> fontBuffer{};
+  std::string theText{};
+  TextAlignment textAlignment{TextAlignment::left};
   FT_Face face{};
+  void setFaceFontSize();
 
   FontColorFunc getFontColor{};
   FontColorFunc getOutlineFontColor{};
-
-  void writeGlyph(wchar_t, int xPen, int yPen, int& advance, PixelBuffer&);
-  void writeGlyphSimple(wchar_t, int xPen, int yPen, int& advance, PixelBuffer&);
-  void drawBitmap(FT_Bitmap*, FT_Int x, FT_Int y, wchar_t ch, PixelBuffer&) const;
 
   static constexpr int toStdPixelCoord(int freeTypeCoord);
   static constexpr int toFreeTypeCoord(int stdPixelCoord);
   static constexpr int toFreeTypeCoord(float stdPixelCoord);
   struct Vec2;
-  struct Rect;
   struct Span;
   using SpanArray = std::vector<Span>;
 
-  struct Rect
+  struct RectImpl : public Rect
   {
-    Rect() noexcept = default;
-    Rect(int left, int top, int right, int bottom) noexcept;
+    RectImpl() noexcept = default;
+    RectImpl(int left, int top, int right, int bottom) noexcept;
+    RectImpl(const RectImpl&) noexcept = default;
 
     void Include(const Vec2&);
-
-    [[maybe_unused]] [[nodiscard]] float Width() const { return xmax - xmin + 1; }
-    [[maybe_unused]] [[nodiscard]] float Height() const { return ymax - ymin + 1; }
-
-    [[nodiscard]] int xMin() const { return static_cast<int>(std::lround(xmin)); }
-    [[nodiscard]] int yMin() const { return static_cast<int>(std::lround(ymin)); }
-
-  private:
-    float xmin{};
-    float xmax{};
-    float ymin{};
-    float ymax{};
   };
 
   struct Spans
   {
     SpanArray stdSpans{};
     SpanArray outlineSpans{};
-    Rect rect{};
+    size_t textIndexOfChar{};
+    RectImpl rect{};
     int advance{};
+    int bearingX{};
+    int bearingY{};
   };
 
-  class DrawStringInfoImpl;
-
-  SpanArray getStdSpans(FT_Face&) const;
-  SpanArray getOutlineSpans(FT_Face&) const;
-  Spans getSpans(FT_Face&) const;
-  static Rect getBoundingRect(const SpanArray& stdSpans, const SpanArray& outlineSpans);
-  void RenderSpans(FT_Outline*, SpanArray*) const;
-  void setFaceFontSize();
+  std::vector<Spans> textSpans{};
+  Rect textBoundingRect{};
+  static RectImpl getBoundingRect(const SpanArray& stdSpans, const SpanArray& outlineSpans);
+  [[nodiscard]] Spans getSpans(size_t textIndexOfChar) const;
+  [[nodiscard]] SpanArray getStdSpans() const;
+  [[nodiscard]] SpanArray getOutlineSpans() const;
+  void RenderSpans(FT_Outline* outline, SpanArray* spans) const;
   static void RasterCallback(int y, int count, const FT_Span* spans, void* user);
-  void writeSpansToImage(const Spans&, int xPen, int yPen, wchar_t ch, PixelBuffer&) const;
+
+  [[nodiscard]] int getStartXPen(int xPen) const;
+  [[nodiscard]] int getStartYPen(int yPen) const;
+  void writeGlyph(const Spans&, int xPen, int yPen, PixelBuffer& buff) const;
   void writeSpansToImage(const SpanArray&,
-                         const Rect&,
+                         const RectImpl&,
                          int xPen,
                          int yPen,
-                         wchar_t ch,
+                         size_t textIndexOfChar,
                          const FontColorFunc& getColor,
                          PixelBuffer&) const;
 };
 
-TextDraw::TextDraw(const int screenW, const int screenH) noexcept
+TextDraw::TextDraw(const uint32_t screenW, const uint32_t screenH) noexcept
   : textDrawImpl{new TextDrawImpl{screenW, screenH}}
 {
 }
 
 TextDraw::~TextDraw() noexcept = default;
 
+void TextDraw::setAlignment(const TextAlignment a)
+{
+  textDrawImpl->setAlignment(a);
+}
+
 void TextDraw::setFont(const std::string& filename)
 {
   textDrawImpl->setFont(filename);
 }
 
-void TextDraw::setFontSize(int val)
+void TextDraw::setFontSize(const int val)
 {
   textDrawImpl->setFontSize(val);
 }
 
-void TextDraw::setOutlineWidth(float val)
+void TextDraw::setOutlineWidth(const float val)
 {
   textDrawImpl->setOutlineWidth(val);
+}
+
+void TextDraw::setCharSpacing(const float val)
+{
+  textDrawImpl->setCharSpacing(val);
+}
+
+void TextDraw::setText(const std::string& val)
+{
+  textDrawImpl->setText(val);
 }
 
 void TextDraw::setFontColorFunc(const FontColorFunc& val)
@@ -137,23 +152,33 @@ void TextDraw::setOutlineFontColorFunc(const FontColorFunc& val)
   textDrawImpl->setOutlineFontColorFunc(val);
 }
 
-std::unique_ptr<TextDraw::DrawStringInfo> TextDraw::getDrawStringInfo(const std::string& str)
+void TextDraw::prepare()
 {
-  return textDrawImpl->getDrawStringInfo(str);
+  textDrawImpl->prepare();
 }
 
-void TextDraw::draw(const std::string& str,
-                    const int xPen,
-                    const int yPen,
-                    int& xNext,
-                    int& yNext,
-                    PixelBuffer& buffer)
+TextDraw::Rect TextDraw::getPreparedTextBoundingRect() const
 {
-  textDrawImpl->draw(str, xPen, yPen, xNext, yNext, buffer);
+  return textDrawImpl->getPreparedTextBoundingRect();
 }
 
-TextDraw::TextDrawImpl::TextDrawImpl(const int screenW, const int screenH) noexcept
-  : screenWidth{screenW}, screenHeight{screenH}
+int TextDraw::getBearingX() const
+{
+  return textDrawImpl->getBearingX();
+}
+
+int TextDraw::getBearingY() const
+{
+  return textDrawImpl->getBearingY();
+}
+
+void TextDraw::draw(const int xPen, const int yPen, int& xNext, int& yNext, PixelBuffer& buffer)
+{
+  textDrawImpl->draw(xPen, yPen, xNext, yNext, buffer);
+}
+
+TextDraw::TextDrawImpl::TextDrawImpl(const uint32_t screenW, const uint32_t screenH) noexcept
+  : screenWidth{static_cast<int>(screenW)}, screenHeight{static_cast<int>(screenH)}
 {
   FT_Init_FreeType(&library);
 }
@@ -161,6 +186,11 @@ TextDraw::TextDrawImpl::TextDrawImpl(const int screenW, const int screenH) noexc
 TextDraw::TextDrawImpl::~TextDrawImpl() noexcept
 {
   FT_Done_FreeType(library);
+}
+
+void TextDraw::TextDrawImpl::setAlignment(const TextAlignment a)
+{
+  textAlignment = a;
 }
 
 void TextDraw::TextDrawImpl::setFont(const std::string& filename)
@@ -173,7 +203,6 @@ void TextDraw::TextDrawImpl::setFont(const std::string& filename)
     throw std::runtime_error(std20::format("Could not open font file \"{}\".", fontFilename));
   }
 
-  // Read the entire file to a memory buffer.
   fontFile.seekg(0, std::ios::end);
   std::fstream::pos_type fontFileSize = fontFile.tellg();
   fontFile.seekg(0);
@@ -181,7 +210,7 @@ void TextDraw::TextDrawImpl::setFont(const std::string& filename)
   fontFile.read((char*)fontBuffer.data(), fontFileSize);
 
   // Create a face from a memory buffer.  Be sure not to delete the memory buffer
-  // until you are done using that font as FreeType will reference it directly.
+  // until we are done using that font as FreeType will reference it directly.
   FT_New_Memory_Face(library, fontBuffer.data(), static_cast<FT_Long>(fontBuffer.size()), 0, &face);
 
   setFaceFontSize();
@@ -192,12 +221,17 @@ void TextDraw::TextDrawImpl::setFaceFontSize()
   if (FT_Set_Char_Size(face, toFreeTypeCoord(fontSize), toFreeTypeCoord(fontSize),
                        horizontalResolution, verticalResolution) != 0)
   {
-    throw std::runtime_error(std20::format("Could not set font size to {}.", fontSize));
+    throw std::logic_error(std20::format("Could not set face font size to {}.", fontSize));
   }
 }
 
 void TextDraw::TextDrawImpl::setFontSize(int val)
 {
+  if (val <= 0)
+  {
+    throw std::logic_error(std20::format("Font size <= 0: {}.", val));
+  }
+
   fontSize = val;
   if (face)
   {
@@ -207,7 +241,30 @@ void TextDraw::TextDrawImpl::setFontSize(int val)
 
 void TextDraw::TextDrawImpl::setOutlineWidth(float val)
 {
+  if (val <= 0)
+  {
+    throw std::logic_error(std20::format("Outline width <= 0: {}.", val));
+  }
   outlineWidth = val;
+}
+
+void TextDraw::TextDrawImpl::setCharSpacing(const float val)
+{
+  if (val <= 0)
+  {
+    throw std::logic_error(std20::format("Char spacing <= 0: {}.", val));
+  }
+  charSpacing = val;
+}
+
+void TextDraw::TextDrawImpl::setText(const std::string& str)
+{
+  if (str.empty())
+  {
+    throw std::logic_error("Text string is empty.");
+  }
+
+  theText = str;
 }
 
 void TextDraw::TextDrawImpl::setFontColorFunc(const FontColorFunc& val)
@@ -218,6 +275,177 @@ void TextDraw::TextDrawImpl::setFontColorFunc(const FontColorFunc& val)
 void TextDraw::TextDrawImpl::setOutlineFontColorFunc(const FontColorFunc& val)
 {
   getOutlineFontColor = val;
+}
+
+void TextDraw::TextDrawImpl::prepare()
+{
+  if (!face)
+  {
+    throw std::logic_error("Font face has not been set.");
+  }
+
+  textSpans.resize(0);
+
+  int xmax = 0;
+  int ymin = 100000;
+  int ymax = 0;
+  for (size_t i = 0; i < theText.size(); i++)
+  {
+    // Load the glyph we are looking for.
+    const FT_UInt gIndex = FT_Get_Char_Index(face, static_cast<FT_ULong>(theText[i]));
+    if (FT_Load_Glyph(face, gIndex, FT_LOAD_NO_BITMAP) != 0)
+    {
+      throw std::runtime_error(std20::format("Could not load font for glyph index {}.", gIndex));
+    }
+
+    // Need an outline for this to work.
+    if (face->glyph->format != FT_GLYPH_FORMAT_OUTLINE)
+    {
+      throw std::logic_error(std20::format("Not a correct font format: {}.", face->glyph->format));
+    }
+
+    const Spans spans = getSpans(i);
+    textSpans.emplace_back(spans);
+
+    xmax += spans.advance;
+    ymin = std::min(ymin, spans.rect.ymin);
+    ymax = std::max(ymax, spans.rect.ymax);
+  }
+
+  textBoundingRect.xmin = 0;
+  textBoundingRect.xmax = xmax;
+  textBoundingRect.ymin = ymin;
+  textBoundingRect.ymax = ymax;
+}
+
+int TextDraw::TextDrawImpl::getStartXPen(const int xPen) const
+{
+  switch (textAlignment)
+  {
+    case TextAlignment::left:
+      return xPen;
+    case TextAlignment::center:
+      return xPen - (getPreparedTextBoundingRect().xmax - getPreparedTextBoundingRect().xmin) / 2;
+    case TextAlignment::right:
+      return xPen - (getPreparedTextBoundingRect().xmax - getPreparedTextBoundingRect().xmin);
+    default:
+      throw std::logic_error("Unknown TextAlignment value.");
+  }
+}
+
+int TextDraw::TextDrawImpl::getStartYPen(const int yPen) const
+{
+  return yPen;
+}
+
+void TextDraw::TextDrawImpl::draw(
+    const int xPen, const int yPen, int& xNext, int& yNext, PixelBuffer& buffer)
+{
+  if (textSpans.empty())
+  {
+    throw std::logic_error("textSpans is empty.");
+  }
+
+  xNext = getStartXPen(xPen);
+  yNext = getStartYPen(yPen);
+
+  for (auto& s : textSpans)
+  {
+    writeGlyph(s, xNext, screenHeight - yNext, buffer);
+    xNext += s.advance;
+  }
+}
+
+// A horizontal pixel span generated by the FreeType renderer.
+struct TextDraw::TextDrawImpl::Vec2
+{
+  Vec2(const int a, const int b) : x{a}, y{b} {}
+  int x;
+  int y;
+};
+
+TextDraw::TextDrawImpl::RectImpl::RectImpl(const int left,
+                                           const int top,
+                                           const int right,
+                                           const int bottom) noexcept
+{
+  xmin = left;
+  xmax = right;
+  ymin = top;
+  ymax = bottom;
+}
+
+void TextDraw::TextDrawImpl::RectImpl::Include(const Vec2& span)
+{
+  xmin = std::min(xmin, span.x);
+  ymin = std::min(ymin, span.y);
+  xmax = std::max(xmax, span.x);
+  ymax = std::max(ymax, span.y);
+}
+
+struct TextDraw::TextDrawImpl::Span
+{
+  Span(const int _x, const int _y, const int _width, const int _coverage)
+    : x{_x}, y{_y}, width{_width}, coverage{_coverage}
+  {
+  }
+
+  int x;
+  int y;
+  int width;
+  int coverage;
+};
+
+// Render the specified character as a colored glyph with a colored outline.
+void TextDraw::TextDrawImpl::writeGlyph(const Spans& spans,
+                                        const int xPen,
+                                        const int yPen,
+                                        PixelBuffer& buff) const
+{
+  // Loop over the outline spans and just draw them into the image.
+  writeSpansToImage(spans.outlineSpans, spans.rect, xPen, yPen, spans.textIndexOfChar,
+                    getOutlineFontColor, buff);
+
+  // Then loop over the regular glyph spans and blend them into the image.
+  writeSpansToImage(spans.stdSpans, spans.rect, xPen, yPen, spans.textIndexOfChar, getFontColor,
+                    buff);
+}
+
+void TextDraw::TextDrawImpl::writeSpansToImage(const SpanArray& spans,
+                                               const RectImpl& rect,
+                                               const int xPen,
+                                               const int yPen,
+                                               const size_t textIndexOfChar,
+                                               const FontColorFunc& getColor,
+                                               PixelBuffer& buff) const
+{
+  for (const auto& s : spans)
+  {
+    const int yPos = screenHeight - (yPen + s.y - rect.ymin);
+    if (yPos < 0 || yPos >= screenHeight)
+    {
+      continue;
+    }
+
+    const int xPos0 = xPen + s.x - rect.xmin;
+    const int xf0 = s.x - rect.xmin;
+    const auto coverage = static_cast<uint8_t>(s.coverage);
+    for (int w = 0; w < s.width; ++w)
+    {
+      const int xPos = xPos0 + w;
+      if (xPos < 0 || xPos >= screenWidth)
+      {
+        continue;
+      }
+
+      const Pixel color = getColor(textIndexOfChar, xf0 + w, rect.height() - (s.y - rect.ymin),
+                                   rect.width(), rect.height());
+      const Pixel srceColor{{.r = color.r(), .g = color.g(), .b = color.b(), .a = coverage}};
+
+      Pixel& destColor = buff(static_cast<size_t>(xPos), static_cast<size_t>(yPos));
+      destColor = getColorBlend(srceColor, destColor);
+    }
+  }
 }
 
 constexpr int TextDraw::TextDrawImpl::toStdPixelCoord(const int freeTypeCoord)
@@ -235,245 +463,6 @@ constexpr int TextDraw::TextDrawImpl::toFreeTypeCoord(const float stdPixelCoord)
   return static_cast<int>(std::lround(stdPixelCoord * 64.0));
 }
 
-void TextDraw::TextDrawImpl::draw(const std::string& str,
-                                  const int xPen,
-                                  const int yPen,
-                                  int& xNext,
-                                  int& yNext,
-                                  PixelBuffer& buffer)
-{
-  // Dump out a single glyph.
-  xNext = xPen;
-  yNext = yPen;
-  int advance = 0;
-
-  for (const auto& c : str)
-  {
-    xNext += advance;
-    writeGlyph(c, xNext, yNext, advance, buffer);
-    //    writeGlyphSimple(c, face, xNext, yNext, advance, buffer);
-  }
-}
-
-// A horizontal pixel span generated by the FreeType renderer.
-struct TextDraw::TextDrawImpl::Vec2
-{
-  Vec2(const int a, const int b) : x{static_cast<float>(a)}, y{static_cast<float>(b)} {}
-  float x;
-  float y;
-};
-
-TextDraw::TextDrawImpl::Rect::Rect(const int left,
-                                   const int top,
-                                   const int right,
-                                   const int bottom) noexcept
-  : xmin{static_cast<float>(left)},
-    xmax{static_cast<float>(right)},
-    ymin{static_cast<float>(top)},
-    ymax{static_cast<float>(bottom)}
-{
-}
-
-void TextDraw::TextDrawImpl::Rect::Include(const Vec2& r)
-{
-  xmin = std::min(xmin, r.x);
-  ymin = std::min(ymin, r.y);
-  xmax = std::max(xmax, r.x);
-  ymax = std::max(ymax, r.y);
-}
-
-struct TextDraw::TextDrawImpl::Span
-{
-  Span(const int _x, const int _y, const int _width, const int _coverage)
-    : x{_x}, y{_y}, width{_width}, coverage{_coverage}
-  {
-  }
-
-  int x;
-  int y;
-  int width;
-  int coverage;
-};
-
-// Render the specified character as a colored glyph with a colored outline.
-void TextDraw::TextDrawImpl::writeGlyph(
-    const wchar_t ch, const int xPen, const int yPen, int& advance, PixelBuffer& buff)
-{
-  // Load the glyph we are looking for.
-  const FT_UInt gindex = FT_Get_Char_Index(face, static_cast<FT_ULong>(ch));
-  if (FT_Load_Glyph(face, gindex, FT_LOAD_NO_BITMAP) != 0)
-  {
-    throw std::runtime_error(std20::format("Could load font for glyph index {}.", gindex));
-  }
-
-  // Need an outline for this to work.
-  if (face->glyph->format != FT_GLYPH_FORMAT_OUTLINE)
-  {
-    throw std::runtime_error(std20::format("Not a correct font format: {}.", face->glyph->format));
-  }
-
-  // Render the basic glyph to a span list.
-  const Spans spans = getSpans(face);
-  if (spans.stdSpans.empty())
-  {
-    return;
-  }
-
-  writeSpansToImage(spans, xPen, yPen, ch, buff);
-  advance = spans.advance;
-
-#if 0
-  // This is unused in this test but you would need this to draw
-  // more than one glyph.
-  float bearingX = face->glyph->metrics.horiBearingX >> 6;
-  float bearingY = face->glyph->metrics.horiBearingY >> 6;
-  float advance = face->glyph->advance.x >> 6;
-#endif
-}
-
-class TextDraw::TextDrawImpl::DrawStringInfoImpl : public TextDraw::DrawStringInfo
-{
-public:
-  explicit DrawStringInfoImpl(FT_Library&, FT_Face&, const std::string&, const float& outlineWidth);
-  ~DrawStringInfoImpl() noexcept override = default;
-  [[nodiscard]] uint32_t getTotalWidth() const override;
-  [[nodiscard]] uint32_t getTotalHeight() const override;
-
-private:
-  FT_Library& library;
-  FT_Face& face;
-  const float& outlineWidth;
-  std::vector<Spans> stringSpans{};
-  void RenderSpans(FT_Outline* outline, SpanArray* spans) const;
-  [[nodiscard]] Spans getSpans() const;
-  [[nodiscard]] SpanArray getStdSpans() const;
-  [[nodiscard]] SpanArray getOutlineSpans() const;
-};
-
-TextDraw::TextDrawImpl::DrawStringInfoImpl::DrawStringInfoImpl(FT_Library& lib,
-                                                               FT_Face& f,
-                                                               const std::string& str,
-                                                               const float& outlineW)
-  : library{lib}, face{f}, outlineWidth{outlineW}
-{
-  stringSpans.resize(0);
-  for (const auto& c : str)
-  {
-    // Load the glyph we are looking for.
-    const FT_UInt gindex = FT_Get_Char_Index(face, static_cast<FT_ULong>(c));
-    if (FT_Load_Glyph(face, gindex, FT_LOAD_NO_BITMAP) != 0)
-    {
-      throw std::runtime_error(std20::format("Could not load font for glyph index {}.", gindex));
-    }
-
-    // Need an outline for this to work.
-    if (face->glyph->format != FT_GLYPH_FORMAT_OUTLINE)
-    {
-      throw std::runtime_error(
-          std20::format("Not a correct font format: {}.", face->glyph->format));
-    }
-
-    // Render the basic glyph to a span list.
-    stringSpans.emplace_back(getSpans());
-  }
-}
-
-uint32_t TextDraw::TextDrawImpl::DrawStringInfoImpl::getTotalWidth() const
-{
-  return 0;
-}
-
-uint32_t TextDraw::TextDrawImpl::DrawStringInfoImpl::getTotalHeight() const
-{
-  return 0;
-}
-
-std::unique_ptr<TextDraw::DrawStringInfo> TextDraw::TextDrawImpl::getDrawStringInfo(
-    const std::string& str)
-{
-  return std::unique_ptr<TextDraw::DrawStringInfo>{
-      new DrawStringInfoImpl{library, face, str, outlineWidth}};
-}
-
-// Set up the raster parameters and render the outline.
-void TextDraw::TextDrawImpl::DrawStringInfoImpl::RenderSpans(FT_Outline* const outline,
-                                                             SpanArray* const spans) const
-{
-  FT_Raster_Params params;
-  memset(&params, 0, sizeof(params));
-  params.flags = FT_RASTER_FLAG_AA | FT_RASTER_FLAG_DIRECT;
-  params.gray_spans = RasterCallback;
-  params.user = spans;
-
-  FT_Outline_Render(library, outline, &params);
-}
-
-TextDraw::TextDrawImpl::Spans TextDraw::TextDrawImpl::DrawStringInfoImpl::getSpans() const
-{
-  const SpanArray stdSpans = getStdSpans();
-  if (stdSpans.empty())
-  {
-    return Spans{stdSpans, SpanArray{}, Rect{}, 0};
-  }
-
-  const SpanArray outlineSpans = getOutlineSpans();
-  return Spans{
-      .stdSpans = stdSpans,
-      .outlineSpans = outlineSpans,
-      .rect = getBoundingRect(stdSpans, outlineSpans),
-      .advance = toStdPixelCoord(face->glyph->advance.x),
-  };
-}
-
-TextDraw::TextDrawImpl::SpanArray TextDraw::TextDrawImpl::DrawStringInfoImpl::getStdSpans() const
-{
-  SpanArray spans{};
-
-  RenderSpans(&face->glyph->outline, &spans);
-
-  return spans;
-}
-
-TextDraw::TextDrawImpl::SpanArray TextDraw::TextDrawImpl::DrawStringInfoImpl::getOutlineSpans()
-    const
-{
-  // Set up a stroker.
-  FT_Stroker stroker{};
-  FT_Stroker_New(library, &stroker);
-  FT_Stroker_Set(stroker, toFreeTypeCoord(outlineWidth), FT_STROKER_LINECAP_ROUND,
-                 FT_STROKER_LINEJOIN_ROUND, 0);
-
-  FT_Glyph glyph{};
-  if (FT_Get_Glyph(face->glyph, &glyph) != 0)
-  {
-    throw std::runtime_error("Could not get glyph for outline spans.");
-  }
-
-  // Next we need the spans for the outline.
-  FT_Glyph_StrokeBorder(&glyph, stroker, false, true);
-
-  // Again, this needs to be an outline to work.
-  if (glyph->format != FT_GLYPH_FORMAT_OUTLINE)
-  {
-    throw std::runtime_error("Glyph does not have outline format.");
-  }
-
-  // Render the outline spans to the span list
-  FT_Outline* outline = &reinterpret_cast<FT_OutlineGlyph>(glyph)->outline;
-  SpanArray outlineSpans{};
-  RenderSpans(outline, &outlineSpans);
-  if (outlineSpans.empty())
-  {
-    throw std::runtime_error("Rendered outline spans are empty.");
-  }
-
-  // Clean up afterwards.
-  FT_Stroker_Done(stroker);
-  FT_Done_Glyph(glyph);
-
-  return outlineSpans;
-}
-
 // Each time the renderer calls us back we just push another span entry on our list.
 void TextDraw::TextDrawImpl::RasterCallback(const int y,
                                             const int count,
@@ -483,7 +472,7 @@ void TextDraw::TextDrawImpl::RasterCallback(const int y,
   auto* userSpans = static_cast<SpanArray*>(user);
   for (int i = 0; i < count; ++i)
   {
-    userSpans->push_back(Span(spans[i].x, y, spans[i].len, spans[i].coverage));
+    userSpans->push_back(Span{spans[i].x, y, spans[i].len, spans[i].coverage});
   }
 }
 
@@ -499,89 +488,38 @@ void TextDraw::TextDrawImpl::RenderSpans(FT_Outline* const outline, SpanArray* c
   FT_Outline_Render(library, outline, &params);
 }
 
-TextDraw::TextDrawImpl::Rect TextDraw::TextDrawImpl::getBoundingRect(const SpanArray& stdSpans,
-                                                                     const SpanArray& outlineSpans)
+TextDraw::TextDrawImpl::Spans TextDraw::TextDrawImpl::getSpans(const size_t textIndexOfChar) const
 {
-  Rect rect{stdSpans.front().x, stdSpans.front().y, stdSpans.front().x, stdSpans.front().y};
-
-  for (const auto& s : stdSpans)
-  {
-    rect.Include(Vec2{s.x, s.y});
-    rect.Include(Vec2{s.x + s.width - 1, s.y});
-  }
-  for (const auto& s : outlineSpans)
-  {
-    rect.Include(Vec2{s.x, s.y});
-    rect.Include(Vec2{s.x + s.width - 1, s.y});
-  }
-
-  return rect;
-}
-
-void TextDraw::TextDrawImpl::writeSpansToImage(
-    const Spans& spans, const int xPen, const int yPen, const wchar_t ch, PixelBuffer& buff) const
-{
-  // Loop over the outline spans and just draw them into the image.
-  writeSpansToImage(spans.outlineSpans, spans.rect, xPen, yPen, ch, getOutlineFontColor, buff);
-
-  // Then loop over the regular glyph spans and blend them into the image.
-  writeSpansToImage(spans.stdSpans, spans.rect, xPen, yPen, ch, getFontColor, buff);
-}
-
-void TextDraw::TextDrawImpl::writeSpansToImage(const SpanArray& spans,
-                                               const Rect& rect,
-                                               const int xPen,
-                                               const int yPen,
-                                               const wchar_t ch,
-                                               const FontColorFunc& getColor,
-                                               PixelBuffer& buff) const
-{
-  for (const auto& s : spans)
-  {
-    const int yPos = screenHeight - (yPen + s.y - rect.yMin());
-    if (yPos < 0 || yPos >= screenHeight)
-    {
-      continue;
-    }
-
-    const int xPos0 = xPen + s.x - rect.xMin();
-    const float xf0 = s.x - rect.xMin();
-    for (int w = 0; w < s.width; ++w)
-    {
-      const int xPos = xPos0 + w;
-      if (xPos < 0 || xPos >= screenWidth)
-      {
-        continue;
-      }
-
-      const Pixel color = getColor(ch, xf0 + w, rect.Height() - (s.y - rect.yMin()), rect.Width(), rect.Height());
-      const Pixel srceColor{
-          {.r = color.r(), .g = color.g(), .b = color.b(), .a = static_cast<uint8_t>(s.coverage)}};
-
-      Pixel& destColor = buff(static_cast<size_t>(xPos), static_cast<size_t>(yPos));
-      destColor = getColorBlend(srceColor, destColor);
-    }
-  }
-}
-
-TextDraw::TextDrawImpl::Spans TextDraw::TextDrawImpl::getSpans(FT_Face& face) const
-{
-  const SpanArray stdSpans = getStdSpans(face);
+  const SpanArray stdSpans = getStdSpans();
+  const int advance = toStdPixelCoord(face->glyph->advance.x) +
+                      static_cast<int>(charSpacing * static_cast<float>(fontSize));
+  FT_Glyph_Metrics metrics = face->glyph->metrics;
   if (stdSpans.empty())
   {
-    return Spans{stdSpans, SpanArray{}, Rect{}, 0};
+    return Spans{
+        .stdSpans = stdSpans,
+        .outlineSpans = SpanArray{},
+        .textIndexOfChar = textIndexOfChar,
+        .rect = RectImpl{},
+        .advance = advance,
+        .bearingX = toStdPixelCoord(metrics.horiBearingX),
+        .bearingY = toStdPixelCoord(metrics.horiBearingY),
+    };
   }
 
-  const SpanArray outlineSpans = getOutlineSpans(face);
+  const SpanArray outlineSpans = getOutlineSpans();
   return Spans{
       .stdSpans = stdSpans,
       .outlineSpans = outlineSpans,
+      .textIndexOfChar = textIndexOfChar,
       .rect = getBoundingRect(stdSpans, outlineSpans),
-      .advance = toStdPixelCoord(face->glyph->advance.x),
+      .advance = advance,
+      .bearingX = toStdPixelCoord(metrics.horiBearingX),
+      .bearingY = toStdPixelCoord(metrics.horiBearingY),
   };
 }
 
-TextDraw::TextDrawImpl::SpanArray TextDraw::TextDrawImpl::getStdSpans(FT_Face& face) const
+TextDraw::TextDrawImpl::SpanArray TextDraw::TextDrawImpl::getStdSpans() const
 {
   SpanArray spans{};
 
@@ -590,7 +528,7 @@ TextDraw::TextDrawImpl::SpanArray TextDraw::TextDrawImpl::getStdSpans(FT_Face& f
   return spans;
 }
 
-TextDraw::TextDrawImpl::SpanArray TextDraw::TextDrawImpl::getOutlineSpans(FT_Face& face) const
+TextDraw::TextDrawImpl::SpanArray TextDraw::TextDrawImpl::getOutlineSpans() const
 {
   // Set up a stroker.
   FT_Stroker stroker{};
@@ -619,7 +557,7 @@ TextDraw::TextDrawImpl::SpanArray TextDraw::TextDrawImpl::getOutlineSpans(FT_Fac
   RenderSpans(outline, &outlineSpans);
   if (outlineSpans.empty())
   {
-    throw std::runtime_error("Rendered outline spans are empty.");
+    throw std::logic_error("Rendered outline spans are empty.");
   }
 
   // Clean up afterwards.
@@ -629,6 +567,41 @@ TextDraw::TextDrawImpl::SpanArray TextDraw::TextDrawImpl::getOutlineSpans(FT_Fac
   return outlineSpans;
 }
 
+TextDraw::Rect TextDraw::TextDrawImpl::getPreparedTextBoundingRect() const
+{
+  return textBoundingRect;
+}
+
+int TextDraw::TextDrawImpl::getBearingX() const
+{
+  return textSpans.front().bearingX;
+}
+
+int TextDraw::TextDrawImpl::getBearingY() const
+{
+  return textSpans.front().bearingY;
+}
+
+TextDraw::TextDrawImpl::RectImpl TextDraw::TextDrawImpl::getBoundingRect(
+    const SpanArray& stdSpans, const SpanArray& outlineSpans)
+{
+  RectImpl rect{stdSpans.front().x, stdSpans.front().y, stdSpans.front().x, stdSpans.front().y};
+
+  for (const auto& s : stdSpans)
+  {
+    rect.Include(Vec2{s.x, s.y});
+    rect.Include(Vec2{s.x + s.width - 1, s.y});
+  }
+  for (const auto& s : outlineSpans)
+  {
+    rect.Include(Vec2{s.x, s.y});
+    rect.Include(Vec2{s.x + s.width - 1, s.y});
+  }
+
+  return rect;
+}
+
+/* SIMPLE TEXT
 void TextDraw::TextDrawImpl::writeGlyphSimple(
     const wchar_t ch, const int xPen, const int yPen, int& advance, PixelBuffer& buff)
 {
@@ -639,7 +612,7 @@ void TextDraw::TextDrawImpl::writeGlyphSimple(
     throw std::runtime_error(std20::format("Could not set font size to {}.", fontSize));
   }
 
-  const float angle = (25.0F / 360.0F) * 3.14159F * 2; /* use 25 degrees     */
+  const float angle = (25.0F / 360.0F) * 3.14159F * 2; // use 25 degrees
 
   FT_GlyphSlot slot = face->glyph;
 
@@ -696,5 +669,6 @@ void TextDraw::TextDrawImpl::drawBitmap(
     }
   }
 }
+*/
 
 } // namespace goom
