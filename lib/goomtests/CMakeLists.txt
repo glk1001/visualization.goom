@@ -19,6 +19,7 @@ target_link_libraries( ${PROJECT_NAME}
         goom
         goomutils
         vivid
+        ${FREETYPE_LIBRARIES}
         pthread
 )
 

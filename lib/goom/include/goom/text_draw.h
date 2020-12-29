@@ -14,6 +14,7 @@ class PixelBuffer;
 class TextDraw
 {
 public:
+  TextDraw() noexcept;
   TextDraw(uint32_t screenWidth, uint32_t screenHeight) noexcept;
   ~TextDraw() noexcept;
 

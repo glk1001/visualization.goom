@@ -105,6 +105,10 @@ private:
                          PixelBuffer&) const;
 };
 
+TextDraw::TextDraw() noexcept : textDrawImpl{}
+{
+}
+
 TextDraw::TextDraw(const uint32_t screenW, const uint32_t screenH) noexcept
   : textDrawImpl{new TextDrawImpl{screenW, screenH}}
 {

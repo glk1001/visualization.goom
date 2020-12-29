@@ -27,6 +27,7 @@
 #include "ifs_fx.h"
 #include "lines_fx.h"
 #include "tentacles_fx.h"
+#include "text_draw.h"
 
 #include <array>
 #include <cereal/archives/json.hpp>
@@ -1066,7 +1067,7 @@ class GoomControl::GoomControlImpl
 {
 public:
   GoomControlImpl() noexcept;
-  GoomControlImpl(uint32_t resx, uint32_t resy) noexcept;
+  GoomControlImpl(uint32_t screenWidth, uint32_t screenHeight) noexcept;
   ~GoomControlImpl() noexcept;
   void swap(GoomControl::GoomControlImpl& other) noexcept = delete;
 
@@ -1097,6 +1098,7 @@ private:
   GoomMessage messageData{};
   GoomData goomData{};
   GoomDraw draw{};
+  TextDraw text{};
 
   // Line Fx
   LinesFx gmline1{};
@@ -1316,20 +1318,22 @@ GoomControl::GoomControlImpl::GoomControlImpl() noexcept : parallel{}
 {
 }
 
-GoomControl::GoomControlImpl::GoomControlImpl(const uint32_t resx, const uint32_t resy) noexcept
+GoomControl::GoomControlImpl::GoomControlImpl(const uint32_t screenWidth,
+                                              const uint32_t screenHeight) noexcept
   : parallel{-1}, // max cores - 1
-    goomInfo{new WritablePluginInfo{resx, resy}},
-    imageBuffers{resx, resy},
+    goomInfo{new WritablePluginInfo{screenWidth, screenHeight}},
+    imageBuffers{screenWidth, screenHeight},
     visualFx{parallel, std::const_pointer_cast<const PluginInfo>(
                            std::dynamic_pointer_cast<PluginInfo>(goomInfo))},
-    draw{resx, resy},
+    draw{screenWidth, screenHeight},
+    text{screenWidth, screenHeight},
     gmline1{
         std::const_pointer_cast<const PluginInfo>(std::dynamic_pointer_cast<PluginInfo>(goomInfo)),
         LinesFx::LineType::hline,
-        static_cast<float>(resy),
+        static_cast<float>(screenHeight),
         lBlack,
         LinesFx::LineType::circle,
-        0.4f * static_cast<float>(resy),
+        0.4f * static_cast<float>(screenHeight),
         lGreen},
     gmline2{
         std::const_pointer_cast<const PluginInfo>(std::dynamic_pointer_cast<PluginInfo>(goomInfo)),
@@ -1337,10 +1341,10 @@ GoomControl::GoomControlImpl::GoomControlImpl(const uint32_t resx, const uint32_
         0,
         lBlack,
         LinesFx::LineType::circle,
-        0.2f * static_cast<float>(resy),
+        0.2f * static_cast<float>(screenHeight),
         lRed}
 {
-  logDebug("Initialize goom: resx = {}, resy = {}.", resx, resy);
+  logDebug("Initialize goom: screenWidth = {}, screenHeight = {}.", screenWidth, screenHeight);
 }
 
 GoomControl::GoomControlImpl::~GoomControlImpl() noexcept = default;

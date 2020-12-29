@@ -11,8 +11,7 @@ set(CMAKE_COMMON_C_WARNINGS -Wall -Wextra)
 
 find_package(Kodi REQUIRED)
 find_package(glm REQUIRED)
-#include(FindFreetype)
-#find_package(freetype REQUIRED)
+find_package(Freetype REQUIRED)
 
 if(APP_RENDER_SYSTEM STREQUAL "gl" OR NOT APP_RENDER_SYSTEM)
   find_package(OpenGl REQUIRED)
