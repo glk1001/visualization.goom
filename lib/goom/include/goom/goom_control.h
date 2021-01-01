@@ -8,6 +8,7 @@
 #include <istream>
 #include <memory>
 #include <ostream>
+#include <string>
 
 namespace goom
 {
@@ -29,6 +30,7 @@ public:
   void restoreState(std::istream&);
 
   void setScreenBuffer(PixelBuffer&);
+  void setFontFile(const std::string&);
   void start();
 
   /*

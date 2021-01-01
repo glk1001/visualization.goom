@@ -23,6 +23,8 @@
 
 #include "goom/sound_info.h"
 #include "goomutils/logging_control.h"
+
+#include <memory>
 #undef NO_LOGGING
 #include "goomutils/logging.h"
 
@@ -342,13 +344,14 @@ void CVisualizationGoom::Process()
   // goom will use same random sequence if following is uncommented
   // goom::GoomControl::setRandSeed(1);
 
-  m_goomControl.reset(new goom::GoomControl{static_cast<uint16_t>(m_tex_width),
-                                            static_cast<uint16_t>(m_tex_height)});
+  m_goomControl = std::make_unique<goom::GoomControl>(static_cast<uint16_t>(m_tex_width),
+                                                      static_cast<uint16_t>(m_tex_height));
   if (!m_goomControl)
   {
     kodi::Log(ADDON_LOG_FATAL, "CVisualizationGoom: Goom could not be initialized!");
     return;
   }
+  m_goomControl->setFontFile(kodi::GetAddonPath("UbuntuMono-Regular.ttf"));
   m_goomControl->start();
 
   float floatAudioData[m_audioBufferLen];

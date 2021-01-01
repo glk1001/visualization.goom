@@ -22,7 +22,8 @@ public:
   TextDrawImpl& operator=(const TextDrawImpl&) = delete;
 
   void setAlignment(TextAlignment);
-  void setFont(const std::string& filename);
+  [[nodiscard]] const std::string& getFontFile() const;
+  void setFontFile(const std::string& filename);
   void setFontSize(int val);
   void setOutlineWidth(float val);
   void setCharSpacing(float val);
@@ -36,6 +37,7 @@ public:
   [[nodiscard]] int getBearingX() const;
   [[nodiscard]] int getBearingY() const;
 
+  void draw(int xPen, int yPen, PixelBuffer&);
   void draw(int xPen, int yPen, int& xNext, int& yNext, PixelBuffer&);
 
 private:
@@ -121,9 +123,14 @@ void TextDraw::setAlignment(const TextAlignment a)
   textDrawImpl->setAlignment(a);
 }
 
-void TextDraw::setFont(const std::string& filename)
+const std::string& TextDraw::getFontFile() const
 {
-  textDrawImpl->setFont(filename);
+  return textDrawImpl->getFontFile();
+}
+
+void TextDraw::setFontFile(const std::string& filename)
+{
+  textDrawImpl->setFontFile(filename);
 }
 
 void TextDraw::setFontSize(const int val)
@@ -176,6 +183,11 @@ int TextDraw::getBearingY() const
   return textDrawImpl->getBearingY();
 }
 
+void TextDraw::draw(const int xPen, const int yPen, PixelBuffer& buffer)
+{
+  textDrawImpl->draw(xPen, yPen, buffer);
+}
+
 void TextDraw::draw(const int xPen, const int yPen, int& xNext, int& yNext, PixelBuffer& buffer)
 {
   textDrawImpl->draw(xPen, yPen, xNext, yNext, buffer);
@@ -197,7 +209,12 @@ void TextDraw::TextDrawImpl::setAlignment(const TextAlignment a)
   textAlignment = a;
 }
 
-void TextDraw::TextDrawImpl::setFont(const std::string& filename)
+const std::string& TextDraw::TextDrawImpl::getFontFile() const
+{
+  return fontFilename;
+}
+
+void TextDraw::TextDrawImpl::setFontFile(const std::string& filename)
 {
   fontFilename = filename;
 
@@ -254,9 +271,9 @@ void TextDraw::TextDrawImpl::setOutlineWidth(float val)
 
 void TextDraw::TextDrawImpl::setCharSpacing(const float val)
 {
-  if (val <= 0)
+  if (val < 0)
   {
-    throw std::logic_error(std20::format("Char spacing <= 0: {}.", val));
+    throw std::logic_error(std20::format("Char spacing < 0: {}.", val));
   }
   charSpacing = val;
 }
@@ -340,6 +357,13 @@ int TextDraw::TextDrawImpl::getStartXPen(const int xPen) const
 int TextDraw::TextDrawImpl::getStartYPen(const int yPen) const
 {
   return yPen;
+}
+
+void TextDraw::TextDrawImpl::draw(const int xPen, const int yPen, PixelBuffer& buffer)
+{
+  int xNext;
+  int yNext;
+  draw(xPen, yPen, xNext, yNext, buffer);
 }
 
 void TextDraw::TextDrawImpl::draw(

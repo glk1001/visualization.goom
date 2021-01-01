@@ -29,7 +29,8 @@ public:
   void setFontSize(int val);
   void setOutlineWidth(float val);
   void setCharSpacing(float val);
-  void setFont(const std::string& filename);
+  [[nodiscard]] const std::string& getFontFile() const;
+  void setFontFile(const std::string& filename);
   void setText(const std::string&);
 
   using FontColorFunc =
@@ -52,6 +53,7 @@ public:
   [[nodiscard]] int getBearingX() const;
   [[nodiscard]] int getBearingY() const;
 
+  void draw(int xPen, int yPen, PixelBuffer&);
   void draw(int xPen, int yPen, int& xNext, int& yNext, PixelBuffer&);
 
 private:

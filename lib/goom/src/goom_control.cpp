@@ -18,6 +18,7 @@
 #include "goom_graphic.h"
 #include "goom_plugin_info.h"
 #include "goom_visual_fx.h"
+#include "goomutils/colormap.h"
 #include "goomutils/goomrand.h"
 #include "goomutils/logging_control.h"
 #undef NO_LOGGING
@@ -1035,7 +1036,8 @@ struct GoomData
   uint32_t stateSelectionBlocker = 0;
   int32_t previousZoomSpeed = 128;
 
-  static constexpr int maxTitleDisplayTime = 300;
+  static constexpr int maxTitleDisplayTime = 200;
+  static constexpr int timeToSpaceTitleDisplay = 100;
   static constexpr int timeToFadeTitleDisplay = 50;
   int timeOfTitleDisplay = 0;
   std::string title{};
@@ -1073,6 +1075,8 @@ public:
 
   PixelBuffer& getScreenBuffer() const;
   void setScreenBuffer(PixelBuffer&);
+  void setFontFile(const std::string&);
+
   uint32_t getScreenWidth() const;
   uint32_t getScreenHeight() const;
 
@@ -1169,6 +1173,7 @@ private:
   void bigBreak(ZoomFilterData**);
 
   void updateMessage(const char* message);
+  void drawText(const std::string&, int xPos, int yPos, float spacing, PixelBuffer&);
 
   friend class cereal::access;
   template<class Archive>
@@ -1221,6 +1226,11 @@ void GoomControl::restoreState(std::istream& f)
 void GoomControl::setScreenBuffer(PixelBuffer& buffer)
 {
   controller->setScreenBuffer(buffer);
+}
+
+void GoomControl::setFontFile(const std::string& filename)
+{
+  controller->setFontFile(filename);
 }
 
 void GoomControl::start()
@@ -1357,6 +1367,15 @@ PixelBuffer& GoomControl::GoomControlImpl::getScreenBuffer() const
 void GoomControl::GoomControlImpl::setScreenBuffer(PixelBuffer& buffer)
 {
   imageBuffers.setOutputBuff(buffer);
+}
+
+void GoomControl::GoomControlImpl::setFontFile(const std::string& filename)
+{
+  text.setFontFile(filename);
+
+  text.setFontSize(30);
+  text.setOutlineWidth(1);
+  text.setAlignment(TextDraw::TextAlignment::center);
 }
 
 uint32_t GoomControl::GoomControlImpl::getScreenWidth() const
@@ -2255,18 +2274,65 @@ void GoomControl::GoomControlImpl::displayText(const char* songTitle,
     const auto xPos = static_cast<int>(getScreenWidth() / 2);
     const auto yPos = static_cast<int>(getScreenHeight() / 2 + 7);
     const auto spacing =
-        static_cast<float>(GoomData::maxTitleDisplayTime - goomData.timeOfTitleDisplay - 10) / 10;
-    constexpr bool center = true;
+        goomData.timeOfTitleDisplay > GoomData::timeToSpaceTitleDisplay
+            ? 0.0F
+            : static_cast<float>(GoomData::timeToSpaceTitleDisplay - goomData.timeOfTitleDisplay) /
+                  40.0F;
 
-    draw.text(imageBuffers.getOutputBuff(), xPos, yPos, goomData.title, spacing, center);
+    drawText(goomData.title, xPos, yPos, spacing, imageBuffers.getOutputBuff());
 
     goomData.timeOfTitleDisplay--;
 
     if (goomData.timeOfTitleDisplay < GoomData::timeToFadeTitleDisplay)
     {
-      draw.text(imageBuffers.getP1(), xPos, yPos, goomData.title, spacing, center);
+      drawText(goomData.title, xPos, yPos, spacing, imageBuffers.getP1());
     }
   }
+}
+
+void GoomControl::GoomControlImpl::drawText(const std::string& str,
+                                            const int xPos,
+                                            const int yPos,
+                                            const float spacing,
+                                            PixelBuffer& buffer)
+{
+  /**
+  const auto getFontColor = [&](const size_t textIndexOfChar, float x, float y, float width,
+                                float height) {
+    return Pixel{{.r = 255, .g = 255, .b = 0, .a = 255}};
+  };
+  const auto getOutlineFontColor = [&](const size_t textIndexOfChar, float x, float y, float width,
+                                       float height) {
+    return Pixel{{.r = 100, .g = 200, .b = 255, .a = 255}};
+  };
+  **/
+
+  const ColorMaps colorMaps{};
+  const ColorMap& colorMap1 = colorMaps.getRandomColorMap();
+  const ColorMap& colorMap2 = colorMaps.getRandomColorMap();
+  //  const ColorMap& colorMap1 = colorMaps.getColorMap(colordata::ColorMapName::autumn);
+  //  const ColorMap& colorMap2 = colorMaps.getColorMap(colordata::ColorMapName::Blues);
+  Pixel fontColor{{.r = 100, .g = 90, .b = 150, .a = 100}};
+  Pixel outlineColor{{.r = 255, .g = 255, .b = 50, .a = 255}};
+  const auto getFontColor = [&](const size_t textIndexOfChar, float x, float y, float width,
+                                float height) {
+    //return fontColor;
+    const Pixel col1 = colorMap1.getColor(x / width);
+    const Pixel col2 = colorMap2.getColor(y / height);
+    //return col2;
+    //return col1;
+    return ColorMap::colorMix(col1, col2, 0.5);
+  };
+  const auto getOutlineFontColor = [&](const size_t textIndexOfChar, float x, float y, float width,
+                                       float height) { return outlineColor; };
+
+  //  CALL UP TO PREPARE ONCE ONLY
+  text.setText(str);
+  text.setFontColorFunc(getFontColor);
+  text.setOutlineFontColorFunc(getOutlineFontColor);
+  text.setCharSpacing(spacing);
+  text.prepare();
+  text.draw(xPos, yPos, buffer);
 }
 
 /*
@@ -2283,13 +2349,19 @@ void GoomControl::GoomControlImpl::updateMessage(const char* message)
   }
   if (messageData.affiche)
   {
+    TextDraw updateMessageText{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height};
+    updateMessageText.setFontFile(text.getFontFile());
+    updateMessageText.setFontSize(15);
+    updateMessageText.setOutlineWidth(1);
+    updateMessageText.setAlignment(TextDraw::TextAlignment::left);
     const std::vector<std::string> msgLines = splitString(messageData.message, "\n");
     for (size_t i = 0; i < msgLines.size(); i++)
     {
-      const uint32_t ypos =
-          10 + messageData.affiche - (messageData.numberOfLinesInMessage - i) * 25;
-
-      draw.text(imageBuffers.getOutputBuff(), 50, static_cast<int>(ypos), msgLines[i], 1, false);
+      const auto yPos = static_cast<int>(10 + messageData.affiche -
+                                         (messageData.numberOfLinesInMessage - i) * 25);
+      updateMessageText.setText(msgLines[i]);
+      updateMessageText.prepare();
+      updateMessageText.draw(50, yPos, imageBuffers.getOutputBuff());
     }
     messageData.affiche--;
   }
