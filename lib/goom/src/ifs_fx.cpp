@@ -786,8 +786,8 @@ private:
   const ColorMap* mixerMap2;
   const ColorMap* prevMixerMap2;
   mutable uint32_t countSinceColorMapChange = 0;
-  static constexpr uint32_t minColorMapChangeCompleted = 100;
-  static constexpr uint32_t maxColorMapChangeCompleted = 10000;
+  static constexpr uint32_t minColorMapChangeCompleted = 5;
+  static constexpr uint32_t maxColorMapChangeCompleted = 50;
   uint32_t colorMapChangeCompleted = minColorMapChangeCompleted;
 
   IfsFx::ColorMode colorMode = IfsFx::ColorMode::mapColors;
@@ -900,6 +900,8 @@ void Colorizer::changeColorMaps()
 
 inline Pixel Colorizer::getNextMixerMapColor(const float t, const float x, const float y) const
 {
+  //  const float angle = y == 0.0F ? m_half_pi : std::atan2(y, x);
+  //  const Pixel nextColor = mixerMap1->getColor((m_pi + angle) / m_two_pi);
   const Pixel nextColor = ColorMap::colorMix(mixerMap1->getColor(x), mixerMap2->getColor(y), t);
   if (countSinceColorMapChange == 0)
   {
@@ -1130,6 +1132,7 @@ public:
 
 private:
   static constexpr int maxCountBeforeNextUpdate = 1000;
+  static constexpr int cycleLength = 500;
 
   std::shared_ptr<const PluginInfo> goomInfo{};
 
@@ -1408,12 +1411,12 @@ void IfsFx::IfsImpl::updateIfs(PixelBuffer& prevBuff, PixelBuffer& currentBuff)
   // TODO: trouver meilleur soluce pour increment (mettre le code de gestion de l'ifs dans ce fichier)
   //       find the best solution for increment (put the management code of the ifs in this file)
   updateData.cycle++;
-  if (updateData.cycle >= 80)
+  if (updateData.cycle >= cycleLength)
   {
     updateData.cycle = 0;
     stats.updateCycleChanges();
 
-    if (probabilityOfMInN(10, 20))
+    if (probabilityOfMInN(15, 20))
     {
       lowDensityBlurThreshold = 0.99;
       stats.updateHighLowDensityBlurThreshold();
