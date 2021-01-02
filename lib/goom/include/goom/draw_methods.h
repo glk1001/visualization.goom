@@ -76,30 +76,38 @@ void drawLine(PixelBuffer&,
               uint32_t screenx,
               uint32_t screeny);
 
-inline void drawPixels(std::vector<PixelBuffer*>& buffs,
-                       const int pos,
-                       const std::vector<Pixel>& newColors,
-                       const uint32_t buffIntensity,
-                       const bool allowOverexposed)
+inline void drawPixel(PixelBuffer* buff,
+                      const int pos,
+                      const Pixel& newColor,
+                      const uint32_t buffIntensity,
+                      const bool allowOverexposed)
 {
-  for (size_t i = 0; i < buffs.size(); i++)
-  {
-    const Pixel brighterPixColor =
-        getBrighterColorInt(buffIntensity, newColors[i], allowOverexposed);
-    Pixel& p = (*buffs[i])(static_cast<size_t>(pos));
-    p = getColorAdd(p, brighterPixColor, allowOverexposed);
+  const Pixel brighterPixColor = getBrighterColorInt(buffIntensity, newColor, allowOverexposed);
+  Pixel& p = (*buff)(static_cast<size_t>(pos));
+  p = getColorAdd(p, brighterPixColor, allowOverexposed);
 
-    /***
-	ATTEMPT AT BLENDING - WON'T WORK THOUGH - BECAUSE OF MULTIPLE BUFFERS??
-    Pixel* const p = &(buffs[i][pos]);
-    const Pixel existingColorBlended =
-        getBrighterColorInt(buffIntensity, *p, allowOverexposed);
-    const Pixel pixColorBlended =
-        getBrighterColorInt(channel_limits<uint32_t>::max() - buffIntensity, newColors[i], allowOverexposed);
-    *p = getColorAdd(existingColorBlended, pixColorBlended, allowOverexposed);
+  /***
+    ATTEMPT AT BLENDING - WON'T WORK THOUGH - BECAUSE OF MULTIPLE BUFFERS??
+      Pixel* const p = &(buffs[i][pos]);
+      const Pixel existingColorBlended =
+          getBrighterColorInt(buffIntensity, *p, allowOverexposed);
+      const Pixel pixColorBlended =
+          getBrighterColorInt(channel_limits<uint32_t>::max() - buffIntensity, newColors[i], allowOverexposed);
+      *p = getColorAdd(existingColorBlended, pixColorBlended, allowOverexposed);
     ***/
   }
-}
+
+  inline void drawPixels(std::vector<PixelBuffer*>& buffs,
+                         const int pos,
+                         const std::vector<Pixel>& newColors,
+                         const uint32_t buffIntensity,
+                         const bool allowOverexposed)
+  {
+    for (size_t i = 0; i < buffs.size(); i++)
+    {
+      drawPixel(buffs[i], pos, newColors[i], buffIntensity, allowOverexposed);
+    }
+  }
 
 } // namespace goom
 #endif

@@ -46,7 +46,7 @@ void drawCircle(std::vector<PixelBuffer*>& buffs,
   assert(buffs.size() == colors.size());
 
   auto plot = [&](const int x, const int y) -> void {
-    if (uint32_t(x) >= screenWidth || uint32_t(y) >= screenHeight)
+    if (static_cast<uint32_t>(x) >= screenWidth || static_cast<uint32_t>(y) >= screenHeight)
     {
       return;
     }
@@ -102,6 +102,13 @@ void drawFilledCircle(PixelBuffer& buff,
     drawCircle(buff, x0, y0, i, colors.at(static_cast<size_t>(i - 1)), buffIntensity,
                allowOverexposed, screenWidth, screenHeight);
   }
+
+  if (static_cast<uint32_t>(x0) >= screenWidth || static_cast<uint32_t>(y0) >= screenHeight)
+  {
+    return;
+  }
+  const int pos = y0 * static_cast<int>(screenWidth) + x0;
+  drawPixel(&buff, pos, colors[0], buffIntensity, allowOverexposed);
 }
 
 void drawFilledCircle(std::vector<PixelBuffer*>& buffs,
@@ -129,8 +136,8 @@ static void drawWuLine(std::vector<PixelBuffer*>& buffs,
                        const std::vector<Pixel>& colors,
                        uint32_t buffIntensity,
                        bool allowOverexposed,
-                       uint32_t screenx,
-                       uint32_t screeny);
+                       uint32_t screenWidth,
+                       uint32_t screenHeight);
 
 constexpr int LINE_THICKNESS_MIDDLE = 0;
 constexpr int LINE_THICKNESS_DRAW_CLOCKWISE = 1;
@@ -272,7 +279,7 @@ static void wuLine(float x0, float y0, float x1, float y1, const PlotFunc& plot)
   {
     const float xend = round(x0);
     const float yend = y0 + gradient * (xend - x0);
-    const float xgap = rfpart(x0 + 0.5);
+    const float xgap = rfpart(x0 + 0.5F);
     xpx11 = static_cast<int>(xend);
     const int ypx11 = ipart(yend);
     if (steep)
@@ -292,7 +299,7 @@ static void wuLine(float x0, float y0, float x1, float y1, const PlotFunc& plot)
   {
     const float xend = round(x1);
     const float yend = y1 + gradient * (xend - x1);
-    const float xgap = rfpart(x1 + 0.5);
+    const float xgap = rfpart(x1 + 0.5F);
     xpx12 = static_cast<int>(xend);
     const int ypx12 = ipart(yend);
     if (steep)
