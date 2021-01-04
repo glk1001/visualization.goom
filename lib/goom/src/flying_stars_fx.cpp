@@ -6,6 +6,9 @@
 #include "goomutils/colormap.h"
 #include "goomutils/colorutils.h"
 #include "goomutils/goomrand.h"
+#include "goomutils/logging_control.h"
+//#undef NO_LOGGING
+#include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
 
 #include <array>
@@ -44,7 +47,10 @@ public:
   void fountainFxChosen();
   void updateStars();
   void deadStar();
-  void removedDeadStar();
+  void removedDeadStars(uint32_t val);
+  void setLastNumActive(uint32_t val);
+  void setLastMaxStars(uint32_t val);
+  void setLastMaxStarAge(uint32_t val);
 
 private:
   uint32_t numAddBombButTooManyStars = 0;
@@ -57,6 +63,9 @@ private:
   uint32_t numUpdateStars = 0;
   uint32_t numDeadStars = 0;
   uint32_t numRemovedStars = 0;
+  uint32_t lastNumActive = 0;
+  uint32_t lastMaxStars = 0;
+  uint32_t lastMaxStarAge = 0;
 };
 
 void StarsStats::reset()
@@ -87,6 +96,9 @@ void StarsStats::log(const StatsLogValueFunc& logVal) const
   logVal(module, "numFountainFxChosen", numFountainFxChosen);
   logVal(module, "numDeadStars", numDeadStars);
   logVal(module, "numRemovedStars", numRemovedStars);
+  logVal(module, "lastNumActive", lastNumActive);
+  logVal(module, "lastMaxStars", lastMaxStars);
+  logVal(module, "lastMaxStarAge", lastMaxStarAge);
 }
 
 inline void StarsStats::updateStars()
@@ -134,9 +146,24 @@ inline void StarsStats::deadStar()
   numDeadStars++;
 }
 
-inline void StarsStats::removedDeadStar()
+inline void StarsStats::removedDeadStars(uint32_t val)
 {
-  numRemovedStars++;
+  numRemovedStars += val;
+}
+
+inline void StarsStats::setLastNumActive(uint32_t val)
+{
+  lastNumActive = val;
+}
+
+inline void StarsStats::setLastMaxStars(uint32_t val)
+{
+  lastMaxStars = val;
+}
+
+inline void StarsStats::setLastMaxStarAge(uint32_t val)
+{
+  lastMaxStarAge = val;
 }
 
 
@@ -160,26 +187,27 @@ struct Star
 {
   float x = 0;
   float y = 0;
-  float vx = 0;
-  float vy = 0;
-  float ax = 0;
-  float ay = 0;
+  float xVelocity = 0;
+  float yVelocity = 0;
+  float xAcceleration = 0;
+  float yAcceleration = 0;
   float age = 0;
   float vage = 0;
   // TODO: Cereal for these pointers????
-  const ColorMap* currentColorMap = nullptr;
-  const ColorMap* currentLowColorMap = nullptr;
+  const ColorMap* currentColorMap{};
+  const ColorMap* currentLowColorMap{};
 
   bool operator==(const Star& s) const
   {
-    return x == s.x && y == s.y && vx == s.vx && vy == s.vy && ax == s.ax && ay == s.ay &&
-           age == s.age && vage == s.vage;
+    return x == s.x && y == s.y && xVelocity == s.xVelocity && yVelocity == s.yVelocity &&
+           xAcceleration == s.xAcceleration && yAcceleration == s.yAcceleration && age == s.age &&
+           vage == s.vage;
   }
 
   template<class Archive>
   void serialize(Archive& ar)
   {
-    ar(x, y, vx, vy, ax, ay, age, vage);
+    ar(x, y, xVelocity, yVelocity, xAcceleration, yAcceleration, age, vage);
   }
 };
 
@@ -193,8 +221,9 @@ public:
 
   void setBuffSettings(const FXBuffSettings&);
 
-  void updateBuffers(PixelBuffer& prevBuff, PixelBuffer& currentBuff);
+  void updateBuffers(PixelBuffer& currentBuff, PixelBuffer& nextBuff);
 
+  void finish();
   void log(const StatsLogValueFunc& logVal) const;
 
   bool operator==(const FlyingStarsImpl&) const;
@@ -202,7 +231,16 @@ public:
 private:
   std::shared_ptr<const PluginInfo> goomInfo{};
 
-  ColorMaps colorMaps{};
+  const WeightedColorMaps colorMaps{Weights<ColorMapGroup>{{
+      {ColorMapGroup::perceptuallyUniformSequential, 10},
+      {ColorMapGroup::sequential, 10},
+      {ColorMapGroup::sequential2, 10},
+      {ColorMapGroup::cyclic, 0},
+      {ColorMapGroup::diverging, 0},
+      {ColorMapGroup::diverging_black, 0},
+      {ColorMapGroup::qualitative, 10},
+      {ColorMapGroup::misc, 10},
+  }}};
   const WeightedColorMaps lowColorMaps{Weights<ColorMapGroup>{{
       {ColorMapGroup::perceptuallyUniformSequential, 0},
       {ColorMapGroup::sequential, 0},
@@ -221,9 +259,9 @@ private:
   uint32_t maxStarAge = 15;
 
   // Fireworks Largest Bombs
-  float min_age = 1.0f - 99.0F / 100.0F;
+  float minAge = 1.0F - (99.0F / 100.0F);
   // Fireworks Smallest Bombs
-  float max_age = 1.0f - 80.0F / 100.0f;
+  float maxAge = 1.0F - (80.0F / 100.0F);
 
   FXBuffSettings buffSettings{};
   bool useSingleBufferOnly = true;
@@ -232,15 +270,15 @@ private:
 
   void soundEventOccurred();
   static void updateStar(Star*);
-  Pixel getLowColor(size_t starNum, float tmix);
   [[nodiscard]] bool isStarDead(const Star&) const;
-  void addABomb(utils::ColorMapGroup colorGroup,
-                const utils::ColorMap* lowColorMap,
-                uint32_t mx,
-                uint32_t my,
+  void addABomb(const ColorMap& colorMap,
+                const ColorMap& lowColorMap,
+                int32_t mx,
+                int32_t my,
                 float radius,
                 float vage,
                 float gravity);
+  [[nodiscard]] uint32_t getBombAngle() const;
 
   friend class cereal::access;
   template<class Archive>
@@ -276,6 +314,7 @@ void FlyingStarsFx::start()
 
 void FlyingStarsFx::finish()
 {
+  fxImpl->finish();
 }
 
 void FlyingStarsFx::log(const StatsLogValueFunc& logVal) const
@@ -288,14 +327,19 @@ std::string FlyingStarsFx::getFxName() const
   return "Flying Stars FX";
 }
 
-void FlyingStarsFx::apply(PixelBuffer& prevBuff, PixelBuffer& currentBuff)
+void FlyingStarsFx::apply(PixelBuffer&)
+{
+  throw std::logic_error("FlyingStarsFx::apply should never be called.");
+}
+
+void FlyingStarsFx::apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
 {
   if (!enabled)
   {
     return;
   }
 
-  fxImpl->updateBuffers(prevBuff, currentBuff);
+  fxImpl->updateBuffers(currentBuff, nextBuff);
 }
 
 template<class Archive>
@@ -317,7 +361,7 @@ template<class Archive>
 void FlyingStarsFx::FlyingStarsImpl::save(Archive& ar) const
 {
   ar(CEREAL_NVP(goomInfo), CEREAL_NVP(fx_mode), CEREAL_NVP(maxStars), CEREAL_NVP(stars),
-     CEREAL_NVP(maxStarAge), CEREAL_NVP(min_age), CEREAL_NVP(max_age), CEREAL_NVP(buffSettings),
+     CEREAL_NVP(maxStarAge), CEREAL_NVP(minAge), CEREAL_NVP(maxAge), CEREAL_NVP(buffSettings),
      CEREAL_NVP(useSingleBufferOnly), CEREAL_NVP(draw));
 }
 
@@ -325,7 +369,7 @@ template<class Archive>
 void FlyingStarsFx::FlyingStarsImpl::load(Archive& ar)
 {
   ar(CEREAL_NVP(goomInfo), CEREAL_NVP(fx_mode), CEREAL_NVP(maxStars), CEREAL_NVP(stars),
-     CEREAL_NVP(maxStarAge), CEREAL_NVP(min_age), CEREAL_NVP(max_age), CEREAL_NVP(buffSettings),
+     CEREAL_NVP(maxStarAge), CEREAL_NVP(minAge), CEREAL_NVP(maxAge), CEREAL_NVP(buffSettings),
      CEREAL_NVP(useSingleBufferOnly), CEREAL_NVP(draw));
 }
 
@@ -342,7 +386,7 @@ bool FlyingStarsFx::FlyingStarsImpl::operator==(const FlyingStarsImpl& f) const
 
   return ((goomInfo == nullptr && f.goomInfo == nullptr) || (*goomInfo == *f.goomInfo)) &&
          fx_mode == f.fx_mode && maxStars == f.maxStars && stars == f.stars &&
-         maxStarAge == f.maxStarAge && min_age == f.min_age && max_age == f.max_age &&
+         maxStarAge == f.maxStarAge && minAge == f.minAge && maxAge == f.maxAge &&
          buffSettings == f.buffSettings && useSingleBufferOnly == f.useSingleBufferOnly &&
          draw == f.draw;
 }
@@ -362,17 +406,24 @@ void FlyingStarsFx::FlyingStarsImpl::setBuffSettings(const FXBuffSettings& setti
   draw.setAllowOverexposed(settings.allowOverexposed);
 }
 
+void FlyingStarsFx::FlyingStarsImpl::finish()
+{
+  stats.setLastNumActive(stars.size());
+  stats.setLastMaxStars(maxStars);
+  stats.setLastMaxStarAge(maxStarAge);
+}
+
 void FlyingStarsFx::FlyingStarsImpl::log(const StatsLogValueFunc& logVal) const
 {
   stats.log(logVal);
 }
 
-void FlyingStarsFx::FlyingStarsImpl::updateBuffers(PixelBuffer& prevBuff, PixelBuffer& currentBuff)
+void FlyingStarsFx::FlyingStarsImpl::updateBuffers(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
 {
   maxStars = getRandInRange(100U, maxStarsLimit);
 
   // look for events
-  if (goomInfo->getSoundInfo().getTimeSinceLastGoom() < 1)
+  if (stars.empty() || goomInfo->getSoundInfo().getTimeSinceLastGoom() < 1)
   {
     soundEventOccurred();
     if (getNRand(20) == 1)
@@ -382,44 +433,57 @@ void FlyingStarsFx::FlyingStarsImpl::updateBuffers(PixelBuffer& prevBuff, PixelB
       fx_mode = newVal >= numFx ? StarModes::noFx : static_cast<StarModes>(newVal);
     }
   }
+  //fx_mode = StarModes::rain;
 
   // update particules
   stats.updateStars();
 
-  for (size_t i = 0; i < stars.size(); ++i)
+  const float flipSpeed = getRandInRange(0.1F, 10.0F);
+
+  for (auto& star : stars)
   {
-    updateStar(&stars[i]);
+    updateStar(&star);
 
     // dead particule
-    if (stars[i].age >= maxStarAge)
+    if (star.age >= maxStarAge)
     {
       stats.deadStar();
       continue;
     }
 
     // choose the color of the particule
-    const float tAge = stars[i].age / static_cast<float>(maxStarAge);
-    const Pixel color = stars[i].currentColorMap->getColor(tAge);
-    const Pixel lowColor = getLowColor(i, tAge);
-    const float thicknessFactor = getRandInRange(1.0F, 3.0F);
+    const float tAge = star.age / static_cast<float>(maxStarAge);
+    const Pixel color = star.currentColorMap->getColor(tAge);
+    const Pixel lowColor = star.currentLowColorMap->getColor(tAge);
 
     // draws the particule
     static GammaCorrection gammaCorrect{4.2, 0.1};
-    const int x0 = static_cast<int>(stars[i].x);
-    const int y0 = static_cast<int>(stars[i].y);
-    int x1 = x0;
-    int y1 = y0;
-    constexpr size_t numParts = 7;
+    const auto x0 = static_cast<int32_t>(star.x);
+    const auto y0 = static_cast<int32_t>(star.y);
+    logInfo("star.x = {}, star.y = {}", star.x, star.y);
+    logInfo("star.xVelocity = {}, star.yVelocity = {}", star.xVelocity, star.yVelocity);
+    int32_t x1 = x0;
+    int32_t y1 = y0;
+    constexpr size_t numParts = 4;
     for (size_t j = 1; j <= numParts; j++)
     {
       const float t = static_cast<float>(j - 1) / static_cast<float>(numParts - 1);
-      const Pixel mixedColor =
-          gammaCorrect.getCorrection(tAge, ColorMap::colorMix(color, lowColor, t));
-      const int x2 = x0 - static_cast<int>(stars[i].vx * j);
-      const int y2 = y0 - static_cast<int>(stars[i].vy * j);
-      const uint8_t thickness = static_cast<uint8_t>(
-          std::clamp(1u, 2u, static_cast<uint32_t>(thicknessFactor * (1.0 - t))));
-      //      1u, 5u, static_cast<uint32_t>((1.0 - std::fabs(t - 0.5)) * getRandInRange(1.0F, 5.0F))));
+      const Pixel mixedColor = gammaCorrect.getCorrection(
+          2.0F * t * (1.0F - tAge), ColorMap::colorMix(color, lowColor, tAge));
+      //      const int x2 = x0 - static_cast<int>(0.5 * stars[i].xVelocity * j * stars[i].xVelocity * j);
+      //      const int y2 = y0 - static_cast<int>(0.5 * stars[i].yVelocity * j * stars[i].yVelocity * j);
+      const int32_t x2 =
+          x0 - static_cast<int32_t>(0.5 * (1.0 + std::sin(flipSpeed * star.xVelocity * j)) *
+                                    star.xVelocity * j);
+      const int32_t y2 =
+          y0 - static_cast<int32_t>(0.5 * (1.0 + std::cos(flipSpeed * star.yVelocity * j)) *
+                                    star.yVelocity * j);
+      //const int x2 = x0 - static_cast<int>(star.xVelocity * j * j / numParts);
+      //const int y2 = y0 - static_cast<int>(star.yVelocity * j * j / numParts);
+      //const int x2 = x0 - static_cast<int>(star.xVelocity * j);
+      //const int y2 = y0 - static_cast<int>(star.yVelocity * j);
+      const uint8_t thickness = 1;
+      //          static_cast<uint8_t>(std::clamp(static_cast<uint32_t>(2 * t), 1u, 2u));
 
       if (useSingleBufferOnly)
       {
@@ -428,8 +492,17 @@ void FlyingStarsFx::FlyingStarsImpl::updateBuffers(PixelBuffer& prevBuff, PixelB
       else
       {
         const std::vector<Pixel> colors = {mixedColor, lowColor};
-        std::vector<PixelBuffer*> buffs{&currentBuff, &prevBuff};
+        std::vector<PixelBuffer*> buffs{&currentBuff, &nextBuff};
+        logInfo("x1 = {}, y1 = {}, x2 = {}, y2 = {}", x1, y1, x2, y2);
         draw.line(buffs, x1, y1, x2, y2, colors, thickness);
+        /**
+        const std::vector<std::vector<Pixel>> colorSets{
+            {mixedColor, mixedColor, mixedColor, mixedColor, mixedColor, mixedColor},
+            {lowColor, lowColor, lowColor, lowColor, lowColor, lowColor},
+        };
+        const int radius = getRandInRange(0, 1);
+        draw.filledCircle(buffs, x1, y1, radius, colorSets);
+         **/
       }
 
       x1 = x2;
@@ -439,16 +512,19 @@ void FlyingStarsFx::FlyingStarsImpl::updateBuffers(PixelBuffer& prevBuff, PixelB
 
   // remove all dead particules
   const auto isDead = [&](const Star& s) { return isStarDead(s); };
-  std::erase_if(stars, isDead);
-  // stars.erase(std::remove_if(stars.begin(), stars.end(), isDead),
-  //                     stars.end());
+  // stars.erase(std::remove_if(stars.begin(), stars.end(), isDead), stars.end());
+  const size_t numRemoved = std::erase_if(stars, isDead);
+  if (numRemoved > 0)
+  {
+    stats.removedDeadStars(numRemoved);
+  }
 }
 
 inline bool FlyingStarsFx::FlyingStarsImpl::isStarDead(const Star& star) const
 {
-  return (star.x > static_cast<float>(goomInfo->getScreenInfo().width + 64)) ||
-         ((star.vy >= 0) && (star.y - 16 * star.vy > goomInfo->getScreenInfo().height)) ||
-         (star.x < -64) || (star.age >= maxStarAge);
+  return (star.x < -64) || (star.x > static_cast<float>(goomInfo->getScreenInfo().width + 64)) ||
+         (star.y < -64) || (star.y > static_cast<float>(goomInfo->getScreenInfo().height + 64)) ||
+         (star.age >= maxStarAge);
 }
 
 /**
@@ -456,31 +532,11 @@ inline bool FlyingStarsFx::FlyingStarsImpl::isStarDead(const Star& star) const
  */
 void FlyingStarsFx::FlyingStarsImpl::updateStar(Star* s)
 {
-  s->x += s->vx;
-  s->y += s->vy;
-  s->vx += s->ax;
-  s->vy += s->ay;
+  s->x += s->xVelocity;
+  s->y += s->yVelocity;
+  s->xVelocity += s->xAcceleration;
+  s->yVelocity += s->yAcceleration;
   s->age += s->vage;
-}
-
-inline Pixel FlyingStarsFx::FlyingStarsImpl::getLowColor(const size_t starNum, const float tmix)
-{
-  if (probabilityOfMInN(1, 2))
-  {
-    // clang-format off
-    static constexpr size_t numLowColors = 15;
-    static constexpr std::array<uint32_t, numLowColors> starLowColors{
-      0x1416181a, 0x1419181a, 0x141f181a, 0x1426181a, 0x142a181a,
-      0x142f181a, 0x1436181a, 0x142f1819, 0x14261615, 0x13201411,
-      0x111a100a, 0x0c180508, 0x08100304, 0x00050101, 0x0
-    };
-    // clang-format on
-    return Pixel{starLowColors[size_t(tmix * static_cast<float>(numLowColors - 1))]};
-  }
-
-  const float brightness = getRandInRange(0.2f, 0.6f);
-  return getBrighterColor(brightness, stars[starNum].currentLowColorMap->getColor(tmix),
-                          buffSettings.allowOverexposed);
 }
 
 /**
@@ -490,18 +546,18 @@ void FlyingStarsFx::FlyingStarsImpl::soundEventOccurred()
 {
   stats.soundEventOccurred();
 
-  const uint32_t halfWidth = goomInfo->getScreenInfo().width / 2;
-  const uint32_t halfHeight = goomInfo->getScreenInfo().height / 2;
+  const auto halfWidth = static_cast<int32_t>(goomInfo->getScreenInfo().width / 2);
+  const auto halfHeight = static_cast<int32_t>(goomInfo->getScreenInfo().height / 2);
 
   maxStarAge = minStarAge + getNRand(maxStarExtraAge);
-  useSingleBufferOnly = probabilityOfMInN(1, 10);
+  useSingleBufferOnly = probabilityOfMInN(1, 100);
 
   float radius = (1.0f + goomInfo->getSoundInfo().getGoomPower()) *
                  static_cast<float>(getNRand(150) + 50) / 300.0F;
   float gravity = 0.02f;
 
-  uint32_t mx;
-  uint32_t my;
+  int32_t mx;
+  int32_t my;
   float vage;
 
   switch (fx_mode)
@@ -515,34 +571,34 @@ void FlyingStarsFx::FlyingStarsImpl::soundEventOccurred()
       const double rsq = halfHeight * halfHeight;
       while (true)
       {
-        mx = getNRand(goomInfo->getScreenInfo().width);
-        my = getNRand(goomInfo->getScreenInfo().height);
-        const double dx = mx - halfWidth;
-        const double dy = my - halfHeight;
-        if ((dx * dx) + (dy * dy) >= rsq)
+        mx = static_cast<int32_t>(getNRand(goomInfo->getScreenInfo().width));
+        my = static_cast<int32_t>(getNRand(goomInfo->getScreenInfo().height));
+        const double sqDist =
+            sq_distance(static_cast<float>(mx - halfWidth), static_cast<float>(my - halfHeight));
+        if (sqDist < rsq)
         {
           break;
         }
       }
-      vage = max_age * (1.0f - goomInfo->getSoundInfo().getGoomPower());
+      vage = maxAge * (1.0F - goomInfo->getSoundInfo().getGoomPower());
     }
     break;
     case StarModes::rain:
       stats.rainFxChosen();
-      mx = getNRand(goomInfo->getScreenInfo().width);
-      mx = (mx <= halfWidth) ? 0 : goomInfo->getScreenInfo().width;
-      my = -(goomInfo->getScreenInfo().height / 3) - getNRand(goomInfo->getScreenInfo().width / 3);
+      mx = static_cast<int32_t>(
+          getRandInRange(50, static_cast<int32_t>(goomInfo->getScreenInfo().width) - 50));
+      my = -getRandInRange(3, 64);
       radius *= 1.5;
-      vage = 0.002f;
+      vage = 0.002F;
       break;
     case StarModes::fountain:
       stats.fountainFxChosen();
       maxStarAge *= 2.0 / 3.0;
-      my = goomInfo->getScreenInfo().height + 2;
-      mx = halfWidth;
-      vage = 0.001f;
-      radius += 1.0f;
-      gravity = 0.04f;
+      mx = getRandInRange(halfWidth - 50, halfWidth + 50);
+      my = static_cast<int32_t>(goomInfo->getScreenInfo().height + getRandInRange(3U, 64U));
+      vage = 0.001F;
+      radius += 1.0F;
+      gravity = 0.05F;
       break;
     default:
       throw std::logic_error("Unknown StarModes enum.");
@@ -559,22 +615,20 @@ void FlyingStarsFx::FlyingStarsImpl::soundEventOccurred()
     maxStarsInBomb *= 2;
   }
 
-  ColorMapGroup colorGroup = colorMaps.getRandomGroup();
-  const ColorMap* lowColorMap = &lowColorMaps.getRandomColorMap();
-
   for (size_t i = 0; i < maxStarsInBomb; i++)
   {
-    addABomb(colorGroup, lowColorMap, mx, my, radius, vage, gravity);
+    addABomb(colorMaps.getRandomColorMap(), lowColorMaps.getRandomColorMap(), mx, my, radius, vage,
+             gravity);
   }
 }
 
 /**
  * Cree une nouvelle 'bombe', c'est a dire une particule appartenant a une fusee d'artifice.
  */
-void FlyingStarsFx::FlyingStarsImpl::addABomb(const ColorMapGroup colorGroup,
-                                              const ColorMap* lowColorMap,
-                                              const uint32_t mx,
-                                              const uint32_t my,
+void FlyingStarsFx::FlyingStarsImpl::addABomb(const ColorMap& colorMap,
+                                              const ColorMap& lowColorMap,
+                                              const int32_t mx,
+                                              const int32_t my,
                                               const float radius,
                                               float vage,
                                               const float gravity)
@@ -588,30 +642,59 @@ void FlyingStarsFx::FlyingStarsImpl::addABomb(const ColorMapGroup colorGroup,
 
   stars.push_back(Star{});
 
-  const unsigned int i = stars.size() - 1;
+  const size_t i = stars.size() - 1;
   stars[i].x = mx;
   stars[i].y = my;
 
   // TODO Get colormap based on current mode.
-  stars[i].currentColorMap = &colorMaps.getRandomColorMap(colorGroup);
-  stars[i].currentLowColorMap = lowColorMap;
+  stars[i].currentColorMap = &colorMap;
+  stars[i].currentLowColorMap = &lowColorMap;
 
-  float ro = radius * static_cast<float>(getNRand(100)) / 100.0f;
-  ro *= static_cast<float>(getNRand(100)) / 100.0f + 1.0f;
-  const uint32_t theta = getNRand(256);
+  const float ro = radius * getRandInRange(0.01F, 2.0F);
+  const uint32_t theta = getBombAngle();
 
-  stars[i].vx = ro * cos256[theta];
-  stars[i].vy = -0.2f + ro * sin256[theta];
+  stars[i].xVelocity = ro * cos256[theta];
+  stars[i].yVelocity = -0.2F + ro * sin256[theta];
 
-  stars[i].ax = 0;
-  stars[i].ay = gravity;
+  stars[i].xAcceleration = getRandInRange(-0.01F, 0.01F);
+  stars[i].yAcceleration = gravity;
 
-  stars[i].age = 0;
-  if (vage < min_age)
+  stars[i].age = getRandInRange(minAge, 0.5F * maxAge);
+  if (vage < minAge)
   {
-    vage = min_age;
+    vage = minAge;
   }
   stars[i].vage = vage;
+}
+
+uint32_t FlyingStarsFx::FlyingStarsImpl::getBombAngle() const
+{
+  float minAngle;
+  float maxAngle;
+
+  switch (fx_mode)
+  {
+    case StarModes::noFx:
+      return 0;
+    case StarModes::fireworks:
+      minAngle = 0;
+      maxAngle = m_two_pi;
+      break;
+    case StarModes::rain:
+      minAngle = 1 * m_pi / 3;
+      maxAngle = 2 * m_pi / 3;
+      break;
+    case StarModes::fountain:
+      minAngle = 4 * m_pi / 3;
+      maxAngle = 5 * m_pi / 3;
+      break;
+    default:
+      throw std::logic_error("Unknown StarModes enum.");
+  }
+
+  const float randAngle = getRandInRange(minAngle, maxAngle);
+  return static_cast<uint32_t>(0.001 +
+                               static_cast<float>(numSinCosAngles - 1) * randAngle / m_two_pi);
 }
 
 } // namespace goom
