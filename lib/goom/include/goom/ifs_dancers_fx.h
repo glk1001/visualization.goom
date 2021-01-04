@@ -17,7 +17,7 @@ namespace goom
 class PluginInfo;
 class PixelBuffer;
 
-class IfsFx : public VisualFx
+class IfsDancersFx : public VisualFx
 {
 public:
   enum class ColorMode
@@ -33,11 +33,11 @@ public:
     sineMapColors,
   };
 
-  IfsFx() noexcept;
-  explicit IfsFx(const std::shared_ptr<const PluginInfo>&) noexcept;
-  ~IfsFx() noexcept override;
-  IfsFx(const IfsFx&) = delete;
-  IfsFx& operator=(const IfsFx&) = delete;
+  IfsDancersFx() noexcept;
+  explicit IfsDancersFx(const std::shared_ptr<const PluginInfo>&) noexcept;
+  ~IfsDancersFx() noexcept override;
+  IfsDancersFx(const IfsDancersFx&) = delete;
+  IfsDancersFx& operator=(const IfsDancersFx&) = delete;
 
   void init();
 
@@ -61,12 +61,12 @@ public:
   void log(const StatsLogValueFunc&) const override;
   void finish() override;
 
-  bool operator==(const IfsFx&) const;
+  bool operator==(const IfsDancersFx&) const;
 
 private:
   bool enabled = true;
-  class IfsImpl;
-  std::unique_ptr<IfsImpl> fxImpl;
+  class IfsDancersFxImpl;
+  std::unique_ptr<IfsDancersFxImpl> fxImpl;
 
   friend class cereal::access;
   template<class Archive>

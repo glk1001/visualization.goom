@@ -25,7 +25,7 @@
 #include "goomutils/logging.h"
 #include "goomutils/parallel_utils.h"
 #include "goomutils/strutils.h"
-#include "ifs_fx.h"
+#include "ifs_dancers_fx.h"
 #include "lines_fx.h"
 #include "tentacles_fx.h"
 #include "text_draw.h"
@@ -962,7 +962,7 @@ struct GoomVisualFx
   std::shared_ptr<ZoomFilterFx> zoomFilter_fx{};
   std::shared_ptr<FlyingStarsFx> star_fx{};
   std::shared_ptr<GoomDotsFx> goomDots_fx{};
-  std::shared_ptr<IfsFx> ifs_fx{};
+  std::shared_ptr<IfsDancersFx> ifs_fx{};
   std::shared_ptr<TentaclesFx> tentacles_fx{};
 
   std::vector<std::shared_ptr<VisualFx>> list{};
@@ -982,7 +982,7 @@ GoomVisualFx::GoomVisualFx(Parallel& p, const std::shared_ptr<const PluginInfo>&
     zoomFilter_fx{new ZoomFilterFx{p, goomInfo}},
     star_fx{new FlyingStarsFx{goomInfo}},
     goomDots_fx{new GoomDotsFx{goomInfo}},
-    ifs_fx{new IfsFx{goomInfo}},
+    ifs_fx{new IfsDancersFx{goomInfo}},
     tentacles_fx{new TentaclesFx{goomInfo}},
     // clang-format off
     list{

@@ -32,7 +32,7 @@
  */
 
 /* #ifdef STANDALONE */
-#include "ifs_fx.h"
+#include "ifs_dancers_fx.h"
 
 #include "goom_config.h"
 #include "goom_draw.h"
@@ -67,8 +67,8 @@
 #include <utility>
 #include <vector>
 
-CEREAL_REGISTER_TYPE(goom::IfsFx);
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::VisualFx, goom::IfsFx);
+CEREAL_REGISTER_TYPE(goom::IfsDancersFx);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::VisualFx, goom::IfsDancersFx);
 
 namespace goom
 {
@@ -754,8 +754,8 @@ public:
 
   const ColorMaps& getColorMaps() const;
 
-  IfsFx::ColorMode getColorMode() const;
-  void setForcedColorMode(IfsFx::ColorMode);
+  IfsDancersFx::ColorMode getColorMode() const;
+  void setForcedColorMode(IfsDancersFx::ColorMode);
   void changeColorMode();
 
   void changeColorMaps();
@@ -790,12 +790,12 @@ private:
   static constexpr uint32_t maxColorMapChangeCompleted = 50;
   uint32_t colorMapChangeCompleted = minColorMapChangeCompleted;
 
-  IfsFx::ColorMode colorMode = IfsFx::ColorMode::mapColors;
-  IfsFx::ColorMode forcedColorMode = IfsFx::ColorMode::_null;
+  IfsDancersFx::ColorMode colorMode = IfsDancersFx::ColorMode::mapColors;
+  IfsDancersFx::ColorMode forcedColorMode = IfsDancersFx::ColorMode::_null;
   uint32_t maxHitCount = 0;
   float logMaxHitCount = 0;
   float tBetweenColors = 0.5; // in [0, 1]
-  static IfsFx::ColorMode getNextColorMode();
+  static IfsDancersFx::ColorMode getNextColorMode();
   [[nodiscard]] Pixel getNextMixerMapColor(float t, float x, float y) const;
 };
 
@@ -845,19 +845,19 @@ inline const ColorMaps& Colorizer::getColorMaps() const
   return colorMaps;
 }
 
-inline IfsFx::ColorMode Colorizer::getColorMode() const
+inline IfsDancersFx::ColorMode Colorizer::getColorMode() const
 {
   return colorMode;
 }
 
-inline void Colorizer::setForcedColorMode(const IfsFx::ColorMode c)
+inline void Colorizer::setForcedColorMode(const IfsDancersFx::ColorMode c)
 {
   forcedColorMode = c;
 }
 
 void Colorizer::changeColorMode()
 {
-  if (forcedColorMode != IfsFx::ColorMode::_null)
+  if (forcedColorMode != IfsDancersFx::ColorMode::_null)
   {
     colorMode = forcedColorMode;
   }
@@ -867,18 +867,18 @@ void Colorizer::changeColorMode()
   }
 }
 
-IfsFx::ColorMode Colorizer::getNextColorMode()
+IfsDancersFx::ColorMode Colorizer::getNextColorMode()
 {
   // clang-format off
-  static const Weights<IfsFx::ColorMode> colorModeWeights{{
-    { IfsFx::ColorMode::mapColors,           15 },
-    { IfsFx::ColorMode::megaMapColorChange,  20 },
-    { IfsFx::ColorMode::mixColors,           10 },
-    { IfsFx::ColorMode::megaMixColorChange,  15 },
-    { IfsFx::ColorMode::reverseMixColors,     5 },
-    { IfsFx::ColorMode::singleColors,         5 },
-    { IfsFx::ColorMode::sineMixColors,       15 },
-    { IfsFx::ColorMode::sineMapColors,       15 },
+  static const Weights<IfsDancersFx::ColorMode> colorModeWeights{{
+    { IfsDancersFx::ColorMode::mapColors,           15 },
+    { IfsDancersFx::ColorMode::megaMapColorChange,  20 },
+    { IfsDancersFx::ColorMode::mixColors,           10 },
+    { IfsDancersFx::ColorMode::megaMixColorChange,  15 },
+    { IfsDancersFx::ColorMode::reverseMixColors,     5 },
+    { IfsDancersFx::ColorMode::singleColors,         5 },
+    { IfsDancersFx::ColorMode::sineMixColors,       15 },
+    { IfsDancersFx::ColorMode::sineMapColors,       15 },
   }};
   // clang-format on
 
@@ -929,24 +929,24 @@ inline Pixel Colorizer::getMixedColor(
 
   switch (colorMode)
   {
-    case IfsFx::ColorMode::mapColors:
-    case IfsFx::ColorMode::megaMapColorChange:
+    case IfsDancersFx::ColorMode::mapColors:
+    case IfsDancersFx::ColorMode::megaMapColorChange:
       mixColor = getNextMixerMapColor(logAlpha, x, y);
       tBaseMix = getRandInRange(0.1F, 0.3F);
       break;
 
-    case IfsFx::ColorMode::mixColors:
-    case IfsFx::ColorMode::reverseMixColors:
-    case IfsFx::ColorMode::megaMixColorChange:
+    case IfsDancersFx::ColorMode::mixColors:
+    case IfsDancersFx::ColorMode::reverseMixColors:
+    case IfsDancersFx::ColorMode::megaMixColorChange:
       mixColor = getNextMixerMapColor(tMix, x, y);
       break;
 
-    case IfsFx::ColorMode::singleColors:
+    case IfsDancersFx::ColorMode::singleColors:
       mixColor = baseColor;
       break;
 
-    case IfsFx::ColorMode::sineMixColors:
-    case IfsFx::ColorMode::sineMapColors:
+    case IfsDancersFx::ColorMode::sineMixColors:
+    case IfsDancersFx::ColorMode::sineMapColors:
     {
       static float freq = 20;
       static const float zStep = 0.1;
@@ -954,7 +954,7 @@ inline Pixel Colorizer::getMixedColor(
 
       mixColor = getNextMixerMapColor(0.5F * (1.0F + std::sin(freq * z)), x, y);
       z += zStep;
-      if (colorMode == IfsFx::ColorMode::sineMapColors)
+      if (colorMode == IfsDancersFx::ColorMode::sineMapColors)
       {
         tBaseMix = 1.0F - tBetweenColors;
       }
@@ -965,7 +965,7 @@ inline Pixel Colorizer::getMixedColor(
       throw std::logic_error("Unknown ColorMode");
   }
 
-  if (colorMode == IfsFx::ColorMode::reverseMixColors)
+  if (colorMode == IfsDancersFx::ColorMode::reverseMixColors)
   {
     mixColor = ColorMap::colorMix(mixColor, baseColor, tBaseMix);
   }
@@ -1109,14 +1109,14 @@ struct IfsUpdateData
   };
 };
 
-class IfsFx::IfsImpl
+class IfsDancersFx::IfsDancersFxImpl
 {
 public:
-  IfsImpl() noexcept = default;
-  explicit IfsImpl(std::shared_ptr<const PluginInfo>) noexcept;
-  ~IfsImpl() noexcept;
-  IfsImpl(const IfsImpl&) = delete;
-  IfsImpl& operator=(const IfsImpl&) = delete;
+  IfsDancersFxImpl() noexcept = default;
+  explicit IfsDancersFxImpl(std::shared_ptr<const PluginInfo>) noexcept;
+  ~IfsDancersFxImpl() noexcept;
+  IfsDancersFxImpl(const IfsDancersFxImpl&) = delete;
+  IfsDancersFxImpl& operator=(const IfsDancersFxImpl&) = delete;
 
   void init();
 
@@ -1124,15 +1124,15 @@ public:
   void updateIfs(PixelBuffer& currentBuff, PixelBuffer& nextBuff);
   void setBuffSettings(const FXBuffSettings&);
   void updateLowDensityThreshold();
-  IfsFx::ColorMode getColorMode() const;
-  void setColorMode(IfsFx::ColorMode);
+  IfsDancersFx::ColorMode getColorMode() const;
+  void setColorMode(IfsDancersFx::ColorMode);
   void renew();
   void updateIncr();
 
   void finish();
   void log(const StatsLogValueFunc&) const;
 
-  bool operator==(const IfsImpl&) const;
+  bool operator==(const IfsDancersFxImpl&) const;
 
 private:
   static constexpr int maxCountBeforeNextUpdate = 1000;
@@ -1197,51 +1197,52 @@ private:
 };
 
 
-IfsFx::IfsFx() noexcept : fxImpl{new IfsImpl{}}
+IfsDancersFx::IfsDancersFx() noexcept : fxImpl{new IfsDancersFxImpl{}}
 {
 }
 
-IfsFx::IfsFx(const std::shared_ptr<const PluginInfo>& info) noexcept : fxImpl{new IfsImpl{info}}
+IfsDancersFx::IfsDancersFx(const std::shared_ptr<const PluginInfo>& info) noexcept
+  : fxImpl{new IfsDancersFxImpl{info}}
 {
 }
 
-IfsFx::~IfsFx() noexcept = default;
+IfsDancersFx::~IfsDancersFx() noexcept = default;
 
-void IfsFx::init()
+void IfsDancersFx::init()
 {
   fxImpl->init();
 }
 
-bool IfsFx::operator==(const IfsFx& i) const
+bool IfsDancersFx::operator==(const IfsDancersFx& i) const
 {
   return fxImpl->operator==(*i.fxImpl);
 }
 
-void IfsFx::setBuffSettings(const FXBuffSettings& settings)
+void IfsDancersFx::setBuffSettings(const FXBuffSettings& settings)
 {
   fxImpl->setBuffSettings(settings);
 }
 
-void IfsFx::start()
+void IfsDancersFx::start()
 {
 }
 
-void IfsFx::finish()
+void IfsDancersFx::finish()
 {
   fxImpl->finish();
 }
 
-void IfsFx::log(const StatsLogValueFunc& logVal) const
+void IfsDancersFx::log(const StatsLogValueFunc& logVal) const
 {
   fxImpl->log(logVal);
 }
 
-std::string IfsFx::getFxName() const
+std::string IfsDancersFx::getFxName() const
 {
   return "IFS FX";
 }
 
-void IfsFx::applyNoDraw()
+void IfsDancersFx::applyNoDraw()
 {
   if (!enabled)
   {
@@ -1251,12 +1252,12 @@ void IfsFx::applyNoDraw()
   fxImpl->applyNoDraw();
 }
 
-void IfsFx::apply(PixelBuffer&)
+void IfsDancersFx::apply(PixelBuffer&)
 {
-  throw std::logic_error("IfsFx::apply should never be called.");
+  throw std::logic_error("IfsDancersFx::apply should never be called.");
 }
 
-void IfsFx::apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
+void IfsDancersFx::apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
 {
   if (!enabled)
   {
@@ -1266,41 +1267,43 @@ void IfsFx::apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
   fxImpl->updateIfs(currentBuff, nextBuff);
 }
 
-IfsFx::ColorMode IfsFx::getColorMode() const
+IfsDancersFx::ColorMode IfsDancersFx::getColorMode() const
 {
   return fxImpl->getColorMode();
 }
 
-void IfsFx::setColorMode(const ColorMode c)
+void IfsDancersFx::setColorMode(const ColorMode c)
 {
   fxImpl->setColorMode(c);
 }
 
-void IfsFx::updateIncr()
+void IfsDancersFx::updateIncr()
 {
   fxImpl->updateIncr();
 }
 
-void IfsFx::renew()
+void IfsDancersFx::renew()
 {
   fxImpl->renew();
 }
 
 template<class Archive>
-void IfsFx::serialize(Archive& ar)
+void IfsDancersFx::serialize(Archive& ar)
 {
   ar(CEREAL_NVP(enabled), CEREAL_NVP(fxImpl));
 }
 
 // Need to explicitly instantiate template functions for serialization.
-template void IfsFx::serialize<cereal::JSONOutputArchive>(cereal::JSONOutputArchive&);
-template void IfsFx::serialize<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
+template void IfsDancersFx::serialize<cereal::JSONOutputArchive>(cereal::JSONOutputArchive&);
+template void IfsDancersFx::serialize<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
 
-template void IfsFx::IfsImpl::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive&) const;
-template void IfsFx::IfsImpl::load<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
+template void IfsDancersFx::IfsDancersFxImpl::save<cereal::JSONOutputArchive>(
+    cereal::JSONOutputArchive&) const;
+template void IfsDancersFx::IfsDancersFxImpl::load<cereal::JSONInputArchive>(
+    cereal::JSONInputArchive&);
 
 template<class Archive>
-void IfsFx::IfsImpl::save(Archive& ar) const
+void IfsDancersFx::IfsDancersFxImpl::save(Archive& ar) const
 {
   ar(CEREAL_NVP(goomInfo), CEREAL_NVP(fractal), CEREAL_NVP(draw), CEREAL_NVP(colorizer),
      CEREAL_NVP(allowOverexposed), CEREAL_NVP(countSinceOverexposed), CEREAL_NVP(ifs_incr),
@@ -1308,14 +1311,14 @@ void IfsFx::IfsImpl::save(Archive& ar) const
 }
 
 template<class Archive>
-void IfsFx::IfsImpl::load(Archive& ar)
+void IfsDancersFx::IfsDancersFxImpl::load(Archive& ar)
 {
   ar(CEREAL_NVP(goomInfo), CEREAL_NVP(fractal), CEREAL_NVP(draw), CEREAL_NVP(colorizer),
      CEREAL_NVP(allowOverexposed), CEREAL_NVP(countSinceOverexposed), CEREAL_NVP(ifs_incr),
      CEREAL_NVP(decay_ifs), CEREAL_NVP(recay_ifs), CEREAL_NVP(updateData));
 }
 
-bool IfsFx::IfsImpl::operator==(const IfsImpl& i) const
+bool IfsDancersFx::IfsDancersFxImpl::operator==(const IfsDancersFxImpl& i) const
 {
   if (goomInfo == nullptr && i.goomInfo != nullptr)
   {
@@ -1333,7 +1336,7 @@ bool IfsFx::IfsImpl::operator==(const IfsImpl& i) const
          decay_ifs == i.decay_ifs && recay_ifs == i.recay_ifs && updateData == i.updateData;
 }
 
-IfsFx::IfsImpl::IfsImpl(std::shared_ptr<const PluginInfo> info) noexcept
+IfsDancersFx::IfsDancersFxImpl::IfsDancersFxImpl(std::shared_ptr<const PluginInfo> info) noexcept
   : goomInfo{std::move(info)},
     draw{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height},
     fractal{std::make_unique<Fractal>(goomInfo, colorizer.getColorMaps(), &stats)},
@@ -1351,40 +1354,40 @@ IfsFx::IfsImpl::IfsImpl(std::shared_ptr<const PluginInfo> info) noexcept
 #endif
 }
 
-IfsFx::IfsImpl::~IfsImpl() noexcept = default;
+IfsDancersFx::IfsDancersFxImpl::~IfsDancersFxImpl() noexcept = default;
 
-void IfsFx::IfsImpl::init()
+void IfsDancersFx::IfsDancersFxImpl::init()
 {
   fractal->init();
   updateLowDensityThreshold();
 }
 
-void IfsFx::IfsImpl::setBuffSettings(const FXBuffSettings& settings)
+void IfsDancersFx::IfsDancersFxImpl::setBuffSettings(const FXBuffSettings& settings)
 {
   buffSettings = settings;
 }
 
-IfsFx::ColorMode IfsFx::IfsImpl::getColorMode() const
+IfsDancersFx::ColorMode IfsDancersFx::IfsDancersFxImpl::getColorMode() const
 {
   return colorizer.getColorMode();
 }
 
-void IfsFx::IfsImpl::setColorMode(const IfsFx::ColorMode c)
+void IfsDancersFx::IfsDancersFxImpl::setColorMode(const IfsDancersFx::ColorMode c)
 {
   return colorizer.setForcedColorMode(c);
 }
 
-void IfsFx::IfsImpl::finish()
+void IfsDancersFx::IfsDancersFxImpl::finish()
 {
   stats.setlastIfsIncr(ifs_incr);
 }
 
-void IfsFx::IfsImpl::log(const StatsLogValueFunc& logVal) const
+void IfsDancersFx::IfsDancersFxImpl::log(const StatsLogValueFunc& logVal) const
 {
   stats.log(logVal);
 }
 
-void IfsFx::IfsImpl::renew()
+void IfsDancersFx::IfsDancersFxImpl::renew()
 {
   changeColormaps();
   colorizer.changeColorMode();
@@ -1394,19 +1397,19 @@ void IfsFx::IfsImpl::renew()
                                           (1.1F - goomInfo->getSoundInfo().getAcceleration())));
 }
 
-void IfsFx::IfsImpl::changeColormaps()
+void IfsDancersFx::IfsDancersFxImpl::changeColormaps()
 {
   colorizer.changeColorMaps();
   updateData.couleur = ColorMap::getRandomColor(colorizer.getColorMaps().getRandomColorMap());
 }
 
-void IfsFx::IfsImpl::applyNoDraw()
+void IfsDancersFx::IfsDancersFxImpl::applyNoDraw()
 {
   updateDecayAndRecay();
   updateDecay();
 }
 
-void IfsFx::IfsImpl::updateIfs(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
+void IfsDancersFx::IfsDancersFxImpl::updateIfs(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
 {
   stats.updateStart();
 
@@ -1470,7 +1473,7 @@ void IfsFx::IfsImpl::updateIfs(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
   stats.updateEnd();
 }
 
-void IfsFx::IfsImpl::updateIncr()
+void IfsDancersFx::IfsDancersFxImpl::updateIncr()
 {
   if (ifs_incr <= 0)
   {
@@ -1481,7 +1484,7 @@ void IfsFx::IfsImpl::updateIncr()
   }
 }
 
-void IfsFx::IfsImpl::updateDecay()
+void IfsDancersFx::IfsDancersFxImpl::updateDecay()
 {
   if ((ifs_incr > 0) && (decay_ifs <= 0))
   {
@@ -1489,7 +1492,7 @@ void IfsFx::IfsImpl::updateDecay()
   }
 }
 
-void IfsFx::IfsImpl::updateDecayAndRecay()
+void IfsDancersFx::IfsDancersFxImpl::updateDecayAndRecay()
 {
   decay_ifs--;
   if (decay_ifs > 0)
@@ -1514,16 +1517,16 @@ void IfsFx::IfsImpl::updateDecayAndRecay()
   stats.updateIfsIncr(ifs_incr);
 }
 
-inline int IfsFx::IfsImpl::getIfsIncr() const
+inline int IfsDancersFx::IfsDancersFxImpl::getIfsIncr() const
 {
   return ifs_incr;
 }
 
-inline void IfsFx::IfsImpl::drawPixel(PixelBuffer& currentBuff,
-                                      PixelBuffer& nextBuff,
-                                      const IfsPoint& point,
-                                      const Pixel& ifsColor,
-                                      const float tMix)
+inline void IfsDancersFx::IfsDancersFxImpl::drawPixel(PixelBuffer& currentBuff,
+                                                      PixelBuffer& nextBuff,
+                                                      const IfsPoint& point,
+                                                      const Pixel& ifsColor,
+                                                      const float tMix)
 {
   const float fx = point.x / static_cast<float>(goomInfo->getScreenInfo().width);
   const float fy = point.y / static_cast<float>(goomInfo->getScreenInfo().height);
@@ -1535,7 +1538,7 @@ inline void IfsFx::IfsImpl::drawPixel(PixelBuffer& currentBuff,
   draw.setPixelRGB(buffs, point.x, point.y, colors);
 }
 
-void IfsFx::IfsImpl::updateAllowOverexposed()
+void IfsDancersFx::IfsDancersFxImpl::updateAllowOverexposed()
 {
   if (buffSettings.allowOverexposed)
   {
@@ -1560,15 +1563,15 @@ void IfsFx::IfsImpl::updateAllowOverexposed()
   }
 }
 
-void IfsFx::IfsImpl::updatePixelBuffers(PixelBuffer& currentBuff,
-                                        PixelBuffer& nextBuff,
-                                        const std::vector<IfsPoint>& points,
-                                        const uint32_t maxHitCount,
-                                        const Pixel& color)
+void IfsDancersFx::IfsDancersFxImpl::updatePixelBuffers(PixelBuffer& currentBuff,
+                                                        PixelBuffer& nextBuff,
+                                                        const std::vector<IfsPoint>& points,
+                                                        const uint32_t maxHitCount,
+                                                        const Pixel& color)
 {
   colorizer.setMaxHitCount(maxHitCount);
-  bool doneColorChange = colorizer.getColorMode() != IfsFx::ColorMode::megaMapColorChange &&
-                         colorizer.getColorMode() != IfsFx::ColorMode::megaMixColorChange;
+  bool doneColorChange = colorizer.getColorMode() != IfsDancersFx::ColorMode::megaMapColorChange &&
+                         colorizer.getColorMode() != IfsDancersFx::ColorMode::megaMixColorChange;
   const size_t numPoints = points.size();
   const float tStep = numPoints == 1 ? 0.0F : (1.0F - 0.0F) / static_cast<float>(numPoints - 1);
   float t = -tStep;
@@ -1618,7 +1621,7 @@ void IfsFx::IfsImpl::updatePixelBuffers(PixelBuffer& currentBuff,
   }
 }
 
-inline bool IfsFx::IfsImpl::blurLowDensityColors(
+inline bool IfsDancersFx::IfsDancersFxImpl::blurLowDensityColors(
     const size_t numPoints, const std::vector<IfsPoint>& lowDensityPoints) const
 {
   if (numPoints == 0)
@@ -1629,9 +1632,9 @@ inline bool IfsFx::IfsImpl::blurLowDensityColors(
          lowDensityBlurThreshold;
 }
 
-void IfsFx::IfsImpl::setLowDensityColors(std::vector<IfsPoint>& points,
-                                         uint32_t maxLowDensityCount,
-                                         std::vector<PixelBuffer*>& buffs) const
+void IfsDancersFx::IfsDancersFxImpl::setLowDensityColors(std::vector<IfsPoint>& points,
+                                                         uint32_t maxLowDensityCount,
+                                                         std::vector<PixelBuffer*>& buffs) const
 {
   const std::function<Pixel(const IfsPoint&)> getRandomColor = [&](const IfsPoint&) {
     const float t = getRandInRange(0.0F, 1.0F);
@@ -1658,7 +1661,7 @@ void IfsFx::IfsImpl::setLowDensityColors(std::vector<IfsPoint>& points,
   }
 }
 
-void IfsFx::IfsImpl::updateLowDensityThreshold()
+void IfsDancersFx::IfsDancersFxImpl::updateLowDensityThreshold()
 {
   lowDensityCount = getRandInRange(minDensityCount, maxDensityCount);
 
@@ -1680,7 +1683,7 @@ void IfsFx::IfsImpl::updateLowDensityThreshold()
   blurrer.setWidth(blurWidth);
 }
 
-void IfsFx::IfsImpl::updateColors()
+void IfsDancersFx::IfsDancersFxImpl::updateColors()
 {
   if (updateData.mode == ModType::MOD_MER)
   {
@@ -1696,7 +1699,7 @@ void IfsFx::IfsImpl::updateColors()
   }
 }
 
-void IfsFx::IfsImpl::updateColorsModeMer()
+void IfsDancersFx::IfsDancersFxImpl::updateColorsModeMer()
 {
   updateData.col[BLEU] += updateData.v[BLEU];
   if (updateData.col[BLEU] > channel_limits<int32_t>::max())
@@ -1762,7 +1765,7 @@ void IfsFx::IfsImpl::updateColorsModeMer()
   }
 }
 
-void IfsFx::IfsImpl::updateColorsModeMerver()
+void IfsDancersFx::IfsDancersFxImpl::updateColorsModeMerver()
 {
   updateData.col[BLEU] += updateData.v[BLEU];
   if (updateData.col[BLEU] > 128)
@@ -1828,7 +1831,7 @@ void IfsFx::IfsImpl::updateColorsModeMerver()
   }
 }
 
-void IfsFx::IfsImpl::updateColorsModeFeu()
+void IfsDancersFx::IfsDancersFxImpl::updateColorsModeFeu()
 {
   updateData.col[BLEU] += updateData.v[BLEU];
   if (updateData.col[BLEU] > 64)

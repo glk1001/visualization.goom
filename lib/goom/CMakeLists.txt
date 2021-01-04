@@ -23,7 +23,7 @@ add_library(${PROJECT_NAME}
         src/goom_draw.cpp
         src/goom_testing.cpp
         src/goom_visual_fx.cpp
-        src/ifs_fx.cpp
+        src/ifs_dancers_fx.cpp
         src/lines_fx.cpp
         src/sound_info.cpp
         src/tentacle_driver.cpp

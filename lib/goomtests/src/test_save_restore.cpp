@@ -7,7 +7,7 @@
 #include "goom/goom_draw.h"
 #include "goom/goom_graphic.h"
 #include "goom/goom_plugin_info.h"
-#include "goom/ifs_fx.h"
+#include "goom/ifs_dancers_fx.h"
 #include "goom/lines_fx.h"
 #include "goom/sound_info.h"
 #include "goom/tentacles_fx.h"
@@ -215,7 +215,7 @@ TEST_CASE("save/restore ifs", "[saveRestoreIfs]")
   std::unique_ptr<PixelBuffer> prevBuff{getNewBuffer()};
   std::unique_ptr<PixelBuffer> currentBuff{getNewBuffer()};
 
-  IfsFx ifsFx{getGoomInfo()};
+  IfsDancersFx ifsFx{getGoomInfo()};
   for (size_t i = 0; i < 100; i++)
   {
     ifsFx.apply(*prevBuff, *currentBuff);
@@ -227,7 +227,7 @@ TEST_CASE("save/restore ifs", "[saveRestoreIfs]")
   }
   //  std::cout << ss.str() << std::endl;
 
-  IfsFx ifsFxRestored{};
+  IfsDancersFx ifsFxRestored{};
   REQUIRE(ifsFx != ifsFxRestored);
   {
     cereal::JSONInputArchive archive(ss);
