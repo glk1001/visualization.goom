@@ -33,37 +33,20 @@ void drawCircle(PixelBuffer& buff,
              screenHeight);
 }
 
-void drawCircle(std::vector<PixelBuffer*>& buffs,
-                const int x0,
-                const int y0,
-                const int radius,
-                const std::vector<Pixel>& colors,
-                const uint32_t buffIntensity,
-                const bool allowOverexposed,
-                const uint32_t screenWidth,
-                const uint32_t screenHeight)
-{
-  assert(buffs.size() == colors.size());
+using PlotPoints = std::function<void(int x1, int y1, int x2, int y2)>;
 
-  auto plot = [&](const int x, const int y) -> void {
-    if (static_cast<uint32_t>(x) >= screenWidth || static_cast<uint32_t>(y) >= screenHeight)
-    {
-      return;
-    }
-    const int pos = y * static_cast<int>(screenWidth) + x;
-    drawPixels(buffs, pos, colors, buffIntensity, allowOverexposed);
-  };
+void drawCircle(const int x0, const int y0, const int radius, const PlotPoints& plotter)
+{
+  plotter(x0, y0 + radius, x0, y0 + radius);
+  plotter(x0, y0 - radius, x0, y0 - radius);
+  plotter(x0 + radius, y0, x0 + radius, y0);
+  plotter(x0 - radius, y0, x0 - radius, y0);
 
   int f = 1 - radius;
   int ddF_x = 0;
   int ddF_y = -2 * radius;
   int x = 0;
   int y = radius;
-
-  plot(x0, y0 + radius);
-  plot(x0, y0 - radius);
-  plot(x0 + radius, y0);
-  plot(x0 - radius, y0);
 
   while (x < y)
   {
@@ -76,55 +59,77 @@ void drawCircle(std::vector<PixelBuffer*>& buffs,
     x++;
     ddF_x += 2;
     f += ddF_x + 1;
-    plot(x0 + x, y0 + y);
-    plot(x0 - x, y0 + y);
-    plot(x0 + x, y0 - y);
-    plot(x0 - x, y0 - y);
-    plot(x0 + y, y0 + x);
-    plot(x0 - y, y0 + x);
-    plot(x0 + y, y0 - x);
-    plot(x0 - y, y0 - x);
+    plotter(x0 - x, y0 + y, x0 + x, y0 + y);
+    plotter(x0 - x, y0 - y, x0 + x, y0 - y);
+    plotter(x0 - y, y0 + x, x0 + y, y0 + x);
+    plotter(x0 - y, y0 - x, x0 + y, y0 - x);
   }
+}
+
+void drawCircle(std::vector<PixelBuffer*>& buffs,
+                const int x0,
+                const int y0,
+                const int radius,
+                const std::vector<Pixel>& colors,
+                const uint32_t buffIntensity,
+                const bool allowOverexposed,
+                const uint32_t screenWidth,
+                const uint32_t screenHeight)
+{
+  assert(buffs.size() == colors.size());
+
+  auto plotter = [&](const int x1, const int y1, const int x2, const int y2) -> void {
+    if (static_cast<uint32_t>(x1) >= screenWidth || static_cast<uint32_t>(y1) >= screenHeight)
+    {
+      return;
+    }
+    if (static_cast<uint32_t>(x2) >= screenWidth || static_cast<uint32_t>(y2) >= screenHeight)
+    {
+      return;
+    }
+    int pos = y1 * static_cast<int>(screenWidth) + x1;
+    drawPixels(buffs, pos, colors, buffIntensity, allowOverexposed);
+    if (x1 == x2 && y1 == y2)
+    {
+      return;
+    }
+    pos = y2 * static_cast<int>(screenWidth) + x2;
+    drawPixels(buffs, pos, colors, buffIntensity, allowOverexposed);
+  };
+
+  drawCircle(x0, y0, radius, plotter);
 }
 
 void drawFilledCircle(PixelBuffer& buff,
                       const int x0,
                       const int y0,
                       const int radius,
-                      const std::vector<Pixel>& colors,
+                      const Pixel& color,
                       const uint32_t buffIntensity,
                       const bool allowOverexposed,
                       const uint32_t screenWidth,
                       const uint32_t screenHeight)
 {
-  for (int i = 1; i <= radius; i++)
-  {
-    drawCircle(buff, x0, y0, i, colors.at(static_cast<size_t>(i - 1)), buffIntensity,
-               allowOverexposed, screenWidth, screenHeight);
-  }
-
-  if (static_cast<uint32_t>(x0) >= screenWidth || static_cast<uint32_t>(y0) >= screenHeight)
-  {
-    return;
-  }
-  const int pos = y0 * static_cast<int>(screenWidth) + x0;
-  drawPixel(&buff, pos, colors[0], buffIntensity, allowOverexposed);
+  std::vector<PixelBuffer*> buffs{&buff};
+  const std::vector<Pixel> colors{color};
+  drawFilledCircle(buffs, x0, y0, radius, colors, buffIntensity, allowOverexposed, screenWidth,
+                   screenHeight);
 }
 
-void drawFilledCircle(std::vector<PixelBuffer*>& buffs,
-                      const int x0,
-                      const int y0,
-                      const int radius,
-                      const std::vector<std::vector<Pixel>>& colorSets,
-                      const uint32_t buffIntensity,
-                      const bool allowOverexposed,
-                      const uint32_t screenWidth,
-                      const uint32_t screenHeight)
+static void drawHorizontalLine(std::vector<PixelBuffer*>& buffs,
+                               const int x1,
+                               const int y,
+                               const int x2,
+                               const std::vector<Pixel>& colors,
+                               const uint32_t buffIntensity,
+                               const bool allowOverexposed,
+                               const uint32_t screenWidth)
 {
-  for (size_t i = 0; i < buffs.size(); i++)
+  const int xEnd = x1 == x2 ? x1 : x2;
+  for (int x = x1; x <= xEnd; x++)
   {
-    drawFilledCircle(*buffs[i], x0, y0, radius, colorSets.at(i), buffIntensity, allowOverexposed,
-                     screenWidth, screenHeight);
+    const int pos = y * static_cast<int>(screenWidth) + x;
+    drawPixels(buffs, pos, colors, buffIntensity, allowOverexposed);
   }
 }
 
@@ -138,6 +143,28 @@ static void drawWuLine(std::vector<PixelBuffer*>& buffs,
                        bool allowOverexposed,
                        uint32_t screenWidth,
                        uint32_t screenHeight);
+
+void drawFilledCircle(std::vector<PixelBuffer*>& buffs,
+                      const int x0,
+                      const int y0,
+                      const int radius,
+                      const std::vector<Pixel>& colors,
+                      const uint32_t buffIntensity,
+                      const bool allowOverexposed,
+                      const uint32_t screenWidth,
+                      [[maybe_unused]] const uint32_t screenHeight)
+{
+  assert(buffs.size() == colors.size());
+
+  auto plotter = [&](const int x1, const int y1, const int x2, const int y2) -> void {
+    assert(y1 == y2);
+    //    drawHorizontalLine(buffs, x1, y1, x2, colors, buffIntensity, allowOverexposed, screenWidth);
+    drawWuLine(buffs, x1, y1, x2, y2, colors, buffIntensity, allowOverexposed, screenWidth,
+               screenHeight);
+  };
+
+  drawCircle(x0, y0, radius, plotter);
+}
 
 constexpr int LINE_THICKNESS_MIDDLE = 0;
 constexpr int LINE_THICKNESS_DRAW_CLOCKWISE = 1;
@@ -170,6 +197,7 @@ void drawLine(PixelBuffer& buff,
 {
   std::vector<PixelBuffer*> buffs{&buff};
   std::vector<Pixel> colors{color};
+
   drawLine(buffs, x1, y1, x2, y2, colors, buffIntensity, allowOverexposed, thickness, screenx,
            screeny);
 }
