@@ -249,11 +249,23 @@ private:
 // clang-format off
 const GoomStates::WeightedStatesArray GoomStates::states{{
   {
-    .weight = 20,
+    .weight = 1,
     .drawables {{
       { .fx = GoomDrawable::IFS,       .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
     }},
   },
+  {
+    .weight = 1,
+    .drawables {{
+      { .fx = GoomDrawable::dots,      .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
+    }},
+  },
+  {
+    .weight = 1,
+    .drawables {{
+      { .fx = GoomDrawable::stars,     .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = false  } },
+  }},
+ },
   {
     .weight = 200,
     .drawables {{
@@ -1136,7 +1148,7 @@ private:
   void displayStateText();
 #endif
 
-  void drawDotsIfRequired();
+  void applyDotsIfRequired();
 
   void chooseGoomLine(float* param1,
                       float* param2,
@@ -1371,11 +1383,10 @@ void GoomControl::GoomControlImpl::setScreenBuffer(PixelBuffer& buffer)
 
 void GoomControl::GoomControlImpl::setFontFile(const std::string& filename)
 {
-  text.setFontFile(filename);
-
-  text.setFontSize(30);
-  text.setOutlineWidth(1);
-  text.setAlignment(TextDraw::TextAlignment::center);
+  //  text.setFontFile(filename);
+  //  text.setFontSize(30);
+  //  text.setOutlineWidth(1);
+  //  text.setAlignment(TextDraw::TextAlignment::center);
 }
 
 uint32_t GoomControl::GoomControlImpl::getScreenWidth() const
@@ -1436,6 +1447,11 @@ void GoomControl::GoomControlImpl::finish()
 {
   for (auto& v : visualFx.list)
   {
+    v->finish();
+  }
+
+  for (auto& v : visualFx.list)
+  {
     v->log(logStatsValue);
   }
 
@@ -1445,11 +1461,6 @@ void GoomControl::GoomControlImpl::finish()
   stats.setNumThreadsUsedValue(parallel.getNumThreadsUsed());
 
   stats.log(logStatsValue);
-
-  for (auto& v : visualFx.list)
-  {
-    v->finish();
-  }
 }
 
 void GoomControl::GoomControlImpl::update(const AudioSamples& soundData,
@@ -1472,7 +1483,7 @@ void GoomControl::GoomControlImpl::update(const AudioSamples& soundData,
 
   // applyIfsIfRequired();
 
-  drawDotsIfRequired();
+  applyDotsIfRequired();
 
   /* par défaut pas de changement de zoom */
   if (forceMode != 0)
@@ -1510,7 +1521,7 @@ void GoomControl::GoomControlImpl::update(const AudioSamples& soundData,
   visualFx.zoomFilter_fx->zoomFilterFastRGB(imageBuffers.getP1(), imageBuffers.getP2(), pzfd,
                                             goomData.switchIncr, goomData.switchMult);
 
-  // drawDotsIfRequired();
+  // applyDotsIfRequired();
   applyIfsIfRequired();
   applyTentaclesIfRequired();
   applyStarsIfRequired();
@@ -2200,7 +2211,7 @@ void GoomControl::GoomControlImpl::applyTentaclesIfRequired()
   logDebug("curGDrawables tentacles is set.");
   stats.doTentacles();
   visualFx.tentacles_fx->setBuffSettings(states.getCurrentBuffSettings(GoomDrawable::tentacles));
-  visualFx.tentacles_fx->apply(imageBuffers.getP1(), imageBuffers.getP2());
+  visualFx.tentacles_fx->apply(imageBuffers.getP2(), imageBuffers.getP1());
 }
 
 void GoomControl::GoomControlImpl::applyStarsIfRequired()
@@ -2214,7 +2225,7 @@ void GoomControl::GoomControlImpl::applyStarsIfRequired()
   stats.doStars();
   visualFx.star_fx->setBuffSettings(states.getCurrentBuffSettings(GoomDrawable::stars));
   //  visualFx.star_fx->apply(imageBuffers.getP2(), imageBuffers.getP1());
-  visualFx.star_fx->apply(imageBuffers.getP1(), imageBuffers.getP2());
+  visualFx.star_fx->apply(imageBuffers.getP2(), imageBuffers.getP1());
 }
 
 #ifdef SHOW_STATE_TEXT_ON_SCREEN
@@ -2327,12 +2338,14 @@ void GoomControl::GoomControlImpl::drawText(const std::string& str,
                                        float height) { return outlineColor; };
 
   //  CALL UP TO PREPARE ONCE ONLY
+  /**
   text.setText(str);
   text.setFontColorFunc(getFontColor);
   text.setOutlineFontColorFunc(getOutlineFontColor);
   text.setCharSpacing(spacing);
   text.prepare();
   text.draw(xPos, yPos, buffer);
+**/
 }
 
 /*
@@ -2340,6 +2353,7 @@ void GoomControl::GoomControlImpl::drawText(const std::string& str,
  */
 void GoomControl::GoomControlImpl::updateMessage(const char* message)
 {
+  return;
   if (message)
   {
     messageData.message = message;
@@ -2579,7 +2593,7 @@ void GoomControl::GoomControlImpl::applyIfsIfRequired()
   logDebug("curGDrawables IFS is set");
   stats.doIFS();
   visualFx.ifs_fx->setBuffSettings(states.getCurrentBuffSettings(GoomDrawable::IFS));
-  visualFx.ifs_fx->apply(imageBuffers.getP1(), imageBuffers.getP2());
+  visualFx.ifs_fx->apply(imageBuffers.getP2(), imageBuffers.getP1());
 }
 
 void GoomControl::GoomControlImpl::regularlyLowerTheSpeed(ZoomFilterData** pzfd)
@@ -2606,7 +2620,7 @@ void GoomControl::GoomControlImpl::stopDecrementingAfterAWhile(ZoomFilterData** 
   }
 }
 
-void GoomControl::GoomControlImpl::drawDotsIfRequired()
+void GoomControl::GoomControlImpl::applyDotsIfRequired()
 {
   if (!curGDrawables.contains(GoomDrawable::dots))
   {
@@ -2615,7 +2629,7 @@ void GoomControl::GoomControlImpl::drawDotsIfRequired()
 
   logDebug("goomInfo->curGDrawables points is set.");
   stats.doDots();
-  visualFx.goomDots_fx->apply(imageBuffers.getP1(), imageBuffers.getP2());
+  visualFx.goomDots_fx->apply(imageBuffers.getP1());
   logDebug("sound getTimeSinceLastGoom() = {}", goomInfo->getSoundInfo().getTimeSinceLastGoom());
 }
 
