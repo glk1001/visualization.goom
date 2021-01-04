@@ -436,7 +436,7 @@ public:
   void setBuffSettings(const FXBuffSettings&);
   void freshStart();
 
-  void update(PixelBuffer& prevBuff, PixelBuffer& currentBuff);
+  void update(PixelBuffer& currentBuff, PixelBuffer& nextBuff);
   void updateWithNoDraw();
 
   void logStats(const StatsLogValueFunc& logVal);
@@ -571,14 +571,19 @@ void TentaclesFx::log(const StatsLogValueFunc& logVal) const
   fxImpl->logStats(logVal);
 }
 
-void TentaclesFx::apply(PixelBuffer& prevBuff, PixelBuffer& currentBuff)
+void TentaclesFx::apply(PixelBuffer&)
+{
+  throw std::logic_error("TentaclesFx::apply should never be called.");
+}
+
+void TentaclesFx::apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
 {
   if (!enabled)
   {
     return;
   }
 
-  fxImpl->update(prevBuff, currentBuff);
+  fxImpl->update(currentBuff, nextBuff);
 }
 
 void TentaclesFx::applyNoDraw()
@@ -852,7 +857,7 @@ void TentaclesFx::TentaclesImpl::init()
   }
 }
 
-void TentaclesFx::TentaclesImpl::update(PixelBuffer& prevBuff, PixelBuffer& currentBuff)
+void TentaclesFx::TentaclesImpl::update(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
 {
   logDebug("Starting update.");
   stats.updateStart();
@@ -939,8 +944,8 @@ void TentaclesFx::TentaclesImpl::update(PixelBuffer& prevBuff, PixelBuffer& curr
             : 1.0F / (1.10F - goomInfo->getSoundInfo().getAcceleration());
     currentDriver->multiplyIterZeroYValWaveFreq(tentacleWaveFreq);
 
-    currentDriver->update(m_half_pi - rot, distt, distt2, modColor, modColorLow, prevBuff,
-                          currentBuff);
+    currentDriver->update(m_half_pi - rot, distt, distt2, modColor, modColorLow, currentBuff,
+                          nextBuff);
   }
 
   stats.updateEnd();

@@ -763,6 +763,11 @@ std::string ZoomFilterFx::getFxName() const
   return "ZoomFilter FX";
 }
 
+void ZoomFilterFx::apply(PixelBuffer&)
+{
+  throw std::logic_error("ZoomFilterFx::apply should never be called.");
+}
+
 void ZoomFilterFx::apply(PixelBuffer&, PixelBuffer&)
 {
   throw std::logic_error("ZoomFilterFx::apply should never be called.");

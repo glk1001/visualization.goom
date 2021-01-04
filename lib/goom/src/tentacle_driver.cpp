@@ -11,7 +11,6 @@
 #include "tentacles.h"
 #include "v3d.h"
 
-#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <format>
@@ -36,9 +35,7 @@ inline bool changeCurrentColorMapEvent()
 const size_t TentacleDriver::changeCurrentColorMapGroupEveryNUpdates = 400;
 const size_t TentacleDriver::changeTentacleColorMapEveryNUpdates = 100;
 
-TentacleDriver::TentacleDriver() noexcept
-{
-}
+TentacleDriver::TentacleDriver() noexcept = default;
 
 TentacleDriver::TentacleDriver(const uint32_t screenW, const uint32_t screenH) noexcept
   : screenWidth{screenW}, screenHeight{screenH}, draw{screenWidth, screenHeight}
@@ -295,7 +292,7 @@ void TentacleDriver::startIterating()
   }
 }
 
-void TentacleDriver::stopIterating()
+[[maybe_unused]] void TentacleDriver::stopIterating()
 {
   for (auto& t : tentacles)
   {
@@ -447,8 +444,8 @@ void TentacleDriver::update(const float angle,
                             const float distance2,
                             const Pixel& color,
                             const Pixel& colorLow,
-                            PixelBuffer& prevBuff,
-                            PixelBuffer& currentBuff)
+                            PixelBuffer& currentBuff,
+                            PixelBuffer& nextBuff)
 {
   updateNum++;
   logInfo("Doing update {}.", updateNum);
@@ -478,7 +475,7 @@ void TentacleDriver::update(const float angle,
     logDebug("tentacle head = ({:.2f}, {:.2f}, {:.2f}).", tentacle.getHead().x,
              tentacle.getHead().y, tentacle.getHead().z);
 
-    plot3D(tentacle, color, colorLow, angle, distance, distance2, prevBuff, currentBuff);
+    plot3D(tentacle, color, colorLow, angle, distance, distance2, currentBuff, nextBuff);
   }
 }
 
@@ -503,15 +500,15 @@ void TentacleDriver::plot3D(const Tentacle3D& tentacle,
                             const float angle,
                             const float distance,
                             const float distance2,
-                            PixelBuffer& prevBuff,
-                            PixelBuffer& currentBuff)
+                            PixelBuffer& currentBuff,
+                            PixelBuffer& nextBuff)
 {
   const std::vector<V3d> vertices = tentacle.getVertices();
   const size_t n = vertices.size();
 
   V3d cam = {0, 0, -3}; // TODO ????????????????????????????????
   cam.z += distance2;
-  cam.y += 2.0 * std::sin(-(angle - m_half_pi) / 4.3f);
+  cam.y += 2.0F * std::sin(-(angle - m_half_pi) / 4.3F);
   logDebug("cam = ({:.2f}, {:.2f}, {:.2f}).", cam.x, cam.y, cam.z);
 
   float angleAboutY = angle;
@@ -604,7 +601,7 @@ else if (0 <= tentacle.getHead().x && tentacle.getHead().x < 10)
                color.rgba(), colorLow.rgba(), brightnessCut);
 
       // TODO buff right way around ??????????????????????????????????????????????????????????????
-      std::vector<PixelBuffer*> buffs{&currentBuff, &prevBuff};
+      std::vector<PixelBuffer*> buffs{&currentBuff, &nextBuff};
       // TODO - Control brightness because of back buff??
       // One buff may be better????? Make lighten more aggressive over whole tentacle??
       // draw_line(frontBuff, ix0, iy0, ix1, iy1, color, 1280, 720);
@@ -614,7 +611,8 @@ else if (0 <= tentacle.getHead().x && tentacle.getHead().x < 10)
   }
 }
 
-std::vector<v2d> TentacleDriver::projectV3dOntoV2d(const std::vector<V3d>& v3, const float distance)
+std::vector<v2d> TentacleDriver::projectV3dOntoV2d(const std::vector<V3d>& v3,
+                                                   const float distance) const
 {
   std::vector<v2d> v2(v3.size());
 
@@ -623,7 +621,7 @@ std::vector<v2d> TentacleDriver::projectV3dOntoV2d(const std::vector<V3d>& v3, c
   const int Xpn = v3[v3.size() - 1].ignore || (v3[v3.size() - 1].z <= 2)
                       ? 1
                       : static_cast<int>(distance * v3[v3.size() - 1].x / v3[v3.size() - 1].z);
-  const float xSpread = std::min(1.0F, std::abs(Xp0 - Xpn) / 10.0F);
+  const float xSpread = std::min(1.0F, std::abs(static_cast<float>(Xp0 - Xpn)) / 10.0F);
 
   for (size_t i = 0; i < v3.size(); ++i)
   {
@@ -729,13 +727,13 @@ Pixel TentacleColorMapColorizer::getColor(const size_t nodeNum) const
   return nextColor;
 }
 
-GridTentacleLayout::GridTentacleLayout(const float xmin,
-                                       const float xmax,
-                                       const size_t xNum,
-                                       const float ymin,
-                                       const float ymax,
-                                       const size_t yNum,
-                                       const float zConst)
+[[maybe_unused]] GridTentacleLayout::GridTentacleLayout(const float xmin,
+                                                        const float xmax,
+                                                        const size_t xNum,
+                                                        const float ymin,
+                                                        const float ymax,
+                                                        const size_t yNum,
+                                                        const float zConst)
   : points{}
 {
   const float xStep = (xmax - xmin) / static_cast<float>(xNum - 1);

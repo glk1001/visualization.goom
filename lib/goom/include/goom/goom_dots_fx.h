@@ -27,7 +27,8 @@ public:
 
   void start() override;
 
-  void apply(PixelBuffer& prevBuff, PixelBuffer& currentBuff) override;
+  void apply(PixelBuffer& currentBuff) override;
+  void apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff) override;
 
   void finish() override;
 

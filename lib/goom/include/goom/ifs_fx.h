@@ -55,7 +55,8 @@ public:
   void start() override;
 
   void applyNoDraw() override;
-  void apply(PixelBuffer& prevBuff, PixelBuffer& currentBuff) override;
+  void apply(PixelBuffer&) override;
+  void apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff) override;
 
   void log(const StatsLogValueFunc&) const override;
   void finish() override;

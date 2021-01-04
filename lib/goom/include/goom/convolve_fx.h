@@ -34,7 +34,8 @@ public:
 
   void start() override;
 
-  void apply(PixelBuffer&, PixelBuffer&) override{};
+  void apply(PixelBuffer&) override;
+  void apply(PixelBuffer&, PixelBuffer&) override;
 
   void log(const StatsLogValueFunc&) const override;
   void finish() override;

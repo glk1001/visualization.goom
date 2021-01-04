@@ -49,7 +49,8 @@ public:
   virtual void start(){};
 
   virtual void applyNoDraw(){};
-  virtual void apply(PixelBuffer& prevBuff, PixelBuffer& currentBuff) = 0;
+  virtual void apply(PixelBuffer& currentBuff) = 0;
+  virtual void apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff) = 0;
 
   virtual void log(const StatsLogValueFunc&) const {};
   virtual void finish(){};

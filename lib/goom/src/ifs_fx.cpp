@@ -988,7 +988,7 @@ public:
   [[nodiscard]] uint32_t getWidth() const { return width; }
   void setWidth(uint32_t val);
 
-  void doBlur(std::vector<IfsPoint>&, PixelBuffer&) const;
+  void doBlur(std::vector<IfsPoint>&, std::vector<PixelBuffer*>&) const;
 
 private:
   const uint32_t screenWidth;
@@ -1012,7 +1012,8 @@ void LowDensityBlurrer::setWidth(const uint32_t val)
   width = val;
 }
 
-void LowDensityBlurrer::doBlur(std::vector<IfsPoint>& lowDensityPoints, PixelBuffer& buff) const
+void LowDensityBlurrer::doBlur(std::vector<IfsPoint>& lowDensityPoints,
+                               std::vector<PixelBuffer*>& buffs) const
 {
   std::vector<Pixel> neighbours(width * width);
 
@@ -1032,7 +1033,7 @@ void LowDensityBlurrer::doBlur(std::vector<IfsPoint>& lowDensityPoints, PixelBuf
       uint32_t neighX = p.x - width / 2;
       for (size_t j = 0; j < width; j++)
       {
-        neighbours[n] = buff(neighX, neighY);
+        neighbours[n] = (*buffs[0])(neighX, neighY);
         n++;
         neighX++;
       }
@@ -1047,7 +1048,10 @@ void LowDensityBlurrer::doBlur(std::vector<IfsPoint>& lowDensityPoints, PixelBuf
     {
       continue;
     }
-    buff(p.x, p.y) = p.color;
+    for (auto& b : buffs)
+    {
+      (*b)(p.x, p.y) = p.color;
+    }
   }
 }
 
@@ -1117,7 +1121,7 @@ public:
   void init();
 
   void applyNoDraw();
-  void updateIfs(PixelBuffer& prevBuff, PixelBuffer& currentBuff);
+  void updateIfs(PixelBuffer& currentBuff, PixelBuffer& nextBuff);
   void setBuffSettings(const FXBuffSettings&);
   void updateLowDensityThreshold();
   IfsFx::ColorMode getColorMode() const;
@@ -1166,13 +1170,13 @@ private:
   float lowDensityBlurThreshold = 0.40;
   bool useRandomLowDensityColors = false;
   bool blurLowDensityColors(size_t numPoints, const std::vector<IfsPoint>& lowDensityPoints) const;
-  void updatePixelBuffers(PixelBuffer& prevBuff,
-                          PixelBuffer& currentBuff,
+  void updatePixelBuffers(PixelBuffer& currentBuff,
+                          PixelBuffer& nextBuff,
                           const std::vector<IfsPoint>& points,
                           uint32_t maxHitCount,
                           const Pixel& color);
-  void drawPixel(PixelBuffer& prevBuff,
-                 PixelBuffer& currentBuff,
+  void drawPixel(PixelBuffer& currentBuff,
+                 PixelBuffer& nextBuff,
                  const IfsPoint&,
                  const Pixel& ifsColor,
                  float tMix);
@@ -1247,14 +1251,19 @@ void IfsFx::applyNoDraw()
   fxImpl->applyNoDraw();
 }
 
-void IfsFx::apply(PixelBuffer& prevBuff, PixelBuffer& currentBuff)
+void IfsFx::apply(PixelBuffer&)
+{
+  throw std::logic_error("IfsFx::apply should never be called.");
+}
+
+void IfsFx::apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
 {
   if (!enabled)
   {
     return;
   }
 
-  fxImpl->updateIfs(prevBuff, currentBuff);
+  fxImpl->updateIfs(currentBuff, nextBuff);
 }
 
 IfsFx::ColorMode IfsFx::getColorMode() const
@@ -1397,7 +1406,7 @@ void IfsFx::IfsImpl::applyNoDraw()
   updateDecay();
 }
 
-void IfsFx::IfsImpl::updateIfs(PixelBuffer& prevBuff, PixelBuffer& currentBuff)
+void IfsFx::IfsImpl::updateIfs(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
 {
   stats.updateStart();
 
@@ -1436,7 +1445,7 @@ void IfsFx::IfsImpl::updateIfs(PixelBuffer& prevBuff, PixelBuffer& currentBuff)
   const int cycle10 = (updateData.cycle < 40) ? updateData.cycle / 10 : 7 - updateData.cycle / 10;
   const Pixel color = getRightShiftedChannels(updateData.couleur, cycle10);
 
-  updatePixelBuffers(prevBuff, currentBuff, points, maxHitCount, color);
+  updatePixelBuffers(currentBuff, nextBuff, points, maxHitCount, color);
 
   updateData.justChanged--;
 
@@ -1510,8 +1519,8 @@ inline int IfsFx::IfsImpl::getIfsIncr() const
   return ifs_incr;
 }
 
-inline void IfsFx::IfsImpl::drawPixel(PixelBuffer& prevBuff,
-                                      PixelBuffer& currentBuff,
+inline void IfsFx::IfsImpl::drawPixel(PixelBuffer& currentBuff,
+                                      PixelBuffer& nextBuff,
                                       const IfsPoint& point,
                                       const Pixel& ifsColor,
                                       const float tMix)
@@ -1522,7 +1531,7 @@ inline void IfsFx::IfsImpl::drawPixel(PixelBuffer& prevBuff,
   Pixel mixedColor = colorizer.getMixedColor(point.color, point.count, tMix, fx, fy);
   //  const std::vector<Pixel> colors{ColorMap::colorMix(ifsColor, mixedColor, 0.1), mixedColor};
   const std::vector<Pixel> colors{mixedColor, mixedColor};
-  std::vector<PixelBuffer*> buffs{&currentBuff, &prevBuff};
+  std::vector<PixelBuffer*> buffs{&currentBuff, &nextBuff};
   draw.setPixelRGB(buffs, point.x, point.y, colors);
 }
 
@@ -1551,8 +1560,8 @@ void IfsFx::IfsImpl::updateAllowOverexposed()
   }
 }
 
-void IfsFx::IfsImpl::updatePixelBuffers(PixelBuffer& prevBuff,
-                                        PixelBuffer& currentBuff,
+void IfsFx::IfsImpl::updatePixelBuffers(PixelBuffer& currentBuff,
+                                        PixelBuffer& nextBuff,
                                         const std::vector<IfsPoint>& points,
                                         const uint32_t maxHitCount,
                                         const Pixel& color)
@@ -1585,7 +1594,7 @@ void IfsFx::IfsImpl::updatePixelBuffers(PixelBuffer& prevBuff,
     }
 
     numSelectedPoints++;
-    drawPixel(prevBuff, currentBuff, points[i], color, t);
+    drawPixel(currentBuff, nextBuff, points[i], color, t);
 
     if (points[i].count <= lowDensityCount)
     {
@@ -1597,14 +1606,14 @@ void IfsFx::IfsImpl::updatePixelBuffers(PixelBuffer& prevBuff,
     }
   }
 
+  std::vector<PixelBuffer*> buffs{&currentBuff, &nextBuff};
   if (blurLowDensityColors(numSelectedPoints, lowDensityPoints))
   {
     // Enough dense points to make blurring worthwhile.
-    blurrer.doBlur(lowDensityPoints, prevBuff);
+    blurrer.doBlur(lowDensityPoints, buffs);
   }
   else
   {
-    std::vector<PixelBuffer*> buffs{&currentBuff, &prevBuff};
     setLowDensityColors(lowDensityPoints, maxLowDensityCount, buffs);
   }
 }

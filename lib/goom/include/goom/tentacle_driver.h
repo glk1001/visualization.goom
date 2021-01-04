@@ -70,7 +70,7 @@ public:
   void setColorMode(ColorModes);
 
   void startIterating();
-  void stopIterating();
+  [[maybe_unused]] void stopIterating();
 
   void freshStart();
   void update(float angle,
@@ -78,8 +78,8 @@ public:
               float distance2,
               const Pixel& color,
               const Pixel& colorLow,
-              PixelBuffer& prevBuff,
-              PixelBuffer& currentBuff);
+              PixelBuffer& currentBuff,
+              PixelBuffer& nextBuff);
 
   void setReverseColorMix(bool val);
   void multiplyIterZeroYValWaveFreq(float val);
@@ -141,9 +141,9 @@ private:
               float angle,
               float distance,
               float distance2,
-              PixelBuffer& prevBuff,
-              PixelBuffer& currentBuff);
-  std::vector<v2d> projectV3dOntoV2d(const std::vector<V3d>& v3, float distance);
+              PixelBuffer& currentBuff,
+              PixelBuffer& nextBuff);
+  std::vector<v2d> projectV3dOntoV2d(const std::vector<V3d>& v3, float distance) const;
   static void rotateV3dAboutYAxis(float sina, float cosa, const V3d& vsrc, V3d& vdest);
   static void translateV3d(const V3d& vadd, V3d& vinOut);
 };
@@ -152,7 +152,7 @@ class TentacleColorMapColorizer : public TentacleColorizer
 {
 public:
   TentacleColorMapColorizer() noexcept = default;
-  explicit TentacleColorMapColorizer(const utils::ColorMapGroup, const size_t numNodes) noexcept;
+  explicit TentacleColorMapColorizer(utils::ColorMapGroup, size_t numNodes) noexcept;
   TentacleColorMapColorizer(const TentacleColorMapColorizer&) = delete;
   TentacleColorMapColorizer& operator=(const TentacleColorMapColorizer&) = delete;
 
@@ -182,7 +182,7 @@ private:
 class GridTentacleLayout : public TentacleLayout
 {
 public:
-  GridTentacleLayout(
+  [[maybe_unused]] GridTentacleLayout(
       float xmin, float xmax, size_t xNum, float ymin, float ymax, size_t yNum, float zConst);
   [[nodiscard]] size_t getNumPoints() const override;
   [[nodiscard]] const std::vector<V3d>& getPoints() const override;
