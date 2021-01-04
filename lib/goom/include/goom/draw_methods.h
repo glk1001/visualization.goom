@@ -31,7 +31,6 @@ void drawCircle(std::vector<PixelBuffer*>&,
                 uint32_t screenWidth,
                 uint32_t screenHeight);
 
-// colors.size() == radius
 void drawFilledCircle(PixelBuffer&,
                       int x0,
                       int y0,

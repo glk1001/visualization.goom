@@ -14,9 +14,6 @@
 namespace goom
 {
 
-// Bresenhams midpoint circle algorithm from
-//   "https://rosettacode.org/wiki/Bitmap/Midpoint_circle_algorithm".
-//
 void drawCircle(PixelBuffer& buff,
                 const int x0,
                 const int y0,
@@ -35,34 +32,39 @@ void drawCircle(PixelBuffer& buff,
 
 using PlotPoints = std::function<void(int x1, int y1, int x2, int y2)>;
 
-void drawCircle(const int x0, const int y0, const int radius, const PlotPoints& plotter)
+// Function for circle-generation using Bresenham's algorithm
+static void drawBresenhamCircle(const int x0,
+                                const int y0,
+                                const int radius,
+                                const PlotPoints& plotter)
 {
-  plotter(x0, y0 + radius, x0, y0 + radius);
-  plotter(x0, y0 - radius, x0, y0 - radius);
-  plotter(x0 + radius, y0, x0 + radius, y0);
-  plotter(x0 - radius, y0, x0 - radius, y0);
+  const auto drawCircle8 = [&](const int xc, int const yc, const int x, const int y) {
+    plotter(xc - x, yc + y, xc + x, yc + y);
+    plotter(xc - x, yc - y, xc + x, yc - y);
+    plotter(xc - y, yc + x, xc + y, yc + x);
+    plotter(xc - y, yc - x, xc + y, yc - x);
+  };
 
-  int f = 1 - radius;
-  int ddF_x = 0;
-  int ddF_y = -2 * radius;
   int x = 0;
   int y = radius;
 
-  while (x < y)
+  drawCircle8(x0, y0, x, y);
+
+  int d = 3 - 2 * radius;
+  while (y >= x)
   {
-    if (f >= 0)
+    x++;
+
+    if (d > 0)
     {
       y--;
-      ddF_y += 2;
-      f += ddF_y;
+      d = d + 4 * (x - y) + 10;
     }
-    x++;
-    ddF_x += 2;
-    f += ddF_x + 1;
-    plotter(x0 - x, y0 + y, x0 + x, y0 + y);
-    plotter(x0 - x, y0 - y, x0 + x, y0 - y);
-    plotter(x0 - y, y0 + x, x0 + y, y0 + x);
-    plotter(x0 - y, y0 - x, x0 + y, y0 - x);
+    else
+    {
+      d = d + 4 * x + 6;
+    }
+    drawCircle8(x0, y0, x, y);
   }
 }
 
@@ -97,7 +99,7 @@ void drawCircle(std::vector<PixelBuffer*>& buffs,
     drawPixels(buffs, pos, colors, buffIntensity, allowOverexposed);
   };
 
-  drawCircle(x0, y0, radius, plotter);
+  drawBresenhamCircle(x0, y0, radius, plotter);
 }
 
 void drawFilledCircle(PixelBuffer& buff,
@@ -158,12 +160,12 @@ void drawFilledCircle(std::vector<PixelBuffer*>& buffs,
 
   auto plotter = [&](const int x1, const int y1, const int x2, const int y2) -> void {
     assert(y1 == y2);
-    //    drawHorizontalLine(buffs, x1, y1, x2, colors, buffIntensity, allowOverexposed, screenWidth);
-    drawWuLine(buffs, x1, y1, x2, y2, colors, buffIntensity, allowOverexposed, screenWidth,
-               screenHeight);
+    drawHorizontalLine(buffs, x1, y1, x2, colors, buffIntensity, allowOverexposed, screenWidth);
+    //drawWuLine(buffs, x1, y1, x2, y2, colors, buffIntensity, allowOverexposed, screenWidth,
+    //           screenHeight);
   };
 
-  drawCircle(x0, y0, radius, plotter);
+  drawBresenhamCircle(x0, y0, radius, plotter);
 }
 
 constexpr int LINE_THICKNESS_MIDDLE = 0;

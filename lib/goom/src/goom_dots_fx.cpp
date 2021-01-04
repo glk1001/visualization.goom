@@ -41,7 +41,8 @@ public:
 
   void setBuffSettings(const FXBuffSettings&);
 
-  void apply(PixelBuffer& prevBuff, PixelBuffer& currentBuff);
+  void apply(PixelBuffer& currentBuff);
+  void apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff);
 
   bool operator==(const GoomDotsImpl&) const;
 
@@ -73,21 +74,16 @@ private:
 
   void changeColors();
 
-  [[nodiscard]] std::vector<Pixel> getColors(const Pixel& color0,
-                                             const Pixel& color1,
-                                             float brightness,
-                                             size_t numPts);
+  [[nodiscard]] Pixel getColor(const Pixel& color0, const Pixel& color1, float brightness);
 
   [[nodiscard]] float getLargeSoundFactor(const SoundInfo&) const;
 
-  void dotFilter(PixelBuffer& prevBuff,
-                 PixelBuffer& currentBuff,
-                 const std::vector<Pixel>& colors,
+  void dotFilter(PixelBuffer& currentBuff,
+                 const Pixel& color,
                  float t1,
                  float t2,
                  float t3,
                  float t4,
-                 float brightness,
                  uint32_t cycle,
                  uint32_t radius);
 
@@ -132,13 +128,22 @@ std::string GoomDotsFx::getFxName() const
   return "goom dots";
 }
 
-void GoomDotsFx::apply(PixelBuffer& prevBuff, PixelBuffer& currentBuff)
+void GoomDotsFx::apply(PixelBuffer& currentBuff)
 {
   if (!enabled)
   {
     return;
   }
-  fxImpl->apply(prevBuff, currentBuff);
+  fxImpl->apply(currentBuff);
+}
+
+void GoomDotsFx::apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
+{
+  if (!enabled)
+  {
+    return;
+  }
+  fxImpl->apply(currentBuff, nextBuff);
 }
 
 template<class Archive>
@@ -236,17 +241,17 @@ void GoomDotsFx::GoomDotsImpl::changeColors()
   colorMap5 = &colorMaps.getRandomColorMap();
   middleColor = ColorMap::getRandomColor(colorMaps.getRandomColorMap(ColorMapGroup::misc), 0.1, 1);
 
-  useSingleBufferOnly = probabilityOfMInN(1, 2);
-  useGrayScale = probabilityOfMInN(1, 10);
+  useSingleBufferOnly = probabilityOfMInN(0, 2);
+  useGrayScale = probabilityOfMInN(0, 10);
 }
 
-void GoomDotsFx::GoomDotsImpl::apply(PixelBuffer& prevBuff, PixelBuffer& currentBuff)
+void GoomDotsFx::GoomDotsImpl::apply(PixelBuffer& currentBuff)
 {
   uint32_t radius = 3;
   if ((goomInfo->getSoundInfo().getTimeSinceLastGoom() == 0) || changeDotColorsEvent())
   {
     changeColors();
-    radius = 5;
+    radius = getRandInRange(5U, 7U);
   }
 
   const float largeFactor = getLargeSoundFactor(goomInfo->getSoundInfo());
@@ -265,8 +270,6 @@ void GoomDotsFx::GoomDotsImpl::apply(PixelBuffer& prevBuff, PixelBuffer& current
   const float color4_t1 = pointHeightDiv3 * largeFactor + 20.0f;
   const float color4_t2 = color4_t1;
 
-  const size_t numColors = radius;
-
   const size_t speedvarMult80Plus15Div15 = speedvarMult80Plus15 / 15;
   constexpr float t_min = 0.5;
   constexpr float t_max = 1.0;
@@ -279,100 +282,98 @@ void GoomDotsFx::GoomDotsImpl::apply(PixelBuffer& prevBuff, PixelBuffer& current
 
     const uint32_t loopvar_div_i = loopvar / i;
     const float i_mult_10 = 10.0f * i;
+    const float brightness = 1.5F + 1.0F - t;
 
-    const std::vector<Pixel> colors1 = getColors(middleColor, colorMap1->getColor(t), t, numColors);
+    const Pixel colors1 = getColor(middleColor, colorMap1->getColor(t), brightness);
     const float color1_t3 = i * 152.0f;
     const float color1_t4 = 128.0f;
     const uint32_t color1_cycle = loopvar + i * 2032;
 
-    const std::vector<Pixel> colors2 = getColors(middleColor, colorMap2->getColor(t), t, numColors);
+    const Pixel colors2 = getColor(middleColor, colorMap2->getColor(t), brightness);
     const float color2_t1 = pointWidthDiv2MultLarge / i + i_mult_10;
     const float color2_t2 = pointHeightDiv2MultLarge / i + i_mult_10;
     const float color2_t3 = 96.0f;
     const float color2_t4 = i * 80.0f;
     const uint32_t color2_cycle = loopvar_div_i;
 
-    const std::vector<Pixel> colors3 = getColors(middleColor, colorMap3->getColor(t), t, numColors);
+    const Pixel colors3 = getColor(middleColor, colorMap3->getColor(t), brightness);
     const float color3_t1 = pointWidthDiv3MultLarge / i + i_mult_10;
     const float color3_t2 = pointHeightDiv3MultLarge / i + i_mult_10;
     const float color3_t3 = i + 122.0f;
     const float color3_t4 = 134.0f;
     const uint32_t color3_cycle = loopvar_div_i;
 
-    const std::vector<Pixel> colors4 = getColors(middleColor, colorMap4->getColor(t), t, numColors);
+    const Pixel colors4 = getColor(middleColor, colorMap4->getColor(t), brightness);
     const float color4_t3 = 58.0f;
     const float color4_t4 = i * 66.0f;
     const uint32_t color4_cycle = loopvar_div_i;
 
-    const std::vector<Pixel> colors5 = getColors(middleColor, colorMap5->getColor(t), t, numColors);
+    const Pixel colors5 = getColor(middleColor, colorMap5->getColor(t), brightness);
     const float color5_t1 = (pointWidthMultLarge + i_mult_10) / i;
     const float color5_t2 = (pointHeightMultLarge + i_mult_10) / i;
     const float color5_t3 = 66.0f;
     const float color5_t4 = 74.0f;
     const uint32_t color5_cycle = loopvar + i * 500;
 
-    dotFilter(prevBuff, currentBuff, colors1, color1_t1, color1_t2, color1_t3, color1_t4, t,
-              color1_cycle, radius);
-    dotFilter(prevBuff, currentBuff, colors2, color2_t1, color2_t2, color2_t3, color2_t4, t,
-              color2_cycle, radius);
-    dotFilter(prevBuff, currentBuff, colors3, color3_t1, color3_t2, color3_t3, color3_t4, t,
-              color3_cycle, radius);
-    dotFilter(prevBuff, currentBuff, colors4, color4_t1, color4_t2, color4_t3, color4_t4, t,
-              color4_cycle, radius);
-    dotFilter(prevBuff, currentBuff, colors5, color5_t1, color5_t2, color5_t3, color5_t4, t,
-              color5_cycle, radius);
+    dotFilter(currentBuff, colors1, color1_t1, color1_t2, color1_t3, color1_t4, color1_cycle,
+              radius);
+    dotFilter(currentBuff, colors2, color2_t1, color2_t2, color2_t3, color2_t4, color2_cycle,
+              radius);
+    dotFilter(currentBuff, colors3, color3_t1, color3_t2, color3_t3, color3_t4, color3_cycle,
+              radius);
+    dotFilter(currentBuff, colors4, color4_t1, color4_t2, color4_t3, color4_t4, color4_cycle,
+              radius);
+    dotFilter(currentBuff, colors5, color5_t1, color5_t2, color5_t3, color5_t4, color5_cycle,
+              radius);
 
     t += t_step;
   }
 }
 
-std::vector<Pixel> GoomDotsFx::GoomDotsImpl::getColors(const Pixel& color0,
-                                                       const Pixel& color1,
-                                                       const float brightness,
-                                                       const size_t numPts)
+void GoomDotsFx::GoomDotsImpl::apply(PixelBuffer&, PixelBuffer&)
 {
-  std::vector<Pixel> colors(numPts);
-  constexpr float t_min = 0.0;
+  throw std::logic_error("GoomDotsFx::GoomDotsImpl::apply should never be called.");
+}
+
+Pixel GoomDotsFx::GoomDotsImpl::getColor(const Pixel& color0,
+                                         const Pixel& color1,
+                                         const float brightness)
+{
+  constexpr float t_min = 0.5;
   constexpr float t_max = 1.0;
-  const float t_step = (t_max - t_min) / static_cast<float>(numPts);
-  float t = t_min;
-  for (size_t i = 0; i < numPts; i++)
+  const float t = getRandInRange(t_min, t_max);
+  Pixel color{};
+  if (!useGrayScale)
   {
-    if (!useGrayScale)
-    {
-      colors[i] = ColorMap::colorMix(color0, color1, t);
-    }
-    else
-    {
-      colors[i] = Pixel{.channels{.r = static_cast<uint8_t>(t * channel_limits<uint32_t>::max()),
-                                  .g = static_cast<uint8_t>(t * channel_limits<uint32_t>::max()),
-                                  .b = static_cast<uint8_t>(t * channel_limits<uint32_t>::max()),
-                                  .a = 0xff}};
-    }
-    colors[i] = gammaCorrect.getCorrection(brightness, colors[i]);
-    t += t_step;
+    color = ColorMap::colorMix(color0, color1, t);
   }
-  return colors;
+  else
+  {
+    color = Pixel{.channels{.r = static_cast<uint8_t>(t * channel_limits<uint32_t>::max()),
+                            .g = static_cast<uint8_t>(t * channel_limits<uint32_t>::max()),
+                            .b = static_cast<uint8_t>(t * channel_limits<uint32_t>::max()),
+                            .a = 0xff}};
+  }
+
+  return gammaCorrect.getCorrection(brightness, color);
 }
 
 float GoomDotsFx::GoomDotsImpl::getLargeSoundFactor(const SoundInfo& soundInfo) const
 {
-  float largefactor = soundInfo.getSpeed() / 150.0f + soundInfo.getVolume() / 1.5f;
-  if (largefactor > 1.5f)
+  float largeFactor = soundInfo.getSpeed() / 150.0F + soundInfo.getVolume() / 1.5F;
+  if (largeFactor > 1.5F)
   {
-    largefactor = 1.5f;
+    largeFactor = 1.5F;
   }
-  return largefactor;
+  return largeFactor;
 }
 
-void GoomDotsFx::GoomDotsImpl::dotFilter(PixelBuffer& prevBuff,
-                                         PixelBuffer& currentBuff,
-                                         const std::vector<Pixel>& colors,
+void GoomDotsFx::GoomDotsImpl::dotFilter(PixelBuffer& currentBuff,
+                                         const Pixel& color,
                                          const float t1,
                                          const float t2,
                                          const float t3,
                                          const float t4,
-                                         const float brightness,
                                          const uint32_t cycle,
                                          const uint32_t radius)
 {
@@ -392,29 +393,9 @@ void GoomDotsFx::GoomDotsImpl::dotFilter(PixelBuffer& prevBuff,
     return;
   }
 
-  const auto xmid = x0 + static_cast<int>(radius);
-  const auto ymid = y0 + static_cast<int>(radius);
-  if (useSingleBufferOnly)
-  {
-    draw.filledCircle(currentBuff, xmid, ymid, static_cast<int>(radius), colors);
-    draw.setPixelRGB(currentBuff, static_cast<uint32_t>(xmid), static_cast<uint32_t>(ymid),
-                     middleColor);
-  }
-  else
-  {
-    std::vector<PixelBuffer*> buffs{&currentBuff, &prevBuff};
-    std::vector<Pixel> prevBuffColors(colors.size());
-    for (size_t i = 0; i < colors.size(); i++)
-    {
-      prevBuffColors[i] =
-          gammaCorrect.getCorrection(brightness, getColorAverage(middleColor, colors[i]));
-    }
-    const std::vector<std::vector<Pixel>> colorSets{colors, prevBuffColors};
-    draw.filledCircle(buffs, xmid, ymid, static_cast<int>(radius), colorSets);
-    const std::vector<Pixel> centreColors{middleColor,
-                                          gammaCorrect.getCorrection(brightness, middleColor)};
-    draw.setPixelRGB(buffs, static_cast<uint32_t>(xmid), static_cast<uint32_t>(ymid), centreColors);
-  }
+  const auto xMid = x0 + static_cast<int32_t>(radius);
+  const auto yMid = y0 + static_cast<int32_t>(radius);
+  draw.filledCircle(currentBuff, xMid, yMid, static_cast<int>(radius), color);
 }
 
 } // namespace goom
