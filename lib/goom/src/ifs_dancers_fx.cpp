@@ -1055,60 +1055,6 @@ void LowDensityBlurrer::doBlur(std::vector<IfsPoint>& lowDensityPoints,
   }
 }
 
-enum class ModType
-{
-  MOD_MER,
-  MOD_FEU,
-  MOD_MERVER
-};
-
-constexpr size_t numChannels = 4;
-using Int32ChannelArray = std::array<int32_t, numChannels>;
-
-static_assert(numChannels == 4);
-
-inline Pixel getPixel(const Int32ChannelArray& col)
-{
-  return Pixel{{.r = static_cast<uint8_t>(col[ROUGE]),
-                .g = static_cast<uint8_t>(col[VERT]),
-                .b = static_cast<uint8_t>(col[BLEU]),
-                .a = static_cast<uint8_t>(col[ALPHA])}};
-}
-
-inline Int32ChannelArray getChannelArray(const Pixel& p)
-{
-  Int32ChannelArray a;
-
-  a[ROUGE] = p.r();
-  a[VERT] = p.g();
-  a[BLEU] = p.b();
-  a[ALPHA] = p.a();
-
-  return a;
-}
-
-struct IfsUpdateData
-{
-  Pixel couleur{0xc0c0c0c0};
-  Int32ChannelArray v = {2, 4, 3, 2};
-  Int32ChannelArray col = {2, 4, 3, 2};
-  int justChanged = 0;
-  ModType mode = ModType::MOD_MERVER;
-  int cycle = 0;
-
-  bool operator==(const IfsUpdateData& u) const
-  {
-    return couleur.rgba() == u.couleur.rgba() && v == u.v && col == u.col &&
-           justChanged == u.justChanged && mode == u.mode && cycle == u.cycle;
-  }
-
-  template<class Archive>
-  void serialize(Archive& ar)
-  {
-    ar(couleur, v, col, justChanged, mode, cycle);
-  }
-};
-
 class IfsDancersFx::IfsDancersFxImpl
 {
 public:
@@ -1151,14 +1097,13 @@ private:
 
   std::unique_ptr<Fractal> fractal = nullptr;
 
+  int cycle = 0;
   bool initialized = false;
   int ifs_incr = 1; // dessiner l'ifs (0 = non: > = increment)
   int decay_ifs = 0; // disparition de l'ifs
   int recay_ifs = 0; // dedisparition de l'ifs
   void updateDecay();
   void updateDecayAndRecay();
-
-  IfsUpdateData updateData{};
 
   IfsStats stats{};
 
@@ -1173,20 +1118,14 @@ private:
   void updatePixelBuffers(PixelBuffer& currentBuff,
                           PixelBuffer& nextBuff,
                           const std::vector<IfsPoint>& points,
-                          uint32_t maxHitCount,
-                          const Pixel& color);
+                          uint32_t maxHitCount);
   void drawPixel(PixelBuffer& currentBuff,
                  PixelBuffer& nextBuff,
                  const IfsPoint&,
-                 const Pixel& ifsColor,
                  float tMix);
   void setLowDensityColors(std::vector<IfsPoint>& points,
                            uint32_t maxLowDensityCount,
                            std::vector<PixelBuffer*>& buffs) const;
-  void updateColors();
-  void updateColorsModeMer();
-  void updateColorsModeMerver();
-  void updateColorsModeFeu();
   [[nodiscard]] int getIfsIncr() const;
 
   friend class cereal::access;
@@ -1307,7 +1246,7 @@ void IfsDancersFx::IfsDancersFxImpl::save(Archive& ar) const
 {
   ar(CEREAL_NVP(goomInfo), CEREAL_NVP(fractal), CEREAL_NVP(draw), CEREAL_NVP(colorizer),
      CEREAL_NVP(allowOverexposed), CEREAL_NVP(countSinceOverexposed), CEREAL_NVP(ifs_incr),
-     CEREAL_NVP(decay_ifs), CEREAL_NVP(recay_ifs), CEREAL_NVP(updateData));
+     CEREAL_NVP(decay_ifs), CEREAL_NVP(recay_ifs));
 }
 
 template<class Archive>
@@ -1315,7 +1254,7 @@ void IfsDancersFx::IfsDancersFxImpl::load(Archive& ar)
 {
   ar(CEREAL_NVP(goomInfo), CEREAL_NVP(fractal), CEREAL_NVP(draw), CEREAL_NVP(colorizer),
      CEREAL_NVP(allowOverexposed), CEREAL_NVP(countSinceOverexposed), CEREAL_NVP(ifs_incr),
-     CEREAL_NVP(decay_ifs), CEREAL_NVP(recay_ifs), CEREAL_NVP(updateData));
+     CEREAL_NVP(decay_ifs), CEREAL_NVP(recay_ifs));
 }
 
 bool IfsDancersFx::IfsDancersFxImpl::operator==(const IfsDancersFxImpl& i) const
@@ -1333,7 +1272,7 @@ bool IfsDancersFx::IfsDancersFxImpl::operator==(const IfsDancersFxImpl& i) const
          *fractal == *i.fractal && draw == i.draw && colorizer == i.colorizer &&
          allowOverexposed == i.allowOverexposed &&
          countSinceOverexposed == i.countSinceOverexposed && ifs_incr == i.ifs_incr &&
-         decay_ifs == i.decay_ifs && recay_ifs == i.recay_ifs && updateData == i.updateData;
+         decay_ifs == i.decay_ifs && recay_ifs == i.recay_ifs;
 }
 
 IfsDancersFx::IfsDancersFxImpl::IfsDancersFxImpl(std::shared_ptr<const PluginInfo> info) noexcept
@@ -1400,7 +1339,6 @@ void IfsDancersFx::IfsDancersFxImpl::renew()
 void IfsDancersFx::IfsDancersFxImpl::changeColormaps()
 {
   colorizer.changeColorMaps();
-  updateData.couleur = ColorMap::getRandomColor(colorizer.getColorMaps().getRandomColorMap());
 }
 
 void IfsDancersFx::IfsDancersFxImpl::applyNoDraw()
@@ -1422,10 +1360,10 @@ void IfsDancersFx::IfsDancersFxImpl::updateIfs(PixelBuffer& currentBuff, PixelBu
 
   // TODO: trouver meilleur soluce pour increment (mettre le code de gestion de l'ifs dans ce fichier)
   //       find the best solution for increment (put the management code of the ifs in this file)
-  updateData.cycle++;
-  if (updateData.cycle >= cycleLength)
+  cycle++;
+  if (cycle >= cycleLength)
   {
-    updateData.cycle = 0;
+    cycle = 0;
     stats.updateCycleChanges();
 
     if (probabilityOfMInN(15, 20))
@@ -1440,23 +1378,14 @@ void IfsDancersFx::IfsDancersFxImpl::updateIfs(PixelBuffer& currentBuff, PixelBu
     }
 
     fractal->resetCurrentIFSFunc();
+
+    renew();
   }
 
   const std::vector<IfsPoint>& points = fractal->drawIfs();
   const uint32_t maxHitCount = fractal->getMaxHitCount();
 
-  const int cycle10 = (updateData.cycle < 40) ? updateData.cycle / 10 : 7 - updateData.cycle / 10;
-  const Pixel color = getRightShiftedChannels(updateData.couleur, cycle10);
-
-  updatePixelBuffers(currentBuff, nextBuff, points, maxHitCount, color);
-
-  updateData.justChanged--;
-
-  updateData.col = getChannelArray(updateData.couleur);
-
-  updateColors();
-
-  updateData.couleur = getPixel(updateData.col);
+  updatePixelBuffers(currentBuff, nextBuff, points, maxHitCount);
 
   logDebug("updateData.col[ALPHA] = {:x}", updateData.col[ALPHA]);
   logDebug("updateData.col[BLEU] = {:x}", updateData.col[BLEU]);
@@ -1525,7 +1454,6 @@ inline int IfsDancersFx::IfsDancersFxImpl::getIfsIncr() const
 inline void IfsDancersFx::IfsDancersFxImpl::drawPixel(PixelBuffer& currentBuff,
                                                       PixelBuffer& nextBuff,
                                                       const IfsPoint& point,
-                                                      const Pixel& ifsColor,
                                                       const float tMix)
 {
   const float fx = point.x / static_cast<float>(goomInfo->getScreenInfo().width);
@@ -1566,8 +1494,7 @@ void IfsDancersFx::IfsDancersFxImpl::updateAllowOverexposed()
 void IfsDancersFx::IfsDancersFxImpl::updatePixelBuffers(PixelBuffer& currentBuff,
                                                         PixelBuffer& nextBuff,
                                                         const std::vector<IfsPoint>& points,
-                                                        const uint32_t maxHitCount,
-                                                        const Pixel& color)
+                                                        const uint32_t maxHitCount)
 {
   colorizer.setMaxHitCount(maxHitCount);
   bool doneColorChange = colorizer.getColorMode() != IfsDancersFx::ColorMode::megaMapColorChange &&
@@ -1597,7 +1524,7 @@ void IfsDancersFx::IfsDancersFxImpl::updatePixelBuffers(PixelBuffer& currentBuff
     }
 
     numSelectedPoints++;
-    drawPixel(currentBuff, nextBuff, points[i], color, t);
+    drawPixel(currentBuff, nextBuff, points[i], t);
 
     if (points[i].count <= lowDensityCount)
     {
@@ -1681,227 +1608,6 @@ void IfsDancersFx::IfsDancersFxImpl::updateLowDensityThreshold()
     blurWidth = 3;
   }
   blurrer.setWidth(blurWidth);
-}
-
-void IfsDancersFx::IfsDancersFxImpl::updateColors()
-{
-  if (updateData.mode == ModType::MOD_MER)
-  {
-    updateColorsModeMer();
-  }
-  else if (updateData.mode == ModType::MOD_MERVER)
-  {
-    updateColorsModeMerver();
-  }
-  else if (updateData.mode == ModType::MOD_FEU)
-  {
-    updateColorsModeFeu();
-  }
-}
-
-void IfsDancersFx::IfsDancersFxImpl::updateColorsModeMer()
-{
-  updateData.col[BLEU] += updateData.v[BLEU];
-  if (updateData.col[BLEU] > channel_limits<int32_t>::max())
-  {
-    updateData.col[BLEU] = channel_limits<int32_t>::max();
-    updateData.v[BLEU] = -getRandInRange(1, 5);
-  }
-  if (updateData.col[BLEU] < 32)
-  {
-    updateData.col[BLEU] = 32;
-    updateData.v[BLEU] = getRandInRange(1, 5);
-  }
-
-  updateData.col[VERT] += updateData.v[VERT];
-  if (updateData.col[VERT] > 200)
-  {
-    updateData.col[VERT] = 200;
-    updateData.v[VERT] = -getRandInRange(2, 5);
-  }
-  if (updateData.col[VERT] > updateData.col[BLEU])
-  {
-    updateData.col[VERT] = updateData.col[BLEU];
-    updateData.v[VERT] = updateData.v[BLEU];
-  }
-  if (updateData.col[VERT] < 32)
-  {
-    updateData.col[VERT] = 32;
-    updateData.v[VERT] = getRandInRange(2, 5);
-  }
-
-  updateData.col[ROUGE] += updateData.v[ROUGE];
-  if (updateData.col[ROUGE] > 64)
-  {
-    updateData.col[ROUGE] = 64;
-    updateData.v[ROUGE] = -getRandInRange(1, 5);
-  }
-  if (updateData.col[ROUGE] < 0)
-  {
-    updateData.col[ROUGE] = 0;
-    updateData.v[ROUGE] = getRandInRange(1, 5);
-  }
-
-  updateData.col[ALPHA] += updateData.v[ALPHA];
-  if (updateData.col[ALPHA] > 0)
-  {
-    updateData.col[ALPHA] = 0;
-    updateData.v[ALPHA] = -getRandInRange(1, 5);
-  }
-  if (updateData.col[ALPHA] < 0)
-  {
-    updateData.col[ALPHA] = 0;
-    updateData.v[ALPHA] = getRandInRange(1, 5);
-  }
-
-  if (((updateData.col[VERT] > 32) && (updateData.col[ROUGE] < updateData.col[VERT] + 40) &&
-       (updateData.col[VERT] < updateData.col[ROUGE] + 20) && (updateData.col[BLEU] < 64) &&
-       probabilityOfMInN(1, 20)) &&
-      (updateData.justChanged < 0))
-  {
-    updateData.mode = probabilityOfMInN(2, 3) ? ModType::MOD_FEU : ModType::MOD_MERVER;
-    updateData.justChanged = maxCountBeforeNextUpdate;
-    renew();
-  }
-}
-
-void IfsDancersFx::IfsDancersFxImpl::updateColorsModeMerver()
-{
-  updateData.col[BLEU] += updateData.v[BLEU];
-  if (updateData.col[BLEU] > 128)
-  {
-    updateData.col[BLEU] = 128;
-    updateData.v[BLEU] = -getRandInRange(1, 5);
-  }
-  if (updateData.col[BLEU] < 16)
-  {
-    updateData.col[BLEU] = 16;
-    updateData.v[BLEU] = getRandInRange(1, 5);
-  }
-
-  updateData.col[VERT] += updateData.v[VERT];
-  if (updateData.col[VERT] > 200)
-  {
-    updateData.col[VERT] = 200;
-    updateData.v[VERT] = -getRandInRange(2, 5);
-  }
-  if (updateData.col[VERT] > updateData.col[ALPHA])
-  {
-    updateData.col[VERT] = updateData.col[ALPHA];
-    updateData.v[VERT] = updateData.v[ALPHA];
-  }
-  if (updateData.col[VERT] < 32)
-  {
-    updateData.col[VERT] = 32;
-    updateData.v[VERT] = getRandInRange(2, 5);
-  }
-
-  updateData.col[ROUGE] += updateData.v[ROUGE];
-  if (updateData.col[ROUGE] > 128)
-  {
-    updateData.col[ROUGE] = 128;
-    updateData.v[ROUGE] = -getRandInRange(1, 5);
-  }
-  if (updateData.col[ROUGE] < 0)
-  {
-    updateData.col[ROUGE] = 0;
-    updateData.v[ROUGE] = getRandInRange(1, 5);
-  }
-
-  updateData.col[ALPHA] += updateData.v[ALPHA];
-  if (updateData.col[ALPHA] > channel_limits<int32_t>::max())
-  {
-    updateData.col[ALPHA] = channel_limits<int32_t>::max();
-    updateData.v[ALPHA] = -getRandInRange(1, 5);
-  }
-  if (updateData.col[ALPHA] < 0)
-  {
-    updateData.col[ALPHA] = 0;
-    updateData.v[ALPHA] = getRandInRange(1, 5);
-  }
-
-  if (((updateData.col[VERT] > 32) && (updateData.col[ROUGE] < updateData.col[VERT] + 40) &&
-       (updateData.col[VERT] < updateData.col[ROUGE] + 20) && (updateData.col[BLEU] < 64) &&
-       probabilityOfMInN(1, 20)) &&
-      (updateData.justChanged < 0))
-  {
-    updateData.mode = probabilityOfMInN(2, 3) ? ModType::MOD_FEU : ModType::MOD_MER;
-    updateData.justChanged = maxCountBeforeNextUpdate;
-    renew();
-  }
-}
-
-void IfsDancersFx::IfsDancersFxImpl::updateColorsModeFeu()
-{
-  updateData.col[BLEU] += updateData.v[BLEU];
-  if (updateData.col[BLEU] > 64)
-  {
-    updateData.col[BLEU] = 64;
-    updateData.v[BLEU] = -getRandInRange(1, 5);
-  }
-  if (updateData.col[BLEU] < 0)
-  {
-    updateData.col[BLEU] = 0;
-    updateData.v[BLEU] = getRandInRange(1, 5);
-  }
-
-  updateData.col[VERT] += updateData.v[VERT];
-  if (updateData.col[VERT] > 200)
-  {
-    updateData.col[VERT] = 200;
-    updateData.v[VERT] = -getRandInRange(2, 5);
-  }
-  if (updateData.col[VERT] > updateData.col[ROUGE] + 20)
-  {
-    updateData.col[VERT] = updateData.col[ROUGE] + 20;
-    updateData.v[VERT] = -getRandInRange(2, 5);
-    updateData.v[ROUGE] = getRandInRange(1, 5);
-    updateData.v[BLEU] = getRandInRange(1, 5);
-  }
-  if (updateData.col[VERT] < 0)
-  {
-    updateData.col[VERT] = 0;
-    updateData.v[VERT] = getRandInRange(2, 5);
-  }
-
-  updateData.col[ROUGE] += updateData.v[ROUGE];
-  if (updateData.col[ROUGE] > channel_limits<int32_t>::max())
-  {
-    updateData.col[ROUGE] = channel_limits<int32_t>::max();
-    updateData.v[ROUGE] = -getRandInRange(1, 5);
-  }
-  if (updateData.col[ROUGE] > updateData.col[VERT] + 40)
-  {
-    updateData.col[ROUGE] = updateData.col[VERT] + 40;
-    updateData.v[ROUGE] = -getRandInRange(1, 5);
-  }
-  if (updateData.col[ROUGE] < 0)
-  {
-    updateData.col[ROUGE] = 0;
-    updateData.v[ROUGE] = getRandInRange(1, 5);
-  }
-
-  updateData.col[ALPHA] += updateData.v[ALPHA];
-  if (updateData.col[ALPHA] > 0)
-  {
-    updateData.col[ALPHA] = 0;
-    updateData.v[ALPHA] = -getRandInRange(1, 5);
-  }
-  if (updateData.col[ALPHA] < 0)
-  {
-    updateData.col[ALPHA] = 0;
-    updateData.v[ALPHA] = getRandInRange(1, 5);
-  }
-
-  if (((updateData.col[ROUGE] < 64) && (updateData.col[VERT] > 32) &&
-       (updateData.col[VERT] < updateData.col[BLEU]) && (updateData.col[BLEU] > 32) &&
-       probabilityOfMInN(1, 20)) &&
-      (updateData.justChanged < 0))
-  {
-    updateData.mode = probabilityOfMInN(1, 2) ? ModType::MOD_MER : ModType::MOD_MERVER;
-    updateData.justChanged = maxCountBeforeNextUpdate;
-    renew();
-  }
 }
 
 } // namespace goom
