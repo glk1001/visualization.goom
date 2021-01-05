@@ -23,8 +23,8 @@
 #include <utility>
 #include <vector>
 
-CEREAL_REGISTER_TYPE(goom::FlyingStarsFx);
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::VisualFx, goom::FlyingStarsFx);
+CEREAL_REGISTER_TYPE(goom::FlyingStarsFx)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::VisualFx, goom::FlyingStarsFx)
 
 namespace goom
 {
@@ -242,14 +242,14 @@ private:
       {ColorMapGroup::misc, 10},
   }}};
   const WeightedColorMaps lowColorMaps{Weights<ColorMapGroup>{{
-      {ColorMapGroup::perceptuallyUniformSequential, 0},
+      {ColorMapGroup::perceptuallyUniformSequential, 10},
       {ColorMapGroup::sequential, 0},
-      {ColorMapGroup::sequential2, 0},
+      {ColorMapGroup::sequential2, 10},
       {ColorMapGroup::cyclic, 5},
       {ColorMapGroup::diverging, 10},
       {ColorMapGroup::diverging_black, 20},
       {ColorMapGroup::qualitative, 1},
-      {ColorMapGroup::misc, 1},
+      {ColorMapGroup::misc, 10},
   }}};
 
   StarModes fx_mode = StarModes::fireworks;
@@ -278,7 +278,7 @@ private:
                 float radius,
                 float vage,
                 float gravity);
-  [[nodiscard]] uint32_t getBombAngle() const;
+  [[nodiscard]] uint32_t getBombAngle(float x, float y) const;
 
   friend class cereal::access;
   template<class Archive>
@@ -433,7 +433,7 @@ void FlyingStarsFx::FlyingStarsImpl::updateBuffers(PixelBuffer& currentBuff, Pix
       fx_mode = newVal >= numFx ? StarModes::noFx : static_cast<StarModes>(newVal);
     }
   }
-  //fx_mode = StarModes::rain;
+  fx_mode = StarModes::rain;
 
   // update particules
   stats.updateStars();
@@ -464,12 +464,12 @@ void FlyingStarsFx::FlyingStarsImpl::updateBuffers(PixelBuffer& currentBuff, Pix
     logInfo("star.xVelocity = {}, star.yVelocity = {}", star.xVelocity, star.yVelocity);
     int32_t x1 = x0;
     int32_t y1 = y0;
-    constexpr size_t numParts = 4;
+    const size_t numParts = 2 + static_cast<size_t>(std::lround((1.0F - tAge) * 2.0F));
     for (size_t j = 1; j <= numParts; j++)
     {
       const float t = static_cast<float>(j - 1) / static_cast<float>(numParts - 1);
-      const Pixel mixedColor = gammaCorrect.getCorrection(
-          2.0F * t * (1.0F - tAge), ColorMap::colorMix(color, lowColor, tAge));
+      const Pixel mixedColor = gammaCorrect.getCorrection(2.0F * t * (1.0F - tAge), color);
+      //      2.0F * t * (1.0F - tAge), ColorMap::colorMix(color, lowColor, tAge));
       //      const int x2 = x0 - static_cast<int>(0.5 * stars[i].xVelocity * j * stars[i].xVelocity * j);
       //      const int y2 = y0 - static_cast<int>(0.5 * stars[i].yVelocity * j * stars[i].yVelocity * j);
       const int32_t x2 =
@@ -651,7 +651,7 @@ void FlyingStarsFx::FlyingStarsImpl::addABomb(const ColorMap& colorMap,
   stars[i].currentLowColorMap = &lowColorMap;
 
   const float ro = radius * getRandInRange(0.01F, 2.0F);
-  const uint32_t theta = getBombAngle();
+  const uint32_t theta = getBombAngle(stars[i].x, stars[i].y);
 
   stars[i].xVelocity = ro * cos256[theta];
   stars[i].yVelocity = -0.2F + ro * sin256[theta];
@@ -667,10 +667,13 @@ void FlyingStarsFx::FlyingStarsImpl::addABomb(const ColorMap& colorMap,
   stars[i].vage = vage;
 }
 
-uint32_t FlyingStarsFx::FlyingStarsImpl::getBombAngle() const
+uint32_t FlyingStarsFx::FlyingStarsImpl::getBombAngle(const float x, const float y) const
 {
   float minAngle;
   float maxAngle;
+
+  const float xFactor = x / static_cast<float>(goomInfo->getScreenInfo().width - 1);
+  const float yFactor = y / static_cast<float>(goomInfo->getScreenInfo().height - 1);
 
   switch (fx_mode)
   {
@@ -681,9 +684,13 @@ uint32_t FlyingStarsFx::FlyingStarsImpl::getBombAngle() const
       maxAngle = m_two_pi;
       break;
     case StarModes::rain:
-      minAngle = 1 * m_pi / 3;
-      maxAngle = 2 * m_pi / 3;
+    {
+      constexpr float minRainAngle = 0.1;
+      constexpr float maxRainAngle = m_pi - 0.1;
+      minAngle = std::lerp(minRainAngle, m_half_pi - 0.1F, 1.0F - xFactor);
+      maxAngle = std::lerp(m_half_pi + 0.1F, maxRainAngle, xFactor);
       break;
+    }
     case StarModes::fountain:
       minAngle = 4 * m_pi / 3;
       maxAngle = 5 * m_pi / 3;
