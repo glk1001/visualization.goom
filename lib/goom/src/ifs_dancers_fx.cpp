@@ -67,8 +67,8 @@
 #include <utility>
 #include <vector>
 
-CEREAL_REGISTER_TYPE(goom::IfsDancersFx);
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::VisualFx, goom::IfsDancersFx);
+CEREAL_REGISTER_TYPE(goom::IfsDancersFx)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::VisualFx, goom::IfsDancersFx)
 
 namespace goom
 {
@@ -227,7 +227,7 @@ struct IfsPoint
   void serialize(Archive& ar)
   {
     ar(x, y);
-  };
+  }
 };
 
 using Dbl = float;
@@ -306,7 +306,7 @@ struct Similitude
   void serialize(Archive& ar)
   {
     ar(dbl_cx, dbl_cy, dbl_r1, dbl_r2, A1, A2, cosA1, sinA1, cosA2, sinA2, cx, cy, r1, r2, color);
-  };
+  }
 };
 
 class FractalHits
@@ -549,7 +549,7 @@ template<class Archive>
 void Fractal::serialize(Archive& ar)
 {
   ar(numSimi, components, depth, count, speed, lx, ly, r1Mean, r2Mean, dr1Mean, dr2Mean);
-};
+}
 
 const std::vector<IfsPoint>& Fractal::drawIfs()
 {
@@ -832,7 +832,7 @@ void Colorizer::serialize(Archive& ar)
   ar(cereal::make_nvp("prevMixerMap2", prevMixerMapName2));
   mixerMap2 = &colorMaps.getColorMap(mixerMapName2);
   prevMixerMap2 = &colorMaps.getColorMap(prevMixerMapName2);
-};
+}
 
 inline void Colorizer::setMaxHitCount(const uint32_t val)
 {
@@ -1106,7 +1106,7 @@ struct IfsUpdateData
   void serialize(Archive& ar)
   {
     ar(couleur, v, col, justChanged, mode, cycle);
-  };
+  }
 };
 
 class IfsDancersFx::IfsDancersFxImpl

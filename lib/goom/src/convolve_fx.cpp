@@ -14,8 +14,8 @@
 #include <string>
 #include <utility>
 
-CEREAL_REGISTER_TYPE(goom::ConvolveFx);
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::VisualFx, goom::ConvolveFx);
+CEREAL_REGISTER_TYPE(goom::ConvolveFx)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::VisualFx, goom::ConvolveFx)
 
 namespace goom
 {
@@ -38,7 +38,7 @@ public:
 
 private:
   Parallel* parallel = nullptr;
-  ;
+
   std::shared_ptr<const PluginInfo> goomInfo{};
   float screenBrightness = 100;
   float flashIntensity = 30;

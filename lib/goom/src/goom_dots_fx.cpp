@@ -18,8 +18,8 @@
 #include <string>
 #include <vector>
 
-CEREAL_REGISTER_TYPE(goom::GoomDotsFx);
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::VisualFx, goom::GoomDotsFx);
+CEREAL_REGISTER_TYPE(goom::GoomDotsFx)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::VisualFx, goom::GoomDotsFx)
 
 namespace goom
 {

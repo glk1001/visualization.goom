@@ -253,7 +253,7 @@ void TentacleColorMapColorizer::load(Archive& ar)
 
 // NOTE: Cereal is not happy with these calls inside the 'goom' namespace.
 //   But they work OK here.
-CEREAL_REGISTER_TYPE(goom::TentacleColorMapColorizer);
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::TentacleColorizer, goom::TentacleColorMapColorizer);
+CEREAL_REGISTER_TYPE(goom::TentacleColorMapColorizer)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::TentacleColorizer, goom::TentacleColorMapColorizer)
 
 #endif

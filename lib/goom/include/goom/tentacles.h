@@ -320,11 +320,12 @@ inline double Tentacle2D::getYMax() const
 inline bool Tentacle2D::getDoDamping() const
 {
   return doDamping;
-};
+}
+
 inline void Tentacle2D::setDoDamping(const bool val)
 {
   doDamping = val;
-};
+}
 
 inline double Tentacle2D::getDamping(const double x)
 {

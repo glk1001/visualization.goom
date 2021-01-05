@@ -41,8 +41,8 @@
 #include <string>
 #include <vector>
 
-CEREAL_REGISTER_TYPE(goom::ZoomFilterFx);
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::VisualFx, goom::ZoomFilterFx);
+CEREAL_REGISTER_TYPE(goom::ZoomFilterFx)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::VisualFx, goom::ZoomFilterFx)
 
 static constexpr bool serializeBuffers = false;
 

@@ -24,7 +24,7 @@ public:
     void serialize(Archive& ar)
     {
       ar(CEREAL_NVP(width), CEREAL_NVP(height), CEREAL_NVP(size));
-    };
+    }
   };
 
   PluginInfo() noexcept;
@@ -41,7 +41,7 @@ public:
   void serialize(Archive& ar)
   {
     ar(CEREAL_NVP(screen), CEREAL_NVP(soundInfo));
-  };
+  }
 
 protected:
   virtual void processSoundSample(const AudioSamples&);
