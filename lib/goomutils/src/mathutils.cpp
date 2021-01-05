@@ -11,24 +11,22 @@
 
 // NOTE: Cereal is not happy with these calls inside the 'goom' namespace.
 //   But they work OK here.
-CEREAL_REGISTER_TYPE(goom::utils::SineWaveMultiplier);
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::utils::SequenceFunction,
-                                     goom::utils::SineWaveMultiplier);
+CEREAL_REGISTER_TYPE(goom::utils::SineWaveMultiplier)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::utils::SequenceFunction, goom::utils::SineWaveMultiplier)
 
-CEREAL_REGISTER_TYPE(goom::utils::FlatDampingFunction);
+CEREAL_REGISTER_TYPE(goom::utils::FlatDampingFunction)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::utils::DampingFunction, goom::utils::FlatDampingFunction)
+
+CEREAL_REGISTER_TYPE(goom::utils::ExpDampingFunction)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::utils::DampingFunction, goom::utils::ExpDampingFunction)
+
+CEREAL_REGISTER_TYPE(goom::utils::LinearDampingFunction)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::utils::DampingFunction,
-                                     goom::utils::FlatDampingFunction);
+                                     goom::utils::LinearDampingFunction)
 
-CEREAL_REGISTER_TYPE(goom::utils::ExpDampingFunction);
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::utils::DampingFunction, goom::utils::ExpDampingFunction);
-
-CEREAL_REGISTER_TYPE(goom::utils::LinearDampingFunction);
+CEREAL_REGISTER_TYPE(goom::utils::PiecewiseDampingFunction)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::utils::DampingFunction,
-                                     goom::utils::LinearDampingFunction);
-
-CEREAL_REGISTER_TYPE(goom::utils::PiecewiseDampingFunction);
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::utils::DampingFunction,
-                                     goom::utils::PiecewiseDampingFunction);
+                                     goom::utils::PiecewiseDampingFunction)
 
 namespace goom::utils
 {

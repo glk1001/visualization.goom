@@ -235,22 +235,23 @@ private:
       {ColorMapGroup::perceptuallyUniformSequential, 10},
       {ColorMapGroup::sequential, 10},
       {ColorMapGroup::sequential2, 10},
-      {ColorMapGroup::cyclic, 0},
-      {ColorMapGroup::diverging, 0},
-      {ColorMapGroup::diverging_black, 0},
+      {ColorMapGroup::cyclic, 10},
+      {ColorMapGroup::diverging, 10},
+      {ColorMapGroup::diverging_black, 10},
       {ColorMapGroup::qualitative, 10},
       {ColorMapGroup::misc, 10},
   }}};
   const WeightedColorMaps lowColorMaps{Weights<ColorMapGroup>{{
       {ColorMapGroup::perceptuallyUniformSequential, 10},
-      {ColorMapGroup::sequential, 0},
+      {ColorMapGroup::sequential, 10},
       {ColorMapGroup::sequential2, 10},
-      {ColorMapGroup::cyclic, 5},
+      {ColorMapGroup::cyclic, 10},
       {ColorMapGroup::diverging, 10},
-      {ColorMapGroup::diverging_black, 20},
-      {ColorMapGroup::qualitative, 1},
+      {ColorMapGroup::diverging_black, 10},
+      {ColorMapGroup::qualitative, 10},
       {ColorMapGroup::misc, 10},
   }}};
+  const ColorMap* dominantColormap{};
 
   StarModes fx_mode = StarModes::fireworks;
   static constexpr size_t maxStarsLimit = 1024;
@@ -395,6 +396,7 @@ FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl() noexcept = default;
 
 FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl(std::shared_ptr<const PluginInfo> info) noexcept
   : goomInfo{std::move(info)},
+    dominantColormap{&colorMaps.getRandomColorMap()},
     draw{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height}
 {
   stars.reserve(maxStarsLimit);
@@ -428,12 +430,14 @@ void FlyingStarsFx::FlyingStarsImpl::updateBuffers(PixelBuffer& currentBuff, Pix
     soundEventOccurred();
     if (getNRand(20) == 1)
     {
+      dominantColormap = &colorMaps.getRandomColorMap();
+
       // Give a slight weight towards noFx mode by using numFX + 2.
       const uint32_t newVal = getNRand(numFx + 2);
       fx_mode = newVal >= numFx ? StarModes::noFx : static_cast<StarModes>(newVal);
     }
   }
-  fx_mode = StarModes::rain;
+  // fx_mode = StarModes::rain;
 
   // update particules
   stats.updateStars();
@@ -467,21 +471,17 @@ void FlyingStarsFx::FlyingStarsImpl::updateBuffers(PixelBuffer& currentBuff, Pix
     const size_t numParts = 2 + static_cast<size_t>(std::lround((1.0F - tAge) * 2.0F));
     for (size_t j = 1; j <= numParts; j++)
     {
-      const float t = static_cast<float>(j - 1) / static_cast<float>(numParts - 1);
-      const Pixel mixedColor = gammaCorrect.getCorrection(2.0F * t * (1.0F - tAge), color);
-      //      2.0F * t * (1.0F - tAge), ColorMap::colorMix(color, lowColor, tAge));
-      //      const int x2 = x0 - static_cast<int>(0.5 * stars[i].xVelocity * j * stars[i].xVelocity * j);
-      //      const int y2 = y0 - static_cast<int>(0.5 * stars[i].yVelocity * j * stars[i].yVelocity * j);
+      const float brightness =
+          2.0F * (1.0F - tAge) * static_cast<float>(j - 1) / static_cast<float>(numParts - 1);
+      const float tMix = getRandInRange(0.4F, 0.8F);
+      const Pixel mixedColor = gammaCorrect.getCorrection(
+          brightness, ColorMap::colorMix(color, dominantColormap->getColor(tAge), tMix));
       const int32_t x2 =
           x0 - static_cast<int32_t>(0.5 * (1.0 + std::sin(flipSpeed * star.xVelocity * j)) *
                                     star.xVelocity * j);
       const int32_t y2 =
           y0 - static_cast<int32_t>(0.5 * (1.0 + std::cos(flipSpeed * star.yVelocity * j)) *
                                     star.yVelocity * j);
-      //const int x2 = x0 - static_cast<int>(star.xVelocity * j * j / numParts);
-      //const int y2 = y0 - static_cast<int>(star.yVelocity * j * j / numParts);
-      //const int x2 = x0 - static_cast<int>(star.xVelocity * j);
-      //const int y2 = y0 - static_cast<int>(star.yVelocity * j);
       const uint8_t thickness = 1;
       //          static_cast<uint8_t>(std::clamp(static_cast<uint32_t>(2 * t), 1u, 2u));
 
@@ -667,13 +667,13 @@ void FlyingStarsFx::FlyingStarsImpl::addABomb(const ColorMap& colorMap,
   stars[i].vage = vage;
 }
 
-uint32_t FlyingStarsFx::FlyingStarsImpl::getBombAngle(const float x, const float y) const
+uint32_t FlyingStarsFx::FlyingStarsImpl::getBombAngle(const float x,
+                                                      [[maybe_unused]] const float y) const
 {
   float minAngle;
   float maxAngle;
 
   const float xFactor = x / static_cast<float>(goomInfo->getScreenInfo().width - 1);
-  const float yFactor = y / static_cast<float>(goomInfo->getScreenInfo().height - 1);
 
   switch (fx_mode)
   {
