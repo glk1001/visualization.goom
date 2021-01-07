@@ -221,7 +221,7 @@ void LinesFx::LinesImpl::generateLine(const LineType lineType,
   {
     case LineType::hline:
     {
-      const float xStep = static_cast<float>(goomInfo->getScreenInfo().width) /
+      const float xStep = static_cast<float>(goomInfo->getScreenInfo().width - 1) /
                           static_cast<float>(AUDIO_SAMPLE_LEN - 1);
       float x = 0;
       for (auto& l : line)
@@ -236,7 +236,7 @@ void LinesFx::LinesImpl::generateLine(const LineType lineType,
     }
     case LineType::vline:
     {
-      const float yStep = static_cast<float>(goomInfo->getScreenInfo().height) /
+      const float yStep = static_cast<float>(goomInfo->getScreenInfo().height - 1) /
                           static_cast<float>(AUDIO_SAMPLE_LEN - 1);
       float y = 0;
       for (auto& l : line)
@@ -285,9 +285,9 @@ void LinesFx::LinesImpl::goomLinesMove()
 {
   for (uint32_t i = 0; i < AUDIO_SAMPLE_LEN; i++)
   {
-    points1[i].x = (points2[i].x + 39.0f * points1[i].x) / 40.0f;
-    points1[i].y = (points2[i].y + 39.0f * points1[i].y) / 40.0f;
-    points1[i].angle = (points2[i].angle + 39.0f * points1[i].angle) / 40.0f;
+    points1[i].x = (points2[i].x + 39.0F * points1[i].x) / 40.0F;
+    points1[i].y = (points2[i].y + 39.0F * points1[i].y) / 40.0F;
+    points1[i].angle = (points2[i].angle + 39.0F * points1[i].angle) / 40.0F;
   }
 
   auto* c1 = reinterpret_cast<unsigned char*>(&color);
@@ -302,18 +302,18 @@ void LinesFx::LinesImpl::goomLinesMove()
   }
 
   power += powinc;
-  if (power < 1.1f)
+  if (power < 1.1F)
   {
-    power = 1.1f;
-    powinc = static_cast<float>(getNRand(20) + 10) / 300.0f;
+    power = 1.1F;
+    powinc = static_cast<float>(getNRand(20) + 10) / 300.0F;
   }
-  if (power > 17.5f)
+  if (power > 17.5F)
   {
-    power = 17.5f;
-    powinc = -static_cast<float>(getNRand(20) + 10) / 300.0f;
+    power = 17.5F;
+    powinc = -static_cast<float>(getNRand(20) + 10) / 300.0F;
   }
 
-  amplitude = (99.0f * amplitude + amplitudeF) / 100.0f;
+  amplitude = (99.0F * amplitude + amplitudeF) / 100.0F;
 }
 
 void LinesFx::LinesImpl::switchLines(LineType newLineType,
@@ -437,7 +437,7 @@ void LinesFx::LinesImpl::drawLines(const std::vector<int16_t>& soundData,
   }
 
   // This factor gives height to the audio samples lines. This value seems pleasing.
-  constexpr float maxNormalizedPeak = 120000;
+  constexpr float maxNormalizedPeak = 120;
   const auto getNormalizedData = [&](const float data) {
     return maxNormalizedPeak *
            (data - static_cast<float>(goomInfo->getSoundInfo().getAllTimesMinVolume())) /
@@ -448,14 +448,14 @@ void LinesFx::LinesImpl::drawLines(const std::vector<int16_t>& soundData,
 
   const auto getNextPoint = [&](const LinePoint* pt, const float dataVal) {
     assert(goomInfo->getSoundInfo().getAllTimesMinVolume() <= dataVal);
-    const float cosa = std::cos(pt->angle) / 1000.0f;
-    const float sina = std::sin(pt->angle) / 1000.0f;
-    const float fdata = getNormalizedData(dataVal);
-    assert(fdata >= 0.0);
-    const int x = static_cast<int>(pt->x + cosa * amplitude * fdata);
-    const int y = static_cast<int>(pt->y + sina * amplitude * fdata);
+    const float cosAngle = std::cos(pt->angle);
+    const float sinAngle = std::sin(pt->angle);
+    const float normalizedDataVal = getNormalizedData(dataVal);
+    assert(normalizedDataVal >= 0.0);
+    const auto x = static_cast<int>(pt->x + amplitude * cosAngle * normalizedDataVal);
+    const auto y = static_cast<int>(pt->y + amplitude * sinAngle * normalizedDataVal);
     const float maxBrightness =
-        getRandInRange(1.0F, 3.0F) * fdata / static_cast<float>(maxNormalizedPeak);
+        getRandInRange(1.0F, 3.0F) * normalizedDataVal / static_cast<float>(maxNormalizedPeak);
     const float t = std::min(1.0F, maxBrightness);
     static GammaCorrection gammaCorrect{4.2, 0.1};
     const Pixel modColor =

@@ -2468,8 +2468,10 @@ void GoomControl::GoomControlImpl::displayLines(const AudioSamples& soundData)
 
   gmline2.setPower(gmline1.getPower());
 
-  gmline1.drawLines(soundData.getSample(0), imageBuffers.getP1(), imageBuffers.getP2());
-  gmline2.drawLines(soundData.getSample(1), imageBuffers.getP1(), imageBuffers.getP2());
+  const std::vector<int16_t>& audioSample = soundData.getSample(0);
+  gmline1.drawLines(audioSample, imageBuffers.getP1(), imageBuffers.getP2());
+  gmline2.drawLines(audioSample, imageBuffers.getP1(), imageBuffers.getP2());
+  //  gmline2.drawLines(soundData.getSample(1), imageBuffers.getP1(), imageBuffers.getP2());
 
   if (((cycle % 121) == 9) && goomEvent.happens(GoomEvent::changeGoomLine) &&
       ((goomData.lineMode == 0) || (goomData.lineMode == goomData.drawLinesDuration)))
