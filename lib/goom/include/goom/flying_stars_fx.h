@@ -16,6 +16,15 @@ class PixelBuffer;
 class FlyingStarsFx : public VisualFx
 {
 public:
+  enum class ColorMode
+  {
+    _null = -1,
+    mixColors,
+    reverseMixColors,
+    similarLowColors,
+    sineMixColors,
+  };
+
   FlyingStarsFx() noexcept;
   explicit FlyingStarsFx(const std::shared_ptr<const PluginInfo>&) noexcept;
   ~FlyingStarsFx() noexcept override;

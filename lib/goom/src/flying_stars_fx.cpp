@@ -194,6 +194,8 @@ struct Star
   float age = 0;
   float vage = 0;
   // TODO: Cereal for these pointers????
+  const ColorMap* dominantColormap{};
+  const ColorMap* dominantLowColormap{};
   const ColorMap* currentColorMap{};
   const ColorMap* currentLowColorMap{};
 
@@ -235,25 +237,28 @@ private:
       {ColorMapGroup::perceptuallyUniformSequential, 10},
       {ColorMapGroup::sequential, 10},
       {ColorMapGroup::sequential2, 10},
-      {ColorMapGroup::cyclic, 10},
-      {ColorMapGroup::diverging, 10},
-      {ColorMapGroup::diverging_black, 10},
+      {ColorMapGroup::cyclic, 0},
+      {ColorMapGroup::diverging, 0},
+      {ColorMapGroup::diverging_black, 0},
       {ColorMapGroup::qualitative, 10},
       {ColorMapGroup::misc, 10},
   }}};
   const WeightedColorMaps lowColorMaps{Weights<ColorMapGroup>{{
       {ColorMapGroup::perceptuallyUniformSequential, 10},
-      {ColorMapGroup::sequential, 10},
+      {ColorMapGroup::sequential, 0},
       {ColorMapGroup::sequential2, 10},
-      {ColorMapGroup::cyclic, 10},
+      {ColorMapGroup::cyclic, 5},
       {ColorMapGroup::diverging, 10},
-      {ColorMapGroup::diverging_black, 10},
-      {ColorMapGroup::qualitative, 10},
+      {ColorMapGroup::diverging_black, 20},
+      {ColorMapGroup::qualitative, 1},
       {ColorMapGroup::misc, 10},
   }}};
-  const ColorMap* dominantColormap{};
 
-  StarModes fx_mode = StarModes::fireworks;
+  ColorMode m_colorMode = ColorMode::mixColors;
+  uint32_t m_counter = 0;
+  static constexpr uint32_t maxCount = 100;
+
+  StarModes m_fxMode = StarModes::fireworks;
   static constexpr size_t maxStarsLimit = 1024;
   size_t maxStars = maxStarsLimit;
   std::vector<Star> stars{};
@@ -271,8 +276,12 @@ private:
 
   void soundEventOccurred();
   static void updateStar(Star*);
+  void changeColorMode();
+  [[nodiscard]] std::tuple<Pixel, Pixel> getMixedColors(const Star&, float t, float brightness);
   [[nodiscard]] bool isStarDead(const Star&) const;
-  void addABomb(const ColorMap& colorMap,
+  void addABomb(const ColorMap& dominantColormap,
+                const ColorMap& dominantLowColormap,
+                const ColorMap& colorMap,
                 const ColorMap& lowColorMap,
                 int32_t mx,
                 int32_t my,
@@ -361,7 +370,7 @@ template void FlyingStarsFx::FlyingStarsImpl::load<cereal::JSONInputArchive>(
 template<class Archive>
 void FlyingStarsFx::FlyingStarsImpl::save(Archive& ar) const
 {
-  ar(CEREAL_NVP(goomInfo), CEREAL_NVP(fx_mode), CEREAL_NVP(maxStars), CEREAL_NVP(stars),
+  ar(CEREAL_NVP(goomInfo), CEREAL_NVP(m_fxMode), CEREAL_NVP(maxStars), CEREAL_NVP(stars),
      CEREAL_NVP(maxStarAge), CEREAL_NVP(minAge), CEREAL_NVP(maxAge), CEREAL_NVP(buffSettings),
      CEREAL_NVP(useSingleBufferOnly), CEREAL_NVP(draw));
 }
@@ -369,7 +378,7 @@ void FlyingStarsFx::FlyingStarsImpl::save(Archive& ar) const
 template<class Archive>
 void FlyingStarsFx::FlyingStarsImpl::load(Archive& ar)
 {
-  ar(CEREAL_NVP(goomInfo), CEREAL_NVP(fx_mode), CEREAL_NVP(maxStars), CEREAL_NVP(stars),
+  ar(CEREAL_NVP(goomInfo), CEREAL_NVP(m_fxMode), CEREAL_NVP(maxStars), CEREAL_NVP(stars),
      CEREAL_NVP(maxStarAge), CEREAL_NVP(minAge), CEREAL_NVP(maxAge), CEREAL_NVP(buffSettings),
      CEREAL_NVP(useSingleBufferOnly), CEREAL_NVP(draw));
 }
@@ -386,7 +395,7 @@ bool FlyingStarsFx::FlyingStarsImpl::operator==(const FlyingStarsImpl& f) const
   }
 
   return ((goomInfo == nullptr && f.goomInfo == nullptr) || (*goomInfo == *f.goomInfo)) &&
-         fx_mode == f.fx_mode && maxStars == f.maxStars && stars == f.stars &&
+         m_fxMode == f.m_fxMode && maxStars == f.maxStars && stars == f.stars &&
          maxStarAge == f.maxStarAge && minAge == f.minAge && maxAge == f.maxAge &&
          buffSettings == f.buffSettings && useSingleBufferOnly == f.useSingleBufferOnly &&
          draw == f.draw;
@@ -396,7 +405,6 @@ FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl() noexcept = default;
 
 FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl(std::shared_ptr<const PluginInfo> info) noexcept
   : goomInfo{std::move(info)},
-    dominantColormap{&colorMaps.getRandomColorMap()},
     draw{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height}
 {
   stars.reserve(maxStarsLimit);
@@ -422,6 +430,8 @@ void FlyingStarsFx::FlyingStarsImpl::log(const StatsLogValueFunc& logVal) const
 
 void FlyingStarsFx::FlyingStarsImpl::updateBuffers(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
 {
+  m_counter++;
+
   maxStars = getRandInRange(100U, maxStarsLimit);
 
   // look for events
@@ -430,14 +440,18 @@ void FlyingStarsFx::FlyingStarsImpl::updateBuffers(PixelBuffer& currentBuff, Pix
     soundEventOccurred();
     if (getNRand(20) == 1)
     {
-      dominantColormap = &colorMaps.getRandomColorMap();
-
       // Give a slight weight towards noFx mode by using numFX + 2.
       const uint32_t newVal = getNRand(numFx + 2);
-      fx_mode = newVal >= numFx ? StarModes::noFx : static_cast<StarModes>(newVal);
+      m_fxMode = newVal >= numFx ? StarModes::noFx : static_cast<StarModes>(newVal);
+      changeColorMode();
+    }
+    else if (m_counter > maxCount)
+    {
+      m_counter = 0;
+      changeColorMode();
     }
   }
-  // fx_mode = StarModes::rain;
+  // m_fxMode = StarModes::rain;
 
   // update particules
   stats.updateStars();
@@ -455,35 +469,28 @@ void FlyingStarsFx::FlyingStarsImpl::updateBuffers(PixelBuffer& currentBuff, Pix
       continue;
     }
 
-    // choose the color of the particule
-    const float tAge = star.age / static_cast<float>(maxStarAge);
-    const Pixel color = star.currentColorMap->getColor(tAge);
-    const Pixel lowColor = star.currentLowColorMap->getColor(tAge);
-
     // draws the particule
-    static GammaCorrection gammaCorrect{4.2, 0.1};
+    constexpr float oldAge = 0.95;
+    const float tAge = star.age / static_cast<float>(maxStarAge);
+    const size_t numParts =
+        tAge > oldAge ? 4 : 2 + static_cast<size_t>(std::lround((1.0F - tAge) * 2.0F));
     const auto x0 = static_cast<int32_t>(star.x);
     const auto y0 = static_cast<int32_t>(star.y);
-    logInfo("star.x = {}, star.y = {}", star.x, star.y);
-    logInfo("star.xVelocity = {}, star.yVelocity = {}", star.xVelocity, star.yVelocity);
     int32_t x1 = x0;
     int32_t y1 = y0;
-    const size_t numParts = 2 + static_cast<size_t>(std::lround((1.0F - tAge) * 2.0F));
     for (size_t j = 1; j <= numParts; j++)
     {
-      const float brightness =
-          2.0F * (1.0F - tAge) * static_cast<float>(j - 1) / static_cast<float>(numParts - 1);
-      const float tMix = getRandInRange(0.4F, 0.8F);
-      const Pixel mixedColor = gammaCorrect.getCorrection(
-          brightness, ColorMap::colorMix(color, dominantColormap->getColor(tAge), tMix));
       const int32_t x2 =
           x0 - static_cast<int32_t>(0.5 * (1.0 + std::sin(flipSpeed * star.xVelocity * j)) *
                                     star.xVelocity * j);
       const int32_t y2 =
           y0 - static_cast<int32_t>(0.5 * (1.0 + std::cos(flipSpeed * star.yVelocity * j)) *
                                     star.yVelocity * j);
-      const uint8_t thickness = 1;
-      //          static_cast<uint8_t>(std::clamp(static_cast<uint32_t>(2 * t), 1u, 2u));
+      const uint8_t thickness = tAge < oldAge ? 1 : getRandInRange(2U, 5U);
+
+      const float brightness =
+          2.0F * (1.0F - tAge) * static_cast<float>(j - 1) / static_cast<float>(numParts - 1);
+      const auto [mixedColor, mixedLowColor] = getMixedColors(star, tAge, brightness);
 
       if (useSingleBufferOnly)
       {
@@ -491,18 +498,9 @@ void FlyingStarsFx::FlyingStarsImpl::updateBuffers(PixelBuffer& currentBuff, Pix
       }
       else
       {
-        const std::vector<Pixel> colors = {mixedColor, lowColor};
+        const std::vector<Pixel> colors = {mixedColor, mixedLowColor};
         std::vector<PixelBuffer*> buffs{&currentBuff, &nextBuff};
-        logInfo("x1 = {}, y1 = {}, x2 = {}, y2 = {}", x1, y1, x2, y2);
         draw.line(buffs, x1, y1, x2, y2, colors, thickness);
-        /**
-        const std::vector<std::vector<Pixel>> colorSets{
-            {mixedColor, mixedColor, mixedColor, mixedColor, mixedColor, mixedColor},
-            {lowColor, lowColor, lowColor, lowColor, lowColor, lowColor},
-        };
-        const int radius = getRandInRange(0, 1);
-        draw.filledCircle(buffs, x1, y1, radius, colorSets);
-         **/
       }
 
       x1 = x2;
@@ -525,6 +523,91 @@ inline bool FlyingStarsFx::FlyingStarsImpl::isStarDead(const Star& star) const
   return (star.x < -64) || (star.x > static_cast<float>(goomInfo->getScreenInfo().width + 64)) ||
          (star.y < -64) || (star.y > static_cast<float>(goomInfo->getScreenInfo().height + 64)) ||
          (star.age >= maxStarAge);
+}
+
+void FlyingStarsFx::FlyingStarsImpl::changeColorMode()
+{
+  // clang-format off
+  static const Weights<ColorMode> colorModeWeights{{
+    { ColorMode::mixColors,       30 },
+    { ColorMode::reverseMixColors,15 },
+    { ColorMode::similarLowColors,10 },
+    { ColorMode::sineMixColors,    5 },
+  }};
+  // clang-format on
+
+  m_colorMode = colorModeWeights.getRandomWeighted();
+}
+
+inline std::tuple<Pixel, Pixel> FlyingStarsFx::FlyingStarsImpl::getMixedColors(
+    const Star& star, const float t, const float brightness)
+{
+  static GammaCorrection gammaCorrect{4.2, 0.1};
+
+  Pixel color;
+  Pixel lowColor;
+  Pixel dominantColor;
+  Pixel dominantLowColor;
+
+  switch (m_colorMode)
+  {
+    case ColorMode::sineMixColors:
+    {
+      static float freq = 20;
+      static const float zStep = 0.1;
+      static float z = 0;
+
+      const float tSin = 0.5F * (1.0F + std::sin(freq * z));
+      color = star.currentColorMap->getColor(tSin);
+      lowColor = star.currentLowColorMap->getColor(tSin);
+      dominantColor = star.dominantColormap->getColor(tSin);
+      dominantLowColor = star.dominantLowColormap->getColor(tSin);
+
+      z += zStep;
+      break;
+    }
+    case ColorMode::mixColors:
+    case ColorMode::similarLowColors:
+    {
+      color = star.currentColorMap->getColor(t);
+      lowColor = star.currentLowColorMap->getColor(t);
+      dominantColor = star.dominantColormap->getColor(t);
+      if (m_colorMode == ColorMode::similarLowColors)
+      {
+        dominantLowColor = dominantColor;
+      }
+      else
+      {
+        dominantLowColor = star.dominantLowColormap->getColor(t);
+      }
+      break;
+    }
+    case ColorMode::reverseMixColors:
+    {
+      color = star.currentColorMap->getColor(1.0F - t);
+      lowColor = star.currentLowColorMap->getColor(1.0F - t);
+      dominantColor = star.dominantColormap->getColor(1.0F - t);
+      dominantLowColor = star.dominantLowColormap->getColor(1.0F - t);
+      break;
+    }
+    default:
+      throw std::logic_error("Unknown ColorMode enum.");
+  }
+
+  constexpr float minMix = 0.2;
+  constexpr float maxMix = 0.8;
+  const float tMix = std::lerp(minMix, maxMix, t);
+  const Pixel mixedColor =
+      gammaCorrect.getCorrection(brightness, ColorMap::colorMix(color, dominantColor, tMix));
+  const Pixel mixedLowColor =
+      getLightenedColor(ColorMap::colorMix(lowColor, dominantLowColor, tMix), 10.0F);
+  const Pixel remixedLowColor =
+      m_colorMode == ColorMode::similarLowColors
+          ? mixedLowColor
+          : gammaCorrect.getCorrection(brightness,
+                                       ColorMap::colorMix(mixedColor, mixedLowColor, 0.4));
+
+  return std::make_tuple(mixedColor, remixedLowColor);
 }
 
 /**
@@ -560,7 +643,7 @@ void FlyingStarsFx::FlyingStarsImpl::soundEventOccurred()
   int32_t my;
   float vage;
 
-  switch (fx_mode)
+  switch (m_fxMode)
   {
     case StarModes::noFx:
       stats.noFxChosen();
@@ -615,17 +698,21 @@ void FlyingStarsFx::FlyingStarsImpl::soundEventOccurred()
     maxStarsInBomb *= 2;
   }
 
+  const ColorMap& dominantColorMap = colorMaps.getRandomColorMap();
+  const ColorMap& dominantLowColorMap = lowColorMaps.getRandomColorMap();
   for (size_t i = 0; i < maxStarsInBomb; i++)
   {
-    addABomb(colorMaps.getRandomColorMap(), lowColorMaps.getRandomColorMap(), mx, my, radius, vage,
-             gravity);
+    addABomb(dominantColorMap, dominantLowColorMap, colorMaps.getRandomColorMap(),
+             lowColorMaps.getRandomColorMap(), mx, my, radius, vage, gravity);
   }
 }
 
 /**
  * Cree une nouvelle 'bombe', c'est a dire une particule appartenant a une fusee d'artifice.
  */
-void FlyingStarsFx::FlyingStarsImpl::addABomb(const ColorMap& colorMap,
+void FlyingStarsFx::FlyingStarsImpl::addABomb(const ColorMap& dominantColormap,
+                                              const ColorMap& dominantLowColormap,
+                                              const ColorMap& colorMap,
                                               const ColorMap& lowColorMap,
                                               const int32_t mx,
                                               const int32_t my,
@@ -647,6 +734,8 @@ void FlyingStarsFx::FlyingStarsImpl::addABomb(const ColorMap& colorMap,
   stars[i].y = my;
 
   // TODO Get colormap based on current mode.
+  stars[i].dominantColormap = &dominantColormap;
+  stars[i].dominantLowColormap = &dominantLowColormap;
   stars[i].currentColorMap = &colorMap;
   stars[i].currentLowColorMap = &lowColorMap;
 
@@ -675,7 +764,7 @@ uint32_t FlyingStarsFx::FlyingStarsImpl::getBombAngle(const float x,
 
   const float xFactor = x / static_cast<float>(goomInfo->getScreenInfo().width - 1);
 
-  switch (fx_mode)
+  switch (m_fxMode)
   {
     case StarModes::noFx:
       return 0;
