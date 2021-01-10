@@ -41,7 +41,12 @@ void FXBuffSettings::serialize(Archive& ar)
 class VisualFx
 {
 public:
+  VisualFx() = default;
   virtual ~VisualFx() = default;
+  VisualFx(const VisualFx&) = delete;
+  VisualFx(const VisualFx&&) = delete;
+  auto operator=(const VisualFx&) -> VisualFx& = delete;
+  auto operator=(const VisualFx&&) -> VisualFx& = delete;
 
   [[nodiscard]] virtual std::string getFxName() const = 0;
   virtual void setBuffSettings(const FXBuffSettings&) = 0;
