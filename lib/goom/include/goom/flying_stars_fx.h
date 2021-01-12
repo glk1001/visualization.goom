@@ -47,9 +47,9 @@ public:
   auto operator==(const FlyingStarsFx& f) const -> bool;
 
 private:
-  bool enabled = true;
+  bool m_enabled = true;
   class FlyingStarsImpl;
-  std::unique_ptr<FlyingStarsImpl> fxImpl;
+  std::unique_ptr<FlyingStarsImpl> m_fxImpl;
 
   friend class cereal::access;
   template<class Archive>
