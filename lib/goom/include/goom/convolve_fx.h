@@ -1,5 +1,5 @@
-#ifndef _CONVOLVE_FX_H
-#define _CONVOLVE_FX_H
+#ifndef VISUALIZATION_GOOM_CONVOLVE_FX_H
+#define VISUALIZATION_GOOM_CONVOLVE_FX_H
 
 #include "goom_visual_fx.h"
 
@@ -25,27 +25,29 @@ public:
   explicit ConvolveFx(utils::Parallel&, const std::shared_ptr<const PluginInfo>&) noexcept;
   ~ConvolveFx() noexcept override;
   ConvolveFx(const ConvolveFx&) = delete;
-  ConvolveFx& operator=(const ConvolveFx&) = delete;
+  ConvolveFx(const ConvolveFx&&) = delete;
+  auto operator=(const ConvolveFx&) -> ConvolveFx& = delete;
+  auto operator=(const ConvolveFx&&) -> ConvolveFx& = delete;
 
-  void convolve(const PixelBuffer& currentBuff, PixelBuffer& outputBuff);
+  void Convolve(const PixelBuffer& currentBuff, PixelBuffer& outputBuff);
 
   [[nodiscard]] std::string getFxName() const override;
   void setBuffSettings(const FXBuffSettings&) override;
 
   void start() override;
 
-  void apply(PixelBuffer&) override;
-  void apply(PixelBuffer&, PixelBuffer&) override;
+  void apply(PixelBuffer& currentBuff) override;
+  void apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff) override;
 
   void log(const StatsLogValueFunc&) const override;
   void finish() override;
 
-  bool operator==(const ConvolveFx&) const;
+  auto operator==(const ConvolveFx&) const -> bool;
 
 private:
-  bool enabled = true;
+  bool m_enabled = true;
   class ConvolveImpl;
-  std::unique_ptr<ConvolveImpl> fxImpl;
+  std::unique_ptr<ConvolveImpl> m_fxImpl;
 
   friend class cereal::access;
   template<class Archive>

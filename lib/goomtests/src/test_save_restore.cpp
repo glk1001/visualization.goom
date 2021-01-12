@@ -85,7 +85,7 @@ TEST_CASE("save/restore convolve object", "[saveRestoreConvolve]")
   ConvolveFx convolveFx{parallel, getGoomInfo()};
   for (size_t i = 0; i < 100; i++)
   {
-    convolveFx.convolve(*prevBuff, *currentBuff);
+    convolveFx.Convolve(*prevBuff, *currentBuff);
   }
   std::stringstream ss;
   {
