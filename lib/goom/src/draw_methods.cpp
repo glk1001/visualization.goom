@@ -14,7 +14,7 @@
 namespace goom
 {
 
-void drawCircle(PixelBuffer& buff,
+void DrawCircle(PixelBuffer& buff,
                 const int x0,
                 const int y0,
                 const int radius,
@@ -26,14 +26,14 @@ void drawCircle(PixelBuffer& buff,
 {
   std::vector<PixelBuffer*> buffs{&buff};
   const std::vector<Pixel> colors{color};
-  drawCircle(buffs, x0, y0, radius, colors, buffIntensity, allowOverexposed, screenWidth,
+  DrawCircle(buffs, x0, y0, radius, colors, buffIntensity, allowOverexposed, screenWidth,
              screenHeight);
 }
 
 using PlotPoints = std::function<void(int x1, int y1, int x2, int y2)>;
 
 // Function for circle-generation using Bresenham's algorithm
-static void drawBresenhamCircle(const int x0,
+static void DrawBresenhamCircle(const int x0,
                                 const int y0,
                                 const int radius,
                                 const PlotPoints& plotter)
@@ -68,7 +68,7 @@ static void drawBresenhamCircle(const int x0,
   }
 }
 
-void drawCircle(std::vector<PixelBuffer*>& buffs,
+void DrawCircle(std::vector<PixelBuffer*>& buffs,
                 const int x0,
                 const int y0,
                 const int radius,
@@ -90,19 +90,19 @@ void drawCircle(std::vector<PixelBuffer*>& buffs,
       return;
     }
     int pos = y1 * static_cast<int>(screenWidth) + x1;
-    drawPixels(buffs, pos, colors, buffIntensity, allowOverexposed);
+    DrawPixels(buffs, pos, colors, buffIntensity, allowOverexposed);
     if (x1 == x2 && y1 == y2)
     {
       return;
     }
     pos = y2 * static_cast<int>(screenWidth) + x2;
-    drawPixels(buffs, pos, colors, buffIntensity, allowOverexposed);
+    DrawPixels(buffs, pos, colors, buffIntensity, allowOverexposed);
   };
 
-  drawBresenhamCircle(x0, y0, radius, plotter);
+  DrawBresenhamCircle(x0, y0, radius, plotter);
 }
 
-void drawFilledCircle(PixelBuffer& buff,
+void DrawFilledCircle(PixelBuffer& buff,
                       const int x0,
                       const int y0,
                       const int radius,
@@ -114,11 +114,11 @@ void drawFilledCircle(PixelBuffer& buff,
 {
   std::vector<PixelBuffer*> buffs{&buff};
   const std::vector<Pixel> colors{color};
-  drawFilledCircle(buffs, x0, y0, radius, colors, buffIntensity, allowOverexposed, screenWidth,
+  DrawFilledCircle(buffs, x0, y0, radius, colors, buffIntensity, allowOverexposed, screenWidth,
                    screenHeight);
 }
 
-static void drawHorizontalLine(std::vector<PixelBuffer*>& buffs,
+static void DrawHorizontalLine(std::vector<PixelBuffer*>& buffs,
                                const int x1,
                                const int y,
                                const int x2,
@@ -131,11 +131,11 @@ static void drawHorizontalLine(std::vector<PixelBuffer*>& buffs,
   for (int x = x1; x <= xEnd; x++)
   {
     const int pos = y * static_cast<int>(screenWidth) + x;
-    drawPixels(buffs, pos, colors, buffIntensity, allowOverexposed);
+    DrawPixels(buffs, pos, colors, buffIntensity, allowOverexposed);
   }
 }
 
-static void drawWuLine(std::vector<PixelBuffer*>& buffs,
+static void DrawWuLine(std::vector<PixelBuffer*>& buffs,
                        int x1,
                        int y1,
                        int x2,
@@ -146,7 +146,7 @@ static void drawWuLine(std::vector<PixelBuffer*>& buffs,
                        uint32_t screenWidth,
                        uint32_t screenHeight);
 
-void drawFilledCircle(std::vector<PixelBuffer*>& buffs,
+void DrawFilledCircle(std::vector<PixelBuffer*>& buffs,
                       const int x0,
                       const int y0,
                       const int radius,
@@ -160,19 +160,19 @@ void drawFilledCircle(std::vector<PixelBuffer*>& buffs,
 
   auto plotter = [&](const int x1, const int y1, const int x2, const int y2) -> void {
     assert(y1 == y2);
-    drawHorizontalLine(buffs, x1, y1, x2, colors, buffIntensity, allowOverexposed, screenWidth);
+    DrawHorizontalLine(buffs, x1, y1, x2, colors, buffIntensity, allowOverexposed, screenWidth);
     //drawWuLine(buffs, x1, y1, x2, y2, colors, buffIntensity, allowOverexposed, screenWidth,
     //           screenHeight);
   };
 
-  drawBresenhamCircle(x0, y0, radius, plotter);
+  DrawBresenhamCircle(x0, y0, radius, plotter);
 }
 
 constexpr int LINE_THICKNESS_MIDDLE = 0;
 constexpr int LINE_THICKNESS_DRAW_CLOCKWISE = 1;
 constexpr int LINE_THICKNESS_DRAW_COUNTERCLOCKWISE = 2;
 
-static void drawThickLine(std::vector<PixelBuffer*>& buffs,
+static void DrawThickLine(std::vector<PixelBuffer*>& buffs,
                           int x0,
                           int y0,
                           int x1,
@@ -185,7 +185,7 @@ static void drawThickLine(std::vector<PixelBuffer*>& buffs,
                           uint32_t screenWidth,
                           uint32_t screenHeight);
 
-void drawLine(PixelBuffer& buff,
+void DrawLine(PixelBuffer& buff,
               const int x1,
               const int y1,
               const int x2,
@@ -200,11 +200,11 @@ void drawLine(PixelBuffer& buff,
   std::vector<PixelBuffer*> buffs{&buff};
   std::vector<Pixel> colors{color};
 
-  drawLine(buffs, x1, y1, x2, y2, colors, buffIntensity, allowOverexposed, thickness, screenx,
+  DrawLine(buffs, x1, y1, x2, y2, colors, buffIntensity, allowOverexposed, thickness, screenx,
            screeny);
 }
 
-void drawLine(std::vector<PixelBuffer*>& buffs,
+void DrawLine(std::vector<PixelBuffer*>& buffs,
               int x1,
               int y1,
               int x2,
@@ -218,20 +218,20 @@ void drawLine(std::vector<PixelBuffer*>& buffs,
 {
   if (thickness == 1)
   {
-    drawWuLine(buffs, x1, y1, x2, y2, colors, buffIntensity, allowOverexposed, screenx, screeny);
+    DrawWuLine(buffs, x1, y1, x2, y2, colors, buffIntensity, allowOverexposed, screenx, screeny);
   }
   else
   {
-    drawThickLine(buffs, x1, y1, x2, y2, colors, buffIntensity, allowOverexposed, thickness,
+    DrawThickLine(buffs, x1, y1, x2, y2, colors, buffIntensity, allowOverexposed, thickness,
                   LINE_THICKNESS_MIDDLE, screenx, screeny);
     // plotLineWidth(n, buffs, colors, x1, y1, x2, y2, 1.0, screenx, screeny);
   }
 }
 
 using PlotFunc = const std::function<void(int x, int y, float brightess)>;
-static void wuLine(float x0, float y0, float x1, float y1, const PlotFunc&);
+static void WuLine(float x0, float y0, float x1, float y1, const PlotFunc& plot);
 
-static void drawWuLine(std::vector<PixelBuffer*>& buffs,
+static void DrawWuLine(std::vector<PixelBuffer*>& buffs,
                        const int x1,
                        const int y1,
                        const int x2,
@@ -263,7 +263,7 @@ static void drawWuLine(std::vector<PixelBuffer*>& buffs,
     const int pos = y * static_cast<int>(screenWidth) + x;
     if (brightness >= 0.999)
     {
-      drawPixels(buffs, pos, colors, buffIntensity, allowOverexposed);
+      DrawPixels(buffs, pos, colors, buffIntensity, allowOverexposed);
     }
     else
     {
@@ -271,17 +271,17 @@ static void drawWuLine(std::vector<PixelBuffer*>& buffs,
       {
         tempColors[i] = getBrighterColor(brightness, colors[i], allowOverexposed);
       }
-      drawPixels(buffs, pos, tempColors, buffIntensity, allowOverexposed);
+      DrawPixels(buffs, pos, tempColors, buffIntensity, allowOverexposed);
     }
   };
 
-  wuLine(x1, y1, x2, y2, plot);
+  WuLine(x1, y1, x2, y2, plot);
 }
 
 // The Xiaolin Wu anti-aliased draw line.
 // From https://rosettacode.org/wiki/Xiaolin_Wu%27s_line_algorithm#C.2B.2B
 //
-static void wuLine(float x0, float y0, float x1, float y1, const PlotFunc& plot)
+static void WuLine(float x0, float y0, float x1, float y1, const PlotFunc& plot)
 {
   const auto ipart = [](const float x) -> int { return static_cast<int>(std::floor(x)); };
   const auto round = [](const float x) -> float { return std::round(x); };
@@ -366,7 +366,8 @@ static void wuLine(float x0, float y0, float x1, float y1, const PlotFunc& plot)
 
 /**
  * Modified Bresenham draw(line) with optional overlap. Required for drawThickLine().
- * Overlap draws additional pixel when changing minor direction. For standard bresenham overlap, choose LINE_OVERLAP_NONE (0).
+ * Overlap draws additional pixel when changing minor direction. For standard bresenham overlap,
+ * choose LINE_OVERLAP_NONE (0).
  *
  *  Sample line:
  *
@@ -384,7 +385,7 @@ constexpr int LINE_OVERLAP_NONE = 0;
 constexpr int LINE_OVERLAP_MAJOR = 1;
 constexpr int LINE_OVERLAP_MINOR = 2;
 
-static void drawLineOverlap(std::vector<PixelBuffer*>& buffs,
+static void DrawLineOverlap(std::vector<PixelBuffer*>& buffs,
                             int x0,
                             int y0,
                             int x1,
@@ -414,7 +415,7 @@ static void drawLineOverlap(std::vector<PixelBuffer*>& buffs,
     const int pos = y * static_cast<int>(screenWidth) + x;
     if (brightness >= 0.999)
     {
-      drawPixels(buffs, pos, colors, buffIntensity, allowOverexposed);
+      DrawPixels(buffs, pos, colors, buffIntensity, allowOverexposed);
     }
     else
     {
@@ -422,7 +423,7 @@ static void drawLineOverlap(std::vector<PixelBuffer*>& buffs,
       {
         tempColors[i] = getBrighterColor(brightness, colors[i], allowOverexposed);
       }
-      drawPixels(buffs, pos, tempColors, buffIntensity, allowOverexposed);
+      DrawPixels(buffs, pos, tempColors, buffIntensity, allowOverexposed);
     }
   };
 
@@ -431,7 +432,7 @@ static void drawLineOverlap(std::vector<PixelBuffer*>& buffs,
     //horizontal or vertical line -> fillRect() is faster than drawLine()
     //        LocalDisplay.fillRect(aXStart, aYStart, aXEnd, aYEnd, aColor);
     // ????????????????????????????????????????????????????????????????????????????????????????????
-    drawWuLine(buffs, x0, y0, x1, y1, colors, buffIntensity, allowOverexposed, screenWidth,
+    DrawWuLine(buffs, x0, y0, x1, y1, colors, buffIntensity, allowOverexposed, screenWidth,
                screenHeight);
   }
   else
@@ -530,7 +531,7 @@ static void drawLineOverlap(std::vector<PixelBuffer*>& buffs,
  *   LINE_THICKNESS_DRAW_COUNTERCLOCKWISE
  */
 
-static void drawThickLine(std::vector<PixelBuffer*>& buffs,
+static void DrawThickLine(std::vector<PixelBuffer*>& buffs,
                           int x0,
                           int y0,
                           int x1,
@@ -552,7 +553,7 @@ static void drawThickLine(std::vector<PixelBuffer*>& buffs,
 
   if (thickness <= 1)
   {
-    drawLineOverlap(buffs, x0, y0, x1, y1, colors, buffIntensity, allowOverexposed, 1.0, 0,
+    DrawLineOverlap(buffs, x0, y0, x1, y1, colors, buffIntensity, allowOverexposed, 1.0, 0,
                     screenWidth, screenHeight);
   }
 
@@ -643,7 +644,7 @@ static void drawThickLine(std::vector<PixelBuffer*>& buffs,
       error += deltaYTimes2;
     }
     //draw start line
-    drawLineOverlap(buffs, x0, y0, x1, y1, colors, buffIntensity, allowOverexposed, brightness, 1,
+    DrawLineOverlap(buffs, x0, y0, x1, y1, colors, buffIntensity, allowOverexposed, brightness, 1,
                     screenWidth, screenHeight);
     // draw 'thickness' number of lines
     error = deltaYTimes2 - deltaX;
@@ -679,7 +680,7 @@ static void drawThickLine(std::vector<PixelBuffer*>& buffs,
         overlap = LINE_OVERLAP_MAJOR;
       }
       error += deltaYTimes2;
-      drawLineOverlap(buffs, x0, y0, x1, y1, colors, buffIntensity, allowOverexposed, brightness,
+      DrawLineOverlap(buffs, x0, y0, x1, y1, colors, buffIntensity, allowOverexposed, brightness,
                       overlap, screenWidth, screenHeight);
     }
   }
@@ -710,7 +711,7 @@ static void drawThickLine(std::vector<PixelBuffer*>& buffs,
       error += deltaXTimes2;
     }
     // draw start line
-    drawLineOverlap(buffs, x0, y0, x1, y1, colors, buffIntensity, allowOverexposed, brightness, 0,
+    DrawLineOverlap(buffs, x0, y0, x1, y1, colors, buffIntensity, allowOverexposed, brightness, 0,
                     screenWidth, screenHeight);
     // draw 'thickness' number of lines
     error = deltaXTimes2 - deltaY;
@@ -727,7 +728,7 @@ static void drawThickLine(std::vector<PixelBuffer*>& buffs,
         overlap = LINE_OVERLAP_MAJOR;
       }
       error += deltaXTimes2;
-      drawLineOverlap(buffs, x0, y0, x1, y1, colors, buffIntensity, allowOverexposed, brightness,
+      DrawLineOverlap(buffs, x0, y0, x1, y1, colors, buffIntensity, allowOverexposed, brightness,
                       overlap, screenWidth, screenHeight);
     }
   }

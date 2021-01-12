@@ -1,5 +1,5 @@
-#ifndef _DRAW_METHODS_H
-#define _DRAW_METHODS_H
+#ifndef VISUALIZATION_GOOM_DRAW_METHODS_H
+#define VISUALIZATION_GOOM_DRAW_METHODS_H
 
 #include "goom_graphic.h"
 #include "goomutils/colorutils.h"
@@ -11,7 +11,7 @@
 namespace goom
 {
 
-void drawCircle(PixelBuffer&,
+void DrawCircle(PixelBuffer& buff,
                 int x0,
                 int y0,
                 int radius,
@@ -21,7 +21,7 @@ void drawCircle(PixelBuffer&,
                 uint32_t screenWidth,
                 uint32_t screenHeight);
 
-void drawCircle(std::vector<PixelBuffer*>&,
+void DrawCircle(std::vector<PixelBuffer*>& buffs,
                 int x0,
                 int y0,
                 int radius,
@@ -31,7 +31,7 @@ void drawCircle(std::vector<PixelBuffer*>&,
                 uint32_t screenWidth,
                 uint32_t screenHeight);
 
-void drawFilledCircle(PixelBuffer&,
+void DrawFilledCircle(PixelBuffer& buff,
                       int x0,
                       int y0,
                       int radius,
@@ -41,7 +41,7 @@ void drawFilledCircle(PixelBuffer&,
                       uint32_t screenWidth,
                       uint32_t screenHeight);
 
-void drawFilledCircle(std::vector<PixelBuffer*>&,
+void DrawFilledCircle(std::vector<PixelBuffer*>& buffs,
                       int x0,
                       int y0,
                       int radius,
@@ -51,7 +51,7 @@ void drawFilledCircle(std::vector<PixelBuffer*>&,
                       uint32_t screenWidth,
                       uint32_t screenHeight);
 
-void drawLine(std::vector<PixelBuffer*>&,
+void DrawLine(std::vector<PixelBuffer*>& buffs,
               int x1,
               int y1,
               int x2,
@@ -63,7 +63,7 @@ void drawLine(std::vector<PixelBuffer*>&,
               uint32_t screenx,
               uint32_t screeny);
 
-void drawLine(PixelBuffer&,
+void DrawLine(PixelBuffer& buff,
               int x1,
               int y1,
               int x2,
@@ -75,7 +75,7 @@ void drawLine(PixelBuffer&,
               uint32_t screenx,
               uint32_t screeny);
 
-inline void drawPixel(PixelBuffer* buff,
+inline void DrawPixel(PixelBuffer* buff,
                       const int pos,
                       const Pixel& newColor,
                       const uint32_t buffIntensity,
@@ -96,7 +96,7 @@ inline void drawPixel(PixelBuffer* buff,
     ***/
   }
 
-  inline void drawPixels(std::vector<PixelBuffer*>& buffs,
+  inline void DrawPixels(std::vector<PixelBuffer*>& buffs,
                          const int pos,
                          const std::vector<Pixel>& newColors,
                          const uint32_t buffIntensity,
@@ -104,7 +104,7 @@ inline void drawPixel(PixelBuffer* buff,
   {
     for (size_t i = 0; i < buffs.size(); i++)
     {
-      drawPixel(buffs[i], pos, newColors[i], buffIntensity, allowOverexposed);
+      DrawPixel(buffs[i], pos, newColors[i], buffIntensity, allowOverexposed);
     }
   }
 

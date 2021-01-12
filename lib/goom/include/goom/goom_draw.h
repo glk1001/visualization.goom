@@ -1,5 +1,5 @@
-#ifndef LIBS_GOOM_INCLUDE_GOOM_GOOM_DRAW_H_
-#define LIBS_GOOM_INCLUDE_GOOM_GOOM_DRAW_H_
+#ifndef VISUALIZATION_GOOM_GOOM_DRAW_H
+#define VISUALIZATION_GOOM_GOOM_DRAW_H
 
 #include "goom_config.h"
 #include "goom_graphic.h"
@@ -137,4 +137,4 @@ inline void GoomDraw::setBuffIntensity(const float val)
 
 } // namespace goom
 
-#endif /* LIBS_GOOM_INCLUDE_GOOM_GOOM_DRAW_H_ */
+#endif /* VISUALIZATION_GOOM_GOOM_DRAW_H */
