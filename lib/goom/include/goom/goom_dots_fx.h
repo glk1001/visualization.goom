@@ -1,5 +1,5 @@
-#ifndef LIBS_GOOM_INCLUDE_GOOM_GOOM_DOTS_FX_H_
-#define LIBS_GOOM_INCLUDE_GOOM_GOOM_DOTS_FX_H_
+#ifndef VISUALIZATION_GOOM_GOOM_DOTS_FX_H
+#define VISUALIZATION_GOOM_GOOM_DOTS_FX_H
 
 #include "goom_visual_fx.h"
 
@@ -13,17 +13,19 @@ namespace goom
 class PluginInfo;
 class PixelBuffer;
 
-class GoomDotsFx : public VisualFx
+class GoomDotsFx : public IVisualFx
 {
 public:
   GoomDotsFx() noexcept;
   explicit GoomDotsFx(const std::shared_ptr<const PluginInfo>&) noexcept;
   ~GoomDotsFx() noexcept override;
   GoomDotsFx(const GoomDotsFx&) = delete;
-  GoomDotsFx& operator=(const GoomDotsFx&) = delete;
+  GoomDotsFx(const GoomDotsFx&&) = delete;
+  auto operator=(const GoomDotsFx&) -> GoomDotsFx& = delete;
+  auto operator=(const GoomDotsFx&&) -> GoomDotsFx& = delete;
 
-  [[nodiscard]] std::string getFxName() const override;
-  void setBuffSettings(const FXBuffSettings&) override;
+  [[nodiscard]] auto getFxName() const -> std::string override;
+  void setBuffSettings(const FXBuffSettings& settings) override;
 
   void start() override;
 
@@ -32,7 +34,7 @@ public:
 
   void finish() override;
 
-  bool operator==(const GoomDotsFx&) const;
+  auto operator==(const GoomDotsFx& d) const -> bool;
 
 private:
   bool enabled = true;
@@ -46,4 +48,4 @@ private:
 
 } // namespace goom
 
-#endif /* LIBS_GOOM_INCLUDE_GOOM_GOOM_DOTS_FX_H_ */
+#endif /* VISUALIZATION_GOOM_GOOM_DOTS_FX_H */

@@ -68,7 +68,7 @@
 #include <vector>
 
 CEREAL_REGISTER_TYPE(goom::IfsDancersFx)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::VisualFx, goom::IfsDancersFx)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::IVisualFx, goom::IfsDancersFx)
 
 namespace goom
 {

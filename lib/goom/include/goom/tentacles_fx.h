@@ -13,7 +13,7 @@ namespace goom
 class PluginInfo;
 class PixelBuffer;
 
-class TentaclesFx : public VisualFx
+class TentaclesFx : public IVisualFx
 {
 public:
   TentaclesFx() noexcept;

@@ -30,6 +30,7 @@ class LinesFx::LinesImpl
 {
 public:
   LinesImpl() noexcept;
+  ~LinesImpl() noexcept = default;
   // construit un effet de line (une ligne horitontale pour commencer)
   LinesImpl(std::shared_ptr<const PluginInfo> goomInfo,
             LineType srceLineType,
@@ -39,11 +40,13 @@ public:
             float destParam,
             const Pixel& destColor) noexcept;
   LinesImpl(const LinesImpl&) = delete;
-  LinesImpl& operator=(const LinesImpl&) = delete;
+  LinesImpl(const LinesImpl&&) = delete;
+  auto operator=(const LinesImpl&) -> LinesImpl& = delete;
+  auto operator=(const LinesImpl&&) -> LinesImpl& = delete;
 
-  Pixel getRandomLineColor();
+  auto getRandomLineColor() -> Pixel;
 
-  [[nodiscard]] float getPower() const;
+  [[nodiscard]] auto getPower() const -> float;
   void setPower(float val);
 
   void switchLines(LineType newLineType, float newParam, float newAmplitude, const Pixel& newColor);
@@ -52,7 +55,7 @@ public:
                  PixelBuffer& prevBuff,
                  PixelBuffer& currentBuff);
 
-  bool operator==(const LinesImpl&) const;
+  auto operator==(const LinesImpl& l) const -> bool;
 
 private:
   std::shared_ptr<const PluginInfo> goomInfo{};
@@ -67,7 +70,7 @@ private:
   };
   std::vector<LinePoint> points1{};
   std::vector<LinePoint> points2{};
-  void generateLine(LineType, float lineParam, std::vector<LinePoint>&);
+  void generateLine(LineType lineType, float lineParam, std::vector<LinePoint>& line);
 
   float power = 0;
   float powinc = 0;
@@ -108,17 +111,17 @@ LinesFx::LinesFx(const std::shared_ptr<const PluginInfo>& info,
 
 LinesFx::~LinesFx() noexcept = default;
 
-bool LinesFx::operator==(const LinesFx& l) const
+auto LinesFx::operator==(const LinesFx& l) const -> bool
 {
   return fxImpl->operator==(*l.fxImpl);
 }
 
-Pixel LinesFx::getRandomLineColor()
+auto LinesFx::getRandomLineColor() -> Pixel
 {
   return fxImpl->getRandomLineColor();
 }
 
-float LinesFx::getPower() const
+auto LinesFx::getPower() const -> float
 {
   return fxImpl->getPower();
 }
@@ -172,7 +175,7 @@ void LinesFx::LinesImpl::load(Archive& ar)
      CEREAL_NVP(color), CEREAL_NVP(color2));
 }
 
-bool LinesFx::LinesImpl::operator==(const LinesImpl& l) const
+auto LinesFx::LinesImpl::operator==(const LinesImpl& l) const -> bool
 {
   if (goomInfo == nullptr && l.goomInfo != nullptr)
   {
@@ -271,7 +274,7 @@ void LinesFx::LinesImpl::generateLine(const LineType lineType,
   }
 }
 
-inline float LinesFx::LinesImpl::getPower() const
+inline auto LinesFx::LinesImpl::getPower() const -> float
 {
   return power;
 }
@@ -337,7 +340,7 @@ void LinesFx::LinesImpl::switchLines(LineType newLineType,
 #define GML_BLEU 5
 #define GML_BLACK 6
 
-inline Pixel getcouleur(const int mode)
+inline auto getcouleur(const int mode) -> Pixel
 {
   switch (mode)
   {
@@ -360,17 +363,17 @@ inline Pixel getcouleur(const int mode)
   }
 }
 
-Pixel getBlackLineColor()
+auto getBlackLineColor() -> Pixel
 {
   return getcouleur(GML_BLACK);
 }
 
-Pixel getGreenLineColor()
+auto getGreenLineColor() -> Pixel
 {
   return getcouleur(GML_VERT);
 }
 
-Pixel getRedLineColor()
+auto getRedLineColor() -> Pixel
 {
   return getcouleur(GML_RED);
 }
@@ -384,7 +387,7 @@ Pixel LinesFx::LinesImpl::getRandomLineColor()
   return ColorMap::getRandomColor(colorMaps.getRandomColorMap());
 }
 
-std::vector<float> simpleMovingAverage(const std::vector<int16_t>& x, const uint32_t winLen)
+auto simpleMovingAverage(const std::vector<int16_t>& x, const uint32_t winLen) -> std::vector<float>
 {
   int32_t temp = 0;
   for (size_t i = 0; i < winLen - 1; i++)
@@ -404,7 +407,7 @@ std::vector<float> simpleMovingAverage(const std::vector<int16_t>& x, const uint
   return result;
 }
 
-inline std::vector<float> getDataPoints(const std::vector<int16_t>& x)
+inline auto getDataPoints(const std::vector<int16_t>& x) -> std::vector<float>
 {
   return std::vector<float>{x.data(), x.data() + AUDIO_SAMPLE_LEN};
   if (probabilityOfMInN(9999, 10000))

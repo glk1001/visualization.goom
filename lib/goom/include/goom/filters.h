@@ -20,7 +20,7 @@ enum class ZoomFilterMode
   waveMode,
   crystalBallMode,
   scrunchMode,
-  amuletteMode,
+  amuletMode,
   waterMode,
   hyperCos1Mode,
   hyperCos2Mode,
@@ -147,7 +147,7 @@ class Parallel;
 
 class PluginInfo;
 
-class ZoomFilterFx : public VisualFx
+class ZoomFilterFx : public IVisualFx
 {
 public:
   ZoomFilterFx() noexcept;

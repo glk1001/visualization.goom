@@ -17,7 +17,7 @@ namespace goom
 class PluginInfo;
 class PixelBuffer;
 
-class IfsDancersFx : public VisualFx
+class IfsDancersFx : public IVisualFx
 {
 public:
   enum class ColorMode

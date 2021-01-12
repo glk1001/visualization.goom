@@ -19,7 +19,7 @@
 #include <vector>
 
 CEREAL_REGISTER_TYPE(goom::GoomDotsFx)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::VisualFx, goom::GoomDotsFx)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::IVisualFx, goom::GoomDotsFx)
 
 namespace goom
 {
@@ -35,16 +35,18 @@ class GoomDotsFx::GoomDotsImpl
 {
 public:
   GoomDotsImpl() noexcept;
-  explicit GoomDotsImpl(const std::shared_ptr<const PluginInfo>&) noexcept;
+  explicit GoomDotsImpl(const std::shared_ptr<const PluginInfo>& info) noexcept;
   GoomDotsImpl(const GoomDotsImpl&) = delete;
-  GoomDotsImpl& operator=(const GoomDotsImpl&) = delete;
+  GoomDotsImpl(const GoomDotsImpl&&) = delete;
+  auto operator=(const GoomDotsImpl&) -> GoomDotsImpl& = delete;
+  auto operator=(const GoomDotsImpl&&) -> GoomDotsImpl& = delete;
 
   void setBuffSettings(const FXBuffSettings&);
 
   void apply(PixelBuffer& currentBuff);
   void apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff);
 
-  bool operator==(const GoomDotsImpl&) const;
+  auto operator==(const GoomDotsImpl& d) const -> bool;
 
 private:
   std::shared_ptr<const PluginInfo> goomInfo{};
@@ -105,7 +107,7 @@ GoomDotsFx::GoomDotsFx(const std::shared_ptr<const PluginInfo>& info) noexcept
 
 GoomDotsFx::~GoomDotsFx() noexcept = default;
 
-bool GoomDotsFx::operator==(const GoomDotsFx& d) const
+auto GoomDotsFx::operator==(const GoomDotsFx& d) const -> bool
 {
   return fxImpl->operator==(*d.fxImpl);
 }
@@ -123,7 +125,7 @@ void GoomDotsFx::finish()
 {
 }
 
-std::string GoomDotsFx::getFxName() const
+auto GoomDotsFx::getFxName() const -> std::string
 {
   return "goom dots";
 }

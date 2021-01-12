@@ -38,15 +38,15 @@ void FXBuffSettings::serialize(Archive& ar)
   ar(buffIntensity, allowOverexposed);
 }
 
-class VisualFx
+class IVisualFx
 {
 public:
-  VisualFx() = default;
-  virtual ~VisualFx() = default;
-  VisualFx(const VisualFx&) = delete;
-  VisualFx(const VisualFx&&) = delete;
-  auto operator=(const VisualFx&) -> VisualFx& = delete;
-  auto operator=(const VisualFx&&) -> VisualFx& = delete;
+  IVisualFx() = default;
+  virtual ~IVisualFx() = default;
+  IVisualFx(const IVisualFx&) = delete;
+  IVisualFx(const IVisualFx&&) = delete;
+  auto operator=(const IVisualFx&) -> IVisualFx& = delete;
+  auto operator=(const IVisualFx&&) -> IVisualFx& = delete;
 
   [[nodiscard]] virtual std::string getFxName() const = 0;
   virtual void setBuffSettings(const FXBuffSettings&) = 0;

@@ -24,7 +24,7 @@
 #include <vector>
 
 CEREAL_REGISTER_TYPE(goom::FlyingStarsFx)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::VisualFx, goom::FlyingStarsFx)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::IVisualFx, goom::FlyingStarsFx)
 
 namespace goom
 {

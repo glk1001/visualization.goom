@@ -12,20 +12,19 @@
 namespace goom
 {
 
-inline int16_t floatToInt16(const float f)
+inline auto floatToInt16(const float f) -> int16_t
 {
-  if (f >= 1.0f)
+  if (f >= 1.0F)
   {
     return std::numeric_limits<int16_t>::max();
   }
-  else if (f < -1.0f)
+
+  if (f < -1.0F)
   {
     return -std::numeric_limits<int16_t>::max();
   }
-  else
-  {
-    return static_cast<int16_t>(f * static_cast<float>(std::numeric_limits<int16_t>::max()));
-  }
+
+  return static_cast<int16_t>(f * static_cast<float>(std::numeric_limits<int16_t>::max()));
 }
 
 AudioSamples::AudioSamples(const size_t numSampleChannels,
@@ -62,12 +61,12 @@ AudioSamples::AudioSamples(const size_t numSampleChannels,
   }
 }
 
-const std::vector<int16_t>& AudioSamples::getSample(const size_t channelIndex) const
+auto AudioSamples::getSample(const size_t channelIndex) const -> const std::vector<int16_t>&
 {
   return sampleArrays.at(channelIndex);
 }
 
-std::vector<int16_t>& AudioSamples::getSample(const size_t channelIndex)
+auto AudioSamples::getSample(const size_t channelIndex) -> std::vector<int16_t>&
 {
   return sampleArrays.at(channelIndex);
 }
@@ -82,7 +81,7 @@ SoundInfo::SoundInfo(const SoundInfo& s) noexcept = default;
 
 SoundInfo::~SoundInfo() noexcept = default;
 
-bool SoundInfo::operator==(const SoundInfo& s) const
+auto SoundInfo::operator==(const SoundInfo& s) const -> bool
 {
   return timeSinceLastGoom == s.timeSinceLastGoom &&
          timeSinceLastBigGoom == s.timeSinceLastBigGoom && goomLimit == s.goomLimit &&
@@ -102,7 +101,7 @@ void SoundInfo::processSample(const AudioSamples& samples)
   for (size_t n = 0; n < AudioSamples::numChannels; n++)
   {
     const std::vector<int16_t>& soundData = samples.getSample(n);
-    for (short dataVal : soundData)
+    for (int16_t dataVal : soundData)
     {
       if (maxPosVar < dataVal)
       {
@@ -139,21 +138,21 @@ void SoundInfo::processSample(const AudioSamples& samples)
   acceleration = volume; // accel entre 0 et 1
 
   // Transformations sur la vitesse du son
-  if (speed > 1.0f)
+  if (speed > 1.0F)
   {
-    speed = 1.0f;
+    speed = 1.0F;
   }
-  if (speed < 0.1f)
+  if (speed < 0.1F)
   {
-    acceleration *= (1.0f - static_cast<float>(speed));
+    acceleration *= (1.0F - static_cast<float>(speed));
   }
-  else if (speed < 0.3f)
+  else if (speed < 0.3F)
   {
-    acceleration *= (0.9f - static_cast<float>(speed - 0.1f) / 2.0f);
+    acceleration *= (0.9F - static_cast<float>(speed - 0.1F) / 2.0F);
   }
   else
   {
-    acceleration *= (0.8f - static_cast<float>(speed - 0.3f) / 4.0f);
+    acceleration *= (0.8F - static_cast<float>(speed - 0.3F) / 4.0F);
   }
 
   // Adoucissement de l'acceleration
@@ -170,9 +169,9 @@ void SoundInfo::processSample(const AudioSamples& samples)
     difaccel = -difaccel;
   }
   const float prevspeed = speed;
-  speed = (speed + difaccel * 0.5f) / 2;
+  speed = (speed + difaccel * 0.5F) / 2;
   speed *= speedMultiplier;
-  speed = (speed + 3.0f * prevspeed) / 4.0f;
+  speed = (speed + 3.0F * prevspeed) / 4.0F;
   if (speed < 0)
   {
     speed = 0;
@@ -188,7 +187,7 @@ void SoundInfo::processSample(const AudioSamples& samples)
   cycle++;
 
   // Detection des nouveaux gooms
-  if ((speed > bigGoomSpeedLimit / 100.0f) && (acceleration > bigGoomLimit) &&
+  if ((speed > bigGoomSpeedLimit / 100.0F) && (acceleration > bigGoomLimit) &&
       (timeSinceLastBigGoom > bigGoomDuration))
   {
     timeSinceLastBigGoom = 0;
@@ -215,7 +214,7 @@ void SoundInfo::processSample(const AudioSamples& samples)
   // Toute les 2 secondes : vérifier si le taux de goom est correct et le modifier sinon..
   if (cycle % cycleTime == 0)
   {
-    if (speed < 0.01f)
+    if (speed < 0.01F)
     {
       goomLimit *= 0.91;
     }
@@ -225,12 +224,12 @@ void SoundInfo::processSample(const AudioSamples& samples)
     }
     if (totalGoom > 7)
     {
-      goomLimit *= 1.03f;
+      goomLimit *= 1.03F;
       goomLimit += 0.03;
     }
     if (totalGoom > 16)
     {
-      goomLimit *= 1.05f;
+      goomLimit *= 1.05F;
       goomLimit += 0.04;
     }
     if (totalGoom == 0)
@@ -242,7 +241,7 @@ void SoundInfo::processSample(const AudioSamples& samples)
       goomLimit -= 0.01;
     }
     totalGoom = 0;
-    bigGoomLimit = goomLimit * (1.0f + bigGoomFactor / 500.0f);
+    bigGoomLimit = goomLimit * (1.0F + bigGoomFactor / 500.0F);
     maxAccelSinceLastReset = 0;
   }
 

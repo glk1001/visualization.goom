@@ -1,5 +1,5 @@
-#ifndef _FLYING_STARS_FX_H
-#define _FLYING_STARS_FX_H
+#ifndef VISUALIZATION_GOOM_FLYING_STARS_FX_H
+#define VISUALIZATION_GOOM_FLYING_STARS_FX_H
 
 #include "goom_visual_fx.h"
 
@@ -13,7 +13,7 @@ namespace goom
 class PluginInfo;
 class PixelBuffer;
 
-class FlyingStarsFx : public VisualFx
+class FlyingStarsFx : public IVisualFx
 {
 public:
   enum class ColorMode
@@ -29,10 +29,12 @@ public:
   explicit FlyingStarsFx(const std::shared_ptr<const PluginInfo>&) noexcept;
   ~FlyingStarsFx() noexcept override;
   FlyingStarsFx(const FlyingStarsFx&) = delete;
-  FlyingStarsFx& operator=(const FlyingStarsFx&) = delete;
+  FlyingStarsFx(const FlyingStarsFx&&) = delete;
+  auto operator=(const FlyingStarsFx&) -> FlyingStarsFx& = delete;
+  auto operator=(const FlyingStarsFx&&) -> FlyingStarsFx& = delete;
 
-  [[nodiscard]] std::string getFxName() const override;
-  void setBuffSettings(const FXBuffSettings&) override;
+  [[nodiscard]] auto getFxName() const -> std::string override;
+  void setBuffSettings(const FXBuffSettings& settings) override;
 
   void start() override;
 
@@ -42,7 +44,7 @@ public:
   void log(const StatsLogValueFunc&) const override;
   void finish() override;
 
-  bool operator==(const FlyingStarsFx&) const;
+  auto operator==(const FlyingStarsFx& f) const -> bool;
 
 private:
   bool enabled = true;

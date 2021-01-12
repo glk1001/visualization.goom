@@ -15,7 +15,7 @@
 #include <utility>
 
 CEREAL_REGISTER_TYPE(goom::ConvolveFx)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::VisualFx, goom::ConvolveFx)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::IVisualFx, goom::ConvolveFx)
 
 namespace goom
 {

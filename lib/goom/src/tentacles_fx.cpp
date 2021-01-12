@@ -30,7 +30,7 @@
 #include <vector>
 
 CEREAL_REGISTER_TYPE(goom::TentaclesFx)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::VisualFx, goom::TentaclesFx)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::IVisualFx, goom::TentaclesFx)
 
 namespace goom
 {

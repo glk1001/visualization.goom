@@ -1,5 +1,5 @@
-#ifndef _LINES_FX_H
-#define _LINES_FX_H
+#ifndef VISUALIZATION_GOOM_LINES_FX_H
+#define VISUALIZATION_GOOM_LINES_FX_H
 
 /*
  *  lines.h
@@ -51,11 +51,13 @@ public:
           const Pixel& destColor) noexcept;
   ~LinesFx() noexcept;
   LinesFx(const LinesFx&) = delete;
-  LinesFx& operator=(const LinesFx&) = delete;
+  LinesFx(const LinesFx&&) = delete;
+  auto operator=(const LinesFx&) -> LinesFx& = delete;
+  auto operator=(const LinesFx&&) -> LinesFx& = delete;
 
   Pixel getRandomLineColor();
 
-  [[nodiscard]] float getPower() const;
+  [[nodiscard]] auto getPower() const -> float;
   void setPower(float val);
 
   void switchLines(LineType newLineType, float newParam, float newAmplitude, const Pixel& newColor);
@@ -64,9 +66,9 @@ public:
                  PixelBuffer& prevBuff,
                  PixelBuffer& currentBuff);
 
-  [[nodiscard]] std::string getFxName() const;
+  [[nodiscard]] auto getFxName() const -> std::string;
 
-  bool operator==(const LinesFx&) const;
+  auto operator==(const LinesFx& l) const -> bool;
 
 private:
   bool enabled = true;

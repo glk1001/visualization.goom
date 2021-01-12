@@ -18,7 +18,7 @@ class Parallel;
 class PluginInfo;
 class PixelBuffer;
 
-class ConvolveFx : public VisualFx
+class ConvolveFx : public IVisualFx
 {
 public:
   ConvolveFx() noexcept;

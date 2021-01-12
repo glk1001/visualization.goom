@@ -42,7 +42,7 @@
 #include <vector>
 
 CEREAL_REGISTER_TYPE(goom::ZoomFilterFx)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::VisualFx, goom::ZoomFilterFx)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::IVisualFx, goom::ZoomFilterFx)
 
 static constexpr bool serializeBuffers = false;
 
@@ -62,7 +62,7 @@ public:
   void updateEnd();
   void doZoomVector();
   void doZoomVectorCrystalBallMode();
-  void doZoomVectorAmuletteMode();
+  void doZoomVectorAmuletMode();
   void doZoomVectorWaveMode();
   void doZoomVectorScrunchMode();
   void doZoomVectorSpeedwayMode();
@@ -102,7 +102,7 @@ private:
 
   uint64_t numZoomVectors = 0;
   uint64_t numZoomVectorCrystalBallMode = 0;
-  uint64_t numZoomVectorAmuletteMode = 0;
+  uint64_t numZoomVectorAmuletMode = 0;
   uint64_t numZoomVectorWaveMode = 0;
   uint64_t numZoomVectorScrunchMode = 0;
   uint64_t numZoomVectorSpeedwayMode = 0;
@@ -144,7 +144,7 @@ void FilterStats::reset()
 
   numZoomVectors = 0;
   numZoomVectorCrystalBallMode = 0;
-  numZoomVectorAmuletteMode = 0;
+  numZoomVectorAmuletMode = 0;
   numZoomVectorWaveMode = 0;
   numZoomVectorScrunchMode = 0;
   numZoomVectorSpeedwayMode = 0;
@@ -189,7 +189,7 @@ void FilterStats::log(const StatsLogValueFunc& logVal) const
 
   logVal(module, "numZoomVectors", numZoomVectors);
   logVal(module, "numZoomVectorCrystalBallMode", numZoomVectorCrystalBallMode);
-  logVal(module, "numZoomVectorAmuletteMode", numZoomVectorAmuletteMode);
+  logVal(module, "numZoomVectorAmuletMode", numZoomVectorAmuletMode);
   logVal(module, "numZoomVectorWaveMode", numZoomVectorWaveMode);
   logVal(module, "numZoomVectorScrunchMode", numZoomVectorScrunchMode);
   logVal(module, "numZoomVectorSpeedwayMode", numZoomVectorSpeedwayMode);
@@ -251,9 +251,9 @@ inline void FilterStats::doZoomVectorCrystalBallMode()
   numZoomVectorCrystalBallMode++;
 }
 
-inline void FilterStats::doZoomVectorAmuletteMode()
+inline void FilterStats::doZoomVectorAmuletMode()
 {
-  numZoomVectorAmuletteMode++;
+  numZoomVectorAmuletMode++;
 }
 
 inline void FilterStats::doZoomVectorWaveMode()
@@ -1156,9 +1156,9 @@ v2g ZoomFilterFx::ZoomFilterImpl::getZoomVector(const float normX, const float n
       coefVitesse -= filterData.crystalBallAmplitude * (sq_distance(normX, normY) - 0.3f);
       break;
     }
-    case ZoomFilterMode::amuletteMode:
+    case ZoomFilterMode::amuletMode:
     {
-      stats.doZoomVectorAmuletteMode();
+      stats.doZoomVectorAmuletMode();
       coefVitesse += filterData.amuletteAmplitude * sq_distance(normX, normY);
       break;
     }
