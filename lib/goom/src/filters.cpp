@@ -955,30 +955,41 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff, PixelBuffe
 {
   m_stats.DoCZoom();
 
-  const uint32_t tran_ax = (m_screenWidth - 1) << PERTE_DEC;
-  const uint32_t tran_ay = (m_screenHeight - 1) << PERTE_DEC;
+  const uint32_t tranAx = (m_screenWidth - 1) << PERTE_DEC;
+  const uint32_t tranAy = (m_screenHeight - 1) << PERTE_DEC;
 
   const auto setDestPixel = [&](const uint32_t destPos) {
-    const auto tran_px = static_cast<uint32_t>(
+    const auto tranPx = static_cast<uint32_t>(
         m_tranXSrce[destPos] +
         (((m_tranXDest[destPos] - m_tranXSrce[destPos]) * m_tranDiffFactor) >> BUFF_POINT_NUM));
-    const auto tran_py = static_cast<uint32_t>(
+    const auto tranPy = static_cast<uint32_t>(
         m_tranYSrce[destPos] +
         (((m_tranYDest[destPos] - m_tranYSrce[destPos]) * m_tranDiffFactor) >> BUFF_POINT_NUM));
 
-    if ((tran_px >= tran_ax) || (tran_py >= tran_ay))
+    if ((tranPx >= tranAx) || (tranPy >= tranAy))
     {
       m_stats.DoCZoomOutOfRange();
       destBuff(destPos) = Pixel{0U};
     }
     else
     {
-      const uint32_t srcePos = (tran_px >> PERTE_DEC) + m_screenWidth * (tran_py >> PERTE_DEC);
-      // coeff en modulo 15
-      const size_t xIndex = tran_px & PERTE_MASK;
-      const size_t yIndex = tran_py & PERTE_MASK;
-      const CoeffArray coeffs{.intVal = m_precalcCoeffs[xIndex][yIndex]};
+      const auto getSrceInfo = [&]() {
+        /**
+        if ((tranPx >= tranAx) || (tranPy >= tranAy))
+        {
+          m_stats.DoCZoomOutOfRange();
+          const size_t xIndex = getRandInRange(0U, 1U + (tranAx & PERTE_MASK));
+          const size_t yIndex = getRandInRange(0U, 1U + (tranAy & PERTE_MASK));
+          return std::make_tuple(destPos, CoeffArray{.intVal = m_precalcCoeffs[xIndex][yIndex]});
+        }
+         **/
+        const uint32_t srcePos = (tranPx >> PERTE_DEC) + m_screenWidth * (tranPy >> PERTE_DEC);
+        const size_t xIndex = tranPx & PERTE_MASK;
+        const size_t yIndex = tranPy & PERTE_MASK;
+        return std::make_tuple(srcePos, CoeffArray{.intVal = m_precalcCoeffs[xIndex][yIndex]});
+      };
 
+      const auto [srcePos, coeffs] = getSrceInfo();
       const PixelArray colors = {
           srceBuff(srcePos),
           srceBuff(srcePos + 1),
@@ -997,44 +1008,31 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff, PixelBuffe
         m_stats.DoGetMixedColor();
         const Pixel newColor = GetMixedColor(coeffs, colors);
         destBuff(destPos) = newColor;
-
-#ifndef NO_LOGGING
-        if (colors[0].rgba() > 0xFF000000)
-        {
-          logInfo("srcePos == {}", srcePos);
-          logInfo("destPos == {}", destPos);
-          logInfo("tran_px >> perteDec == {}", tran_px >> perteDec);
-          logInfo("tran_py >> perteDec == {}", tran_py >> perteDec);
-          logInfo("tran_px == {}", tran_px);
-          logInfo("tran_py == {}", tran_py);
-          logInfo("tran_px & perteMask == {}", tran_px & perteMask);
-          logInfo("tran_py & perteMask == {}", tran_py & perteMask);
-          logInfo("coeffs[0] == {:x}", coeffs.c[0]);
-          logInfo("coeffs[1] == {:x}", coeffs.c[1]);
-          logInfo("coeffs[2] == {:x}", coeffs.c[2]);
-          logInfo("coeffs[3] == {:x}", coeffs.c[3]);
-          logInfo("colors[0] == {:x}", colors[0].rgba());
-          logInfo("colors[1] == {:x}", colors[1].rgba());
-          logInfo("colors[2] == {:x}", colors[2].rgba());
-          logInfo("colors[3] == {:x}", colors[3].rgba());
-          logInfo("newColor == {:x}", newColor.rgba());
-        }
-#endif
       }
+#ifndef NO_LOGGING
+      if (colors[0].rgba() > 0xFF000000)
+      {
+        logInfo("srcePos == {}", srcePos);
+        logInfo("destPos == {}", destPos);
+        logInfo("tranPx >> perteDec == {}", tranPx >> perteDec);
+        logInfo("tranPy >> perteDec == {}", tranPy >> perteDec);
+        logInfo("tranPx == {}", tranPx);
+        logInfo("tranPy == {}", tranPy);
+        logInfo("tranPx & perteMask == {}", tranPx & perteMask);
+        logInfo("tranPy & perteMask == {}", tranPy & perteMask);
+        logInfo("coeffs[0] == {:x}", coeffs.c[0]);
+        logInfo("coeffs[1] == {:x}", coeffs.c[1]);
+        logInfo("coeffs[2] == {:x}", coeffs.c[2]);
+        logInfo("coeffs[3] == {:x}", coeffs.c[3]);
+        logInfo("colors[0] == {:x}", colors[0].rgba());
+        logInfo("colors[1] == {:x}", colors[1].rgba());
+        logInfo("colors[2] == {:x}", colors[2].rgba());
+        logInfo("colors[3] == {:x}", colors[3].rgba());
+        logInfo("newColor == {:x}", newColor.rgba());
+      }
+#endif
     }
   };
-
-  /**
-  static std::vector<uint32_t> getIndexArray(const size_t bufferSize)
-  {
-    std::vector<uint32_t> vec(bufferSize);
-    std::iota(vec.begin(), vec.end(), 0);
-    return vec;
-  }
-
-  static const std::vector<uint32_t> indexArray{getIndexArray(bufferSize)};
-  std::for_each(std::execution::par_unseq, indexArray.begin(), indexArray.end(), setDestPixel);
-  **/
 
   m_parallel->forLoop(m_bufferSize, setDestPixel);
 }
