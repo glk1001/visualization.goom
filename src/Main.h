@@ -91,7 +91,7 @@ private:
   auto InitGlObjects() -> bool;
   void InitQuadData();
   auto GetNextActivePixels() -> std::shared_ptr<goom::PixelBuffer>;
-  void PushUsedPixels(std::shared_ptr<goom::PixelBuffer> pixels);
+  void PushUsedPixels(const std::shared_ptr<goom::PixelBuffer>& pixels);
 
   int m_texWidth = GOOM_TEXTURE_WIDTH;
   int m_texHeight = GOOM_TEXTURE_HEIGHT;

@@ -94,12 +94,12 @@ auto CVisualizationGoom::Start(int iChannels,
     return true;
   }
 
-  static const auto f_kodi_log = [](const Logging::LogLevel lvl, const std::string& s) {
+  static const auto s_fKodiLog = [](const Logging::LogLevel lvl, const std::string& s) {
     const auto kodiLvl =
         static_cast<AddonLog>(static_cast<size_t>(lvl) + 1); // map 'info' to 'notice'
     kodi::Log(kodiLvl, s.c_str());
   };
-  addLogHandler("kodi-logger", f_kodi_log);
+  addLogHandler("kodi-logger", s_fKodiLog);
   setLogFile("/tmp/kodi_goom.log");
   setLogLevelForFiles(Logging::LogLevel::info);
   //  setLogLevelForFiles(Logging::LogLevel::debug);
@@ -165,7 +165,9 @@ void CVisualizationGoom::Stop()
     m_wait.notify_one();
   }
   if (m_workerThread.joinable())
+  {
     m_workerThread.join();
+  }
 
   kodi::Log(ADDON_LOG_NOTICE, "Stop: Processed buffers thread stopped.");
 
@@ -211,7 +213,7 @@ void CVisualizationGoom::AudioData(const float* pAudioData,
     return;
   }
 
-  m_buffer.write(pAudioData, iAudioDataLength);
+  (void)m_buffer.write(pAudioData, iAudioDataLength);
   m_wait.notify_one();
 }
 
@@ -222,15 +224,23 @@ auto CVisualizationGoom::UpdateTrack(const VisTrack& track) -> bool
     m_lastSongName = m_currentSongName;
     std::string artist = track.artist;
     if (artist.empty())
+    {
       artist = track.albumArtist;
+    }
     std::string title;
     if (!artist.empty())
+    {
       m_currentSongName = artist + " - " + track.title;
+    }
     else
+    {
       m_currentSongName = track.title;
+    }
 
     if (m_lastSongName != m_currentSongName)
+    {
       m_titleChange = true;
+    }
 
     m_showTitleAlways = kodi::GetSettingBoolean("show_title_always");
   }
@@ -286,11 +296,11 @@ void CVisualizationGoom::Render()
 
       // Bind to next PBO and update data directly on the mapped buffer.
       glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pboIds[nextPboIndex]);
-      std::memcpy(m_pboGoomBuffer[nextPboIndex],
-                  std::const_pointer_cast<const PixelBuffer>(pixels)->GetIntBuff(),
-                  m_goomBufferSize);
+      (void)std::memcpy(m_pboGoomBuffer[nextPboIndex],
+                        std::const_pointer_cast<const PixelBuffer>(pixels)->GetIntBuff(),
+                        m_goomBufferSize);
 
-      glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER); // release pointer to mapping buffer
+      (void)glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER); // release pointer to mapping buffer
       glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
     }
     else
@@ -303,7 +313,7 @@ void CVisualizationGoom::Render()
     PushUsedPixels(pixels);
   }
 
-  EnableShader();
+  (void)EnableShader();
   glDrawArrays(GL_TRIANGLE_FAN, 0, 6);
   DisableShader();
 
@@ -333,7 +343,7 @@ inline auto CVisualizationGoom::GetNextActivePixels() -> std::shared_ptr<PixelBu
   return pixels;
 }
 
-inline void CVisualizationGoom::PushUsedPixels(std::shared_ptr<PixelBuffer> pixels)
+inline void CVisualizationGoom::PushUsedPixels(const std::shared_ptr<PixelBuffer>& pixels)
 {
   std::lock_guard<std::mutex> lk(m_mutex);
   m_storedQueue.push(pixels);
@@ -442,10 +452,10 @@ void CVisualizationGoom::UpdateGoomBuffer(const char* title,
 
 void CVisualizationGoom::InitQuadData()
 {
-  GLfloat x0 = m_windowXPos;
-  GLfloat y0 = m_windowYPos;
-  GLfloat x1 = m_windowXPos + m_windowWidth;
-  GLfloat y1 = m_windowYPos + m_windowHeight;
+  auto x0 = static_cast<GLfloat>(this->m_windowXPos);
+  auto y0 = static_cast<GLfloat>(this->m_windowYPos);
+  auto x1 = static_cast<GLfloat>(this->m_windowXPos + this->m_windowWidth);
+  auto y1 = static_cast<GLfloat>(this->m_windowYPos + this->m_windowHeight);
   // clang-format off
   const GLfloat tempQuadData[] =
   {
@@ -471,7 +481,7 @@ void CVisualizationGoom::InitQuadData()
   for (int i = 0; i < m_numElements; i++)
   {
     m_quadData[i] = tempQuadData[i];
-  };
+  }
   m_componentsPerVertex = 2;
   m_componentsPerTexel = 2;
   m_numVertices = 2 * 3; // 2 triangles
@@ -480,7 +490,8 @@ void CVisualizationGoom::InitQuadData()
 
 auto CVisualizationGoom::InitGlObjects() -> bool
 {
-  m_projModelMatrix = glm::ortho(0.0f, float(Width()), 0.0f, float(Height()));
+  m_projModelMatrix =
+      glm::ortho(0.0F, static_cast<float>(Width()), 0.0F, static_cast<float>(Height()));
 
   // Setup vertex attributes
 #ifdef HAS_GL
@@ -516,7 +527,8 @@ auto CVisualizationGoom::InitGlObjects() -> bool
 #ifdef HAS_GL
   glGenerateMipmap(GL_TEXTURE_2D);
 #endif
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_texWidth, m_texHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_texWidth, m_texHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+               nullptr);
   glBindTexture(GL_TEXTURE_2D, 0);
 
 #ifdef HAS_GL
@@ -544,7 +556,7 @@ auto CVisualizationGoom::InitGlObjects() -> bool
         return false;
       }
     }
-    glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER); // release pointer to mapping buffer
+    (void)glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER); // release pointer to mapping buffer
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
   }
 #endif
