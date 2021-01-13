@@ -1531,7 +1531,7 @@ void GoomControl::GoomControlImpl::update(const AudioSamples& soundData,
   changeZoomEffect(pzfd, forceMode);
 
   // Zoom here!
-  visualFx.zoomFilter_fx->zoomFilterFastRGB(imageBuffers.getP1(), imageBuffers.getP2(), pzfd,
+  visualFx.zoomFilter_fx->ZoomFilterFastRgb(imageBuffers.getP1(), imageBuffers.getP2(), pzfd,
                                             goomData.switchIncr, goomData.switchMult);
 
   // applyDotsIfRequired();
@@ -1680,17 +1680,17 @@ void GoomControl::GoomControlImpl::setNextFilterMode()
   //  goomData.zoomFilterData.noisify = false;
   //  goomData.zoomFilterData.noiseFactor = 1;
   //  goomData.zoomFilterData.blockyWavy = false;
-  goomData.zoomFilterData.waveFreqFactor = ZoomFilterData::defaultWaveFreqFactor;
-  goomData.zoomFilterData.waveAmplitude = ZoomFilterData::defaultWaveAmplitude;
-  goomData.zoomFilterData.waveEffectType = ZoomFilterData::defaultWaveEffectType;
-  goomData.zoomFilterData.scrunchAmplitude = ZoomFilterData::defaultScrunchAmplitude;
-  goomData.zoomFilterData.speedwayAmplitude = ZoomFilterData::defaultSpeedwayAmplitude;
-  goomData.zoomFilterData.amuletteAmplitude = ZoomFilterData::defaultAmuletteAmplitude;
-  goomData.zoomFilterData.crystalBallAmplitude = ZoomFilterData::defaultCrystalBallAmplitude;
-  goomData.zoomFilterData.hypercosFreq = ZoomFilterData::defaultHypercosFreq;
-  goomData.zoomFilterData.hypercosAmplitude = ZoomFilterData::defaultHypercosAmplitude;
-  goomData.zoomFilterData.hPlaneEffectAmplitude = ZoomFilterData::defaultHPlaneEffectAmplitude;
-  goomData.zoomFilterData.vPlaneEffectAmplitude = ZoomFilterData::defaultVPlaneEffectAmplitude;
+  goomData.zoomFilterData.waveFreqFactor = ZoomFilterData::DEFAULT_WAVE_FREQ_FACTOR;
+  goomData.zoomFilterData.waveAmplitude = ZoomFilterData::DEFAULT_WAVE_AMPLITUDE;
+  goomData.zoomFilterData.waveEffectType = ZoomFilterData::DEFAULT_WAVE_EFFECT_TYPE;
+  goomData.zoomFilterData.scrunchAmplitude = ZoomFilterData::DEFAULT_SCRUNCH_AMPLITUDE;
+  goomData.zoomFilterData.speedwayAmplitude = ZoomFilterData::DEFAULT_SPEEDWAY_AMPLITUDE;
+  goomData.zoomFilterData.amuletteAmplitude = ZoomFilterData::DEFAULT_AMULET_AMPLITUDE;
+  goomData.zoomFilterData.crystalBallAmplitude = ZoomFilterData::DEFAULT_CRYSTAL_BALL_AMPLITUDE;
+  goomData.zoomFilterData.hypercosFreq = ZoomFilterData::DEFAULT_HYPERCOS_FREQ;
+  goomData.zoomFilterData.hypercosAmplitude = ZoomFilterData::DEFAULT_HYPERCOS_AMPLITUDE;
+  goomData.zoomFilterData.hPlaneEffectAmplitude = ZoomFilterData::DEFAULT_H_PLANE_EFFECT_AMPLITUDE;
+  goomData.zoomFilterData.vPlaneEffectAmplitude = ZoomFilterData::DEFAULT_V_PLANE_EFFECT_AMPLITUDE;
 
   switch (goomEvent.getRandomFilterEvent())
   {
@@ -1700,7 +1700,7 @@ void GoomControl::GoomControlImpl::setNextFilterMode()
     case GoomFilterEvent::speedwayMode:
       goomData.zoomFilterData.mode = ZoomFilterMode::speedwayMode;
       goomData.zoomFilterData.speedwayAmplitude = getRandInRange(
-          ZoomFilterData::minSpeedwayAmplitude, ZoomFilterData::maxSpeedwayAmplitude);
+          ZoomFilterData::MIN_SPEEDWAY_AMPLITUDE, ZoomFilterData::MAX_SPEEDWAY_AMPLITUDE);
       break;
     case GoomFilterEvent::normalMode:
       goomData.zoomFilterData.mode = ZoomFilterMode::normalMode;
@@ -1723,22 +1723,22 @@ void GoomControl::GoomControlImpl::setNextFilterMode()
       {
         // BUG HERE - wrong ranges - BUT GIVES GOOD AFFECT
         goomData.zoomFilterData.waveAmplitude = getRandInRange(
-            ZoomFilterData::minLargeWaveAmplitude, ZoomFilterData::maxLargeWaveAmplitude);
+            ZoomFilterData::MIN_LARGE_WAVE_AMPLITUDE, ZoomFilterData::MAX_LARGE_WAVE_AMPLITUDE);
         goomData.zoomFilterData.waveFreqFactor = getRandInRange(
-            ZoomFilterData::minWaveSmallFreqFactor, ZoomFilterData::maxWaveSmallFreqFactor);
+            ZoomFilterData::MIN_WAVE_SMALL_FREQ_FACTOR, ZoomFilterData::MAX_WAVE_SMALL_FREQ_FACTOR);
       }
       else
       {
         goomData.zoomFilterData.waveAmplitude =
-            getRandInRange(ZoomFilterData::minWaveAmplitude, ZoomFilterData::maxWaveAmplitude);
-        goomData.zoomFilterData.waveFreqFactor =
-            getRandInRange(ZoomFilterData::minWaveFreqFactor, ZoomFilterData::maxWaveFreqFactor);
+            getRandInRange(ZoomFilterData::MIN_WAVE_AMPLITUDE, ZoomFilterData::MAX_WAVE_AMPLITUDE);
+        goomData.zoomFilterData.waveFreqFactor = getRandInRange(
+            ZoomFilterData::MIN_WAVE_FREQ_FACTOR, ZoomFilterData::MAX_WAVE_FREQ_FACTOR);
       }
       break;
     case GoomFilterEvent::crystalBallMode:
       goomData.zoomFilterData.mode = ZoomFilterMode::crystalBallMode;
       goomData.zoomFilterData.crystalBallAmplitude = getRandInRange(
-          ZoomFilterData::minCrystalBallAmplitude, ZoomFilterData::maxCrystalBallAmplitude);
+          ZoomFilterData::MIN_CRYSTAL_BALL_AMPLITUDE, ZoomFilterData::MAX_CRYSTAL_BALL_AMPLITUDE);
       break;
     case GoomFilterEvent::crystalBallModeWithEffects:
       goomData.zoomFilterData.mode = ZoomFilterMode::crystalBallMode;
@@ -1747,27 +1747,27 @@ void GoomControl::GoomControlImpl::setNextFilterMode()
       goomData.zoomFilterData.hypercosEffect =
           getHypercosEffect(goomEvent.happens(GoomEvent::hypercosEffectOnWithCrystalBallMode));
       goomData.zoomFilterData.crystalBallAmplitude = getRandInRange(
-          ZoomFilterData::minCrystalBallAmplitude, ZoomFilterData::maxCrystalBallAmplitude);
+          ZoomFilterData::MIN_CRYSTAL_BALL_AMPLITUDE, ZoomFilterData::MAX_CRYSTAL_BALL_AMPLITUDE);
       break;
     case GoomFilterEvent::amuletMode:
       goomData.zoomFilterData.mode = ZoomFilterMode::amuletMode;
       goomData.zoomFilterData.amuletteAmplitude = getRandInRange(
-          ZoomFilterData::minAmuletteAmplitude, ZoomFilterData::maxAmuletteAmplitude);
+          ZoomFilterData::MIN_AMULET_AMPLITUDE, ZoomFilterData::MAX_AMULET_AMPLITUDE);
       break;
     case GoomFilterEvent::waterMode:
       goomData.zoomFilterData.mode = ZoomFilterMode::waterMode;
       break;
     case GoomFilterEvent::scrunchMode:
       goomData.zoomFilterData.mode = ZoomFilterMode::scrunchMode;
-      goomData.zoomFilterData.scrunchAmplitude =
-          getRandInRange(ZoomFilterData::minScrunchAmplitude, ZoomFilterData::maxScrunchAmplitude);
+      goomData.zoomFilterData.scrunchAmplitude = getRandInRange(
+          ZoomFilterData::MIN_SCRUNCH_AMPLITUDE, ZoomFilterData::MAX_SCRUNCH_AMPLITUDE);
       break;
     case GoomFilterEvent::scrunchModeWithEffects:
       goomData.zoomFilterData.mode = ZoomFilterMode::scrunchMode;
       goomData.zoomFilterData.waveEffect = true;
       goomData.zoomFilterData.hypercosEffect = getHypercosEffect(true);
-      goomData.zoomFilterData.scrunchAmplitude =
-          getRandInRange(ZoomFilterData::minScrunchAmplitude, ZoomFilterData::maxScrunchAmplitude);
+      goomData.zoomFilterData.scrunchAmplitude = getRandInRange(
+          ZoomFilterData::MIN_SCRUNCH_AMPLITUDE, ZoomFilterData::MAX_SCRUNCH_AMPLITUDE);
       break;
     case GoomFilterEvent::hyperCos1Mode:
       goomData.zoomFilterData.mode = ZoomFilterMode::hyperCos1Mode;
@@ -1786,9 +1786,9 @@ void GoomControl::GoomControlImpl::setNextFilterMode()
   if (goomData.zoomFilterData.hypercosEffect != ZoomFilterData::HypercosEffect::none)
   {
     goomData.zoomFilterData.hypercosFreq =
-        getRandInRange(ZoomFilterData::minHypercosFreq, ZoomFilterData::maxHypercosFreq);
-    goomData.zoomFilterData.hypercosAmplitude =
-        getRandInRange(ZoomFilterData::minHypercosAmplitude, ZoomFilterData::maxHypercosAmplitude);
+        getRandInRange(ZoomFilterData::MIN_HYPERCOS_FREQ, ZoomFilterData::MAX_HYPERCOS_FREQ);
+    goomData.zoomFilterData.hypercosAmplitude = getRandInRange(
+        ZoomFilterData::MIN_HYPERCOS_AMPLITUDE, ZoomFilterData::MAX_HYPERCOS_AMPLITUDE);
   }
 
   if (goomData.zoomFilterData.mode == ZoomFilterMode::amuletMode)
@@ -1966,7 +1966,7 @@ void GoomControl::GoomControlImpl::changeMilieu()
       throw std::logic_error("Unknown MiddlePointEvents enum.");
   }
   goomData.zoomFilterData.hPlaneEffectAmplitude = getRandInRange(
-      ZoomFilterData::minHPlaneEffectAmplitude, ZoomFilterData::maxHPlaneEffectAmplitude);
+      ZoomFilterData::MIN_H_PLANE_EFFECT_AMPLITUDE, ZoomFilterData::MAX_H_PLANE_EFFECT_AMPLITUDE);
   // I think 'vPlaneEffectAmplitude' has to be the same as 'hPlaneEffectAmplitude' otherwise
   //   buffer breaking effects occur.
   goomData.zoomFilterData.vPlaneEffectAmplitude =

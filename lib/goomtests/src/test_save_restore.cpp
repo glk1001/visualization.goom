@@ -116,7 +116,7 @@ TEST_CASE("save/restore filter", "[saveRestoreFilter]")
   const float switchMult = 1;
   for (size_t i = 0; i < 100; i++)
   {
-    filterFx.zoomFilterFastRGB(*prevBuff, *currentBuff, zf, switchIncr, switchMult);
+    filterFx.ZoomFilterFastRgb(*prevBuff, *currentBuff, zf, switchIncr, switchMult);
   }
   std::stringstream ss;
   {
