@@ -351,8 +351,8 @@ void CVisualizationGoom::Process()
     kodi::Log(ADDON_LOG_FATAL, "CVisualizationGoom: Goom could not be initialized!");
     return;
   }
-  m_goomControl->setFontFile(kodi::GetAddonPath("UbuntuMono-Regular.ttf"));
-  m_goomControl->start();
+  m_goomControl->SetFontFile(kodi::GetAddonPath("UbuntuMono-Regular.ttf"));
+  m_goomControl->Start();
 
   float floatAudioData[m_audioBufferLen];
   const char* title = nullptr;
@@ -428,7 +428,7 @@ void CVisualizationGoom::Process()
     lk.unlock();
   }
 
-  m_goomControl->finish();
+  m_goomControl->Finish();
 }
 
 void CVisualizationGoom::UpdateGoomBuffer(const char* title,
@@ -436,8 +436,8 @@ void CVisualizationGoom::UpdateGoomBuffer(const char* title,
                                           std::shared_ptr<PixelBuffer>& pixels)
 {
   const goom::AudioSamples audioData{m_channels, floatAudioData};
-  m_goomControl->setScreenBuffer(*pixels);
-  m_goomControl->update(audioData, 0, 0.0f, title, "");
+  m_goomControl->SetScreenBuffer(*pixels);
+  m_goomControl->Update(audioData, 0, 0.0F, title, "");
 }
 
 void CVisualizationGoom::InitQuadData()

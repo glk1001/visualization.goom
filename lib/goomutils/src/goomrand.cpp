@@ -24,7 +24,7 @@ const uint32_t randMax = (xoshiro256plus64::max() > std::numeric_limits<uint32_t
 
 // NOTE: C++ std::uniform_int_distribution is too expensive (about double) so we use Xoshiro
 //   and multiplication/shift technique. For timings, see tests/test_goomrand.cpp.
-// thread_local xoshiro256starstar64 eng { getRandSeed() };
+// thread_local xoshiro256starstar64 eng { GetRandSeed() };
 
 thread_local uint64_t randSeed = std::random_device{}();
 thread_local xoshiro256plus64 xoshiroEng{getRandSeed()};
@@ -49,7 +49,7 @@ inline uint32_t randXoshiroFunc(const uint32_t n0, const uint32_t n1)
 
 inline uint32_t randSplitmixFunc(const uint32_t n0, const uint32_t n1)
 {
-  // thread_local splitmix32 eng { getRandSeed() };
+  // thread_local splitmix32 eng { GetRandSeed() };
   thread_local splitmix64 eng{getRandSeed()};
   const uint32_t x = eng();
   const uint64_t m = (static_cast<uint64_t>(x) * static_cast<uint64_t>(n1 - n0)) >> 32;

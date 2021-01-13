@@ -1,5 +1,5 @@
-#ifndef _GOOM_CONTROL_H
-#define _GOOM_CONTROL_H
+#ifndef VISUALIZATION_GOOM_GOOM_CONTROL_H
+#define VISUALIZATION_GOOM_GOOM_CONTROL_H
 
 #include "goom_config.h"
 
@@ -19,19 +19,23 @@ class PixelBuffer;
 class GoomControl
 {
 public:
-  static uint64_t getRandSeed();
-  static void setRandSeed(uint64_t seed);
+  static auto GetRandSeed() -> uint64_t;
+  static void SetRandSeed(uint64_t seed);
 
   GoomControl() noexcept;
   GoomControl(uint32_t resx, uint32_t resy) noexcept;
   ~GoomControl() noexcept;
+  GoomControl(const GoomControl&) noexcept = delete;
+  GoomControl(const GoomControl&&) noexcept = delete;
+  auto operator=(const GoomControl&) -> GoomControl& = delete;
+  auto operator=(const GoomControl&&) -> GoomControl& = delete;
 
-  void saveState(std::ostream&) const;
-  void restoreState(std::istream&);
+  void SaveState(std::ostream& s) const;
+  void RestoreState(std::istream& s);
 
-  void setScreenBuffer(PixelBuffer&);
-  void setFontFile(const std::string&);
-  void start();
+  void SetScreenBuffer(PixelBuffer& buff);
+  void SetFontFile(const std::string& f);
+  void Start();
 
   /*
    * Update the next goom frame
@@ -44,16 +48,16 @@ public:
    *      - NULL if it is not the start of the song
    *      - only have a value at the start of the song
    */
-  void update(
-      const AudioSamples&, int forceMode, float fps, const char* songTitle, const char* message);
+  void Update(
+      const AudioSamples& s, int forceMode, float fps, const char* songTitle, const char* message);
 
-  void finish();
+  void Finish();
 
-  bool operator==(const GoomControl&) const;
+  auto operator==(const GoomControl&) const -> bool;
 
 private:
   class GoomControlImpl;
-  std::unique_ptr<GoomControlImpl> controller;
+  std::unique_ptr<GoomControlImpl> m_controller;
 
   friend class cereal::access;
   template<class Archive>

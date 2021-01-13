@@ -1,5 +1,5 @@
-#ifndef _GOOM_CONFIG_H
-#define _GOOM_CONFIG_H
+#ifndef VISUALIZATION_GOOM_GOOM_CONFIG_H
+#define VISUALIZATION_GOOM_GOOM_CONFIG_H
 
 #include <cstdint>
 #include <functional>

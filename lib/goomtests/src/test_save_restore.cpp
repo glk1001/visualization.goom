@@ -319,15 +319,15 @@ TEST_CASE("save/restore goom control", "[saveRestoreGoomControl]")
   std::unique_ptr<PixelBuffer> outputBuff{getNewBuffer()};
 
   constexpr uint64_t seed = 10;
-  GoomControl::setRandSeed(seed);
+  GoomControl::SetRandSeed(seed);
   GoomControl goomControl{screenWidth, screenHeight};
-  goomControl.setScreenBuffer(*outputBuff);
+  goomControl.SetScreenBuffer(*outputBuff);
   std::vector<float> soundData(NUM_AUDIO_SAMPLES * AUDIO_SAMPLE_LEN);
   std::fill(soundData.begin(), soundData.end(), 0.5);
   const AudioSamples audioSamples{2, soundData.data()};
   for (size_t i = 0; i < 100; i++)
   {
-    goomControl.update(audioSamples, 0, 0.0F, "Hello Test", "");
+    goomControl.Update(audioSamples, 0, 0.0F, "Hello Test", "");
   }
   std::stringstream ss;
   {
@@ -341,7 +341,7 @@ TEST_CASE("save/restore goom control", "[saveRestoreGoomControl]")
   {
     cereal::JSONInputArchive archive(ss);
     archive(goomControlRestored);
-    goomControlRestored.setScreenBuffer(*outputBuff);
+    goomControlRestored.SetScreenBuffer(*outputBuff);
   }
   std::stringstream ssCheck;
   {
