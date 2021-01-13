@@ -1038,7 +1038,7 @@ template <typename Char> struct fill_t {
   FMT_CONSTEXPR void operator=(basic_string_view<Char> s) {
     auto size = s.size();
     if (size > max_size) {
-      FMT_THROW(format_error("invalid fill"));
+      FMT_THROW(format_error("invalid Fill"));
       return;
     }
     for (size_t i = 0; i < size; ++i) data_[i] = s[i];
@@ -2515,7 +2515,7 @@ FMT_CONSTEXPR const Char* parse_align(const Char* begin, const Char* end,
       if (p != begin) {
         auto c = *begin;
         if (c == '{')
-          return handler.on_error("invalid fill character '{'"), begin;
+          return handler.on_error("invalid Fill character '{'"), begin;
         handler.on_fill(basic_string_view<Char>(begin, to_unsigned(p - begin)));
         begin = p + 1;
       } else

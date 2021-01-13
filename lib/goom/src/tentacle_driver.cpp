@@ -470,8 +470,8 @@ void TentacleDriver::update(const float angle,
 
     logDebug("Update num = {}, tentacle = {}, doing plot with angle = {}, "
              "distance = {}, distance2 = {}, color = {:x} and colorLow = {:x}.",
-             updateNum, tentacle2D.getID(), angle, distance, distance2, color.rgba(),
-             colorLow.rgba());
+             updateNum, tentacle2D.getID(), angle, distance, distance2, color.Rgba(),
+             colorLow.Rgba());
     logDebug("tentacle head = ({:.2f}, {:.2f}, {:.2f}).", tentacle.getHead().x,
              tentacle.getHead().y, tentacle.getHead().z);
 
@@ -596,9 +596,9 @@ else if (0 <= tentacle.getHead().x && tentacle.getHead().x < 10)
       const std::vector<Pixel> colors{color, colorLow};
 
       logDebug("draw_line {}: dominantColor = {:#x}, dominantColorLow = {:#x}.", nodeNum,
-               dominantColor.rgba(), dominantColorLow.rgba());
+               dominantColor.Rgba(), dominantColorLow.Rgba());
       logDebug("draw_line {}: color = {:#x}, colorLow = {:#x}, brightnessCut = {:.2f}.", nodeNum,
-               color.rgba(), colorLow.rgba(), brightnessCut);
+               color.Rgba(), colorLow.Rgba(), brightnessCut);
 
       // TODO buff right way around ??????????????????????????????????????????????????????????????
       std::vector<PixelBuffer*> buffs{&currentBuff, &nextBuff};

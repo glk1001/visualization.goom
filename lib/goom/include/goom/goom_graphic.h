@@ -85,24 +85,23 @@ class Pixel
 
 public:
   Pixel();
-  explicit Pixel(const Channels&);
+  explicit Pixel(const Channels& c);
   explicit Pixel(uint32_t val);
-  explicit Pixel(const uint8_t cop[4]);
 
-  [[nodiscard]] uint8_t r() const;
-  [[nodiscard]] uint8_t g() const;
-  [[nodiscard]] uint8_t b() const;
-  [[nodiscard]] uint8_t a() const;
+  [[nodiscard]] auto R() const -> uint8_t;
+  [[nodiscard]] auto G() const -> uint8_t;
+  [[nodiscard]] auto B() const -> uint8_t;
+  [[nodiscard]] auto A() const -> uint8_t;
 
-  void set_r(uint8_t c);
-  void set_g(uint8_t c);
-  void set_b(uint8_t c);
-  void set_a(uint8_t c);
+  void SetR(uint8_t c);
+  void SetG(uint8_t c);
+  void SetB(uint8_t c);
+  void SetA(uint8_t c);
 
-  [[nodiscard]] uint32_t rgba() const;
-  void set_rgba(uint32_t v);
+  [[nodiscard]] auto Rgba() const -> uint32_t;
+  void SetRgba(uint32_t v);
 
-  bool operator==(const Pixel&) const;
+  auto operator==(const Pixel& p) const -> bool;
 
   template<class Archive>
   void serialize(Archive&);
@@ -113,7 +112,7 @@ private:
     Channels channels;
     uint32_t intVal;
   };
-  Color color;
+  Color m_color;
 };
 
 class PixelBuffer
@@ -123,189 +122,191 @@ public:
   ~PixelBuffer() noexcept = default;
 
   PixelBuffer(const PixelBuffer&) = delete;
-  PixelBuffer& operator=(const PixelBuffer&) = delete;
+  PixelBuffer(const PixelBuffer&&) = delete;
+  auto operator=(const PixelBuffer&) -> PixelBuffer& = delete;
+  auto operator=(const PixelBuffer&&) -> PixelBuffer& = delete;
 
-  [[nodiscard]] uint32_t getWidth() const;
-  [[nodiscard]] uint32_t getHeight() const;
-  [[nodiscard]] uint32_t getBuffLen() const;
-  [[nodiscard]] size_t getBuffSize() const;
+  [[nodiscard]] auto GetWidth() const -> uint32_t;
+  [[nodiscard]] auto GetHeight() const -> uint32_t;
+  [[nodiscard]] auto GetBuffLen() const -> uint32_t;
+  [[nodiscard]] auto GetBuffSize() const -> size_t;
 
-  void fill(const Pixel&);
-  void copyTo(PixelBuffer&, uint32_t length) const;
-  [[nodiscard]] const uint32_t* getIntBuff() const;
+  void Fill(const Pixel& c);
+  void CopyTo(PixelBuffer& buff, uint32_t length) const;
+  [[nodiscard]] auto GetIntBuff() const -> const uint32_t*;
 
-  const Pixel& operator()(size_t pos) const;
-  Pixel& operator()(size_t pos);
+  auto operator()(size_t pos) const -> const Pixel&;
+  auto operator()(size_t pos) -> Pixel&;
 
-  const Pixel& operator()(size_t x, size_t y) const;
-  Pixel& operator()(size_t x, size_t y);
+  auto operator()(size_t x, size_t y) const -> const Pixel&;
+  auto operator()(size_t x, size_t y) -> Pixel&;
 
 private:
-  const uint32_t width;
-  const uint32_t height;
-  const size_t buffSize;
-  std::vector<Pixel> buff;
+  const uint32_t m_width;
+  const uint32_t m_height;
+  const size_t m_buffSize;
+  std::vector<Pixel> m_buff;
 
-  [[nodiscard]] uint32_t* getIntBuff();
+  [[nodiscard]] auto GetIntBuff() -> uint32_t*;
 
-  void copyTo(uint32_t* intBuff, uint32_t length) const;
-  void copyFrom(const uint32_t* intBuff, uint32_t length);
+  void CopyTo(uint32_t* intBuff, uint32_t length) const;
+  void CopyFrom(const uint32_t* intBuff, uint32_t length);
 };
 
 template<class Archive>
 void Pixel::serialize(Archive& ar)
 {
-  ar(color.intVal);
+  ar(m_color.intVal);
 }
 
-inline Pixel::Pixel() : color{.channels{}}
+inline Pixel::Pixel() : m_color{.channels{}}
 {
 }
 
-inline Pixel::Pixel(const Channels& c) : color{.channels{c}}
+inline Pixel::Pixel(const Channels& c) : m_color{.channels{c}}
 {
 }
 
-inline Pixel::Pixel(const uint32_t v) : color{.intVal{v}}
+inline Pixel::Pixel(const uint32_t v) : m_color{.intVal{v}}
 {
 }
 
-inline bool Pixel::operator==(const Pixel& p) const
+inline auto Pixel::operator==(const Pixel& p) const -> bool
 {
-  return rgba() == p.rgba();
+  return Rgba() == p.Rgba();
 }
 
-inline uint8_t Pixel::r() const
+inline auto Pixel::R() const -> uint8_t
 {
-  return color.channels.r;
+  return m_color.channels.r;
 }
 
-inline void Pixel::set_r(const uint8_t c)
+inline void Pixel::SetR(uint8_t c)
 {
-  color.channels.r = c;
+  m_color.channels.r = c;
 }
 
-inline uint8_t Pixel::g() const
+inline auto Pixel::G() const -> uint8_t
 {
-  return color.channels.g;
+  return m_color.channels.g;
 }
 
-inline void Pixel::set_g(const uint8_t c)
+inline void Pixel::SetG(uint8_t c)
 {
-  color.channels.g = c;
+  m_color.channels.g = c;
 }
 
-inline uint8_t Pixel::b() const
+inline auto Pixel::B() const -> uint8_t
 {
-  return color.channels.b;
+  return m_color.channels.b;
 }
 
-inline void Pixel::set_b(const uint8_t c)
+inline void Pixel::SetB(uint8_t c)
 {
-  color.channels.b = c;
+  m_color.channels.b = c;
 }
 
-inline uint8_t Pixel::a() const
+inline auto Pixel::A() const -> uint8_t
 {
-  return color.channels.a;
+  return m_color.channels.a;
 }
 
-inline void Pixel::set_a(const uint8_t c)
+inline void Pixel::SetA(uint8_t c)
 {
-  color.channels.a = c;
+  m_color.channels.a = c;
 }
 
-inline uint32_t Pixel::rgba() const
+inline auto Pixel::Rgba() const -> uint32_t
 {
-  return color.intVal;
+  return m_color.intVal;
 }
 
-inline void Pixel::set_rgba(const uint32_t v)
+inline void Pixel::SetRgba(uint32_t v)
 {
-  color.intVal = v;
+  m_color.intVal = v;
 }
 
 inline PixelBuffer::PixelBuffer(const uint32_t w, const uint32_t h) noexcept
-  : width{w},
-    height{h},
-    buffSize{static_cast<size_t>(width) * static_cast<size_t>(height) * sizeof(Pixel)},
-    buff(width * height)
+  : m_width{w},
+    m_height{h},
+    m_buffSize{static_cast<size_t>(m_width) * static_cast<size_t>(m_height) * sizeof(Pixel)},
+    m_buff(m_width * m_height)
 {
 }
 
-inline uint32_t PixelBuffer::getWidth() const
+inline auto PixelBuffer::GetWidth() const -> uint32_t
 {
-  return width;
+  return m_width;
 }
 
-inline uint32_t PixelBuffer::getHeight() const
+inline auto PixelBuffer::GetHeight() const -> uint32_t
 {
-  return height;
+  return m_height;
 }
 
-inline uint32_t PixelBuffer::getBuffLen() const
+inline auto PixelBuffer::GetBuffLen() const -> uint32_t
 {
-  return width * height;
+  return m_width * m_height;
 }
 
-inline size_t PixelBuffer::getBuffSize() const
+inline auto PixelBuffer::GetBuffSize() const -> size_t
 {
-  return buffSize;
+  return m_buffSize;
 }
 
-inline void PixelBuffer::fill(const Pixel& color)
+inline void PixelBuffer::Fill(const Pixel& c)
 {
-  std::fill(buff.begin(), buff.end(), color);
+  std::fill(m_buff.begin(), m_buff.end(), c);
 }
 
-inline const uint32_t* PixelBuffer::getIntBuff() const
+inline auto PixelBuffer::GetIntBuff() const -> const uint32_t*
 {
-  return reinterpret_cast<const uint32_t*>(buff.data());
+  return reinterpret_cast<const uint32_t*>(m_buff.data());
 }
 
-inline uint32_t* PixelBuffer::getIntBuff()
+inline auto PixelBuffer::GetIntBuff() -> uint32_t*
 {
-  return reinterpret_cast<uint32_t*>(buff.data());
+  return reinterpret_cast<uint32_t*>(m_buff.data());
 }
 
-inline void PixelBuffer::copyTo(PixelBuffer& buff, const uint32_t length) const
+inline void PixelBuffer::CopyTo(PixelBuffer& buff, uint32_t length) const
 {
-  copyTo(buff.getIntBuff(), length);
+  CopyTo(buff.GetIntBuff(), length);
 }
 
-inline void PixelBuffer::copyTo(uint32_t* intBuff, const uint32_t length) const
+inline void PixelBuffer::CopyTo(uint32_t* intBuff, const uint32_t length) const
 {
   static_assert(sizeof(Pixel) == sizeof(uint32_t));
-  std::memcpy(intBuff, getIntBuff(), length * sizeof(Pixel));
+  std::memcpy(intBuff, GetIntBuff(), length * sizeof(Pixel));
 }
 
-inline void PixelBuffer::copyFrom(const uint32_t* intBuff, const uint32_t length)
+inline void PixelBuffer::CopyFrom(const uint32_t* intBuff, const uint32_t length)
 {
   static_assert(sizeof(Pixel) == sizeof(uint32_t));
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wclass-memaccess"
-  std::memcpy(buff.data(), intBuff, length * sizeof(Pixel));
+  std::memcpy(m_buff.data(), intBuff, length * sizeof(Pixel));
 #pragma GCC diagnostic pop
 }
 
-inline const Pixel& PixelBuffer::operator()(const size_t pos) const
+inline auto PixelBuffer::operator()(const size_t pos) const -> const Pixel&
 {
-  return buff[pos];
+  return m_buff[pos];
 }
 
-inline Pixel& PixelBuffer::operator()(const size_t pos)
+inline auto PixelBuffer::operator()(const size_t pos) -> Pixel&
 {
-  return buff[pos];
+  return m_buff[pos];
 }
 
-inline const Pixel& PixelBuffer::operator()(const size_t x, const size_t y) const
+inline auto PixelBuffer::operator()(const size_t x, const size_t y) const -> const Pixel&
 {
-  return (*this)(y * width + x);
+  return (*this)(y * m_width + x);
 }
 
-inline Pixel& PixelBuffer::operator()(const size_t x, const size_t y)
+inline auto PixelBuffer::operator()(const size_t x, const size_t y) -> Pixel&
 {
-  return (*this)(y * width + x);
+  return (*this)(y * m_width + x);
 }
 
 } // namespace goom

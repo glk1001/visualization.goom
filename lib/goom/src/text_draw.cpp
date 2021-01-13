@@ -468,7 +468,7 @@ void TextDraw::TextDrawImpl::writeSpansToImage(const SpanArray& spans,
 
       const Pixel color = getColor(textIndexOfChar, xf0 + w, rect.height() - (s.y - rect.ymin),
                                    rect.width(), rect.height());
-      const Pixel srceColor{{.r = color.r(), .g = color.g(), .b = color.b(), .a = coverage}};
+      const Pixel srceColor{{.r = color.R(), .g = color.G(), .b = color.B(), .a = coverage}};
 
       Pixel& destColor = buff(static_cast<size_t>(xPos), static_cast<size_t>(yPos));
       destColor = getColorBlend(srceColor, destColor);

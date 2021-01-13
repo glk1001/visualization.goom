@@ -160,14 +160,14 @@ Pixel ColorMap::getRandomColor(const ColorMap& cg, const float t0, const float t
 
 Pixel ColorMap::colorMix(const Pixel& col1, const Pixel& col2, const float t)
 {
-  const vivid::rgb_t c1 = vivid::rgb::fromRgb32(col1.rgba());
-  const vivid::rgb_t c2 = vivid::rgb::fromRgb32(col2.rgba());
+  const vivid::rgb_t c1 = vivid::rgb::fromRgb32(col1.Rgba());
+  const vivid::rgb_t c2 = vivid::rgb::fromRgb32(col2.Rgba());
   return Pixel{vivid::lerpHsl(c1, c2, t).rgb32()};
 }
 
 Pixel ColorMap::getLighterColor(const Pixel& color, const int incPercent)
 {
-  vivid::hsl_t col = vivid::hsl::fromRgb(vivid::rgb::fromRgb32(color.rgba()));
+  vivid::hsl_t col = vivid::hsl::fromRgb(vivid::rgb::fromRgb32(color.Rgba()));
   col.z *= 1.0 + static_cast<float>(incPercent / 100.0);
   if (col.z > 1.0)
   {

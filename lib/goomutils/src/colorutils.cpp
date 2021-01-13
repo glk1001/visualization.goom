@@ -32,9 +32,9 @@ Pixel getLightenedColor(const Pixel& oldColor, const float power)
 {
   Pixel pixel = oldColor;
 
-  pixel.set_r(lighten(pixel.r(), power));
-  pixel.set_g(lighten(pixel.g(), power));
-  pixel.set_b(lighten(pixel.b(), power));
+  pixel.SetR(lighten(pixel.R(), power));
+  pixel.SetG(lighten(pixel.G(), power));
+  pixel.SetB(lighten(pixel.B(), power));
 
   return pixel;
 }
@@ -44,9 +44,9 @@ inline Pixel evolvedColor(const Pixel& src,
                           const uint32_t mask,
                           const uint32_t incr)
 {
-  const auto color = static_cast<int32_t>(src.rgba() & (~mask));
-  uint32_t isrc = src.rgba() & mask;
-  const uint32_t idest = dest.rgba() & mask;
+  const auto color = static_cast<int32_t>(src.Rgba() & (~mask));
+  uint32_t isrc = src.Rgba() & mask;
+  const uint32_t idest = dest.Rgba() & mask;
 
   if ((isrc != mask) && (isrc < idest))
   {

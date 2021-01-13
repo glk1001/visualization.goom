@@ -408,8 +408,8 @@ bool Tentacle3D::operator==(const Tentacle3D& t) const
     logInfo("Tentacle3D result == {}", result);
     logInfo("*tentacle == *t.tentacle = {}", *tentacle == *t.tentacle);
     //    logInfo("*colorizer == *t.colorizer = {}", *colorizer == *t.colorizer);
-    logInfo("headColor = {}, t.headColor = {}", headColor.rgba(), t.headColor.rgba());
-    logInfo("headColorLow = {}, t.headColorLow = {}", headColorLow.rgba(), t.headColorLow.rgba());
+    logInfo("headColor = {}, t.headColor = {}", headColor.Rgba(), t.headColor.Rgba());
+    logInfo("headColorLow = {}, t.headColorLow = {}", headColorLow.Rgba(), t.headColorLow.Rgba());
     logInfo("head == t.head = {}", head == t.head);
     logInfo("reverseColorMix = {}, t.reverseColorMix = {}", reverseColorMix, t.reverseColorMix);
     logInfo("allowOverexposed = {}, t.allowOverexposed = {}", allowOverexposed, t.allowOverexposed);

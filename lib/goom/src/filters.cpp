@@ -1324,9 +1324,9 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetMixedColor(const CoeffArray& coeffs
   for (size_t i = 0; i < NUM_COEFFS; i++)
   {
     const auto coeff = static_cast<uint32_t>(coeffs.c[i]);
-    newR += static_cast<uint32_t>(colors[i].r()) * coeff;
-    newG += static_cast<uint32_t>(colors[i].g()) * coeff;
-    newB += static_cast<uint32_t>(colors[i].b()) * coeff;
+    newR += static_cast<uint32_t>(colors[i].R()) * coeff;
+    newG += static_cast<uint32_t>(colors[i].G()) * coeff;
+    newB += static_cast<uint32_t>(colors[i].B()) * coeff;
   }
   newR >>= 8;
   newG >>= 8;
