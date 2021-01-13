@@ -18,45 +18,45 @@ public:
   GoomDraw();
   GoomDraw(uint32_t screenWidth, uint32_t screenHeight);
 
-  [[nodiscard]] bool getAllowOverexposed() const;
-  void setAllowOverexposed(bool val);
+  [[nodiscard]] auto GetAllowOverexposed() const -> bool;
+  void SetAllowOverexposed(bool val);
 
-  [[nodiscard]] float getBuffIntensity() const;
-  void setBuffIntensity(float val);
+  [[nodiscard]] auto GetBuffIntensity() const -> float;
+  void SetBuffIntensity(float val);
 
-  [[nodiscard]] Pixel getPixelRGB(const PixelBuffer&, uint32_t x, uint32_t y) const;
-  void setPixelRGB(PixelBuffer&, uint32_t x, uint32_t y, const Pixel& color) const;
+  [[nodiscard]] auto GetPixelRgb(const PixelBuffer& buff, uint32_t x, uint32_t y) const -> Pixel;
+  void SetPixelRgb(PixelBuffer& buff, uint32_t x, uint32_t y, const Pixel& color) const;
   // Set the pixel but don't blend it with the existing pixel value.
-  void setPixelRGBNoBlend(PixelBuffer&, uint32_t x, uint32_t y, const Pixel& color);
+  void SetPixelRgbNoBlend(PixelBuffer& buff, uint32_t x, uint32_t y, const Pixel& color);
 
-  [[nodiscard]] std::vector<Pixel> getPixelRGB(const std::vector<PixelBuffer*>&,
-                                               uint32_t x,
-                                               uint32_t y) const;
-  void setPixelRGB(std::vector<PixelBuffer*>&,
+  [[nodiscard]] auto GetPixelRgb(const std::vector<PixelBuffer*>& buffs,
+                                 uint32_t x,
+                                 uint32_t y) const -> std::vector<Pixel>;
+  void SetPixelRgb(std::vector<PixelBuffer*>& buff,
                    uint32_t x,
                    uint32_t y,
                    const std::vector<Pixel>& colors) const;
 
-  void circle(PixelBuffer&, int x0, int y0, int radius, const Pixel& color) const;
+  void Circle(PixelBuffer&, int x0, int y0, int radius, const Pixel& color) const;
 
-  void circle(std::vector<PixelBuffer*>&,
+  void Circle(std::vector<PixelBuffer*>& buffs,
               int x0,
               int y0,
               int radius,
               const std::vector<Pixel>& colors) const;
 
-  void filledCircle(PixelBuffer&, int x0, int y0, int radius, const Pixel& color) const;
+  void FilledCircle(PixelBuffer& buff, int x0, int y0, int radius, const Pixel& color) const;
 
-  void filledCircle(std::vector<PixelBuffer*>&,
+  void FilledCircle(std::vector<PixelBuffer*>& buffs,
                     int x0,
                     int y0,
                     int radius,
                     const std::vector<Pixel>& colors) const;
 
-  void line(
+  void Line(
       PixelBuffer&, int x1, int y1, int x2, int y2, const Pixel& color, uint8_t thickness) const;
 
-  void line(std::vector<PixelBuffer*>&,
+  void Line(std::vector<PixelBuffer*>& buffs,
             int x1,
             int y1,
             int x2,
@@ -64,7 +64,7 @@ public:
             const std::vector<Pixel>& colors,
             uint8_t thickness) const;
 
-  void text(PixelBuffer&, int x, int y, const std::string& text, float charSpace, bool center);
+  void Text(PixelBuffer& buff, int x, int y, const std::string& text, float charSpace, bool center);
 
   bool operator==(const GoomDraw&) const;
 
@@ -72,21 +72,21 @@ public:
   void serialize(Archive&);
 
 private:
-  uint32_t screenWidth;
-  uint32_t screenHeight;
-  bool allowOverexposed = false;
-  float buffIntensity = 1;
-  uint32_t intBuffIntensity = channel_limits<uint32_t>::max();
-  bool fontsLoaded = false;
+  uint32_t m_screenWidth;
+  uint32_t m_screenHeight;
+  bool m_allowOverexposed = false;
+  float m_buffIntensity = 1;
+  uint32_t m_intBuffIntensity = channel_limits<uint32_t>::max();
+  bool m_fontsLoaded = false;
 };
 
 template<class Archive>
 void GoomDraw::serialize(Archive& ar)
 {
-  ar(screenWidth, screenHeight, allowOverexposed, buffIntensity, intBuffIntensity);
+  ar(m_screenWidth, m_screenHeight, m_allowOverexposed, m_buffIntensity, m_intBuffIntensity);
 }
 
-inline void GoomDraw::setPixelRGBNoBlend(PixelBuffer& buff,
+inline void GoomDraw::SetPixelRgbNoBlend(PixelBuffer& buff,
                                          const uint32_t x,
                                          const uint32_t y,
                                          const Pixel& color)
@@ -94,18 +94,18 @@ inline void GoomDraw::setPixelRGBNoBlend(PixelBuffer& buff,
   buff(x, y) = color;
 }
 
-inline Pixel GoomDraw::getPixelRGB(const PixelBuffer& buff,
+inline Pixel GoomDraw::GetPixelRgb(const PixelBuffer& buff,
                                    const uint32_t x,
                                    const uint32_t y) const
 {
   return buff(x, y);
 }
 
-inline std::vector<Pixel> GoomDraw::getPixelRGB(const std::vector<PixelBuffer*>& buffs,
+inline std::vector<Pixel> GoomDraw::GetPixelRgb(const std::vector<PixelBuffer*>& buffs,
                                                 const uint32_t x,
                                                 const uint32_t y) const
 {
-  const uint32_t pos = x + (y * screenWidth);
+  const uint32_t pos = x + (y * m_screenWidth);
   std::vector<Pixel> colors(buffs.size());
   for (size_t i = 0; i < buffs.size(); i++)
   {
@@ -114,25 +114,25 @@ inline std::vector<Pixel> GoomDraw::getPixelRGB(const std::vector<PixelBuffer*>&
   return colors;
 }
 
-inline bool GoomDraw::getAllowOverexposed() const
+[[maybe_unused]] inline bool GoomDraw::GetAllowOverexposed() const
 {
-  return allowOverexposed;
+  return m_allowOverexposed;
 }
 
-inline void GoomDraw::setAllowOverexposed(const bool val)
+inline void GoomDraw::SetAllowOverexposed(const bool val)
 {
-  allowOverexposed = val;
+  m_allowOverexposed = val;
 }
 
-inline float GoomDraw::getBuffIntensity() const
+inline float GoomDraw::GetBuffIntensity() const
 {
-  return buffIntensity;
+  return m_buffIntensity;
 }
 
-inline void GoomDraw::setBuffIntensity(const float val)
+inline void GoomDraw::SetBuffIntensity(const float val)
 {
-  buffIntensity = val;
-  intBuffIntensity = static_cast<uint32_t>(channel_limits<float>::max() * buffIntensity);
+  m_buffIntensity = val;
+  m_intBuffIntensity = static_cast<uint32_t>(channel_limits<float>::max() * m_buffIntensity);
 }
 
 } // namespace goom

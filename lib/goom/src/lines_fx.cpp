@@ -434,7 +434,7 @@ void LinesFx::LinesImpl::drawLines(const std::vector<int16_t>& soundData,
   {
     // No range - flatline audio
     const std::vector<Pixel> colors = {lineColor, lineColor};
-    draw.line(buffs, pt0->x, pt0->y, pt0->x + AUDIO_SAMPLE_LEN, pt0->y, colors, 1);
+    draw.Line(buffs, pt0->x, pt0->y, pt0->x + AUDIO_SAMPLE_LEN, pt0->y, colors, 1);
     goomLinesMove();
     return;
   }
@@ -476,7 +476,7 @@ void LinesFx::LinesImpl::drawLines(const std::vector<int16_t>& soundData,
     const auto [x2, y2, modColor] = getNextPoint(pt, data[i]);
 
     const std::vector<Pixel> colors = {modColor, lineColor};
-    draw.line(buffs, x1, y1, x2, y2, colors, thickness);
+    draw.Line(buffs, x1, y1, x2, y2, colors, thickness);
 
     x1 = x2;
     y1 = y2;

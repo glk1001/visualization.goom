@@ -2283,7 +2283,7 @@ void GoomControl::GoomControlImpl::displayText(const char* songTitle,
   if (fps > 0)
   {
     const std::string text = std20::format("{.0f} fps", fps);
-    draw.text(imageBuffers.getP1(), 10, 24, text, 1, false);
+    draw.Text(imageBuffers.getP1(), 10, 24, text, 1, false);
   }
 
   if (songTitle != nullptr)

@@ -37,9 +37,9 @@ public:
   auto operator==(const GoomDotsFx& d) const -> bool;
 
 private:
-  bool enabled = true;
+  bool m_enabled = true;
   class GoomDotsImpl;
-  std::unique_ptr<GoomDotsImpl> fxImpl;
+  std::unique_ptr<GoomDotsImpl> m_fxImpl;
 
   friend class cereal::access;
   template<class Archive>

@@ -152,8 +152,8 @@ const FXBuffSettings& TentacleDriver::getBuffSettings() const
 void TentacleDriver::setBuffSettings(const FXBuffSettings& settings)
 {
   buffSettings = settings;
-  draw.setBuffIntensity(buffSettings.buffIntensity);
-  draw.setAllowOverexposed(buffSettings.allowOverexposed);
+  draw.SetBuffIntensity(buffSettings.buffIntensity);
+  draw.SetAllowOverexposed(buffSettings.allowOverexposed);
   tentacles.setAllowOverexposed(buffSettings.allowOverexposed);
 }
 
@@ -606,7 +606,7 @@ else if (0 <= tentacle.getHead().x && tentacle.getHead().x < 10)
       // One buff may be better????? Make lighten more aggressive over whole tentacle??
       // draw_line(frontBuff, ix0, iy0, ix1, iy1, color, 1280, 720);
       constexpr uint8_t thickness = 1;
-      draw.line(buffs, ix0, iy0, ix1, iy1, colors, thickness);
+      draw.Line(buffs, ix0, iy0, ix1, iy1, colors, thickness);
     }
   }
 }

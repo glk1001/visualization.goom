@@ -57,8 +57,8 @@ TEST_CASE("save/restore plugin info", "[saveRestorePluginInfo]")
 TEST_CASE("save/restore goom draw", "[saveRestoreGoomDraw]")
 {
   GoomDraw draw{screenWidth, screenHeight};
-  draw.setAllowOverexposed(not draw.getAllowOverexposed());
-  draw.setBuffIntensity(0.5 * draw.getBuffIntensity());
+  draw.SetAllowOverexposed(not draw.GetAllowOverexposed());
+  draw.SetBuffIntensity(0.5 * draw.GetBuffIntensity());
   std::stringstream ss;
   {
     cereal::JSONOutputArchive archive(ss);

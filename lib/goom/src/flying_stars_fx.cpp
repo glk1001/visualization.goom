@@ -416,8 +416,8 @@ FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl(std::shared_ptr<const PluginInfo
 
 void FlyingStarsFx::FlyingStarsImpl::SetBuffSettings(const FXBuffSettings& settings)
 {
-  m_draw.setBuffIntensity(settings.buffIntensity);
-  m_draw.setAllowOverexposed(settings.allowOverexposed);
+  m_draw.SetBuffIntensity(settings.buffIntensity);
+  m_draw.SetAllowOverexposed(settings.allowOverexposed);
 }
 
 void FlyingStarsFx::FlyingStarsImpl::Finish()
@@ -498,13 +498,13 @@ void FlyingStarsFx::FlyingStarsImpl::UpdateBuffers(PixelBuffer& currentBuff, Pix
 
       if (m_useSingleBufferOnly)
       {
-        m_draw.line(currentBuff, x1, y1, x2, y2, mixedColor, thickness);
+        m_draw.Line(currentBuff, x1, y1, x2, y2, mixedColor, thickness);
       }
       else
       {
         const std::vector<Pixel> colors = {mixedColor, mixedLowColor};
         std::vector<PixelBuffer*> buffs{&currentBuff, &nextBuff};
-        m_draw.line(buffs, x1, y1, x2, y2, colors, thickness);
+        m_draw.Line(buffs, x1, y1, x2, y2, colors, thickness);
       }
 
       x1 = x2;

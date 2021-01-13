@@ -26,7 +26,7 @@ namespace goom
 
 using namespace goom::utils;
 
-inline bool changeDotColorsEvent()
+inline bool ChangeDotColorsEvent()
 {
   return probabilityOfMInN(1, 3);
 }
@@ -36,6 +36,7 @@ class GoomDotsFx::GoomDotsImpl
 public:
   GoomDotsImpl() noexcept;
   explicit GoomDotsImpl(const std::shared_ptr<const PluginInfo>& info) noexcept;
+  ~GoomDotsImpl() noexcept = default;
   GoomDotsImpl(const GoomDotsImpl&) = delete;
   GoomDotsImpl(const GoomDotsImpl&&) = delete;
   auto operator=(const GoomDotsImpl&) -> GoomDotsImpl& = delete;
@@ -49,38 +50,38 @@ public:
   auto operator==(const GoomDotsImpl& d) const -> bool;
 
 private:
-  std::shared_ptr<const PluginInfo> goomInfo{};
-  uint32_t pointWidth = 0;
-  uint32_t pointHeight = 0;
+  std::shared_ptr<const PluginInfo> m_goomInfo{};
+  uint32_t m_pointWidth = 0;
+  uint32_t m_pointHeight = 0;
 
-  float pointWidthDiv2 = 0;
-  float pointHeightDiv2 = 0;
-  float pointWidthDiv3 = 0;
-  float pointHeightDiv3 = 0;
+  float m_pointWidthDiv2 = 0;
+  float m_pointHeightDiv2 = 0;
+  float m_pointWidthDiv3 = 0;
+  float m_pointHeightDiv3 = 0;
 
-  GoomDraw draw{};
-  FXBuffSettings buffSettings{};
+  GoomDraw m_draw{};
+  FXBuffSettings m_buffSettings{};
 
-  utils::WeightedColorMaps colorMaps{};
-  const utils::ColorMap* colorMap1 = nullptr;
-  const utils::ColorMap* colorMap2 = nullptr;
-  const utils::ColorMap* colorMap3 = nullptr;
-  const utils::ColorMap* colorMap4 = nullptr;
-  const utils::ColorMap* colorMap5 = nullptr;
-  Pixel middleColor{};
-  bool useSingleBufferOnly = true;
-  bool useGrayScale = false;
-  uint32_t loopvar = 0; // mouvement des points
+  utils::WeightedColorMaps m_colorMaps{};
+  const utils::ColorMap* m_colorMap1 = nullptr;
+  const utils::ColorMap* m_colorMap2 = nullptr;
+  const utils::ColorMap* m_colorMap3 = nullptr;
+  const utils::ColorMap* m_colorMap4 = nullptr;
+  const utils::ColorMap* m_colorMap5 = nullptr;
+  Pixel m_middleColor{};
+  bool m_useSingleBufferOnly = true;
+  bool m_useGrayScale = false;
+  uint32_t m_loopvar = 0; // mouvement des points
 
-  GammaCorrection gammaCorrect{4.2, 0.1};
+  GammaCorrection m_gammaCorrect{4.2, 0.1};
 
-  void changeColors();
+  void ChangeColors();
 
-  [[nodiscard]] Pixel getColor(const Pixel& color0, const Pixel& color1, float brightness);
+  [[nodiscard]] auto GetColor(const Pixel& color0, const Pixel& color1, float brightness) -> Pixel;
 
-  [[nodiscard]] float getLargeSoundFactor(const SoundInfo&) const;
+  [[nodiscard]] static auto GetLargeSoundFactor(const SoundInfo& soundInfo) -> float;
 
-  void dotFilter(PixelBuffer& currentBuff,
+  void DotFilter(PixelBuffer& currentBuff,
                  const Pixel& color,
                  float t1,
                  float t2,
@@ -96,12 +97,12 @@ private:
   void load(Archive&);
 };
 
-GoomDotsFx::GoomDotsFx() noexcept : fxImpl{new GoomDotsImpl{}}
+GoomDotsFx::GoomDotsFx() noexcept : m_fxImpl{new GoomDotsImpl{}}
 {
 }
 
 GoomDotsFx::GoomDotsFx(const std::shared_ptr<const PluginInfo>& info) noexcept
-  : fxImpl{new GoomDotsImpl{info}}
+  : m_fxImpl{new GoomDotsImpl{info}}
 {
 }
 
@@ -109,12 +110,12 @@ GoomDotsFx::~GoomDotsFx() noexcept = default;
 
 auto GoomDotsFx::operator==(const GoomDotsFx& d) const -> bool
 {
-  return fxImpl->operator==(*d.fxImpl);
+  return m_fxImpl->operator==(*d.m_fxImpl);
 }
 
 void GoomDotsFx::setBuffSettings(const FXBuffSettings& settings)
 {
-  fxImpl->setBuffSettings(settings);
+  m_fxImpl->setBuffSettings(settings);
 }
 
 void GoomDotsFx::start()
@@ -132,26 +133,26 @@ auto GoomDotsFx::getFxName() const -> std::string
 
 void GoomDotsFx::apply(PixelBuffer& currentBuff)
 {
-  if (!enabled)
+  if (!m_enabled)
   {
     return;
   }
-  fxImpl->apply(currentBuff);
+  m_fxImpl->apply(currentBuff);
 }
 
 void GoomDotsFx::apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
 {
-  if (!enabled)
+  if (!m_enabled)
   {
     return;
   }
-  fxImpl->apply(currentBuff, nextBuff);
+  m_fxImpl->apply(currentBuff, nextBuff);
 }
 
 template<class Archive>
 void GoomDotsFx::serialize(Archive& ar)
 {
-  ar(CEREAL_NVP(enabled), CEREAL_NVP(fxImpl));
+  ar(CEREAL_NVP(m_enabled), CEREAL_NVP(m_fxImpl));
 }
 
 // Need to explicitly instantiate template functions for serialization.
@@ -165,55 +166,55 @@ template void GoomDotsFx::GoomDotsImpl::load<cereal::JSONInputArchive>(cereal::J
 template<class Archive>
 void GoomDotsFx::GoomDotsImpl::save(Archive& ar) const
 {
-  ar(CEREAL_NVP(goomInfo), CEREAL_NVP(pointWidth), CEREAL_NVP(pointHeight),
-     CEREAL_NVP(pointWidthDiv2), CEREAL_NVP(pointHeightDiv2), CEREAL_NVP(pointWidthDiv3),
-     CEREAL_NVP(pointHeightDiv3), CEREAL_NVP(draw), CEREAL_NVP(buffSettings),
-     CEREAL_NVP(middleColor), CEREAL_NVP(useSingleBufferOnly), CEREAL_NVP(useGrayScale),
-     CEREAL_NVP(loopvar));
+  ar(CEREAL_NVP(m_goomInfo), CEREAL_NVP(m_pointWidth), CEREAL_NVP(m_pointHeight),
+     CEREAL_NVP(m_pointWidthDiv2), CEREAL_NVP(m_pointHeightDiv2), CEREAL_NVP(m_pointWidthDiv3),
+     CEREAL_NVP(m_pointHeightDiv3), CEREAL_NVP(m_draw), CEREAL_NVP(m_buffSettings),
+     CEREAL_NVP(m_middleColor), CEREAL_NVP(m_useSingleBufferOnly), CEREAL_NVP(m_useGrayScale),
+     CEREAL_NVP(m_loopvar));
 }
 
 template<class Archive>
 void GoomDotsFx::GoomDotsImpl::load(Archive& ar)
 {
-  ar(CEREAL_NVP(goomInfo), CEREAL_NVP(pointWidth), CEREAL_NVP(pointHeight),
-     CEREAL_NVP(pointWidthDiv2), CEREAL_NVP(pointHeightDiv2), CEREAL_NVP(pointWidthDiv3),
-     CEREAL_NVP(pointHeightDiv3), CEREAL_NVP(draw), CEREAL_NVP(buffSettings),
-     CEREAL_NVP(middleColor), CEREAL_NVP(useSingleBufferOnly), CEREAL_NVP(useGrayScale),
-     CEREAL_NVP(loopvar));
+  ar(CEREAL_NVP(m_goomInfo), CEREAL_NVP(m_pointWidth), CEREAL_NVP(m_pointHeight),
+     CEREAL_NVP(m_pointWidthDiv2), CEREAL_NVP(m_pointHeightDiv2), CEREAL_NVP(m_pointWidthDiv3),
+     CEREAL_NVP(m_pointHeightDiv3), CEREAL_NVP(m_draw), CEREAL_NVP(m_buffSettings),
+     CEREAL_NVP(m_middleColor), CEREAL_NVP(m_useSingleBufferOnly), CEREAL_NVP(m_useGrayScale),
+     CEREAL_NVP(m_loopvar));
 }
 
-bool GoomDotsFx::GoomDotsImpl::operator==(const GoomDotsImpl& d) const
+auto GoomDotsFx::GoomDotsImpl::operator==(const GoomDotsImpl& d) const -> bool
 {
-  if (goomInfo == nullptr && d.goomInfo != nullptr)
+  if (m_goomInfo == nullptr && d.m_goomInfo != nullptr)
   {
     return false;
   }
-  if (goomInfo != nullptr && d.goomInfo == nullptr)
+  if (m_goomInfo != nullptr && d.m_goomInfo == nullptr)
   {
     return false;
   }
 
-  return ((goomInfo == nullptr && d.goomInfo == nullptr) || (*goomInfo == *d.goomInfo)) &&
-         pointWidth == d.pointWidth && pointHeight == d.pointHeight &&
-         pointWidthDiv2 == d.pointWidthDiv2 && pointHeightDiv2 == d.pointHeightDiv2 &&
-         pointWidthDiv3 == d.pointWidthDiv3 && pointHeightDiv3 == d.pointHeightDiv3 &&
-         draw == d.draw && buffSettings == d.buffSettings && middleColor == d.middleColor &&
-         useSingleBufferOnly == d.useSingleBufferOnly && useGrayScale == d.useGrayScale &&
-         loopvar == d.loopvar;
+  return ((m_goomInfo == nullptr && d.m_goomInfo == nullptr) || (*m_goomInfo == *d.m_goomInfo)) &&
+         m_pointWidth == d.m_pointWidth && m_pointHeight == d.m_pointHeight &&
+         m_pointWidthDiv2 == d.m_pointWidthDiv2 && m_pointHeightDiv2 == d.m_pointHeightDiv2 &&
+         m_pointWidthDiv3 == d.m_pointWidthDiv3 && m_pointHeightDiv3 == d.m_pointHeightDiv3 &&
+         m_draw == d.m_draw && m_buffSettings == d.m_buffSettings &&
+         m_middleColor == d.m_middleColor && m_useSingleBufferOnly == d.m_useSingleBufferOnly &&
+         m_useGrayScale == d.m_useGrayScale && m_loopvar == d.m_loopvar;
 }
 
 GoomDotsFx::GoomDotsImpl::GoomDotsImpl() noexcept = default;
 
 GoomDotsFx::GoomDotsImpl::GoomDotsImpl(const std::shared_ptr<const PluginInfo>& info) noexcept
-  : goomInfo(info),
-    pointWidth{(goomInfo->getScreenInfo().width * 2) / 5},
-    pointHeight{(goomInfo->getScreenInfo().height * 2) / 5},
-    pointWidthDiv2{static_cast<float>(pointWidth / 2.0F)},
-    pointHeightDiv2{static_cast<float>(pointHeight / 2.0F)},
-    pointWidthDiv3{static_cast<float>(pointWidth / 3.0F)},
-    pointHeightDiv3{static_cast<float>(pointHeight / 3.0F)},
-    draw{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height},
-    colorMaps{Weights<ColorMapGroup>{{
+  : m_goomInfo(info),
+    m_pointWidth{(m_goomInfo->getScreenInfo().width * 2) / 5},
+    m_pointHeight{(m_goomInfo->getScreenInfo().height * 2) / 5},
+    m_pointWidthDiv2{static_cast<float>(m_pointWidth / 2.0F)},
+    m_pointHeightDiv2{static_cast<float>(m_pointHeight / 2.0F)},
+    m_pointWidthDiv3{static_cast<float>(m_pointWidth / 3.0F)},
+    m_pointHeightDiv3{static_cast<float>(m_pointHeight / 3.0F)},
+    m_draw{m_goomInfo->getScreenInfo().width, m_goomInfo->getScreenInfo().height},
+    m_colorMaps{Weights<ColorMapGroup>{{
         {ColorMapGroup::perceptuallyUniformSequential, 10},
         {ColorMapGroup::sequential, 20},
         {ColorMapGroup::sequential2, 20},
@@ -224,109 +225,105 @@ GoomDotsFx::GoomDotsImpl::GoomDotsImpl(const std::shared_ptr<const PluginInfo>& 
         {ColorMapGroup::misc, 0},
     }}}
 {
-  changeColors();
+  ChangeColors();
 }
 
 void GoomDotsFx::GoomDotsImpl::setBuffSettings(const FXBuffSettings& settings)
 {
-  buffSettings = settings;
-  draw.setBuffIntensity(buffSettings.buffIntensity);
-  draw.setAllowOverexposed(buffSettings.allowOverexposed);
+  m_buffSettings = settings;
+  m_draw.SetBuffIntensity(m_buffSettings.buffIntensity);
+  m_draw.SetAllowOverexposed(m_buffSettings.allowOverexposed);
 }
 
-void GoomDotsFx::GoomDotsImpl::changeColors()
+void GoomDotsFx::GoomDotsImpl::ChangeColors()
 {
-  colorMap1 = &colorMaps.getRandomColorMap();
-  colorMap2 = &colorMaps.getRandomColorMap();
-  colorMap3 = &colorMaps.getRandomColorMap();
-  colorMap4 = &colorMaps.getRandomColorMap();
-  colorMap5 = &colorMaps.getRandomColorMap();
-  middleColor = ColorMap::getRandomColor(colorMaps.getRandomColorMap(ColorMapGroup::misc), 0.1, 1);
+  m_colorMap1 = &m_colorMaps.getRandomColorMap();
+  m_colorMap2 = &m_colorMaps.getRandomColorMap();
+  m_colorMap3 = &m_colorMaps.getRandomColorMap();
+  m_colorMap4 = &m_colorMaps.getRandomColorMap();
+  m_colorMap5 = &m_colorMaps.getRandomColorMap();
+  m_middleColor =
+      ColorMap::getRandomColor(m_colorMaps.getRandomColorMap(ColorMapGroup::misc), 0.1, 1);
 
-  useSingleBufferOnly = probabilityOfMInN(0, 2);
-  useGrayScale = probabilityOfMInN(0, 10);
+  m_useSingleBufferOnly = probabilityOfMInN(0, 2);
+  m_useGrayScale = probabilityOfMInN(0, 10);
 }
 
 void GoomDotsFx::GoomDotsImpl::apply(PixelBuffer& currentBuff)
 {
   uint32_t radius = 3;
-  if ((goomInfo->getSoundInfo().getTimeSinceLastGoom() == 0) || changeDotColorsEvent())
+  if ((m_goomInfo->getSoundInfo().getTimeSinceLastGoom() == 0) || ChangeDotColorsEvent())
   {
-    changeColors();
+    ChangeColors();
     radius = getRandInRange(5U, 7U);
   }
 
-  const float largeFactor = getLargeSoundFactor(goomInfo->getSoundInfo());
-  const uint32_t speedvarMult80Plus15 = goomInfo->getSoundInfo().getSpeed() * 80 + 15;
-  const uint32_t speedvarMult50Plus1 = goomInfo->getSoundInfo().getSpeed() * 50 + 1;
+  const float largeFactor = GetLargeSoundFactor(m_goomInfo->getSoundInfo());
+  const uint32_t speedvarMult80Plus15 = m_goomInfo->getSoundInfo().getSpeed() * 80 + 15;
+  const uint32_t speedvarMult50Plus1 = m_goomInfo->getSoundInfo().getSpeed() * 50 + 1;
 
-  const float pointWidthDiv2MultLarge = pointWidthDiv2 * largeFactor;
-  const float pointHeightDiv2MultLarge = pointHeightDiv2 * largeFactor;
-  const float pointWidthDiv3MultLarge = (pointWidthDiv3 + 5.0f) * largeFactor;
-  const float pointHeightDiv3MultLarge = (pointHeightDiv3 + 5.0f) * largeFactor;
-  const float pointWidthMultLarge = pointWidth * largeFactor;
-  const float pointHeightMultLarge = pointHeight * largeFactor;
+  const float pointWidthDiv2MultLarge = m_pointWidthDiv2 * largeFactor;
+  const float pointHeightDiv2MultLarge = m_pointHeightDiv2 * largeFactor;
+  const float pointWidthDiv3MultLarge = (m_pointWidthDiv3 + 5.0f) * largeFactor;
+  const float pointHeightDiv3MultLarge = (m_pointHeightDiv3 + 5.0f) * largeFactor;
+  const float pointWidthMultLarge = m_pointWidth * largeFactor;
+  const float pointHeightMultLarge = m_pointHeight * largeFactor;
 
-  const float color1_t1 = (pointWidth - 6.0f) * largeFactor + 5.0f;
-  const float color1_t2 = (pointHeight - 6.0f) * largeFactor + 5.0f;
-  const float color4_t1 = pointHeightDiv3 * largeFactor + 20.0f;
-  const float color4_t2 = color4_t1;
+  const float color1T1 = (m_pointWidth - 6.0f) * largeFactor + 5.0f;
+  const float color1T2 = (m_pointHeight - 6.0f) * largeFactor + 5.0f;
+  const float color4T1 = m_pointHeightDiv3 * largeFactor + 20.0f;
+  const float color4T2 = color4T1;
 
   const size_t speedvarMult80Plus15Div15 = speedvarMult80Plus15 / 15;
-  constexpr float t_min = 0.5;
-  constexpr float t_max = 1.0;
-  const float t_step = (t_max - t_min) / static_cast<float>(speedvarMult80Plus15Div15);
+  constexpr float T_MIN = 0.5;
+  constexpr float T_MAX = 1.0;
+  const float t_step = (T_MAX - T_MIN) / static_cast<float>(speedvarMult80Plus15Div15);
 
-  float t = t_min;
+  float t = T_MIN;
   for (uint32_t i = 1; i <= speedvarMult80Plus15Div15; i++)
   {
-    loopvar += speedvarMult50Plus1;
+    m_loopvar += speedvarMult50Plus1;
 
-    const uint32_t loopvar_div_i = loopvar / i;
-    const float i_mult_10 = 10.0f * i;
+    const uint32_t loopvarDivI = m_loopvar / i;
+    const float iMult10 = 10.0F * i;
     const float brightness = 1.5F + 1.0F - t;
 
-    const Pixel colors1 = getColor(middleColor, colorMap1->getColor(t), brightness);
-    const float color1_t3 = i * 152.0f;
-    const float color1_t4 = 128.0f;
-    const uint32_t color1_cycle = loopvar + i * 2032;
+    const Pixel colors1 = GetColor(m_middleColor, m_colorMap1->getColor(t), brightness);
+    const float color1T3 = i * 152.0F;
+    const float color1T4 = 128.0F;
+    const uint32_t color1Cycle = m_loopvar + i * 2032;
 
-    const Pixel colors2 = getColor(middleColor, colorMap2->getColor(t), brightness);
-    const float color2_t1 = pointWidthDiv2MultLarge / i + i_mult_10;
-    const float color2_t2 = pointHeightDiv2MultLarge / i + i_mult_10;
-    const float color2_t3 = 96.0f;
-    const float color2_t4 = i * 80.0f;
-    const uint32_t color2_cycle = loopvar_div_i;
+    const Pixel colors2 = GetColor(m_middleColor, m_colorMap2->getColor(t), brightness);
+    const float color2T1 = pointWidthDiv2MultLarge / i + iMult10;
+    const float color2T2 = pointHeightDiv2MultLarge / i + iMult10;
+    const float color2T3 = 96.0F;
+    const float color2T4 = i * 80.0F;
+    const uint32_t color2Cycle = loopvarDivI;
 
-    const Pixel colors3 = getColor(middleColor, colorMap3->getColor(t), brightness);
-    const float color3_t1 = pointWidthDiv3MultLarge / i + i_mult_10;
-    const float color3_t2 = pointHeightDiv3MultLarge / i + i_mult_10;
-    const float color3_t3 = i + 122.0f;
-    const float color3_t4 = 134.0f;
-    const uint32_t color3_cycle = loopvar_div_i;
+    const Pixel colors3 = GetColor(m_middleColor, m_colorMap3->getColor(t), brightness);
+    const float color3T1 = pointWidthDiv3MultLarge / i + iMult10;
+    const float color3T2 = pointHeightDiv3MultLarge / i + iMult10;
+    const float color3T3 = i + 122.0F;
+    const float color3T4 = 134.0F;
+    const uint32_t color3Cycle = loopvarDivI;
 
-    const Pixel colors4 = getColor(middleColor, colorMap4->getColor(t), brightness);
-    const float color4_t3 = 58.0f;
-    const float color4_t4 = i * 66.0f;
-    const uint32_t color4_cycle = loopvar_div_i;
+    const Pixel colors4 = GetColor(m_middleColor, m_colorMap4->getColor(t), brightness);
+    const float color4T3 = 58.0F;
+    const float color4T4 = i * 66.0F;
+    const uint32_t color4Cycle = loopvarDivI;
 
-    const Pixel colors5 = getColor(middleColor, colorMap5->getColor(t), brightness);
-    const float color5_t1 = (pointWidthMultLarge + i_mult_10) / i;
-    const float color5_t2 = (pointHeightMultLarge + i_mult_10) / i;
-    const float color5_t3 = 66.0f;
-    const float color5_t4 = 74.0f;
-    const uint32_t color5_cycle = loopvar + i * 500;
+    const Pixel colors5 = GetColor(m_middleColor, m_colorMap5->getColor(t), brightness);
+    const float color5T1 = (pointWidthMultLarge + iMult10) / i;
+    const float color5T2 = (pointHeightMultLarge + iMult10) / i;
+    const float color5T3 = 66.0F;
+    const float color5T4 = 74.0F;
+    const uint32_t color5Cycle = m_loopvar + i * 500;
 
-    dotFilter(currentBuff, colors1, color1_t1, color1_t2, color1_t3, color1_t4, color1_cycle,
-              radius);
-    dotFilter(currentBuff, colors2, color2_t1, color2_t2, color2_t3, color2_t4, color2_cycle,
-              radius);
-    dotFilter(currentBuff, colors3, color3_t1, color3_t2, color3_t3, color3_t4, color3_cycle,
-              radius);
-    dotFilter(currentBuff, colors4, color4_t1, color4_t2, color4_t3, color4_t4, color4_cycle,
-              radius);
-    dotFilter(currentBuff, colors5, color5_t1, color5_t2, color5_t3, color5_t4, color5_cycle,
-              radius);
+    DotFilter(currentBuff, colors1, color1T1, color1T2, color1T3, color1T4, color1Cycle, radius);
+    DotFilter(currentBuff, colors2, color2T1, color2T2, color2T3, color2T4, color2Cycle, radius);
+    DotFilter(currentBuff, colors3, color3T1, color3T2, color3T3, color3T4, color3Cycle, radius);
+    DotFilter(currentBuff, colors4, color4T1, color4T2, color4T3, color4T4, color4Cycle, radius);
+    DotFilter(currentBuff, colors5, color5T1, color5T2, color5T3, color5T4, color5Cycle, radius);
 
     t += t_step;
   }
@@ -337,15 +334,15 @@ void GoomDotsFx::GoomDotsImpl::apply(PixelBuffer&, PixelBuffer&)
   throw std::logic_error("GoomDotsFx::GoomDotsImpl::apply should never be called.");
 }
 
-Pixel GoomDotsFx::GoomDotsImpl::getColor(const Pixel& color0,
-                                         const Pixel& color1,
-                                         const float brightness)
+auto GoomDotsFx::GoomDotsImpl::GetColor(const Pixel& color0,
+                                        const Pixel& color1,
+                                        const float brightness) -> Pixel
 {
-  constexpr float t_min = 0.5;
-  constexpr float t_max = 1.0;
-  const float t = getRandInRange(t_min, t_max);
+  constexpr float T_MIN = 0.5;
+  constexpr float T_MAX = 1.0;
+  const float t = getRandInRange(T_MIN, T_MAX);
   Pixel color{};
-  if (!useGrayScale)
+  if (!m_useGrayScale)
   {
     color = ColorMap::colorMix(color0, color1, t);
   }
@@ -357,10 +354,10 @@ Pixel GoomDotsFx::GoomDotsImpl::getColor(const Pixel& color0,
                             .a = 0xff}};
   }
 
-  return gammaCorrect.getCorrection(brightness, color);
+  return m_gammaCorrect.getCorrection(brightness, color);
 }
 
-float GoomDotsFx::GoomDotsImpl::getLargeSoundFactor(const SoundInfo& soundInfo) const
+auto GoomDotsFx::GoomDotsImpl::GetLargeSoundFactor(const SoundInfo& soundInfo) -> float
 {
   float largeFactor = soundInfo.getSpeed() / 150.0F + soundInfo.getVolume() / 1.5F;
   if (largeFactor > 1.5F)
@@ -370,7 +367,7 @@ float GoomDotsFx::GoomDotsImpl::getLargeSoundFactor(const SoundInfo& soundInfo) 
   return largeFactor;
 }
 
-void GoomDotsFx::GoomDotsImpl::dotFilter(PixelBuffer& currentBuff,
+void GoomDotsFx::GoomDotsImpl::DotFilter(PixelBuffer& currentBuff,
                                          const Pixel& color,
                                          const float t1,
                                          const float t2,
@@ -381,13 +378,14 @@ void GoomDotsFx::GoomDotsImpl::dotFilter(PixelBuffer& currentBuff,
 {
   const auto xOffset = static_cast<uint32_t>(t1 * std::cos(static_cast<float>(cycle) / t3));
   const auto yOffset = static_cast<uint32_t>(t2 * std::sin(static_cast<float>(cycle) / t4));
-  const auto x0 = static_cast<int>(goomInfo->getScreenInfo().width / 2 + xOffset);
-  const auto y0 = static_cast<int>(goomInfo->getScreenInfo().height / 2 + yOffset);
+  const auto x0 = static_cast<int>(m_goomInfo->getScreenInfo().width / 2 + xOffset);
+  const auto y0 = static_cast<int>(m_goomInfo->getScreenInfo().height / 2 + yOffset);
 
   const uint32_t diameter = 2 * radius;
-  const auto screenWidthLessDiameter = static_cast<int>(goomInfo->getScreenInfo().width - diameter);
+  const auto screenWidthLessDiameter =
+      static_cast<int>(m_goomInfo->getScreenInfo().width - diameter);
   const auto screenHeightLessDiameter =
-      static_cast<int>(goomInfo->getScreenInfo().height - diameter);
+      static_cast<int>(m_goomInfo->getScreenInfo().height - diameter);
 
   if ((x0 < static_cast<int>(diameter)) || (y0 < static_cast<int>(diameter)) ||
       (x0 >= screenWidthLessDiameter) || (y0 >= screenHeightLessDiameter))
@@ -397,7 +395,7 @@ void GoomDotsFx::GoomDotsImpl::dotFilter(PixelBuffer& currentBuff,
 
   const auto xMid = x0 + static_cast<int32_t>(radius);
   const auto yMid = y0 + static_cast<int32_t>(radius);
-  draw.filledCircle(currentBuff, xMid, yMid, static_cast<int>(radius), color);
+  m_draw.FilledCircle(currentBuff, xMid, yMid, static_cast<int>(radius), color);
 }
 
 } // namespace goom

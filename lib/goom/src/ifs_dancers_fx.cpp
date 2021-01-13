@@ -1463,7 +1463,7 @@ inline void IfsDancersFx::IfsDancersFxImpl::drawPixel(PixelBuffer& currentBuff,
   //  const std::vector<Pixel> colors{ColorMap::colorMix(ifsColor, mixedColor, 0.1), mixedColor};
   const std::vector<Pixel> colors{mixedColor, mixedColor};
   std::vector<PixelBuffer*> buffs{&currentBuff, &nextBuff};
-  draw.setPixelRGB(buffs, point.x, point.y, colors);
+  draw.SetPixelRgb(buffs, point.x, point.y, colors);
 }
 
 void IfsDancersFx::IfsDancersFxImpl::updateAllowOverexposed()

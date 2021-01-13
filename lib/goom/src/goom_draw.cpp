@@ -10,58 +10,58 @@
 namespace goom
 {
 
-GoomDraw::GoomDraw() : screenWidth{0}, screenHeight{0}
+GoomDraw::GoomDraw() : m_screenWidth{0}, m_screenHeight{0}
 {
 }
 
 GoomDraw::GoomDraw(const uint32_t screenW, const uint32_t screenH)
-  : screenWidth{screenW}, screenHeight{screenH}
+  : m_screenWidth{screenW}, m_screenHeight{screenH}
 {
-  setBuffIntensity(0.5);
-  setAllowOverexposed(true);
+  SetBuffIntensity(0.5);
+  SetAllowOverexposed(true);
 }
 
 bool GoomDraw::operator==(const GoomDraw& d) const
 {
-  return screenWidth == d.screenWidth && screenHeight == d.screenHeight &&
-         allowOverexposed == d.allowOverexposed && buffIntensity == d.buffIntensity &&
-         intBuffIntensity == d.intBuffIntensity;
+  return m_screenWidth == d.m_screenWidth && m_screenHeight == d.m_screenHeight &&
+         m_allowOverexposed == d.m_allowOverexposed && m_buffIntensity == d.m_buffIntensity &&
+         m_intBuffIntensity == d.m_intBuffIntensity;
 }
 
-void GoomDraw::circle(
+void GoomDraw::Circle(
     PixelBuffer& buff, const int x0, const int y0, const int radius, const Pixel& color) const
 {
-  DrawCircle(buff, x0, y0, radius, color, intBuffIntensity, allowOverexposed, screenWidth,
-             screenHeight);
+  DrawCircle(buff, x0, y0, radius, color, m_intBuffIntensity, m_allowOverexposed, m_screenWidth,
+             m_screenHeight);
 }
-void GoomDraw::circle(std::vector<PixelBuffer*>& buffs,
+void GoomDraw::Circle(std::vector<PixelBuffer*>& buffs,
                       const int x0,
                       const int y0,
                       const int radius,
                       const std::vector<Pixel>& colors) const
 {
-  DrawCircle(buffs, x0, y0, radius, colors, intBuffIntensity, allowOverexposed, screenWidth,
-             screenHeight);
+  DrawCircle(buffs, x0, y0, radius, colors, m_intBuffIntensity, m_allowOverexposed, m_screenWidth,
+             m_screenHeight);
 }
 
-void GoomDraw::filledCircle(
+void GoomDraw::FilledCircle(
     PixelBuffer& buff, const int x0, const int y0, const int radius, const Pixel& color) const
 {
-  DrawFilledCircle(buff, x0, y0, radius, color, intBuffIntensity, allowOverexposed, screenWidth,
-                   screenHeight);
+  DrawFilledCircle(buff, x0, y0, radius, color, m_intBuffIntensity, m_allowOverexposed,
+                   m_screenWidth, m_screenHeight);
 }
 
-void GoomDraw::filledCircle(std::vector<PixelBuffer*>& buffs,
+void GoomDraw::FilledCircle(std::vector<PixelBuffer*>& buffs,
                             const int x0,
                             const int y0,
                             const int radius,
                             const std::vector<Pixel>& colors) const
 {
-  DrawFilledCircle(buffs, x0, y0, radius, colors, intBuffIntensity, allowOverexposed, screenWidth,
-                   screenHeight);
+  DrawFilledCircle(buffs, x0, y0, radius, colors, m_intBuffIntensity, m_allowOverexposed,
+                   m_screenWidth, m_screenHeight);
 }
 
-void GoomDraw::line(PixelBuffer& buff,
+void GoomDraw::Line(PixelBuffer& buff,
                     const int x1,
                     const int y1,
                     const int x2,
@@ -69,11 +69,11 @@ void GoomDraw::line(PixelBuffer& buff,
                     const Pixel& color,
                     const uint8_t thickness) const
 {
-  DrawLine(buff, x1, y1, x2, y2, color, intBuffIntensity, thickness, allowOverexposed, screenWidth,
-           screenHeight);
+  DrawLine(buff, x1, y1, x2, y2, color, m_intBuffIntensity, thickness, m_allowOverexposed,
+           m_screenWidth, m_screenHeight);
 }
 
-void GoomDraw::line(std::vector<PixelBuffer*>& buffs,
+void GoomDraw::Line(std::vector<PixelBuffer*>& buffs,
                     int x1,
                     int y1,
                     int x2,
@@ -81,43 +81,43 @@ void GoomDraw::line(std::vector<PixelBuffer*>& buffs,
                     const std::vector<Pixel>& colors,
                     const uint8_t thickness) const
 {
-  DrawLine(buffs, x1, y1, x2, y2, colors, intBuffIntensity, allowOverexposed, thickness,
-           screenWidth, screenHeight);
+  DrawLine(buffs, x1, y1, x2, y2, colors, m_intBuffIntensity, m_allowOverexposed, thickness,
+           m_screenWidth, m_screenHeight);
 }
 
-void GoomDraw::text(PixelBuffer& buff,
+void GoomDraw::Text(PixelBuffer& buff,
                     const int x,
                     const int y,
                     const std::string& text,
                     const float charSpace,
                     const bool center)
 {
-  if (!fontsLoaded)
+  if (!m_fontsLoaded)
   {
     gfont_load();
-    fontsLoaded = true;
+    m_fontsLoaded = true;
   }
-  goom_draw_text(buff, screenWidth, screenHeight, x, y, text.c_str(), charSpace, center);
+  goom_draw_text(buff, m_screenWidth, m_screenHeight, x, y, text.c_str(), charSpace, center);
 }
 
-void GoomDraw::setPixelRGB(PixelBuffer& buff,
+void GoomDraw::SetPixelRgb(PixelBuffer& buff,
                            const uint32_t x,
                            const uint32_t y,
                            const Pixel& color) const
 {
   std::vector<PixelBuffer*> buffs{&buff};
   std::vector<Pixel> colors{color};
-  const auto pos = static_cast<int>(x + (y * screenWidth));
-  DrawPixels(buffs, pos, colors, intBuffIntensity, allowOverexposed);
+  const auto pos = static_cast<int>(x + (y * m_screenWidth));
+  DrawPixels(buffs, pos, colors, m_intBuffIntensity, m_allowOverexposed);
 }
 
-void GoomDraw::setPixelRGB(std::vector<PixelBuffer*>& buffs,
+void GoomDraw::SetPixelRgb(std::vector<PixelBuffer*>& buffs,
                            const uint32_t x,
                            const uint32_t y,
                            const std::vector<Pixel>& colors) const
 {
-  const auto pos = static_cast<int>(x + (y * screenWidth));
-  DrawPixels(buffs, pos, colors, intBuffIntensity, allowOverexposed);
+  const auto pos = static_cast<int>(x + (y * m_screenWidth));
+  DrawPixels(buffs, pos, colors, m_intBuffIntensity, m_allowOverexposed);
 }
 
 } // namespace goom
