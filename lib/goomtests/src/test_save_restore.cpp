@@ -249,13 +249,13 @@ TEST_CASE("save/restore lines", "[saveRestoreLines]")
   std::unique_ptr<PixelBuffer> prevBuff{getNewBuffer()};
   std::unique_ptr<PixelBuffer> currentBuff{getNewBuffer()};
 
-  static const Pixel lGreen = getGreenLineColor();
-  static const Pixel lRed = getRedLineColor();
-  static const Pixel lBlack = getBlackLineColor();
+  static const Pixel lGreen = GetGreenLineColor();
+  static const Pixel lRed = GetRedLineColor();
+  static const Pixel lBlack = GetBlackLineColor();
   LinesFx linesFx{getGoomInfo(), LinesFx::LineType::hline,  100,
-                  lBlack,        LinesFx::LineType::circle, 0.4f * static_cast<float>(100),
+                  lBlack,        LinesFx::LineType::circle, 0.4F * static_cast<float>(100),
                   lGreen};
-  linesFx.switchLines(LinesFx::LineType::circle, 1, 2, lRed);
+  linesFx.SwitchLines(LinesFx::LineType::circle, 1, 2, lRed);
   std::stringstream ss;
   {
     cereal::JSONOutputArchive archive(ss);

@@ -202,7 +202,7 @@ private:
   } };
 
   static constexpr
-  std::array<std::pair<LinesFx::LineType, size_t>, LinesFx::numLineTypes> WEIGHTED_LINE_EVENTS{{
+  std::array<std::pair<LinesFx::LineType, size_t>, LinesFx::NUM_LINE_TYPES> WEIGHTED_LINE_EVENTS{{
     { LinesFx::LineType::circle, 8 },
     { LinesFx::LineType::hline,  2 },
     { LinesFx::LineType::vline,  2 },
@@ -1355,9 +1355,9 @@ auto GoomControl::GoomControlImpl::operator==(const GoomControlImpl& c) const ->
   return result;
 }
 
-static const Pixel lRed = getRedLineColor();
-static const Pixel lGreen = getGreenLineColor();
-static const Pixel lBlack = getBlackLineColor();
+static const Pixel lRed = GetRedLineColor();
+static const Pixel lGreen = GetGreenLineColor();
+static const Pixel lBlack = GetBlackLineColor();
 
 GoomControl::GoomControlImpl::GoomControlImpl() noexcept : m_parallel{}
 {
@@ -1640,7 +1640,7 @@ void GoomControl::GoomControlImpl::ChooseGoomLine(float* param1,
   }
 
   m_stats.ChangeLineColor();
-  *couleur = m_gmline1.getRandomLineColor();
+  *couleur = m_gmline1.GetRandomLineColor();
 }
 
 void GoomControl::GoomControlImpl::ChangeFilterModeIfMusicChanges(const int forceMode)
@@ -2421,10 +2421,10 @@ void GoomControl::GoomControlImpl::StopRequest()
   Pixel couleur{};
   LinesFx::LineType mode;
   ChooseGoomLine(&param1, &param2, &couleur, &mode, &amplitude, 1);
-  couleur = getBlackLineColor();
+  couleur = GetBlackLineColor();
 
-  m_gmline1.switchLines(mode, param1, amplitude, couleur);
-  m_gmline2.switchLines(mode, param2, amplitude, couleur);
+  m_gmline1.SwitchLines(mode, param1, amplitude, couleur);
+  m_gmline2.SwitchLines(mode, param2, amplitude, couleur);
   m_stats.SwitchLines();
   m_goomData.stopLines &= 0x0fff;
 }
@@ -2461,24 +2461,24 @@ void GoomControl::GoomControlImpl::StopRandomLineChangeMode()
       float param1 = 0;
       float param2 = 0;
       float amplitude = 0;
-      Pixel couleur1{};
+      Pixel color1{};
       LinesFx::LineType mode;
-      ChooseGoomLine(&param1, &param2, &couleur1, &mode, &amplitude, m_goomData.stopLines);
+      ChooseGoomLine(&param1, &param2, &color1, &mode, &amplitude, m_goomData.stopLines);
 
-      Pixel couleur2 = m_gmline2.getRandomLineColor();
+      Pixel color2 = m_gmline2.GetRandomLineColor();
       if (m_goomData.stopLines)
       {
         m_goomData.stopLines--;
         if (m_goomEvent.Happens(GoomEvent::changeLineToBlack))
         {
-          couleur2 = couleur1 = getBlackLineColor();
+          color2 = color1 = GetBlackLineColor();
         }
       }
 
       logDebug("goomData.lineMode = {} == {} = goomData.drawLinesDuration", m_goomData.lineMode,
                m_goomData.drawLinesDuration);
-      m_gmline1.switchLines(mode, param1, amplitude, couleur1);
-      m_gmline2.switchLines(mode, param2, amplitude, couleur2);
+      m_gmline1.SwitchLines(mode, param1, amplitude, color1);
+      m_gmline2.SwitchLines(mode, param2, amplitude, color2);
       m_stats.SwitchLines();
     }
   }
@@ -2495,11 +2495,11 @@ void GoomControl::GoomControlImpl::DisplayLines(const AudioSamples& soundData)
 
   m_stats.DoLines();
 
-  m_gmline2.setPower(m_gmline1.getPower());
+  m_gmline2.SetPower(m_gmline1.GetPower());
 
   const std::vector<int16_t>& audioSample = soundData.getSample(0);
-  m_gmline1.drawLines(audioSample, m_imageBuffers.GetP1(), m_imageBuffers.GetP2());
-  m_gmline2.drawLines(audioSample, m_imageBuffers.GetP1(), m_imageBuffers.GetP2());
+  m_gmline1.DrawLines(audioSample, m_imageBuffers.GetP1(), m_imageBuffers.GetP2());
+  m_gmline2.DrawLines(audioSample, m_imageBuffers.GetP1(), m_imageBuffers.GetP2());
   //  gmline2.drawLines(soundData.getSample(1), imageBuffers.getP1(), imageBuffers.getP2());
 
   if (((m_cycle % 121) == 9) && m_goomEvent.Happens(GoomEvent::changeGoomLine) &&
@@ -2509,21 +2509,21 @@ void GoomControl::GoomControlImpl::DisplayLines(const AudioSamples& soundData)
     float param1 = 0;
     float param2 = 0;
     float amplitude = 0;
-    Pixel couleur1{};
+    Pixel color1{};
     LinesFx::LineType mode;
-    ChooseGoomLine(&param1, &param2, &couleur1, &mode, &amplitude, m_goomData.stopLines);
+    ChooseGoomLine(&param1, &param2, &color1, &mode, &amplitude, m_goomData.stopLines);
 
-    Pixel couleur2 = m_gmline2.getRandomLineColor();
+    Pixel color2 = m_gmline2.GetRandomLineColor();
     if (m_goomData.stopLines)
     {
       m_goomData.stopLines--;
       if (m_goomEvent.Happens(GoomEvent::changeLineToBlack))
       {
-        couleur2 = couleur1 = getBlackLineColor();
+        color2 = color1 = GetBlackLineColor();
       }
     }
-    m_gmline1.switchLines(mode, param1, amplitude, couleur1);
-    m_gmline2.switchLines(mode, param2, amplitude, couleur2);
+    m_gmline1.SwitchLines(mode, param1, amplitude, color1);
+    m_gmline2.SwitchLines(mode, param2, amplitude, color2);
   }
 }
 

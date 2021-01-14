@@ -23,9 +23,9 @@ namespace goom
 
 class PluginInfo;
 
-Pixel getBlackLineColor();
-Pixel getGreenLineColor();
-Pixel getRedLineColor();
+auto GetBlackLineColor() -> Pixel;
+auto GetGreenLineColor() -> Pixel;
+auto GetRedLineColor() -> Pixel;
 
 class LinesFx
 {
@@ -37,7 +37,7 @@ public:
     vline, // (param = x)
     _size // must be last - gives number of enums
   };
-  static constexpr size_t numLineTypes = static_cast<size_t>(LineType::_size);
+  static constexpr size_t NUM_LINE_TYPES = static_cast<size_t>(LineType::_size);
 
   LinesFx() noexcept;
 
@@ -55,14 +55,14 @@ public:
   auto operator=(const LinesFx&) -> LinesFx& = delete;
   auto operator=(const LinesFx&&) -> LinesFx& = delete;
 
-  Pixel getRandomLineColor();
+  Pixel GetRandomLineColor();
 
-  [[nodiscard]] auto getPower() const -> float;
-  void setPower(float val);
+  [[nodiscard]] auto GetPower() const -> float;
+  void SetPower(float val);
 
-  void switchLines(LineType newLineType, float newParam, float newAmplitude, const Pixel& newColor);
+  void SwitchLines(LineType newLineType, float newParam, float newAmplitude, const Pixel& newColor);
 
-  void drawLines(const std::vector<int16_t>& soundData,
+  void DrawLines(const std::vector<int16_t>& soundData,
                  PixelBuffer& prevBuff,
                  PixelBuffer& currentBuff);
 
@@ -71,9 +71,9 @@ public:
   auto operator==(const LinesFx& l) const -> bool;
 
 private:
-  bool enabled = true;
+  bool m_enabled = true;
   class LinesImpl;
-  std::unique_ptr<LinesImpl> fxImpl;
+  std::unique_ptr<LinesImpl> m_fxImpl;
 
   friend class cereal::access;
   template<class Archive>
