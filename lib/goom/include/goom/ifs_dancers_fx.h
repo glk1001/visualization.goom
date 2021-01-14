@@ -1,5 +1,5 @@
-#ifndef IFS_FX_H
-#define IFS_FX_H
+#ifndef VISUALIZATION_GOOM_IFS_DANCERS_FX_H
+#define VISUALIZATION_GOOM_IFS_DANCERS_FX_H
 
 /*
  * File created 11 april 2002 by JeKo <jeko@free.fr>
@@ -37,20 +37,22 @@ public:
   explicit IfsDancersFx(const std::shared_ptr<const PluginInfo>&) noexcept;
   ~IfsDancersFx() noexcept override;
   IfsDancersFx(const IfsDancersFx&) = delete;
-  IfsDancersFx& operator=(const IfsDancersFx&) = delete;
+  IfsDancersFx(const IfsDancersFx&&) = delete;
+  auto operator=(const IfsDancersFx&) -> IfsDancersFx& = delete;
+  auto operator=(const IfsDancersFx&&) -> IfsDancersFx& = delete;
 
-  void init();
+  void Init();
 
   // If not colorMode is not set, or set to '_null', returns
   // random weighted color mode.
-  [[nodiscard]] ColorMode getColorMode() const;
-  void setColorMode(ColorMode);
+  [[nodiscard]] auto GetColorMode() const -> ColorMode;
+  void SetColorMode(ColorMode c);
 
-  void renew();
-  void updateIncr();
+  void Renew();
+  void UpdateIncr();
 
-  [[nodiscard]] std::string getFxName() const override;
-  void setBuffSettings(const FXBuffSettings&) override;
+  [[nodiscard]] auto getFxName() const -> std::string override;
+  void setBuffSettings(const FXBuffSettings& settings) override;
 
   void start() override;
 
@@ -61,12 +63,12 @@ public:
   void log(const StatsLogValueFunc&) const override;
   void finish() override;
 
-  bool operator==(const IfsDancersFx&) const;
+  auto operator==(const IfsDancersFx& i) const -> bool;
 
 private:
-  bool enabled = true;
+  bool m_enabled = true;
   class IfsDancersFxImpl;
-  std::unique_ptr<IfsDancersFxImpl> fxImpl;
+  std::unique_ptr<IfsDancersFxImpl> m_fxImpl;
 
   friend class cereal::access;
   template<class Archive>

@@ -80,138 +80,139 @@ class IfsStats
 public:
   IfsStats() noexcept = default;
 
-  void reset();
-  void log(const StatsLogValueFunc&) const;
-  void updateStart();
-  void updateEnd();
+  void Reset();
+  void Log(const StatsLogValueFunc& l) const;
+  void UpdateStart();
+  void UpdateEnd();
 
-  void updateIfsIncr(int val);
-  void setlastIfsIncr(int val);
+  void UpdateIfsIncr(int val);
+  void SetlastIfsIncr(int val);
 
-  void updateCycleChanges();
-  void updateStdIfsFunc();
-  void updateReverseIfsFunc();
-  void updateLowLowDensityBlurThreshold();
-  void updateHighLowDensityBlurThreshold();
+  void UpdateCycleChanges();
+  void UpdateStdIfsFunc();
+  void UpdateReverseIfsFunc();
+  void UpdateLowLowDensityBlurThreshold();
+  void UpdateHighLowDensityBlurThreshold();
 
 private:
-  uint32_t numUpdates = 0;
-  uint64_t totalTimeInUpdatesMs = 0;
-  uint32_t minTimeInUpdatesMs = std::numeric_limits<uint32_t>::max();
-  uint32_t maxTimeInUpdatesMs = 0;
-  std::chrono::high_resolution_clock::time_point timeNowHiRes{};
-  int maxIfsIncr = -1000;
-  int lastIfsIncr = 0;
-  uint32_t numCycleChanges = 0;
-  uint32_t numStdIfsFunc = 0;
-  uint32_t numReverseIfsFunc = 0;
-  uint32_t numLowLowDensityBlurThreshold = 0;
-  uint32_t numHighLowDensityBlurThreshold = 0;
+  uint32_t m_numUpdates = 0;
+  uint64_t m_totalTimeInUpdatesMs = 0;
+  uint32_t m_minTimeInUpdatesMs = std::numeric_limits<uint32_t>::max();
+  uint32_t m_maxTimeInUpdatesMs = 0;
+  std::chrono::high_resolution_clock::time_point m_timeNowHiRes{};
+  int m_maxIfsIncr = -1000;
+  int m_lastIfsIncr = 0;
+  uint32_t m_numCycleChanges = 0;
+  uint32_t m_numStdIfsFunc = 0;
+  uint32_t m_numReverseIfsFunc = 0;
+  uint32_t m_numLowLowDensityBlurThreshold = 0;
+  uint32_t m_numHighLowDensityBlurThreshold = 0;
 };
 
-void IfsStats::reset()
+void IfsStats::Reset()
 {
-  numUpdates = 0;
-  totalTimeInUpdatesMs = 0;
-  minTimeInUpdatesMs = std::numeric_limits<uint32_t>::max();
-  maxTimeInUpdatesMs = 0;
-  timeNowHiRes = std::chrono::high_resolution_clock::now();
-  maxIfsIncr = -1000;
-  lastIfsIncr = 0;
-  numCycleChanges = 0;
-  numStdIfsFunc = 0;
-  numReverseIfsFunc = 0;
-  numLowLowDensityBlurThreshold = 0;
-  numHighLowDensityBlurThreshold = 0;
+  m_numUpdates = 0;
+  m_totalTimeInUpdatesMs = 0;
+  m_minTimeInUpdatesMs = std::numeric_limits<uint32_t>::max();
+  m_maxTimeInUpdatesMs = 0;
+  m_timeNowHiRes = std::chrono::high_resolution_clock::now();
+  m_maxIfsIncr = -1000;
+  m_lastIfsIncr = 0;
+  m_numCycleChanges = 0;
+  m_numStdIfsFunc = 0;
+  m_numReverseIfsFunc = 0;
+  m_numLowLowDensityBlurThreshold = 0;
+  m_numHighLowDensityBlurThreshold = 0;
 }
 
-void IfsStats::log(const StatsLogValueFunc& logVal) const
+void IfsStats::Log(const StatsLogValueFunc& l) const
 {
-  const constexpr char* module = "Ifs";
+  const constexpr char* MODULE = "Ifs";
 
-  const int32_t avTimeInUpdateMs = std::lround(
-      numUpdates == 0 ? -1.0
-                      : static_cast<float>(totalTimeInUpdatesMs) / static_cast<float>(numUpdates));
-  logVal(module, "avTimeInUpdateMs", avTimeInUpdateMs);
-  logVal(module, "minTimeInUpdatesMs", minTimeInUpdatesMs);
-  logVal(module, "maxTimeInUpdatesMs", maxTimeInUpdatesMs);
-  logVal(module, "maxIfsIncr", maxIfsIncr);
-  logVal(module, "lastIfsIncr", lastIfsIncr);
-  logVal(module, "numCycleChanges", numCycleChanges);
-  logVal(module, "numStdIfsFunc", numStdIfsFunc);
-  logVal(module, "numReverseIfsFunc", numReverseIfsFunc);
-  logVal(module, "numLowLowDensityBlurThreshold", numLowLowDensityBlurThreshold);
-  logVal(module, "numHighLowDensityBlurThreshold", numHighLowDensityBlurThreshold);
+  const int32_t avTimeInUpdateMs =
+      std::lround(m_numUpdates == 0 ? -1.0
+                                    : static_cast<float>(m_totalTimeInUpdatesMs) /
+                                          static_cast<float>(m_numUpdates));
+  l(MODULE, "avTimeInUpdateMs", avTimeInUpdateMs);
+  l(MODULE, "minTimeInUpdatesMs", m_minTimeInUpdatesMs);
+  l(MODULE, "maxTimeInUpdatesMs", m_maxTimeInUpdatesMs);
+  l(MODULE, "maxIfsIncr", m_maxIfsIncr);
+  l(MODULE, "lastIfsIncr", m_lastIfsIncr);
+  l(MODULE, "numCycleChanges", m_numCycleChanges);
+  l(MODULE, "numStdIfsFunc", m_numStdIfsFunc);
+  l(MODULE, "numReverseIfsFunc", m_numReverseIfsFunc);
+  l(MODULE, "numLowLowDensityBlurThreshold", m_numLowLowDensityBlurThreshold);
+  l(MODULE, "numHighLowDensityBlurThreshold", m_numHighLowDensityBlurThreshold);
 }
 
-inline void IfsStats::updateStart()
+inline void IfsStats::UpdateStart()
 {
-  timeNowHiRes = std::chrono::high_resolution_clock::now();
-  numUpdates++;
+  m_timeNowHiRes = std::chrono::high_resolution_clock::now();
+  m_numUpdates++;
 }
 
-inline void IfsStats::updateEnd()
+inline void IfsStats::UpdateEnd()
 {
   const auto timeNow = std::chrono::high_resolution_clock::now();
 
   using ms = std::chrono::milliseconds;
-  const ms diff = std::chrono::duration_cast<ms>(timeNow - timeNowHiRes);
+  const ms diff = std::chrono::duration_cast<ms>(timeNow - m_timeNowHiRes);
   const auto timeInUpdateMs = static_cast<uint32_t>(diff.count());
-  if (timeInUpdateMs < minTimeInUpdatesMs)
+  if (timeInUpdateMs < m_minTimeInUpdatesMs)
   {
-    minTimeInUpdatesMs = timeInUpdateMs;
+    m_minTimeInUpdatesMs = timeInUpdateMs;
   }
-  else if (timeInUpdateMs > maxTimeInUpdatesMs)
+  else if (timeInUpdateMs > m_maxTimeInUpdatesMs)
   {
-    maxTimeInUpdatesMs = timeInUpdateMs;
+    m_maxTimeInUpdatesMs = timeInUpdateMs;
   }
-  totalTimeInUpdatesMs += timeInUpdateMs;
+  m_totalTimeInUpdatesMs += timeInUpdateMs;
 }
 
-inline void IfsStats::updateIfsIncr(int val)
+inline void IfsStats::UpdateIfsIncr(int val)
 {
-  if (val > maxIfsIncr)
+  if (val > m_maxIfsIncr)
   {
-    maxIfsIncr = val;
+    m_maxIfsIncr = val;
   }
 }
 
-inline void IfsStats::setlastIfsIncr(int val)
+inline void IfsStats::SetlastIfsIncr(int val)
 {
-  lastIfsIncr = val;
+  m_lastIfsIncr = val;
 }
 
-void IfsStats::updateCycleChanges()
+void IfsStats::UpdateCycleChanges()
 {
-  numCycleChanges++;
+  m_numCycleChanges++;
 }
 
-void IfsStats::updateStdIfsFunc()
+void IfsStats::UpdateStdIfsFunc()
 {
-  numStdIfsFunc++;
+  m_numStdIfsFunc++;
 }
 
-void IfsStats::updateReverseIfsFunc()
+void IfsStats::UpdateReverseIfsFunc()
 {
-  numReverseIfsFunc++;
+  m_numReverseIfsFunc++;
 }
 
-void IfsStats::updateLowLowDensityBlurThreshold()
+void IfsStats::UpdateLowLowDensityBlurThreshold()
 {
-  numLowLowDensityBlurThreshold++;
+  m_numLowLowDensityBlurThreshold++;
 }
 
-void IfsStats::updateHighLowDensityBlurThreshold()
+void IfsStats::UpdateHighLowDensityBlurThreshold()
 {
-  numHighLowDensityBlurThreshold++;
+  m_numHighLowDensityBlurThreshold++;
 }
 
-inline bool megaChangeColorMapEvent()
+inline auto MegaChangeColorMapEvent() -> bool
 {
   return probabilityOfMInN(9, 10);
 }
 
-inline bool allowOverexposedEvent()
+inline auto AllowOverexposedEvent() -> bool
 {
   return probabilityOfMInN(10, 50);
 }
@@ -239,22 +240,22 @@ struct FltPoint
   Flt y = 0;
 };
 
-static constexpr int fix = 12;
+constexpr int FIX = 12;
 
-inline Flt dbl_to_flt(const Dbl x)
+inline auto DblToFlt(const Dbl x) -> Flt
 {
-  constexpr int unit = 1 << fix;
-  return static_cast<Flt>(static_cast<Dbl>(unit) * x);
+  constexpr int UNIT = 1 << FIX;
+  return static_cast<Flt>(static_cast<Dbl>(UNIT) * x);
 }
 
-inline Flt div_by_unit(const Flt x)
+inline auto DivByUnit(const Flt x) -> Flt
 {
-  return x >> fix;
+  return x >> FIX;
 }
 
-inline Flt div_by_2units(const Flt x)
+inline auto DivBy2Units(const Flt x) -> Flt
 {
-  return x >> (fix + 1);
+  return x >> (FIX + 1);
 }
 
 struct CentreType
@@ -266,7 +267,7 @@ struct CentreType
   Dbl dr2Mean;
 };
 // clang-format off
-static const std::vector<CentreType> centreList = {
+static const std::vector<CentreType> CENTRE_LIST = {
   { .depth = 10, .r1Mean = 0.7, .r2Mean = 0.0, .dr1Mean = 0.3, .dr2Mean = 0.4 },
   { .depth =  6, .r1Mean = 0.6, .r2Mean = 0.0, .dr1Mean = 0.4, .dr2Mean = 0.3 },
   { .depth =  4, .r1Mean = 0.5, .r2Mean = 0.0, .dr1Mean = 0.4, .dr2Mean = 0.3 },
@@ -292,7 +293,7 @@ struct Similitude
   Flt r2 = 0;
   Pixel color{0U};
 
-  bool operator==(const Similitude& s) const = default;
+  auto operator==(const Similitude& s) const -> bool = default;
   /**
   bool operator==(const Similitude& s) const
   {
@@ -314,87 +315,87 @@ class FractalHits
 public:
   FractalHits() noexcept = default;
   FractalHits(uint32_t width, uint32_t height) noexcept;
-  void reset();
-  void addHit(uint32_t x, uint32_t y, const Pixel&);
-  [[nodiscard]] const std::vector<IfsPoint>& getBuffer();
-  [[nodiscard]] uint32_t getMaxHitCount() const { return maxHitCount; }
+  void Reset();
+  void AddHit(uint32_t x, uint32_t y, const Pixel& p);
+  [[nodiscard]] auto GetBuffer() -> const std::vector<IfsPoint>&;
+  [[nodiscard]] auto GetMaxHitCount() const -> uint32_t { return m_maxHitCount; }
 
 private:
-  const uint32_t width = 0;
-  const uint32_t height = 0;
+  const uint32_t m_width = 0;
+  const uint32_t m_height = 0;
   struct HitInfo
   {
     uint32_t count = 0;
     Pixel color{0U};
   };
-  std::vector<std::vector<HitInfo>> hitInfo{};
-  uint32_t maxHitCount = 0;
-  std::vector<IfsPoint> hits{};
-  std::vector<IfsPoint> buffer{};
+  std::vector<std::vector<HitInfo>> m_hitInfo{};
+  uint32_t m_maxHitCount = 0;
+  std::vector<IfsPoint> m_hits{};
+  std::vector<IfsPoint> m_buffer{};
 };
 
 FractalHits::FractalHits(const uint32_t w, const uint32_t h) noexcept
-  : width{w}, height{h}, hitInfo(height)
+  : m_width{w}, m_height{h}, m_hitInfo(m_height)
 {
-  for (auto& xHit : hitInfo)
+  for (auto& xHit : m_hitInfo)
   {
-    xHit.resize(width);
+    xHit.resize(m_width);
   }
-  hits.reserve(1000);
+  m_hits.reserve(1000);
 }
 
-void FractalHits::reset()
+void FractalHits::Reset()
 {
-  maxHitCount = 0;
-  hits.resize(0);
-  for (auto& xHit : hitInfo)
+  m_maxHitCount = 0;
+  m_hits.resize(0);
+  for (auto& xHit : m_hitInfo)
   {
     // Optimization makes sense here:
     // std::fill(xHit.begin(), xHit.end(), HitInfo{0, Pixel{0U}});
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wclass-memaccess"
-    std::memset(xHit.data(), 0, xHit.size() * sizeof(HitInfo));
+    (void)std::memset(xHit.data(), 0, xHit.size() * sizeof(HitInfo));
 #pragma GCC diagnostic pop
   }
 }
 
-void FractalHits::addHit(const uint32_t x, const uint32_t y, const Pixel& color)
+void FractalHits::AddHit(uint32_t x, uint32_t y, const Pixel& p)
 {
   const uint32_t ux = x & 0x7fffffff;
   const uint32_t uy = y & 0x7fffffff;
 
-  if (ux >= width || uy >= height)
+  if (ux >= m_width || uy >= m_height)
   {
     return;
   }
 
-  HitInfo& h = hitInfo[uy][ux];
+  HitInfo& h = m_hitInfo[uy][ux];
 
-  h.color = getColorAverage(h.color, color);
+  h.color = getColorAverage(h.color, p);
   h.count++;
 
-  if (h.count > maxHitCount)
+  if (h.count > m_maxHitCount)
   {
-    maxHitCount = h.count;
+    m_maxHitCount = h.count;
   }
 
   if (h.count == 1)
   {
-    hits.emplace_back(IfsPoint{ux, uy, 1});
+    (void)m_hits.emplace_back(IfsPoint{ux, uy, 1});
   }
 }
 
-const std::vector<IfsPoint>& FractalHits::getBuffer()
+const std::vector<IfsPoint>& FractalHits::GetBuffer()
 {
-  buffer.resize(hits.size());
-  for (size_t i = 0; i < hits.size(); i++)
+  m_buffer.resize(m_hits.size());
+  for (size_t i = 0; i < m_hits.size(); i++)
   {
-    IfsPoint pt = hits[i];
-    pt.count = hitInfo[pt.y][pt.x].count;
-    pt.color = hitInfo[pt.y][pt.x].color;
-    buffer[i] = pt;
+    IfsPoint pt = m_hits[i];
+    pt.count = m_hitInfo[pt.y][pt.x].count;
+    pt.color = m_hitInfo[pt.y][pt.x].color;
+    m_buffer[i] = pt;
   }
-  return buffer;
+  return m_buffer;
 }
 
 class Fractal
@@ -402,88 +403,91 @@ class Fractal
 public:
   Fractal() noexcept = default;
   Fractal(const std::shared_ptr<const PluginInfo>&, const ColorMaps&, IfsStats*) noexcept;
+  ~Fractal() noexcept = default;
   Fractal(const Fractal&) noexcept = delete;
-  Fractal& operator=(const Fractal&) = delete;
+  Fractal(const Fractal&&) noexcept = delete;
+  auto operator=(const Fractal&) -> Fractal& = delete;
+  auto operator=(const Fractal&&) -> Fractal& = delete;
 
-  void init();
-  void resetCurrentIFSFunc();
+  void Init();
+  void ResetCurrentIfsFunc();
 
-  [[nodiscard]] uint32_t getSpeed() const { return speed; }
-  void setSpeed(const uint32_t val) { speed = val; }
+  [[nodiscard]] auto GetSpeed() const -> uint32_t { return m_speed; }
+  void SetSpeed(const uint32_t val) { m_speed = val; }
 
-  [[nodiscard]] uint32_t getMaxHitCount() const { return curHits->getMaxHitCount(); }
+  [[nodiscard]] auto GetMaxHitCount() const -> uint32_t { return m_curHits->GetMaxHitCount(); }
 
-  [[nodiscard]] const std::vector<IfsPoint>& drawIfs();
+  [[nodiscard]] auto DrawIfs() -> const std::vector<IfsPoint>&;
 
-  bool operator==(const Fractal&) const;
+  auto operator==(const Fractal& f) const -> bool;
 
   template<class Archive>
   void serialize(Archive&);
 
 private:
-  static constexpr size_t maxSimi = 6;
-  static constexpr size_t maxCountTimesSpeed = 1000;
+  static constexpr size_t MAX_SIMI = 6;
+  static constexpr size_t MAX_COUNT_TIMES_SPEED = 1000;
 
-  const ColorMaps* colorMaps{};
-  IfsStats* stats{};
+  const ColorMaps* m_colorMaps{};
+  IfsStats* m_stats{};
 
-  uint32_t lx = 0;
-  uint32_t ly = 0;
-  uint32_t numSimi = 0;
-  uint32_t depth = 0;
-  uint32_t count = 0;
-  uint32_t speed = 6;
-  Dbl r1Mean = 0;
-  Dbl r2Mean = 0;
-  Dbl dr1Mean = 0;
-  Dbl dr2Mean = 0;
+  uint32_t m_lx = 0;
+  uint32_t m_ly = 0;
+  uint32_t m_numSimi = 0;
+  uint32_t m_depth = 0;
+  uint32_t m_count = 0;
+  uint32_t m_speed = 6;
+  Dbl m_r1Mean = 0;
+  Dbl m_r2Mean = 0;
+  Dbl m_dr1Mean = 0;
+  Dbl m_dr2Mean = 0;
 
-  std::vector<Similitude> components{};
+  std::vector<Similitude> m_components{};
 
-  FractalHits hits1{};
-  FractalHits hits2{};
-  FractalHits* prevHits = nullptr;
-  FractalHits* curHits = nullptr;
+  FractalHits m_hits1{};
+  FractalHits m_hits2{};
+  FractalHits* m_prevHits = nullptr;
+  FractalHits* m_curHits = nullptr;
 
-  [[nodiscard]] Flt getLx() const { return static_cast<Flt>(lx); }
-  [[nodiscard]] Flt getLy() const { return static_cast<Flt>(ly); }
-  void drawFractal();
-  void randomSimis(size_t start, size_t num);
-  void trace(uint32_t curDepth, const FltPoint& p0);
-  void updateHits(const Similitude&, const FltPoint&);
-  using IFSFunc =
+  [[nodiscard]] auto GetLx() const -> Flt { return static_cast<Flt>(m_lx); }
+  [[nodiscard]] auto GetLy() const -> Flt { return static_cast<Flt>(m_ly); }
+  void DrawFractal();
+  void RandomSimis(size_t start, size_t num);
+  void Trace(uint32_t curDepth, const FltPoint& p0);
+  void UpdateHits(const Similitude& simi, const FltPoint& p);
+  using IfsFunc =
       std::function<FltPoint(const Similitude& simi, float x1, float y1, float x2, float y2)>;
-  IFSFunc curFunc{};
-  FltPoint transform(const Similitude&, const FltPoint& p0);
-  static Dbl gaussRand(Dbl c, Dbl S, Dbl A_mult_1_minus_exp_neg_S);
-  static Dbl halfGaussRand(Dbl c, Dbl S, Dbl A_mult_1_minus_exp_neg_S);
-  static constexpr Dbl get_1_minus_exp_neg_S(Dbl S);
+  IfsFunc m_curFunc{};
+  auto Transform(const Similitude& simi, const FltPoint& p0) -> FltPoint;
+  static auto GaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S) -> Dbl;
+  static auto HalfGaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S) -> Dbl;
+  static constexpr Dbl Get_1_minus_exp_neg_S(const Dbl S);
 };
 
 Fractal::Fractal(const std::shared_ptr<const PluginInfo>& goomInfo,
                  const ColorMaps& cm,
                  IfsStats* s) noexcept
-  : colorMaps{&cm},
-    stats{s},
-    lx{(goomInfo->GetScreenInfo().width - 1) / 2},
-    ly{(goomInfo->GetScreenInfo().height - 1) / 2},
-    components(5 * maxSimi),
-    hits1{goomInfo->GetScreenInfo().width, goomInfo->GetScreenInfo().height},
-    hits2{goomInfo->GetScreenInfo().width, goomInfo->GetScreenInfo().height},
-    prevHits{&hits1},
-    curHits{&hits2}
+  : m_colorMaps{&cm},
+    m_stats{s},
+    m_lx{(goomInfo->GetScreenInfo().width - 1) / 2},
+    m_ly{(goomInfo->GetScreenInfo().height - 1) / 2},
+    m_components(5 * MAX_SIMI),
+    m_hits1{goomInfo->GetScreenInfo().width, goomInfo->GetScreenInfo().height},
+    m_hits2{goomInfo->GetScreenInfo().width, goomInfo->GetScreenInfo().height},
+    m_prevHits{&m_hits1},
+    m_curHits{&m_hits2}
 {
-  init();
-  resetCurrentIFSFunc();
+  Init();
+  ResetCurrentIfsFunc();
 }
 
-void Fractal::init()
+void Fractal::Init()
 {
-  prevHits->reset();
-  curHits->reset();
+  m_prevHits->Reset();
+  m_curHits->Reset();
 
   // clang-format off
-  static const Weights<size_t> centreWeights{{
+  static const Weights<size_t> s_centreWeights{{
     {0, 10},
     {1,  5},
     {2,  3},
@@ -492,68 +496,70 @@ void Fractal::init()
   // clang-format on
   assert(centreWeights.getNumElements() == centreList.size());
 
-  const size_t numCentres = 2 + centreWeights.getRandomWeighted();
+  const size_t numCentres = 2 + s_centreWeights.getRandomWeighted();
 
-  depth = centreList.at(numCentres - 2).depth;
-  r1Mean = centreList[numCentres - 2].r1Mean;
-  r2Mean = centreList[numCentres - 2].r2Mean;
-  dr1Mean = centreList[numCentres - 2].dr1Mean;
-  dr2Mean = centreList[numCentres - 2].dr2Mean;
+  m_depth = CENTRE_LIST.at(numCentres - 2).depth;
+  m_r1Mean = CENTRE_LIST[numCentres - 2].r1Mean;
+  m_r2Mean = CENTRE_LIST[numCentres - 2].r2Mean;
+  m_dr1Mean = CENTRE_LIST[numCentres - 2].dr1Mean;
+  m_dr2Mean = CENTRE_LIST[numCentres - 2].dr2Mean;
 
-  numSimi = numCentres;
+  m_numSimi = numCentres;
 
   for (size_t i = 0; i < 5; i++)
   {
-    randomSimis(i * maxSimi, maxSimi);
+    RandomSimis(i * MAX_SIMI, MAX_SIMI);
   }
 }
 
-void Fractal::resetCurrentIFSFunc()
+void Fractal::ResetCurrentIfsFunc()
 {
   if (probabilityOfMInN(3, 10))
   {
-    curFunc = [&](const Similitude& simi, const float x1, const float y1, const float x2,
-                  const float y2) -> FltPoint {
+    m_curFunc = [&](const Similitude& simi, const float x1, const float y1, const float x2,
+                    const float y2) -> FltPoint {
       return {
-          div_by_unit(x1 * simi.sinA1 - y1 * simi.cosA1 + x2 * simi.sinA2 - y2 * simi.cosA2) +
+          DivByUnit(x1 * simi.sinA1 - y1 * simi.cosA1 + x2 * simi.sinA2 - y2 * simi.cosA2) +
               simi.cx,
-          div_by_unit(x1 * simi.cosA1 + y1 * simi.sinA1 + x2 * simi.cosA2 + y2 * simi.sinA2) +
+          DivByUnit(x1 * simi.cosA1 + y1 * simi.sinA1 + x2 * simi.cosA2 + y2 * simi.sinA2) +
               simi.cy,
       };
     };
-    stats->updateReverseIfsFunc();
+    m_stats->UpdateReverseIfsFunc();
   }
   else
   {
-    curFunc = [&](const Similitude& simi, const float x1, const float y1, const float x2,
-                  const float y2) -> FltPoint {
+    m_curFunc = [&](const Similitude& simi, const float x1, const float y1, const float x2,
+                    const float y2) -> FltPoint {
       return {
-          div_by_unit(x1 * simi.cosA1 - y1 * simi.sinA1 + x2 * simi.cosA2 - y2 * simi.sinA2) +
+          DivByUnit(x1 * simi.cosA1 - y1 * simi.sinA1 + x2 * simi.cosA2 - y2 * simi.sinA2) +
               simi.cx,
-          div_by_unit(x1 * simi.sinA1 + y1 * simi.cosA1 + x2 * simi.sinA2 + y2 * simi.cosA2) +
+          DivByUnit(x1 * simi.sinA1 + y1 * simi.cosA1 + x2 * simi.sinA2 + y2 * simi.cosA2) +
               simi.cy,
       };
     };
-    stats->updateStdIfsFunc();
+    m_stats->UpdateStdIfsFunc();
   }
 }
 
-bool Fractal::operator==(const Fractal& f) const
+auto Fractal::operator==(const Fractal& f) const -> bool
 {
-  return numSimi == f.numSimi && components == f.components && depth == f.depth &&
-         count == f.count && speed == f.speed && lx == f.lx && ly == f.ly && r1Mean == f.r1Mean &&
-         r2Mean == f.r2Mean && dr1Mean == f.dr1Mean && dr2Mean == f.dr2Mean;
+  return m_numSimi == f.m_numSimi && m_components == f.m_components && m_depth == f.m_depth &&
+         m_count == f.m_count && m_speed == f.m_speed && m_lx == f.m_lx && m_ly == f.m_ly &&
+         m_r1Mean == f.m_r1Mean && m_r2Mean == f.m_r2Mean && m_dr1Mean == f.m_dr1Mean &&
+         m_dr2Mean == f.m_dr2Mean;
 }
 
 template<class Archive>
 void Fractal::serialize(Archive& ar)
 {
-  ar(numSimi, components, depth, count, speed, lx, ly, r1Mean, r2Mean, dr1Mean, dr2Mean);
+  ar(m_numSimi, m_components, m_depth, m_count, m_speed, m_lx, m_ly, m_r1Mean, m_r2Mean, m_dr1Mean,
+     m_dr2Mean);
 }
 
-const std::vector<IfsPoint>& Fractal::drawIfs()
+auto Fractal::DrawIfs() -> const std::vector<IfsPoint>&
 {
-  const Dbl u = static_cast<Dbl>(count * speed) / static_cast<Dbl>(maxCountTimesSpeed);
+  const Dbl u = static_cast<Dbl>(m_count * m_speed) / static_cast<Dbl>(MAX_COUNT_TIMES_SPEED);
   const Dbl uSq = u * u;
   const Dbl v = 1.0 - u;
   const Dbl vSq = v * v;
@@ -562,13 +568,13 @@ const std::vector<IfsPoint>& Fractal::drawIfs()
   const Dbl u2 = 3.0 * v * uSq;
   const Dbl u3 = u * uSq;
 
-  Similitude* s = components.data();
-  Similitude* s0 = s + numSimi;
-  Similitude* s1 = s0 + numSimi;
-  Similitude* s2 = s1 + numSimi;
-  Similitude* s3 = s2 + numSimi;
+  Similitude* s = m_components.data();
+  Similitude* s0 = s + m_numSimi;
+  Similitude* s1 = s0 + m_numSimi;
+  Similitude* s2 = s1 + m_numSimi;
+  Similitude* s3 = s2 + m_numSimi;
 
-  for (size_t i = 0; i < numSimi; i++)
+  for (size_t i = 0; i < m_numSimi; i++)
   {
     s[i].dbl_cx = u0 * s0[i].dbl_cx + u1 * s1[i].dbl_cx + u2 * s2[i].dbl_cx + u3 * s3[i].dbl_cx;
     s[i].dbl_cy = u0 * s0[i].dbl_cy + u1 * s1[i].dbl_cy + u2 * s2[i].dbl_cy + u3 * s3[i].dbl_cy;
@@ -580,24 +586,24 @@ const std::vector<IfsPoint>& Fractal::drawIfs()
     s[i].A2 = u0 * s0[i].A2 + u1 * s1[i].A2 + u2 * s2[i].A2 + u3 * s3[i].A2;
   }
 
-  curHits->reset();
-  drawFractal();
-  const std::vector<IfsPoint>& curBuffer = curHits->getBuffer();
-  std::swap(prevHits, curHits);
+  m_curHits->Reset();
+  DrawFractal();
+  const std::vector<IfsPoint>& curBuffer = m_curHits->GetBuffer();
+  std::swap(m_prevHits, m_curHits);
 
-  if (count < maxCountTimesSpeed / speed)
+  if (m_count < MAX_COUNT_TIMES_SPEED / m_speed)
   {
-    count++;
+    m_count++;
   }
   else
   {
-    s = components.data();
-    s0 = s + numSimi;
-    s1 = s0 + numSimi;
-    s2 = s1 + numSimi;
-    s3 = s2 + numSimi;
+    s = m_components.data();
+    s0 = s + m_numSimi;
+    s1 = s0 + m_numSimi;
+    s2 = s1 + m_numSimi;
+    s3 = s2 + m_numSimi;
 
-    for (size_t i = 0; i < numSimi; i++)
+    for (size_t i = 0; i < m_numSimi; i++)
     {
       s1[i].dbl_cx = (2.0 * s3[i].dbl_cx) - s2[i].dbl_cx;
       s1[i].dbl_cy = (2.0 * s3[i].dbl_cy) - s2[i].dbl_cy;
@@ -611,108 +617,108 @@ const std::vector<IfsPoint>& Fractal::drawIfs()
       s0[i] = s3[i];
     }
 
-    randomSimis(3 * numSimi, numSimi);
-    randomSimis(4 * numSimi, numSimi);
+    RandomSimis(3 * m_numSimi, m_numSimi);
+    RandomSimis(4 * m_numSimi, m_numSimi);
 
-    count = 0;
+    m_count = 0;
   }
 
   return curBuffer;
 }
 
-void Fractal::drawFractal()
+void Fractal::DrawFractal()
 {
-  for (size_t i = 0; i < numSimi; i++)
+  for (size_t i = 0; i < m_numSimi; i++)
   {
-    Similitude& simi = components[i];
+    Similitude& simi = m_components[i];
 
-    simi.cx = dbl_to_flt(simi.dbl_cx);
-    simi.cy = dbl_to_flt(simi.dbl_cy);
+    simi.cx = DblToFlt(simi.dbl_cx);
+    simi.cy = DblToFlt(simi.dbl_cy);
 
-    simi.cosA1 = dbl_to_flt(std::cos(simi.A1));
-    simi.sinA1 = dbl_to_flt(std::sin(simi.A1));
-    simi.cosA2 = dbl_to_flt(std::cos(simi.A2));
-    simi.sinA2 = dbl_to_flt(std::sin(simi.A2));
+    simi.cosA1 = DblToFlt(std::cos(simi.A1));
+    simi.sinA1 = DblToFlt(std::sin(simi.A1));
+    simi.cosA2 = DblToFlt(std::cos(simi.A2));
+    simi.sinA2 = DblToFlt(std::sin(simi.A2));
 
-    simi.r1 = dbl_to_flt(simi.dbl_r1);
-    simi.r2 = dbl_to_flt(simi.dbl_r2);
+    simi.r1 = DblToFlt(simi.dbl_r1);
+    simi.r2 = DblToFlt(simi.dbl_r2);
   }
 
-  for (size_t i = 0; i < numSimi; i++)
+  for (size_t i = 0; i < m_numSimi; i++)
   {
-    const FltPoint p0{components[i].cx, components[i].cy};
+    const FltPoint p0{m_components[i].cx, m_components[i].cy};
 
-    for (size_t j = 0; j < numSimi; j++)
+    for (size_t j = 0; j < m_numSimi; j++)
     {
       if (i != j)
       {
-        const FltPoint p = transform(components[j], p0);
-        trace(depth, p);
+        const FltPoint p = Transform(m_components[j], p0);
+        Trace(m_depth, p);
       }
     }
   }
 }
 
-constexpr Dbl Fractal::get_1_minus_exp_neg_S(const Dbl S)
+constexpr auto Fractal::Get_1_minus_exp_neg_S(const Dbl S) -> Dbl
 {
   return 1.0 - std::exp(-S);
 }
 
-Dbl Fractal::gaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S)
+auto Fractal::GaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S) -> Dbl
 {
   const Dbl x = getRandInRange(0.0f, 1.0f);
   const Dbl y = A_mult_1_minus_exp_neg_S * (1.0 - std::exp(-x * x * S));
   return probabilityOfMInN(1, 2) ? c + y : c - y;
 }
 
-Dbl Fractal::halfGaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S)
+auto Fractal::HalfGaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S) -> Dbl
 {
-  const Dbl x = getRandInRange(0.0f, 1.0f);
+  const Dbl x = getRandInRange(0.0F, 1.0F);
   const Dbl y = A_mult_1_minus_exp_neg_S * (1.0 - std::exp(-x * x * S));
   return c + y;
 }
 
-void Fractal::randomSimis(const size_t start, const size_t num)
+void Fractal::RandomSimis(const size_t start, const size_t num)
 {
-  static const constinit Dbl c_factor = 0.8f * get_1_minus_exp_neg_S(4.0);
-  static const constinit Dbl r1_1_minus_exp_neg_S = get_1_minus_exp_neg_S(3.0);
-  static const constinit Dbl r2_1_minus_exp_neg_S = get_1_minus_exp_neg_S(2.0);
-  static const constinit Dbl A1_factor = 360.0F * get_1_minus_exp_neg_S(4.0);
+  static const constinit Dbl c_factor = 0.8f * Get_1_minus_exp_neg_S(4.0);
+  static const constinit Dbl r1_1_minus_exp_neg_S = Get_1_minus_exp_neg_S(3.0);
+  static const constinit Dbl r2_1_minus_exp_neg_S = Get_1_minus_exp_neg_S(2.0);
+  static const constinit Dbl A1_factor = 360.0F * Get_1_minus_exp_neg_S(4.0);
   static const constinit Dbl A2_factor = A1_factor;
 
-  const Dbl r1_factor = dr1Mean * r1_1_minus_exp_neg_S;
-  const Dbl r2_factor = dr2Mean * r2_1_minus_exp_neg_S;
+  const Dbl r1Factor = m_dr1Mean * r1_1_minus_exp_neg_S;
+  const Dbl r2Factor = m_dr2Mean * r2_1_minus_exp_neg_S;
 
-  const ColorMapGroup colorMapGroup = colorMaps->getRandomGroup();
+  const ColorMapGroup colorMapGroup = m_colorMaps->getRandomGroup();
 
   for (size_t i = start; i < start + num; i++)
   {
-    components[i].dbl_cx = gaussRand(0.0, 4.0, c_factor);
-    components[i].dbl_cy = gaussRand(0.0, 4.0, c_factor);
-    components[i].dbl_r1 = gaussRand(r1Mean, 3.0, r1_factor);
-    components[i].dbl_r2 = halfGaussRand(r2Mean, 2.0, r2_factor);
-    components[i].A1 = gaussRand(0.0, 4.0, A1_factor) * (m_pi / 180.0);
-    components[i].A2 = gaussRand(0.0, 4.0, A2_factor) * (m_pi / 180.0);
-    components[i].cosA1 = 0;
-    components[i].sinA1 = 0;
-    components[i].cosA2 = 0;
-    components[i].sinA2 = 0;
-    components[i].cx = 0;
-    components[i].cy = 0;
-    components[i].r1 = 0;
-    components[i].r2 = 0;
+    m_components[i].dbl_cx = GaussRand(0.0, 4.0, c_factor);
+    m_components[i].dbl_cy = GaussRand(0.0, 4.0, c_factor);
+    m_components[i].dbl_r1 = GaussRand(m_r1Mean, 3.0, r1Factor);
+    m_components[i].dbl_r2 = HalfGaussRand(m_r2Mean, 2.0, r2Factor);
+    m_components[i].A1 = GaussRand(0.0, 4.0, A1_factor) * (m_pi / 180.0);
+    m_components[i].A2 = GaussRand(0.0, 4.0, A2_factor) * (m_pi / 180.0);
+    m_components[i].cosA1 = 0;
+    m_components[i].sinA1 = 0;
+    m_components[i].cosA2 = 0;
+    m_components[i].sinA2 = 0;
+    m_components[i].cx = 0;
+    m_components[i].cy = 0;
+    m_components[i].r1 = 0;
+    m_components[i].r2 = 0;
 
-    components[i].color = ColorMap::getRandomColor(colorMaps->getRandomColorMap(colorMapGroup));
+    m_components[i].color = ColorMap::getRandomColor(m_colorMaps->getRandomColorMap(colorMapGroup));
   }
 }
 
-void Fractal::trace(const uint32_t curDepth, const FltPoint& p0)
+void Fractal::Trace(const uint32_t curDepth, const FltPoint& p0)
 {
-  for (size_t i = 0; i < numSimi; i++)
+  for (size_t i = 0; i < m_numSimi; i++)
   {
-    const FltPoint p = transform(components[i], p0);
+    const FltPoint p = Transform(m_components[i], p0);
 
-    updateHits(components[i], p);
+    UpdateHits(m_components[i], p);
 
     if (!curDepth)
     {
@@ -723,55 +729,58 @@ void Fractal::trace(const uint32_t curDepth, const FltPoint& p0)
       continue;
     }
 
-    trace(curDepth - 1, p);
+    Trace(curDepth - 1, p);
   }
 }
 
-inline FltPoint Fractal::transform(const Similitude& simi, const FltPoint& p0)
+inline auto Fractal::Transform(const Similitude& simi, const FltPoint& p0) -> FltPoint
 {
-  const Flt x1 = div_by_unit((p0.x - simi.cx) * simi.r1);
-  const Flt y1 = div_by_unit((p0.y - simi.cy) * simi.r1);
+  const Flt x1 = DivByUnit((p0.x - simi.cx) * simi.r1);
+  const Flt y1 = DivByUnit((p0.y - simi.cy) * simi.r1);
 
-  const Flt x2 = div_by_unit((+x1 - simi.cx) * simi.r2);
-  const Flt y2 = div_by_unit((-y1 - simi.cy) * simi.r2);
+  const Flt x2 = DivByUnit((+x1 - simi.cx) * simi.r2);
+  const Flt y2 = DivByUnit((-y1 - simi.cy) * simi.r2);
 
-  return curFunc(simi, x1, y1, x2, y2);
+  return m_curFunc(simi, x1, y1, x2, y2);
 }
 
-inline void Fractal::updateHits(const Similitude& simi, const FltPoint& p)
+inline void Fractal::UpdateHits(const Similitude& simi, const FltPoint& p)
 {
-  const auto x = static_cast<uint32_t>(getLx() + div_by_2units(p.x * getLx()));
-  const auto y = static_cast<uint32_t>(getLy() - div_by_2units(p.y * getLy()));
-  curHits->addHit(x, y, simi.color);
+  const auto x = static_cast<uint32_t>(GetLx() + DivBy2Units(p.x * GetLx()));
+  const auto y = static_cast<uint32_t>(GetLy() - DivBy2Units(p.y * GetLy()));
+  m_curHits->AddHit(x, y, simi.color);
 }
 
 class Colorizer
 {
 public:
   Colorizer() noexcept;
+  ~Colorizer() noexcept = default;
   Colorizer(const Colorizer&) = delete;
-  Colorizer& operator=(const Colorizer&) = delete;
+  Colorizer(const Colorizer&&) = delete;
+  auto operator=(const Colorizer&) -> Colorizer& = delete;
+  auto operator=(const Colorizer&&) -> Colorizer& = delete;
 
-  const ColorMaps& getColorMaps() const;
+  auto GetColorMaps() const -> const ColorMaps&;
 
-  IfsDancersFx::ColorMode getColorMode() const;
-  void setForcedColorMode(IfsDancersFx::ColorMode);
-  void changeColorMode();
+  auto GetColorMode() const -> IfsDancersFx::ColorMode;
+  void SetForcedColorMode(IfsDancersFx::ColorMode c);
+  void ChangeColorMode();
 
-  void changeColorMaps();
+  void ChangeColorMaps();
 
-  void setMaxHitCount(uint32_t val);
+  void SetMaxHitCount(uint32_t val);
 
-  [[nodiscard]] Pixel getMixedColor(
-      const Pixel& baseColor, uint32_t hitCount, float tMix, float x, float y);
+  [[nodiscard]] auto GetMixedColor(
+      const Pixel& baseColor, uint32_t hitCount, float tMix, float x, float y) -> Pixel;
 
-  bool operator==(const Colorizer&) const;
+  auto operator==(const Colorizer& c) const -> bool;
 
   template<class Archive>
   void serialize(Archive&);
 
 private:
-  WeightedColorMaps colorMaps{Weights<ColorMapGroup>{{
+  WeightedColorMaps m_colorMaps{Weights<ColorMapGroup>{{
       {ColorMapGroup::perceptuallyUniformSequential, 10},
       {ColorMapGroup::sequential, 10},
       {ColorMapGroup::sequential2, 10},
@@ -781,96 +790,96 @@ private:
       {ColorMapGroup::qualitative, 10},
       {ColorMapGroup::misc, 20},
   }}};
-  const ColorMap* mixerMap1;
-  const ColorMap* prevMixerMap1;
-  const ColorMap* mixerMap2;
-  const ColorMap* prevMixerMap2;
-  mutable uint32_t countSinceColorMapChange = 0;
-  static constexpr uint32_t minColorMapChangeCompleted = 5;
-  static constexpr uint32_t maxColorMapChangeCompleted = 50;
-  uint32_t colorMapChangeCompleted = minColorMapChangeCompleted;
+  const ColorMap* m_mixerMap1;
+  const ColorMap* m_prevMixerMap1;
+  const ColorMap* m_mixerMap2;
+  const ColorMap* m_prevMixerMap2;
+  mutable uint32_t m_countSinceColorMapChange = 0;
+  static constexpr uint32_t MIN_COLOR_MAP_CHANGE_COMPLETED = 5;
+  static constexpr uint32_t MAX_COLOR_MAP_CHANGE_COMPLETED = 50;
+  uint32_t m_colorMapChangeCompleted = MIN_COLOR_MAP_CHANGE_COMPLETED;
 
-  IfsDancersFx::ColorMode colorMode = IfsDancersFx::ColorMode::mapColors;
-  IfsDancersFx::ColorMode forcedColorMode = IfsDancersFx::ColorMode::_null;
-  uint32_t maxHitCount = 0;
-  float logMaxHitCount = 0;
-  float tBetweenColors = 0.5; // in [0, 1]
-  static IfsDancersFx::ColorMode getNextColorMode();
-  [[nodiscard]] Pixel getNextMixerMapColor(float t, float x, float y) const;
+  IfsDancersFx::ColorMode m_colorMode = IfsDancersFx::ColorMode::mapColors;
+  IfsDancersFx::ColorMode m_forcedColorMode = IfsDancersFx::ColorMode::_null;
+  uint32_t m_maxHitCount = 0;
+  float m_logMaxHitCount = 0;
+  float m_tBetweenColors = 0.5; // in [0, 1]
+  static auto GetNextColorMode() -> IfsDancersFx::ColorMode;
+  [[nodiscard]] auto GetNextMixerMapColor(float t, float x, float y) const -> Pixel;
 };
 
 Colorizer::Colorizer() noexcept
-  : mixerMap1{&colorMaps.getRandomColorMap()},
-    prevMixerMap1{mixerMap1},
-    mixerMap2{&colorMaps.getRandomColorMap()},
-    prevMixerMap2{mixerMap2}
+  : m_mixerMap1{&m_colorMaps.getRandomColorMap()},
+    m_prevMixerMap1{m_mixerMap1},
+    m_mixerMap2{&m_colorMaps.getRandomColorMap()},
+    m_prevMixerMap2{m_mixerMap2}
 {
 }
 
-bool Colorizer::operator==(const Colorizer& c) const
+auto Colorizer::operator==(const Colorizer& c) const -> bool
 {
-  return countSinceColorMapChange == c.countSinceColorMapChange &&
-         colorMapChangeCompleted == c.colorMapChangeCompleted && colorMode == c.colorMode &&
-         tBetweenColors == c.tBetweenColors;
+  return m_countSinceColorMapChange == c.m_countSinceColorMapChange &&
+         m_colorMapChangeCompleted == c.m_colorMapChangeCompleted && m_colorMode == c.m_colorMode &&
+         m_tBetweenColors == c.m_tBetweenColors;
 }
 
 template<class Archive>
 void Colorizer::serialize(Archive& ar)
 {
-  ar(countSinceColorMapChange, colorMapChangeCompleted, colorMode, tBetweenColors);
+  ar(m_countSinceColorMapChange, m_colorMapChangeCompleted, m_colorMode, m_tBetweenColors);
 
-  auto mixerMapName1 = mixerMap1->getMapName();
+  auto mixerMapName1 = m_mixerMap1->getMapName();
   ar(cereal::make_nvp("mixerMap1", mixerMapName1));
-  auto prevMixerMapName1 = prevMixerMap1->getMapName();
+  auto prevMixerMapName1 = m_prevMixerMap1->getMapName();
   ar(cereal::make_nvp("prevMixerMap1", prevMixerMapName1));
-  mixerMap1 = &colorMaps.getColorMap(mixerMapName1);
-  prevMixerMap1 = &colorMaps.getColorMap(prevMixerMapName1);
+  m_mixerMap1 = &m_colorMaps.getColorMap(mixerMapName1);
+  m_prevMixerMap1 = &m_colorMaps.getColorMap(prevMixerMapName1);
 
-  auto mixerMapName2 = mixerMap2->getMapName();
+  auto mixerMapName2 = m_mixerMap2->getMapName();
   ar(cereal::make_nvp("mixerMap2", mixerMapName2));
-  auto prevMixerMapName2 = prevMixerMap2->getMapName();
+  auto prevMixerMapName2 = m_prevMixerMap2->getMapName();
   ar(cereal::make_nvp("prevMixerMap2", prevMixerMapName2));
-  mixerMap2 = &colorMaps.getColorMap(mixerMapName2);
-  prevMixerMap2 = &colorMaps.getColorMap(prevMixerMapName2);
+  m_mixerMap2 = &m_colorMaps.getColorMap(mixerMapName2);
+  m_prevMixerMap2 = &m_colorMaps.getColorMap(prevMixerMapName2);
 }
 
-inline void Colorizer::setMaxHitCount(const uint32_t val)
+inline void Colorizer::SetMaxHitCount(uint32_t val)
 {
-  maxHitCount = val;
-  logMaxHitCount = std::log(maxHitCount);
+  m_maxHitCount = val;
+  m_logMaxHitCount = std::log(m_maxHitCount);
 }
 
-inline const ColorMaps& Colorizer::getColorMaps() const
+inline auto Colorizer::GetColorMaps() const -> const ColorMaps&
 {
-  return colorMaps;
+  return m_colorMaps;
 }
 
-inline IfsDancersFx::ColorMode Colorizer::getColorMode() const
+inline auto Colorizer::GetColorMode() const -> IfsDancersFx::ColorMode
 {
-  return colorMode;
+  return m_colorMode;
 }
 
-inline void Colorizer::setForcedColorMode(const IfsDancersFx::ColorMode c)
+inline void Colorizer::SetForcedColorMode(IfsDancersFx::ColorMode c)
 {
-  forcedColorMode = c;
+  m_forcedColorMode = c;
 }
 
-void Colorizer::changeColorMode()
+void Colorizer::ChangeColorMode()
 {
-  if (forcedColorMode != IfsDancersFx::ColorMode::_null)
+  if (m_forcedColorMode != IfsDancersFx::ColorMode::_null)
   {
-    colorMode = forcedColorMode;
+    m_colorMode = m_forcedColorMode;
   }
   else
   {
-    colorMode = getNextColorMode();
+    m_colorMode = GetNextColorMode();
   }
 }
 
-IfsDancersFx::ColorMode Colorizer::getNextColorMode()
+auto Colorizer::GetNextColorMode() -> IfsDancersFx::ColorMode
 {
   // clang-format off
-  static const Weights<IfsDancersFx::ColorMode> colorModeWeights{{
+  static const Weights<IfsDancersFx::ColorMode> s_colorModeWeights{{
     { IfsDancersFx::ColorMode::mapColors,           15 },
     { IfsDancersFx::ColorMode::megaMapColorChange,  20 },
     { IfsDancersFx::ColorMode::mixColors,           10 },
@@ -882,63 +891,65 @@ IfsDancersFx::ColorMode Colorizer::getNextColorMode()
   }};
   // clang-format on
 
-  return colorModeWeights.getRandomWeighted();
+  return s_colorModeWeights.getRandomWeighted();
 }
 
-void Colorizer::changeColorMaps()
+void Colorizer::ChangeColorMaps()
 {
-  prevMixerMap1 = mixerMap1;
-  mixerMap1 = &colorMaps.getRandomColorMap();
-  prevMixerMap2 = mixerMap2;
-  mixerMap2 = &colorMaps.getRandomColorMap();
+  m_prevMixerMap1 = m_mixerMap1;
+  m_mixerMap1 = &m_colorMaps.getRandomColorMap();
+  m_prevMixerMap2 = m_mixerMap2;
+  m_mixerMap2 = &m_colorMaps.getRandomColorMap();
   //  logInfo("prevMixerMap = {}", enumToString(prevMixerMap->getMapName()));
   //  logInfo("mixerMap = {}", enumToString(mixerMap->getMapName()));
-  colorMapChangeCompleted = getRandInRange(minColorMapChangeCompleted, maxColorMapChangeCompleted);
-  tBetweenColors = getRandInRange(0.2F, 0.8F);
-  countSinceColorMapChange = colorMapChangeCompleted;
+  m_colorMapChangeCompleted =
+      getRandInRange(MIN_COLOR_MAP_CHANGE_COMPLETED, MAX_COLOR_MAP_CHANGE_COMPLETED);
+  m_tBetweenColors = getRandInRange(0.2F, 0.8F);
+  m_countSinceColorMapChange = m_colorMapChangeCompleted;
 }
 
-inline Pixel Colorizer::getNextMixerMapColor(const float t, const float x, const float y) const
+inline auto Colorizer::GetNextMixerMapColor(const float t, const float x, const float y) const
+    -> Pixel
 {
   //  const float angle = y == 0.0F ? m_half_pi : std::atan2(y, x);
   //  const Pixel nextColor = mixerMap1->getColor((m_pi + angle) / m_two_pi);
-  const Pixel nextColor = ColorMap::colorMix(mixerMap1->getColor(x), mixerMap2->getColor(y), t);
-  if (countSinceColorMapChange == 0)
+  const Pixel nextColor = ColorMap::colorMix(m_mixerMap1->getColor(x), m_mixerMap2->getColor(y), t);
+  if (m_countSinceColorMapChange == 0)
   {
     return nextColor;
   }
 
-  const float tTransition =
-      static_cast<float>(countSinceColorMapChange) / static_cast<float>(colorMapChangeCompleted);
-  countSinceColorMapChange--;
+  const float tTransition = static_cast<float>(m_countSinceColorMapChange) /
+                            static_cast<float>(m_colorMapChangeCompleted);
+  m_countSinceColorMapChange--;
   const Pixel prevNextColor =
-      ColorMap::colorMix(prevMixerMap1->getColor(x), prevMixerMap2->getColor(y), t);
+      ColorMap::colorMix(m_prevMixerMap1->getColor(x), m_prevMixerMap2->getColor(y), t);
   return ColorMap::colorMix(nextColor, prevNextColor, tTransition);
 }
 
-inline Pixel Colorizer::getMixedColor(
-    const Pixel& baseColor, const uint32_t hitCount, const float tMix, const float x, const float y)
+inline auto Colorizer::GetMixedColor(
+    const Pixel& baseColor, uint32_t hitCount, float tMix, float x, float y) -> Pixel
 {
-  constexpr float brightness = 1.9;
-  const float logAlpha = maxHitCount <= 1
-                             ? 1.0F
-                             : brightness * std::log(static_cast<float>(hitCount)) / logMaxHitCount;
+  constexpr float BRIGHTNESS = 1.9;
+  const float logAlpha =
+      m_maxHitCount <= 1 ? 1.0F
+                         : BRIGHTNESS * std::log(static_cast<float>(hitCount)) / m_logMaxHitCount;
 
   Pixel mixColor;
-  float tBaseMix = 1.0F - tBetweenColors;
+  float tBaseMix = 1.0F - m_tBetweenColors;
 
-  switch (colorMode)
+  switch (m_colorMode)
   {
     case IfsDancersFx::ColorMode::mapColors:
     case IfsDancersFx::ColorMode::megaMapColorChange:
-      mixColor = getNextMixerMapColor(logAlpha, x, y);
+      mixColor = GetNextMixerMapColor(logAlpha, x, y);
       tBaseMix = getRandInRange(0.1F, 0.3F);
       break;
 
     case IfsDancersFx::ColorMode::mixColors:
     case IfsDancersFx::ColorMode::reverseMixColors:
     case IfsDancersFx::ColorMode::megaMixColorChange:
-      mixColor = getNextMixerMapColor(tMix, x, y);
+      mixColor = GetNextMixerMapColor(tMix, x, y);
       break;
 
     case IfsDancersFx::ColorMode::singleColors:
@@ -948,15 +959,15 @@ inline Pixel Colorizer::getMixedColor(
     case IfsDancersFx::ColorMode::sineMixColors:
     case IfsDancersFx::ColorMode::sineMapColors:
     {
-      static float freq = 20;
-      static const float zStep = 0.1;
-      static float z = 0;
+      static float freq = 20.0F;
+      constexpr float Z_STEP = 0.1F;
+      static float z = 0.0F;
 
-      mixColor = getNextMixerMapColor(0.5F * (1.0F + std::sin(freq * z)), x, y);
-      z += zStep;
-      if (colorMode == IfsDancersFx::ColorMode::sineMapColors)
+      mixColor = GetNextMixerMapColor(0.5F * (1.0F + std::sin(freq * z)), x, y);
+      z += Z_STEP;
+      if (m_colorMode == IfsDancersFx::ColorMode::sineMapColors)
       {
-        tBaseMix = 1.0F - tBetweenColors;
+        tBaseMix = 1.0F - m_tBetweenColors;
       }
       break;
     }
@@ -965,7 +976,7 @@ inline Pixel Colorizer::getMixedColor(
       throw std::logic_error("Unknown ColorMode");
   }
 
-  if (colorMode == IfsDancersFx::ColorMode::reverseMixColors)
+  if (m_colorMode == IfsDancersFx::ColorMode::reverseMixColors)
   {
     mixColor = ColorMap::colorMix(mixColor, baseColor, tBaseMix);
   }
@@ -982,56 +993,56 @@ inline Pixel Colorizer::getMixedColor(
 class LowDensityBlurrer
 {
 public:
-  LowDensityBlurrer() noexcept : screenWidth{0}, screenHeight{0}, width{0} {}
+  LowDensityBlurrer() noexcept = default;
   LowDensityBlurrer(uint32_t screenWidth, uint32_t screenHeight, uint32_t width) noexcept;
 
-  [[nodiscard]] uint32_t getWidth() const { return width; }
-  void setWidth(uint32_t val);
+  [[nodiscard]] auto GetWidth() const -> uint32_t { return m_width; }
+  void SetWidth(uint32_t val);
 
-  void doBlur(std::vector<IfsPoint>&, std::vector<PixelBuffer*>&) const;
+  void DoBlur(std::vector<IfsPoint>&, std::vector<PixelBuffer*>&) const;
 
 private:
-  const uint32_t screenWidth;
-  const uint32_t screenHeight;
-  uint32_t width;
+  const uint32_t m_screenWidth{};
+  const uint32_t m_screenHeight{};
+  uint32_t m_width{};
 };
 
 inline LowDensityBlurrer::LowDensityBlurrer(const uint32_t screenW,
                                             const uint32_t screenH,
                                             const uint32_t w) noexcept
-  : screenWidth{screenW}, screenHeight{screenH}, width{w}
+  : m_screenWidth{screenW}, m_screenHeight{screenH}, m_width{w}
 {
 }
 
-void LowDensityBlurrer::setWidth(const uint32_t val)
+void LowDensityBlurrer::SetWidth(const uint32_t val)
 {
   if (val != 3 && val != 5 && val != 7)
   {
     throw std::logic_error(std20::format("Invalid blur width {}.", val));
   }
-  width = val;
+  m_width = val;
 }
 
-void LowDensityBlurrer::doBlur(std::vector<IfsPoint>& lowDensityPoints,
+void LowDensityBlurrer::DoBlur(std::vector<IfsPoint>& lowDensityPoints,
                                std::vector<PixelBuffer*>& buffs) const
 {
-  std::vector<Pixel> neighbours(width * width);
+  std::vector<Pixel> neighbours(m_width * m_width);
 
   for (auto& p : lowDensityPoints)
   {
-    if (p.x < (width / 2) || p.y < (width / 2) || p.x >= screenWidth - (width / 2) ||
-        p.y >= screenHeight - (width / 2))
+    if (p.x < (m_width / 2) || p.y < (m_width / 2) || p.x >= m_screenWidth - (m_width / 2) ||
+        p.y >= m_screenHeight - (m_width / 2))
     {
       p.count = 0; // just signal that no need to set buff
       continue;
     }
 
     size_t n = 0;
-    uint32_t neighY = p.y - width / 2;
-    for (size_t i = 0; i < width; i++)
+    uint32_t neighY = p.y - m_width / 2;
+    for (size_t i = 0; i < m_width; i++)
     {
-      uint32_t neighX = p.x - width / 2;
-      for (size_t j = 0; j < width; j++)
+      uint32_t neighX = p.x - m_width / 2;
+      for (size_t j = 0; j < m_width; j++)
       {
         neighbours[n] = (*buffs[0])(neighX, neighY);
         n++;
@@ -1059,74 +1070,74 @@ class IfsDancersFx::IfsDancersFxImpl
 {
 public:
   IfsDancersFxImpl() noexcept = default;
-  explicit IfsDancersFxImpl(std::shared_ptr<const PluginInfo>) noexcept;
+  explicit IfsDancersFxImpl(std::shared_ptr<const PluginInfo> info) noexcept;
   ~IfsDancersFxImpl() noexcept;
   IfsDancersFxImpl(const IfsDancersFxImpl&) = delete;
-  IfsDancersFxImpl& operator=(const IfsDancersFxImpl&) = delete;
+  IfsDancersFxImpl(const IfsDancersFxImpl&&) = delete;
+  auto operator=(const IfsDancersFxImpl&) -> IfsDancersFxImpl& = delete;
+  auto operator=(const IfsDancersFxImpl&&) -> IfsDancersFxImpl& = delete;
 
-  void init();
+  void Init();
 
-  void applyNoDraw();
-  void updateIfs(PixelBuffer& currentBuff, PixelBuffer& nextBuff);
-  void setBuffSettings(const FXBuffSettings&);
-  void updateLowDensityThreshold();
-  IfsDancersFx::ColorMode getColorMode() const;
-  void setColorMode(IfsDancersFx::ColorMode);
-  void renew();
-  void updateIncr();
+  void ApplyNoDraw();
+  void UpdateIfs(PixelBuffer& currentBuff, PixelBuffer& nextBuff);
+  void SetBuffSettings(const FXBuffSettings& settings);
+  void UpdateLowDensityThreshold();
+  auto GetColorMode() const -> IfsDancersFx::ColorMode;
+  void SetColorMode(IfsDancersFx::ColorMode c);
+  void Renew();
+  void UpdateIncr();
 
-  void finish();
-  void log(const StatsLogValueFunc&) const;
+  void Finish();
+  void Log(const StatsLogValueFunc& l) const;
 
-  bool operator==(const IfsDancersFxImpl&) const;
+  auto operator==(const IfsDancersFxImpl& i) const -> bool;
 
 private:
-  static constexpr int maxCountBeforeNextUpdate = 1000;
-  static constexpr int cycleLength = 500;
+  static constexpr int MAX_COUNT_BEFORE_NEXT_UPDATE = 1000;
+  static constexpr int CYCLE_LENGTH = 500;
 
-  std::shared_ptr<const PluginInfo> goomInfo{};
+  std::shared_ptr<const PluginInfo> m_goomInfo{};
 
-  GoomDraw draw{};
-  Colorizer colorizer{};
-  FXBuffSettings buffSettings{};
+  GoomDraw m_draw{};
+  Colorizer m_colorizer{};
+  FXBuffSettings m_buffSettings{};
 
-  bool allowOverexposed = true;
-  uint32_t countSinceOverexposed = 0;
-  static constexpr uint32_t maxCountSinceOverexposed = 100;
-  void updateAllowOverexposed();
+  bool m_allowOverexposed = true;
+  uint32_t m_countSinceOverexposed = 0;
+  static constexpr uint32_t MAX_COUNT_SINCE_OVEREXPOSED = 100;
+  void UpdateAllowOverexposed();
 
-  std::unique_ptr<Fractal> fractal = nullptr;
+  std::unique_ptr<Fractal> m_fractal{};
 
-  int cycle = 0;
-  bool initialized = false;
-  int ifs_incr = 1; // dessiner l'ifs (0 = non: > = increment)
-  int decay_ifs = 0; // disparition de l'ifs
-  int recay_ifs = 0; // dedisparition de l'ifs
-  void updateDecay();
-  void updateDecayAndRecay();
+  int m_cycle = 0;
+  bool m_initialized = false;
+  int m_ifsIncr = 1; // dessiner l'ifs (0 = non: > = increment)
+  int m_decayIfs = 0; // disparition de l'ifs
+  int m_recayIfs = 0; // dedisparition de l'ifs
+  void UpdateDecay();
+  void UpdateDecayAndRecay();
 
-  IfsStats stats{};
+  IfsStats m_stats{};
 
-  void changeColormaps();
-  static constexpr uint32_t maxDensityCount = 20;
-  static constexpr uint32_t minDensityCount = 5;
-  uint32_t lowDensityCount = 10;
-  LowDensityBlurrer blurrer{};
-  float lowDensityBlurThreshold = 0.40;
-  bool useRandomLowDensityColors = false;
-  bool blurLowDensityColors(size_t numPoints, const std::vector<IfsPoint>& lowDensityPoints) const;
-  void updatePixelBuffers(PixelBuffer& currentBuff,
+  void ChangeColormaps();
+  static constexpr uint32_t MAX_DENSITY_COUNT = 20;
+  static constexpr uint32_t MIN_DENSITY_COUNT = 5;
+  uint32_t m_lowDensityCount = 10;
+  LowDensityBlurrer m_blurrer{};
+  float m_lowDensityBlurThreshold = 0.40;
+  bool m_useRandomLowDensityColors = false;
+  auto BlurLowDensityColors(size_t numPoints, const std::vector<IfsPoint>& lowDensityPoints) const
+      -> bool;
+  void UpdatePixelBuffers(PixelBuffer& currentBuff,
                           PixelBuffer& nextBuff,
                           const std::vector<IfsPoint>& points,
                           uint32_t maxHitCount);
-  void drawPixel(PixelBuffer& currentBuff,
-                 PixelBuffer& nextBuff,
-                 const IfsPoint&,
-                 float tMix);
-  void setLowDensityColors(std::vector<IfsPoint>& points,
+  void DrawPixel(PixelBuffer& currentBuff, PixelBuffer& nextBuff, const IfsPoint& p, float tMix);
+  void SetLowDensityColors(std::vector<IfsPoint>& points,
                            uint32_t maxLowDensityCount,
                            std::vector<PixelBuffer*>& buffs) const;
-  [[nodiscard]] int getIfsIncr() const;
+  [[nodiscard]] auto GetIfsIncr() const -> int;
 
   friend class cereal::access;
   template<class Archive>
@@ -1136,30 +1147,30 @@ private:
 };
 
 
-IfsDancersFx::IfsDancersFx() noexcept : fxImpl{new IfsDancersFxImpl{}}
+IfsDancersFx::IfsDancersFx() noexcept : m_fxImpl{new IfsDancersFxImpl{}}
 {
 }
 
 IfsDancersFx::IfsDancersFx(const std::shared_ptr<const PluginInfo>& info) noexcept
-  : fxImpl{new IfsDancersFxImpl{info}}
+  : m_fxImpl{new IfsDancersFxImpl{info}}
 {
 }
 
 IfsDancersFx::~IfsDancersFx() noexcept = default;
 
-void IfsDancersFx::init()
+void IfsDancersFx::Init()
 {
-  fxImpl->init();
+  m_fxImpl->Init();
 }
 
-bool IfsDancersFx::operator==(const IfsDancersFx& i) const
+auto IfsDancersFx::operator==(const IfsDancersFx& i) const -> bool
 {
-  return fxImpl->operator==(*i.fxImpl);
+  return m_fxImpl->operator==(*i.m_fxImpl);
 }
 
 void IfsDancersFx::setBuffSettings(const FXBuffSettings& settings)
 {
-  fxImpl->setBuffSettings(settings);
+  m_fxImpl->SetBuffSettings(settings);
 }
 
 void IfsDancersFx::start()
@@ -1168,12 +1179,12 @@ void IfsDancersFx::start()
 
 void IfsDancersFx::finish()
 {
-  fxImpl->finish();
+  m_fxImpl->Finish();
 }
 
 void IfsDancersFx::log(const StatsLogValueFunc& logVal) const
 {
-  fxImpl->log(logVal);
+  m_fxImpl->Log(logVal);
 }
 
 std::string IfsDancersFx::getFxName() const
@@ -1183,12 +1194,12 @@ std::string IfsDancersFx::getFxName() const
 
 void IfsDancersFx::applyNoDraw()
 {
-  if (!enabled)
+  if (!m_enabled)
   {
     return;
   }
 
-  fxImpl->applyNoDraw();
+  m_fxImpl->ApplyNoDraw();
 }
 
 void IfsDancersFx::apply(PixelBuffer&)
@@ -1198,38 +1209,38 @@ void IfsDancersFx::apply(PixelBuffer&)
 
 void IfsDancersFx::apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
 {
-  if (!enabled)
+  if (!m_enabled)
   {
     return;
   }
 
-  fxImpl->updateIfs(currentBuff, nextBuff);
+  m_fxImpl->UpdateIfs(currentBuff, nextBuff);
 }
 
-IfsDancersFx::ColorMode IfsDancersFx::getColorMode() const
+auto IfsDancersFx::GetColorMode() const -> IfsDancersFx::ColorMode
 {
-  return fxImpl->getColorMode();
+  return m_fxImpl->GetColorMode();
 }
 
-void IfsDancersFx::setColorMode(const ColorMode c)
+void IfsDancersFx::SetColorMode(ColorMode c)
 {
-  fxImpl->setColorMode(c);
+  m_fxImpl->SetColorMode(c);
 }
 
-void IfsDancersFx::updateIncr()
+void IfsDancersFx::UpdateIncr()
 {
-  fxImpl->updateIncr();
+  m_fxImpl->UpdateIncr();
 }
 
-void IfsDancersFx::renew()
+void IfsDancersFx::Renew()
 {
-  fxImpl->renew();
+  m_fxImpl->Renew();
 }
 
 template<class Archive>
 void IfsDancersFx::serialize(Archive& ar)
 {
-  ar(CEREAL_NVP(enabled), CEREAL_NVP(fxImpl));
+  ar(CEREAL_NVP(m_enabled), CEREAL_NVP(m_fxImpl));
 }
 
 // Need to explicitly instantiate template functions for serialization.
@@ -1244,42 +1255,42 @@ template void IfsDancersFx::IfsDancersFxImpl::load<cereal::JSONInputArchive>(
 template<class Archive>
 void IfsDancersFx::IfsDancersFxImpl::save(Archive& ar) const
 {
-  ar(CEREAL_NVP(goomInfo), CEREAL_NVP(fractal), CEREAL_NVP(draw), CEREAL_NVP(colorizer),
-     CEREAL_NVP(allowOverexposed), CEREAL_NVP(countSinceOverexposed), CEREAL_NVP(ifs_incr),
-     CEREAL_NVP(decay_ifs), CEREAL_NVP(recay_ifs));
+  ar(CEREAL_NVP(m_goomInfo), CEREAL_NVP(m_fractal), CEREAL_NVP(m_draw), CEREAL_NVP(m_colorizer),
+     CEREAL_NVP(m_allowOverexposed), CEREAL_NVP(m_countSinceOverexposed), CEREAL_NVP(m_ifsIncr),
+     CEREAL_NVP(m_decayIfs), CEREAL_NVP(m_recayIfs));
 }
 
 template<class Archive>
 void IfsDancersFx::IfsDancersFxImpl::load(Archive& ar)
 {
-  ar(CEREAL_NVP(goomInfo), CEREAL_NVP(fractal), CEREAL_NVP(draw), CEREAL_NVP(colorizer),
-     CEREAL_NVP(allowOverexposed), CEREAL_NVP(countSinceOverexposed), CEREAL_NVP(ifs_incr),
-     CEREAL_NVP(decay_ifs), CEREAL_NVP(recay_ifs));
+  ar(CEREAL_NVP(m_goomInfo), CEREAL_NVP(m_fractal), CEREAL_NVP(m_draw), CEREAL_NVP(m_colorizer),
+     CEREAL_NVP(m_allowOverexposed), CEREAL_NVP(m_countSinceOverexposed), CEREAL_NVP(m_ifsIncr),
+     CEREAL_NVP(m_decayIfs), CEREAL_NVP(m_recayIfs));
 }
 
-bool IfsDancersFx::IfsDancersFxImpl::operator==(const IfsDancersFxImpl& i) const
+auto IfsDancersFx::IfsDancersFxImpl::operator==(const IfsDancersFxImpl& i) const -> bool
 {
-  if (goomInfo == nullptr && i.goomInfo != nullptr)
+  if (m_goomInfo == nullptr && i.m_goomInfo != nullptr)
   {
     return false;
   }
-  if (goomInfo != nullptr && i.goomInfo == nullptr)
+  if (m_goomInfo != nullptr && i.m_goomInfo == nullptr)
   {
     return false;
   }
 
-  return ((goomInfo == nullptr && i.goomInfo == nullptr) || (*goomInfo == *i.goomInfo)) &&
-         *fractal == *i.fractal && draw == i.draw && colorizer == i.colorizer &&
-         allowOverexposed == i.allowOverexposed &&
-         countSinceOverexposed == i.countSinceOverexposed && ifs_incr == i.ifs_incr &&
-         decay_ifs == i.decay_ifs && recay_ifs == i.recay_ifs;
+  return ((m_goomInfo == nullptr && i.m_goomInfo == nullptr) || (*m_goomInfo == *i.m_goomInfo)) &&
+         *m_fractal == *i.m_fractal && m_draw == i.m_draw && m_colorizer == i.m_colorizer &&
+         m_allowOverexposed == i.m_allowOverexposed &&
+         m_countSinceOverexposed == i.m_countSinceOverexposed && m_ifsIncr == i.m_ifsIncr &&
+         m_decayIfs == i.m_decayIfs && m_recayIfs == i.m_recayIfs;
 }
 
 IfsDancersFx::IfsDancersFxImpl::IfsDancersFxImpl(std::shared_ptr<const PluginInfo> info) noexcept
-  : goomInfo{std::move(info)},
-    draw{goomInfo->GetScreenInfo().width, goomInfo->GetScreenInfo().height},
-    fractal{std::make_unique<Fractal>(goomInfo, colorizer.getColorMaps(), &stats)},
-    blurrer{goomInfo->GetScreenInfo().width, goomInfo->GetScreenInfo().height, 3}
+  : m_goomInfo{std::move(info)},
+    m_draw{m_goomInfo->GetScreenInfo().width, m_goomInfo->GetScreenInfo().height},
+    m_fractal{std::make_unique<Fractal>(m_goomInfo, m_colorizer.GetColorMaps(), &m_stats)},
+    m_blurrer{m_goomInfo->GetScreenInfo().width, m_goomInfo->GetScreenInfo().height, 3}
 {
 #ifndef NO_LOGGING
   Fractal* fractal = fractal.get();
@@ -1295,97 +1306,97 @@ IfsDancersFx::IfsDancersFxImpl::IfsDancersFxImpl(std::shared_ptr<const PluginInf
 
 IfsDancersFx::IfsDancersFxImpl::~IfsDancersFxImpl() noexcept = default;
 
-void IfsDancersFx::IfsDancersFxImpl::init()
+void IfsDancersFx::IfsDancersFxImpl::Init()
 {
-  fractal->init();
-  updateLowDensityThreshold();
+  m_fractal->Init();
+  UpdateLowDensityThreshold();
 }
 
-void IfsDancersFx::IfsDancersFxImpl::setBuffSettings(const FXBuffSettings& settings)
+void IfsDancersFx::IfsDancersFxImpl::SetBuffSettings(const FXBuffSettings& settings)
 {
-  buffSettings = settings;
+  m_buffSettings = settings;
 }
 
-IfsDancersFx::ColorMode IfsDancersFx::IfsDancersFxImpl::getColorMode() const
+auto IfsDancersFx::IfsDancersFxImpl::GetColorMode() const -> IfsDancersFx::ColorMode
 {
-  return colorizer.getColorMode();
+  return m_colorizer.GetColorMode();
 }
 
-void IfsDancersFx::IfsDancersFxImpl::setColorMode(const IfsDancersFx::ColorMode c)
+void IfsDancersFx::IfsDancersFxImpl::SetColorMode(const IfsDancersFx::ColorMode c)
 {
-  return colorizer.setForcedColorMode(c);
+  return m_colorizer.SetForcedColorMode(c);
 }
 
-void IfsDancersFx::IfsDancersFxImpl::finish()
+void IfsDancersFx::IfsDancersFxImpl::Finish()
 {
-  stats.setlastIfsIncr(ifs_incr);
+  m_stats.SetlastIfsIncr(m_ifsIncr);
 }
 
-void IfsDancersFx::IfsDancersFxImpl::log(const StatsLogValueFunc& logVal) const
+void IfsDancersFx::IfsDancersFxImpl::Log(const StatsLogValueFunc& l) const
 {
-  stats.log(logVal);
+  m_stats.Log(l);
 }
 
-void IfsDancersFx::IfsDancersFxImpl::renew()
+void IfsDancersFx::IfsDancersFxImpl::Renew()
 {
-  changeColormaps();
-  colorizer.changeColorMode();
-  updateAllowOverexposed();
+  ChangeColormaps();
+  m_colorizer.ChangeColorMode();
+  UpdateAllowOverexposed();
 
-  fractal->setSpeed(static_cast<uint32_t>(std::min(getRandInRange(1.1F, 10.0F), 5.1F) /
-                                          (1.1F - goomInfo->GetSoundInfo().getAcceleration())));
+  m_fractal->SetSpeed(static_cast<uint32_t>(std::min(getRandInRange(1.1F, 10.0F), 5.1F) /
+                                            (1.1F - m_goomInfo->GetSoundInfo().getAcceleration())));
 }
 
-void IfsDancersFx::IfsDancersFxImpl::changeColormaps()
+void IfsDancersFx::IfsDancersFxImpl::ChangeColormaps()
 {
-  colorizer.changeColorMaps();
+  m_colorizer.ChangeColorMaps();
 }
 
-void IfsDancersFx::IfsDancersFxImpl::applyNoDraw()
+void IfsDancersFx::IfsDancersFxImpl::ApplyNoDraw()
 {
-  updateDecayAndRecay();
-  updateDecay();
+  UpdateDecayAndRecay();
+  UpdateDecay();
 }
 
-void IfsDancersFx::IfsDancersFxImpl::updateIfs(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
+void IfsDancersFx::IfsDancersFxImpl::UpdateIfs(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
 {
-  stats.updateStart();
+  m_stats.UpdateStart();
 
-  updateDecayAndRecay();
+  UpdateDecayAndRecay();
 
-  if (getIfsIncr() <= 0)
+  if (GetIfsIncr() <= 0)
   {
     return;
   }
 
   // TODO: trouver meilleur soluce pour increment (mettre le code de gestion de l'ifs dans ce fichier)
   //       find the best solution for increment (put the management code of the ifs in this file)
-  cycle++;
-  if (cycle >= cycleLength)
+  m_cycle++;
+  if (m_cycle >= CYCLE_LENGTH)
   {
-    cycle = 0;
-    stats.updateCycleChanges();
+    m_cycle = 0;
+    m_stats.UpdateCycleChanges();
 
     if (probabilityOfMInN(15, 20))
     {
-      lowDensityBlurThreshold = 0.99;
-      stats.updateHighLowDensityBlurThreshold();
+      m_lowDensityBlurThreshold = 0.99;
+      m_stats.UpdateHighLowDensityBlurThreshold();
     }
     else
     {
-      lowDensityBlurThreshold = 0.40;
-      stats.updateLowLowDensityBlurThreshold();
+      m_lowDensityBlurThreshold = 0.40;
+      m_stats.UpdateLowLowDensityBlurThreshold();
     }
 
-    fractal->resetCurrentIFSFunc();
+    m_fractal->ResetCurrentIfsFunc();
 
-    renew();
+    Renew();
   }
 
-  const std::vector<IfsPoint>& points = fractal->drawIfs();
-  const uint32_t maxHitCount = fractal->getMaxHitCount();
+  const std::vector<IfsPoint>& points = m_fractal->DrawIfs();
+  const uint32_t maxHitCount = m_fractal->GetMaxHitCount();
 
-  updatePixelBuffers(currentBuff, nextBuff, points, maxHitCount);
+  UpdatePixelBuffers(currentBuff, nextBuff, points, maxHitCount);
 
   logDebug("updateData.col[ALPHA] = {:x}", updateData.col[ALPHA]);
   logDebug("updateData.col[BLEU] = {:x}", updateData.col[BLEU]);
@@ -1399,106 +1410,107 @@ void IfsDancersFx::IfsDancersFxImpl::updateIfs(PixelBuffer& currentBuff, PixelBu
 
   logDebug("updateData.mode = {:x}", updateData.mode);
 
-  stats.updateEnd();
+  m_stats.UpdateEnd();
 }
 
-void IfsDancersFx::IfsDancersFxImpl::updateIncr()
+void IfsDancersFx::IfsDancersFxImpl::UpdateIncr()
 {
-  if (ifs_incr <= 0)
+  if (m_ifsIncr <= 0)
   {
-    recay_ifs = 5;
-    ifs_incr = 11;
-    stats.updateIfsIncr(ifs_incr);
-    renew();
-  }
-}
-
-void IfsDancersFx::IfsDancersFxImpl::updateDecay()
-{
-  if ((ifs_incr > 0) && (decay_ifs <= 0))
-  {
-    decay_ifs = 100;
+    m_recayIfs = 5;
+    m_ifsIncr = 11;
+    m_stats.UpdateIfsIncr(m_ifsIncr);
+    Renew();
   }
 }
 
-void IfsDancersFx::IfsDancersFxImpl::updateDecayAndRecay()
+void IfsDancersFx::IfsDancersFxImpl::UpdateDecay()
 {
-  decay_ifs--;
-  if (decay_ifs > 0)
+  if ((m_ifsIncr > 0) && (m_decayIfs <= 0))
   {
-    ifs_incr += 2;
+    m_decayIfs = 100;
   }
-  if (decay_ifs == 0)
+}
+
+void IfsDancersFx::IfsDancersFxImpl::UpdateDecayAndRecay()
+{
+  m_decayIfs--;
+  if (m_decayIfs > 0)
   {
-    ifs_incr = 0;
+    m_ifsIncr += 2;
+  }
+  if (m_decayIfs == 0)
+  {
+    m_ifsIncr = 0;
   }
 
-  if (recay_ifs)
+  if (m_recayIfs)
   {
-    ifs_incr -= 2;
-    recay_ifs--;
-    if ((recay_ifs == 0) && (ifs_incr <= 0))
+    m_ifsIncr -= 2;
+    m_recayIfs--;
+    if ((m_recayIfs == 0) && (m_ifsIncr <= 0))
     {
-      ifs_incr = 1;
+      m_ifsIncr = 1;
     }
   }
 
-  stats.updateIfsIncr(ifs_incr);
+  m_stats.UpdateIfsIncr(m_ifsIncr);
 }
 
-inline int IfsDancersFx::IfsDancersFxImpl::getIfsIncr() const
+inline auto IfsDancersFx::IfsDancersFxImpl::GetIfsIncr() const -> int
 {
-  return ifs_incr;
+  return m_ifsIncr;
 }
 
-inline void IfsDancersFx::IfsDancersFxImpl::drawPixel(PixelBuffer& currentBuff,
+inline void IfsDancersFx::IfsDancersFxImpl::DrawPixel(PixelBuffer& currentBuff,
                                                       PixelBuffer& nextBuff,
                                                       const IfsPoint& point,
                                                       const float tMix)
 {
-  const float fx = point.x / static_cast<float>(goomInfo->GetScreenInfo().width);
-  const float fy = point.y / static_cast<float>(goomInfo->GetScreenInfo().height);
+  const float fx = point.x / static_cast<float>(m_goomInfo->GetScreenInfo().width);
+  const float fy = point.y / static_cast<float>(m_goomInfo->GetScreenInfo().height);
 
-  Pixel mixedColor = colorizer.getMixedColor(point.color, point.count, tMix, fx, fy);
+  Pixel mixedColor = m_colorizer.GetMixedColor(point.color, point.count, tMix, fx, fy);
   //  const std::vector<Pixel> colors{ColorMap::colorMix(ifsColor, mixedColor, 0.1), mixedColor};
   const std::vector<Pixel> colors{mixedColor, mixedColor};
   std::vector<PixelBuffer*> buffs{&currentBuff, &nextBuff};
-  draw.SetPixelRgb(buffs, point.x, point.y, colors);
+  m_draw.SetPixelRgb(buffs, point.x, point.y, colors);
 }
 
-void IfsDancersFx::IfsDancersFxImpl::updateAllowOverexposed()
+void IfsDancersFx::IfsDancersFxImpl::UpdateAllowOverexposed()
 {
-  if (buffSettings.allowOverexposed)
+  if (m_buffSettings.allowOverexposed)
   {
     return;
   }
 
-  if (allowOverexposed)
+  if (m_allowOverexposed)
   {
-    if (countSinceOverexposed == 0)
+    if (m_countSinceOverexposed == 0)
     {
-      allowOverexposed = false;
+      m_allowOverexposed = false;
     }
     else
     {
-      countSinceOverexposed--;
+      m_countSinceOverexposed--;
     }
   }
-  else if (allowOverexposedEvent())
+  else if (AllowOverexposedEvent())
   {
-    allowOverexposed = true;
-    countSinceOverexposed = maxCountSinceOverexposed;
+    m_allowOverexposed = true;
+    m_countSinceOverexposed = MAX_COUNT_SINCE_OVEREXPOSED;
   }
 }
 
-void IfsDancersFx::IfsDancersFxImpl::updatePixelBuffers(PixelBuffer& currentBuff,
+void IfsDancersFx::IfsDancersFxImpl::UpdatePixelBuffers(PixelBuffer& currentBuff,
                                                         PixelBuffer& nextBuff,
                                                         const std::vector<IfsPoint>& points,
                                                         const uint32_t maxHitCount)
 {
-  colorizer.setMaxHitCount(maxHitCount);
-  bool doneColorChange = colorizer.getColorMode() != IfsDancersFx::ColorMode::megaMapColorChange &&
-                         colorizer.getColorMode() != IfsDancersFx::ColorMode::megaMixColorChange;
+  m_colorizer.SetMaxHitCount(maxHitCount);
+  bool doneColorChange =
+      m_colorizer.GetColorMode() != IfsDancersFx::ColorMode::megaMapColorChange &&
+      m_colorizer.GetColorMode() != IfsDancersFx::ColorMode::megaMixColorChange;
   const size_t numPoints = points.size();
   const float tStep = numPoints == 1 ? 0.0F : (1.0F - 0.0F) / static_cast<float>(numPoints - 1);
   float t = -tStep;
@@ -1506,29 +1518,29 @@ void IfsDancersFx::IfsDancersFxImpl::updatePixelBuffers(PixelBuffer& currentBuff
   uint32_t maxLowDensityCount = 0;
   uint32_t numSelectedPoints = 0;
   std::vector<IfsPoint> lowDensityPoints{};
-  for (size_t i = 0; i < numPoints; i += static_cast<size_t>(getIfsIncr()))
+  for (size_t i = 0; i < numPoints; i += static_cast<size_t>(GetIfsIncr()))
   {
     t += tStep;
 
     const uint32_t x = points[i].x;
     const uint32_t y = points[i].y;
-    if ((x >= goomInfo->GetScreenInfo().width) || (y >= goomInfo->GetScreenInfo().height))
+    if ((x >= m_goomInfo->GetScreenInfo().width) || (y >= m_goomInfo->GetScreenInfo().height))
     {
       continue;
     }
 
-    if (!doneColorChange && megaChangeColorMapEvent())
+    if (!doneColorChange && MegaChangeColorMapEvent())
     {
-      changeColormaps();
+      ChangeColormaps();
       doneColorChange = true;
     }
 
     numSelectedPoints++;
-    drawPixel(currentBuff, nextBuff, points[i], t);
+    DrawPixel(currentBuff, nextBuff, points[i], t);
 
-    if (points[i].count <= lowDensityCount)
+    if (points[i].count <= m_lowDensityCount)
     {
-      lowDensityPoints.emplace_back(points[i]);
+      (void)lowDensityPoints.emplace_back(points[i]);
       if (maxLowDensityCount < points[i].count)
       {
         maxLowDensityCount = points[i].count;
@@ -1537,38 +1549,39 @@ void IfsDancersFx::IfsDancersFxImpl::updatePixelBuffers(PixelBuffer& currentBuff
   }
 
   std::vector<PixelBuffer*> buffs{&currentBuff, &nextBuff};
-  if (blurLowDensityColors(numSelectedPoints, lowDensityPoints))
+  if (BlurLowDensityColors(numSelectedPoints, lowDensityPoints))
   {
     // Enough dense points to make blurring worthwhile.
-    blurrer.doBlur(lowDensityPoints, buffs);
+    m_blurrer.DoBlur(lowDensityPoints, buffs);
   }
   else
   {
-    setLowDensityColors(lowDensityPoints, maxLowDensityCount, buffs);
+    SetLowDensityColors(lowDensityPoints, maxLowDensityCount, buffs);
   }
 }
 
-inline bool IfsDancersFx::IfsDancersFxImpl::blurLowDensityColors(
-    const size_t numPoints, const std::vector<IfsPoint>& lowDensityPoints) const
+inline auto IfsDancersFx::IfsDancersFxImpl::BlurLowDensityColors(
+    size_t numPoints, const std::vector<IfsPoint>& lowDensityPoints) const -> bool
 {
   if (numPoints == 0)
   {
     return false;
   }
   return static_cast<float>(lowDensityPoints.size()) / static_cast<float>(numPoints) >
-         lowDensityBlurThreshold;
+         m_lowDensityBlurThreshold;
 }
 
-void IfsDancersFx::IfsDancersFxImpl::setLowDensityColors(std::vector<IfsPoint>& points,
+void IfsDancersFx::IfsDancersFxImpl::SetLowDensityColors(std::vector<IfsPoint>& points,
                                                          uint32_t maxLowDensityCount,
                                                          std::vector<PixelBuffer*>& buffs) const
 {
-  const std::function<Pixel(const IfsPoint&)> getRandomColor = [&](const IfsPoint&) {
-    const float t = getRandInRange(0.0F, 1.0F);
-    return colorizer.getColorMaps().getRandomColorMap().getColor(t);
-  };
+  const std::function<Pixel(const IfsPoint&)> getRandomColor =
+      [&]([[maybe_unused]] const IfsPoint& p) {
+        const float t = getRandInRange(0.0F, 1.0F);
+        return m_colorizer.GetColorMaps().getRandomColorMap().getColor(t);
+      };
 
-  const ColorMap& colorMap = colorizer.getColorMaps().getRandomColorMap();
+  const ColorMap& colorMap = m_colorizer.GetColorMaps().getRandomColorMap();
   const float reciprocalMaxLowDensityCount = 1.0F / static_cast<float>(maxLowDensityCount);
   const std::function<Pixel(const IfsPoint&)> getSmoothColor = [&](const IfsPoint& p) {
     const float t = reciprocalMaxLowDensityCount * static_cast<float>(p.count);
@@ -1576,7 +1589,7 @@ void IfsDancersFx::IfsDancersFxImpl::setLowDensityColors(std::vector<IfsPoint>& 
   };
 
   const std::function<Pixel(const IfsPoint&)> getColor =
-      useRandomLowDensityColors ? getRandomColor : getSmoothColor;
+      m_useRandomLowDensityColors ? getRandomColor : getSmoothColor;
 
   for (const auto& p : points)
   {
@@ -1588,18 +1601,18 @@ void IfsDancersFx::IfsDancersFxImpl::setLowDensityColors(std::vector<IfsPoint>& 
   }
 }
 
-void IfsDancersFx::IfsDancersFxImpl::updateLowDensityThreshold()
+void IfsDancersFx::IfsDancersFxImpl::UpdateLowDensityThreshold()
 {
-  lowDensityCount = getRandInRange(minDensityCount, maxDensityCount);
+  m_lowDensityCount = getRandInRange(MIN_DENSITY_COUNT, MAX_DENSITY_COUNT);
 
   uint32_t blurWidth;
-  constexpr uint32_t numWidths = 3;
-  constexpr uint32_t widthRange = (maxDensityCount - minDensityCount) / numWidths;
-  if (lowDensityCount <= minDensityCount + widthRange)
+  constexpr uint32_t NUM_WIDTHS = 3;
+  constexpr uint32_t WIDTH_RANGE = (MAX_DENSITY_COUNT - MIN_DENSITY_COUNT) / NUM_WIDTHS;
+  if (m_lowDensityCount <= MIN_DENSITY_COUNT + WIDTH_RANGE)
   {
     blurWidth = 7;
   }
-  else if (lowDensityCount <= minDensityCount + 2 * widthRange)
+  else if (m_lowDensityCount <= MIN_DENSITY_COUNT + 2 * WIDTH_RANGE)
   {
     blurWidth = 5;
   }
@@ -1607,7 +1620,7 @@ void IfsDancersFx::IfsDancersFxImpl::updateLowDensityThreshold()
   {
     blurWidth = 3;
   }
-  blurrer.setWidth(blurWidth);
+  m_blurrer.SetWidth(blurWidth);
 }
 
 } // namespace goom

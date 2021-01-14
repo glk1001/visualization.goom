@@ -1825,7 +1825,7 @@ void GoomControl::GoomControlImpl::ChangeFilterMode()
 
   m_stats.FilterModeChange(m_goomData.zoomFilterData.mode);
 
-  m_visualFx.ifs_fx->renew();
+  m_visualFx.ifs_fx->Renew();
   m_stats.IfsRenew();
 }
 
@@ -1854,14 +1854,14 @@ void GoomControl::GoomControlImpl::ChangeState()
   {
     if (!oldGDrawables.contains(GoomDrawable::IFS))
     {
-      m_visualFx.ifs_fx->init();
+      m_visualFx.ifs_fx->Init();
     }
     else if (m_goomEvent.Happens(GoomEvent::ifsRenew))
     {
-      m_visualFx.ifs_fx->renew();
+      m_visualFx.ifs_fx->Renew();
       m_stats.IfsRenew();
     }
-    m_visualFx.ifs_fx->updateIncr();
+    m_visualFx.ifs_fx->UpdateIncr();
   }
 
   if (!m_states.IsCurrentlyDrawable(GoomDrawable::scope))
@@ -2197,7 +2197,7 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect(ZoomFilterData* pzfd, const 
       m_goomData.switchIncr = 0;
       m_goomData.switchMult = GoomData::switchMultAmount;
 
-      m_visualFx.ifs_fx->renew();
+      m_visualFx.ifs_fx->Renew();
       m_stats.IfsRenew();
     }
   }
@@ -2211,7 +2211,7 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect(ZoomFilterData* pzfd, const 
                m_goomData.cyclesSinceLastChange, TIME_BETWEEN_CHANGE);
       pzfd = &m_goomData.zoomFilterData;
       m_goomData.cyclesSinceLastChange = 0;
-      m_visualFx.ifs_fx->renew();
+      m_visualFx.ifs_fx->Renew();
       m_stats.IfsRenew();
     }
     else
