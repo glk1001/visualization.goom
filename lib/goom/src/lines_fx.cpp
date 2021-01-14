@@ -202,7 +202,7 @@ LinesFx::LinesImpl::LinesImpl(std::shared_ptr<const PluginInfo> info,
                               const float destParam,
                               const Pixel& destColor) noexcept
   : goomInfo{std::move(info)},
-    draw{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height},
+    draw{goomInfo->GetScreenInfo().width, goomInfo->GetScreenInfo().height},
     points1(AUDIO_SAMPLE_LEN),
     points2(AUDIO_SAMPLE_LEN),
     destLineType{destLineTyp},
@@ -224,7 +224,7 @@ void LinesFx::LinesImpl::generateLine(const LineType lineType,
   {
     case LineType::hline:
     {
-      const float xStep = static_cast<float>(goomInfo->getScreenInfo().width - 1) /
+      const float xStep = static_cast<float>(goomInfo->GetScreenInfo().width - 1) /
                           static_cast<float>(AUDIO_SAMPLE_LEN - 1);
       float x = 0;
       for (auto& l : line)
@@ -239,7 +239,7 @@ void LinesFx::LinesImpl::generateLine(const LineType lineType,
     }
     case LineType::vline:
     {
-      const float yStep = static_cast<float>(goomInfo->getScreenInfo().height - 1) /
+      const float yStep = static_cast<float>(goomInfo->GetScreenInfo().height - 1) /
                           static_cast<float>(AUDIO_SAMPLE_LEN - 1);
       float y = 0;
       for (auto& l : line)
@@ -254,8 +254,8 @@ void LinesFx::LinesImpl::generateLine(const LineType lineType,
     }
     case LineType::circle:
     {
-      const float cx = 0.5F * static_cast<float>(goomInfo->getScreenInfo().width);
-      const float cy = 0.5F * static_cast<float>(goomInfo->getScreenInfo().height);
+      const float cx = 0.5F * static_cast<float>(goomInfo->GetScreenInfo().width);
+      const float cy = 0.5F * static_cast<float>(goomInfo->GetScreenInfo().height);
       // Make sure the circle joins at each end - use AUDIO_SAMPLE_LEN - 1
       const float angleStep = m_two_pi / static_cast<float>(AUDIO_SAMPLE_LEN - 1);
       float angle = 0;
@@ -426,8 +426,8 @@ void LinesFx::LinesImpl::drawLines(const std::vector<int16_t>& soundData,
   const LinePoint* pt0 = &(points1[0]);
   const Pixel lineColor = getLightenedColor(color, power);
 
-  const auto audioRange = static_cast<float>(goomInfo->getSoundInfo().getAllTimesMaxVolume() -
-                                             goomInfo->getSoundInfo().getAllTimesMinVolume());
+  const auto audioRange = static_cast<float>(goomInfo->GetSoundInfo().getAllTimesMaxVolume() -
+                                             goomInfo->GetSoundInfo().getAllTimesMinVolume());
   assert(audioRange >= 0.0);
 
   if (audioRange < 0.0001)
@@ -443,14 +443,14 @@ void LinesFx::LinesImpl::drawLines(const std::vector<int16_t>& soundData,
   constexpr float maxNormalizedPeak = 120;
   const auto getNormalizedData = [&](const float data) {
     return maxNormalizedPeak *
-           (data - static_cast<float>(goomInfo->getSoundInfo().getAllTimesMinVolume())) /
+           (data - static_cast<float>(goomInfo->GetSoundInfo().getAllTimesMinVolume())) /
            audioRange;
   };
 
   const Pixel randColor = getRandomLineColor();
 
   const auto getNextPoint = [&](const LinePoint* pt, const float dataVal) {
-    assert(goomInfo->getSoundInfo().getAllTimesMinVolume() <= dataVal);
+    assert(goomInfo->GetSoundInfo().getAllTimesMinVolume() <= dataVal);
     const float cosAngle = std::cos(pt->angle);
     const float sinAngle = std::sin(pt->angle);
     const float normalizedDataVal = getNormalizedData(dataVal);

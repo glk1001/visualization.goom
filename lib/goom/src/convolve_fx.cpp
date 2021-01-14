@@ -46,7 +46,7 @@ private:
   float m_screenBrightness = 100;
   float m_flashIntensity = 30;
   float m_factor = 0.5;
-  FXBuffSettings buffSettings{};
+  FXBuffSettings m_buffSettings{};
 
   void CreateOutputWithBrightness(const PixelBuffer& src, PixelBuffer& dest, uint32_t flashInt);
 
@@ -133,14 +133,14 @@ template void ConvolveFx::ConvolveImpl::load<cereal::JSONInputArchive>(cereal::J
 template<class Archive>
 void ConvolveFx::ConvolveImpl::save(Archive& ar) const
 {
-  ar(CEREAL_NVP(m_goomInfo), CEREAL_NVP(buffSettings), CEREAL_NVP(m_screenBrightness),
+  ar(CEREAL_NVP(m_goomInfo), CEREAL_NVP(m_buffSettings), CEREAL_NVP(m_screenBrightness),
      CEREAL_NVP(m_flashIntensity), CEREAL_NVP(m_factor));
 }
 
 template<class Archive>
 void ConvolveFx::ConvolveImpl::load(Archive& ar)
 {
-  ar(CEREAL_NVP(m_goomInfo), CEREAL_NVP(buffSettings), CEREAL_NVP(m_screenBrightness),
+  ar(CEREAL_NVP(m_goomInfo), CEREAL_NVP(m_buffSettings), CEREAL_NVP(m_screenBrightness),
      CEREAL_NVP(m_flashIntensity), CEREAL_NVP(m_factor));
 }
 
@@ -158,7 +158,7 @@ auto ConvolveFx::ConvolveImpl::operator==(const ConvolveImpl& c) const -> bool
   return ((m_goomInfo == nullptr && c.m_goomInfo == nullptr) || (*m_goomInfo == *c.m_goomInfo)) &&
          std::fabs(m_screenBrightness - c.m_screenBrightness) < 0.000001 &&
          std::fabs(m_flashIntensity - c.m_flashIntensity) < 0.000001 &&
-         std::fabs(m_factor - c.m_factor) < 0.000001 && buffSettings == c.buffSettings;
+         std::fabs(m_factor - c.m_factor) < 0.000001 && m_buffSettings == c.m_buffSettings;
 }
 
 ConvolveFx::ConvolveImpl::ConvolveImpl() noexcept = default;
@@ -170,7 +170,7 @@ ConvolveFx::ConvolveImpl::ConvolveImpl(Parallel& p, std::shared_ptr<const Plugin
 
 inline void ConvolveFx::ConvolveImpl::SetBuffSettings(const FXBuffSettings& settings)
 {
-  buffSettings = settings;
+  m_buffSettings = settings;
 }
 
 void ConvolveFx::ConvolveImpl::Convolve(const PixelBuffer& currentBuff, PixelBuffer& outputBuff)
@@ -179,15 +179,15 @@ void ConvolveFx::ConvolveImpl::Convolve(const PixelBuffer& currentBuff, PixelBuf
   const auto flashInt = static_cast<uint32_t>(std::round(flash * 256 + 0.0001F));
   constexpr float INCREASE_RATE = 1.3;
   constexpr float DECAY_RATE = 0.955;
-  if (m_goomInfo->getSoundInfo().getTimeSinceLastGoom() == 0)
+  if (m_goomInfo->GetSoundInfo().getTimeSinceLastGoom() == 0)
   {
-    m_factor += m_goomInfo->getSoundInfo().getGoomPower() * INCREASE_RATE;
+    m_factor += m_goomInfo->GetSoundInfo().getGoomPower() * INCREASE_RATE;
   }
   m_factor *= DECAY_RATE;
 
   if (std::fabs(1.0 - flash) < 0.02)
   {
-    currentBuff.CopyTo(outputBuff, m_goomInfo->getScreenInfo().size);
+    currentBuff.CopyTo(outputBuff, m_goomInfo->GetScreenInfo().size);
   }
   else
   {
@@ -200,10 +200,10 @@ void ConvolveFx::ConvolveImpl::CreateOutputWithBrightness(const PixelBuffer& src
                                                           const uint32_t flashInt)
 {
   const auto setDestPixel = [&](const uint32_t i) {
-    dest(i) = getBrighterColorInt(flashInt, src(i), buffSettings.allowOverexposed);
+    dest(i) = getBrighterColorInt(flashInt, src(i), m_buffSettings.allowOverexposed);
   };
 
-  m_parallel->forLoop(m_goomInfo->getScreenInfo().size, setDestPixel);
+  m_parallel->forLoop(m_goomInfo->GetScreenInfo().size, setDestPixel);
 }
 
 } // namespace goom

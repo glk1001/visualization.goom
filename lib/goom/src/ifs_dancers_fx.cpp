@@ -465,11 +465,11 @@ Fractal::Fractal(const std::shared_ptr<const PluginInfo>& goomInfo,
                  IfsStats* s) noexcept
   : colorMaps{&cm},
     stats{s},
-    lx{(goomInfo->getScreenInfo().width - 1) / 2},
-    ly{(goomInfo->getScreenInfo().height - 1) / 2},
+    lx{(goomInfo->GetScreenInfo().width - 1) / 2},
+    ly{(goomInfo->GetScreenInfo().height - 1) / 2},
     components(5 * maxSimi),
-    hits1{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height},
-    hits2{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height},
+    hits1{goomInfo->GetScreenInfo().width, goomInfo->GetScreenInfo().height},
+    hits2{goomInfo->GetScreenInfo().width, goomInfo->GetScreenInfo().height},
     prevHits{&hits1},
     curHits{&hits2}
 {
@@ -1277,9 +1277,9 @@ bool IfsDancersFx::IfsDancersFxImpl::operator==(const IfsDancersFxImpl& i) const
 
 IfsDancersFx::IfsDancersFxImpl::IfsDancersFxImpl(std::shared_ptr<const PluginInfo> info) noexcept
   : goomInfo{std::move(info)},
-    draw{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height},
+    draw{goomInfo->GetScreenInfo().width, goomInfo->GetScreenInfo().height},
     fractal{std::make_unique<Fractal>(goomInfo, colorizer.getColorMaps(), &stats)},
-    blurrer{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height, 3}
+    blurrer{goomInfo->GetScreenInfo().width, goomInfo->GetScreenInfo().height, 3}
 {
 #ifndef NO_LOGGING
   Fractal* fractal = fractal.get();
@@ -1333,7 +1333,7 @@ void IfsDancersFx::IfsDancersFxImpl::renew()
   updateAllowOverexposed();
 
   fractal->setSpeed(static_cast<uint32_t>(std::min(getRandInRange(1.1F, 10.0F), 5.1F) /
-                                          (1.1F - goomInfo->getSoundInfo().getAcceleration())));
+                                          (1.1F - goomInfo->GetSoundInfo().getAcceleration())));
 }
 
 void IfsDancersFx::IfsDancersFxImpl::changeColormaps()
@@ -1456,8 +1456,8 @@ inline void IfsDancersFx::IfsDancersFxImpl::drawPixel(PixelBuffer& currentBuff,
                                                       const IfsPoint& point,
                                                       const float tMix)
 {
-  const float fx = point.x / static_cast<float>(goomInfo->getScreenInfo().width);
-  const float fy = point.y / static_cast<float>(goomInfo->getScreenInfo().height);
+  const float fx = point.x / static_cast<float>(goomInfo->GetScreenInfo().width);
+  const float fy = point.y / static_cast<float>(goomInfo->GetScreenInfo().height);
 
   Pixel mixedColor = colorizer.getMixedColor(point.color, point.count, tMix, fx, fy);
   //  const std::vector<Pixel> colors{ColorMap::colorMix(ifsColor, mixedColor, 0.1), mixedColor};
@@ -1512,7 +1512,7 @@ void IfsDancersFx::IfsDancersFxImpl::updatePixelBuffers(PixelBuffer& currentBuff
 
     const uint32_t x = points[i].x;
     const uint32_t y = points[i].y;
-    if ((x >= goomInfo->getScreenInfo().width) || (y >= goomInfo->getScreenInfo().height))
+    if ((x >= goomInfo->GetScreenInfo().width) || (y >= goomInfo->GetScreenInfo().height))
     {
       continue;
     }

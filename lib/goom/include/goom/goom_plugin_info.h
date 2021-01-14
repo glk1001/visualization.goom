@@ -1,5 +1,5 @@
-#ifndef _GOOM_PLUGIN_INFO_H
-#define _GOOM_PLUGIN_INFO_H
+#ifndef VISUALIZATION_GOOM_GOOM_PLUGIN_INFO_H
+#define VISUALIZATION_GOOM_GOOM_PLUGIN_INFO_H
 
 #include "goom_config.h"
 #include "sound_info.h"
@@ -19,7 +19,7 @@ public:
     uint32_t width;
     uint32_t height;
     uint32_t size; // == screen.height * screen.width.
-    bool operator==(const Screen&) const = default;
+    auto operator==(const Screen&) const -> bool = default;
     template<class Archive>
     void serialize(Archive& ar)
     {
@@ -29,26 +29,27 @@ public:
 
   PluginInfo() noexcept;
   PluginInfo(uint32_t width, uint32_t height) noexcept;
-  PluginInfo(const PluginInfo&) noexcept;
+  PluginInfo(const PluginInfo& p) noexcept;
+  PluginInfo(const PluginInfo&&) noexcept = delete;
   virtual ~PluginInfo() noexcept = default;
 
-  [[nodiscard]] const Screen& getScreenInfo() const;
-  [[nodiscard]] const SoundInfo& getSoundInfo() const;
+  [[nodiscard]] auto GetScreenInfo() const -> const Screen&;
+  [[nodiscard]] auto GetSoundInfo() const -> const SoundInfo&;
 
-  bool operator==(const PluginInfo&) const;
+  bool operator==(const PluginInfo& /*p*/) const;
 
   template<class Archive>
   void serialize(Archive& ar)
   {
-    ar(CEREAL_NVP(screen), CEREAL_NVP(soundInfo));
+    ar(CEREAL_NVP(m_screen), CEREAL_NVP(m_soundInfo));
   }
 
 protected:
-  virtual void processSoundSample(const AudioSamples&);
+  virtual void ProcessSoundSample(const AudioSamples& soundData);
 
 private:
-  Screen screen;
-  std::unique_ptr<SoundInfo> soundInfo;
+  Screen m_screen;
+  std::unique_ptr<SoundInfo> m_soundInfo;
 };
 
 class WritablePluginInfo : public PluginInfo
@@ -57,43 +58,43 @@ public:
   WritablePluginInfo() noexcept;
   WritablePluginInfo(uint32_t width, uint32_t height) noexcept;
 
-  void processSoundSample(const AudioSamples&) override;
+  void ProcessSoundSample(const AudioSamples& soundData) override;
 };
 
 
-inline PluginInfo::PluginInfo() noexcept : screen{0, 0, 0}, soundInfo{nullptr}
+inline PluginInfo::PluginInfo() noexcept : m_screen{0, 0, 0}, m_soundInfo{nullptr}
 {
 }
 
 inline PluginInfo::PluginInfo(const uint32_t width, const uint32_t height) noexcept
-  : screen{width, height, width * height}, soundInfo{std::make_unique<SoundInfo>()}
+  : m_screen{width, height, width * height}, m_soundInfo{std::make_unique<SoundInfo>()}
 {
 }
 
 inline PluginInfo::PluginInfo(const PluginInfo& p) noexcept
-  : screen{p.screen}, soundInfo{new SoundInfo{*p.soundInfo}}
+  : m_screen{p.m_screen}, m_soundInfo{new SoundInfo{*p.m_soundInfo}}
 {
 }
 
-inline bool PluginInfo::operator==(const PluginInfo& p) const
+inline auto PluginInfo::operator==(const PluginInfo& p) const -> bool
 {
-  return screen == p.screen &&
-         ((soundInfo == nullptr && p.soundInfo == nullptr) || (*soundInfo == *p.soundInfo));
+  return m_screen == p.m_screen &&
+         ((m_soundInfo == nullptr && p.m_soundInfo == nullptr) || (*m_soundInfo == *p.m_soundInfo));
 }
 
-inline const PluginInfo::Screen& PluginInfo::getScreenInfo() const
+inline auto PluginInfo::GetScreenInfo() const -> const PluginInfo::Screen&
 {
-  return screen;
+  return m_screen;
 }
 
-inline const SoundInfo& PluginInfo::getSoundInfo() const
+inline auto PluginInfo::GetSoundInfo() const -> const SoundInfo&
 {
-  return *soundInfo;
+  return *m_soundInfo;
 }
 
-inline void PluginInfo::processSoundSample(const AudioSamples& soundData)
+inline void PluginInfo::ProcessSoundSample(const AudioSamples& soundData)
 {
-  soundInfo->processSample(soundData);
+  m_soundInfo->processSample(soundData);
 }
 
 inline WritablePluginInfo::WritablePluginInfo() noexcept : PluginInfo{}
@@ -105,9 +106,9 @@ inline WritablePluginInfo::WritablePluginInfo(const uint32_t width, const uint32
 {
 }
 
-inline void WritablePluginInfo::processSoundSample(const AudioSamples& soundData)
+inline void WritablePluginInfo::ProcessSoundSample(const AudioSamples& soundData)
 {
-  PluginInfo::processSoundSample(soundData);
+  PluginInfo::ProcessSoundSample(soundData);
 }
 
 } // namespace goom

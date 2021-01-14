@@ -731,7 +731,7 @@ colorMaps.setWeights(colorGroupWeights);
   for (size_t i = 0; i < numDrivers; i++)
   {
     drivers.emplace_back(
-        new TentacleDriver{goomInfo->getScreenInfo().width, goomInfo->getScreenInfo().height});
+        new TentacleDriver{goomInfo->GetScreenInfo().width, goomInfo->GetScreenInfo().height});
   }
 
   if (numDrivers != driverWeights.getNumElements())
@@ -883,7 +883,7 @@ void TentaclesFx::TentaclesImpl::update(PixelBuffer& currentBuff, PixelBuffer& n
 
     logDebug("Starting pretty_move without draw.");
     stats.updateWithPrettyMoveNoDraw();
-    prettyMove(goomInfo->getSoundInfo().getAcceleration());
+    prettyMove(goomInfo->GetSoundInfo().getAcceleration());
 
     cycle += 10.0F * cycleInc;
     if (cycle > 1000)
@@ -901,7 +901,7 @@ void TentaclesFx::TentaclesImpl::update(PixelBuffer& currentBuff, PixelBuffer& n
 
     logDebug("Starting pretty_move and draw.");
     stats.updateWithPrettyMoveDraw();
-    prettyMove(goomInfo->getSoundInfo().getAcceleration());
+    prettyMove(goomInfo->GetSoundInfo().getAcceleration());
     cycle += cycleInc;
 
     if (isPrettyMoveHappening || changeDominantColorMapEvent())
@@ -919,7 +919,7 @@ void TentaclesFx::TentaclesImpl::update(PixelBuffer& currentBuff, PixelBuffer& n
 
     const auto [modColor, modColorLow] = getModColors();
 
-    if (goomInfo->getSoundInfo().getTimeSinceLastGoom() != 0)
+    if (goomInfo->GetSoundInfo().getTimeSinceLastGoom() != 0)
     {
       stats.lowToMediumAcceleration();
     }
@@ -939,9 +939,9 @@ void TentaclesFx::TentaclesImpl::update(PixelBuffer& currentBuff, PixelBuffer& n
 
     // Higher sound acceleration increases tentacle wave frequency.
     const float tentacleWaveFreq =
-        goomInfo->getSoundInfo().getAcceleration() < 0.3
+        goomInfo->GetSoundInfo().getAcceleration() < 0.3
             ? 1.25F
-            : 1.0F / (1.10F - goomInfo->getSoundInfo().getAcceleration());
+            : 1.0F / (1.10F - goomInfo->GetSoundInfo().getAcceleration());
     currentDriver->multiplyIterZeroYValWaveFreq(tentacleWaveFreq);
 
     currentDriver->update(m_half_pi - rot, distt, distt2, modColor, modColorLow, currentBuff,

@@ -647,9 +647,9 @@ ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl() noexcept = default;
 
 ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl(
     Parallel& p, const std::shared_ptr<const PluginInfo>& goomInfo) noexcept
-  : m_screenWidth{goomInfo->getScreenInfo().width},
-    m_screenHeight{goomInfo->getScreenInfo().height},
-    m_bufferSize{goomInfo->getScreenInfo().size},
+  : m_screenWidth{goomInfo->GetScreenInfo().width},
+    m_screenHeight{goomInfo->GetScreenInfo().height},
+    m_bufferSize{goomInfo->GetScreenInfo().size},
     m_ratioPixmapToNormalizedCoord{2.0F / static_cast<float>(m_screenWidth)},
     m_ratioNormalizedCoordToPixmap{1.0F / m_ratioPixmapToNormalizedCoord},
     m_minNormCoordVal{m_ratioPixmapToNormalizedCoord / BUFF_POINT_NUM_FLT},

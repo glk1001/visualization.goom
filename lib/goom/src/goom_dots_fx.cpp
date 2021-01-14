@@ -207,13 +207,13 @@ GoomDotsFx::GoomDotsImpl::GoomDotsImpl() noexcept = default;
 
 GoomDotsFx::GoomDotsImpl::GoomDotsImpl(const std::shared_ptr<const PluginInfo>& info) noexcept
   : m_goomInfo(info),
-    m_pointWidth{(m_goomInfo->getScreenInfo().width * 2) / 5},
-    m_pointHeight{(m_goomInfo->getScreenInfo().height * 2) / 5},
+    m_pointWidth{(m_goomInfo->GetScreenInfo().width * 2) / 5},
+    m_pointHeight{(m_goomInfo->GetScreenInfo().height * 2) / 5},
     m_pointWidthDiv2{static_cast<float>(m_pointWidth / 2.0F)},
     m_pointHeightDiv2{static_cast<float>(m_pointHeight / 2.0F)},
     m_pointWidthDiv3{static_cast<float>(m_pointWidth / 3.0F)},
     m_pointHeightDiv3{static_cast<float>(m_pointHeight / 3.0F)},
-    m_draw{m_goomInfo->getScreenInfo().width, m_goomInfo->getScreenInfo().height},
+    m_draw{m_goomInfo->GetScreenInfo().width, m_goomInfo->GetScreenInfo().height},
     m_colorMaps{Weights<ColorMapGroup>{{
         {ColorMapGroup::perceptuallyUniformSequential, 10},
         {ColorMapGroup::sequential, 20},
@@ -252,15 +252,15 @@ void GoomDotsFx::GoomDotsImpl::ChangeColors()
 void GoomDotsFx::GoomDotsImpl::apply(PixelBuffer& currentBuff)
 {
   uint32_t radius = 3;
-  if ((m_goomInfo->getSoundInfo().getTimeSinceLastGoom() == 0) || ChangeDotColorsEvent())
+  if ((m_goomInfo->GetSoundInfo().getTimeSinceLastGoom() == 0) || ChangeDotColorsEvent())
   {
     ChangeColors();
     radius = getRandInRange(5U, 7U);
   }
 
-  const float largeFactor = GetLargeSoundFactor(m_goomInfo->getSoundInfo());
-  const uint32_t speedvarMult80Plus15 = m_goomInfo->getSoundInfo().getSpeed() * 80 + 15;
-  const uint32_t speedvarMult50Plus1 = m_goomInfo->getSoundInfo().getSpeed() * 50 + 1;
+  const float largeFactor = GetLargeSoundFactor(m_goomInfo->GetSoundInfo());
+  const uint32_t speedvarMult80Plus15 = m_goomInfo->GetSoundInfo().getSpeed() * 80 + 15;
+  const uint32_t speedvarMult50Plus1 = m_goomInfo->GetSoundInfo().getSpeed() * 50 + 1;
 
   const float pointWidthDiv2MultLarge = m_pointWidthDiv2 * largeFactor;
   const float pointHeightDiv2MultLarge = m_pointHeightDiv2 * largeFactor;
@@ -378,14 +378,14 @@ void GoomDotsFx::GoomDotsImpl::DotFilter(PixelBuffer& currentBuff,
 {
   const auto xOffset = static_cast<uint32_t>(t1 * std::cos(static_cast<float>(cycle) / t3));
   const auto yOffset = static_cast<uint32_t>(t2 * std::sin(static_cast<float>(cycle) / t4));
-  const auto x0 = static_cast<int>(m_goomInfo->getScreenInfo().width / 2 + xOffset);
-  const auto y0 = static_cast<int>(m_goomInfo->getScreenInfo().height / 2 + yOffset);
+  const auto x0 = static_cast<int>(m_goomInfo->GetScreenInfo().width / 2 + xOffset);
+  const auto y0 = static_cast<int>(m_goomInfo->GetScreenInfo().height / 2 + yOffset);
 
   const uint32_t diameter = 2 * radius;
   const auto screenWidthLessDiameter =
-      static_cast<int>(m_goomInfo->getScreenInfo().width - diameter);
+      static_cast<int>(m_goomInfo->GetScreenInfo().width - diameter);
   const auto screenHeightLessDiameter =
-      static_cast<int>(m_goomInfo->getScreenInfo().height - diameter);
+      static_cast<int>(m_goomInfo->GetScreenInfo().height - diameter);
 
   if ((x0 < static_cast<int>(diameter)) || (y0 < static_cast<int>(diameter)) ||
       (x0 >= screenWidthLessDiameter) || (y0 >= screenHeightLessDiameter))
