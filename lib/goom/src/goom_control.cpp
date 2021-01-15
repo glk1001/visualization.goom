@@ -1406,10 +1406,10 @@ void GoomControl::GoomControlImpl::SetScreenBuffer(PixelBuffer& buffer)
 
 void GoomControl::GoomControlImpl::SetFontFile(const std::string& filename)
 {
-  //  text.setFontFile(filename);
-  //  text.setFontSize(30);
-  //  text.setOutlineWidth(1);
-  //  text.setAlignment(TextDraw::TextAlignment::center);
+  //  m_text.setFontFile(filename);
+  //  m_text.setFontSize(30);
+  //  m_text.setOutlineWidth(1);
+  //  m_text.setAlignment(TextDraw::TextAlignment::center);
 }
 
 auto GoomControl::GoomControlImpl::GetScreenWidth() const -> uint32_t
@@ -1568,7 +1568,7 @@ void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,
   m_imageBuffers.RotateBuffers();
 
 #ifdef SHOW_STATE_TEXT_ON_SCREEN
-  displayStateText();
+  DisplayStateText();
 #endif
   DisplayText(songTitle, message, fps);
 
@@ -2257,7 +2257,7 @@ void GoomControl::GoomControlImpl::ApplyStarsIfRequired()
 
 #ifdef SHOW_STATE_TEXT_ON_SCREEN
 
-void GoomControl::GoomControlImpl::displayStateText()
+void GoomControl::GoomControlImpl::DisplayStateText()
 {
   std::string message = "";
 
@@ -2309,8 +2309,8 @@ void GoomControl::GoomControlImpl::DisplayText(const char* songTitle,
 
   if (m_goomData.timeOfTitleDisplay)
   {
-    const auto xPos = static_cast<int>(GetScreenWidth() / 2);
-    const auto yPos = static_cast<int>(GetScreenHeight() / 2 + 7);
+    const auto xPos = static_cast<int>(GetScreenWidth() / 10);
+    const auto yPos = static_cast<int>(GetScreenHeight() / 4 + 7);
     const auto spacing = m_goomData.timeOfTitleDisplay > GoomData::timeToSpaceTitleDisplay
                              ? 0.0F
                              : static_cast<float>(GoomData::timeToSpaceTitleDisplay -
@@ -2366,12 +2366,12 @@ void GoomControl::GoomControlImpl::DrawText(const std::string& str,
 
   //  CALL UP TO PREPARE ONCE ONLY
   /**
-  text.setText(str);
-  text.setFontColorFunc(getFontColor);
-  text.setOutlineFontColorFunc(getOutlineFontColor);
-  text.setCharSpacing(spacing);
-  text.prepare();
-  text.draw(xPos, yPos, buffer);
+  m_text.SetText(str);
+  m_text.SetFontColorFunc(getFontColor);
+  m_text.SetOutlineFontColorFunc(getOutlineFontColor);
+  m_text.SetCharSpacing(spacing);
+  m_text.Prepare();
+  m_text.Draw(xPos, yPos, buffer);
 **/
 }
 
@@ -2380,6 +2380,7 @@ void GoomControl::GoomControlImpl::DrawText(const std::string& str,
  */
 void GoomControl::GoomControlImpl::UpdateMessage(const char* message)
 {
+  // TODO FIX THIS!!!!
   return;
   if (message != nullptr)
   {
@@ -2392,18 +2393,18 @@ void GoomControl::GoomControlImpl::UpdateMessage(const char* message)
   {
     TextDraw updateMessageText{m_goomInfo->GetScreenInfo().width,
                                m_goomInfo->GetScreenInfo().height};
-    updateMessageText.setFontFile(m_text.getFontFile());
-    updateMessageText.setFontSize(15);
-    updateMessageText.setOutlineWidth(1);
-    updateMessageText.setAlignment(TextDraw::TextAlignment::left);
+    updateMessageText.SetFontFile(m_text.GetFontFile());
+    updateMessageText.SetFontSize(15);
+    updateMessageText.SetOutlineWidth(1);
+    updateMessageText.SetAlignment(TextDraw::TextAlignment::left);
     const std::vector<std::string> msgLines = splitString(m_messageData.message, "\n");
     for (size_t i = 0; i < msgLines.size(); i++)
     {
       const auto yPos = static_cast<int>(10 + m_messageData.affiche -
                                          (m_messageData.numberOfLinesInMessage - i) * 25);
-      updateMessageText.setText(msgLines[i]);
-      updateMessageText.prepare();
-      updateMessageText.draw(50, yPos, m_imageBuffers.GetOutputBuff());
+      updateMessageText.SetText(msgLines[i]);
+      updateMessageText.Prepare();
+      updateMessageText.Draw(50, yPos, m_imageBuffers.GetOutputBuff());
     }
     m_messageData.affiche--;
   }
