@@ -42,7 +42,6 @@ target_include_directories(${PROJECT_NAME}
 
 target_include_directories(${PROJECT_NAME}
     SYSTEM PRIVATE
-        ${LIBS_DIR}/freetype2/include
         ${LIBS_DIR}/vivid/include
         ${LIBS_DIR}/cereal/include
         ${LIBS_DIR}/fmt/include

@@ -12,9 +12,12 @@ set(CMAKE_COMMON_C_WARNINGS -Wall -Wextra)
 find_package(Kodi REQUIRED)
 find_package(glm REQUIRED)
 
-# Couldn't get freetype shared library to work with libreelec,
-#   so resorting to building a static library as part of Goom
 #find_package(Freetype REQUIRED)
+set(FREETYPE2_DIR "/home/greg/Prj/github/freetype2")
+set(FREETYPE_INCLUDE_DIRS "${FREETYPE2_DIR}/include")
+set(FREETYPE_LIBRARIES ${FREETYPE2_DIR}/build/libfreetype.so)
+message(STATUS "FREETYPE_INCLUDE_DIRS = \"${FREETYPE_INCLUDE_DIRS}\".")
+message(STATUS "FREETYPE_LIBRARIES = \"${FREETYPE_LIBRARIES}\".")
 
 if(APP_RENDER_SYSTEM STREQUAL "gl" OR NOT APP_RENDER_SYSTEM)
   find_package(OpenGl REQUIRED)
@@ -37,7 +40,7 @@ include_directories(${includes}
                     ${LIBS_DIR}
                     SYSTEM ${GLM_INCLUDE_DIR}
                     SYSTEM ${KODI_INCLUDE_DIR}/.. # Hack way with "/..", need bigger Kodi cmake rework to match right include ways (becomes done in future)
-                    SYSTEM ${LIBS_DIR}/freetype2/include
+                    SYSTEM ${FREETYPE_INCLUDE_DIRS}
                     SYSTEM ${LIBS_DIR}/vivid/include
                     SYSTEM ${LIBS_DIR}/cereal/include
                     SYSTEM ${LIBS_DIR}/fmt/include)
@@ -52,7 +55,6 @@ if ($ENV{DO_TESTING})
   include(../visualization.goom.testing/goom_testing)
 endif()
 
-#list(APPEND DEPLIBS goom goomutils vivid freetype)
 list(APPEND DEPLIBS goom goomutils vivid)
 
 add_compile_options(${CMAKE_COMMON_C_WARNINGS})
