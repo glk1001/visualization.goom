@@ -463,7 +463,8 @@ public:
   void IfsRenew();
   void ChangeLineColor();
   void DoBlockyWavy();
-  void DoZoomFilterAlloOverexposed();
+  void DoZoomFilterAllowOverexposed();
+  void SetFontFileUsed(const std::string& f);
 
 private:
   std::string m_songTitle{};
@@ -474,6 +475,7 @@ private:
   const ZoomFilterData* m_lastZoomFilterData = nullptr;
   uint64_t m_lastSeed = 0;
   size_t m_numThreadsUsed = 0;
+  std::string m_fontFileUsed{};
 
   uint64_t m_totalTimeInUpdatesMs = 0;
   uint32_t m_minTimeInUpdatesMs = std::numeric_limits<uint32_t>::max();
@@ -564,6 +566,7 @@ void GoomStats::Log(const StatsLogValueFunc& logVal) const
   logVal(MODULE, "lastState", m_lastState);
   logVal(MODULE, "lastSeed", m_lastSeed);
   logVal(MODULE, "numThreadsUsed", m_numThreadsUsed);
+  logVal(MODULE, "m_fontFileUsed", m_fontFileUsed);
 
   if (m_lastZoomFilterData == nullptr)
   {
@@ -701,6 +704,11 @@ void GoomStats::SetSeedLastValue(const uint64_t seed)
 void GoomStats::SetNumThreadsUsedValue(const size_t n)
 {
   m_numThreadsUsed = n;
+}
+
+void GoomStats::SetFontFileUsed(const std::string& f)
+{
+  m_fontFileUsed = f;
 }
 
 inline void GoomStats::UpdateChange(const size_t currentState,
@@ -843,7 +851,7 @@ inline void GoomStats::DoBlockyWavy()
   m_numBlockyWavy++;
 }
 
-inline void GoomStats::DoZoomFilterAlloOverexposed()
+inline void GoomStats::DoZoomFilterAllowOverexposed()
 {
   m_numZoomFilterAllowOverexposed++;
 }
@@ -1406,6 +1414,8 @@ void GoomControl::GoomControlImpl::SetScreenBuffer(PixelBuffer& buffer)
 
 void GoomControl::GoomControlImpl::SetFontFile(const std::string& filename)
 {
+  m_stats.SetFontFileUsed(filename);
+
   m_text.SetFontFile(filename);
   m_text.SetFontSize(30);
   m_text.SetOutlineWidth(1);
@@ -2061,7 +2071,7 @@ void GoomControl::GoomControlImpl::BigNormalUpdate(ZoomFilterData** pzfd)
   }
   else
   {
-    m_stats.DoZoomFilterAlloOverexposed();
+    m_stats.DoZoomFilterAllowOverexposed();
     m_visualFx.zoomFilter_fx->setBuffSettings({.buffIntensity = 0.5, .allowOverexposed = true});
   }
 
@@ -2166,7 +2176,7 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect(ZoomFilterData* pzfd, const 
   }
   else
   {
-    m_stats.DoZoomFilterAlloOverexposed();
+    m_stats.DoZoomFilterAllowOverexposed();
     m_visualFx.zoomFilter_fx->setBuffSettings({.buffIntensity = 0.5, .allowOverexposed = true});
   }
 

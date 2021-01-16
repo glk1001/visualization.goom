@@ -361,7 +361,8 @@ void CVisualizationGoom::Process()
     kodi::Log(ADDON_LOG_FATAL, "CVisualizationGoom: Goom could not be initialized!");
     return;
   }
-  m_goomControl->SetFontFile(kodi::GetAddonPath("UbuntuMono-Regular.ttf"));
+  const std::string fontFile = kodi::GetAddonPath("UbuntuMono-Regular.ttf");
+  m_goomControl->SetFontFile(fontFile);
   m_goomControl->Start();
 
   float floatAudioData[m_audioBufferLen];
