@@ -13,162 +13,163 @@ namespace goom::utils
 
 using colordata::ColorMapName;
 
-std::vector<ColorMap, ColorMap::ColorMapAllocator> ColorMaps::colorMaps{};
-ColorMaps::GroupColorNames ColorMaps::groups{nullptr};
+std::vector<ColorMap, ColorMap::ColorMapAllocator> ColorMaps::s_colorMaps{};
+ColorMaps::GroupColorNames ColorMaps::s_groups{nullptr};
 
 ColorMaps::ColorMaps() noexcept = default;
 
-ColorMapName ColorMaps::getRandomColorMapName() const
+auto ColorMaps::GetRandomColorMapName() const -> ColorMapName
 {
-  initColorMaps();
+  InitColorMaps();
 
-  return static_cast<ColorMapName>(getRandInRange(0u, colorMaps.size()));
+  return static_cast<ColorMapName>(getRandInRange(0u, s_colorMaps.size()));
 }
 
-ColorMapName ColorMaps::getRandomColorMapName(const ColorMapGroup groupName) const
+auto ColorMaps::GetRandomColorMapName(const ColorMapGroup groupName) const -> ColorMapName
 {
-  initGroups();
-  initColorMaps();
+  InitGroups();
+  InitColorMaps();
 
-  const std::vector<ColorMapName>* group = at(groups, groupName);
-  return group->at(getRandInRange(0u, group->size()));
+  const std::vector<ColorMapName>* group = at(s_groups, groupName);
+  return group->at(getRandInRange(0U, group->size()));
 }
 
-const ColorMap& ColorMaps::getRandomColorMap() const
+auto ColorMaps::GetRandomColorMap() const -> const ColorMap&
 {
-  initColorMaps();
+  InitColorMaps();
 
-  return colorMaps[getRandInRange(0u, colorMaps.size())];
+  return s_colorMaps[getRandInRange(0U, s_colorMaps.size())];
 }
 
-const ColorMap& ColorMaps::getRandomColorMap(const ColorMapGroup groupName) const
+auto ColorMaps::GetRandomColorMap(const ColorMapGroup groupName) const -> const ColorMap&
 {
-  initGroups();
-  initColorMaps();
+  InitGroups();
+  InitColorMaps();
 
-  const std::vector<ColorMapName>* group = at(groups, groupName);
-  return getColorMap(group->at(getRandInRange(0u, group->size())));
+  const std::vector<ColorMapName>* group = at(s_groups, groupName);
+  return GetColorMap(group->at(getRandInRange(0U, group->size())));
 }
 
-const ColorMap& ColorMaps::getColorMap(const ColorMapName name) const
+auto ColorMaps::GetColorMap(const ColorMapName name) const -> const ColorMap&
 {
-  initColorMaps();
-  return colorMaps[static_cast<size_t>(name)];
+  InitColorMaps();
+  return s_colorMaps[static_cast<size_t>(name)];
 }
 
-const ColorMaps::ColorMapNames& ColorMaps::getColorMapNames(const ColorMapGroup groupName) const
+auto ColorMaps::GetColorMapNames(const ColorMapGroup groupName) const -> const ColorMapNames&
 {
-  initGroups();
-  return *at(groups, groupName);
+  InitGroups();
+  return *at(s_groups, groupName);
 }
 
-size_t ColorMaps::getNumColorMaps() const
+auto ColorMaps::GetNumColorMaps() const -> size_t
 {
   return colordata::allMaps.size();
 }
 
-void ColorMaps::initColorMaps()
+void ColorMaps::InitColorMaps()
 {
-  if (!colorMaps.empty())
+  if (!s_colorMaps.empty())
   {
     return;
   }
-  colorMaps.reserve(colordata::allMaps.size());
+  s_colorMaps.reserve(colordata::allMaps.size());
   for (const auto& [name, vividMap] : colordata::allMaps)
   {
-    colorMaps.emplace_back(name, vividMap);
+    (void)s_colorMaps.emplace_back(name, vividMap);
   }
 }
 
-size_t ColorMaps::getNumGroups() const
+auto ColorMaps::GetNumGroups() const -> size_t
 {
-  initGroups();
-  return groups.size();
+  InitGroups();
+  return s_groups.size();
 }
 
-ColorMapGroup ColorMaps::getRandomGroup() const
+auto ColorMaps::GetRandomGroup() const -> ColorMapGroup
 {
-  initGroups();
-  return static_cast<ColorMapGroup>(getRandInRange(0u, static_cast<size_t>(ColorMapGroup::_size)));
+  InitGroups();
+  return static_cast<ColorMapGroup>(getRandInRange(0U, static_cast<size_t>(ColorMapGroup::_size)));
 }
 
-void ColorMaps::initGroups()
+void ColorMaps::InitGroups()
 {
-  if (groups[0] != nullptr)
+  if (s_groups[0] != nullptr)
   {
     return;
   }
-  at(groups, ColorMapGroup::perceptuallyUniformSequential) = &colordata::perc_unif_sequentialMaps;
-  at(groups, ColorMapGroup::sequential) = &colordata::sequentialMaps;
-  at(groups, ColorMapGroup::sequential2) = &colordata::sequential2Maps;
-  at(groups, ColorMapGroup::cyclic) = &colordata::cyclicMaps;
-  at(groups, ColorMapGroup::diverging) = &colordata::divergingMaps;
-  at(groups, ColorMapGroup::diverging_black) = &colordata::diverging_blackMaps;
-  at(groups, ColorMapGroup::qualitative) = &colordata::qualitativeMaps;
-  at(groups, ColorMapGroup::misc) = &colordata::miscMaps;
+  at(s_groups, ColorMapGroup::perceptuallyUniformSequential) = &colordata::perc_unif_sequentialMaps;
+  at(s_groups, ColorMapGroup::sequential) = &colordata::sequentialMaps;
+  at(s_groups, ColorMapGroup::sequential2) = &colordata::sequential2Maps;
+  at(s_groups, ColorMapGroup::cyclic) = &colordata::cyclicMaps;
+  at(s_groups, ColorMapGroup::diverging) = &colordata::divergingMaps;
+  at(s_groups, ColorMapGroup::diverging_black) = &colordata::diverging_blackMaps;
+  at(s_groups, ColorMapGroup::qualitative) = &colordata::qualitativeMaps;
+  at(s_groups, ColorMapGroup::misc) = &colordata::miscMaps;
 }
 
-WeightedColorMaps::WeightedColorMaps() : ColorMaps{}, weights{}, weightsActive{true}
+WeightedColorMaps::WeightedColorMaps() : ColorMaps{}, m_weights{}, m_weightsActive{true}
 {
 }
 
 WeightedColorMaps::WeightedColorMaps(const Weights<ColorMapGroup>& w)
-  : ColorMaps{}, weights{w}, weightsActive{true}
+  : ColorMaps{}, m_weights{w}, m_weightsActive{true}
 {
 }
 
-const Weights<ColorMapGroup>& WeightedColorMaps::getWeights() const
+auto WeightedColorMaps::GetWeights() const -> const Weights<ColorMapGroup>&
 {
-  return weights;
+  return m_weights;
 }
 
-void WeightedColorMaps::setWeights(const Weights<ColorMapGroup>& w)
+void WeightedColorMaps::SetWeights(const Weights<ColorMapGroup>& w)
 {
-  weights = w;
+  m_weights = w;
 }
 
-bool WeightedColorMaps::areWeightsActive() const
+auto WeightedColorMaps::AreWeightsActive() const -> bool
 {
-  return weightsActive;
+  return m_weightsActive;
 }
 
-void WeightedColorMaps::setWeightsActive(const bool value)
+void WeightedColorMaps::SetWeightsActive(const bool value)
 {
-  weightsActive = value;
+  m_weightsActive = value;
 }
 
-ColorMapGroup WeightedColorMaps::getRandomGroup() const
+auto WeightedColorMaps::GetRandomGroup() const -> ColorMapGroup
 {
-  if (!weightsActive)
+  if (!m_weightsActive)
   {
-    return ColorMaps::getRandomGroup();
+    return ColorMaps::GetRandomGroup();
   }
 
-  return weights.getRandomWeighted();
+  return m_weights.getRandomWeighted();
 }
 
-ColorMap::ColorMap(const ColorMapName mapNm, const vivid::ColorMap& cm) : mapName{mapNm}, cmap{cm}
+ColorMap::ColorMap(const ColorMapName mapNm, const vivid::ColorMap& cm)
+  : m_mapName{mapNm}, m_cmap{cm}
 {
 }
 
 ColorMap::ColorMap(const ColorMap& other) = default;
 
-Pixel ColorMap::getRandomColor(const ColorMap& cg, const float t0, const float t1)
+auto ColorMap::GetRandomColor(const ColorMap& cg, const float t0, const float t1) -> Pixel
 {
-  return cg.getColor(getRandInRange(t0, t1));
+  return cg.GetColor(getRandInRange(t0, t1));
 }
 
-Pixel ColorMap::colorMix(const Pixel& col1, const Pixel& col2, const float t)
+auto ColorMap::ColorMix(const Pixel& col1, const Pixel& col2, const float t) -> Pixel
 {
   const vivid::rgb_t c1 = vivid::rgb::fromRgb32(col1.Rgba());
   const vivid::rgb_t c2 = vivid::rgb::fromRgb32(col2.Rgba());
   return Pixel{vivid::lerpHsl(c1, c2, t).rgb32()};
 }
 
-Pixel ColorMap::getLighterColor(const Pixel& color, const int incPercent)
+auto ColorMap::GetLighterColor(const Pixel& color, const int incPercent) -> Pixel
 {
   vivid::hsl_t col = vivid::hsl::fromRgb(vivid::rgb::fromRgb32(color.Rgba()));
-  col.z *= 1.0 + static_cast<float>(incPercent / 100.0);
+  col.z *= 1.0 + static_cast<float>(incPercent) / 100.0F;
   if (col.z > 1.0)
   {
     col.z = 1.0;

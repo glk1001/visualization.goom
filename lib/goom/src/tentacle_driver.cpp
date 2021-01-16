@@ -191,7 +191,7 @@ void TentacleDriver::init(const TentacleLayout& layout)
   const float tStep = 1.0F / static_cast<float>(numInParamGroup - 1);
   logDebug("numInTentacleGroup = {}, tStep = {:.2f}.", numInParamGroup, tStep);
 
-  const utils::ColorMapGroup initialColorMapGroup = colorMaps.getRandomGroup();
+  const utils::ColorMapGroup initialColorMapGroup = colorMaps.GetRandomGroup();
 
   size_t paramsIndex = 0;
   float t = 0;
@@ -379,7 +379,7 @@ std::vector<utils::ColorMapGroup> TentacleDriver::getNextColorMapGroups() const
   std::vector<utils::ColorMapGroup> groups(numDifferentGroups);
   for (size_t i = 0; i < numDifferentGroups; i++)
   {
-    groups[i] = colorMaps.getRandomGroup();
+    groups[i] = colorMaps.GetRandomGroup();
   }
 
   std::vector<utils::ColorMapGroup> nextColorMapGroups(colorizers.size());
@@ -428,7 +428,7 @@ void TentacleDriver::checkForTimerEvents()
 
 void TentacleDriver::freshStart()
 {
-  const utils::ColorMapGroup nextColorMapGroup = colorMaps.getRandomGroup();
+  const utils::ColorMapGroup nextColorMapGroup = colorMaps.GetRandomGroup();
   for (auto& colorizer : colorizers)
   {
     colorizer->setColorMapGroup(nextColorMapGroup);
@@ -670,7 +670,7 @@ TentacleColorMapColorizer::TentacleColorMapColorizer(const utils::ColorMapGroup 
                                                      const size_t nNodes) noexcept
   : numNodes{nNodes},
     currentColorMapGroup{cmg},
-    colorMap{&colorMaps.getRandomColorMap(currentColorMapGroup)},
+    colorMap{&colorMaps.GetRandomColorMap(currentColorMapGroup)},
     prevColorMap{colorMap}
 {
 }
@@ -709,18 +709,18 @@ void TentacleColorMapColorizer::changeColorMap()
   // Save the current color map to do smooth transitions to next color map.
   prevColorMap = colorMap;
   tTransition = 1.0;
-  colorMap = &colorMaps.getRandomColorMap(currentColorMapGroup);
+  colorMap = &colorMaps.GetRandomColorMap(currentColorMapGroup);
 }
 
 Pixel TentacleColorMapColorizer::getColor(const size_t nodeNum) const
 {
   const float t = static_cast<float>(nodeNum) / static_cast<float>(numNodes);
-  Pixel nextColor = colorMap->getColor(t);
+  Pixel nextColor = colorMap->GetColor(t);
 
   // Keep going with the smooth transition until tmix runs out.
   if (tTransition > 0.0)
   {
-    nextColor = ColorMap::colorMix(nextColor, prevColorMap->getColor(t), tTransition);
+    nextColor = ColorMap::ColorMix(nextColor, prevColorMap->GetColor(t), tTransition);
     tTransition -= transitionStep;
   }
 

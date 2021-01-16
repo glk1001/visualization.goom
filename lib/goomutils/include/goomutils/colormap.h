@@ -1,5 +1,5 @@
-#ifndef LIB_GOOMUTILS_INCLUDE_GOOMUTILS_COLORMAP_H_
-#define LIB_GOOMUTILS_INCLUDE_GOOMUTILS_COLORMAP_H_
+#ifndef VISUALIZATION_GOOM_COLORMAP_H
+#define VISUALIZATION_GOOM_COLORMAP_H
 
 #include "goom/goom_graphic.h"
 #include "goomutils/colordata/colormap_enums.h"
@@ -18,22 +18,24 @@ class ColorMap
 {
 public:
   ColorMap() noexcept = delete;
-  ColorMap& operator=(const ColorMap&) = delete;
+  ~ColorMap() noexcept = default;
+  auto operator=(const ColorMap&) -> ColorMap& = delete;
+  auto operator=(const ColorMap&&) -> ColorMap& = delete;
 
-  [[nodiscard]] size_t getNumStops() const { return cmap.numStops(); }
-  [[nodiscard]] colordata::ColorMapName getMapName() const { return mapName; }
-  [[nodiscard]] Pixel getColor(const float t) const
+  [[nodiscard]] auto GetNumStops() const -> size_t { return m_cmap.numStops(); }
+  [[nodiscard]] auto GetMapName() const -> colordata::ColorMapName { return m_mapName; }
+  [[nodiscard]] auto GetColor(const float t) const -> Pixel
   {
-    return Pixel{vivid::Color{cmap.at(t)}.rgb32()};
+    return Pixel{vivid::Color{m_cmap.at(t)}.rgb32()};
   }
 
-  static Pixel getRandomColor(const ColorMap&, float t0 = 0, float t1 = 1);
-  static Pixel colorMix(const Pixel& col1, const Pixel& col2, float t);
-  static Pixel getLighterColor(const Pixel& color, int incPercent);
+  static auto GetRandomColor(const ColorMap&, float t0 = 0, float t1 = 1) -> Pixel;
+  static auto ColorMix(const Pixel& col1, const Pixel& col2, float t) -> Pixel;
+  static auto GetLighterColor(const Pixel& color, int incPercent) -> Pixel;
 
 private:
-  const colordata::ColorMapName mapName;
-  const vivid::ColorMap cmap;
+  const colordata::ColorMapName m_mapName;
+  const vivid::ColorMap m_cmap;
   ColorMap(colordata::ColorMapName, const vivid::ColorMap&);
   ColorMap(const ColorMap&);
   struct ColorMapAllocator : std::allocator<ColorMap>
@@ -82,31 +84,33 @@ public:
   ColorMaps() noexcept;
   virtual ~ColorMaps() noexcept = default;
   ColorMaps(const ColorMaps&) = delete;
-  ColorMaps& operator=(const ColorMaps&) = delete;
+  ColorMaps(const ColorMaps&&) = delete;
+  auto operator=(const ColorMaps&) -> ColorMaps& = delete;
+  auto operator=(const ColorMaps&&) -> ColorMaps& = delete;
 
-  [[nodiscard]] size_t getNumColorMaps() const;
-  [[nodiscard]] const ColorMap& getColorMap(colordata::ColorMapName) const;
-  [[nodiscard]] const ColorMapNames& getColorMapNames(ColorMapGroup) const;
+  [[nodiscard]] auto GetNumColorMaps() const -> size_t;
+  [[nodiscard]] auto GetColorMap(colordata::ColorMapName) const -> const ColorMap&;
+  [[nodiscard]] const ColorMapNames& GetColorMapNames(ColorMapGroup) const;
 
-  [[nodiscard]] colordata::ColorMapName getRandomColorMapName() const;
-  [[nodiscard]] colordata::ColorMapName getRandomColorMapName(ColorMapGroup) const;
+  [[nodiscard]] auto GetRandomColorMapName() const -> colordata::ColorMapName;
+  [[nodiscard]] auto GetRandomColorMapName(ColorMapGroup) const -> colordata::ColorMapName;
 
-  [[nodiscard]] const ColorMap& getRandomColorMap() const;
-  [[nodiscard]] const ColorMap& getRandomColorMap(ColorMapGroup) const;
+  [[nodiscard]] auto GetRandomColorMap() const -> const ColorMap&;
+  [[nodiscard]] auto GetRandomColorMap(ColorMapGroup) const -> const ColorMap&;
 
-  [[nodiscard]] size_t getNumGroups() const;
-  [[nodiscard]] virtual ColorMapGroup getRandomGroup() const;
+  [[nodiscard]] auto GetNumGroups() const -> size_t;
+  [[nodiscard]] virtual auto GetRandomGroup() const -> ColorMapGroup;
 
 protected:
   using GroupColorNames =
       std::array<const ColorMapNames*, static_cast<size_t>(ColorMapGroup::_size)>;
-  [[nodiscard]] const GroupColorNames& getGroups() const { return groups; }
-  static void initGroups();
+  [[nodiscard]] auto GetGroups() const -> const GroupColorNames& { return s_groups; }
+  static void InitGroups();
 
 private:
-  static std::vector<ColorMap, ColorMap::ColorMapAllocator> colorMaps;
-  static GroupColorNames groups;
-  static void initColorMaps();
+  static std::vector<ColorMap, ColorMap::ColorMapAllocator> s_colorMaps;
+  static GroupColorNames s_groups;
+  static void InitColorMaps();
 };
 
 class WeightedColorMaps : public ColorMaps
@@ -115,18 +119,22 @@ public:
   WeightedColorMaps();
   explicit WeightedColorMaps(const Weights<ColorMapGroup>&);
   ~WeightedColorMaps() noexcept override = default;
+  WeightedColorMaps(const WeightedColorMaps&) noexcept = delete;
+  WeightedColorMaps(const WeightedColorMaps&&) noexcept = delete;
+  auto operator=(const WeightedColorMaps&) -> WeightedColorMaps& = delete;
+  auto operator=(const WeightedColorMaps&&) -> WeightedColorMaps& = delete;
 
-  [[nodiscard]] const Weights<ColorMapGroup>& getWeights() const;
-  void setWeights(const Weights<ColorMapGroup>&);
+  [[nodiscard]] auto GetWeights() const -> const Weights<ColorMapGroup>&;
+  void SetWeights(const Weights<ColorMapGroup>&);
 
-  [[nodiscard]] bool areWeightsActive() const;
-  void setWeightsActive(bool value);
+  [[nodiscard]] auto AreWeightsActive() const -> bool;
+  void SetWeightsActive(bool value);
 
-  [[nodiscard]] ColorMapGroup getRandomGroup() const override;
+  [[nodiscard]] auto GetRandomGroup() const -> ColorMapGroup override;
 
 private:
-  Weights<ColorMapGroup> weights;
-  bool weightsActive;
+  Weights<ColorMapGroup> m_weights;
+  bool m_weightsActive;
 };
 
 } // namespace goom::utils

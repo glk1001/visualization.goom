@@ -689,7 +689,7 @@ void Fractal::RandomSimis(const size_t start, const size_t num)
   const Dbl r1Factor = m_dr1Mean * r1_1_minus_exp_neg_S;
   const Dbl r2Factor = m_dr2Mean * r2_1_minus_exp_neg_S;
 
-  const ColorMapGroup colorMapGroup = m_colorMaps->getRandomGroup();
+  const ColorMapGroup colorMapGroup = m_colorMaps->GetRandomGroup();
 
   for (size_t i = start; i < start + num; i++)
   {
@@ -708,7 +708,7 @@ void Fractal::RandomSimis(const size_t start, const size_t num)
     m_components[i].r1 = 0;
     m_components[i].r2 = 0;
 
-    m_components[i].color = ColorMap::getRandomColor(m_colorMaps->getRandomColorMap(colorMapGroup));
+    m_components[i].color = ColorMap::GetRandomColor(m_colorMaps->GetRandomColorMap(colorMapGroup));
   }
 }
 
@@ -809,9 +809,9 @@ private:
 };
 
 Colorizer::Colorizer() noexcept
-  : m_mixerMap1{&m_colorMaps.getRandomColorMap()},
+  : m_mixerMap1{&m_colorMaps.GetRandomColorMap()},
     m_prevMixerMap1{m_mixerMap1},
-    m_mixerMap2{&m_colorMaps.getRandomColorMap()},
+    m_mixerMap2{&m_colorMaps.GetRandomColorMap()},
     m_prevMixerMap2{m_mixerMap2}
 {
 }
@@ -828,19 +828,19 @@ void Colorizer::serialize(Archive& ar)
 {
   ar(m_countSinceColorMapChange, m_colorMapChangeCompleted, m_colorMode, m_tBetweenColors);
 
-  auto mixerMapName1 = m_mixerMap1->getMapName();
+  auto mixerMapName1 = m_mixerMap1->GetMapName();
   ar(cereal::make_nvp("mixerMap1", mixerMapName1));
-  auto prevMixerMapName1 = m_prevMixerMap1->getMapName();
+  auto prevMixerMapName1 = m_prevMixerMap1->GetMapName();
   ar(cereal::make_nvp("prevMixerMap1", prevMixerMapName1));
-  m_mixerMap1 = &m_colorMaps.getColorMap(mixerMapName1);
-  m_prevMixerMap1 = &m_colorMaps.getColorMap(prevMixerMapName1);
+  m_mixerMap1 = &m_colorMaps.GetColorMap(mixerMapName1);
+  m_prevMixerMap1 = &m_colorMaps.GetColorMap(prevMixerMapName1);
 
-  auto mixerMapName2 = m_mixerMap2->getMapName();
+  auto mixerMapName2 = m_mixerMap2->GetMapName();
   ar(cereal::make_nvp("mixerMap2", mixerMapName2));
-  auto prevMixerMapName2 = m_prevMixerMap2->getMapName();
+  auto prevMixerMapName2 = m_prevMixerMap2->GetMapName();
   ar(cereal::make_nvp("prevMixerMap2", prevMixerMapName2));
-  m_mixerMap2 = &m_colorMaps.getColorMap(mixerMapName2);
-  m_prevMixerMap2 = &m_colorMaps.getColorMap(prevMixerMapName2);
+  m_mixerMap2 = &m_colorMaps.GetColorMap(mixerMapName2);
+  m_prevMixerMap2 = &m_colorMaps.GetColorMap(prevMixerMapName2);
 }
 
 inline void Colorizer::SetMaxHitCount(uint32_t val)
@@ -897,11 +897,11 @@ auto Colorizer::GetNextColorMode() -> IfsDancersFx::ColorMode
 void Colorizer::ChangeColorMaps()
 {
   m_prevMixerMap1 = m_mixerMap1;
-  m_mixerMap1 = &m_colorMaps.getRandomColorMap();
+  m_mixerMap1 = &m_colorMaps.GetRandomColorMap();
   m_prevMixerMap2 = m_mixerMap2;
-  m_mixerMap2 = &m_colorMaps.getRandomColorMap();
-  //  logInfo("prevMixerMap = {}", enumToString(prevMixerMap->getMapName()));
-  //  logInfo("mixerMap = {}", enumToString(mixerMap->getMapName()));
+  m_mixerMap2 = &m_colorMaps.GetRandomColorMap();
+  //  logInfo("prevMixerMap = {}", enumToString(prevMixerMap->GetMapName()));
+  //  logInfo("mixerMap = {}", enumToString(mixerMap->GetMapName()));
   m_colorMapChangeCompleted =
       getRandInRange(MIN_COLOR_MAP_CHANGE_COMPLETED, MAX_COLOR_MAP_CHANGE_COMPLETED);
   m_tBetweenColors = getRandInRange(0.2F, 0.8F);
@@ -912,8 +912,8 @@ inline auto Colorizer::GetNextMixerMapColor(const float t, const float x, const 
     -> Pixel
 {
   //  const float angle = y == 0.0F ? m_half_pi : std::atan2(y, x);
-  //  const Pixel nextColor = mixerMap1->getColor((m_pi + angle) / m_two_pi);
-  const Pixel nextColor = ColorMap::colorMix(m_mixerMap1->getColor(x), m_mixerMap2->getColor(y), t);
+  //  const Pixel nextColor = mixerMap1->GetColor((m_pi + angle) / m_two_pi);
+  const Pixel nextColor = ColorMap::ColorMix(m_mixerMap1->GetColor(x), m_mixerMap2->GetColor(y), t);
   if (m_countSinceColorMapChange == 0)
   {
     return nextColor;
@@ -923,8 +923,8 @@ inline auto Colorizer::GetNextMixerMapColor(const float t, const float x, const 
                             static_cast<float>(m_colorMapChangeCompleted);
   m_countSinceColorMapChange--;
   const Pixel prevNextColor =
-      ColorMap::colorMix(m_prevMixerMap1->getColor(x), m_prevMixerMap2->getColor(y), t);
-  return ColorMap::colorMix(nextColor, prevNextColor, tTransition);
+      ColorMap::ColorMix(m_prevMixerMap1->GetColor(x), m_prevMixerMap2->GetColor(y), t);
+  return ColorMap::ColorMix(nextColor, prevNextColor, tTransition);
 }
 
 inline auto Colorizer::GetMixedColor(
@@ -978,11 +978,11 @@ inline auto Colorizer::GetMixedColor(
 
   if (m_colorMode == IfsDancersFx::ColorMode::reverseMixColors)
   {
-    mixColor = ColorMap::colorMix(mixColor, baseColor, tBaseMix);
+    mixColor = ColorMap::ColorMix(mixColor, baseColor, tBaseMix);
   }
   else
   {
-    mixColor = ColorMap::colorMix(baseColor, mixColor, tBaseMix);
+    mixColor = ColorMap::ColorMix(baseColor, mixColor, tBaseMix);
   }
 
   static GammaCorrection gammaCorrect{4.2, 0.01};
@@ -1471,7 +1471,7 @@ inline void IfsDancersFx::IfsDancersFxImpl::DrawPixel(PixelBuffer& currentBuff,
   const float fy = point.y / static_cast<float>(m_goomInfo->GetScreenInfo().height);
 
   Pixel mixedColor = m_colorizer.GetMixedColor(point.color, point.count, tMix, fx, fy);
-  //  const std::vector<Pixel> colors{ColorMap::colorMix(ifsColor, mixedColor, 0.1), mixedColor};
+  //  const std::vector<Pixel> colors{ColorMap::ColorMix(ifsColor, mixedColor, 0.1), mixedColor};
   const std::vector<Pixel> colors{mixedColor, mixedColor};
   std::vector<PixelBuffer*> buffs{&currentBuff, &nextBuff};
   m_draw.SetPixelRgb(buffs, point.x, point.y, colors);
@@ -1578,14 +1578,14 @@ void IfsDancersFx::IfsDancersFxImpl::SetLowDensityColors(std::vector<IfsPoint>& 
   const std::function<Pixel(const IfsPoint&)> getRandomColor =
       [&]([[maybe_unused]] const IfsPoint& p) {
         const float t = getRandInRange(0.0F, 1.0F);
-        return m_colorizer.GetColorMaps().getRandomColorMap().getColor(t);
+        return m_colorizer.GetColorMaps().GetRandomColorMap().GetColor(t);
       };
 
-  const ColorMap& colorMap = m_colorizer.GetColorMaps().getRandomColorMap();
+  const ColorMap& colorMap = m_colorizer.GetColorMaps().GetRandomColorMap();
   const float reciprocalMaxLowDensityCount = 1.0F / static_cast<float>(maxLowDensityCount);
   const std::function<Pixel(const IfsPoint&)> getSmoothColor = [&](const IfsPoint& p) {
     const float t = reciprocalMaxLowDensityCount * static_cast<float>(p.count);
-    return colorMap.getColor(t);
+    return colorMap.GetColor(t);
   };
 
   const std::function<Pixel(const IfsPoint&)> getColor =

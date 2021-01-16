@@ -232,8 +232,8 @@ void TentacleDriver::IterParamsGroup::serialize(Archive& ar)
 template<class Archive>
 void TentacleColorMapColorizer::save(Archive& ar) const
 {
-  const utils::colordata::ColorMapName colorMapName = colorMap->getMapName();
-  const utils::colordata::ColorMapName prevColorMapName = prevColorMap->getMapName();
+  const utils::colordata::ColorMapName colorMapName = colorMap->GetMapName();
+  const utils::colordata::ColorMapName prevColorMapName = prevColorMap->GetMapName();
   ar(CEREAL_NVP(numNodes), CEREAL_NVP(currentColorMapGroup), CEREAL_NVP(colorMapName),
      CEREAL_NVP(prevColorMapName), CEREAL_NVP(tTransition));
 }
@@ -245,8 +245,8 @@ void TentacleColorMapColorizer::load(Archive& ar)
   utils::colordata::ColorMapName prevColorMapName;
   ar(CEREAL_NVP(numNodes), CEREAL_NVP(currentColorMapGroup), CEREAL_NVP(colorMapName),
      CEREAL_NVP(prevColorMapName), CEREAL_NVP(tTransition));
-  colorMap = &colorMaps.getColorMap(colorMapName);
-  prevColorMap = &colorMaps.getColorMap(prevColorMapName);
+  colorMap = &colorMaps.GetColorMap(colorMapName);
+  prevColorMap = &colorMaps.GetColorMap(prevColorMapName);
 }
 
 } // namespace goom

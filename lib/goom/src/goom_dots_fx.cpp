@@ -237,13 +237,13 @@ void GoomDotsFx::GoomDotsImpl::setBuffSettings(const FXBuffSettings& settings)
 
 void GoomDotsFx::GoomDotsImpl::ChangeColors()
 {
-  m_colorMap1 = &m_colorMaps.getRandomColorMap();
-  m_colorMap2 = &m_colorMaps.getRandomColorMap();
-  m_colorMap3 = &m_colorMaps.getRandomColorMap();
-  m_colorMap4 = &m_colorMaps.getRandomColorMap();
-  m_colorMap5 = &m_colorMaps.getRandomColorMap();
+  m_colorMap1 = &m_colorMaps.GetRandomColorMap();
+  m_colorMap2 = &m_colorMaps.GetRandomColorMap();
+  m_colorMap3 = &m_colorMaps.GetRandomColorMap();
+  m_colorMap4 = &m_colorMaps.GetRandomColorMap();
+  m_colorMap5 = &m_colorMaps.GetRandomColorMap();
   m_middleColor =
-      ColorMap::getRandomColor(m_colorMaps.getRandomColorMap(ColorMapGroup::misc), 0.1, 1);
+      ColorMap::GetRandomColor(m_colorMaps.GetRandomColorMap(ColorMapGroup::misc), 0.1, 1);
 
   m_useSingleBufferOnly = probabilityOfMInN(0, 2);
   m_useGrayScale = probabilityOfMInN(0, 10);
@@ -288,31 +288,31 @@ void GoomDotsFx::GoomDotsImpl::apply(PixelBuffer& currentBuff)
     const float iMult10 = 10.0F * i;
     const float brightness = 1.5F + 1.0F - t;
 
-    const Pixel colors1 = GetColor(m_middleColor, m_colorMap1->getColor(t), brightness);
+    const Pixel colors1 = GetColor(m_middleColor, m_colorMap1->GetColor(t), brightness);
     const float color1T3 = i * 152.0F;
     const float color1T4 = 128.0F;
     const uint32_t color1Cycle = m_loopvar + i * 2032;
 
-    const Pixel colors2 = GetColor(m_middleColor, m_colorMap2->getColor(t), brightness);
+    const Pixel colors2 = GetColor(m_middleColor, m_colorMap2->GetColor(t), brightness);
     const float color2T1 = pointWidthDiv2MultLarge / i + iMult10;
     const float color2T2 = pointHeightDiv2MultLarge / i + iMult10;
     const float color2T3 = 96.0F;
     const float color2T4 = i * 80.0F;
     const uint32_t color2Cycle = loopvarDivI;
 
-    const Pixel colors3 = GetColor(m_middleColor, m_colorMap3->getColor(t), brightness);
+    const Pixel colors3 = GetColor(m_middleColor, m_colorMap3->GetColor(t), brightness);
     const float color3T1 = pointWidthDiv3MultLarge / i + iMult10;
     const float color3T2 = pointHeightDiv3MultLarge / i + iMult10;
     const float color3T3 = i + 122.0F;
     const float color3T4 = 134.0F;
     const uint32_t color3Cycle = loopvarDivI;
 
-    const Pixel colors4 = GetColor(m_middleColor, m_colorMap4->getColor(t), brightness);
+    const Pixel colors4 = GetColor(m_middleColor, m_colorMap4->GetColor(t), brightness);
     const float color4T3 = 58.0F;
     const float color4T4 = i * 66.0F;
     const uint32_t color4Cycle = loopvarDivI;
 
-    const Pixel colors5 = GetColor(m_middleColor, m_colorMap5->getColor(t), brightness);
+    const Pixel colors5 = GetColor(m_middleColor, m_colorMap5->GetColor(t), brightness);
     const float color5T1 = (pointWidthMultLarge + iMult10) / i;
     const float color5T2 = (pointHeightMultLarge + iMult10) / i;
     const float color5T3 = 66.0F;
@@ -344,7 +344,7 @@ auto GoomDotsFx::GoomDotsImpl::GetColor(const Pixel& color0,
   Pixel color{};
   if (!m_useGrayScale)
   {
-    color = ColorMap::colorMix(color0, color1, t);
+    color = ColorMap::ColorMix(color0, color1, t);
   }
   else
   {

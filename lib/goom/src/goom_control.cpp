@@ -2356,8 +2356,8 @@ void GoomControl::GoomControlImpl::DrawText(const std::string& str,
   **/
 
   const ColorMaps colorMaps{};
-  const ColorMap& colorMap1 = colorMaps.getRandomColorMap();
-  const ColorMap& colorMap2 = colorMaps.getRandomColorMap();
+  const ColorMap& colorMap1 = colorMaps.GetRandomColorMap();
+  const ColorMap& colorMap2 = colorMaps.GetRandomColorMap();
   //  const ColorMap& colorMap1 = colorMaps.getColorMap(colordata::ColorMapName::autumn);
   //  const ColorMap& colorMap2 = colorMaps.getColorMap(colordata::ColorMapName::Blues);
   Pixel fontColor{{.r = 100, .g = 90, .b = 150, .a = 100}};
@@ -2365,11 +2365,11 @@ void GoomControl::GoomControlImpl::DrawText(const std::string& str,
   const auto getFontColor = [&](const size_t textIndexOfChar, float x, float y, float width,
                                 float height) {
     //return fontColor;
-    const Pixel col1 = colorMap1.getColor(x / width);
-    const Pixel col2 = colorMap2.getColor(y / height);
+    const Pixel col1 = colorMap1.GetColor(x / width);
+    const Pixel col2 = colorMap2.GetColor(y / height);
     //return col2;
     //return col1;
-    return ColorMap::colorMix(col1, col2, 0.5);
+    return ColorMap::ColorMix(col1, col2, 0.5);
   };
   const auto getOutlineFontColor = [&](const size_t textIndexOfChar, float x, float y, float width,
                                        float height) { return outlineColor; };

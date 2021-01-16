@@ -564,10 +564,10 @@ inline auto FlyingStarsFx::FlyingStarsImpl::GetMixedColors(const Star& star,
       static float z = 0;
 
       const float tSin = 0.5F * (1.0F + std::sin(freq * z));
-      color = star.currentColorMap->getColor(tSin);
-      lowColor = star.currentLowColorMap->getColor(tSin);
-      dominantColor = star.dominantColormap->getColor(tSin);
-      dominantLowColor = star.dominantLowColormap->getColor(tSin);
+      color = star.currentColorMap->GetColor(tSin);
+      lowColor = star.currentLowColorMap->GetColor(tSin);
+      dominantColor = star.dominantColormap->GetColor(tSin);
+      dominantLowColor = star.dominantLowColormap->GetColor(tSin);
 
       z += s_zStep;
       break;
@@ -575,25 +575,25 @@ inline auto FlyingStarsFx::FlyingStarsImpl::GetMixedColors(const Star& star,
     case ColorMode::mixColors:
     case ColorMode::similarLowColors:
     {
-      color = star.currentColorMap->getColor(t);
-      lowColor = star.currentLowColorMap->getColor(t);
-      dominantColor = star.dominantColormap->getColor(t);
+      color = star.currentColorMap->GetColor(t);
+      lowColor = star.currentLowColorMap->GetColor(t);
+      dominantColor = star.dominantColormap->GetColor(t);
       if (m_colorMode == ColorMode::similarLowColors)
       {
         dominantLowColor = dominantColor;
       }
       else
       {
-        dominantLowColor = star.dominantLowColormap->getColor(t);
+        dominantLowColor = star.dominantLowColormap->GetColor(t);
       }
       break;
     }
     case ColorMode::reverseMixColors:
     {
-      color = star.currentColorMap->getColor(1.0F - t);
-      lowColor = star.currentLowColorMap->getColor(1.0F - t);
-      dominantColor = star.dominantColormap->getColor(1.0F - t);
-      dominantLowColor = star.dominantLowColormap->getColor(1.0F - t);
+      color = star.currentColorMap->GetColor(1.0F - t);
+      lowColor = star.currentLowColorMap->GetColor(1.0F - t);
+      dominantColor = star.dominantColormap->GetColor(1.0F - t);
+      dominantLowColor = star.dominantLowColormap->GetColor(1.0F - t);
       break;
     }
     default:
@@ -604,14 +604,14 @@ inline auto FlyingStarsFx::FlyingStarsImpl::GetMixedColors(const Star& star,
   constexpr float MAX_MIX = 0.8;
   const float tMix = std::lerp(MIN_MIX, MAX_MIX, t);
   const Pixel mixedColor =
-      gammaCorrect.getCorrection(brightness, ColorMap::colorMix(color, dominantColor, tMix));
+      gammaCorrect.getCorrection(brightness, ColorMap::ColorMix(color, dominantColor, tMix));
   const Pixel mixedLowColor =
-      getLightenedColor(ColorMap::colorMix(lowColor, dominantLowColor, tMix), 10.0F);
+      getLightenedColor(ColorMap::ColorMix(lowColor, dominantLowColor, tMix), 10.0F);
   const Pixel remixedLowColor =
       m_colorMode == ColorMode::similarLowColors
           ? mixedLowColor
           : gammaCorrect.getCorrection(brightness,
-                                       ColorMap::colorMix(mixedColor, mixedLowColor, 0.4));
+                                       ColorMap::ColorMix(mixedColor, mixedLowColor, 0.4));
 
   return std::make_tuple(mixedColor, remixedLowColor);
 }
@@ -705,12 +705,12 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
     maxStarsInBomb *= 2;
   }
 
-  const ColorMap& dominantColorMap = m_colorMaps.getRandomColorMap();
-  const ColorMap& dominantLowColorMap = m_lowColorMaps.getRandomColorMap();
+  const ColorMap& dominantColorMap = m_colorMaps.GetRandomColorMap();
+  const ColorMap& dominantLowColorMap = m_lowColorMaps.GetRandomColorMap();
   for (size_t i = 0; i < maxStarsInBomb; i++)
   {
-    AddABomb(dominantColorMap, dominantLowColorMap, m_colorMaps.getRandomColorMap(),
-             m_lowColorMaps.getRandomColorMap(), mx, my, radius, vage, gravity);
+    AddABomb(dominantColorMap, dominantLowColorMap, m_colorMaps.GetRandomColorMap(),
+             m_lowColorMaps.GetRandomColorMap(), mx, my, radius, vage, gravity);
   }
 }
 

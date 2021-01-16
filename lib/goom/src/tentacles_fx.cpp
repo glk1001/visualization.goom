@@ -705,8 +705,8 @@ TentaclesFx::TentaclesImpl::TentaclesImpl() noexcept = default;
 
 TentaclesFx::TentaclesImpl::TentaclesImpl(const std::shared_ptr<const PluginInfo>& info) noexcept
   : goomInfo{info},
-    dominantColorMap{&colorMaps.getRandomColorMap()},
-    dominantColor{ColorMap::getRandomColor(*dominantColorMap)},
+    dominantColorMap{&colorMaps.GetRandomColorMap()},
+    dominantColor{ColorMap::GetRandomColor(*dominantColorMap)},
     rot{getStableRotationOffset(0)}
 {
   setupDrivers();
@@ -908,7 +908,7 @@ void TentaclesFx::TentaclesImpl::update(PixelBuffer& currentBuff, PixelBuffer& n
     {
       // IMPORTANT. Very delicate here - seems the right time to change maps.
       stats.changeDominantColorMap();
-      dominantColorMap = &colorMaps.getRandomColorMap();
+      dominantColorMap = &colorMaps.GetRandomColorMap();
     }
 
     if ((isPrettyMoveHappening || (lig < 6.3f)) && changeDominantColorEvent())
@@ -954,8 +954,8 @@ void TentaclesFx::TentaclesImpl::update(PixelBuffer& currentBuff, PixelBuffer& n
 void TentaclesFx::TentaclesImpl::changeDominantColor()
 {
   stats.changeDominantColor();
-  const Pixel newColor = ColorMap::getRandomColor(*dominantColorMap);
-  dominantColor = ColorMap::colorMix(dominantColor, newColor, 0.7);
+  const Pixel newColor = ColorMap::GetRandomColor(*dominantColorMap);
+  dominantColor = ColorMap::ColorMix(dominantColor, newColor, 0.7);
 }
 
 inline std::tuple<Pixel, Pixel> TentaclesFx::TentaclesImpl::getModColors()
@@ -963,8 +963,8 @@ inline std::tuple<Pixel, Pixel> TentaclesFx::TentaclesImpl::getModColors()
   // IMPORTANT. getEvolvedColor works just right - not sure why
   dominantColor = getEvolvedColor(dominantColor);
 
-  const Pixel modColor = getLightenedColor(dominantColor, lig * 2.0f + 2.0f);
-  const Pixel modColorLow = getLightenedColor(modColor, (lig / 2.0f) + 0.67f);
+  const Pixel modColor = getLightenedColor(dominantColor, lig * 2.0F + 2.0F);
+  const Pixel modColorLow = getLightenedColor(modColor, (lig / 2.0F) + 0.67F);
 
   return std::make_tuple(modColor, modColorLow);
 }
@@ -973,7 +973,7 @@ void TentaclesFx::TentaclesImpl::prettyMovePreStart()
 {
   prePrettyMoveLock = getRandInRange(minPrePrettyMoveLock, maxPrePrettyMoveLock);
   distt2OffsetPreStep =
-      std::lerp(distt2Min, distt2Max, 0.2f) / static_cast<float>(prePrettyMoveLock);
+      std::lerp(distt2Min, distt2Max, 0.2F) / static_cast<float>(prePrettyMoveLock);
   distt2Offset = 0;
 }
 
