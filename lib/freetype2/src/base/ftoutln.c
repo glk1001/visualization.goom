@@ -629,11 +629,9 @@
       params->clip_box.yMax = ( cbox.yMax + 63 ) >> 6;
     }
 
-    fprintf( stderr, "Before render loop.\n" );
     error = FT_ERR( Cannot_Render_Glyph );
     while ( renderer )
     {
-      fprintf( stderr, "Call raster_render.\n" );
       error = renderer->raster_render( renderer->raster, params );
       if ( !error || FT_ERR_NEQ( error, Cannot_Render_Glyph ) )
         break;
@@ -644,7 +642,6 @@
 
       /* now, look for another renderer that supports the same */
       /* format                                                */
-      fprintf( stderr, "Call FT_Lookup_Renderer.\n" );
       renderer = FT_Lookup_Renderer( library, FT_GLYPH_FORMAT_OUTLINE,
                                      &node );
     }
