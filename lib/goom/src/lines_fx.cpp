@@ -385,7 +385,7 @@ auto LinesFx::LinesImpl::GetRandomLineColor() -> Pixel
   {
     return GetColor(static_cast<int>(getNRand(6)));
   }
-  return ColorMap::GetRandomColor(m_colorMaps.GetRandomColorMap());
+  return m_colorMaps.GetRandomColorMap().GetRandomColor();
 }
 
 auto SimpleMovingAverage(const std::vector<int16_t>& x, const uint32_t winLen) -> std::vector<float>

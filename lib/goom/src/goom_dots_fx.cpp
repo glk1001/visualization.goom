@@ -242,8 +242,7 @@ void GoomDotsFx::GoomDotsImpl::ChangeColors()
   m_colorMap3 = &m_colorMaps.GetRandomColorMap();
   m_colorMap4 = &m_colorMaps.GetRandomColorMap();
   m_colorMap5 = &m_colorMaps.GetRandomColorMap();
-  m_middleColor =
-      ColorMap::GetRandomColor(m_colorMaps.GetRandomColorMap(ColorMapGroup::misc), 0.1, 1);
+  m_middleColor = m_colorMaps.GetRandomColorMap(ColorMapGroup::misc).GetRandomColor(0.1, 1);
 
   m_useSingleBufferOnly = probabilityOfMInN(0, 2);
   m_useGrayScale = probabilityOfMInN(0, 10);

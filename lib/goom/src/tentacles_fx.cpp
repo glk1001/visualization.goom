@@ -706,7 +706,7 @@ TentaclesFx::TentaclesImpl::TentaclesImpl() noexcept = default;
 TentaclesFx::TentaclesImpl::TentaclesImpl(const std::shared_ptr<const PluginInfo>& info) noexcept
   : goomInfo{info},
     dominantColorMap{&colorMaps.GetRandomColorMap()},
-    dominantColor{ColorMap::GetRandomColor(*dominantColorMap)},
+    dominantColor{dominantColorMap->GetRandomColor()},
     rot{getStableRotationOffset(0)}
 {
   setupDrivers();
@@ -954,7 +954,7 @@ void TentaclesFx::TentaclesImpl::update(PixelBuffer& currentBuff, PixelBuffer& n
 void TentaclesFx::TentaclesImpl::changeDominantColor()
 {
   stats.changeDominantColor();
-  const Pixel newColor = ColorMap::GetRandomColor(*dominantColorMap);
+  const Pixel newColor = dominantColorMap->GetRandomColor();
   dominantColor = ColorMap::ColorMix(dominantColor, newColor, 0.7);
 }
 

@@ -152,11 +152,13 @@ ColorMap::ColorMap(const ColorMapName mapNm, const vivid::ColorMap& cm)
 {
 }
 
-ColorMap::ColorMap(const ColorMap& other) = default;
-
-auto ColorMap::GetRandomColor(const ColorMap& cg, const float t0, const float t1) -> Pixel
+ColorMap::ColorMap(const ColorMap& other) : m_mapName{other.m_mapName}, m_cmap{other.m_cmap}
 {
-  return cg.GetColor(getRandInRange(t0, t1));
+}
+
+auto ColorMap::GetRandomColor(const float t0, const float t1) const -> Pixel
+{
+  return GetColor(getRandInRange(t0, t1));
 }
 
 auto ColorMap::ColorMix(const Pixel& col1, const Pixel& col2, const float t) -> Pixel
@@ -164,18 +166,6 @@ auto ColorMap::ColorMix(const Pixel& col1, const Pixel& col2, const float t) -> 
   const vivid::rgb_t c1 = vivid::rgb::fromRgb32(col1.Rgba());
   const vivid::rgb_t c2 = vivid::rgb::fromRgb32(col2.Rgba());
   return Pixel{vivid::lerpHsl(c1, c2, t).rgb32()};
-}
-
-auto ColorMap::GetLighterColor(const Pixel& color, const int incPercent) -> Pixel
-{
-  vivid::hsl_t col = vivid::hsl::fromRgb(vivid::rgb::fromRgb32(color.Rgba()));
-  col.z *= 1.0 + static_cast<float>(incPercent) / 100.0F;
-  if (col.z > 1.0)
-  {
-    col.z = 1.0;
-  }
-
-  return Pixel{vivid::Color(col).rgb32()};
 }
 
 } // namespace goom::utils

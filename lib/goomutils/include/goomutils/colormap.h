@@ -24,14 +24,10 @@ public:
 
   [[nodiscard]] auto GetNumStops() const -> size_t { return m_cmap.numStops(); }
   [[nodiscard]] auto GetMapName() const -> colordata::ColorMapName { return m_mapName; }
-  [[nodiscard]] auto GetColor(const float t) const -> Pixel
-  {
-    return Pixel{vivid::Color{m_cmap.at(t)}.rgb32()};
-  }
+  [[nodiscard]] auto GetColor(const float t) const -> Pixel;
 
-  static auto GetRandomColor(const ColorMap&, float t0 = 0, float t1 = 1) -> Pixel;
+  auto GetRandomColor(float t0 = 0.0F, float t1 = 1.0F) const -> Pixel;
   static auto ColorMix(const Pixel& col1, const Pixel& col2, float t) -> Pixel;
-  static auto GetLighterColor(const Pixel& color, int incPercent) -> Pixel;
 
 private:
   const colordata::ColorMapName m_mapName;
@@ -53,6 +49,11 @@ private:
   };
   friend class ColorMaps;
 };
+
+inline auto ColorMap::GetColor(const float t) const -> Pixel
+{
+  return Pixel{vivid::Color{m_cmap.at(t)}.rgb32()};
+}
 
 enum class ColorMapGroup : int
 {
@@ -79,8 +80,6 @@ constexpr T& at(std::array<T, static_cast<size_t>(ColorMapGroup::_size)>& arr,
 class ColorMaps
 {
 public:
-  using ColorMapNames = std::vector<colordata::ColorMapName>;
-
   ColorMaps() noexcept;
   virtual ~ColorMaps() noexcept = default;
   ColorMaps(const ColorMaps&) = delete;
@@ -90,7 +89,8 @@ public:
 
   [[nodiscard]] auto GetNumColorMaps() const -> size_t;
   [[nodiscard]] auto GetColorMap(colordata::ColorMapName) const -> const ColorMap&;
-  [[nodiscard]] const ColorMapNames& GetColorMapNames(ColorMapGroup) const;
+  using ColorMapNames = std::vector<colordata::ColorMapName>;
+  [[nodiscard]] auto GetColorMapNames(ColorMapGroup) const -> const ColorMapNames&;
 
   [[nodiscard]] auto GetRandomColorMapName() const -> colordata::ColorMapName;
   [[nodiscard]] auto GetRandomColorMapName(ColorMapGroup) const -> colordata::ColorMapName;

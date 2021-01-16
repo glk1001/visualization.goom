@@ -708,7 +708,7 @@ void Fractal::RandomSimis(const size_t start, const size_t num)
     m_components[i].r1 = 0;
     m_components[i].r2 = 0;
 
-    m_components[i].color = ColorMap::GetRandomColor(m_colorMaps->GetRandomColorMap(colorMapGroup));
+    m_components[i].color = m_colorMaps->GetRandomColorMap(colorMapGroup).GetRandomColor();
   }
 }
 
