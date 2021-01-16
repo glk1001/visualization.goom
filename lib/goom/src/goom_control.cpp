@@ -1406,10 +1406,10 @@ void GoomControl::GoomControlImpl::SetScreenBuffer(PixelBuffer& buffer)
 
 void GoomControl::GoomControlImpl::SetFontFile(const std::string& filename)
 {
-  //  m_text.setFontFile(filename);
-  //  m_text.setFontSize(30);
-  //  m_text.setOutlineWidth(1);
-  //  m_text.setAlignment(TextDraw::TextAlignment::center);
+  m_text.SetFontFile(filename);
+  m_text.SetFontSize(30);
+  m_text.SetOutlineWidth(1);
+  m_text.SetAlignment(TextDraw::TextAlignment::left);
 }
 
 auto GoomControl::GoomControlImpl::GetScreenWidth() const -> uint32_t
@@ -2365,14 +2365,12 @@ void GoomControl::GoomControlImpl::DrawText(const std::string& str,
                                        float height) { return outlineColor; };
 
   //  CALL UP TO PREPARE ONCE ONLY
-  /**
   m_text.SetText(str);
   m_text.SetFontColorFunc(getFontColor);
   m_text.SetOutlineFontColorFunc(getOutlineFontColor);
   m_text.SetCharSpacing(spacing);
   m_text.Prepare();
   m_text.Draw(xPos, yPos, buffer);
-**/
 }
 
 /*
