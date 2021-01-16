@@ -181,46 +181,44 @@ FT_BEGIN_HEADER
    *
    *   Define this macro if you want to enable this 'feature'.
    */
-#define FT_CONFIG_OPTION_USE_LZW
+/* #define FT_CONFIG_OPTION_USE_LZW */
 
+/**************************************************************************
+ *
+ * Gzip-compressed file support.
+ *
+ *   FreeType now handles font files that have been compressed with the
+ *   `gzip` program.  This is mostly used to parse many of the PCF files
+ *   that come with XFree86.  The implementation uses 'zlib' to partially
+ *   uncompress the file on the fly (see `src/gzip/ftgzip.c`).
+ *
+ *   Define this macro if you want to enable this 'feature'.  See also the
+ *   macro `FT_CONFIG_OPTION_SYSTEM_ZLIB` below.
+ */
+/* #define FT_CONFIG_OPTION_USE_ZLIB */
 
-  /**************************************************************************
-   *
-   * Gzip-compressed file support.
-   *
-   *   FreeType now handles font files that have been compressed with the
-   *   `gzip` program.  This is mostly used to parse many of the PCF files
-   *   that come with XFree86.  The implementation uses 'zlib' to partially
-   *   uncompress the file on the fly (see `src/gzip/ftgzip.c`).
-   *
-   *   Define this macro if you want to enable this 'feature'.  See also the
-   *   macro `FT_CONFIG_OPTION_SYSTEM_ZLIB` below.
-   */
-#define FT_CONFIG_OPTION_USE_ZLIB
-
-
-  /**************************************************************************
-   *
-   * ZLib library selection
-   *
-   *   This macro is only used when `FT_CONFIG_OPTION_USE_ZLIB` is defined.
-   *   It allows FreeType's 'ftgzip' component to link to the system's
-   *   installation of the ZLib library.  This is useful on systems like
-   *   Unix or VMS where it generally is already available.
-   *
-   *   If you let it undefined, the component will use its own copy of the
-   *   zlib sources instead.  These have been modified to be included
-   *   directly within the component and **not** export external function
-   *   names.  This allows you to link any program with FreeType _and_ ZLib
-   *   without linking conflicts.
-   *
-   *   Do not `#undef` this macro here since the build system might define
-   *   it for certain configurations only.
-   *
-   *   If you use a build system like cmake or the `configure` script,
-   *   options set by those programs have precedence, overwriting the value
-   *   here with the configured one.
-   */
+/**************************************************************************
+ *
+ * ZLib library selection
+ *
+ *   This macro is only used when `FT_CONFIG_OPTION_USE_ZLIB` is defined.
+ *   It allows FreeType's 'ftgzip' component to link to the system's
+ *   installation of the ZLib library.  This is useful on systems like
+ *   Unix or VMS where it generally is already available.
+ *
+ *   If you let it undefined, the component will use its own copy of the
+ *   zlib sources instead.  These have been modified to be included
+ *   directly within the component and **not** export external function
+ *   names.  This allows you to link any program with FreeType _and_ ZLib
+ *   without linking conflicts.
+ *
+ *   Do not `#undef` this macro here since the build system might define
+ *   it for certain configurations only.
+ *
+ *   If you use a build system like cmake or the `configure` script,
+ *   options set by those programs have precedence, overwriting the value
+ *   here with the configured one.
+ */
 /* #define FT_CONFIG_OPTION_SYSTEM_ZLIB */
 
 
@@ -428,47 +426,46 @@ FT_BEGIN_HEADER
    *   them for certain configurations only.
    */
 /* #define FT_DEBUG_LEVEL_ERROR */
-/* #define FT_DEBUG_LEVEL_TRACE */
+#define FT_DEBUG_LEVEL_TRACE
 
-
-  /**************************************************************************
-   *
-   * Autofitter debugging
-   *
-   *   If `FT_DEBUG_AUTOFIT` is defined, FreeType provides some means to
-   *   control the autofitter behaviour for debugging purposes with global
-   *   boolean variables (consequently, you should **never** enable this
-   *   while compiling in 'release' mode):
-   *
-   *   ```
-   *     _af_debug_disable_horz_hints
-   *     _af_debug_disable_vert_hints
-   *     _af_debug_disable_blue_hints
-   *   ```
-   *
-   *   Additionally, the following functions provide dumps of various
-   *   internal autofit structures to stdout (using `printf`):
-   *
-   *   ```
-   *     af_glyph_hints_dump_points
-   *     af_glyph_hints_dump_segments
-   *     af_glyph_hints_dump_edges
-   *     af_glyph_hints_get_num_segments
-   *     af_glyph_hints_get_segment_offset
-   *   ```
-   *
-   *   As an argument, they use another global variable:
-   *
-   *   ```
-   *     _af_debug_hints
-   *   ```
-   *
-   *   Please have a look at the `ftgrid` demo program to see how those
-   *   variables and macros should be used.
-   *
-   *   Do not `#undef` these macros here since the build system might define
-   *   them for certain configurations only.
-   */
+/**************************************************************************
+ *
+ * Autofitter debugging
+ *
+ *   If `FT_DEBUG_AUTOFIT` is defined, FreeType provides some means to
+ *   control the autofitter behaviour for debugging purposes with global
+ *   boolean variables (consequently, you should **never** enable this
+ *   while compiling in 'release' mode):
+ *
+ *   ```
+ *     _af_debug_disable_horz_hints
+ *     _af_debug_disable_vert_hints
+ *     _af_debug_disable_blue_hints
+ *   ```
+ *
+ *   Additionally, the following functions provide dumps of various
+ *   internal autofit structures to stdout (using `printf`):
+ *
+ *   ```
+ *     af_glyph_hints_dump_points
+ *     af_glyph_hints_dump_segments
+ *     af_glyph_hints_dump_edges
+ *     af_glyph_hints_get_num_segments
+ *     af_glyph_hints_get_segment_offset
+ *   ```
+ *
+ *   As an argument, they use another global variable:
+ *
+ *   ```
+ *     _af_debug_hints
+ *   ```
+ *
+ *   Please have a look at the `ftgrid` demo program to see how those
+ *   variables and macros should be used.
+ *
+ *   Do not `#undef` these macros here since the build system might define
+ *   them for certain configurations only.
+ */
 /* #define FT_DEBUG_AUTOFIT */
 
 

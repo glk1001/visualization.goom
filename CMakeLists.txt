@@ -52,7 +52,8 @@ if ($ENV{DO_TESTING})
   include(../visualization.goom.testing/goom_testing)
 endif()
 
-list(APPEND DEPLIBS goom goomutils vivid freetype)
+#list(APPEND DEPLIBS goom goomutils vivid freetype)
+list(APPEND DEPLIBS goom goomutils vivid)
 
 add_compile_options(${CMAKE_COMMON_C_WARNINGS})
 

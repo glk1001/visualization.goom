@@ -176,8 +176,8 @@ option(FT_WITH_PNG "Support PNG compressed OpenType embedded bitmaps." OFF)
 option(FT_WITH_HARFBUZZ "Improve auto-hinting of OpenType fonts." OFF)
 option(FT_WITH_BROTLI "Support compressed WOFF2 fonts." OFF)
 
-# Only want static lib for Goom
-set(BUILD_SHARED_LIBS OFF)
+#X Only want static lib for Goom
+set(BUILD_SHARED_LIBS ON)
 
 # Disallow in-source builds
 if ("${CMAKE_BINARY_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")

@@ -18,8 +18,8 @@ target_link_libraries( ${PROJECT_NAME}
     PUBLIC
         goom
         goomutils
+        freetype
         vivid
-        ${FREETYPE_LIBRARIES}
         pthread
 )
 
