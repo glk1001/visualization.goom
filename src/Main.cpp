@@ -361,7 +361,7 @@ void CVisualizationGoom::Process()
     kodi::Log(ADDON_LOG_FATAL, "CVisualizationGoom: Goom could not be initialized!");
     return;
   }
-  const std::string fontFile = kodi::GetAddonPath("UbuntuMono-Regular.ttf");
+  const std::string fontFile = kodi::GetAddonPath("Rubik-Regular.ttf");
   m_goomControl->SetFontFile(fontFile);
   m_goomControl->Start();
 
