@@ -1071,7 +1071,7 @@ struct GoomData
 
   static constexpr int maxTitleDisplayTime = 200;
   static constexpr int timeToSpaceTitleDisplay = 100;
-  static constexpr int timeToFadeTitleDisplay = 50;
+  static constexpr int timeToFadeTitleDisplay = 70;
   int timeOfTitleDisplay = 0;
   std::string title{};
 
@@ -2325,7 +2325,7 @@ void GoomControl::GoomControlImpl::DisplayText(const char* songTitle,
                              ? 0.0F
                              : static_cast<float>(GoomData::timeToSpaceTitleDisplay -
                                                   m_goomData.timeOfTitleDisplay) /
-                                   40.0F;
+                                   20.0F;
 
     DrawText(m_goomData.title, xPos, yPos, spacing, m_imageBuffers.GetOutputBuff());
 
