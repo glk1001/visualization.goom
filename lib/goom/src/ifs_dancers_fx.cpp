@@ -1346,7 +1346,7 @@ void IfsDancersFx::IfsDancersFxImpl::Renew()
   UpdateAllowOverexposed();
 
   m_fractal->SetSpeed(static_cast<uint32_t>(std::min(getRandInRange(1.1F, 10.0F), 5.1F) /
-                                            (1.1F - m_goomInfo->GetSoundInfo().getAcceleration())));
+                                            (1.1F - m_goomInfo->GetSoundInfo().GetAcceleration())));
 }
 
 void IfsDancersFx::IfsDancersFxImpl::ChangeColormaps()

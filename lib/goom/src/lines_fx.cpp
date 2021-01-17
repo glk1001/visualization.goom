@@ -427,8 +427,8 @@ void LinesFx::LinesImpl::DrawLines(const std::vector<int16_t>& soundData,
   const LinePoint* pt0 = &(m_points1[0]);
   const Pixel lineColor = getLightenedColor(m_color1, m_power);
 
-  const auto audioRange = static_cast<float>(m_goomInfo->GetSoundInfo().getAllTimesMaxVolume() -
-                                             m_goomInfo->GetSoundInfo().getAllTimesMinVolume());
+  const auto audioRange = static_cast<float>(m_goomInfo->GetSoundInfo().GetAllTimesMaxVolume() -
+                                             m_goomInfo->GetSoundInfo().GetAllTimesMinVolume());
   assert(audioRange >= 0.0);
 
   if (audioRange < 0.0001)
@@ -444,14 +444,14 @@ void LinesFx::LinesImpl::DrawLines(const std::vector<int16_t>& soundData,
   constexpr float MAX_NORMALIZED_PEAK = 120;
   const auto getNormalizedData = [&](const float data) {
     return MAX_NORMALIZED_PEAK *
-           (data - static_cast<float>(m_goomInfo->GetSoundInfo().getAllTimesMinVolume())) /
+           (data - static_cast<float>(m_goomInfo->GetSoundInfo().GetAllTimesMinVolume())) /
            audioRange;
   };
 
   const Pixel randColor = GetRandomLineColor();
 
   const auto getNextPoint = [&](const LinePoint* pt, const float dataVal) {
-    assert(m_goomInfo->GetSoundInfo().getAllTimesMinVolume() <= dataVal);
+    assert(m_goomInfo->GetSoundInfo().GetAllTimesMinVolume() <= dataVal);
     const float cosAngle = std::cos(pt->angle);
     const float sinAngle = std::sin(pt->angle);
     const float normalizedDataVal = getNormalizedData(dataVal);

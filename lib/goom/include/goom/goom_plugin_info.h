@@ -94,7 +94,7 @@ inline auto PluginInfo::GetSoundInfo() const -> const SoundInfo&
 
 inline void PluginInfo::ProcessSoundSample(const AudioSamples& soundData)
 {
-  m_soundInfo->processSample(soundData);
+  m_soundInfo->ProcessSample(soundData);
 }
 
 inline WritablePluginInfo::WritablePluginInfo() noexcept : PluginInfo{}

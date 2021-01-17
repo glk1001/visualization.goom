@@ -1509,7 +1509,7 @@ void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,
   // elargissement de l'intervalle d'évolution des points
   // ! calcul du deplacement des petits points ...
 
-  logDebug("sound getTimeSinceLastGoom() = {}", m_goomInfo->GetSoundInfo().getTimeSinceLastGoom());
+  logDebug("sound GetTimeSinceLastGoom() = {}", m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom());
 
   /* ! etude du signal ... */
   m_goomInfo->ProcessSoundSample(soundData);
@@ -1661,9 +1661,9 @@ void GoomControl::GoomControlImpl::ChangeFilterModeIfMusicChanges(const int forc
     return;
   }
 
-  logDebug("sound getTimeSinceLastGoom() = {}, goomData.cyclesSinceLastChange = {}",
-           m_goomInfo->GetSoundInfo().getTimeSinceLastGoom(), m_goomData.cyclesSinceLastChange);
-  if ((m_goomInfo->GetSoundInfo().getTimeSinceLastGoom() == 0) ||
+  logDebug("sound GetTimeSinceLastGoom() = {}, goomData.cyclesSinceLastChange = {}",
+           m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom(), m_goomData.cyclesSinceLastChange);
+  if ((m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom() == 0) ||
       (m_goomData.cyclesSinceLastChange > TIME_BETWEEN_CHANGE) || (forceMode > 0))
   {
     logDebug("Try to change the filter mode.");
@@ -1672,7 +1672,7 @@ void GoomControl::GoomControlImpl::ChangeFilterModeIfMusicChanges(const int forc
       ChangeFilterMode();
     }
   }
-  logDebug("sound getTimeSinceLastGoom() = {}", m_goomInfo->GetSoundInfo().getTimeSinceLastGoom());
+  logDebug("sound GetTimeSinceLastGoom() = {}", m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom());
 }
 
 inline auto GetHypercosEffect(const bool active) -> ZoomFilterData::HypercosEffect
@@ -2014,7 +2014,7 @@ void GoomControl::GoomControlImpl::BigNormalUpdate(ZoomFilterData** pzfd)
   m_stats.LockChange();
   const int32_t newvit =
       STOP_SPEED + 1 -
-      static_cast<int32_t>(3.5F * std::log10(m_goomInfo->GetSoundInfo().getSpeed() * 60 + 1));
+      static_cast<int32_t>(3.5F * std::log10(m_goomInfo->GetSoundInfo().GetSpeed() * 60.0F + 1.0F));
   // retablir le zoom avant..
   if ((m_goomData.zoomFilterData.reverse) && (!(m_cycle % 13)) &&
       m_goomEvent.Happens(GoomEvent::filterReverseOffAndStopSpeed))
@@ -2140,10 +2140,10 @@ void GoomControl::GoomControlImpl::BigUpdate(ZoomFilterData** pzfd)
 
   // reperage de goom (acceleration forte de l'acceleration du volume)
   //   -> coup de boost de la vitesse si besoin..
-  logDebug("sound getTimeSinceLastGoom() = {}", m_goomInfo->GetSoundInfo().getTimeSinceLastGoom());
-  if (m_goomInfo->GetSoundInfo().getTimeSinceLastGoom() == 0)
+  logDebug("sound GetTimeSinceLastGoom() = {}", m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom());
+  if (m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom() == 0)
   {
-    logDebug("sound getTimeSinceLastGoom() = 0.");
+    logDebug("sound GetTimeSinceLastGoom() = 0.");
     m_stats.LastTimeGoomChange();
     BigNormalUpdate(pzfd);
   }
@@ -2200,8 +2200,8 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect(ZoomFilterData* pzfd, const 
     m_goomData.previousZoomSpeed = m_goomData.zoomFilterData.vitesse;
     m_goomData.switchMult = 1.0F;
 
-    if (((m_goomInfo->GetSoundInfo().getTimeSinceLastGoom() == 0) &&
-         (m_goomInfo->GetSoundInfo().getTotalGoom() < 2)) ||
+    if (((m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom() == 0) &&
+         (m_goomInfo->GetSoundInfo().GetTotalGoom() < 2)) ||
         (forceMode > 0))
     {
       m_goomData.switchIncr = 0;
@@ -2506,10 +2506,10 @@ void GoomControl::GoomControlImpl::DisplayLines(const AudioSamples& soundData)
 
   m_gmline2.SetPower(m_gmline1.GetPower());
 
-  const std::vector<int16_t>& audioSample = soundData.getSample(0);
+  const std::vector<int16_t>& audioSample = soundData.GetSample(0);
   m_gmline1.DrawLines(audioSample, m_imageBuffers.GetP1(), m_imageBuffers.GetP2());
   m_gmline2.DrawLines(audioSample, m_imageBuffers.GetP1(), m_imageBuffers.GetP2());
-  //  gmline2.drawLines(soundData.getSample(1), imageBuffers.getP1(), imageBuffers.getP2());
+  //  gmline2.drawLines(soundData.GetSample(1), imageBuffers.getP1(), imageBuffers.getP2());
 
   if (((m_cycle % 121) == 9) && m_goomEvent.Happens(GoomEvent::changeGoomLine) &&
       ((m_goomData.lineMode == 0) || (m_goomData.lineMode == m_goomData.drawLinesDuration)))
@@ -2538,13 +2538,13 @@ void GoomControl::GoomControlImpl::DisplayLines(const AudioSamples& soundData)
 
 void GoomControl::GoomControlImpl::BigBreakIfMusicIsCalm(ZoomFilterData** pzfd)
 {
-  logDebug("sound getSpeed() = {:.2}, goomData.zoomFilterData.vitesse = {}, "
+  logDebug("sound GetSpeed() = {:.2}, goomData.zoomFilterData.vitesse = {}, "
            "cycle = {}",
-           m_goomInfo->GetSoundInfo().getSpeed(), m_goomData.zoomFilterData.vitesse, m_cycle);
-  if ((m_goomInfo->GetSoundInfo().getSpeed() < 0.01F) &&
+           m_goomInfo->GetSoundInfo().GetSpeed(), m_goomData.zoomFilterData.vitesse, m_cycle);
+  if ((m_goomInfo->GetSoundInfo().GetSpeed() < 0.01F) &&
       (m_goomData.zoomFilterData.vitesse < (STOP_SPEED - 4)) && (m_cycle % 16 == 0))
   {
-    logDebug("sound getSpeed() = {:.2}", m_goomInfo->GetSoundInfo().getSpeed());
+    logDebug("sound GetSpeed() = {:.2}", m_goomInfo->GetSoundInfo().GetSpeed());
     BigBreak(pzfd);
   }
 }
@@ -2580,7 +2580,7 @@ void GoomControl::GoomControlImpl::BigUpdateIfNotLocked(ZoomFilterData** pzfd)
     logDebug("goomData.lockVar = 0");
     BigUpdate(pzfd);
   }
-  logDebug("sound getTimeSinceLastGoom() = {}", m_goomInfo->GetSoundInfo().getTimeSinceLastGoom());
+  logDebug("sound GetTimeSinceLastGoom() = {}", m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom());
 }
 
 void GoomControl::GoomControlImpl::ForceFilterModeIfSet(ZoomFilterData** pzfd, const int forceMode)
@@ -2611,12 +2611,12 @@ void GoomControl::GoomControlImpl::StopIfRequested()
 
 void GoomControl::GoomControlImpl::DisplayLinesIfInAGoom(const AudioSamples& soundData)
 {
-  logDebug("goomData.lineMode = {} != 0 || sound getTimeSinceLastGoom() = {}", m_goomData.lineMode,
-           m_goomInfo->GetSoundInfo().getTimeSinceLastGoom());
-  if ((m_goomData.lineMode != 0) || (m_goomInfo->GetSoundInfo().getTimeSinceLastGoom() < 5))
+  logDebug("goomData.lineMode = {} != 0 || sound GetTimeSinceLastGoom() = {}", m_goomData.lineMode,
+           m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom());
+  if ((m_goomData.lineMode != 0) || (m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom() < 5))
   {
-    logDebug("goomData.lineMode = {} != 0 || sound getTimeSinceLastGoom() = {} < 5",
-             m_goomData.lineMode, m_goomInfo->GetSoundInfo().getTimeSinceLastGoom());
+    logDebug("goomData.lineMode = {} != 0 || sound GetTimeSinceLastGoom() = {} < 5",
+             m_goomData.lineMode, m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom());
 
     DisplayLines(soundData);
   }
@@ -2670,7 +2670,7 @@ void GoomControl::GoomControlImpl::ApplyDotsIfRequired()
   logDebug("goomInfo->curGDrawables points is set.");
   m_stats.DoDots();
   m_visualFx.goomDots_fx->apply(m_imageBuffers.GetP1());
-  logDebug("sound getTimeSinceLastGoom() = {}", m_goomInfo->GetSoundInfo().getTimeSinceLastGoom());
+  logDebug("sound GetTimeSinceLastGoom() = {}", m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom());
 }
 
 GoomEvents::GoomEvents() noexcept

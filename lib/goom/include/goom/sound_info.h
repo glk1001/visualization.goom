@@ -1,5 +1,5 @@
-#ifndef LIBS_GOOM_INCLUDE_GOOM_SOUND_INFO_H_
-#define LIBS_GOOM_INCLUDE_GOOM_SOUND_INFO_H_
+#ifndef VISUALIZATION_GOOM_SOUND_INFO_H
+#define VISUALIZATION_GOOM_SOUND_INFO_H
 
 #include "goom_config.h"
 
@@ -14,7 +14,7 @@ namespace goom
 class AudioSamples
 {
 public:
-  static constexpr size_t numChannels = 2;
+  static constexpr size_t NUM_CHANNELS = 2;
 
   // AudioSample object: numSampleChannels = 1 or 2.
   //   If numSampleChannels = 1, then the first  AUDIO_SAMPLE_LEN values of
@@ -25,125 +25,128 @@ public:
   AudioSamples(size_t numSampleChannels,
                const float floatAudioData[NUM_AUDIO_SAMPLES * AUDIO_SAMPLE_LEN]);
 
-  [[nodiscard]] size_t getNumDistinctChannels() const { return numDistinctChannels; }
-  [[nodiscard]] const std::vector<int16_t>& getSample(size_t channelIndex) const;
-  std::vector<int16_t>& getSample(size_t channelIndex);
+  [[nodiscard]] auto GetNumDistinctChannels() const -> size_t { return m_numDistinctChannels; }
+  [[nodiscard]] auto GetSample(size_t channelIndex) const -> const std::vector<int16_t>&;
+  auto GetSample(size_t channelIndex) -> std::vector<int16_t>&;
 
 private:
-  const size_t numDistinctChannels;
+  const size_t m_numDistinctChannels;
   using SampleArray = std::vector<int16_t>;
-  std::vector<SampleArray> sampleArrays;
+  std::vector<SampleArray> m_sampleArrays;
 };
 
 class SoundInfo
 {
 public:
   SoundInfo() noexcept;
-  SoundInfo(const SoundInfo&) noexcept;
   ~SoundInfo() noexcept;
+  SoundInfo(const SoundInfo& s) noexcept;
+  SoundInfo(const SoundInfo&&) noexcept = delete;
+  auto operator=(const SoundInfo&) -> SoundInfo& = delete;
+  auto operator=(const SoundInfo&&) -> SoundInfo& = delete;
 
-  void processSample(const AudioSamples&);
+  void ProcessSample(const AudioSamples& s);
 
   // Note: a Goom is just a sound event...
-  [[nodiscard]] uint32_t getTimeSinceLastGoom() const; // >= 0
-  [[nodiscard]] uint32_t getTimeSinceLastBigGoom() const; // >= 0
-  [[nodiscard]] uint32_t getTotalGoom()
-      const; // number of goom since last reset (every 'cycleTime')
-  [[nodiscard]] float getGoomPower() const; // power of the last Goom [0..1]
+  [[nodiscard]] auto GetTimeSinceLastGoom() const -> uint32_t; // >= 0
+  [[nodiscard]] auto GetTimeSinceLastBigGoom() const -> uint32_t; // >= 0
+  [[nodiscard]] auto GetTotalGoom() const
+      -> uint32_t; // number of goom since last reset (every 'cycleTime')
+  [[nodiscard]] auto GetGoomPower() const -> float; // power of the last Goom [0..1]
 
-  [[nodiscard]] float getVolume() const; // [0..1]
-  [[nodiscard]] float getSpeed() const; // speed of the sound [0..100]
-  [[nodiscard]] float getAcceleration() const; // acceleration of the sound [0..1]
+  [[nodiscard]] auto GetVolume() const -> float; // [0..1]
+  [[nodiscard]] auto GetSpeed() const -> float; // speed of the sound [0..100]
+  [[nodiscard]] auto GetAcceleration() const -> float; // acceleration of the sound [0..1]
 
-  [[nodiscard]] int16_t getAllTimesMaxVolume() const;
-  [[nodiscard]] int16_t getAllTimesMinVolume() const;
+  [[nodiscard]] auto GetAllTimesMaxVolume() const -> int16_t;
+  [[nodiscard]] auto GetAllTimesMinVolume() const -> int16_t;
 
-  bool operator==(const SoundInfo&) const;
+  auto operator==(const SoundInfo& s) const -> bool;
 
   template<class Archive>
   void serialize(Archive&);
 
 private:
-  uint32_t timeSinceLastGoom = 0;
-  uint32_t timeSinceLastBigGoom = 0;
-  float goomLimit = 1; // auto-updated limit of goom_detection
-  float bigGoomLimit = 1;
-  static constexpr float bigGoomSpeedLimit = 10;
-  static constexpr float bigGoomFactor = 10;
-  float goomPower = 0;
-  uint32_t totalGoom = 0;
-  static constexpr uint32_t cycleTime = 64;
-  uint32_t cycle = 0;
+  uint32_t m_timeSinceLastGoom = 0;
+  uint32_t m_timeSinceLastBigGoom = 0;
+  float m_goomLimit = 1.0F; // auto-updated limit of goom_detection
+  float m_bigGoomLimit = 1.0F;
+  static constexpr float BIG_GOOM_SPEED_LIMIT = 10.0F;
+  static constexpr float BIG_GOOM_FACTOR = 10.0F;
+  float m_goomPower = 0.0F;
+  uint32_t m_totalGoom = 0;
+  static constexpr uint32_t CYCLE_TIME = 64;
+  uint32_t m_cycle = 0;
 
-  static constexpr uint32_t bigGoomDuration = 100;
+  static constexpr uint32_t BIG_GOOM_DURATION = 100;
   // static constexpr float BIG_GOOM_SPEED_LIMIT = 0.1;
-  static constexpr float accelerationMultiplier = 0.95;
-  static constexpr float speedMultiplier = 0.99;
+  static constexpr float ACCELERATION_MULTIPLIER = 0.95;
+  static constexpr float SPEED_MULTIPLIER = 0.99;
 
-  float volume = 0;
-  float acceleration = 0;
-  float speed = 0;
+  float m_volume = 0.0F;
+  float m_acceleration = 0.0F;
+  float m_speed = 0.0F;
 
-  int16_t allTimesMaxVolume{};
-  int16_t allTimesMinVolume{};
-  int16_t allTimesPositiveMaxVolume = 1;
-  float maxAccelSinceLastReset = 0;
+  int16_t m_allTimesMaxVolume{};
+  int16_t m_allTimesMinVolume{};
+  int16_t m_allTimesPositiveMaxVolume = 1;
+  float m_maxAccelSinceLastReset = 0.0F;
 };
 
 template<class Archive>
 void SoundInfo::serialize(Archive& ar)
 {
-  ar(CEREAL_NVP(timeSinceLastGoom), CEREAL_NVP(timeSinceLastBigGoom), CEREAL_NVP(goomLimit),
-     CEREAL_NVP(bigGoomLimit), CEREAL_NVP(goomPower), CEREAL_NVP(totalGoom), CEREAL_NVP(cycle),
-     CEREAL_NVP(volume), CEREAL_NVP(acceleration), CEREAL_NVP(allTimesMaxVolume),
-     CEREAL_NVP(allTimesMinVolume), CEREAL_NVP(allTimesPositiveMaxVolume),
-     CEREAL_NVP(maxAccelSinceLastReset));
+  ar(CEREAL_NVP(m_timeSinceLastGoom), CEREAL_NVP(m_timeSinceLastBigGoom), CEREAL_NVP(m_goomLimit),
+     CEREAL_NVP(m_bigGoomLimit), CEREAL_NVP(m_goomPower), CEREAL_NVP(m_totalGoom),
+     CEREAL_NVP(m_cycle), CEREAL_NVP(m_volume), CEREAL_NVP(m_acceleration),
+     CEREAL_NVP(m_allTimesMaxVolume), CEREAL_NVP(m_allTimesMinVolume),
+     CEREAL_NVP(m_allTimesPositiveMaxVolume), CEREAL_NVP(m_maxAccelSinceLastReset));
 }
 
-inline uint32_t SoundInfo::getTimeSinceLastGoom() const
+inline auto SoundInfo::GetTimeSinceLastGoom() const -> uint32_t
 {
-  return timeSinceLastGoom;
+  return m_timeSinceLastGoom;
 }
 
-inline uint32_t SoundInfo::getTimeSinceLastBigGoom() const
+inline auto SoundInfo::GetTimeSinceLastBigGoom() const -> uint32_t
 {
-  return timeSinceLastBigGoom;
+  return m_timeSinceLastBigGoom;
 }
 
-inline float SoundInfo::getGoomPower() const
+inline auto SoundInfo::GetGoomPower() const -> float
 {
-  return goomPower;
+  return m_goomPower;
 }
 
-inline float SoundInfo::getSpeed() const
+inline auto SoundInfo::GetSpeed() const -> float
 {
-  return speed;
+  return m_speed;
 }
 
-inline float SoundInfo::getAcceleration() const
+inline auto SoundInfo::GetAcceleration() const -> float
 {
-  return acceleration;
+  return m_acceleration;
 }
 
-inline uint32_t SoundInfo::getTotalGoom() const
+inline auto SoundInfo::GetTotalGoom() const -> uint32_t
 {
-  return totalGoom;
+  return m_totalGoom;
 }
 
-inline float SoundInfo::getVolume() const
+inline auto SoundInfo::GetVolume() const -> float
 {
-  return volume;
+  return m_volume;
 }
 
-inline int16_t SoundInfo::getAllTimesMaxVolume() const
+inline auto SoundInfo::GetAllTimesMaxVolume() const -> int16_t
 {
-  return allTimesMaxVolume;
+  return m_allTimesMaxVolume;
 }
 
-inline int16_t SoundInfo::getAllTimesMinVolume() const
+inline auto SoundInfo::GetAllTimesMinVolume() const -> int16_t
 {
-  return allTimesMinVolume;
+  return m_allTimesMinVolume;
 }
 
 } // namespace goom
-#endif /* LIBS_GOOM_INCLUDE_GOOM_SOUND_INFO_H_ */
+#endif

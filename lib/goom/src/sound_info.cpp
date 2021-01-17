@@ -12,7 +12,7 @@
 namespace goom
 {
 
-inline auto floatToInt16(const float f) -> int16_t
+inline auto FloatToInt16(const float f) -> int16_t
 {
   if (f >= 1.0F)
   {
@@ -29,7 +29,7 @@ inline auto floatToInt16(const float f) -> int16_t
 
 AudioSamples::AudioSamples(const size_t numSampleChannels,
                            const float floatAudioData[NUM_AUDIO_SAMPLES * AUDIO_SAMPLE_LEN])
-  : numDistinctChannels{numSampleChannels}, sampleArrays(numChannels)
+  : m_numDistinctChannels{numSampleChannels}, m_sampleArrays(NUM_CHANNELS)
 {
   if (numSampleChannels == 0 || numSampleChannels > 2)
   {
@@ -37,15 +37,15 @@ AudioSamples::AudioSamples(const size_t numSampleChannels,
         std20::format("Invalid 'numSampleChannels == {}. Must be '1' or '2'.", numSampleChannels));
   }
 
-  sampleArrays[0].resize(AUDIO_SAMPLE_LEN);
-  sampleArrays[1].resize(AUDIO_SAMPLE_LEN);
+  m_sampleArrays[0].resize(AUDIO_SAMPLE_LEN);
+  m_sampleArrays[1].resize(AUDIO_SAMPLE_LEN);
 
-  if (numChannels == 1)
+  if (NUM_CHANNELS == 1)
   {
     for (size_t i = 0; i < AUDIO_SAMPLE_LEN; i++)
     {
-      sampleArrays[0][i] = floatToInt16(floatAudioData[i]);
-      sampleArrays[1][i] = sampleArrays[0][i];
+      m_sampleArrays[0][i] = FloatToInt16(floatAudioData[i]);
+      m_sampleArrays[1][i] = m_sampleArrays[0][i];
     }
   }
   else
@@ -53,27 +53,27 @@ AudioSamples::AudioSamples(const size_t numSampleChannels,
     int fpos = 0;
     for (size_t i = 0; i < AUDIO_SAMPLE_LEN; i++)
     {
-      sampleArrays[0][i] = floatToInt16(floatAudioData[fpos]);
+      m_sampleArrays[0][i] = FloatToInt16(floatAudioData[fpos]);
       fpos++;
-      sampleArrays[1][i] = floatToInt16(floatAudioData[fpos]);
+      m_sampleArrays[1][i] = FloatToInt16(floatAudioData[fpos]);
       fpos++;
     }
   }
 }
 
-auto AudioSamples::getSample(const size_t channelIndex) const -> const std::vector<int16_t>&
+auto AudioSamples::GetSample(const size_t channelIndex) const -> const std::vector<int16_t>&
 {
-  return sampleArrays.at(channelIndex);
+  return m_sampleArrays.at(channelIndex);
 }
 
-auto AudioSamples::getSample(const size_t channelIndex) -> std::vector<int16_t>&
+auto AudioSamples::GetSample(const size_t channelIndex) -> std::vector<int16_t>&
 {
-  return sampleArrays.at(channelIndex);
+  return m_sampleArrays.at(channelIndex);
 }
 
 SoundInfo::SoundInfo() noexcept
-  : allTimesMaxVolume{std::numeric_limits<int16_t>::min()},
-    allTimesMinVolume{std::numeric_limits<int16_t>::max()}
+  : m_allTimesMaxVolume{std::numeric_limits<int16_t>::min()},
+    m_allTimesMinVolume{std::numeric_limits<int16_t>::max()}
 {
 }
 
@@ -83,24 +83,25 @@ SoundInfo::~SoundInfo() noexcept = default;
 
 auto SoundInfo::operator==(const SoundInfo& s) const -> bool
 {
-  return timeSinceLastGoom == s.timeSinceLastGoom &&
-         timeSinceLastBigGoom == s.timeSinceLastBigGoom && goomLimit == s.goomLimit &&
-         bigGoomLimit == s.bigGoomLimit && goomPower == s.goomPower && totalGoom == s.totalGoom &&
-         cycle == s.cycle && volume == s.volume && acceleration == s.acceleration &&
-         allTimesMaxVolume == s.allTimesMaxVolume && allTimesMinVolume == s.allTimesMinVolume &&
-         allTimesPositiveMaxVolume == s.allTimesPositiveMaxVolume &&
-         maxAccelSinceLastReset == s.maxAccelSinceLastReset;
+  return m_timeSinceLastGoom == s.m_timeSinceLastGoom &&
+         m_timeSinceLastBigGoom == s.m_timeSinceLastBigGoom && m_goomLimit == s.m_goomLimit &&
+         m_bigGoomLimit == s.m_bigGoomLimit && m_goomPower == s.m_goomPower &&
+         m_totalGoom == s.m_totalGoom && m_cycle == s.m_cycle && m_volume == s.m_volume &&
+         m_acceleration == s.m_acceleration && m_allTimesMaxVolume == s.m_allTimesMaxVolume &&
+         m_allTimesMinVolume == s.m_allTimesMinVolume &&
+         m_allTimesPositiveMaxVolume == s.m_allTimesPositiveMaxVolume &&
+         m_maxAccelSinceLastReset == s.m_maxAccelSinceLastReset;
 }
 
-void SoundInfo::processSample(const AudioSamples& samples)
+void SoundInfo::ProcessSample(const AudioSamples& samples)
 {
   // Find the min/max of volumes
   int16_t maxPosVar = 0;
   int16_t maxVar = std::numeric_limits<int16_t>::min();
   int16_t minVar = std::numeric_limits<int16_t>::max();
-  for (size_t n = 0; n < AudioSamples::numChannels; n++)
+  for (size_t n = 0; n < AudioSamples::NUM_CHANNELS; n++)
   {
-    const std::vector<int16_t>& soundData = samples.getSample(n);
+    const std::vector<int16_t>& soundData = samples.GetSample(n);
     for (int16_t dataVal : soundData)
     {
       if (maxPosVar < dataVal)
@@ -118,134 +119,134 @@ void SoundInfo::processSample(const AudioSamples& samples)
     }
   }
 
-  if (maxPosVar > allTimesPositiveMaxVolume)
+  if (maxPosVar > m_allTimesPositiveMaxVolume)
   {
-    allTimesPositiveMaxVolume = maxPosVar;
+    m_allTimesPositiveMaxVolume = maxPosVar;
   }
-  if (maxVar > allTimesMaxVolume)
+  if (maxVar > m_allTimesMaxVolume)
   {
-    allTimesMaxVolume = maxVar;
+    m_allTimesMaxVolume = maxVar;
   }
-  if (minVar < allTimesMinVolume)
+  if (minVar < m_allTimesMinVolume)
   {
-    allTimesMinVolume = minVar;
+    m_allTimesMinVolume = minVar;
   }
 
   // Volume sonore - TODO: why only positive volumes?
-  volume = static_cast<float>(maxPosVar) / static_cast<float>(allTimesPositiveMaxVolume);
+  m_volume = static_cast<float>(maxPosVar) / static_cast<float>(m_allTimesPositiveMaxVolume);
 
-  float difaccel = acceleration;
-  acceleration = volume; // accel entre 0 et 1
+  float difaccel = m_acceleration;
+  m_acceleration = m_volume; // accel entre 0 et 1
 
   // Transformations sur la vitesse du son
-  if (speed > 1.0F)
+  if (m_speed > 1.0F)
   {
-    speed = 1.0F;
+    m_speed = 1.0F;
   }
-  if (speed < 0.1F)
+  if (m_speed < 0.1F)
   {
-    acceleration *= (1.0F - static_cast<float>(speed));
+    m_acceleration *= (1.0F - static_cast<float>(m_speed));
   }
-  else if (speed < 0.3F)
+  else if (m_speed < 0.3F)
   {
-    acceleration *= (0.9F - static_cast<float>(speed - 0.1F) / 2.0F);
+    m_acceleration *= (0.9F - static_cast<float>(m_speed - 0.1F) / 2.0F);
   }
   else
   {
-    acceleration *= (0.8F - static_cast<float>(speed - 0.3F) / 4.0F);
+    m_acceleration *= (0.8F - static_cast<float>(m_speed - 0.3F) / 4.0F);
   }
 
   // Adoucissement de l'acceleration
-  acceleration *= accelerationMultiplier;
-  if (acceleration < 0)
+  m_acceleration *= ACCELERATION_MULTIPLIER;
+  if (m_acceleration < 0.0F)
   {
-    acceleration = 0;
+    m_acceleration = 0.0F;
   }
 
   // Mise a jour de la vitesse
-  difaccel = acceleration - difaccel;
-  if (difaccel < 0)
+  difaccel = m_acceleration - difaccel;
+  if (difaccel < 0.0F)
   {
     difaccel = -difaccel;
   }
-  const float prevspeed = speed;
-  speed = (speed + difaccel * 0.5F) / 2;
-  speed *= speedMultiplier;
-  speed = (speed + 3.0F * prevspeed) / 4.0F;
-  if (speed < 0)
+  const float prevspeed = m_speed;
+  m_speed = (m_speed + difaccel * 0.5F) / 2.0F;
+  m_speed *= SPEED_MULTIPLIER;
+  m_speed = (m_speed + 3.0F * prevspeed) / 4.0F;
+  if (m_speed < 0.0F)
   {
-    speed = 0;
+    m_speed = 0.0F;
   }
-  if (speed > 1)
+  if (m_speed > 1.0F)
   {
-    speed = 1;
+    m_speed = 1.0F;
   }
 
   // Temps du goom
-  timeSinceLastGoom++;
-  timeSinceLastBigGoom++;
-  cycle++;
+  m_timeSinceLastGoom++;
+  m_timeSinceLastBigGoom++;
+  m_cycle++;
 
   // Detection des nouveaux gooms
-  if ((speed > bigGoomSpeedLimit / 100.0F) && (acceleration > bigGoomLimit) &&
-      (timeSinceLastBigGoom > bigGoomDuration))
+  if ((m_speed > BIG_GOOM_SPEED_LIMIT / 100.0F) && (m_acceleration > m_bigGoomLimit) &&
+      (m_timeSinceLastBigGoom > BIG_GOOM_DURATION))
   {
-    timeSinceLastBigGoom = 0;
+    m_timeSinceLastBigGoom = 0;
   }
 
-  if (acceleration > goomLimit)
+  if (m_acceleration > m_goomLimit)
   {
-    // TODO: tester && (info->timeSinceLastGoom > 20)) {
-    totalGoom++;
-    timeSinceLastGoom = 0;
-    goomPower = acceleration - goomLimit;
+    // TODO: tester && (info->m_timeSinceLastGoom > 20)) {
+    m_totalGoom++;
+    m_timeSinceLastGoom = 0;
+    m_goomPower = m_acceleration - m_goomLimit;
   }
 
-  if (acceleration > maxAccelSinceLastReset)
+  if (m_acceleration > m_maxAccelSinceLastReset)
   {
-    maxAccelSinceLastReset = acceleration;
+    m_maxAccelSinceLastReset = m_acceleration;
   }
 
-  if (goomLimit > 1)
+  if (m_goomLimit > 1.0F)
   {
-    goomLimit = 1;
+    m_goomLimit = 1.0F;
   }
 
   // Toute les 2 secondes : vérifier si le taux de goom est correct et le modifier sinon..
-  if (cycle % cycleTime == 0)
+  if (m_cycle % CYCLE_TIME == 0)
   {
-    if (speed < 0.01F)
+    if (m_speed < 0.01F)
     {
-      goomLimit *= 0.91;
+      m_goomLimit *= 0.91;
     }
-    if (totalGoom > 4)
+    if (m_totalGoom > 4)
     {
-      goomLimit += 0.02;
+      m_goomLimit += 0.02;
     }
-    if (totalGoom > 7)
+    if (m_totalGoom > 7)
     {
-      goomLimit *= 1.03F;
-      goomLimit += 0.03;
+      m_goomLimit *= 1.03F;
+      m_goomLimit += 0.03F;
     }
-    if (totalGoom > 16)
+    if (m_totalGoom > 16)
     {
-      goomLimit *= 1.05F;
-      goomLimit += 0.04;
+      m_goomLimit *= 1.05F;
+      m_goomLimit += 0.04F;
     }
-    if (totalGoom == 0)
+    if (m_totalGoom == 0)
     {
-      goomLimit = maxAccelSinceLastReset - 0.02F;
+      m_goomLimit = m_maxAccelSinceLastReset - 0.02F;
     }
-    if ((totalGoom == 1) && (goomLimit > 0.02))
+    if ((m_totalGoom == 1) && (m_goomLimit > 0.02F))
     {
-      goomLimit -= 0.01;
+      m_goomLimit -= 0.01F;
     }
-    totalGoom = 0;
-    bigGoomLimit = goomLimit * (1.0F + bigGoomFactor / 500.0F);
-    maxAccelSinceLastReset = 0;
+    m_totalGoom = 0;
+    m_bigGoomLimit = m_goomLimit * (1.0F + BIG_GOOM_FACTOR / 500.0F);
+    m_maxAccelSinceLastReset = 0.0F;
   }
 
-  // bigGoomLimit == goomLimit*9/8+7 ?
+  // m_bigGoomLimit == m_goomLimit*9/8+7 ?
 }
 
 } // namespace goom

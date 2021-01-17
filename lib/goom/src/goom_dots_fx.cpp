@@ -251,26 +251,26 @@ void GoomDotsFx::GoomDotsImpl::ChangeColors()
 void GoomDotsFx::GoomDotsImpl::apply(PixelBuffer& currentBuff)
 {
   uint32_t radius = 3;
-  if ((m_goomInfo->GetSoundInfo().getTimeSinceLastGoom() == 0) || ChangeDotColorsEvent())
+  if ((m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom() == 0) || ChangeDotColorsEvent())
   {
     ChangeColors();
     radius = getRandInRange(5U, 7U);
   }
 
   const float largeFactor = GetLargeSoundFactor(m_goomInfo->GetSoundInfo());
-  const uint32_t speedvarMult80Plus15 = m_goomInfo->GetSoundInfo().getSpeed() * 80 + 15;
-  const uint32_t speedvarMult50Plus1 = m_goomInfo->GetSoundInfo().getSpeed() * 50 + 1;
+  const uint32_t speedvarMult80Plus15 = m_goomInfo->GetSoundInfo().GetSpeed() * 80 + 15;
+  const uint32_t speedvarMult50Plus1 = m_goomInfo->GetSoundInfo().GetSpeed() * 50 + 1;
 
   const float pointWidthDiv2MultLarge = m_pointWidthDiv2 * largeFactor;
   const float pointHeightDiv2MultLarge = m_pointHeightDiv2 * largeFactor;
-  const float pointWidthDiv3MultLarge = (m_pointWidthDiv3 + 5.0f) * largeFactor;
-  const float pointHeightDiv3MultLarge = (m_pointHeightDiv3 + 5.0f) * largeFactor;
+  const float pointWidthDiv3MultLarge = (m_pointWidthDiv3 + 5.0F) * largeFactor;
+  const float pointHeightDiv3MultLarge = (m_pointHeightDiv3 + 5.0F) * largeFactor;
   const float pointWidthMultLarge = m_pointWidth * largeFactor;
   const float pointHeightMultLarge = m_pointHeight * largeFactor;
 
-  const float color1T1 = (m_pointWidth - 6.0f) * largeFactor + 5.0f;
-  const float color1T2 = (m_pointHeight - 6.0f) * largeFactor + 5.0f;
-  const float color4T1 = m_pointHeightDiv3 * largeFactor + 20.0f;
+  const float color1T1 = (m_pointWidth - 6.0F) * largeFactor + 5.0F;
+  const float color1T2 = (m_pointHeight - 6.0F) * largeFactor + 5.0F;
+  const float color4T1 = m_pointHeightDiv3 * largeFactor + 20.0F;
   const float color4T2 = color4T1;
 
   const size_t speedvarMult80Plus15Div15 = speedvarMult80Plus15 / 15;
@@ -358,7 +358,7 @@ auto GoomDotsFx::GoomDotsImpl::GetColor(const Pixel& color0,
 
 auto GoomDotsFx::GoomDotsImpl::GetLargeSoundFactor(const SoundInfo& soundInfo) -> float
 {
-  float largeFactor = soundInfo.getSpeed() / 150.0F + soundInfo.getVolume() / 1.5F;
+  float largeFactor = soundInfo.GetSpeed() / 150.0F + soundInfo.GetVolume() / 1.5F;
   if (largeFactor > 1.5F)
   {
     largeFactor = 1.5F;

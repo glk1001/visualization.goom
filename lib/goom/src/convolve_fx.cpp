@@ -179,9 +179,9 @@ void ConvolveFx::ConvolveImpl::Convolve(const PixelBuffer& currentBuff, PixelBuf
   const auto flashInt = static_cast<uint32_t>(std::round(flash * 256 + 0.0001F));
   constexpr float INCREASE_RATE = 1.3;
   constexpr float DECAY_RATE = 0.955;
-  if (m_goomInfo->GetSoundInfo().getTimeSinceLastGoom() == 0)
+  if (m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom() == 0)
   {
-    m_factor += m_goomInfo->GetSoundInfo().getGoomPower() * INCREASE_RATE;
+    m_factor += m_goomInfo->GetSoundInfo().GetGoomPower() * INCREASE_RATE;
   }
   m_factor *= DECAY_RATE;
 

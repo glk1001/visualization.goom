@@ -440,7 +440,7 @@ void FlyingStarsFx::FlyingStarsImpl::UpdateBuffers(PixelBuffer& currentBuff, Pix
   m_maxStars = getRandInRange(100U, MAX_STARS_LIMIT);
 
   // look for events
-  if (m_stars.empty() || m_goomInfo->GetSoundInfo().getTimeSinceLastGoom() < 1)
+  if (m_stars.empty() || m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom() < 1)
   {
     SoundEventOccurred();
     if (getNRand(20) == 1)
@@ -642,7 +642,7 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
   m_maxStarAge = MIN_STAR_AGE + getNRand(MAX_STAR_EXTRA_AGE);
   m_useSingleBufferOnly = probabilityOfMInN(1, 100);
 
-  float radius = (1.0F + m_goomInfo->GetSoundInfo().getGoomPower()) *
+  float radius = (1.0F + m_goomInfo->GetSoundInfo().GetGoomPower()) *
                  static_cast<float>(getNRand(150) + 50) / 300.0F;
   float gravity = 0.02F;
 
@@ -670,7 +670,7 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
           break;
         }
       }
-      vage = m_maxAge * (1.0F - m_goomInfo->GetSoundInfo().getGoomPower());
+      vage = m_maxAge * (1.0F - m_goomInfo->GetSoundInfo().GetGoomPower());
     }
     break;
     case StarModes::rain:
@@ -697,10 +697,10 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
   // Why 200 ? Because the FX was developed on 320x200.
   const float heightRatio = m_goomInfo->GetScreenInfo().height / 200.0F;
   size_t maxStarsInBomb =
-      heightRatio * (100.0F + (1.0F + m_goomInfo->GetSoundInfo().getGoomPower()) *
+      heightRatio * (100.0F + (1.0F + m_goomInfo->GetSoundInfo().GetGoomPower()) *
                                   static_cast<float>(getNRand(150)));
   radius *= heightRatio;
-  if (m_goomInfo->GetSoundInfo().getTimeSinceLastBigGoom() < 1)
+  if (m_goomInfo->GetSoundInfo().GetTimeSinceLastBigGoom() < 1)
   {
     radius *= 1.5;
     maxStarsInBomb *= 2;
