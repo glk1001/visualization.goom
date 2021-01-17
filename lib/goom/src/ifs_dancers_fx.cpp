@@ -708,7 +708,8 @@ void Fractal::RandomSimis(const size_t start, const size_t num)
     m_components[i].r1 = 0;
     m_components[i].r2 = 0;
 
-    m_components[i].color = m_colorMaps->GetRandomColorMap(colorMapGroup).GetRandomColor();
+    m_components[i].color =
+        m_colorMaps->GetRandomColorMap(colorMapGroup).GetRandomColor(0.0F, 1.0F);
   }
 }
 
@@ -913,7 +914,8 @@ inline auto Colorizer::GetNextMixerMapColor(const float t, const float x, const 
 {
   //  const float angle = y == 0.0F ? m_half_pi : std::atan2(y, x);
   //  const Pixel nextColor = mixerMap1->GetColor((m_pi + angle) / m_two_pi);
-  const Pixel nextColor = ColorMap::ColorMix(m_mixerMap1->GetColor(x), m_mixerMap2->GetColor(y), t);
+  const Pixel nextColor =
+      ColorMap::GetColorMix(m_mixerMap1->GetColor(x), m_mixerMap2->GetColor(y), t);
   if (m_countSinceColorMapChange == 0)
   {
     return nextColor;
@@ -923,8 +925,8 @@ inline auto Colorizer::GetNextMixerMapColor(const float t, const float x, const 
                             static_cast<float>(m_colorMapChangeCompleted);
   m_countSinceColorMapChange--;
   const Pixel prevNextColor =
-      ColorMap::ColorMix(m_prevMixerMap1->GetColor(x), m_prevMixerMap2->GetColor(y), t);
-  return ColorMap::ColorMix(nextColor, prevNextColor, tTransition);
+      ColorMap::GetColorMix(m_prevMixerMap1->GetColor(x), m_prevMixerMap2->GetColor(y), t);
+  return ColorMap::GetColorMix(nextColor, prevNextColor, tTransition);
 }
 
 inline auto Colorizer::GetMixedColor(
@@ -978,11 +980,11 @@ inline auto Colorizer::GetMixedColor(
 
   if (m_colorMode == IfsDancersFx::ColorMode::reverseMixColors)
   {
-    mixColor = ColorMap::ColorMix(mixColor, baseColor, tBaseMix);
+    mixColor = ColorMap::GetColorMix(mixColor, baseColor, tBaseMix);
   }
   else
   {
-    mixColor = ColorMap::ColorMix(baseColor, mixColor, tBaseMix);
+    mixColor = ColorMap::GetColorMix(baseColor, mixColor, tBaseMix);
   }
 
   static GammaCorrection gammaCorrect{4.2, 0.01};

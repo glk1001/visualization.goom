@@ -385,7 +385,7 @@ auto LinesFx::LinesImpl::GetRandomLineColor() -> Pixel
   {
     return GetColor(static_cast<int>(getNRand(6)));
   }
-  return m_colorMaps.GetRandomColorMap().GetRandomColor();
+  return m_colorMaps.GetRandomColorMap().GetRandomColor(0.0F, 1.0F);
 }
 
 auto SimpleMovingAverage(const std::vector<int16_t>& x, const uint32_t winLen) -> std::vector<float>
@@ -463,7 +463,7 @@ void LinesFx::LinesImpl::DrawLines(const std::vector<int16_t>& soundData,
     const float t = std::min(1.0F, maxBrightness);
     static GammaCorrection gammaCorrect{4.2, 0.1};
     const Pixel modColor =
-        gammaCorrect.getCorrection(t, ColorMap::ColorMix(lineColor, randColor, t));
+        gammaCorrect.getCorrection(t, ColorMap::GetColorMix(lineColor, randColor, t));
     return std::make_tuple(x, y, modColor);
   };
 

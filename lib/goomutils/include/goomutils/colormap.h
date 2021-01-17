@@ -9,7 +9,6 @@
 #include <memory>
 #include <utility>
 #include <vector>
-#include <vivid/vivid.h>
 
 namespace goom::utils
 {
@@ -17,43 +16,22 @@ namespace goom::utils
 class ColorMap
 {
 public:
-  ColorMap() noexcept = delete;
-  ~ColorMap() noexcept = default;
+  ColorMap() noexcept = default;
+  virtual ~ColorMap() noexcept = default;
+  ColorMap(const ColorMap&) noexcept = delete;
   auto operator=(const ColorMap&) -> ColorMap& = delete;
   auto operator=(const ColorMap&&) -> ColorMap& = delete;
 
-  [[nodiscard]] auto GetNumStops() const -> size_t { return m_cmap.numStops(); }
-  [[nodiscard]] auto GetMapName() const -> colordata::ColorMapName { return m_mapName; }
-  [[nodiscard]] auto GetColor(const float t) const -> Pixel;
+  [[nodiscard]] virtual auto GetNumStops() const -> size_t = 0;
+  [[nodiscard]] virtual auto GetMapName() const -> colordata::ColorMapName = 0;
+  [[nodiscard]] virtual auto GetColor(float t) const -> Pixel = 0;
 
-  auto GetRandomColor(float t0 = 0.0F, float t1 = 1.0F) const -> Pixel;
-  static auto ColorMix(const Pixel& col1, const Pixel& col2, float t) -> Pixel;
+  [[nodiscard]] virtual auto GetRandomColor(float t0, float t1) const -> Pixel = 0;
+  static auto GetColorMix(const Pixel& col1, const Pixel& col2, float t) -> Pixel;
 
 private:
-  const colordata::ColorMapName m_mapName;
-  const vivid::ColorMap m_cmap;
-  ColorMap(colordata::ColorMapName, const vivid::ColorMap&);
-  ColorMap(const ColorMap&);
-  struct ColorMapAllocator : std::allocator<ColorMap>
-  {
-    template<class U, class... Args>
-    void construct(U* p, Args&&... args)
-    {
-      ::new (static_cast<void*>(p)) U(std::forward<Args>(args)...);
-    }
-    template<class U>
-    struct rebind
-    {
-      using other = ColorMapAllocator;
-    };
-  };
   friend class ColorMaps;
 };
-
-inline auto ColorMap::GetColor(const float t) const -> Pixel
-{
-  return Pixel{vivid::Color{m_cmap.at(t)}.rgb32()};
-}
 
 enum class ColorMapGroup : int
 {
@@ -81,36 +59,35 @@ class ColorMaps
 {
 public:
   ColorMaps() noexcept;
-  virtual ~ColorMaps() noexcept = default;
+  virtual ~ColorMaps() noexcept;
   ColorMaps(const ColorMaps&) = delete;
   ColorMaps(const ColorMaps&&) = delete;
   auto operator=(const ColorMaps&) -> ColorMaps& = delete;
   auto operator=(const ColorMaps&&) -> ColorMaps& = delete;
 
-  [[nodiscard]] auto GetNumColorMaps() const -> size_t;
-  [[nodiscard]] auto GetColorMap(colordata::ColorMapName) const -> const ColorMap&;
   using ColorMapNames = std::vector<colordata::ColorMapName>;
-  [[nodiscard]] auto GetColorMapNames(ColorMapGroup) const -> const ColorMapNames&;
+  [[nodiscard]] auto GetColorMapNames(ColorMapGroup cmg) const -> const ColorMapNames&;
 
   [[nodiscard]] auto GetRandomColorMapName() const -> colordata::ColorMapName;
-  [[nodiscard]] auto GetRandomColorMapName(ColorMapGroup) const -> colordata::ColorMapName;
+  [[nodiscard]] auto GetRandomColorMapName(ColorMapGroup cmg) const -> colordata::ColorMapName;
 
+  [[nodiscard]] auto GetColorMap(colordata::ColorMapName mapName) const -> const ColorMap&;
   [[nodiscard]] auto GetRandomColorMap() const -> const ColorMap&;
-  [[nodiscard]] auto GetRandomColorMap(ColorMapGroup) const -> const ColorMap&;
+  [[nodiscard]] auto GetRandomColorMap(ColorMapGroup cmg) const -> const ColorMap&;
+
+  [[nodiscard]] auto GetColorMapPtr(colordata::ColorMapName mapName, float tRotatePoint = 0) const
+      -> std::shared_ptr<const ColorMap>;
+  [[nodiscard]] auto GetRandomColorMapPtr(bool includeRotatePoints = false) const
+      -> std::shared_ptr<const ColorMap>;
+  [[nodiscard]] auto GetRandomColorMapPtr(ColorMapGroup cmg, bool includeRotatePoints = false) const
+      -> std::shared_ptr<const ColorMap>;
 
   [[nodiscard]] auto GetNumGroups() const -> size_t;
   [[nodiscard]] virtual auto GetRandomGroup() const -> ColorMapGroup;
 
-protected:
-  using GroupColorNames =
-      std::array<const ColorMapNames*, static_cast<size_t>(ColorMapGroup::_size)>;
-  [[nodiscard]] auto GetGroups() const -> const GroupColorNames& { return s_groups; }
-  static void InitGroups();
-
 private:
-  static std::vector<ColorMap, ColorMap::ColorMapAllocator> s_colorMaps;
-  static GroupColorNames s_groups;
-  static void InitColorMaps();
+  class ColorMapsImpl;
+  std::unique_ptr<ColorMapsImpl> m_colorMapImpl;
 };
 
 class WeightedColorMaps : public ColorMaps
@@ -138,4 +115,4 @@ private:
 };
 
 } // namespace goom::utils
-#endif /* LIBS_GOOMUTILS_INCLUDE_GOOMUTILS_COLORMAP_H_ */
+#endif

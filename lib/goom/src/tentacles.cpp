@@ -432,8 +432,8 @@ std::tuple<Pixel, Pixel> Tentacle3D::getMixedColors(const size_t nodeNum,
     // Color the tentacle head
     const float t =
         0.5F * (1.0F + static_cast<float>(nodeNum + 1) / static_cast<float>(getNumHeadNodes() + 1));
-    const Pixel mixedHeadColor = ColorMap::ColorMix(headColor, color, t);
-    const Pixel mixedHeadColorLow = ColorMap::ColorMix(headColorLow, colorLow, t);
+    const Pixel mixedHeadColor = ColorMap::GetColorMix(headColor, color, t);
+    const Pixel mixedHeadColorLow = ColorMap::GetColorMix(headColorLow, colorLow, t);
     return std::make_tuple(mixedHeadColor, mixedHeadColorLow);
   }
 
@@ -444,8 +444,8 @@ std::tuple<Pixel, Pixel> Tentacle3D::getMixedColors(const size_t nodeNum,
   }
 
   const Pixel segmentColor = getColor(nodeNum);
-  const Pixel mixedColor = ColorMap::ColorMix(color, segmentColor, t);
-  const Pixel mixedColorLow = ColorMap::ColorMix(colorLow, segmentColor, t);
+  const Pixel mixedColor = ColorMap::GetColorMix(color, segmentColor, t);
+  const Pixel mixedColorLow = ColorMap::GetColorMix(colorLow, segmentColor, t);
 
   if (std::abs(getHead().x) < 10)
   {

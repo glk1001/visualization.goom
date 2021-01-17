@@ -343,7 +343,7 @@ auto GoomDotsFx::GoomDotsImpl::GetColor(const Pixel& color0,
   Pixel color{};
   if (!m_useGrayScale)
   {
-    color = ColorMap::ColorMix(color0, color1, t);
+    color = ColorMap::GetColorMix(color0, color1, t);
   }
   else
   {

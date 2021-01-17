@@ -30,6 +30,7 @@ namespace goom
 {
 
 using namespace goom::utils;
+using utils::colordata::ColorMapName;
 
 class StarsStats
 {
@@ -194,10 +195,10 @@ struct Star
   float age = 0;
   float vage = 0;
   // TODO: Cereal for these pointers????
-  const ColorMap* dominantColormap{};
-  const ColorMap* dominantLowColormap{};
-  const ColorMap* currentColorMap{};
-  const ColorMap* currentLowColorMap{};
+  std::shared_ptr<const ColorMap> dominantColormap{};
+  std::shared_ptr<const ColorMap> dominantLowColormap{};
+  std::shared_ptr<const ColorMap> currentColorMap{};
+  std::shared_ptr<const ColorMap> currentLowColorMap{};
 
   auto operator==(const Star& s) const -> bool
   {
@@ -283,10 +284,10 @@ private:
   [[nodiscard]] auto GetMixedColors(const Star&, float t, float brightness)
       -> std::tuple<Pixel, Pixel>;
   [[nodiscard]] auto IsStarDead(const Star& s) const -> bool;
-  void AddABomb(const ColorMap& dominantColormap,
-                const ColorMap& dominantLowColormap,
-                const ColorMap& colorMap,
-                const ColorMap& lowColorMap,
+  void AddABomb(std::shared_ptr<const ColorMap> dominantColormap,
+                std::shared_ptr<const ColorMap> dominantLowColormap,
+                std::shared_ptr<const ColorMap> colorMap,
+                std::shared_ptr<const ColorMap> lowColorMap,
                 int32_t mx,
                 int32_t my,
                 float radius,
@@ -604,14 +605,14 @@ inline auto FlyingStarsFx::FlyingStarsImpl::GetMixedColors(const Star& star,
   constexpr float MAX_MIX = 0.8;
   const float tMix = std::lerp(MIN_MIX, MAX_MIX, t);
   const Pixel mixedColor =
-      gammaCorrect.getCorrection(brightness, ColorMap::ColorMix(color, dominantColor, tMix));
+      gammaCorrect.getCorrection(brightness, ColorMap::GetColorMix(color, dominantColor, tMix));
   const Pixel mixedLowColor =
-      getLightenedColor(ColorMap::ColorMix(lowColor, dominantLowColor, tMix), 10.0F);
+      getLightenedColor(ColorMap::GetColorMix(lowColor, dominantLowColor, tMix), 10.0F);
   const Pixel remixedLowColor =
       m_colorMode == ColorMode::similarLowColors
           ? mixedLowColor
           : gammaCorrect.getCorrection(brightness,
-                                       ColorMap::ColorMix(mixedColor, mixedLowColor, 0.4));
+                                       ColorMap::GetColorMix(mixedColor, mixedLowColor, 0.4));
 
   return std::make_tuple(mixedColor, remixedLowColor);
 }
@@ -705,22 +706,35 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
     maxStarsInBomb *= 2;
   }
 
-  const ColorMap& dominantColorMap = m_colorMaps.GetRandomColorMap();
-  const ColorMap& dominantLowColorMap = m_lowColorMaps.GetRandomColorMap();
+  //  std::shared_ptr<const ColorMap> dominantColorMap = m_colorMaps.GetRandomColorMapPtr(true);
+  const ColorMapName dominantColorMapName = m_colorMaps.GetRandomColorMapName();
+  const ColorMapName dominantLowColorMapName = m_lowColorMaps.GetRandomColorMapName();
+  std::shared_ptr<const ColorMap> dominantColorMap =
+      m_colorMaps.GetColorMapPtr(dominantColorMapName, getRandInRange(0.0F, 1.0F));
+  //  std::shared_ptr<const ColorMap> dominantLowColorMap = m_lowColorMaps.GetRandomColorMapPtr(true);
+  std::shared_ptr<const ColorMap> dominantLowColorMap =
+      m_lowColorMaps.GetColorMapPtr(dominantLowColorMapName, getRandInRange(0.0F, 1.0F));
+
+  const ColorMapName colorMapName = m_colorMaps.GetRandomColorMapName();
+  const ColorMapName lowColorMapName = m_lowColorMaps.GetRandomColorMapName();
   for (size_t i = 0; i < maxStarsInBomb; i++)
   {
-    AddABomb(dominantColorMap, dominantLowColorMap, m_colorMaps.GetRandomColorMap(),
-             m_lowColorMaps.GetRandomColorMap(), mx, my, radius, vage, gravity);
+    std::shared_ptr<const ColorMap> colorMap =
+        m_colorMaps.GetColorMapPtr(colorMapName, getRandInRange(0.0F, 1.0F));
+    std::shared_ptr<const ColorMap> lowColorMap =
+        m_lowColorMaps.GetColorMapPtr(lowColorMapName, getRandInRange(0.0F, 1.0F));
+    AddABomb(dominantColorMap, dominantLowColorMap, colorMap, lowColorMap, mx, my, radius, vage,
+             gravity);
   }
 }
 
 /**
  * Cree une nouvelle 'bombe', c'est a dire une particule appartenant a une fusee d'artifice.
  */
-void FlyingStarsFx::FlyingStarsImpl::AddABomb(const ColorMap& dominantColormap,
-                                              const ColorMap& dominantLowColormap,
-                                              const ColorMap& colorMap,
-                                              const ColorMap& lowColorMap,
+void FlyingStarsFx::FlyingStarsImpl::AddABomb(std::shared_ptr<const ColorMap> dominantColormap,
+                                              std::shared_ptr<const ColorMap> dominantLowColormap,
+                                              std::shared_ptr<const ColorMap> colorMap,
+                                              std::shared_ptr<const ColorMap> lowColorMap,
                                               const int32_t mx,
                                               const int32_t my,
                                               const float radius,
@@ -741,10 +755,10 @@ void FlyingStarsFx::FlyingStarsImpl::AddABomb(const ColorMap& dominantColormap,
   m_stars[i].y = my;
 
   // TODO Get colormap based on current mode.
-  m_stars[i].dominantColormap = &dominantColormap;
-  m_stars[i].dominantLowColormap = &dominantLowColormap;
-  m_stars[i].currentColorMap = &colorMap;
-  m_stars[i].currentLowColorMap = &lowColorMap;
+  m_stars[i].dominantColormap = std::move(dominantColormap);
+  m_stars[i].dominantLowColormap = std::move(dominantLowColormap);
+  m_stars[i].currentColorMap = std::move(colorMap);
+  m_stars[i].currentLowColorMap = std::move(lowColorMap);
 
   const float ro = radius * getRandInRange(0.01F, 2.0F);
   const uint32_t theta = GetBombAngle(m_stars[i].x, m_stars[i].y);

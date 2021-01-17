@@ -264,7 +264,7 @@ const GoomStates::WeightedStatesArray GoomStates::g_States{{
     }},
   },
   {
-    .weight = 1,
+    .weight = 1000000000,
     .drawables {{
       { .fx = GoomDrawable::stars,     .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = false } },
   }},
@@ -2369,7 +2369,7 @@ void GoomControl::GoomControlImpl::DrawText(const std::string& str,
     const Pixel col2 = colorMap2.GetColor(y / height);
     //return col2;
     //return col1;
-    return ColorMap::ColorMix(col1, col2, 0.5);
+    return ColorMap::GetColorMix(col1, col2, 0.5);
   };
   const auto getOutlineFontColor = [&](const size_t textIndexOfChar, float x, float y, float width,
                                        float height) { return outlineColor; };
