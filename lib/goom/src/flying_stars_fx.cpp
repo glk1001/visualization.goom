@@ -706,25 +706,34 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
     maxStarsInBomb *= 2;
   }
 
-  //  std::shared_ptr<const ColorMap> dominantColorMap = m_colorMaps.GetRandomColorMapPtr(true);
-  const ColorMapName dominantColorMapName = m_colorMaps.GetRandomColorMapName();
-  const ColorMapName dominantLowColorMapName = m_lowColorMaps.GetRandomColorMapName();
-  std::shared_ptr<const ColorMap> dominantColorMap =
-      m_colorMaps.GetColorMapPtr(dominantColorMapName, getRandInRange(0.0F, 1.0F));
-  //  std::shared_ptr<const ColorMap> dominantLowColorMap = m_lowColorMaps.GetRandomColorMapPtr(true);
-  std::shared_ptr<const ColorMap> dominantLowColorMap =
-      m_lowColorMaps.GetColorMapPtr(dominantLowColorMapName, getRandInRange(0.0F, 1.0F));
+  //const ColorMapName dominantColorMapName = m_colorMaps.GetRandomColorMapName();
+  //const ColorMapName dominantLowColorMapName = m_lowColorMaps.GetRandomColorMapName();
+  //std::shared_ptr<const ColorMap> dominantColorMap =
+  //    m_colorMaps.GetColorMapPtr(dominantColorMapName, getRandInRange(0.0F, 1.0F));
+  //std::shared_ptr<const ColorMap> dominantLowColorMap =
+  //    m_lowColorMaps.GetColorMapPtr(dominantLowColorMapName, getRandInRange(0.0F, 1.0F));
+  std::shared_ptr<const ColorMap> dominantColorMap = m_colorMaps.GetRandomColorMapPtr(true);
+  std::shared_ptr<const ColorMap> dominantLowColorMap = m_lowColorMaps.GetRandomColorMapPtr(true);
 
+  const bool megaColorMode = probabilityOfMInN(1, 10);
   const ColorMapName colorMapName = m_colorMaps.GetRandomColorMapName();
   const ColorMapName lowColorMapName = m_lowColorMaps.GetRandomColorMapName();
   for (size_t i = 0; i < maxStarsInBomb; i++)
   {
-    std::shared_ptr<const ColorMap> colorMap =
-        m_colorMaps.GetColorMapPtr(colorMapName, getRandInRange(0.0F, 1.0F));
-    std::shared_ptr<const ColorMap> lowColorMap =
-        m_lowColorMaps.GetColorMapPtr(lowColorMapName, getRandInRange(0.0F, 1.0F));
-    AddABomb(dominantColorMap, dominantLowColorMap, colorMap, lowColorMap, mx, my, radius, vage,
-             gravity);
+    if (megaColorMode)
+    {
+      AddABomb(dominantColorMap, dominantLowColorMap, m_colorMaps.GetRandomColorMapPtr(true),
+               m_lowColorMaps.GetRandomColorMapPtr(true), mx, my, radius, vage, gravity);
+    }
+    else
+    {
+      std::shared_ptr<const ColorMap> colorMap =
+          m_colorMaps.GetColorMapPtr(colorMapName, getRandInRange(0.0F, 1.0F));
+      std::shared_ptr<const ColorMap> lowColorMap =
+          m_lowColorMaps.GetColorMapPtr(lowColorMapName, getRandInRange(0.0F, 1.0F));
+      AddABomb(dominantColorMap, dominantLowColorMap, colorMap, lowColorMap, mx, my, radius, vage,
+               gravity);
+    }
   }
 }
 
@@ -802,8 +811,8 @@ auto FlyingStarsFx::FlyingStarsImpl::GetBombAngle(const float x,
       break;
     }
     case StarModes::fountain:
-      minAngle = 4 * m_pi / 3;
-      maxAngle = 5 * m_pi / 3;
+      minAngle = 1.0F * m_pi / 3.0F;
+      maxAngle = 5.0F * m_pi / 3.0F;
       break;
     default:
       throw std::logic_error("Unknown StarModes enum.");

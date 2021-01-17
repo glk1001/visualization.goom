@@ -94,7 +94,7 @@ inline auto RotatedColorMap::GetColor(const float t) const -> Pixel
   float tNew = m_tRotatePoint + t;
   if (tNew > 1.0F)
   {
-    tNew = 1.0F - tNew;
+    tNew = 1.0F - (tNew - 1.0F);
   }
   return GetColorMap().GetColor(tNew);
 }
@@ -310,7 +310,7 @@ auto ColorMaps::ColorMapsImpl::GetRandomColorMapPtr(const bool includeRotatePoin
   {
     return std::make_shared<ColorMapWrapper>(GetRandomColorMap());
   }
-  return std::make_shared<RotatedColorMap>(GetRandomColorMap(), getRandInRange(0.0F, 1.0F));
+  return std::make_shared<RotatedColorMap>(GetRandomColorMap(), getRandInRange(0.1F, 0.9F));
 }
 
 auto ColorMaps::ColorMapsImpl::GetRandomColorMapPtr(ColorMapGroup cmg,
@@ -321,7 +321,7 @@ auto ColorMaps::ColorMapsImpl::GetRandomColorMapPtr(ColorMapGroup cmg,
   {
     return std::make_shared<ColorMapWrapper>(GetRandomColorMap(cmg));
   }
-  return std::make_shared<RotatedColorMap>(GetRandomColorMap(cmg), getRandInRange(0.0F, 1.0F));
+  return std::make_shared<RotatedColorMap>(GetRandomColorMap(cmg), getRandInRange(0.1F, 0.9F));
 }
 
 auto ColorMaps::ColorMapsImpl::GetColorMapNames(const ColorMapGroup groupName)

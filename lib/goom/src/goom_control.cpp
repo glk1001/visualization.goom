@@ -264,7 +264,7 @@ const GoomStates::WeightedStatesArray GoomStates::g_States{{
     }},
   },
   {
-    .weight = 1000000000,
+    .weight = 1,
     .drawables {{
       { .fx = GoomDrawable::stars,     .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = false } },
   }},
