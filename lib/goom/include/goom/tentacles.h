@@ -1,5 +1,5 @@
-#ifndef LIBS_GOOM_INCLUDE_GOOM_TENTACLES_H_
-#define LIBS_GOOM_INCLUDE_GOOM_TENTACLES_H_
+#ifndef VISUALIZATION_GOOM_TENTACLES_H
+#define VISUALIZATION_GOOM_TENTACLES_H
 
 #include "goom_graphic.h"
 #include "goomutils/colormap.h"
@@ -22,121 +22,124 @@ class TentacleColorizer
 {
 public:
   virtual ~TentacleColorizer() noexcept = default;
-  [[nodiscard]] virtual utils::ColorMapGroup getColorMapGroup() const = 0;
-  virtual void setColorMapGroup(utils::ColorMapGroup) = 0;
-  virtual void changeColorMap() = 0;
-  [[nodiscard]] virtual Pixel getColor(size_t nodeNum) const = 0;
+  [[nodiscard]] virtual auto GetColorMapGroup() const -> utils::ColorMapGroup = 0;
+  virtual void SetColorMapGroup(utils::ColorMapGroup) = 0;
+  virtual void ChangeColorMap() = 0;
+  [[nodiscard]] virtual auto GetColor(size_t nodeNum) const -> Pixel = 0;
 };
 
 class Tentacle2D
 {
 private:
-  using XandYVectors = std::tuple<std::vector<double>&, std::vector<double>&>;
+  using XAndYVectors = std::tuple<std::vector<double>&, std::vector<double>&>;
 
 public:
-  static constexpr size_t minNumNodes = 10;
+  static constexpr size_t MIN_NUM_NODES = 10;
 
   Tentacle2D() noexcept;
-  explicit Tentacle2D(size_t ID,
-                      size_t numNodes,
-                      double xmin,
-                      double xmax,
-                      double ymin,
-                      double ymax,
-                      double basePrevYWeight,
-                      double baseCurrentYWeight) noexcept;
+  ~Tentacle2D() noexcept = default;
+  Tentacle2D(size_t id,
+             size_t numNodes,
+             double xmin,
+             double xmax,
+             double ymin,
+             double ymax,
+             double basePrevYWeight,
+             double baseCurrentYWeight) noexcept;
   Tentacle2D(const Tentacle2D&) = delete;
-  Tentacle2D& operator=(const Tentacle2D&) = delete;
+  Tentacle2D(const Tentacle2D&&) = delete;
+  auto operator=(const Tentacle2D&) -> Tentacle2D& = delete;
+  auto operator=(const Tentacle2D&&) -> Tentacle2D& = delete;
 
-  [[nodiscard]] size_t getID() const;
+  [[nodiscard]] auto GetID() const -> size_t;
 
-  void startIterating();
-  void finishIterating();
+  void StartIterating();
+  void FinishIterating();
 
-  [[nodiscard]] size_t getIterNum() const;
-  void iterate();
-  void iterateNTimes(size_t n);
+  [[nodiscard]] auto GetIterNum() const -> size_t;
+  void Iterate();
+  void IterateNTimes(size_t n);
 
-  [[nodiscard]] const XandYVectors& getXandYVectors() const;
-  [[nodiscard]] const XandYVectors& getDampedXandYVectors() const;
+  [[nodiscard]] auto GetXAndYVectors() const -> const XAndYVectors&;
+  [[nodiscard]] auto GetDampedXAndYVectors() const -> const XAndYVectors&;
 
-  [[nodiscard]] double getLength() const;
+  [[nodiscard]] auto GetLength() const -> double;
 
-  [[nodiscard]] double getXMin() const;
-  [[nodiscard]] double getXMax() const;
-  void setXDimensions(double x0, double y0);
+  [[nodiscard]] auto GetXMin() const -> double;
+  [[nodiscard]] auto GetXMax() const -> double;
+  void SetXDimensions(double x0, double y0);
 
-  [[nodiscard]] double getYMin() const;
-  [[nodiscard]] double getYMax() const;
+  [[nodiscard]] auto GetYMin() const -> double;
+  [[nodiscard]] auto GetYMax() const -> double;
 
-  [[nodiscard]] size_t getNumNodes() const;
+  [[nodiscard]] auto GetNumNodes() const -> size_t;
 
-  [[nodiscard]] double getPrevYWeight() const;
-  [[nodiscard]] double getCurrentYWeight() const;
+  [[nodiscard]] auto GetPrevYWeight() const -> double;
+  [[nodiscard]] auto GetCurrentYWeight() const -> double;
 
-  [[nodiscard]] double getIterZeroYVal() const;
-  void setIterZeroYVal(double val);
+  [[nodiscard]] auto GetIterZeroYVal() const -> double;
+  void SetIterZeroYVal(double val);
 
-  [[nodiscard]] double getIterZeroLerpFactor() const;
-  void setIterZeroLerpFactor(double val);
+  [[nodiscard]] auto GetIterZeroLerpFactor() const -> double;
+  void SetIterZeroLerpFactor(double val);
 
-  [[nodiscard]] bool getDoDamping() const;
-  void setDoDamping(bool val);
+  [[nodiscard]] auto GetDoDamping() const -> bool;
+  void SetDoDamping(bool val);
 
-  bool operator==(const Tentacle2D&) const;
+  auto operator==(const Tentacle2D&) const -> bool;
 
   template<class Archive>
   void serialize(Archive&);
 
 private:
-  size_t ID = 0;
-  size_t numNodes = 0;
-  double xmin = 0;
-  double xmax = 0;
-  double ymin = 0;
-  double ymax = 0;
-  double basePrevYWeight = 0.770;
-  double baseCurrentYWeight = 0.230;
-  double iterZeroYVal = 0.9;
-  double iterZeroLerpFactor = 0.8;
-  size_t iterNum = 0;
-  bool startedIterating = false;
-  std::vector<double> xvec{};
-  std::vector<double> yvec{};
-  XandYVectors vecs{std::make_tuple(std::ref(xvec), std::ref(yvec))};
-  std::vector<double> dampedYVec{};
-  std::vector<double> dampingCache{};
-  XandYVectors dampedVecs{std::make_tuple(std::ref(xvec), std::ref(dampedYVec))};
-  std::unique_ptr<utils::DampingFunction> dampingFunc{};
-  bool doDamping = true;
+  size_t m_id = 0;
+  size_t m_numNodes = 0;
+  double m_xmin = 0.0;
+  double m_xmax = 0.0;
+  double m_ymin = 0.0;
+  double m_ymax = 0.0;
+  double m_basePrevYWeight = 0.770;
+  double m_baseCurrentYWeight = 0.230;
+  double m_iterZeroYVal = 0.9;
+  double m_iterZeroLerpFactor = 0.8;
+  size_t m_iterNum = 0;
+  bool m_startedIterating = false;
+  std::vector<double> m_xvec{};
+  std::vector<double> m_yvec{};
+  XAndYVectors m_vecs{std::make_tuple(std::ref(m_xvec), std::ref(m_yvec))};
+  std::vector<double> m_dampedYVec{};
+  std::vector<double> m_dampingCache{};
+  XAndYVectors m_dampedVecs{std::make_tuple(std::ref(m_xvec), std::ref(m_dampedYVec))};
+  std::unique_ptr<utils::DampingFunction> m_dampingFunc{};
+  bool m_doDamping = true;
 
-  float getFirstY();
-  float getNextY(size_t nodeNum);
-  double getDamping(double x);
-  [[nodiscard]] float getDampedVal(size_t nodeNum, float val) const;
-  void updateDampedVals(const std::vector<double>& yvals);
-  [[nodiscard]] double damp(size_t nodeNum) const;
-  void validateSettings() const;
-  void validateXDimensions() const;
-  void validateYDimensions() const;
-  void validateNumNodes() const;
-  void validatePrevYWeight() const;
-  void validateCurrentYWeight() const;
+  auto GetFirstY() -> float;
+  auto GetNextY(size_t nodeNum) -> float;
+  auto GetDamping(double x) -> double;
+  [[nodiscard]] auto GetDampedVal(size_t nodeNum, float val) const -> float;
+  void UpdateDampedVals(const std::vector<double>& yvals);
+  [[nodiscard]] auto Damp(size_t nodeNum) const -> double;
+  void ValidateSettings() const;
+  void ValidateXDimensions() const;
+  void ValidateYDimensions() const;
+  void ValidateNumNodes() const;
+  void ValidatePrevYWeight() const;
+  void ValidateCurrentYWeight() const;
 
   using DampingFuncPtr = std::unique_ptr<utils::DampingFunction>;
-  static DampingFuncPtr createDampingFunc(double prevYWeight, double xmin, double xmax);
-  static DampingFuncPtr createExpDampingFunc(double xmin, double xmax);
-  static DampingFuncPtr createLinearDampingFunc(double xmin, double xmax);
+  static auto CreateDampingFunc(double prevYWeight, double xmin, double xmax) -> DampingFuncPtr;
+  static auto CreateExpDampingFunc(double xmin, double xmax) -> DampingFuncPtr;
+  static auto CreateLinearDampingFunc(double xmin, double xmax) -> DampingFuncPtr;
 };
 
 struct V3d
 {
-  float x = 0;
-  float y = 0;
-  float z = 0;
+  float x = 0.0;
+  float y = 0.0;
+  float z = 0.0;
   bool ignore = false;
 
-  bool operator==(const V3d&) const = default;
+  auto operator==(const V3d&) const -> bool = default;
 
   template<class Archive>
   void serialize(Archive& ar)
@@ -149,63 +152,64 @@ class Tentacle3D
 {
 public:
   Tentacle3D() noexcept = default;
-  explicit Tentacle3D(std::unique_ptr<Tentacle2D>,
-                      const Pixel& headColor,
-                      const Pixel& headColorLow,
-                      const V3d& head,
-                      size_t numHeadNodes) noexcept;
-  explicit Tentacle3D(std::unique_ptr<Tentacle2D>,
-                      std::shared_ptr<const TentacleColorizer>,
-                      const Pixel& headColor,
-                      const Pixel& headColorLow,
-                      const V3d& head,
-                      size_t numHeadNodes) noexcept;
+  ~Tentacle3D() noexcept = default;
+  Tentacle3D(std::unique_ptr<Tentacle2D>,
+             const Pixel& headColor,
+             const Pixel& headColorLow,
+             const V3d& head,
+             size_t numHeadNodes) noexcept;
+  Tentacle3D(std::unique_ptr<Tentacle2D>,
+             std::shared_ptr<const TentacleColorizer>,
+             const Pixel& headColor,
+             const Pixel& headColorLow,
+             const V3d& head,
+             size_t numHeadNodes) noexcept;
   Tentacle3D(Tentacle3D&&) noexcept;
   Tentacle3D(const Tentacle3D&) = delete;
-  Tentacle3D& operator=(const Tentacle3D&) = delete;
+  auto operator=(const Tentacle3D&) -> Tentacle3D& = delete;
+  auto operator=(const Tentacle3D&&) -> Tentacle3D& = delete;
 
-  Tentacle2D& get2DTentacle() { return *tentacle; }
-  [[nodiscard]] const Tentacle2D& get2DTentacle() const { return *tentacle; }
+  auto Get2DTentacle() -> Tentacle2D& { return *m_tentacle; }
+  [[nodiscard]] auto Get2DTentacle() const -> const Tentacle2D& { return *m_tentacle; }
 
-  [[nodiscard]] size_t getID() const { return tentacle->getID(); }
+  [[nodiscard]] auto GetId() const -> size_t { return m_tentacle->GetID(); }
 
-  [[nodiscard]] Pixel getColor(size_t nodeNum) const;
-  [[nodiscard]] std::tuple<Pixel, Pixel> getMixedColors(size_t nodeNum,
-                                                        const Pixel& color,
-                                                        const Pixel& colorLow) const;
-  [[nodiscard]] std::tuple<Pixel, Pixel> getMixedColors(size_t nodeNum,
-                                                        const Pixel& color,
-                                                        const Pixel& colorLow,
-                                                        float brightness) const;
+  [[nodiscard]] auto GetColor(size_t nodeNum) const -> Pixel;
+  [[nodiscard]] auto GetMixedColors(size_t nodeNum, const Pixel& color, const Pixel& colorLow) const
+      -> std::tuple<Pixel, Pixel>;
+  [[nodiscard]] auto GetMixedColors(size_t nodeNum,
+                                    const Pixel& color,
+                                    const Pixel& colorLow,
+                                    float brightness) const -> std::tuple<Pixel, Pixel>;
 
-  [[nodiscard]] bool getReverseColorMix() const { return reverseColorMix; }
-  void setReverseColorMix(const bool val) { reverseColorMix = val; }
+  [[nodiscard]] auto GetReverseColorMix() const -> bool { return m_reverseColorMix; }
+  void SetReverseColorMix(const bool val) { m_reverseColorMix = val; }
 
-  [[nodiscard]] bool getAllowOverexposed() const { return allowOverexposed; }
-  void setAllowOverexposed(const bool val) { allowOverexposed = val; }
+  [[nodiscard]] auto GetAllowOverexposed() const -> bool { return m_allowOverexposed; }
+  void SetAllowOverexposed(const bool val) { m_allowOverexposed = val; }
 
-  [[nodiscard]] const V3d& getHead() const { return head; }
-  void setHead(const V3d& val) { head = val; }
+  [[nodiscard]] auto GetHead() const -> const V3d& { return m_head; }
+  void SetHead(const V3d& val) { m_head = val; }
 
-  [[nodiscard]] size_t getNumHeadNodes() const { return numHeadNodes; }
-  void setNumHeadNodes(const size_t val) { numHeadNodes = val; }
+  [[nodiscard]] auto GetNumHeadNodes() const -> size_t { return m_numHeadNodes; }
+  void SetNumHeadNodes(const size_t val) { m_numHeadNodes = val; }
 
-  [[nodiscard]] std::vector<V3d> getVertices() const;
+  [[nodiscard]] auto GetVertices() const -> std::vector<V3d>;
 
-  bool operator==(const Tentacle3D&) const;
+  auto operator==(const Tentacle3D&) const -> bool;
 
   template<class Archive>
   void serialize(Archive&);
 
 private:
-  std::unique_ptr<Tentacle2D> tentacle{};
-  std::shared_ptr<const TentacleColorizer> colorizer{};
-  Pixel headColor{};
-  Pixel headColorLow{};
-  V3d head{};
-  size_t numHeadNodes{};
-  bool reverseColorMix = false;
-  bool allowOverexposed = true;
+  std::unique_ptr<Tentacle2D> m_tentacle{};
+  std::shared_ptr<const TentacleColorizer> m_colorizer{};
+  Pixel m_headColor{};
+  Pixel m_headColorLow{};
+  V3d m_head{};
+  size_t m_numHeadNodes{};
+  bool m_reverseColorMix = false;
+  bool m_allowOverexposed = true;
 };
 
 class Tentacles3D
@@ -214,156 +218,157 @@ private:
   class Iter
   {
   public:
-    Iter(Tentacles3D* const tents, const size_t p) : pos(p), tentacles(tents) {}
-    bool operator!=(const Iter& other) const { return pos != other.pos; }
-    Tentacle3D& operator*() const;
-    const Iter& operator++()
+    Iter(Tentacles3D* const tents, const size_t p) : m_pos(p), m_tentacles(tents) {}
+    auto operator!=(const Iter& other) const -> bool { return m_pos != other.m_pos; }
+    auto operator*() const -> Tentacle3D&;
+    auto operator++() -> const Iter&
     {
-      ++pos;
+      ++m_pos;
       return *this;
     }
 
   private:
-    size_t pos;
-    Tentacles3D* tentacles;
+    size_t m_pos;
+    Tentacles3D* m_tentacles;
   };
 
 public:
   Tentacles3D() noexcept = default;
 
-  void addTentacle(Tentacle3D&&);
+  void AddTentacle(Tentacle3D&& t);
 
   Iter begin() { return Iter(this, 0); }
-  Iter end() { return Iter(this, tentacles.size()); }
+  Iter end() { return Iter(this, m_tentacles.size()); }
 
-  const Tentacle3D& operator[](const size_t i) const { return tentacles.at(i); }
-  Tentacle3D& operator[](const size_t i) { return tentacles.at(i); }
+  auto operator[](const size_t i) const -> const Tentacle3D& { return m_tentacles.at(i); }
+  auto operator[](const size_t i) -> Tentacle3D& { return m_tentacles.at(i); }
 
-  void setAllowOverexposed(bool val);
+  void SetAllowOverexposed(bool val);
 
-  bool operator==(const Tentacles3D&) const;
+  auto operator==(const Tentacles3D&) const -> bool;
 
   template<class Archive>
   void serialize(Archive&);
 
 private:
-  std::vector<Tentacle3D> tentacles{};
+  std::vector<Tentacle3D> m_tentacles{};
 };
 
-inline size_t Tentacle2D::getID() const
+inline auto Tentacle2D::GetID() const -> size_t
 {
-  return ID;
+  return m_id;
 }
 
-inline double Tentacle2D::getIterZeroYVal() const
+inline auto Tentacle2D::GetIterZeroYVal() const -> double
 {
-  return iterZeroYVal;
+  return m_iterZeroYVal;
 }
-inline double Tentacle2D::getIterZeroLerpFactor() const
+inline auto Tentacle2D::GetIterZeroLerpFactor() const -> double
 {
-  return iterZeroLerpFactor;
-}
-
-inline void Tentacle2D::setIterZeroYVal(const double val)
-{
-  iterZeroYVal = val;
+  return m_iterZeroLerpFactor;
 }
 
-inline void Tentacle2D::setIterZeroLerpFactor(const double val)
+inline void Tentacle2D::SetIterZeroYVal(const double val)
 {
-  iterZeroLerpFactor = val;
+  m_iterZeroYVal = val;
 }
 
-inline size_t Tentacle2D::getNumNodes() const
+inline void Tentacle2D::SetIterZeroLerpFactor(const double val)
 {
-  return numNodes;
+  m_iterZeroLerpFactor = val;
 }
 
-inline double Tentacle2D::getPrevYWeight() const
+inline auto Tentacle2D::GetNumNodes() const -> size_t
 {
-  return basePrevYWeight;
+  return m_numNodes;
 }
 
-inline double Tentacle2D::getCurrentYWeight() const
+inline auto Tentacle2D::GetPrevYWeight() const -> double
 {
-  return baseCurrentYWeight;
+  return m_basePrevYWeight;
 }
 
-inline size_t Tentacle2D::getIterNum() const
+inline auto Tentacle2D::GetCurrentYWeight() const -> double
 {
-  return iterNum;
+  return m_baseCurrentYWeight;
 }
 
-inline double Tentacle2D::getLength() const
+inline auto Tentacle2D::GetIterNum() const -> size_t
 {
-  return xmax - xmin;
+  return m_iterNum;
 }
 
-inline double Tentacle2D::getXMin() const
+inline auto Tentacle2D::GetLength() const -> double
 {
-  return xmin;
-}
-inline double Tentacle2D::getXMax() const
-{
-  return xmax;
+  return m_xmax - m_xmin;
 }
 
-inline double Tentacle2D::getYMin() const
+inline auto Tentacle2D::GetXMin() const -> double
 {
-  return ymin;
+  return m_xmin;
 }
-inline double Tentacle2D::getYMax() const
+inline auto Tentacle2D::GetXMax() const -> double
 {
-  return ymax;
-}
-
-inline bool Tentacle2D::getDoDamping() const
-{
-  return doDamping;
+  return m_xmax;
 }
 
-inline void Tentacle2D::setDoDamping(const bool val)
+inline auto Tentacle2D::GetYMin() const -> double
 {
-  doDamping = val;
+  return m_ymin;
+}
+inline auto Tentacle2D::GetYMax() const -> double
+{
+  return m_ymax;
 }
 
-inline double Tentacle2D::getDamping(const double x)
+inline auto Tentacle2D::GetDoDamping() const -> bool
 {
-  return (*dampingFunc)(x);
+  return m_doDamping;
 }
 
-inline void Tentacle2D::finishIterating()
+inline void Tentacle2D::SetDoDamping(const bool val)
 {
-  startedIterating = false;
+  m_doDamping = val;
+}
+
+inline auto Tentacle2D::GetDamping(const double x) -> double
+{
+  return (*m_dampingFunc)(x);
+}
+
+inline void Tentacle2D::FinishIterating()
+{
+  m_startedIterating = false;
 }
 
 template<class Archive>
 void Tentacle2D::serialize(Archive& ar)
 {
-  ar(CEREAL_NVP(ID), CEREAL_NVP(numNodes), CEREAL_NVP(xmin), CEREAL_NVP(xmax), CEREAL_NVP(ymin),
-     CEREAL_NVP(ymax), CEREAL_NVP(basePrevYWeight), CEREAL_NVP(baseCurrentYWeight),
-     CEREAL_NVP(iterZeroYVal), CEREAL_NVP(iterZeroLerpFactor), CEREAL_NVP(iterNum),
-     CEREAL_NVP(startedIterating), CEREAL_NVP(xvec), CEREAL_NVP(yvec), CEREAL_NVP(dampedYVec),
-     CEREAL_NVP(dampingCache), CEREAL_NVP(dampingFunc), CEREAL_NVP(doDamping));
+  ar(CEREAL_NVP(m_id), CEREAL_NVP(m_numNodes), CEREAL_NVP(m_xmin), CEREAL_NVP(m_xmax),
+     CEREAL_NVP(m_ymin), CEREAL_NVP(m_ymax), CEREAL_NVP(m_basePrevYWeight),
+     CEREAL_NVP(m_baseCurrentYWeight), CEREAL_NVP(m_iterZeroYVal), CEREAL_NVP(m_iterZeroLerpFactor),
+     CEREAL_NVP(m_iterNum), CEREAL_NVP(m_startedIterating), CEREAL_NVP(m_xvec), CEREAL_NVP(m_yvec),
+     CEREAL_NVP(m_dampedYVec), CEREAL_NVP(m_dampingCache), CEREAL_NVP(m_dampingFunc),
+     CEREAL_NVP(m_doDamping));
 }
 
-inline Tentacle3D& Tentacles3D::Iter::operator*() const
+inline auto Tentacles3D::Iter::operator*() const -> Tentacle3D&
 {
-  return (*tentacles)[pos];
+  return (*m_tentacles)[m_pos];
 }
 
 template<class Archive>
 void Tentacle3D::serialize(Archive& ar)
 {
-  ar(CEREAL_NVP(tentacle), CEREAL_NVP(colorizer), CEREAL_NVP(headColor), CEREAL_NVP(headColorLow),
-     CEREAL_NVP(head), CEREAL_NVP(numHeadNodes), CEREAL_NVP(reverseColorMix),
-     CEREAL_NVP(allowOverexposed));
+  ar(CEREAL_NVP(m_tentacle), CEREAL_NVP(m_colorizer), CEREAL_NVP(m_headColor),
+     CEREAL_NVP(m_headColorLow), CEREAL_NVP(m_head), CEREAL_NVP(m_numHeadNodes),
+     CEREAL_NVP(m_reverseColorMix), CEREAL_NVP(m_allowOverexposed));
 }
 
 template<class Archive>
 void Tentacles3D::serialize(Archive& ar)
 {
-  ar(CEREAL_NVP(tentacles));
+  ar(CEREAL_NVP(m_tentacles));
 }
 
 } // namespace goom

@@ -1,5 +1,5 @@
-#ifndef LIBS_GOOM_INCLUDE_GOOM_TENTACLE_DRIVER_H_
-#define LIBS_GOOM_INCLUDE_GOOM_TENTACLE_DRIVER_H_
+#ifndef VISUALIZATION_GOOM_TENTACLE_DRIVER_H
+#define VISUALIZATION_GOOM_TENTACLE_DRIVER_H
 
 #include "goom_draw.h"
 #include "goom_graphic.h"
@@ -21,28 +21,30 @@ namespace goom
 class IterTimer
 {
 public:
-  explicit IterTimer(const size_t startCnt) : startCount{startCnt} {}
+  explicit IterTimer(const size_t startCnt) : m_startCount{startCnt} {}
 
-  void start() { count = startCount; }
-  void next()
+  void Start() { m_count = m_startCount; }
+  void Next()
   {
-    if (count > 0)
-      count--;
+    if (m_count > 0)
+    {
+      m_count--;
+    }
   }
-  [[nodiscard]] bool atStart() const { return count == startCount; }
-  [[nodiscard]] size_t getCurrentCount() const { return count; }
+  [[nodiscard]] auto AtStart() const -> bool { return m_count == m_startCount; }
+  [[nodiscard]] auto GetCurrentCount() const -> size_t { return m_count; }
 
 private:
-  const size_t startCount;
-  size_t count = 0;
+  const size_t m_startCount;
+  size_t m_count = 0;
 };
 
-class TentacleLayout
+class ITentacleLayout
 {
 public:
-  virtual ~TentacleLayout() noexcept = default;
-  [[nodiscard]] virtual size_t getNumPoints() const = 0;
-  [[nodiscard]] virtual const std::vector<V3d>& getPoints() const = 0;
+  virtual ~ITentacleLayout() noexcept = default;
+  [[nodiscard]] virtual auto GetNumPoints() const -> size_t = 0;
+  [[nodiscard]] virtual auto GetPoints() const -> const std::vector<V3d>& = 0;
 };
 
 class TentacleDriver
@@ -56,24 +58,27 @@ public:
   };
 
   TentacleDriver() noexcept;
-  explicit TentacleDriver(uint32_t screenWidth, uint32_t screenHeight) noexcept;
+  ~TentacleDriver() noexcept = default;
+  TentacleDriver(uint32_t screenWidth, uint32_t screenHeight) noexcept;
   TentacleDriver(const TentacleDriver&) = delete;
-  TentacleDriver& operator=(const TentacleDriver&) = delete;
+  TentacleDriver(const TentacleDriver&&) = delete;
+  auto operator=(const TentacleDriver&) -> TentacleDriver& = delete;
+  auto operator=(const TentacleDriver&&) -> TentacleDriver& = delete;
 
-  void init(const TentacleLayout&);
-  [[nodiscard]] size_t getNumTentacles() const;
+  void Init(const ITentacleLayout& l);
+  [[nodiscard]] auto GetNumTentacles() const -> size_t;
 
-  [[nodiscard]] const FXBuffSettings& getBuffSettings() const;
-  void setBuffSettings(const FXBuffSettings&);
+  [[nodiscard]] auto GetBuffSettings() const -> const FXBuffSettings&;
+  void SetBuffSettings(const FXBuffSettings& settings);
 
-  [[nodiscard]] ColorModes getColorMode() const;
-  void setColorMode(ColorModes);
+  [[nodiscard]] auto GetColorMode() const -> ColorModes;
+  void SetColorMode(ColorModes m);
 
-  void startIterating();
-  [[maybe_unused]] void stopIterating();
+  void StartIterating();
+  [[maybe_unused]] void StopIterating();
 
-  void freshStart();
-  void update(float angle,
+  void FreshStart();
+  void Update(float angle,
               float distance,
               float distance2,
               const Pixel& color,
@@ -81,61 +86,62 @@ public:
               PixelBuffer& currentBuff,
               PixelBuffer& nextBuff);
 
-  void setReverseColorMix(bool val);
-  void multiplyIterZeroYValWaveFreq(float val);
+  void SetReverseColorMix(bool val);
+  void MultiplyIterZeroYValWaveFreq(float val);
 
-  bool operator==(const TentacleDriver&) const;
+  auto operator==(const TentacleDriver& d) const -> bool;
 
   template<class Archive>
-  void serialize(Archive&);
+  void serialize(Archive& ar);
 
 private:
-  ColorModes colorMode = ColorModes::oneGroupForAll;
+  ColorModes m_colorMode = ColorModes::oneGroupForAll;
   struct IterationParams
   {
     size_t numNodes = 200;
-    float prevYWeight = 0.770;
-    float iterZeroYValWaveFreq = 1.0;
+    float prevYWeight = 0.770F;
+    float iterZeroYValWaveFreq = 1.0F;
     utils::SineWaveMultiplier iterZeroYValWave{};
-    float length = 50;
-    bool operator==(const IterationParams&) const;
+    float length = 50.0F;
+    auto operator==(const IterationParams&) const -> bool;
     template<class Archive>
-    void serialize(Archive&);
+    void serialize(Archive& ar);
   };
   struct IterParamsGroup
   {
     IterationParams first{};
     IterationParams last{};
-    bool operator==(const IterParamsGroup&) const;
-    [[nodiscard]] IterationParams getNext(float t) const;
+    auto operator==(const IterParamsGroup&) const -> bool;
+    [[nodiscard]] auto GetNext(float t) const -> IterationParams;
     template<class Archive>
-    void serialize(Archive&);
+    void serialize(Archive& ar);
   };
-  std::vector<IterParamsGroup> iterParamsGroups{};
+  std::vector<IterParamsGroup> m_iterParamsGroups{};
 
-  void updateTentaclesLayout(const TentacleLayout&);
+  void UpdateTentaclesLayout(const ITentacleLayout& l);
 
-  uint32_t screenWidth = 0;
-  uint32_t screenHeight = 0;
-  GoomDraw draw{};
-  FXBuffSettings buffSettings{};
-  const utils::ColorMaps colorMaps{};
-  std::vector<std::shared_ptr<TentacleColorizer>> colorizers{};
+  uint32_t m_screenWidth = 0;
+  uint32_t m_screenHeight = 0;
+  GoomDraw m_draw{};
+  FXBuffSettings m_buffSettings{};
+  const utils::ColorMaps m_colorMaps{};
+  std::vector<std::shared_ptr<TentacleColorizer>> m_colorizers{};
 
-  size_t updateNum = 0;
-  Tentacles3D tentacles{};
-  static constexpr float iterZeroYVal = 10.0;
-  size_t numTentacles = 0;
-  std::vector<IterationParams> tentacleParams{};
-  static const size_t changeCurrentColorMapGroupEveryNUpdates;
-  static const size_t changeTentacleColorMapEveryNUpdates;
-  [[nodiscard]] std::vector<utils::ColorMapGroup> getNextColorMapGroups() const;
+  size_t m_updateNum = 0;
+  Tentacles3D m_tentacles{};
+  static constexpr float ITER_ZERO_Y_VAL = 10.0;
+  size_t m_numTentacles = 0;
+  std::vector<IterationParams> m_tentacleParams{};
+  static const size_t g_ChangeCurrentColorMapGroupEveryNUpdates;
+  static const size_t g_ChangeTentacleColorMapEveryNUpdates;
+  [[nodiscard]] auto GetNextColorMapGroups() const -> std::vector<utils::ColorMapGroup>;
 
-  std::unique_ptr<Tentacle2D> createNewTentacle2D(size_t ID, const IterationParams&);
-  const std::vector<IterTimer*> iterTimers{};
-  void updateIterTimers();
-  void checkForTimerEvents();
-  void plot3D(const Tentacle3D& tentacle,
+  static auto CreateNewTentacle2D(size_t id, const IterationParams& p)
+      -> std::unique_ptr<Tentacle2D>;
+  const std::vector<IterTimer*> m_iterTimers{};
+  void UpdateIterTimers();
+  void CheckForTimerEvents();
+  void Plot3D(const Tentacle3D& tentacle,
               const Pixel& dominantColor,
               const Pixel& dominantColorLow,
               float angle,
@@ -143,25 +149,29 @@ private:
               float distance2,
               PixelBuffer& currentBuff,
               PixelBuffer& nextBuff);
-  std::vector<v2d> projectV3dOntoV2d(const std::vector<V3d>& v3, float distance) const;
-  static void rotateV3dAboutYAxis(float sina, float cosa, const V3d& vsrc, V3d& vdest);
-  static void translateV3d(const V3d& vadd, V3d& vinOut);
+  [[nodiscard]] auto ProjectV3DOntoV2D(const std::vector<V3d>& v3, float distance) const
+      -> std::vector<v2d>;
+  static void RotateV3DAboutYAxis(float sinAngle, float cosAngle, const V3d& src, V3d& dest);
+  static void TranslateV3D(const V3d& add, V3d& inOut);
 };
 
 class TentacleColorMapColorizer : public TentacleColorizer
 {
 public:
   TentacleColorMapColorizer() noexcept = default;
+  ~TentacleColorMapColorizer() noexcept override = default;
   explicit TentacleColorMapColorizer(utils::ColorMapGroup, size_t numNodes) noexcept;
   TentacleColorMapColorizer(const TentacleColorMapColorizer&) = delete;
-  TentacleColorMapColorizer& operator=(const TentacleColorMapColorizer&) = delete;
+  TentacleColorMapColorizer(const TentacleColorMapColorizer&&) = delete;
+  auto operator=(const TentacleColorMapColorizer&) -> TentacleColorMapColorizer& = delete;
+  auto operator=(const TentacleColorMapColorizer&&) -> TentacleColorMapColorizer& = delete;
 
-  utils::ColorMapGroup getColorMapGroup() const override;
-  void setColorMapGroup(utils::ColorMapGroup) override;
-  void changeColorMap() override;
-  Pixel getColor(size_t nodeNum) const override;
+  auto GetColorMapGroup() const -> utils::ColorMapGroup override;
+  void SetColorMapGroup(utils::ColorMapGroup c) override;
+  void ChangeColorMap() override;
+  auto GetColor(size_t nodeNum) const -> Pixel override;
 
-  bool operator==(const TentacleColorMapColorizer&) const;
+  auto operator==(const TentacleColorMapColorizer&) const -> bool;
 
   template<class Archive>
   void save(Archive&) const;
@@ -169,29 +179,30 @@ public:
   void load(Archive&);
 
 private:
-  size_t numNodes = 0;
-  utils::ColorMapGroup currentColorMapGroup{};
-  const utils::ColorMaps colorMaps{};
-  const utils::ColorMap* colorMap{};
-  const utils::ColorMap* prevColorMap{};
-  static constexpr uint32_t maxCountSinceColormapChange = 100;
-  static constexpr float transitionStep = 1.0 / static_cast<float>(maxCountSinceColormapChange);
-  mutable float tTransition = 0;
+  size_t m_numNodes = 0;
+  utils::ColorMapGroup m_currentColorMapGroup{};
+  const utils::ColorMaps m_colorMaps{};
+  const utils::ColorMap* m_colorMap{};
+  const utils::ColorMap* m_prevColorMap{};
+  static constexpr uint32_t MAX_COUNT_SINCE_COLORMAP_CHANGE = 100;
+  static constexpr float TRANSITION_STEP =
+      1.0 / static_cast<float>(MAX_COUNT_SINCE_COLORMAP_CHANGE);
+  mutable float m_tTransition = 0.0F;
 };
 
-class GridTentacleLayout : public TentacleLayout
+class GridTentacleLayout : public ITentacleLayout
 {
 public:
   [[maybe_unused]] GridTentacleLayout(
       float xmin, float xmax, size_t xNum, float ymin, float ymax, size_t yNum, float zConst);
-  [[nodiscard]] size_t getNumPoints() const override;
-  [[nodiscard]] const std::vector<V3d>& getPoints() const override;
+  [[nodiscard]] auto GetNumPoints() const -> size_t override;
+  [[nodiscard]] auto GetPoints() const -> const std::vector<V3d>& override;
 
 private:
-  std::vector<V3d> points{};
+  std::vector<V3d> m_points{};
 };
 
-class CirclesTentacleLayout : public TentacleLayout
+class CirclesTentacleLayout : public ITentacleLayout
 {
 public:
   CirclesTentacleLayout(float radiusMin,
@@ -199,21 +210,21 @@ public:
                         const std::vector<size_t>& numCircleSamples,
                         float zConst);
   // Order of points is outer circle to inner.
-  [[nodiscard]] size_t getNumPoints() const override;
-  [[nodiscard]] const std::vector<V3d>& getPoints() const override;
-  static std::vector<size_t> getCircleSamples(size_t numCircles, size_t totalPoints);
+  [[nodiscard]] auto GetNumPoints() const -> size_t override;
+  [[nodiscard]] auto GetPoints() const -> const std::vector<V3d>& override;
+  static auto GetCircleSamples(size_t numCircles, size_t totalPoints) -> std::vector<size_t>;
 
 private:
-  std::vector<V3d> points{};
+  std::vector<V3d> m_points{};
 };
 
 template<class Archive>
 void TentacleDriver::serialize(Archive& ar)
 {
-  ar(CEREAL_NVP(colorMode), CEREAL_NVP(iterParamsGroups), CEREAL_NVP(screenWidth),
-     CEREAL_NVP(screenHeight), CEREAL_NVP(draw), CEREAL_NVP(buffSettings), CEREAL_NVP(colorizers),
-     CEREAL_NVP(updateNum), CEREAL_NVP(tentacles), CEREAL_NVP(numTentacles),
-     CEREAL_NVP(tentacleParams));
+  ar(CEREAL_NVP(m_colorMode), CEREAL_NVP(m_iterParamsGroups), CEREAL_NVP(m_screenWidth),
+     CEREAL_NVP(m_screenHeight), CEREAL_NVP(m_draw), CEREAL_NVP(m_buffSettings),
+     CEREAL_NVP(m_colorizers), CEREAL_NVP(m_updateNum), CEREAL_NVP(m_tentacles),
+     CEREAL_NVP(m_numTentacles), CEREAL_NVP(m_tentacleParams));
 }
 
 template<class Archive>
@@ -232,10 +243,10 @@ void TentacleDriver::IterParamsGroup::serialize(Archive& ar)
 template<class Archive>
 void TentacleColorMapColorizer::save(Archive& ar) const
 {
-  const utils::colordata::ColorMapName colorMapName = colorMap->GetMapName();
-  const utils::colordata::ColorMapName prevColorMapName = prevColorMap->GetMapName();
-  ar(CEREAL_NVP(numNodes), CEREAL_NVP(currentColorMapGroup), CEREAL_NVP(colorMapName),
-     CEREAL_NVP(prevColorMapName), CEREAL_NVP(tTransition));
+  const utils::colordata::ColorMapName colorMapName = m_colorMap->GetMapName();
+  const utils::colordata::ColorMapName prevColorMapName = m_prevColorMap->GetMapName();
+  ar(CEREAL_NVP(m_numNodes), CEREAL_NVP(m_currentColorMapGroup), CEREAL_NVP(colorMapName),
+     CEREAL_NVP(prevColorMapName), CEREAL_NVP(m_tTransition));
 }
 
 template<class Archive>
@@ -243,10 +254,10 @@ void TentacleColorMapColorizer::load(Archive& ar)
 {
   utils::colordata::ColorMapName colorMapName;
   utils::colordata::ColorMapName prevColorMapName;
-  ar(CEREAL_NVP(numNodes), CEREAL_NVP(currentColorMapGroup), CEREAL_NVP(colorMapName),
-     CEREAL_NVP(prevColorMapName), CEREAL_NVP(tTransition));
-  colorMap = &colorMaps.GetColorMap(colorMapName);
-  prevColorMap = &colorMaps.GetColorMap(prevColorMapName);
+  ar(CEREAL_NVP(m_numNodes), CEREAL_NVP(m_currentColorMapGroup), CEREAL_NVP(colorMapName),
+     CEREAL_NVP(prevColorMapName), CEREAL_NVP(m_tTransition));
+  m_colorMap = &m_colorMaps.GetColorMap(colorMapName);
+  m_prevColorMap = &m_colorMaps.GetColorMap(prevColorMapName);
 }
 
 } // namespace goom

@@ -1,5 +1,5 @@
-#ifndef _TENTACLES_FX_H
-#define _TENTACLES_FX_H
+#ifndef VISUALIZATION_GOOM_TENTACLES_FX_H
+#define VISUALIZATION_GOOM_TENTACLES_FX_H
 
 #include "goom_visual_fx.h"
 
@@ -20,12 +20,14 @@ public:
   explicit TentaclesFx(const std::shared_ptr<const PluginInfo>&) noexcept;
   ~TentaclesFx() noexcept override;
   TentaclesFx(const TentaclesFx&) = delete;
-  TentaclesFx& operator=(const TentaclesFx&) = delete;
+  TentaclesFx(const TentaclesFx&&) = delete;
+  auto operator=(const TentaclesFx&) -> TentaclesFx& = delete;
+  auto operator=(const TentaclesFx&&) -> TentaclesFx& = delete;
 
   [[nodiscard]] std::string getFxName() const override;
   void setBuffSettings(const FXBuffSettings&) override;
 
-  void freshStart();
+  void FreshStart();
 
   void start() override;
 
@@ -36,16 +38,16 @@ public:
   void log(const StatsLogValueFunc&) const override;
   void finish() override;
 
-  bool operator==(const TentaclesFx&) const;
+  auto operator==(const TentaclesFx&) const -> bool;
 
 private:
-  bool enabled = true;
+  bool m_enabled = true;
   class TentaclesImpl;
-  std::unique_ptr<TentaclesImpl> fxImpl;
+  std::unique_ptr<TentaclesImpl> m_fxImpl;
 
   friend class cereal::access;
   template<class Archive>
-  void serialize(Archive&);
+  void serialize(Archive& ar);
 };
 
 } // namespace goom
