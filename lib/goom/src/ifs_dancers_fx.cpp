@@ -795,10 +795,10 @@ private:
       {ColorMapGroup::qualitative, 10},
       {ColorMapGroup::misc, 20},
   }}};
-  const ColorMap* m_mixerMap1;
-  const ColorMap* m_prevMixerMap1;
-  const ColorMap* m_mixerMap2;
-  const ColorMap* m_prevMixerMap2;
+  const IColorMap* m_mixerMap1;
+  const IColorMap* m_prevMixerMap1;
+  const IColorMap* m_mixerMap2;
+  const IColorMap* m_prevMixerMap2;
   mutable uint32_t m_countSinceColorMapChange = 0;
   static constexpr uint32_t MIN_COLOR_MAP_CHANGE_COMPLETED = 5;
   static constexpr uint32_t MAX_COLOR_MAP_CHANGE_COMPLETED = 50;
@@ -919,7 +919,7 @@ inline auto Colorizer::GetNextMixerMapColor(const float t, const float x, const 
   //  const float angle = y == 0.0F ? m_half_pi : std::atan2(y, x);
   //  const Pixel nextColor = mixerMap1->GetColor((m_pi + angle) / m_two_pi);
   const Pixel nextColor =
-      ColorMap::GetColorMix(m_mixerMap1->GetColor(x), m_mixerMap2->GetColor(y), t);
+      IColorMap::GetColorMix(m_mixerMap1->GetColor(x), m_mixerMap2->GetColor(y), t);
   if (m_countSinceColorMapChange == 0)
   {
     return nextColor;
@@ -929,8 +929,8 @@ inline auto Colorizer::GetNextMixerMapColor(const float t, const float x, const 
                             static_cast<float>(m_colorMapChangeCompleted);
   m_countSinceColorMapChange--;
   const Pixel prevNextColor =
-      ColorMap::GetColorMix(m_prevMixerMap1->GetColor(x), m_prevMixerMap2->GetColor(y), t);
-  return ColorMap::GetColorMix(nextColor, prevNextColor, tTransition);
+      IColorMap::GetColorMix(m_prevMixerMap1->GetColor(x), m_prevMixerMap2->GetColor(y), t);
+  return IColorMap::GetColorMix(nextColor, prevNextColor, tTransition);
 }
 
 inline auto Colorizer::GetMixedColor(
@@ -984,11 +984,11 @@ inline auto Colorizer::GetMixedColor(
 
   if (m_colorMode == IfsDancersFx::ColorMode::reverseMixColors)
   {
-    mixColor = ColorMap::GetColorMix(mixColor, baseColor, tBaseMix);
+    mixColor = IColorMap::GetColorMix(mixColor, baseColor, tBaseMix);
   }
   else
   {
-    mixColor = ColorMap::GetColorMix(baseColor, mixColor, tBaseMix);
+    mixColor = IColorMap::GetColorMix(baseColor, mixColor, tBaseMix);
   }
 
   static GammaCorrection s_gammaCorrect{4.2, 0.01};
@@ -1588,7 +1588,7 @@ void IfsDancersFx::IfsDancersFxImpl::SetLowDensityColors(std::vector<IfsPoint>& 
         return m_colorizer.GetColorMaps().GetRandomColorMap().GetColor(t);
       };
 
-  const ColorMap& colorMap = m_colorizer.GetColorMaps().GetRandomColorMap();
+  const IColorMap& colorMap = m_colorizer.GetColorMaps().GetRandomColorMap();
   const float reciprocalMaxLowDensityCount = 1.0F / static_cast<float>(maxLowDensityCount);
   const std::function<Pixel(const IfsPoint&)> getSmoothColor = [&](const IfsPoint& p) {
     const float t = reciprocalMaxLowDensityCount * static_cast<float>(p.count);

@@ -31,9 +31,9 @@ public:
   virtual ~PluginInfo() noexcept = default;
   PluginInfo(uint32_t width, uint32_t height) noexcept;
   PluginInfo(const PluginInfo& p) noexcept;
-  PluginInfo(const PluginInfo&&) noexcept = delete;
+  PluginInfo(PluginInfo&&) noexcept = delete;
   auto operator=(const PluginInfo&) -> PluginInfo& = delete;
-  auto operator=(const PluginInfo&&) -> PluginInfo& = delete;
+  auto operator=(PluginInfo&&) -> PluginInfo& = delete;
 
   [[nodiscard]] auto GetScreenInfo() const -> const Screen&;
   [[nodiscard]] auto GetSoundInfo() const -> const SoundInfo&;

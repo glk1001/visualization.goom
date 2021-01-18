@@ -719,7 +719,7 @@ auto TentacleColorMapColorizer::GetColor(size_t nodeNum) const -> Pixel
   // Keep going with the smooth transition until tmix runs out.
   if (m_tTransition > 0.0)
   {
-    nextColor = ColorMap::GetColorMix(nextColor, m_prevColorMap->GetColor(t), m_tTransition);
+    nextColor = IColorMap::GetColorMix(nextColor, m_prevColorMap->GetColor(t), m_tTransition);
     m_tTransition -= TRANSITION_STEP;
   }
 

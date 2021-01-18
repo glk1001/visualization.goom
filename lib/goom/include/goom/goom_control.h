@@ -26,9 +26,9 @@ public:
   GoomControl(uint32_t resx, uint32_t resy) noexcept;
   ~GoomControl() noexcept;
   GoomControl(const GoomControl&) noexcept = delete;
-  GoomControl(const GoomControl&&) noexcept = delete;
+  GoomControl(GoomControl&&) noexcept = delete;
   auto operator=(const GoomControl&) -> GoomControl& = delete;
-  auto operator=(const GoomControl&&) -> GoomControl& = delete;
+  auto operator=(GoomControl&&) -> GoomControl& = delete;
 
   void SaveState(std::ostream& s) const;
   void RestoreState(std::istream& s);

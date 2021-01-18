@@ -427,10 +427,10 @@ public:
   ZoomFilterImpl() noexcept;
   ZoomFilterImpl(Parallel& p, const std::shared_ptr<const PluginInfo>& goomInfo);
   ~ZoomFilterImpl() noexcept;
-  ZoomFilterImpl(const ZoomFilterImpl&) = delete;
-  ZoomFilterImpl(const ZoomFilterImpl&&) = delete;
+  ZoomFilterImpl(const ZoomFilterImpl&) noexcept = delete;
+  ZoomFilterImpl(ZoomFilterImpl&&) noexcept = delete;
   auto operator=(const ZoomFilterImpl&) -> ZoomFilterImpl& = delete;
-  auto operator=(const ZoomFilterImpl&&) -> ZoomFilterImpl& = delete;
+  auto operator=(ZoomFilterImpl&&) -> ZoomFilterImpl& = delete;
 
   void SetBuffSettings(const FXBuffSettings& settings);
 

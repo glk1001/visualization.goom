@@ -39,10 +39,10 @@ public:
             LineType destLineType,
             float destParam,
             const Pixel& destColor);
-  LinesImpl(const LinesImpl&) = delete;
-  LinesImpl(const LinesImpl&&) = delete;
+  LinesImpl(const LinesImpl&) noexcept = delete;
+  LinesImpl(LinesImpl&&) noexcept = delete;
   auto operator=(const LinesImpl&) -> LinesImpl& = delete;
-  auto operator=(const LinesImpl&&) -> LinesImpl& = delete;
+  auto operator=(LinesImpl&&) -> LinesImpl& = delete;
 
   auto GetRandomLineColor() -> Pixel;
 
@@ -346,19 +346,19 @@ inline auto GetColor(const int mode) -> Pixel
   switch (mode)
   {
     case GML_RED:
-      return getIntColor(230, 120, 18);
+      return GetIntColor(230, 120, 18);
     case GML_ORANGE_J:
-      return getIntColor(120, 252, 18);
+      return GetIntColor(120, 252, 18);
     case GML_ORANGE_V:
-      return getIntColor(160, 236, 40);
+      return GetIntColor(160, 236, 40);
     case GML_BLEUBLANC:
-      return getIntColor(40, 220, 140);
+      return GetIntColor(40, 220, 140);
     case GML_VERT:
-      return getIntColor(200, 80, 18);
+      return GetIntColor(200, 80, 18);
     case GML_BLEU:
-      return getIntColor(250, 30, 80);
+      return GetIntColor(250, 30, 80);
     case GML_BLACK:
-      return getIntColor(16, 16, 16);
+      return GetIntColor(16, 16, 16);
     default:
       throw std::logic_error("Unknown line color.");
   }
@@ -463,7 +463,7 @@ void LinesFx::LinesImpl::DrawLines(const std::vector<int16_t>& soundData,
     const float t = std::min(1.0F, maxBrightness);
     static GammaCorrection s_gammaCorrect{4.2, 0.1};
     const Pixel modColor =
-        s_gammaCorrect.getCorrection(t, ColorMap::GetColorMix(lineColor, randColor, t));
+        s_gammaCorrect.getCorrection(t, IColorMap::GetColorMix(lineColor, randColor, t));
     return std::make_tuple(x, y, modColor);
   };
 

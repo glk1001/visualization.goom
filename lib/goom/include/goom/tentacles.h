@@ -24,9 +24,9 @@ public:
   ITentacleColorizer() noexcept = default;
   virtual ~ITentacleColorizer() noexcept = default;
   ITentacleColorizer(const ITentacleColorizer&) noexcept = delete;
-  ITentacleColorizer(const ITentacleColorizer&&) noexcept = delete;
+  ITentacleColorizer(ITentacleColorizer&&) noexcept = delete;
   auto operator=(const ITentacleColorizer&) noexcept -> ITentacleColorizer& = delete;
-  auto operator=(const ITentacleColorizer&&) noexcept -> ITentacleColorizer& = delete;
+  auto operator=(ITentacleColorizer&&) noexcept -> ITentacleColorizer& = delete;
 
   [[nodiscard]] virtual auto GetColorMapGroup() const -> UTILS::ColorMapGroup = 0;
   virtual void SetColorMapGroup(UTILS::ColorMapGroup) = 0;
@@ -52,10 +52,10 @@ public:
              double ymax,
              double basePrevYWeight,
              double baseCurrentYWeight) noexcept;
-  Tentacle2D(const Tentacle2D&) = delete;
-  Tentacle2D(const Tentacle2D&&) = delete;
+  Tentacle2D(const Tentacle2D&) noexcept = delete;
+  Tentacle2D(Tentacle2D&&) noexcept = delete;
   auto operator=(const Tentacle2D&) -> Tentacle2D& = delete;
-  auto operator=(const Tentacle2D&&) -> Tentacle2D& = delete;
+  auto operator=(Tentacle2D&&) -> Tentacle2D& = delete;
 
   [[nodiscard]] auto GetID() const -> size_t;
 
@@ -170,10 +170,10 @@ public:
              const Pixel& headColorLow,
              const V3d& head,
              size_t numHeadNodes) noexcept;
+  Tentacle3D(const Tentacle3D&) noexcept = delete;
   Tentacle3D(Tentacle3D&&) noexcept;
-  Tentacle3D(const Tentacle3D&) = delete;
   auto operator=(const Tentacle3D&) -> Tentacle3D& = delete;
-  auto operator=(const Tentacle3D&&) -> Tentacle3D& = delete;
+  auto operator=(Tentacle3D&&) -> Tentacle3D& = delete;
 
   auto Get2DTentacle() -> Tentacle2D& { return *m_tentacle; }
   [[nodiscard]] auto Get2DTentacle() const -> const Tentacle2D& { return *m_tentacle; }

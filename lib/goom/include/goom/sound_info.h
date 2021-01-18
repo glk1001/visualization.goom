@@ -41,9 +41,9 @@ public:
   SoundInfo() noexcept;
   ~SoundInfo() noexcept;
   SoundInfo(const SoundInfo& s) noexcept;
-  SoundInfo(const SoundInfo&&) noexcept = delete;
+  SoundInfo(SoundInfo&&) noexcept = delete;
   auto operator=(const SoundInfo&) -> SoundInfo& = delete;
-  auto operator=(const SoundInfo&&) -> SoundInfo& = delete;
+  auto operator=(SoundInfo&&) -> SoundInfo& = delete;
 
   void ProcessSample(const AudioSamples& s);
 

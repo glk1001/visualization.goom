@@ -153,10 +153,10 @@ public:
   ZoomFilterFx() noexcept;
   ZoomFilterFx(UTILS::Parallel&, const std::shared_ptr<const PluginInfo>&) noexcept;
   ~ZoomFilterFx() noexcept override;
-  ZoomFilterFx(const ZoomFilterFx&) = delete;
-  ZoomFilterFx(const ZoomFilterFx&&) = delete;
+  ZoomFilterFx(const ZoomFilterFx&) noexcept = delete;
+  ZoomFilterFx(ZoomFilterFx&&) noexcept = delete;
   auto operator=(const ZoomFilterFx&) -> ZoomFilterFx& = delete;
-  auto operator=(const ZoomFilterFx&&) -> ZoomFilterFx& = delete;
+  auto operator=(ZoomFilterFx&&) -> ZoomFilterFx& = delete;
 
   void ZoomFilterFastRgb(const PixelBuffer& pix1,
                          PixelBuffer& pix2,

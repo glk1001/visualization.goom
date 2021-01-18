@@ -43,10 +43,10 @@ class IVisualFx
 public:
   IVisualFx() = default;
   virtual ~IVisualFx() = default;
-  IVisualFx(const IVisualFx&) = delete;
-  IVisualFx(const IVisualFx&&) = delete;
+  IVisualFx(const IVisualFx&) noexcept = delete;
+  IVisualFx(IVisualFx&&) noexcept = delete;
   auto operator=(const IVisualFx&) -> IVisualFx& = delete;
-  auto operator=(const IVisualFx&&) -> IVisualFx& = delete;
+  auto operator=(IVisualFx&&) -> IVisualFx& = delete;
 
   [[nodiscard]] virtual auto GetFxName() const -> std::string = 0;
   virtual void SetBuffSettings(const FXBuffSettings& settings) = 0;

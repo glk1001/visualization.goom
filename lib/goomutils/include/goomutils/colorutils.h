@@ -11,9 +11,9 @@
 namespace GOOM
 {
 
-Pixel getIntColor(uint8_t r, uint8_t g, uint8_t b);
+Pixel GetIntColor(uint8_t r, uint8_t g, uint8_t b);
 
-Pixel getColorAverage(const std::vector<Pixel>& colors);
+Pixel GetColorAverage(const std::vector<Pixel>& colors);
 Pixel getColorAverage(const Pixel& color1, const Pixel& color2);
 Pixel getColorBlend(const Pixel& srceColor);
 Pixel getColorAdd(const Pixel& color1, const Pixel& color2, bool allowOverexposed);
@@ -58,7 +58,7 @@ inline uint32_t colorChannelSubtract(const uint8_t c1, const uint8_t c2)
   return static_cast<uint32_t>(c1) - static_cast<uint32_t>(c2);
 }
 
-inline Pixel getColorAverage(const std::vector<Pixel>& colors)
+inline Pixel GetColorAverage(const std::vector<Pixel>& colors)
 {
   uint32_t newR = 0;
   uint32_t newG = 0;

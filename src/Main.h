@@ -53,9 +53,9 @@ public:
   CVisualizationGoom();
   ~CVisualizationGoom() override;
   CVisualizationGoom(const CVisualizationGoom&) noexcept = delete;
-  CVisualizationGoom(const CVisualizationGoom&&) noexcept = delete;
+  CVisualizationGoom(CVisualizationGoom&&) noexcept = delete;
   auto operator=(const CVisualizationGoom&) -> CVisualizationGoom = delete;
-  auto operator=(const CVisualizationGoom&&) -> CVisualizationGoom = delete;
+  auto operator=(CVisualizationGoom&&) -> CVisualizationGoom = delete;
 
   auto Start(int channels, int samplesPerSec, int bitsPerSample, std::string songName)
       -> bool override;

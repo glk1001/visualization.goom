@@ -11,7 +11,7 @@ namespace GOOM
 
 static_assert(sizeof(Pixel) == sizeof(uint32_t));
 
-Pixel getIntColor(const uint8_t r, const uint8_t g, const uint8_t b)
+Pixel GetIntColor(uint8_t r, uint8_t g, uint8_t b)
 {
   return Pixel{{.r = r, .g = g, .b = b, .a = 0xff}};
 }

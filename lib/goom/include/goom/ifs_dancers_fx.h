@@ -36,10 +36,10 @@ public:
   IfsDancersFx() noexcept;
   explicit IfsDancersFx(const std::shared_ptr<const PluginInfo>&) noexcept;
   ~IfsDancersFx() noexcept override;
-  IfsDancersFx(const IfsDancersFx&) = delete;
-  IfsDancersFx(const IfsDancersFx&&) = delete;
+  IfsDancersFx(const IfsDancersFx&) noexcept = delete;
+  IfsDancersFx(IfsDancersFx&&) noexcept = delete;
   auto operator=(const IfsDancersFx&) -> IfsDancersFx& = delete;
-  auto operator=(const IfsDancersFx&&) -> IfsDancersFx& = delete;
+  auto operator=(IfsDancersFx&&) -> IfsDancersFx& = delete;
 
   void Init();
 

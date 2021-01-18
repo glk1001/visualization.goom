@@ -37,10 +37,10 @@ public:
   GoomDotsImpl() noexcept;
   explicit GoomDotsImpl(const std::shared_ptr<const PluginInfo>& info) noexcept;
   ~GoomDotsImpl() noexcept = default;
-  GoomDotsImpl(const GoomDotsImpl&) = delete;
-  GoomDotsImpl(const GoomDotsImpl&&) = delete;
+  GoomDotsImpl(const GoomDotsImpl&) noexcept = delete;
+  GoomDotsImpl(GoomDotsImpl&&) noexcept = delete;
   auto operator=(const GoomDotsImpl&) -> GoomDotsImpl& = delete;
-  auto operator=(const GoomDotsImpl&&) -> GoomDotsImpl& = delete;
+  auto operator=(GoomDotsImpl&&) -> GoomDotsImpl& = delete;
 
   void SetBuffSettings(const FXBuffSettings& settings);
 
@@ -63,11 +63,11 @@ private:
   FXBuffSettings m_buffSettings{};
 
   UTILS::WeightedColorMaps m_colorMaps{};
-  const UTILS::ColorMap* m_colorMap1 = nullptr;
-  const UTILS::ColorMap* m_colorMap2 = nullptr;
-  const UTILS::ColorMap* m_colorMap3 = nullptr;
-  const UTILS::ColorMap* m_colorMap4 = nullptr;
-  const UTILS::ColorMap* m_colorMap5 = nullptr;
+  const UTILS::IColorMap* m_colorMap1 = nullptr;
+  const UTILS::IColorMap* m_colorMap2 = nullptr;
+  const UTILS::IColorMap* m_colorMap3 = nullptr;
+  const UTILS::IColorMap* m_colorMap4 = nullptr;
+  const UTILS::IColorMap* m_colorMap5 = nullptr;
   Pixel m_middleColor{};
   bool m_useSingleBufferOnly = true;
   bool m_useGrayScale = false;
@@ -215,14 +215,14 @@ GoomDotsFx::GoomDotsImpl::GoomDotsImpl(const std::shared_ptr<const PluginInfo>& 
     m_pointHeightDiv3{static_cast<float>(m_pointHeight / 3.0F)},
     m_draw{m_goomInfo->GetScreenInfo().width, m_goomInfo->GetScreenInfo().height},
     m_colorMaps{Weights<ColorMapGroup>{{
-        {ColorMapGroup::perceptuallyUniformSequential, 10},
-        {ColorMapGroup::sequential, 20},
-        {ColorMapGroup::sequential2, 20},
-        {ColorMapGroup::cyclic, 0},
-        {ColorMapGroup::diverging, 0},
-        {ColorMapGroup::diverging_black, 0},
-        {ColorMapGroup::qualitative, 0},
-        {ColorMapGroup::misc, 0},
+        {ColorMapGroup::PERCEPTUALLY_UNIFORM_SEQUENTIAL, 10},
+        {ColorMapGroup::SEQUENTIAL, 20},
+        {ColorMapGroup::SEQUENTIAL2, 20},
+        {ColorMapGroup::CYCLIC, 0},
+        {ColorMapGroup::DIVERGING, 0},
+        {ColorMapGroup::DIVERGING_BLACK, 0},
+        {ColorMapGroup::QUALITATIVE, 0},
+        {ColorMapGroup::MISC, 0},
     }}}
 {
   ChangeColors();
@@ -242,7 +242,7 @@ void GoomDotsFx::GoomDotsImpl::ChangeColors()
   m_colorMap3 = &m_colorMaps.GetRandomColorMap();
   m_colorMap4 = &m_colorMaps.GetRandomColorMap();
   m_colorMap5 = &m_colorMaps.GetRandomColorMap();
-  m_middleColor = m_colorMaps.GetRandomColorMap(ColorMapGroup::misc).GetRandomColor(0.1, 1);
+  m_middleColor = m_colorMaps.GetRandomColorMap(ColorMapGroup::MISC).GetRandomColor(0.1, 1);
 
   m_useSingleBufferOnly = probabilityOfMInN(0, 2);
   m_useGrayScale = probabilityOfMInN(0, 10);
@@ -344,7 +344,7 @@ auto GoomDotsFx::GoomDotsImpl::GetColor(const Pixel& color0,
   Pixel color{};
   if (!m_useGrayScale)
   {
-    color = ColorMap::GetColorMix(color0, color1, t);
+    color = IColorMap::GetColorMix(color0, color1, t);
   }
   else
   {

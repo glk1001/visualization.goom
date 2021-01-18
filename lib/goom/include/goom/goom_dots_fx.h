@@ -19,10 +19,10 @@ public:
   GoomDotsFx() noexcept;
   explicit GoomDotsFx(const std::shared_ptr<const PluginInfo>&) noexcept;
   ~GoomDotsFx() noexcept override;
-  GoomDotsFx(const GoomDotsFx&) = delete;
-  GoomDotsFx(const GoomDotsFx&&) = delete;
+  GoomDotsFx(const GoomDotsFx&) noexcept = delete;
+  GoomDotsFx(GoomDotsFx&&) noexcept = delete;
   auto operator=(const GoomDotsFx&) -> GoomDotsFx& = delete;
-  auto operator=(const GoomDotsFx&&) -> GoomDotsFx& = delete;
+  auto operator=(GoomDotsFx&&) -> GoomDotsFx& = delete;
 
   [[nodiscard]] auto GetFxName() const -> std::string override;
   void SetBuffSettings(const FXBuffSettings& settings) override;

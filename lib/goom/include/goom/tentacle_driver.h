@@ -45,9 +45,9 @@ public:
   ITentacleLayout() noexcept = default;
   virtual ~ITentacleLayout() noexcept = default;
   ITentacleLayout(const ITentacleLayout&) noexcept = default;
-  ITentacleLayout(const ITentacleLayout&&) noexcept = delete;
+  ITentacleLayout(ITentacleLayout&&) noexcept = delete;
   auto operator=(const ITentacleLayout&) -> ITentacleLayout& = delete;
-  auto operator=(const ITentacleLayout&&) -> ITentacleLayout& = delete;
+  auto operator=(ITentacleLayout&&) -> ITentacleLayout& = delete;
 
   [[nodiscard]] virtual auto GetNumPoints() const -> size_t = 0;
   [[nodiscard]] virtual auto GetPoints() const -> const std::vector<V3d>& = 0;
@@ -66,10 +66,10 @@ public:
   TentacleDriver() noexcept;
   ~TentacleDriver() noexcept = default;
   TentacleDriver(uint32_t screenWidth, uint32_t screenHeight) noexcept;
-  TentacleDriver(const TentacleDriver&) = delete;
-  TentacleDriver(const TentacleDriver&&) = delete;
+  TentacleDriver(const TentacleDriver&) noexcept = delete;
+  TentacleDriver(TentacleDriver&&) noexcept = delete;
   auto operator=(const TentacleDriver&) -> TentacleDriver& = delete;
-  auto operator=(const TentacleDriver&&) -> TentacleDriver& = delete;
+  auto operator=(TentacleDriver&&) -> TentacleDriver& = delete;
 
   void Init(const ITentacleLayout& l);
   [[nodiscard]] auto GetNumTentacles() const -> size_t;
@@ -167,10 +167,10 @@ public:
   TentacleColorMapColorizer() noexcept = default;
   ~TentacleColorMapColorizer() noexcept override = default;
   explicit TentacleColorMapColorizer(UTILS::ColorMapGroup, size_t numNodes) noexcept;
-  TentacleColorMapColorizer(const TentacleColorMapColorizer&) = delete;
-  TentacleColorMapColorizer(const TentacleColorMapColorizer&&) = delete;
+  TentacleColorMapColorizer(const TentacleColorMapColorizer&) noexcept = delete;
+  TentacleColorMapColorizer(TentacleColorMapColorizer&&) noexcept = delete;
   auto operator=(const TentacleColorMapColorizer&) -> TentacleColorMapColorizer& = delete;
-  auto operator=(const TentacleColorMapColorizer&&) -> TentacleColorMapColorizer& = delete;
+  auto operator=(TentacleColorMapColorizer&&) -> TentacleColorMapColorizer& = delete;
 
   auto GetColorMapGroup() const -> UTILS::ColorMapGroup override;
   void SetColorMapGroup(UTILS::ColorMapGroup c) override;
@@ -188,8 +188,8 @@ private:
   size_t m_numNodes = 0;
   UTILS::ColorMapGroup m_currentColorMapGroup{};
   const UTILS::ColorMaps m_colorMaps{};
-  const UTILS::ColorMap* m_colorMap{};
-  const UTILS::ColorMap* m_prevColorMap{};
+  const UTILS::IColorMap* m_colorMap{};
+  const UTILS::IColorMap* m_prevColorMap{};
   static constexpr uint32_t MAX_COUNT_SINCE_COLORMAP_CHANGE = 100;
   static constexpr float TRANSITION_STEP =
       1.0 / static_cast<float>(MAX_COUNT_SINCE_COLORMAP_CHANGE);

@@ -121,10 +121,10 @@ public:
   PixelBuffer(uint32_t width, uint32_t height) noexcept;
   ~PixelBuffer() noexcept = default;
 
-  PixelBuffer(const PixelBuffer&) = delete;
-  PixelBuffer(const PixelBuffer&&) = delete;
+  PixelBuffer(const PixelBuffer&) noexcept = delete;
+  PixelBuffer(PixelBuffer&&) noexcept = delete;
   auto operator=(const PixelBuffer&) -> PixelBuffer& = delete;
-  auto operator=(const PixelBuffer&&) -> PixelBuffer& = delete;
+  auto operator=(PixelBuffer&&) -> PixelBuffer& = delete;
 
   [[nodiscard]] auto GetWidth() const -> uint32_t;
   [[nodiscard]] auto GetHeight() const -> uint32_t;

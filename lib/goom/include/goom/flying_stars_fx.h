@@ -28,10 +28,10 @@ public:
   FlyingStarsFx() noexcept;
   explicit FlyingStarsFx(const std::shared_ptr<const PluginInfo>&) noexcept;
   ~FlyingStarsFx() noexcept override;
-  FlyingStarsFx(const FlyingStarsFx&) = delete;
-  FlyingStarsFx(const FlyingStarsFx&&) = delete;
+  FlyingStarsFx(const FlyingStarsFx&) noexcept = delete;
+  FlyingStarsFx(FlyingStarsFx&&) noexcept = delete;
   auto operator=(const FlyingStarsFx&) -> FlyingStarsFx& = delete;
-  auto operator=(const FlyingStarsFx&&) -> FlyingStarsFx& = delete;
+  auto operator=(FlyingStarsFx&&) -> FlyingStarsFx& = delete;
 
   [[nodiscard]] auto GetFxName() const -> std::string override;
   void SetBuffSettings(const FXBuffSettings& settings) override;

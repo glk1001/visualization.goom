@@ -28,10 +28,10 @@ public:
   ConvolveImpl() noexcept;
   explicit ConvolveImpl(Parallel& p, std::shared_ptr<const PluginInfo> goomInfo) noexcept;
   ~ConvolveImpl() noexcept = default;
-  ConvolveImpl(const ConvolveImpl&) = delete;
-  ConvolveImpl(const ConvolveImpl&&) = delete;
+  ConvolveImpl(const ConvolveImpl&) noexcept = delete;
+  ConvolveImpl(ConvolveImpl&&) noexcept = delete;
   auto operator=(const ConvolveImpl&) -> ConvolveImpl& = delete;
-  auto operator=(const ConvolveImpl&&) -> ConvolveImpl& = delete;
+  auto operator=(ConvolveImpl&&) -> ConvolveImpl& = delete;
 
   void SetBuffSettings(const FXBuffSettings& settings);
 

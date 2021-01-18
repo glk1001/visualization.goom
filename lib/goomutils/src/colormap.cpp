@@ -14,15 +14,16 @@ namespace GOOM::UTILS
 
 using COLOR_DATA::ColorMapName;
 
-class ColorMapWrapper : public ColorMap
+class ColorMapWrapper : public IColorMap
 {
 public:
   ColorMapWrapper() noexcept = delete;
-  explicit ColorMapWrapper(const ColorMap& cm) noexcept;
+  explicit ColorMapWrapper(const IColorMap& cm) noexcept;
   ~ColorMapWrapper() noexcept override = default;
   ColorMapWrapper(const ColorMapWrapper&) noexcept = delete;
+  ColorMapWrapper(ColorMapWrapper&&) noexcept = delete;
   auto operator=(const ColorMapWrapper&) -> ColorMapWrapper& = delete;
-  auto operator=(const ColorMapWrapper&&) -> ColorMapWrapper& = delete;
+  auto operator=(ColorMapWrapper&&) -> ColorMapWrapper& = delete;
 
   [[nodiscard]] auto GetNumStops() const -> size_t override;
   [[nodiscard]] auto GetMapName() const -> COLOR_DATA::ColorMapName override;
@@ -31,13 +32,13 @@ public:
   [[nodiscard]] auto GetRandomColor(float t0, float t1) const -> Pixel override;
 
 protected:
-  [[nodiscard]] auto GetColorMap() const -> const ColorMap& { return m_colorMap; }
+  [[nodiscard]] auto GetColorMap() const -> const IColorMap& { return m_colorMap; }
 
 private:
-  const ColorMap& m_colorMap;
+  const IColorMap& m_colorMap;
 };
 
-ColorMapWrapper::ColorMapWrapper(const ColorMap& cm) noexcept : m_colorMap{cm}
+ColorMapWrapper::ColorMapWrapper(const IColorMap& cm) noexcept : m_colorMap{cm}
 {
 }
 
@@ -64,7 +65,7 @@ inline auto ColorMapWrapper::GetRandomColor(float t0, float t1) const -> Pixel
 class RotatedColorMap : public ColorMapWrapper
 {
 public:
-  explicit RotatedColorMap(const ColorMap& cm, float tRotatePoint);
+  explicit RotatedColorMap(const IColorMap& cm, float tRotatePoint);
 
   [[nodiscard]] auto GetColor(float t) const -> Pixel override;
 
@@ -74,7 +75,7 @@ private:
   const float m_tRotatePoint;
 };
 
-RotatedColorMap::RotatedColorMap(const ColorMap& cm, const float tRotatePoint)
+RotatedColorMap::RotatedColorMap(const IColorMap& cm, const float tRotatePoint)
   : ColorMapWrapper{cm}, m_tRotatePoint{tRotatePoint}
 {
   if (tRotatePoint < MIN_ROTATE_POINT)
@@ -99,7 +100,7 @@ inline auto RotatedColorMap::GetColor(const float t) const -> Pixel
   return GetColorMap().GetColor(tNew);
 }
 
-class PrebuiltColorMap : public ColorMap
+class PrebuiltColorMap : public IColorMap
 {
 public:
   struct ColorMapAllocator : std::allocator<PrebuiltColorMap>
@@ -119,9 +120,9 @@ public:
   PrebuiltColorMap() noexcept = delete;
   PrebuiltColorMap(COLOR_DATA::ColorMapName mapNm, vivid::ColorMap cm);
   ~PrebuiltColorMap() noexcept override = default;
-  PrebuiltColorMap(const PrebuiltColorMap&) = delete;
+  PrebuiltColorMap(const PrebuiltColorMap&) noexcept = delete;
   auto operator=(const PrebuiltColorMap&) -> PrebuiltColorMap& = delete;
-  auto operator=(const PrebuiltColorMap&&) -> PrebuiltColorMap& = delete;
+  auto operator=(PrebuiltColorMap&&) -> PrebuiltColorMap& = delete;
 
   [[nodiscard]] auto GetNumStops() const -> size_t override { return m_cmap.numStops(); }
   [[nodiscard]] auto GetMapName() const -> COLOR_DATA::ColorMapName override { return m_mapName; }
@@ -141,10 +142,10 @@ class ColorMaps::ColorMapsImpl
 public:
   ColorMapsImpl() noexcept;
   virtual ~ColorMapsImpl() noexcept = default;
-  ColorMapsImpl(const ColorMaps&) = delete;
-  ColorMapsImpl(const ColorMaps&&) = delete;
+  ColorMapsImpl(const ColorMapsImpl&) noexcept = delete;
+  ColorMapsImpl(ColorMapsImpl&&) noexcept = delete;
   auto operator=(const ColorMapsImpl&) -> ColorMapsImpl& = delete;
-  auto operator=(const ColorMapsImpl&&) -> const ColorMapsImpl&& = delete;
+  auto operator=(ColorMapsImpl&&) -> const ColorMapsImpl&& = delete;
 
   using ColorMapNames = std::vector<COLOR_DATA::ColorMapName>;
   [[nodiscard]] static auto GetColorMapNames(ColorMapGroup groupName) -> const ColorMapNames&;
@@ -153,23 +154,23 @@ public:
   [[nodiscard]] static auto GetRandomColorMapName(ColorMapGroup groupName)
       -> COLOR_DATA::ColorMapName;
 
-  [[nodiscard]] static auto GetColorMap(COLOR_DATA::ColorMapName mapName) -> const ColorMap&;
-  [[nodiscard]] static auto GetRandomColorMap() -> const ColorMap&;
-  [[nodiscard]] static auto GetRandomColorMap(ColorMapGroup groupName) -> const ColorMap&;
+  [[nodiscard]] static auto GetColorMap(COLOR_DATA::ColorMapName mapName) -> const IColorMap&;
+  [[nodiscard]] static auto GetRandomColorMap() -> const IColorMap&;
+  [[nodiscard]] static auto GetRandomColorMap(ColorMapGroup groupName) -> const IColorMap&;
 
   [[nodiscard]] auto GetColorMapPtr(COLOR_DATA::ColorMapName mapName, float tRotatePoint) const
-      -> std::shared_ptr<const ColorMap>;
+      -> std::shared_ptr<const IColorMap>;
   [[nodiscard]] auto GetRandomColorMapPtr(bool includeRotatePoints) const
-      -> std::shared_ptr<const ColorMap>;
+      -> std::shared_ptr<const IColorMap>;
   [[nodiscard]] auto GetRandomColorMapPtr(ColorMapGroup cmg, bool includeRotatePoints) const
-      -> std::shared_ptr<const ColorMap>;
+      -> std::shared_ptr<const IColorMap>;
 
   [[nodiscard]] static auto GetNumGroups() -> size_t;
   [[nodiscard]] virtual auto GetRandomGroup() const -> ColorMapGroup;
 
 protected:
   using GroupColorNames =
-      std::array<const ColorMapNames*, static_cast<size_t>(ColorMapGroup::_size)>;
+      std::array<const ColorMapNames*, static_cast<size_t>(ColorMapGroup::_SIZE)>;
   [[nodiscard]] static auto GetGroups() -> const GroupColorNames& { return s_groups; }
   static void InitGroups();
 
@@ -179,7 +180,7 @@ private:
   static void InitPrebuiltColorMaps();
 };
 
-auto ColorMap::GetColorMix(const Pixel& col1, const Pixel& col2, float t) -> Pixel
+auto IColorMap::GetColorMix(const Pixel& col1, const Pixel& col2, float t) -> Pixel
 {
   return PrebuiltColorMap::GetColorMix(col1, col2, t);
 }
@@ -205,35 +206,35 @@ auto ColorMaps::GetRandomColorMapName(ColorMapGroup cmg) const -> COLOR_DATA::Co
   return m_colorMapImpl->GetRandomColorMapName(cmg);
 }
 
-auto ColorMaps::GetColorMap(COLOR_DATA::ColorMapName mapName) const -> const ColorMap&
+auto ColorMaps::GetColorMap(COLOR_DATA::ColorMapName mapName) const -> const IColorMap&
 {
   return m_colorMapImpl->GetColorMap(mapName);
 }
 
-auto ColorMaps::GetRandomColorMap() const -> const ColorMap&
+auto ColorMaps::GetRandomColorMap() const -> const IColorMap&
 {
   return m_colorMapImpl->GetRandomColorMap();
 }
 
-auto ColorMaps::GetRandomColorMap(ColorMapGroup cmg) const -> const ColorMap&
+auto ColorMaps::GetRandomColorMap(ColorMapGroup cmg) const -> const IColorMap&
 {
   return m_colorMapImpl->GetRandomColorMap(cmg);
 }
 
 auto ColorMaps::GetColorMapPtr(COLOR_DATA::ColorMapName mapName, const float tRotatePoint) const
-    -> std::shared_ptr<const ColorMap>
+    -> std::shared_ptr<const IColorMap>
 {
   return m_colorMapImpl->GetColorMapPtr(mapName, tRotatePoint);
 }
 
 auto ColorMaps::GetRandomColorMapPtr(const bool includeRotatePoints) const
-    -> std::shared_ptr<const ColorMap>
+    -> std::shared_ptr<const IColorMap>
 {
   return m_colorMapImpl->GetRandomColorMapPtr(includeRotatePoints);
 }
 
 auto ColorMaps::GetRandomColorMapPtr(ColorMapGroup cmg, const bool includeRotatePoints) const
-    -> std::shared_ptr<const ColorMap>
+    -> std::shared_ptr<const IColorMap>
 {
   return m_colorMapImpl->GetRandomColorMapPtr(cmg, includeRotatePoints);
 }
@@ -270,14 +271,14 @@ auto ColorMaps::ColorMapsImpl::GetRandomColorMapName(const ColorMapGroup groupNa
   return group->at(getRandInRange(0U, group->size()));
 }
 
-auto ColorMaps::ColorMapsImpl::GetRandomColorMap() -> const ColorMap&
+auto ColorMaps::ColorMapsImpl::GetRandomColorMap() -> const IColorMap&
 {
   InitPrebuiltColorMaps();
 
   return s_preBuiltColorMaps[getRandInRange(0U, s_preBuiltColorMaps.size())];
 }
 
-auto ColorMaps::ColorMapsImpl::GetRandomColorMap(const ColorMapGroup groupName) -> const ColorMap&
+auto ColorMaps::ColorMapsImpl::GetRandomColorMap(const ColorMapGroup groupName) -> const IColorMap&
 {
   InitGroups();
   InitPrebuiltColorMaps();
@@ -286,7 +287,7 @@ auto ColorMaps::ColorMapsImpl::GetRandomColorMap(const ColorMapGroup groupName) 
   return GetColorMap(group->at(getRandInRange(0U, group->size())));
 }
 
-auto ColorMaps::ColorMapsImpl::GetColorMap(const ColorMapName name) -> const ColorMap&
+auto ColorMaps::ColorMapsImpl::GetColorMap(const ColorMapName name) -> const IColorMap&
 {
   InitPrebuiltColorMaps();
   return s_preBuiltColorMaps[static_cast<size_t>(name)];
@@ -294,7 +295,7 @@ auto ColorMaps::ColorMapsImpl::GetColorMap(const ColorMapName name) -> const Col
 
 auto ColorMaps::ColorMapsImpl::GetColorMapPtr(COLOR_DATA::ColorMapName mapName,
                                               const float tRotatePoint) const
-    -> std::shared_ptr<const ColorMap>
+    -> std::shared_ptr<const IColorMap>
 {
   if (tRotatePoint > 0.0F)
   {
@@ -304,7 +305,7 @@ auto ColorMaps::ColorMapsImpl::GetColorMapPtr(COLOR_DATA::ColorMapName mapName,
 }
 
 auto ColorMaps::ColorMapsImpl::GetRandomColorMapPtr(const bool includeRotatePoints) const
-    -> std::shared_ptr<const ColorMap>
+    -> std::shared_ptr<const IColorMap>
 {
   if (!includeRotatePoints)
   {
@@ -315,7 +316,7 @@ auto ColorMaps::ColorMapsImpl::GetRandomColorMapPtr(const bool includeRotatePoin
 
 auto ColorMaps::ColorMapsImpl::GetRandomColorMapPtr(ColorMapGroup cmg,
                                                     const bool includeRotatePoints) const
-    -> std::shared_ptr<const ColorMap>
+    -> std::shared_ptr<const IColorMap>
 {
   if (!includeRotatePoints)
   {
@@ -353,7 +354,7 @@ auto ColorMaps::ColorMapsImpl::GetNumGroups() -> size_t
 auto ColorMaps::ColorMapsImpl::GetRandomGroup() const -> ColorMapGroup
 {
   InitGroups();
-  return static_cast<ColorMapGroup>(getRandInRange(0U, static_cast<size_t>(ColorMapGroup::_size)));
+  return static_cast<ColorMapGroup>(getRandInRange(0U, static_cast<size_t>(ColorMapGroup::_SIZE)));
 }
 
 void ColorMaps::ColorMapsImpl::InitGroups()
@@ -362,15 +363,15 @@ void ColorMaps::ColorMapsImpl::InitGroups()
   {
     return;
   }
-  at(s_groups, ColorMapGroup::perceptuallyUniformSequential) =
+  at(s_groups, ColorMapGroup::PERCEPTUALLY_UNIFORM_SEQUENTIAL) =
       &COLOR_DATA::perc_unif_sequentialMaps;
-  at(s_groups, ColorMapGroup::sequential) = &COLOR_DATA::sequentialMaps;
-  at(s_groups, ColorMapGroup::sequential2) = &COLOR_DATA::sequential2Maps;
-  at(s_groups, ColorMapGroup::cyclic) = &COLOR_DATA::cyclicMaps;
-  at(s_groups, ColorMapGroup::diverging) = &COLOR_DATA::divergingMaps;
-  at(s_groups, ColorMapGroup::diverging_black) = &COLOR_DATA::diverging_blackMaps;
-  at(s_groups, ColorMapGroup::qualitative) = &COLOR_DATA::qualitativeMaps;
-  at(s_groups, ColorMapGroup::misc) = &COLOR_DATA::miscMaps;
+  at(s_groups, ColorMapGroup::SEQUENTIAL) = &COLOR_DATA::sequentialMaps;
+  at(s_groups, ColorMapGroup::SEQUENTIAL2) = &COLOR_DATA::sequential2Maps;
+  at(s_groups, ColorMapGroup::CYCLIC) = &COLOR_DATA::cyclicMaps;
+  at(s_groups, ColorMapGroup::DIVERGING) = &COLOR_DATA::divergingMaps;
+  at(s_groups, ColorMapGroup::DIVERGING_BLACK) = &COLOR_DATA::diverging_blackMaps;
+  at(s_groups, ColorMapGroup::QUALITATIVE) = &COLOR_DATA::qualitativeMaps;
+  at(s_groups, ColorMapGroup::MISC) = &COLOR_DATA::miscMaps;
 }
 
 WeightedColorMaps::WeightedColorMaps() : ColorMaps{}, m_weights{}, m_weightsActive{true}

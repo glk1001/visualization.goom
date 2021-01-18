@@ -19,9 +19,9 @@ public:
   TextDrawImpl(uint32_t screenW, uint32_t screenH) noexcept;
   ~TextDrawImpl() noexcept;
   TextDrawImpl(const TextDrawImpl&) noexcept = delete;
-  TextDrawImpl(const TextDrawImpl&&) noexcept = delete;
+  TextDrawImpl(TextDrawImpl&&) noexcept = delete;
   auto operator=(const TextDrawImpl&) -> TextDrawImpl& = delete;
-  auto operator=(const TextDrawImpl&&) -> TextDrawImpl& = delete;
+  auto operator=(TextDrawImpl&&) -> TextDrawImpl& = delete;
 
   void SetAlignment(TextAlignment a);
   [[nodiscard]] auto GetFontFile() const -> const std::string&;
@@ -74,9 +74,9 @@ private:
     ~RectImpl() noexcept = default;
     RectImpl(int left, int top, int right, int bottom) noexcept;
     RectImpl(const RectImpl&) noexcept = default;
-    RectImpl(const RectImpl&&) noexcept = delete;
+    RectImpl(RectImpl&&) noexcept = delete;
     auto operator=(const RectImpl&) noexcept -> RectImpl = delete;
-    auto operator=(const RectImpl&&) noexcept -> RectImpl = delete;
+    auto operator=(RectImpl&&) noexcept -> RectImpl = delete;
 
     void Include(const Vec2& span);
   };

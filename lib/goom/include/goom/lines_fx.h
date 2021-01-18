@@ -50,10 +50,10 @@ public:
           float destParam,
           const Pixel& destColor) noexcept;
   ~LinesFx() noexcept;
-  LinesFx(const LinesFx&) = delete;
-  LinesFx(const LinesFx&&) = delete;
+  LinesFx(const LinesFx&) noexcept = delete;
+  LinesFx(LinesFx&&) noexcept = delete;
   auto operator=(const LinesFx&) -> LinesFx& = delete;
-  auto operator=(const LinesFx&&) -> LinesFx& = delete;
+  auto operator=(LinesFx&&) -> LinesFx& = delete;
 
   auto GetRandomLineColor() -> Pixel;
 

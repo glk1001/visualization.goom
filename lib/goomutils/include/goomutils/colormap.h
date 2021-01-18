@@ -13,14 +13,15 @@
 namespace GOOM::UTILS
 {
 
-class ColorMap
+class IColorMap
 {
 public:
-  ColorMap() noexcept = default;
-  virtual ~ColorMap() noexcept = default;
-  ColorMap(const ColorMap&) noexcept = delete;
-  auto operator=(const ColorMap&) -> ColorMap& = delete;
-  auto operator=(const ColorMap&&) -> ColorMap& = delete;
+  IColorMap() noexcept = default;
+  virtual ~IColorMap() noexcept = default;
+  IColorMap(const IColorMap&) noexcept = delete;
+  IColorMap(IColorMap&&) noexcept = delete;
+  auto operator=(const IColorMap&) -> IColorMap& = delete;
+  auto operator=(IColorMap&&) -> IColorMap& = delete;
 
   [[nodiscard]] virtual auto GetNumStops() const -> size_t = 0;
   [[nodiscard]] virtual auto GetMapName() const -> COLOR_DATA::ColorMapName = 0;
@@ -35,21 +36,21 @@ private:
 
 enum class ColorMapGroup : int
 {
-  _null = -1,
-  perceptuallyUniformSequential = 0,
-  sequential,
-  sequential2,
-  cyclic,
-  diverging,
-  diverging_black,
-  qualitative,
-  misc,
-  _size // unused and marks last enum + 1
+  _NULL = -1,
+  PERCEPTUALLY_UNIFORM_SEQUENTIAL = 0,
+  SEQUENTIAL,
+  SEQUENTIAL2,
+  CYCLIC,
+  DIVERGING,
+  DIVERGING_BLACK,
+  QUALITATIVE,
+  MISC,
+  _SIZE // unused and marks last enum + 1
 };
 
 //constexpr size_t to_int(const ColorMapGroup i) { return static_cast<size_t>(i); }
 template<class T>
-constexpr T& at(std::array<T, static_cast<size_t>(ColorMapGroup::_size)>& arr,
+constexpr T& at(std::array<T, static_cast<size_t>(ColorMapGroup::_SIZE)>& arr,
                 const ColorMapGroup idx)
 {
   return arr[static_cast<size_t>(idx)];
@@ -60,10 +61,10 @@ class ColorMaps
 public:
   ColorMaps() noexcept;
   virtual ~ColorMaps() noexcept;
-  ColorMaps(const ColorMaps&) = delete;
-  ColorMaps(const ColorMaps&&) = delete;
+  ColorMaps(const ColorMaps&) noexcept = delete;
+  ColorMaps(ColorMaps&&) noexcept = delete;
   auto operator=(const ColorMaps&) -> ColorMaps& = delete;
-  auto operator=(const ColorMaps&&) -> ColorMaps& = delete;
+  auto operator=(ColorMaps&&) -> ColorMaps& = delete;
 
   using ColorMapNames = std::vector<COLOR_DATA::ColorMapName>;
   [[nodiscard]] auto GetColorMapNames(ColorMapGroup cmg) const -> const ColorMapNames&;
@@ -71,16 +72,16 @@ public:
   [[nodiscard]] auto GetRandomColorMapName() const -> COLOR_DATA::ColorMapName;
   [[nodiscard]] auto GetRandomColorMapName(ColorMapGroup cmg) const -> COLOR_DATA::ColorMapName;
 
-  [[nodiscard]] auto GetColorMap(COLOR_DATA::ColorMapName mapName) const -> const ColorMap&;
-  [[nodiscard]] auto GetRandomColorMap() const -> const ColorMap&;
-  [[nodiscard]] auto GetRandomColorMap(ColorMapGroup cmg) const -> const ColorMap&;
+  [[nodiscard]] auto GetColorMap(COLOR_DATA::ColorMapName mapName) const -> const IColorMap&;
+  [[nodiscard]] auto GetRandomColorMap() const -> const IColorMap&;
+  [[nodiscard]] auto GetRandomColorMap(ColorMapGroup cmg) const -> const IColorMap&;
 
   [[nodiscard]] auto GetColorMapPtr(COLOR_DATA::ColorMapName mapName, float tRotatePoint = 0) const
-      -> std::shared_ptr<const ColorMap>;
+      -> std::shared_ptr<const IColorMap>;
   [[nodiscard]] auto GetRandomColorMapPtr(bool includeRotatePoints = false) const
-      -> std::shared_ptr<const ColorMap>;
+      -> std::shared_ptr<const IColorMap>;
   [[nodiscard]] auto GetRandomColorMapPtr(ColorMapGroup cmg, bool includeRotatePoints = false) const
-      -> std::shared_ptr<const ColorMap>;
+      -> std::shared_ptr<const IColorMap>;
 
   [[nodiscard]] auto GetNumGroups() const -> size_t;
   [[nodiscard]] virtual auto GetRandomGroup() const -> ColorMapGroup;
@@ -97,9 +98,9 @@ public:
   explicit WeightedColorMaps(const Weights<ColorMapGroup>&);
   ~WeightedColorMaps() noexcept override = default;
   WeightedColorMaps(const WeightedColorMaps&) noexcept = delete;
-  WeightedColorMaps(const WeightedColorMaps&&) noexcept = delete;
+  WeightedColorMaps(WeightedColorMaps&&) noexcept = delete;
   auto operator=(const WeightedColorMaps&) -> WeightedColorMaps& = delete;
-  auto operator=(const WeightedColorMaps&&) -> WeightedColorMaps& = delete;
+  auto operator=(WeightedColorMaps&&) -> WeightedColorMaps& = delete;
 
   [[nodiscard]] auto GetWeights() const -> const Weights<ColorMapGroup>&;
   void SetWeights(const Weights<ColorMapGroup>&);

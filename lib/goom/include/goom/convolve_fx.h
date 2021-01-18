@@ -24,10 +24,10 @@ public:
   ConvolveFx() noexcept;
   ConvolveFx(UTILS::Parallel&, const std::shared_ptr<const PluginInfo>&) noexcept;
   ~ConvolveFx() noexcept override;
-  ConvolveFx(const ConvolveFx&) = delete;
-  ConvolveFx(const ConvolveFx&&) = delete;
+  ConvolveFx(const ConvolveFx&) noexcept = delete;
+  ConvolveFx(ConvolveFx&&) noexcept = delete;
   auto operator=(const ConvolveFx&) -> ConvolveFx& = delete;
-  auto operator=(const ConvolveFx&&) -> ConvolveFx& = delete;
+  auto operator=(ConvolveFx&&) -> ConvolveFx& = delete;
 
   void Convolve(const PixelBuffer& currentBuff, PixelBuffer& outputBuff);
 

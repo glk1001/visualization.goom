@@ -19,10 +19,10 @@ public:
   TentaclesFx() noexcept;
   explicit TentaclesFx(const std::shared_ptr<const PluginInfo>&) noexcept;
   ~TentaclesFx() noexcept override;
-  TentaclesFx(const TentaclesFx&) = delete;
-  TentaclesFx(const TentaclesFx&&) = delete;
+  TentaclesFx(const TentaclesFx&) noexcept = delete;
+  TentaclesFx(TentaclesFx&&) noexcept = delete;
   auto operator=(const TentaclesFx&) -> TentaclesFx& = delete;
-  auto operator=(const TentaclesFx&&) -> TentaclesFx& = delete;
+  auto operator=(TentaclesFx&&) -> TentaclesFx& = delete;
 
   [[nodiscard]] auto GetFxName() const -> std::string override;
   void SetBuffSettings(const FXBuffSettings& settings) override;

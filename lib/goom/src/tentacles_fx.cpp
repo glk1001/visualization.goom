@@ -425,10 +425,10 @@ public:
   TentaclesImpl() noexcept;
   explicit TentaclesImpl(const std::shared_ptr<const PluginInfo>& goomInfo);
   ~TentaclesImpl() noexcept = default;
-  TentaclesImpl(const TentaclesImpl&) = delete;
-  TentaclesImpl(const TentaclesImpl&&) = delete;
+  TentaclesImpl(const TentaclesImpl&) noexcept = delete;
+  TentaclesImpl(TentaclesImpl&&) noexcept = delete;
   auto operator=(const TentaclesImpl&) -> TentaclesImpl& = delete;
-  auto operator=(const TentaclesImpl&&) -> TentaclesImpl& = delete;
+  auto operator=(TentaclesImpl&&) -> TentaclesImpl& = delete;
 
   [[nodiscard]] auto GetBuffSettings() const -> const FXBuffSettings&;
   void SetBuffSettings(const FXBuffSettings& settings);
@@ -453,7 +453,7 @@ private:
       {ColorMapGroup::qualitative, 10},
       {ColorMapGroup::misc, 20},
   }}};
-  const ColorMap* m_dominantColorMap{};
+  const IColorMap* m_dominantColorMap{};
   Pixel m_dominantColor{};
   void ChangeDominantColor();
 
@@ -957,7 +957,7 @@ void TentaclesFx::TentaclesImpl::ChangeDominantColor()
 {
   m_stats.ChangeDominantColor();
   const Pixel newColor = m_dominantColorMap->GetRandomColor(0.0F, 1.0F);
-  m_dominantColor = ColorMap::GetColorMix(m_dominantColor, newColor, 0.7);
+  m_dominantColor = IColorMap::GetColorMix(m_dominantColor, newColor, 0.7);
 }
 
 inline auto TentaclesFx::TentaclesImpl::GetModColors() -> std::tuple<Pixel, Pixel>

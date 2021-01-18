@@ -18,9 +18,9 @@ public:
   TextDraw(uint32_t screenWidth, uint32_t screenHeight) noexcept;
   ~TextDraw() noexcept;
   TextDraw(const TextDraw&) noexcept = delete;
-  TextDraw(const TextDraw&&) noexcept = delete;
+  TextDraw(TextDraw&&) noexcept = delete;
   auto operator=(const TextDraw&) noexcept -> TextDraw& = delete;
-  auto operator=(const TextDraw&&) noexcept -> TextDraw& = delete;
+  auto operator=(TextDraw&&) noexcept -> TextDraw& = delete;
 
   enum class TextAlignment
   {
