@@ -73,10 +73,10 @@ class GoomEvents
 public:
   GoomEvents() noexcept;
   ~GoomEvents() = default;
-  GoomEvents(const GoomEvents&) = delete;
-  GoomEvents(const GoomEvents&&) = delete;
+  GoomEvents(const GoomEvents&) noexcept = delete;
+  GoomEvents(GoomEvents&&) noexcept = delete;
   auto operator=(const GoomEvents&) -> GoomEvents& = delete;
-  auto operator=(const GoomEvents&&) -> GoomEvents& = delete;
+  auto operator=(GoomEvents&&) -> GoomEvents& = delete;
 
   enum class GoomEvent
   {
@@ -414,10 +414,10 @@ class GoomStats
 public:
   GoomStats() noexcept = default;
   ~GoomStats() noexcept = default;
-  GoomStats(const GoomStats&) = delete;
-  GoomStats(const GoomStats&&) = delete;
+  GoomStats(const GoomStats&) noexcept = delete;
+  GoomStats(GoomStats&&) noexcept = delete;
   auto operator=(const GoomStats&) -> GoomStats& = delete;
-  auto operator=(const GoomStats&&) -> GoomStats& = delete;
+  auto operator=(GoomStats&&) -> GoomStats& = delete;
 
   void SetSongTitle(const std::string& songTitle);
   void SetStateStartValue(uint32_t stateIndex);
@@ -866,10 +866,10 @@ public:
   GoomImageBuffers() noexcept = default;
   GoomImageBuffers(uint32_t resx, uint32_t resy) noexcept;
   ~GoomImageBuffers() noexcept;
-  GoomImageBuffers(const GoomImageBuffers& val) = delete;
-  GoomImageBuffers(const GoomImageBuffers&& val) = delete;
+  GoomImageBuffers(const GoomImageBuffers&) noexcept = delete;
+  GoomImageBuffers(GoomImageBuffers&&) noexcept = delete;
   auto operator=(const GoomImageBuffers&) -> GoomImageBuffers& = delete;
-  auto operator=(const GoomImageBuffers&&) -> GoomImageBuffers& = delete;
+  auto operator=(GoomImageBuffers&&) -> GoomImageBuffers& = delete;
 
   void SetResolution(uint32_t resx, uint32_t resy);
 
@@ -1092,9 +1092,9 @@ public:
   GoomControlImpl(uint32_t screenWidth, uint32_t screenHeight) noexcept;
   ~GoomControlImpl() noexcept;
   GoomControlImpl(const GoomControlImpl&) noexcept = delete;
-  GoomControlImpl(const GoomControlImpl&&) noexcept = delete;
+  GoomControlImpl(GoomControlImpl&&) noexcept = delete;
   auto operator=(const GoomControlImpl&) noexcept -> GoomControlImpl& = delete;
-  auto operator=(const GoomControlImpl&&) noexcept -> GoomControlImpl& = delete;
+  auto operator=(GoomControlImpl&&) noexcept -> GoomControlImpl& = delete;
 
   void Swap(GoomControl::GoomControlImpl& other) noexcept = delete;
 
@@ -1130,6 +1130,7 @@ private:
   GoomMessage m_messageData{};
   GoomData m_goomData{};
   TextDraw m_text{};
+  const IColorMap* m_textColorMap{};
 
   // Line Fx
   LinesFx m_gmline1{};
@@ -1403,7 +1404,7 @@ void GoomControl::GoomControlImpl::SetFontFile(const std::string& filename)
 
   m_text.SetFontFile(filename);
   m_text.SetFontSize(30);
-  m_text.SetOutlineWidth(1);
+  m_text.SetOutlineWidth(3);
   m_text.SetAlignment(TextDraw::TextAlignment::left);
 }
 
@@ -2301,8 +2302,12 @@ void GoomControl::GoomControlImpl::DisplayText(const char* songTitle,
     m_goomData.timeOfTitleDisplay = GoomData::maxTitleDisplayTime;
   }
 
-  if (m_goomData.timeOfTitleDisplay)
+  if (m_goomData.timeOfTitleDisplay > 0)
   {
+    if (m_goomData.timeOfTitleDisplay == GoomData::maxTitleDisplayTime)
+    {
+      m_textColorMap = &(ColorMaps{}.GetRandomColorMap());
+    }
     const auto xPos = static_cast<int>(GetScreenWidth() / 10);
     const auto yPos = static_cast<int>(GetScreenHeight() / 4 + 7);
     const auto spacing = m_goomData.timeOfTitleDisplay > GoomData::timeToSpaceTitleDisplay
@@ -2339,21 +2344,21 @@ void GoomControl::GoomControlImpl::DrawText(const std::string& str,
   };
   **/
 
-  const ColorMaps colorMaps{};
-  const ColorMap& colorMap1 = colorMaps.GetRandomColorMap();
-  const ColorMap& colorMap2 = colorMaps.GetRandomColorMap();
-  //  const ColorMap& colorMap1 = colorMaps.getColorMap(colordata::ColorMapName::autumn);
+  const float t = static_cast<float>(m_goomData.timeOfTitleDisplay) /
+                  static_cast<float>(GoomData::maxTitleDisplayTime);
+  const IColorMap& charColorMap = m_goomData.timeOfTitleDisplay > GoomData::timeToSpaceTitleDisplay
+                                      ? ColorMaps{}.GetColorMap(COLOR_DATA::ColorMapName::autumn)
+                                      : ColorMaps{}.GetRandomColorMap(/*ColorMapGroup::diverging*/);
+  const float tMix = m_goomData.timeOfTitleDisplay > GoomData::timeToSpaceTitleDisplay ? 0.6 : 0.0;
+  const auto lastTextIndex = static_cast<float>(str.size() - 1);
   //  const ColorMap& colorMap2 = colorMaps.getColorMap(colordata::ColorMapName::Blues);
-  Pixel fontColor{{.r = 100, .g = 90, .b = 150, .a = 100}};
-  Pixel outlineColor{{.r = 255, .g = 255, .b = 50, .a = 255}};
+  const Pixel fontColor = m_textColorMap->GetColor(t);
+  const Pixel outlineColor = m_textColorMap->GetColor(1.0F - t);
   const auto getFontColor = [&](const size_t textIndexOfChar, float x, float y, float width,
                                 float height) {
-    //return fontColor;
-    const Pixel col1 = colorMap1.GetColor(x / width);
-    const Pixel col2 = colorMap2.GetColor(y / height);
-    //return col2;
-    //return col1;
-    return ColorMap::GetColorMix(col1, col2, 0.5);
+    const float tChar = static_cast<float>(textIndexOfChar) / lastTextIndex;
+    const Pixel charColor = charColorMap.GetColor(tChar);
+    return IColorMap::GetColorMix(fontColor, charColor, tMix);
   };
   const auto getOutlineFontColor = [&](const size_t textIndexOfChar, float x, float y, float width,
                                        float height) { return outlineColor; };
