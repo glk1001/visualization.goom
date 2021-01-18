@@ -184,7 +184,7 @@ TEST_CASE("save/restore goom dots", "[saveRestoreGoomDots]")
   GoomDotsFx dotsFx{getGoomInfo()};
   for (size_t i = 0; i < 100; i++)
   {
-    dotsFx.Apply(*prevBuff, *currentBuff);
+    dotsFx.Apply(*currentBuff);
   }
   std::stringstream ss;
   {
@@ -318,10 +318,11 @@ TEST_CASE("save/restore goom control", "[saveRestoreGoomControl]")
 {
   std::unique_ptr<PixelBuffer> outputBuff{getNewBuffer()};
 
-  constexpr uint64_t seed = 10;
-  GoomControl::SetRandSeed(seed);
+  constexpr uint64_t SEED = 10;
+  GoomControl::SetRandSeed(SEED);
   GoomControl goomControl{screenWidth, screenHeight};
   goomControl.SetScreenBuffer(*outputBuff);
+  goomControl.SetFontFile("/tmp/Rubik-Regular.ttf");
   std::vector<float> soundData(NUM_AUDIO_SAMPLES * AUDIO_SAMPLE_LEN);
   std::fill(soundData.begin(), soundData.end(), 0.5);
   const AudioSamples audioSamples{2, soundData.data()};

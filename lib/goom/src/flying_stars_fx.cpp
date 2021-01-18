@@ -38,7 +38,7 @@ public:
   StarsStats() noexcept = default;
 
   void Reset();
-  void log(const StatsLogValueFunc& f) const;
+  void Log(const StatsLogValueFunc& f) const;
   void AddBombButTooManyStars();
   void AddBomb();
   void SoundEventOccurred();
@@ -83,7 +83,7 @@ void StarsStats::Reset()
   m_numRemovedStars = 0;
 }
 
-void StarsStats::log(const StatsLogValueFunc& logVal) const
+void StarsStats::Log(const StatsLogValueFunc& logVal) const
 {
   const constexpr char* MODULE = "Stars";
 
@@ -342,7 +342,7 @@ auto FlyingStarsFx::GetFxName() const -> std::string
   return "Flying Stars FX";
 }
 
-void FlyingStarsFx::Apply(PixelBuffer&)
+void FlyingStarsFx::Apply([[maybe_unused]] PixelBuffer& buff)
 {
   throw std::logic_error("FlyingStarsFx::Apply should never be called.");
 }
@@ -430,7 +430,7 @@ void FlyingStarsFx::FlyingStarsImpl::Finish()
 
 void FlyingStarsFx::FlyingStarsImpl::Log(const StatsLogValueFunc& logVal) const
 {
-  m_stats.log(logVal);
+  m_stats.Log(logVal);
 }
 
 void FlyingStarsFx::FlyingStarsImpl::UpdateBuffers(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
@@ -468,7 +468,7 @@ void FlyingStarsFx::FlyingStarsImpl::UpdateBuffers(PixelBuffer& currentBuff, Pix
     UpdateStar(&star);
 
     // dead particule
-    if (star.age >= m_maxStarAge)
+    if (star.age >= static_cast<float>(m_maxStarAge))
     {
       m_stats.DeadStar();
       continue;
@@ -527,7 +527,7 @@ inline auto FlyingStarsFx::FlyingStarsImpl::IsStarDead(const Star& s) const -> b
 {
   return (s.x < -64) || (s.x > static_cast<float>(m_goomInfo->GetScreenInfo().width + 64)) ||
          (s.y < -64) || (s.y > static_cast<float>(m_goomInfo->GetScreenInfo().height + 64)) ||
-         (s.age >= m_maxStarAge);
+         (s.age >= static_cast<float>(this->m_maxStarAge));
 }
 
 void FlyingStarsFx::FlyingStarsImpl::ChangeColorMode()
@@ -658,7 +658,7 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
     case StarModes::fireworks:
     {
       m_stats.FireworksFxChosen();
-      const double rsq = halfHeight * halfHeight;
+      const auto rsq = static_cast<double>(halfHeight * halfHeight);
       while (true)
       {
         mx = static_cast<int32_t>(getNRand(m_goomInfo->GetScreenInfo().width));
@@ -674,31 +674,37 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
     }
     break;
     case StarModes::rain:
+    {
       m_stats.RainFxChosen();
+      const auto x0 = static_cast<int32_t>(m_goomInfo->GetScreenInfo().width / 25);
       mx = static_cast<int32_t>(
-          getRandInRange(50, static_cast<int32_t>(m_goomInfo->GetScreenInfo().width) - 50));
+          getRandInRange(x0, static_cast<int32_t>(m_goomInfo->GetScreenInfo().width) - x0));
       my = -getRandInRange(3, 64);
       radius *= 1.5;
       vage = 0.002F;
-      break;
+    }
+    break;
     case StarModes::fountain:
+    {
       m_stats.FountainFxChosen();
       m_maxStarAge *= 2.0 / 3.0;
-      mx = getRandInRange(halfWidth - 50, halfWidth + 50);
+      const int32_t x0 = halfWidth / 5;
+      mx = getRandInRange(halfWidth - x0, halfWidth + x0);
       my = static_cast<int32_t>(m_goomInfo->GetScreenInfo().height + getRandInRange(3U, 64U));
       vage = 0.001F;
       radius += 1.0F;
       gravity = 0.05F;
-      break;
+    }
+    break;
     default:
       throw std::logic_error("Unknown StarModes enum.");
   }
 
   // Why 200 ? Because the FX was developed on 320x200.
-  const float heightRatio = m_goomInfo->GetScreenInfo().height / 200.0F;
-  size_t maxStarsInBomb =
+  const auto heightRatio = static_cast<float>(m_goomInfo->GetScreenInfo().height) / 200.0F;
+  auto maxStarsInBomb = static_cast<size_t>(
       heightRatio * (100.0F + (1.0F + m_goomInfo->GetSoundInfo().GetGoomPower()) *
-                                  static_cast<float>(getNRand(150)));
+                                  static_cast<float>(getNRand(150))));
   radius *= heightRatio;
   if (m_goomInfo->GetSoundInfo().GetTimeSinceLastBigGoom() < 1)
   {
