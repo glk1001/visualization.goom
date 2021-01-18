@@ -2304,10 +2304,10 @@ void GoomControl::GoomControlImpl::DisplayText(const char* songTitle,
 {
   UpdateMessage(message);
 
-  if (fps > 0)
+  if (fps > 0.0)
   {
     const std::string text = std20::format("{.0f} fps", fps);
-    m_draw.Text(m_imageBuffers.GetP1(), 10, 24, text, 1, false);
+    DrawText(text, 10, 24, 0.0, m_imageBuffers.GetOutputBuff());
   }
 
   if (songTitle != nullptr)
@@ -2424,9 +2424,9 @@ void GoomControl::GoomControlImpl::StopRequest()
            " curGDrawables.contains(GoomDrawable::scope) = {}",
            m_goomData.stopLines, m_curGDrawables.contains(GoomDrawable::scope));
 
-  float param1 = 0;
-  float param2 = 0;
-  float amplitude = 0;
+  float param1 = 0.0;
+  float param2 = 0.0;
+  float amplitude = 0.0;
   Pixel couleur{};
   LinesFx::LineType mode;
   ChooseGoomLine(&param1, &param2, &couleur, &mode, &amplitude, 1);
@@ -2467,9 +2467,9 @@ void GoomControl::GoomControlImpl::StopRandomLineChangeMode()
     {
       m_goomData.lineMode--;
 
-      float param1 = 0;
-      float param2 = 0;
-      float amplitude = 0;
+      float param1 = 0.0;
+      float param2 = 0.0;
+      float amplitude = 0.0;
       Pixel color1{};
       LinesFx::LineType mode;
       ChooseGoomLine(&param1, &param2, &color1, &mode, &amplitude, m_goomData.stopLines);
@@ -2515,9 +2515,9 @@ void GoomControl::GoomControlImpl::DisplayLines(const AudioSamples& soundData)
       ((m_goomData.lineMode == 0) || (m_goomData.lineMode == m_goomData.drawLinesDuration)))
   {
     logDebug("cycle % 121 etc.: goomInfo->cycle = {}, rand1_3 = ?", m_cycle);
-    float param1 = 0;
-    float param2 = 0;
-    float amplitude = 0;
+    float param1 = 0.0;
+    float param2 = 0.0;
+    float amplitude = 0.0;
     Pixel color1{};
     LinesFx::LineType mode;
     ChooseGoomLine(&param1, &param2, &color1, &mode, &amplitude, m_goomData.stopLines);

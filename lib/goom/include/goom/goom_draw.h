@@ -64,9 +64,7 @@ public:
             const std::vector<Pixel>& colors,
             uint8_t thickness) const;
 
-  void Text(PixelBuffer& buff, int x, int y, const std::string& text, float charSpace, bool center);
-
-  bool operator==(const GoomDraw&) const;
+  auto operator==(const GoomDraw&) const -> bool;
 
   template<class Archive>
   void serialize(Archive&);
@@ -75,7 +73,7 @@ private:
   uint32_t m_screenWidth;
   uint32_t m_screenHeight;
   bool m_allowOverexposed = false;
-  float m_buffIntensity = 1;
+  float m_buffIntensity = 1.0;
   uint32_t m_intBuffIntensity = channel_limits<uint32_t>::max();
   bool m_fontsLoaded = false;
 };
@@ -94,16 +92,15 @@ inline void GoomDraw::SetPixelRgbNoBlend(PixelBuffer& buff,
   buff(x, y) = color;
 }
 
-inline Pixel GoomDraw::GetPixelRgb(const PixelBuffer& buff,
-                                   const uint32_t x,
-                                   const uint32_t y) const
+inline auto GoomDraw::GetPixelRgb(const PixelBuffer& buff, const uint32_t x, const uint32_t y) const
+    -> Pixel
 {
   return buff(x, y);
 }
 
-inline std::vector<Pixel> GoomDraw::GetPixelRgb(const std::vector<PixelBuffer*>& buffs,
-                                                const uint32_t x,
-                                                const uint32_t y) const
+inline auto GoomDraw::GetPixelRgb(const std::vector<PixelBuffer*>& buffs,
+                                  const uint32_t x,
+                                  const uint32_t y) const -> std::vector<Pixel>
 {
   const uint32_t pos = x + (y * m_screenWidth);
   std::vector<Pixel> colors(buffs.size());
@@ -114,7 +111,7 @@ inline std::vector<Pixel> GoomDraw::GetPixelRgb(const std::vector<PixelBuffer*>&
   return colors;
 }
 
-[[maybe_unused]] inline bool GoomDraw::GetAllowOverexposed() const
+[[maybe_unused]] inline auto GoomDraw::GetAllowOverexposed() const -> bool
 {
   return m_allowOverexposed;
 }
@@ -124,7 +121,7 @@ inline void GoomDraw::SetAllowOverexposed(const bool val)
   m_allowOverexposed = val;
 }
 
-inline float GoomDraw::GetBuffIntensity() const
+inline auto GoomDraw::GetBuffIntensity() const -> float
 {
   return m_buffIntensity;
 }

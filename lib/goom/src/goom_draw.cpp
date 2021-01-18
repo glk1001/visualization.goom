@@ -1,7 +1,6 @@
 #include "goom_draw.h"
 
 #include "draw_methods.h"
-#include "gfontlib.h"
 #include "goom_graphic.h"
 
 #include <cstdint>
@@ -21,7 +20,7 @@ GoomDraw::GoomDraw(const uint32_t screenW, const uint32_t screenH)
   SetAllowOverexposed(true);
 }
 
-bool GoomDraw::operator==(const GoomDraw& d) const
+auto GoomDraw::operator==(const GoomDraw& d) const -> bool
 {
   return m_screenWidth == d.m_screenWidth && m_screenHeight == d.m_screenHeight &&
          m_allowOverexposed == d.m_allowOverexposed && m_buffIntensity == d.m_buffIntensity &&
@@ -83,21 +82,6 @@ void GoomDraw::Line(std::vector<PixelBuffer*>& buffs,
 {
   DrawLine(buffs, x1, y1, x2, y2, colors, m_intBuffIntensity, m_allowOverexposed, thickness,
            m_screenWidth, m_screenHeight);
-}
-
-void GoomDraw::Text(PixelBuffer& buff,
-                    const int x,
-                    const int y,
-                    const std::string& text,
-                    const float charSpace,
-                    const bool center)
-{
-  if (!m_fontsLoaded)
-  {
-    gfont_load();
-    m_fontsLoaded = true;
-  }
-  goom_draw_text(buff, m_screenWidth, m_screenHeight, x, y, text.c_str(), charSpace, center);
 }
 
 void GoomDraw::SetPixelRgb(PixelBuffer& buff,
