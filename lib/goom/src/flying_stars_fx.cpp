@@ -38,7 +38,7 @@ public:
   StarsStats() noexcept = default;
 
   void Reset();
-  void Log(const StatsLogValueFunc& f) const;
+  void Log(const StatsLogValueFunc& logVal) const;
   void AddBombButTooManyStars();
   void AddBomb();
   void SoundEventOccurred();
@@ -176,13 +176,13 @@ constexpr uint32_t MAX_STAR_EXTRA_AGE = 40;
 // The different modes of the visual FX.
 enum class StarModes
 {
-  noFx = 0,
-  fireworks,
-  rain,
-  fountain,
-  _size // must be last - gives number of enums
+  NO_FX = 0,
+  FIREWORKS,
+  RAIN,
+  FOUNTAIN,
+  _SIZE // must be last - gives number of enums
 };
-constexpr size_t NUM_FX = static_cast<uint32_t>(StarModes::_size);
+constexpr size_t NUM_FX = static_cast<uint32_t>(StarModes::_SIZE);
 
 struct Star
 {
@@ -262,7 +262,7 @@ private:
   uint32_t m_counter = 0;
   static constexpr uint32_t MAX_COUNT = 100;
 
-  StarModes m_fxMode = StarModes::fireworks;
+  StarModes m_fxMode = StarModes::FIREWORKS;
   static constexpr size_t MAX_STARS_LIMIT = 1024;
   size_t m_maxStars = MAX_STARS_LIMIT;
   std::vector<Star> m_stars{};
@@ -281,7 +281,7 @@ private:
   void SoundEventOccurred();
   static void UpdateStar(Star* s);
   void ChangeColorMode();
-  [[nodiscard]] auto GetMixedColors(const Star&, float t, float brightness)
+  [[nodiscard]] auto GetMixedColors(const Star& s, float t, float brightness)
       -> std::tuple<Pixel, Pixel>;
   [[nodiscard]] auto IsStarDead(const Star& s) const -> bool;
   void AddABomb(std::shared_ptr<const ColorMap> dominantColormap,
@@ -297,9 +297,9 @@ private:
 
   friend class cereal::access;
   template<class Archive>
-  void save(Archive&) const;
+  void save(Archive& ar) const;
   template<class Archive>
-  void load(Archive&);
+  void load(Archive& ar);
 };
 
 FlyingStarsFx::FlyingStarsFx() noexcept : m_fxImpl{new FlyingStarsImpl{}}
@@ -447,7 +447,7 @@ void FlyingStarsFx::FlyingStarsImpl::UpdateBuffers(PixelBuffer& currentBuff, Pix
     {
       // Give a slight weight towards noFx mode by using numFX + 2.
       const uint32_t newVal = getNRand(NUM_FX + 2);
-      m_fxMode = newVal >= NUM_FX ? StarModes::noFx : static_cast<StarModes>(newVal);
+      m_fxMode = newVal >= NUM_FX ? StarModes::NO_FX : static_cast<StarModes>(newVal);
       ChangeColorMode();
     }
     else if (m_counter > MAX_COUNT)
@@ -549,7 +549,7 @@ inline auto FlyingStarsFx::FlyingStarsImpl::GetMixedColors(const Star& star,
                                                            const float brightness)
     -> std::tuple<Pixel, Pixel>
 {
-  static GammaCorrection gammaCorrect{4.2, 0.1};
+  static GammaCorrection s_gammaCorrect{4.2, 0.1};
 
   Pixel color;
   Pixel lowColor;
@@ -560,17 +560,17 @@ inline auto FlyingStarsFx::FlyingStarsImpl::GetMixedColors(const Star& star,
   {
     case ColorMode::sineMixColors:
     {
-      static float freq = 20;
+      static float s_freq = 20;
       static const float s_zStep = 0.1;
-      static float z = 0;
+      static float s_z = 0;
 
-      const float tSin = 0.5F * (1.0F + std::sin(freq * z));
+      const float tSin = 0.5F * (1.0F + std::sin(s_freq * s_z));
       color = star.currentColorMap->GetColor(tSin);
       lowColor = star.currentLowColorMap->GetColor(tSin);
       dominantColor = star.dominantColormap->GetColor(tSin);
       dominantLowColor = star.dominantLowColormap->GetColor(tSin);
 
-      z += s_zStep;
+      s_z += s_zStep;
       break;
     }
     case ColorMode::mixColors:
@@ -605,14 +605,14 @@ inline auto FlyingStarsFx::FlyingStarsImpl::GetMixedColors(const Star& star,
   constexpr float MAX_MIX = 0.8;
   const float tMix = std::lerp(MIN_MIX, MAX_MIX, t);
   const Pixel mixedColor =
-      gammaCorrect.getCorrection(brightness, ColorMap::GetColorMix(color, dominantColor, tMix));
+      s_gammaCorrect.getCorrection(brightness, ColorMap::GetColorMix(color, dominantColor, tMix));
   const Pixel mixedLowColor =
       getLightenedColor(ColorMap::GetColorMix(lowColor, dominantLowColor, tMix), 10.0F);
   const Pixel remixedLowColor =
       m_colorMode == ColorMode::similarLowColors
           ? mixedLowColor
-          : gammaCorrect.getCorrection(brightness,
-                                       ColorMap::GetColorMix(mixedColor, mixedLowColor, 0.4));
+          : s_gammaCorrect.getCorrection(brightness,
+                                         ColorMap::GetColorMix(mixedColor, mixedLowColor, 0.4));
 
   return std::make_tuple(mixedColor, remixedLowColor);
 }
@@ -652,10 +652,10 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
 
   switch (m_fxMode)
   {
-    case StarModes::noFx:
+    case StarModes::NO_FX:
       m_stats.NoFxChosen();
       return;
-    case StarModes::fireworks:
+    case StarModes::FIREWORKS:
     {
       m_stats.FireworksFxChosen();
       const auto rsq = static_cast<double>(halfHeight * halfHeight);
@@ -673,7 +673,7 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
       vage = m_maxAge * (1.0F - m_goomInfo->GetSoundInfo().GetGoomPower());
     }
     break;
-    case StarModes::rain:
+    case StarModes::RAIN:
     {
       m_stats.RainFxChosen();
       const auto x0 = static_cast<int32_t>(m_goomInfo->GetScreenInfo().width / 25);
@@ -684,7 +684,7 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
       vage = 0.002F;
     }
     break;
-    case StarModes::fountain:
+    case StarModes::FOUNTAIN:
     {
       m_stats.FountainFxChosen();
       m_maxStarAge *= 2.0 / 3.0;
@@ -802,13 +802,13 @@ auto FlyingStarsFx::FlyingStarsImpl::GetBombAngle(const float x,
 
   switch (m_fxMode)
   {
-    case StarModes::noFx:
+    case StarModes::NO_FX:
       return 0;
-    case StarModes::fireworks:
+    case StarModes::FIREWORKS:
       minAngle = 0;
       maxAngle = m_two_pi;
       break;
-    case StarModes::rain:
+    case StarModes::RAIN:
     {
       constexpr float MIN_RAIN_ANGLE = 0.1;
       constexpr float MAX_RAIN_ANGLE = m_pi - 0.1;
@@ -816,7 +816,7 @@ auto FlyingStarsFx::FlyingStarsImpl::GetBombAngle(const float x,
       maxAngle = std::lerp(m_half_pi + 0.1F, MAX_RAIN_ANGLE, xFactor);
       break;
     }
-    case StarModes::fountain:
+    case StarModes::FOUNTAIN:
       minAngle = 1.0F * m_pi / 3.0F;
       maxAngle = 5.0F * m_pi / 3.0F;
       break;

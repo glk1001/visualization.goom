@@ -38,7 +38,7 @@ public:
             const Pixel& srceColor,
             LineType destLineType,
             float destParam,
-            const Pixel& destColor) noexcept;
+            const Pixel& destColor);
   LinesImpl(const LinesImpl&) = delete;
   LinesImpl(const LinesImpl&&) = delete;
   auto operator=(const LinesImpl&) -> LinesImpl& = delete;
@@ -88,9 +88,9 @@ private:
 
   friend class cereal::access;
   template<class Archive>
-  void save(Archive&) const;
+  void save(Archive& ar) const;
   template<class Archive>
-  void load(Archive&);
+  void load(Archive& ar);
 };
 
 LinesFx::LinesFx() noexcept : m_fxImpl{new LinesImpl{}}
@@ -201,7 +201,7 @@ LinesFx::LinesImpl::LinesImpl(std::shared_ptr<const PluginInfo> info,
                               const Pixel& srceColor,
                               const LineType destLineTyp,
                               const float destParam,
-                              const Pixel& destColor) noexcept
+                              const Pixel& destColor)
   : m_goomInfo{std::move(info)},
     m_draw{m_goomInfo->GetScreenInfo().width, m_goomInfo->GetScreenInfo().height},
     m_points1(AUDIO_SAMPLE_LEN),
@@ -461,9 +461,9 @@ void LinesFx::LinesImpl::DrawLines(const std::vector<int16_t>& soundData,
     const float maxBrightness =
         getRandInRange(1.0F, 3.0F) * normalizedDataVal / static_cast<float>(MAX_NORMALIZED_PEAK);
     const float t = std::min(1.0F, maxBrightness);
-    static GammaCorrection gammaCorrect{4.2, 0.1};
+    static GammaCorrection s_gammaCorrect{4.2, 0.1};
     const Pixel modColor =
-        gammaCorrect.getCorrection(t, ColorMap::GetColorMix(lineColor, randColor, t));
+        s_gammaCorrect.getCorrection(t, ColorMap::GetColorMix(lineColor, randColor, t));
     return std::make_tuple(x, y, modColor);
   };
 

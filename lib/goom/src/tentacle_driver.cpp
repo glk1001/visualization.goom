@@ -76,7 +76,7 @@ TentacleDriver::TentacleDriver(const uint32_t screenW, const uint32_t screenH) n
   logDebug("Constructed TentacleDriver.");
 }
 
-bool TentacleDriver::IterationParams::operator==(const IterationParams& p) const
+auto TentacleDriver::IterationParams::operator==(const IterationParams& p) const -> bool
 {
   return numNodes == p.numNodes && prevYWeight == p.prevYWeight &&
          iterZeroYValWaveFreq == p.iterZeroYValWave && iterZeroYValWave == p.iterZeroYValWave &&
@@ -163,7 +163,7 @@ auto TentacleDriver::GetNumTentacles() const -> size_t
   return m_numTentacles;
 }
 
-TentacleDriver::ColorModes TentacleDriver::GetColorMode() const
+auto TentacleDriver::GetColorMode() const -> TentacleDriver::ColorModes
 {
   return m_colorMode;
 }
@@ -246,10 +246,10 @@ auto TentacleDriver::IterParamsGroup::GetNext(const float t) const
       std::lerp(static_cast<float>(first.prevYWeight), static_cast<float>(last.prevYWeight), t);
   IterationParams params{};
   params.length =
-      size_t(getRandInRange(1.0f, 1.1f) *
+      size_t(getRandInRange(1.0F, 1.1F) *
              std::lerp(static_cast<float>(first.length), static_cast<float>(last.length), t));
   params.numNodes =
-      size_t(getRandInRange(0.9f, 1.1f) *
+      size_t(getRandInRange(0.9F, 1.1F) *
              std::lerp(static_cast<float>(first.numNodes), static_cast<float>(last.numNodes), t));
   params.prevYWeight = prevYWeight;
   params.iterZeroYValWave = first.iterZeroYValWave;
@@ -606,8 +606,8 @@ else if (0 <= tentacle.getHead().x && tentacle.GetHead().x < 10)
       // TODO - Control brightness because of back buff??
       // One buff may be better????? Make lighten more aggressive over whole tentacle??
       // draw_line(frontBuff, ix0, iy0, ix1, iy1, color, 1280, 720);
-      constexpr uint8_t thickness = 1;
-      m_draw.Line(buffs, ix0, iy0, ix1, iy1, colors, thickness);
+      constexpr uint8_t THICKNESS = 1;
+      m_draw.Line(buffs, ix0, iy0, ix1, iy1, colors, THICKNESS);
     }
   }
 }

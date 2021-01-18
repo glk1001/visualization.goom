@@ -11,12 +11,8 @@
 #include "goomutils/mathutils.h"
 //#undef NO_LOGGING
 #include "goomutils/logging.h"
-#include "goomutils/mathutils.h"
 #include "tentacle_driver.h"
-#include "tentacles.h"
-#include "v3d.h"
 
-#include <algorithm>
 #include <cereal/archives/json.hpp>
 #include <cereal/types/memory.hpp>
 #include <cereal/types/vector.hpp>
@@ -529,9 +525,9 @@ private:
 
   friend class cereal::access;
   template<class Archive>
-  void save(Archive&) const;
+  void save(Archive& ar) const;
   template<class Archive>
-  void load(Archive&);
+  void load(Archive& ar);
 };
 
 TentaclesFx::TentaclesFx() noexcept : m_fxImpl{new TentaclesImpl{}}
@@ -573,7 +569,7 @@ void TentaclesFx::Log(const StatsLogValueFunc& logVal) const
   m_fxImpl->LogStats(logVal);
 }
 
-void TentaclesFx::Apply(PixelBuffer&)
+void TentaclesFx::Apply([[maybe_unused]] PixelBuffer& currentBuff)
 {
   throw std::logic_error("TentaclesFx::Apply should never be called.");
 }
@@ -598,7 +594,7 @@ void TentaclesFx::ApplyNoDraw()
   m_fxImpl->UpdateWithNoDraw();
 }
 
-std::string TentaclesFx::GetFxName() const
+auto TentaclesFx::GetFxName() const -> std::string
 {
   return "Tentacles FX";
 }

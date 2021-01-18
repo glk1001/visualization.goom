@@ -26,7 +26,7 @@ namespace goom
 
 using namespace goom::utils;
 
-inline bool ChangeDotColorsEvent()
+inline auto ChangeDotColorsEvent() -> bool
 {
   return probabilityOfMInN(1, 3);
 }
@@ -42,10 +42,10 @@ public:
   auto operator=(const GoomDotsImpl&) -> GoomDotsImpl& = delete;
   auto operator=(const GoomDotsImpl&&) -> GoomDotsImpl& = delete;
 
-  void setBuffSettings(const FXBuffSettings&);
+  void SetBuffSettings(const FXBuffSettings& settings);
 
-  void apply(PixelBuffer& currentBuff);
-  void apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff);
+  void Apply(PixelBuffer& currentBuff);
+  void Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff);
 
   auto operator==(const GoomDotsImpl& d) const -> bool;
 
@@ -92,9 +92,9 @@ private:
 
   friend class cereal::access;
   template<class Archive>
-  void save(Archive&) const;
+  void save(Archive& ar) const;
   template<class Archive>
-  void load(Archive&);
+  void load(Archive& ar);
 };
 
 GoomDotsFx::GoomDotsFx() noexcept : m_fxImpl{new GoomDotsImpl{}}
@@ -115,7 +115,7 @@ auto GoomDotsFx::operator==(const GoomDotsFx& d) const -> bool
 
 void GoomDotsFx::SetBuffSettings(const FXBuffSettings& settings)
 {
-  m_fxImpl->setBuffSettings(settings);
+  m_fxImpl->SetBuffSettings(settings);
 }
 
 void GoomDotsFx::Start()
@@ -137,7 +137,7 @@ void GoomDotsFx::Apply(PixelBuffer& currentBuff)
   {
     return;
   }
-  m_fxImpl->apply(currentBuff);
+  m_fxImpl->Apply(currentBuff);
 }
 
 void GoomDotsFx::Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
@@ -146,7 +146,7 @@ void GoomDotsFx::Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
   {
     return;
   }
-  m_fxImpl->apply(currentBuff, nextBuff);
+  m_fxImpl->Apply(currentBuff, nextBuff);
 }
 
 template<class Archive>
@@ -228,7 +228,7 @@ GoomDotsFx::GoomDotsImpl::GoomDotsImpl(const std::shared_ptr<const PluginInfo>& 
   ChangeColors();
 }
 
-void GoomDotsFx::GoomDotsImpl::setBuffSettings(const FXBuffSettings& settings)
+void GoomDotsFx::GoomDotsImpl::SetBuffSettings(const FXBuffSettings& settings)
 {
   m_buffSettings = settings;
   m_draw.SetBuffIntensity(m_buffSettings.buffIntensity);
@@ -248,7 +248,7 @@ void GoomDotsFx::GoomDotsImpl::ChangeColors()
   m_useGrayScale = probabilityOfMInN(0, 10);
 }
 
-void GoomDotsFx::GoomDotsImpl::apply(PixelBuffer& currentBuff)
+void GoomDotsFx::GoomDotsImpl::Apply(PixelBuffer& currentBuff)
 {
   uint32_t radius = 3;
   if ((m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom() == 0) || ChangeDotColorsEvent())
@@ -328,7 +328,8 @@ void GoomDotsFx::GoomDotsImpl::apply(PixelBuffer& currentBuff)
   }
 }
 
-void GoomDotsFx::GoomDotsImpl::apply(PixelBuffer&, PixelBuffer&)
+void GoomDotsFx::GoomDotsImpl::Apply([[maybe_unused]] PixelBuffer& currentBuff,
+                                     [[maybe_unused]] PixelBuffer& nextBuff)
 {
   throw std::logic_error("GoomDotsFx::GoomDotsImpl::Apply should never be called.");
 }

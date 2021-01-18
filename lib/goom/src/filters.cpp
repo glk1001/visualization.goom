@@ -19,7 +19,6 @@
 #include "goom_plugin_info.h"
 #include "goom_testing.h"
 #include "goom_visual_fx.h"
-#include "goomutils/colorutils.h"
 #include "goomutils/goomrand.h"
 #include "goomutils/logging_control.h"
 //#undef NO_LOGGING
@@ -44,7 +43,7 @@
 CEREAL_REGISTER_TYPE(goom::ZoomFilterFx)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::IVisualFx, goom::ZoomFilterFx)
 
-static constexpr bool serializeBuffers = false;
+static constexpr bool SERIALIZE_BUFFERS = false;
 
 namespace goom
 {
@@ -57,7 +56,7 @@ public:
   FilterStats() noexcept = default;
 
   void Reset();
-  void log(const StatsLogValueFunc&) const;
+  void Log(const StatsLogValueFunc& l) const;
   void UpdateStart();
   void UpdateEnd();
   void DoZoomVector();
@@ -116,18 +115,18 @@ private:
   uint64_t m_numGetMixedColor = 0;
   uint64_t m_numGetBlockyMixedColor = 0;
   uint64_t m_numCZoom = 0;
-  uint64_t m_numGenerateWaterFXHorizontalBuffer = 0;
-  uint64_t m_numZoomFilterFastRGB = 0;
-  uint64_t m_numZoomFilterFastRGBChangeConfig = 0;
-  uint64_t m_numZoomFilterFastRGBInterlaceStartEqualMinus1_1 = 0;
-  uint64_t m_numZoomFilterFastRGBInterlaceStartEqualMinus1_2 = 0;
-  uint64_t m_numZoomFilterFastRGBSwitchIncrNotZero = 0;
-  uint64_t m_numZoomFilterFastRGBSwitchIncrNotEqual1 = 0;
+  uint64_t m_numGenerateWaterFxHorizontalBuffer = 0;
+  uint64_t m_numZoomFilterFastRgb = 0;
+  uint64_t m_numZoomFilterFastRgbChangeConfig = 0;
+  uint64_t m_numZoomFilterFastRgbInterlaceStartEqualMinus11 = 0;
+  uint64_t m_numZoomFilterFastRgbInterlaceStartEqualMinus12 = 0;
+  uint64_t m_numZoomFilterFastRgbSwitchIncrNotZero = 0;
+  uint64_t m_numZoomFilterFastRgbSwitchIncrNotEqual1 = 0;
   uint64_t m_numCZoomOutOfRange = 0;
   uint64_t m_numCoeffVitesseBelowMin = 0;
   uint64_t m_numCoeffVitesseAboveMax = 0;
 
-  float m_lastGeneralSpeed = -1000;
+  float m_lastGeneralSpeed = -1000.0;
   uint32_t m_lastPrevX = 0;
   uint32_t m_lastPrevY = 0;
   int32_t m_lastInterlaceStart = -1000;
@@ -158,64 +157,64 @@ void FilterStats::Reset()
   m_numGetMixedColor = 0;
   m_numGetBlockyMixedColor = 0;
   m_numCZoom = 0;
-  m_numGenerateWaterFXHorizontalBuffer = 0;
-  m_numZoomFilterFastRGB = 0;
-  m_numZoomFilterFastRGBChangeConfig = 0;
-  m_numZoomFilterFastRGBInterlaceStartEqualMinus1_1 = 0;
-  m_numZoomFilterFastRGBInterlaceStartEqualMinus1_2 = 0;
-  m_numZoomFilterFastRGBSwitchIncrNotZero = 0;
-  m_numZoomFilterFastRGBSwitchIncrNotEqual1 = 0;
+  m_numGenerateWaterFxHorizontalBuffer = 0;
+  m_numZoomFilterFastRgb = 0;
+  m_numZoomFilterFastRgbChangeConfig = 0;
+  m_numZoomFilterFastRgbInterlaceStartEqualMinus11 = 0;
+  m_numZoomFilterFastRgbInterlaceStartEqualMinus12 = 0;
+  m_numZoomFilterFastRgbSwitchIncrNotZero = 0;
+  m_numZoomFilterFastRgbSwitchIncrNotEqual1 = 0;
   m_numCZoomOutOfRange = 0;
   m_numCoeffVitesseBelowMin = 0;
   m_numCoeffVitesseAboveMax = 0;
 }
 
-void FilterStats::log(const StatsLogValueFunc& logVal) const
+void FilterStats::Log(const StatsLogValueFunc& logVal) const
 {
-  const constexpr char* module = "Filter";
+  const constexpr char* MODULE = "Filter";
 
   const int32_t avTimeInUpdateMs =
       std::lround(m_numUpdates == 0 ? -1.0
                                     : static_cast<float>(m_totalTimeInUpdatesMs) /
                                           static_cast<float>(m_numUpdates));
-  logVal(module, "avTimeInUpdateMs", avTimeInUpdateMs);
-  logVal(module, "minTimeInUpdatesMs", m_minTimeInUpdatesMs);
-  logVal(module, "maxTimeInUpdatesMs", m_maxTimeInUpdatesMs);
+  logVal(MODULE, "avTimeInUpdateMs", avTimeInUpdateMs);
+  logVal(MODULE, "minTimeInUpdatesMs", m_minTimeInUpdatesMs);
+  logVal(MODULE, "maxTimeInUpdatesMs", m_maxTimeInUpdatesMs);
 
-  logVal(module, "lastGeneralSpeed", m_lastGeneralSpeed);
-  logVal(module, "lastPrevX", m_lastPrevX);
-  logVal(module, "lastPrevY", m_lastPrevY);
-  logVal(module, "lastInterlaceStart", m_lastInterlaceStart);
-  logVal(module, "lastTranDiffFactor", m_lastTranDiffFactor);
+  logVal(MODULE, "lastGeneralSpeed", m_lastGeneralSpeed);
+  logVal(MODULE, "lastPrevX", m_lastPrevX);
+  logVal(MODULE, "lastPrevY", m_lastPrevY);
+  logVal(MODULE, "lastInterlaceStart", m_lastInterlaceStart);
+  logVal(MODULE, "lastTranDiffFactor", m_lastTranDiffFactor);
 
-  logVal(module, "numZoomVectors", m_numZoomVectors);
-  logVal(module, "numZoomVectorCrystalBallMode", m_numZoomVectorCrystalBallMode);
-  logVal(module, "numZoomVectorAmuletMode", m_numZoomVectorAmuletMode);
-  logVal(module, "numZoomVectorWaveMode", m_numZoomVectorWaveMode);
-  logVal(module, "numZoomVectorScrunchMode", m_numZoomVectorScrunchMode);
-  logVal(module, "numZoomVectorSpeedwayMode", m_numZoomVectorSpeedwayMode);
-  logVal(module, "numZoomVectorDefaultMode", m_numZoomVectorDefaultMode);
-  logVal(module, "numZoomVectorNoisify", m_numZoomVectorNoisify);
-  logVal(module, "numChangeZoomVectorNoiseFactor", m_numChangeZoomVectorNoiseFactor);
-  logVal(module, "numZoomVectorHypercosEffect", m_numZoomVectorHypercosEffect);
-  logVal(module, "numZoomVectorHPlaneEffect", m_numZoomVectorHPlaneEffect);
-  logVal(module, "numZoomVectorVPlaneEffect", m_numZoomVectorVPlaneEffect);
-  logVal(module, "numMakeZoomBufferStripe", m_numMakeZoomBufferStripe);
-  logVal(module, "numGetMixedColor", m_numGetMixedColor);
-  logVal(module, "numGetBlockyMixedColor", m_numGetBlockyMixedColor);
-  logVal(module, "numCZoom", m_numCZoom);
-  logVal(module, "numGenerateWaterFXHorizontalBuffer", m_numGenerateWaterFXHorizontalBuffer);
-  logVal(module, "numZoomFilterFastRGBChangeConfig", m_numZoomFilterFastRGBChangeConfig);
-  logVal(module, "numZoomFilterFastRGBInterlaceStartEqualMinus1_1",
-         m_numZoomFilterFastRGBInterlaceStartEqualMinus1_1);
-  logVal(module, "numZoomFilterFastRGBInterlaceStartEqualMinus1_2",
-         m_numZoomFilterFastRGBInterlaceStartEqualMinus1_2);
-  logVal(module, "numZoomFilterFastRGBSwitchIncrNotZero", m_numZoomFilterFastRGBSwitchIncrNotZero);
-  logVal(module, "numZoomFilterFastRGBSwitchIncrNotEqual1",
-         m_numZoomFilterFastRGBSwitchIncrNotEqual1);
-  logVal(module, "numCZoomOutOfRange", m_numCZoomOutOfRange);
-  logVal(module, "numCoeffVitesseBelowMin", m_numCoeffVitesseBelowMin);
-  logVal(module, "numCoeffVitesseAboveMax", m_numCoeffVitesseAboveMax);
+  logVal(MODULE, "numZoomVectors", m_numZoomVectors);
+  logVal(MODULE, "numZoomVectorCrystalBallMode", m_numZoomVectorCrystalBallMode);
+  logVal(MODULE, "numZoomVectorAmuletMode", m_numZoomVectorAmuletMode);
+  logVal(MODULE, "numZoomVectorWaveMode", m_numZoomVectorWaveMode);
+  logVal(MODULE, "numZoomVectorScrunchMode", m_numZoomVectorScrunchMode);
+  logVal(MODULE, "numZoomVectorSpeedwayMode", m_numZoomVectorSpeedwayMode);
+  logVal(MODULE, "numZoomVectorDefaultMode", m_numZoomVectorDefaultMode);
+  logVal(MODULE, "numZoomVectorNoisify", m_numZoomVectorNoisify);
+  logVal(MODULE, "numChangeZoomVectorNoiseFactor", m_numChangeZoomVectorNoiseFactor);
+  logVal(MODULE, "numZoomVectorHypercosEffect", m_numZoomVectorHypercosEffect);
+  logVal(MODULE, "numZoomVectorHPlaneEffect", m_numZoomVectorHPlaneEffect);
+  logVal(MODULE, "numZoomVectorVPlaneEffect", m_numZoomVectorVPlaneEffect);
+  logVal(MODULE, "numMakeZoomBufferStripe", m_numMakeZoomBufferStripe);
+  logVal(MODULE, "numGetMixedColor", m_numGetMixedColor);
+  logVal(MODULE, "numGetBlockyMixedColor", m_numGetBlockyMixedColor);
+  logVal(MODULE, "numCZoom", m_numCZoom);
+  logVal(MODULE, "numGenerateWaterFXHorizontalBuffer", m_numGenerateWaterFxHorizontalBuffer);
+  logVal(MODULE, "numZoomFilterFastRGBChangeConfig", m_numZoomFilterFastRgbChangeConfig);
+  logVal(MODULE, "numZoomFilterFastRGBInterlaceStartEqualMinus1_1",
+         m_numZoomFilterFastRgbInterlaceStartEqualMinus11);
+  logVal(MODULE, "numZoomFilterFastRGBInterlaceStartEqualMinus1_2",
+         m_numZoomFilterFastRgbInterlaceStartEqualMinus12);
+  logVal(MODULE, "numZoomFilterFastRGBSwitchIncrNotZero", m_numZoomFilterFastRgbSwitchIncrNotZero);
+  logVal(MODULE, "numZoomFilterFastRGBSwitchIncrNotEqual1",
+         m_numZoomFilterFastRgbSwitchIncrNotEqual1);
+  logVal(MODULE, "numCZoomOutOfRange", m_numCZoomOutOfRange);
+  logVal(MODULE, "numCoeffVitesseBelowMin", m_numCoeffVitesseBelowMin);
+  logVal(MODULE, "numCoeffVitesseAboveMax", m_numCoeffVitesseAboveMax);
 }
 
 inline void FilterStats::UpdateStart()
@@ -228,8 +227,8 @@ inline void FilterStats::UpdateEnd()
 {
   const auto timeNow = std::chrono::high_resolution_clock::now();
 
-  using ms = std::chrono::milliseconds;
-  const ms diff = std::chrono::duration_cast<ms>(timeNow - m_timeNowHiRes);
+  using Ms = std::chrono::milliseconds;
+  const Ms diff = std::chrono::duration_cast<Ms>(timeNow - m_timeNowHiRes);
   const auto timeInUpdateMs = static_cast<uint32_t>(diff.count());
   if (timeInUpdateMs < m_minTimeInUpdatesMs)
   {
@@ -324,37 +323,37 @@ inline void FilterStats::DoCZoom()
 
 inline void FilterStats::DoGenerateWaterFxHorizontalBuffer()
 {
-  m_numGenerateWaterFXHorizontalBuffer++;
+  m_numGenerateWaterFxHorizontalBuffer++;
 }
 
 inline void FilterStats::DoZoomFilterFastRgb()
 {
-  m_numZoomFilterFastRGB++;
+  m_numZoomFilterFastRgb++;
 }
 
 inline void FilterStats::DoZoomFilterFastRgbChangeConfig()
 {
-  m_numZoomFilterFastRGBChangeConfig++;
+  m_numZoomFilterFastRgbChangeConfig++;
 }
 
 inline void FilterStats::DoZoomFilterFastRgbInterlaceStartEqualMinus11()
 {
-  m_numZoomFilterFastRGBInterlaceStartEqualMinus1_1++;
+  m_numZoomFilterFastRgbInterlaceStartEqualMinus11++;
 }
 
 inline void FilterStats::DoZoomFilterFastRgbInterlaceStartEqualMinus12()
 {
-  m_numZoomFilterFastRGBInterlaceStartEqualMinus1_2++;
+  m_numZoomFilterFastRgbInterlaceStartEqualMinus12++;
 }
 
 inline void FilterStats::DoZoomFilterFastRgbSwitchIncrNotEqual1()
 {
-  m_numZoomFilterFastRGBSwitchIncrNotEqual1++;
+  m_numZoomFilterFastRgbSwitchIncrNotEqual1++;
 }
 
 inline void FilterStats::DoZoomFilterFastRgbSwitchIncrNotZero()
 {
-  m_numZoomFilterFastRGBSwitchIncrNotZero++;
+  m_numZoomFilterFastRgbSwitchIncrNotZero++;
 }
 
 inline void FilterStats::DoCZoomOutOfRange()
@@ -426,14 +425,14 @@ class ZoomFilterFx::ZoomFilterImpl
 {
 public:
   ZoomFilterImpl() noexcept;
-  explicit ZoomFilterImpl(Parallel& p, const std::shared_ptr<const PluginInfo>& goomInfo) noexcept;
+  ZoomFilterImpl(Parallel& p, const std::shared_ptr<const PluginInfo>& goomInfo);
   ~ZoomFilterImpl() noexcept;
   ZoomFilterImpl(const ZoomFilterImpl&) = delete;
   ZoomFilterImpl(const ZoomFilterImpl&&) = delete;
   auto operator=(const ZoomFilterImpl&) -> ZoomFilterImpl& = delete;
   auto operator=(const ZoomFilterImpl&&) -> ZoomFilterImpl& = delete;
 
-  void setBuffSettings(const FXBuffSettings& settings);
+  void SetBuffSettings(const FXBuffSettings& settings);
 
   void ZoomFilterFastRgb(const PixelBuffer& pix1,
                          PixelBuffer& pix2,
@@ -441,7 +440,7 @@ public:
                          int32_t switchIncr,
                          float switchMult);
 
-  void log(const StatsLogValueFunc&) const;
+  void Log(const StatsLogValueFunc& l) const;
 
   auto operator==(const ZoomFilterImpl& f) const -> bool;
 
@@ -467,18 +466,18 @@ private:
   float m_generalSpeed = 0;
   int32_t m_interlaceStart = 0;
 
-  std::vector<int32_t> freeTranXSrce{}; // source
-  std::vector<int32_t> freeTranYSrce{}; // source
-  int32_t* m_tranXSrce = nullptr;
-  int32_t* m_tranYSrce = nullptr;
+  std::vector<int32_t> m_freeTranXSrce{}; // source
+  std::vector<int32_t> m_freeTranYSrce{}; // source
+  int32_t* m_tranXSrce{};
+  int32_t* m_tranYSrce{};
   std::vector<int32_t> m_freeTranXDest{}; // dest
   std::vector<int32_t> m_freeTranYDest{}; // dest
-  int32_t* m_tranXDest = nullptr;
-  int32_t* m_tranYDest = nullptr;
+  int32_t* m_tranXDest{};
+  int32_t* m_tranYDest{};
   std::vector<int32_t> m_freeTranXTemp{}; // temp (en cours de generation)
   std::vector<int32_t> m_freeTranYTemp{}; // temp (en cours de generation)
-  int32_t* m_tranXTemp = nullptr;
-  int32_t* m_tranYTemp = nullptr;
+  int32_t* m_tranXTemp{};
+  int32_t* m_tranYTemp{};
 
   // modification by jeko : fixedpoint : tranDiffFactor = (16:16) (0 <= tranDiffFactor <= 2^16)
   int32_t m_tranDiffFactor = 0;
@@ -500,9 +499,9 @@ private:
 
   friend class cereal::access;
   template<class Archive>
-  void save(Archive&) const;
+  void save(Archive& ar) const;
   template<class Archive>
-  void load(Archive&);
+  void load(Archive& ar);
 };
 
 /**
@@ -558,9 +557,9 @@ void ZoomFilterFx::ZoomFilterImpl::save(Archive& ar) const
      CEREAL_NVP(m_minNormCoordVal), CEREAL_NVP(m_filterData), CEREAL_NVP(m_buffSettings),
      CEREAL_NVP(m_generalSpeed), CEREAL_NVP(m_interlaceStart), CEREAL_NVP(m_tranDiffFactor));
 
-  if (serializeBuffers)
+  if (SERIALIZE_BUFFERS)
   {
-    ar(CEREAL_NVP(freeTranXSrce), CEREAL_NVP(freeTranYSrce), CEREAL_NVP(m_freeTranXDest),
+    ar(CEREAL_NVP(m_freeTranXSrce), CEREAL_NVP(m_freeTranYSrce), CEREAL_NVP(m_freeTranXDest),
        CEREAL_NVP(m_freeTranYDest), CEREAL_NVP(m_freeTranXTemp), CEREAL_NVP(m_freeTranYTemp),
        CEREAL_NVP(m_firedec));
   }
@@ -574,16 +573,16 @@ void ZoomFilterFx::ZoomFilterImpl::load(Archive& ar)
      CEREAL_NVP(m_minNormCoordVal), CEREAL_NVP(m_filterData), CEREAL_NVP(m_buffSettings),
      CEREAL_NVP(m_generalSpeed), CEREAL_NVP(m_interlaceStart), CEREAL_NVP(m_tranDiffFactor));
 
-  if (serializeBuffers)
+  if (SERIALIZE_BUFFERS)
   {
-    ar(CEREAL_NVP(freeTranXSrce), CEREAL_NVP(freeTranYSrce), CEREAL_NVP(m_freeTranXDest),
+    ar(CEREAL_NVP(m_freeTranXSrce), CEREAL_NVP(m_freeTranYSrce), CEREAL_NVP(m_freeTranXDest),
        CEREAL_NVP(m_freeTranYDest), CEREAL_NVP(m_freeTranXTemp), CEREAL_NVP(m_freeTranYTemp),
        CEREAL_NVP(m_firedec));
   }
   else
   {
-    freeTranXSrce.resize(m_bufferSize + 128);
-    freeTranYSrce.resize(m_bufferSize + 128);
+    m_freeTranXSrce.resize(m_bufferSize + 128);
+    m_freeTranYSrce.resize(m_bufferSize + 128);
     m_freeTranXDest.resize(m_bufferSize + 128);
     m_freeTranYDest.resize(m_bufferSize + 128);
     m_freeTranXTemp.resize(m_bufferSize + 128);
@@ -604,12 +603,12 @@ auto ZoomFilterFx::ZoomFilterImpl::operator==(const ZoomFilterImpl& f) const -> 
                 m_buffSettings == f.m_buffSettings && m_generalSpeed == f.m_generalSpeed &&
                 m_interlaceStart == f.m_interlaceStart && m_tranDiffFactor == f.m_tranDiffFactor;
 
-  if (serializeBuffers)
+  if (SERIALIZE_BUFFERS)
   {
-    result = result && freeTranXSrce == f.freeTranXSrce && freeTranYSrce == f.freeTranYSrce &&
-             m_freeTranXDest == f.m_freeTranXDest && m_freeTranYDest == f.m_freeTranYDest &&
-             m_freeTranXTemp == f.m_freeTranXTemp && m_freeTranYTemp == f.m_freeTranYTemp &&
-             m_firedec == f.m_firedec;
+    result = result && m_freeTranXSrce == f.m_freeTranXSrce &&
+             m_freeTranYSrce == f.m_freeTranYSrce && m_freeTranXDest == f.m_freeTranXDest &&
+             m_freeTranYDest == f.m_freeTranYDest && m_freeTranXTemp == f.m_freeTranXTemp &&
+             m_freeTranYTemp == f.m_freeTranYTemp && m_firedec == f.m_firedec;
   }
 
   if (!result)
@@ -629,7 +628,7 @@ auto ZoomFilterFx::ZoomFilterImpl::operator==(const ZoomFilterImpl& f) const -> 
             buffSettings.buffIntensity, f.buffSettings.buffIntensity);
     logInfo("generalSpeed = {}, f.generalSpeed = {}", generalSpeed, f.generalSpeed);
     logInfo("interlaceStart = {}, f.interlaceStart = {}", interlaceStart, f.interlaceStart);
-    if (serializeBuffers)
+    if (SERIALIZE_BUFFERS)
     {
       logInfo("freeTranXSrce == f.freeTranXSrce = {}", freeTranXSrce == f.freeTranXSrce);
       logInfo("freeTranYSrce == f.freeTranYSrce = {}", freeTranYSrce == f.freeTranYSrce);
@@ -645,8 +644,8 @@ auto ZoomFilterFx::ZoomFilterImpl::operator==(const ZoomFilterImpl& f) const -> 
 
 ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl() noexcept = default;
 
-ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl(
-    Parallel& p, const std::shared_ptr<const PluginInfo>& goomInfo) noexcept
+ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl(Parallel& p,
+                                             const std::shared_ptr<const PluginInfo>& goomInfo)
   : m_screenWidth{goomInfo->GetScreenInfo().width},
     m_screenHeight{goomInfo->GetScreenInfo().height},
     m_bufferSize{goomInfo->GetScreenInfo().size},
@@ -654,8 +653,8 @@ ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl(
     m_ratioNormalizedCoordToPixmap{1.0F / m_ratioPixmapToNormalizedCoord},
     m_minNormCoordVal{m_ratioPixmapToNormalizedCoord / BUFF_POINT_NUM_FLT},
     m_parallel{&p},
-    freeTranXSrce(m_bufferSize + 128),
-    freeTranYSrce(m_bufferSize + 128),
+    m_freeTranXSrce(m_bufferSize + 128),
+    m_freeTranYSrce(m_bufferSize + 128),
     m_freeTranXDest(m_bufferSize + 128),
     m_freeTranYDest(m_bufferSize + 128),
     m_freeTranXTemp(m_bufferSize + 128),
@@ -687,8 +686,8 @@ void ZoomFilterFx::ZoomFilterImpl::Init()
 
 void ZoomFilterFx::ZoomFilterImpl::InitBuffers()
 {
-  m_tranXSrce = (int32_t*)((1 + (uintptr_t((freeTranXSrce.data()))) / 128) * 128);
-  m_tranYSrce = (int32_t*)((1 + (uintptr_t((freeTranYSrce.data()))) / 128) * 128);
+  m_tranXSrce = (int32_t*)((1 + (uintptr_t((m_freeTranXSrce.data()))) / 128) * 128);
+  m_tranYSrce = (int32_t*)((1 + (uintptr_t((m_freeTranYSrce.data()))) / 128) * 128);
 
   m_tranXDest = (int32_t*)((1 + (uintptr_t((m_freeTranXDest.data()))) / 128) * 128);
   m_tranYDest = (int32_t*)((1 + (uintptr_t((m_freeTranYDest.data()))) / 128) * 128);
@@ -697,7 +696,7 @@ void ZoomFilterFx::ZoomFilterImpl::InitBuffers()
   m_tranYTemp = (int32_t*)((1 + (uintptr_t((m_freeTranYTemp.data()))) / 128) * 128);
 }
 
-void ZoomFilterFx::ZoomFilterImpl::setBuffSettings(const FXBuffSettings& settings)
+void ZoomFilterFx::ZoomFilterImpl::SetBuffSettings(const FXBuffSettings& settings)
 {
   m_buffSettings = settings;
 }
@@ -719,7 +718,7 @@ inline auto ZoomFilterFx::ZoomFilterImpl::ToPixmapCoord(const float normalizedCo
   return static_cast<int32_t>(std::lround(m_ratioNormalizedCoordToPixmap * normalizedCoord));
 }
 
-void ZoomFilterFx::ZoomFilterImpl::log(const StatsLogValueFunc& logVal) const
+void ZoomFilterFx::ZoomFilterImpl::Log(const StatsLogValueFunc& l) const
 {
   m_stats.SetLastGeneralSpeed(m_generalSpeed);
   m_stats.SetLastPrevX(m_screenWidth);
@@ -727,7 +726,7 @@ void ZoomFilterFx::ZoomFilterImpl::log(const StatsLogValueFunc& logVal) const
   m_stats.SetLastInterlaceStart(m_interlaceStart);
   m_stats.SetLastTranDiffFactor(m_tranDiffFactor);
 
-  m_stats.log(logVal);
+  m_stats.Log(l);
 }
 
 ZoomFilterFx::ZoomFilterFx() noexcept : m_fxImpl{new ZoomFilterImpl{}}
@@ -748,7 +747,7 @@ auto ZoomFilterFx::operator==(const ZoomFilterFx& f) const -> bool
 
 void ZoomFilterFx::SetBuffSettings(const FXBuffSettings& settings)
 {
-  m_fxImpl->setBuffSettings(settings);
+  m_fxImpl->SetBuffSettings(settings);
 }
 
 void ZoomFilterFx::Start()
@@ -761,10 +760,10 @@ void ZoomFilterFx::Finish()
 
 void ZoomFilterFx::Log(const StatsLogValueFunc& logVal) const
 {
-  m_fxImpl->log(logVal);
+  m_fxImpl->Log(logVal);
 }
 
-std::string ZoomFilterFx::GetFxName() const
+auto ZoomFilterFx::GetFxName() const -> std::string
 {
   return "ZoomFilter FX";
 }
@@ -1175,13 +1174,13 @@ auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float normX, const float 
       float periodicPart;
       switch (m_filterData.waveEffectType)
       {
-        case ZoomFilterData::WaveEffect::waveSinEffect:
+        case ZoomFilterData::WaveEffect::WAVE_SIN_EFFECT:
           periodicPart = std::sin(angle);
           break;
-        case ZoomFilterData::WaveEffect::waveCosEffect:
+        case ZoomFilterData::WaveEffect::WAVE_COS_EFFECT:
           periodicPart = std::cos(angle);
           break;
-        case ZoomFilterData::WaveEffect::waveSinCosEffect:
+        case ZoomFilterData::WaveEffect::WAVE_SIN_COS_EFFECT:
           periodicPart = std::sin(angle) + std::cos(angle);
           break;
         default:

@@ -155,8 +155,8 @@ inline void IfsStats::UpdateEnd()
 {
   const auto timeNow = std::chrono::high_resolution_clock::now();
 
-  using ms = std::chrono::milliseconds;
-  const ms diff = std::chrono::duration_cast<ms>(timeNow - m_timeNowHiRes);
+  using Ms = std::chrono::milliseconds;
+  const Ms diff = std::chrono::duration_cast<Ms>(timeNow - m_timeNowHiRes);
   const auto timeInUpdateMs = static_cast<uint32_t>(diff.count());
   if (timeInUpdateMs < m_minTimeInUpdatesMs)
   {
@@ -297,8 +297,10 @@ struct Similitude
   /**
   bool operator==(const Similitude& s) const
   {
-    return dbl_cx == s.dbl_cx && dbl_cy == s.dbl_cy && r == s.r && dbl_r2 == s.dbl_r2 && A == s.A && A2 == s.A2 &&
-           Ct == s.Ct && St == s.St && cosA2 == s.cosA2 && sinA2 == s.sinA2 && cx == s.cx && cy == s.cy &&
+    return dbl_cx == s.dbl_cx && dbl_cy == s.dbl_cy && r == s.r &&
+           dbl_r2 == s.dbl_r2 && A == s.A && A2 == s.A2 &&
+           Ct == s.Ct && St == s.St && cosA2 == s.cosA2 &&
+           sinA2 == s.sinA2 && cx == s.cx && cy == s.cy &&
            R == s.R && r2 == s.r2;
   }
   **/
@@ -385,7 +387,7 @@ void FractalHits::AddHit(uint32_t x, uint32_t y, const Pixel& p)
   }
 }
 
-const std::vector<IfsPoint>& FractalHits::GetBuffer()
+auto FractalHits::GetBuffer() -> const std::vector<IfsPoint>&
 {
   m_buffer.resize(m_hits.size());
   for (size_t i = 0; i < m_hits.size(); i++)
@@ -402,7 +404,9 @@ class Fractal
 {
 public:
   Fractal() noexcept = default;
-  Fractal(const std::shared_ptr<const PluginInfo>&, const ColorMaps&, IfsStats*) noexcept;
+  Fractal(const std::shared_ptr<const PluginInfo>& goomInfo,
+          const ColorMaps& cm,
+          IfsStats* s) noexcept;
   ~Fractal() noexcept = default;
   Fractal(const Fractal&) noexcept = delete;
   Fractal(const Fractal&&) noexcept = delete;
@@ -422,7 +426,7 @@ public:
   auto operator==(const Fractal& f) const -> bool;
 
   template<class Archive>
-  void serialize(Archive&);
+  void serialize(Archive& ar);
 
 private:
   static constexpr size_t MAX_SIMI = 6;
@@ -459,9 +463,9 @@ private:
       std::function<FltPoint(const Similitude& simi, float x1, float y1, float x2, float y2)>;
   IfsFunc m_curFunc{};
   auto Transform(const Similitude& simi, const FltPoint& p0) -> FltPoint;
-  static auto GaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S) -> Dbl;
-  static auto HalfGaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S) -> Dbl;
-  static constexpr Dbl Get_1_minus_exp_neg_S(const Dbl S);
+  static auto GaussRand(Dbl c, Dbl S, Dbl A_mult_1_minus_exp_neg_S) -> Dbl;
+  static auto HalfGaussRand(Dbl c, Dbl S, Dbl A_mult_1_minus_exp_neg_S) -> Dbl;
+  static constexpr auto Get_1_minus_exp_neg_S(Dbl S) -> Dbl;
 };
 
 Fractal::Fractal(const std::shared_ptr<const PluginInfo>& goomInfo,
@@ -666,7 +670,7 @@ constexpr auto Fractal::Get_1_minus_exp_neg_S(const Dbl S) -> Dbl
 
 auto Fractal::GaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S) -> Dbl
 {
-  const Dbl x = getRandInRange(0.0f, 1.0f);
+  const Dbl x = getRandInRange(0.0F, 1.0F);
   const Dbl y = A_mult_1_minus_exp_neg_S * (1.0 - std::exp(-x * x * S));
   return probabilityOfMInN(1, 2) ? c + y : c - y;
 }
@@ -778,7 +782,7 @@ public:
   auto operator==(const Colorizer& c) const -> bool;
 
   template<class Archive>
-  void serialize(Archive&);
+  void serialize(Archive& ar);
 
 private:
   WeightedColorMaps m_colorMaps{Weights<ColorMapGroup>{{
@@ -961,12 +965,12 @@ inline auto Colorizer::GetMixedColor(
     case IfsDancersFx::ColorMode::sineMixColors:
     case IfsDancersFx::ColorMode::sineMapColors:
     {
-      static float freq = 20.0F;
+      static float s_freq = 20.0F;
       constexpr float Z_STEP = 0.1F;
-      static float z = 0.0F;
+      static float s_z = 0.0F;
 
-      mixColor = GetNextMixerMapColor(0.5F * (1.0F + std::sin(freq * z)), x, y);
-      z += Z_STEP;
+      mixColor = GetNextMixerMapColor(0.5F * (1.0F + std::sin(s_freq * s_z)), x, y);
+      s_z += Z_STEP;
       if (m_colorMode == IfsDancersFx::ColorMode::sineMapColors)
       {
         tBaseMix = 1.0F - m_tBetweenColors;
@@ -987,9 +991,9 @@ inline auto Colorizer::GetMixedColor(
     mixColor = ColorMap::GetColorMix(baseColor, mixColor, tBaseMix);
   }
 
-  static GammaCorrection gammaCorrect{4.2, 0.01};
+  static GammaCorrection s_gammaCorrect{4.2, 0.01};
 
-  return gammaCorrect.getCorrection(logAlpha, mixColor);
+  return s_gammaCorrect.getCorrection(logAlpha, mixColor);
 }
 
 class LowDensityBlurrer
@@ -1001,7 +1005,7 @@ public:
   [[nodiscard]] auto GetWidth() const -> uint32_t { return m_width; }
   void SetWidth(uint32_t val);
 
-  void DoBlur(std::vector<IfsPoint>&, std::vector<PixelBuffer*>&) const;
+  void DoBlur(std::vector<IfsPoint>& lowDensityPoints, std::vector<PixelBuffer*>& buffs) const;
 
 private:
   const uint32_t m_screenWidth{};
@@ -1143,9 +1147,9 @@ private:
 
   friend class cereal::access;
   template<class Archive>
-  void save(Archive&) const;
+  void save(Archive& ar) const;
   template<class Archive>
-  void load(Archive&);
+  void load(Archive& ar);
 };
 
 
@@ -1189,7 +1193,7 @@ void IfsDancersFx::Log(const StatsLogValueFunc& logVal) const
   m_fxImpl->Log(logVal);
 }
 
-std::string IfsDancersFx::GetFxName() const
+auto IfsDancersFx::GetFxName() const -> std::string
 {
   return "IFS FX";
 }
@@ -1204,7 +1208,7 @@ void IfsDancersFx::ApplyNoDraw()
   m_fxImpl->ApplyNoDraw();
 }
 
-void IfsDancersFx::Apply(PixelBuffer&)
+void IfsDancersFx::Apply([[maybe_unused]] PixelBuffer& currentBuff)
 {
   throw std::logic_error("IfsDancersFx::Apply should never be called.");
 }
@@ -1371,7 +1375,8 @@ void IfsDancersFx::IfsDancersFxImpl::UpdateIfs(PixelBuffer& currentBuff, PixelBu
     return;
   }
 
-  // TODO: trouver meilleur soluce pour increment (mettre le code de gestion de l'ifs dans ce fichier)
+  // TODO: trouver meilleur soluce pour increment (mettre le code de gestion de l'ifs
+  //       dans ce fichier)
   //       find the best solution for increment (put the management code of the ifs in this file)
   m_cycle++;
   if (m_cycle >= CYCLE_LENGTH)

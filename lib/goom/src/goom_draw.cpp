@@ -68,7 +68,7 @@ void GoomDraw::Line(PixelBuffer& buff,
                     const Pixel& color,
                     const uint8_t thickness) const
 {
-  DrawLine(buff, x1, y1, x2, y2, color, m_intBuffIntensity, thickness, m_allowOverexposed,
+  DrawLine(buff, x1, y1, x2, y2, color, m_intBuffIntensity, m_allowOverexposed, thickness,
            m_screenWidth, m_screenHeight);
 }
 

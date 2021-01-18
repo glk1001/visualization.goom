@@ -59,13 +59,13 @@ using namespace goom::utils;
 enum class GoomDrawable
 {
   IFS = 0,
-  dots,
-  tentacles,
-  stars,
-  lines,
-  scope,
-  farScope,
-  _size
+  DOTS,
+  TENTACLES,
+  STARS,
+  LINES,
+  SCOPE,
+  FAR_SCOPE,
+  _SIZE
 };
 
 class GoomEvents
@@ -78,71 +78,68 @@ public:
   auto operator=(const GoomEvents&) -> GoomEvents& = delete;
   auto operator=(const GoomEvents&&) -> GoomEvents& = delete;
 
-  void SetGoomInfo(PluginInfo* goomInfo);
-
   enum class GoomEvent
   {
-    changeFilterMode = 0,
-    changeFilterFromAmuletMode,
-    changeState,
-    turnOffNoise,
-    changeToMegaLentMode,
-    changeLineCircleAmplitude,
-    changeLineCircleParams,
-    changeHLineParams,
-    changeVLineParams,
-    hypercosEffectOnWithWaveMode,
-    waveEffectOnWithWaveMode,
-    changeVitesseWithWaveMode,
-    waveEffectOnWithCrystalBallMode,
-    hypercosEffectOnWithCrystalBallMode,
-    hypercosEffectOnWithHyperCos1Mode,
-    hypercosEffectOnWithHyperCos2Mode,
-    filterReverseOffAndStopSpeed,
-    filterReverseOn,
-    filterVitesseStopSpeedMinus1,
-    filterVitesseStopSpeedPlus1,
-    filterZeroHPlaneEffect,
-    filterChangeVitesseAndToggleReverse,
-    reduceLineMode,
-    updateLineMode,
-    changeLineToBlack,
-    changeGoomLine,
-    ifsRenew,
-    changeBlockyWavyToOn,
-    changeZoomFilterAllowOverexposedToOn,
-    allowStrangeWaveValues,
-    _size // must be last - gives number of enums
+    CHANGE_FILTER_MODE = 0,
+    CHANGE_FILTER_FROM_AMULET_MODE,
+    CHANGE_STATE,
+    TURN_OFF_NOISE,
+    CHANGE_TO_MEGA_LENT_MODE,
+    CHANGE_LINE_CIRCLE_AMPLITUDE,
+    CHANGE_LINE_CIRCLE_PARAMS,
+    CHANGE_H_LINE_PARAMS,
+    CHANGE_V_LINE_PARAMS,
+    HYPERCOS_EFFECT_ON_WITH_WAVE_MODE,
+    WAVE_EFFECT_ON_WITH_WAVE_MODE,
+    CHANGE_VITESSE_WITH_WAVE_MODE,
+    WAVE_EFFECT_ON_WITH_CRYSTAL_BALL_MODE,
+    HYPERCOS_EFFECT_ON_WITH_CRYSTAL_BALL_MODE,
+    HYPERCOS_EFFECT_ON_WITH_HYPER_COS1_MODE,
+    HYPERCOS_EFFECT_ON_WITH_HYPER_COS2_MODE,
+    FILTER_REVERSE_OFF_AND_STOP_SPEED,
+    FILTER_REVERSE_ON,
+    FILTER_VITESSE_STOP_SPEED_MINUS1,
+    FILTER_VITESSE_STOP_SPEED_PLUS1,
+    FILTER_ZERO_H_PLANE_EFFECT,
+    FILTER_CHANGE_VITESSE_AND_TOGGLE_REVERSE,
+    REDUCE_LINE_MODE,
+    UPDATE_LINE_MODE,
+    CHANGE_LINE_TO_BLACK,
+    CHANGE_GOOM_LINE,
+    IFS_RENEW,
+    CHANGE_BLOCKY_WAVY_TO_ON,
+    CHANGE_ZOOM_FILTER_ALLOW_OVEREXPOSED_TO_ON,
+    ALLOW_STRANGE_WAVE_VALUES,
+    _SIZE // must be last - gives number of enums
   };
 
   enum GoomFilterEvent
   {
-    waveModeWithHyperCosEffect,
-    waveMode,
-    crystalBallMode,
-    crystalBallModeWithEffects,
-    amuletMode,
-    waterMode,
-    scrunchMode,
-    scrunchModeWithEffects,
-    hyperCos1Mode,
-    hyperCos2Mode,
-    yOnlyMode,
-    speedwayMode,
-    normalMode,
-    _size // must be last - gives number of enums
+    WAVE_MODE_WITH_HYPER_COS_EFFECT,
+    WAVE_MODE,
+    CRYSTAL_BALL_MODE,
+    CRYSTAL_BALL_MODE_WITH_EFFECTS,
+    AMULET_MODE,
+    WATER_MODE,
+    SCRUNCH_MODE,
+    SCRUNCH_MODE_WITH_EFFECTS,
+    HYPER_COS1_MODE,
+    HYPER_COS2_MODE,
+    Y_ONLY_MODE,
+    SPEEDWAY_MODE,
+    NORMAL_MODE,
+    _SIZE // must be last - gives number of enums
   };
 
-  auto Happens(GoomEvent event) const -> bool;
+  static auto Happens(GoomEvent event) -> bool;
   auto GetRandomFilterEvent() const -> GoomFilterEvent;
   auto GetRandomLineTypeEvent() const -> LinesFx::LineType;
 
 private:
-  PluginInfo* m_goomInfo{};
-  mutable GoomFilterEvent m_lastReturnedFilterEvent = GoomFilterEvent::_size;
+  mutable GoomFilterEvent m_lastReturnedFilterEvent = GoomFilterEvent::_SIZE;
 
-  static constexpr size_t NUM_GOOM_EVENTS = static_cast<size_t>(GoomEvent::_size);
-  static constexpr size_t NUM_GOOM_FILTER_EVENTS = static_cast<size_t>(GoomFilterEvent::_size);
+  static constexpr size_t NUM_GOOM_EVENTS = static_cast<size_t>(GoomEvent::_SIZE);
+  static constexpr size_t NUM_GOOM_FILTER_EVENTS = static_cast<size_t>(GoomFilterEvent::_SIZE);
 
   struct WeightedEvent
   {
@@ -153,52 +150,52 @@ private:
   };
   // clang-format off
   static constexpr std::array<WeightedEvent, NUM_GOOM_EVENTS> WEIGHTED_EVENTS{{
-    { .event = GoomEvent::changeFilterMode,                     .m = 1, .outOf =  16 },
-    { .event = GoomEvent::changeFilterFromAmuletMode,           .m = 1, .outOf =   5 },
-    { .event = GoomEvent::changeState,                          .m = 1, .outOf =   2 },
-    { .event = GoomEvent::turnOffNoise,                         .m = 5, .outOf =   5 },
-    { .event = GoomEvent::changeToMegaLentMode,                 .m = 1, .outOf = 700 },
-    { .event = GoomEvent::changeLineCircleAmplitude,            .m = 1, .outOf =   3 },
-    { .event = GoomEvent::changeLineCircleParams,               .m = 1, .outOf =   2 },
-    { .event = GoomEvent::changeHLineParams,                    .m = 3, .outOf =   4 },
-    { .event = GoomEvent::changeVLineParams,                    .m = 2, .outOf =   3 },
-    { .event = GoomEvent::hypercosEffectOnWithWaveMode,         .m = 1, .outOf =   2 },
-    { .event = GoomEvent::waveEffectOnWithWaveMode,             .m = 1, .outOf =   3 },
-    { .event = GoomEvent::changeVitesseWithWaveMode,            .m = 1, .outOf =   2 },
-    { .event = GoomEvent::waveEffectOnWithCrystalBallMode,      .m = 1, .outOf =   4 },
-    { .event = GoomEvent::hypercosEffectOnWithCrystalBallMode,  .m = 1, .outOf =   2 },
-    { .event = GoomEvent::hypercosEffectOnWithHyperCos1Mode,    .m = 1, .outOf =   3 },
-    { .event = GoomEvent::hypercosEffectOnWithHyperCos2Mode,    .m = 1, .outOf =   6 },
-    { .event = GoomEvent::filterReverseOffAndStopSpeed,         .m = 1, .outOf =   5 },
-    { .event = GoomEvent::filterReverseOn,                      .m = 1, .outOf =  10 },
-    { .event = GoomEvent::filterVitesseStopSpeedMinus1,         .m = 1, .outOf =  10 },
-    { .event = GoomEvent::filterVitesseStopSpeedPlus1,          .m = 1, .outOf =  12 },
-    { .event = GoomEvent::filterZeroHPlaneEffect,               .m = 1, .outOf =   2 },
-    { .event = GoomEvent::filterChangeVitesseAndToggleReverse,  .m = 1, .outOf =  40 },
-    { .event = GoomEvent::reduceLineMode,                       .m = 1, .outOf =   5 },
-    { .event = GoomEvent::updateLineMode,                       .m = 1, .outOf =   4 },
-    { .event = GoomEvent::changeLineToBlack,                    .m = 1, .outOf =   2 },
-    { .event = GoomEvent::changeGoomLine,                       .m = 1, .outOf =   3 },
-    { .event = GoomEvent::ifsRenew,                             .m = 2, .outOf =   3 },
-    { .event = GoomEvent::changeBlockyWavyToOn,                 .m = 1, .outOf =  10 },
-    { .event = GoomEvent::changeZoomFilterAllowOverexposedToOn, .m = 8, .outOf =  10 },
-    { .event = GoomEvent::allowStrangeWaveValues,               .m = 5, .outOf =  10 },
+    {  .event = GoomEvent::CHANGE_FILTER_MODE,                         .m = 1, .outOf =  16 },
+    {  .event = GoomEvent::CHANGE_FILTER_FROM_AMULET_MODE,             .m = 1, .outOf =   5 },
+    {  .event = GoomEvent::CHANGE_STATE,                               .m = 1, .outOf =   2 },
+    {  .event = GoomEvent::TURN_OFF_NOISE,                             .m = 5, .outOf =   5 },
+    {  .event = GoomEvent::CHANGE_TO_MEGA_LENT_MODE,                   .m = 1, .outOf = 700 },
+    {  .event = GoomEvent::CHANGE_LINE_CIRCLE_AMPLITUDE,               .m = 1, .outOf =   3 },
+    {  .event = GoomEvent::CHANGE_LINE_CIRCLE_PARAMS,                  .m = 1, .outOf =   2 },
+    {  .event = GoomEvent::CHANGE_H_LINE_PARAMS,                       .m = 3, .outOf =   4 },
+    {  .event = GoomEvent::CHANGE_V_LINE_PARAMS,                       .m = 2, .outOf =   3 },
+    {  .event = GoomEvent::HYPERCOS_EFFECT_ON_WITH_WAVE_MODE,          .m = 1, .outOf =   2 },
+    { .event = GoomEvent::WAVE_EFFECT_ON_WITH_WAVE_MODE,              .m = 1, .outOf =   3 },
+    { .event = GoomEvent::CHANGE_VITESSE_WITH_WAVE_MODE,              .m = 1, .outOf =   2 },
+    { .event = GoomEvent::WAVE_EFFECT_ON_WITH_CRYSTAL_BALL_MODE,      .m = 1, .outOf =   4 },
+    { .event = GoomEvent::HYPERCOS_EFFECT_ON_WITH_CRYSTAL_BALL_MODE,  .m = 1, .outOf =   2 },
+    { .event = GoomEvent::HYPERCOS_EFFECT_ON_WITH_HYPER_COS1_MODE,    .m = 1, .outOf =   3 },
+    { .event = GoomEvent::HYPERCOS_EFFECT_ON_WITH_HYPER_COS2_MODE,    .m = 1, .outOf =   6 },
+    { .event = GoomEvent::FILTER_REVERSE_OFF_AND_STOP_SPEED,          .m = 1, .outOf =   5 },
+    { .event = GoomEvent::FILTER_REVERSE_ON,                          .m = 1, .outOf =  10 },
+    { .event = GoomEvent::FILTER_VITESSE_STOP_SPEED_MINUS1,           .m = 1, .outOf =  10 },
+    { .event = GoomEvent::FILTER_VITESSE_STOP_SPEED_PLUS1,            .m = 1, .outOf =  12 },
+    { .event = GoomEvent::FILTER_ZERO_H_PLANE_EFFECT,                 .m = 1, .outOf =   2 },
+    { .event = GoomEvent::FILTER_CHANGE_VITESSE_AND_TOGGLE_REVERSE,   .m = 1, .outOf =  40 },
+    { .event = GoomEvent::REDUCE_LINE_MODE,                           .m = 1, .outOf =   5 },
+    { .event = GoomEvent::UPDATE_LINE_MODE,                           .m = 1, .outOf =   4 },
+    { .event = GoomEvent::CHANGE_LINE_TO_BLACK,                       .m = 1, .outOf =   2 },
+    { .event = GoomEvent::CHANGE_GOOM_LINE,                           .m = 1, .outOf =   3 },
+    { .event = GoomEvent::IFS_RENEW,                                  .m = 2, .outOf =   3 },
+    { .event = GoomEvent::CHANGE_BLOCKY_WAVY_TO_ON,                   .m = 1, .outOf =  10 },
+    { .event = GoomEvent::CHANGE_ZOOM_FILTER_ALLOW_OVEREXPOSED_TO_ON, .m = 8, .outOf =  10 },
+    { .event = GoomEvent::ALLOW_STRANGE_WAVE_VALUES,                  .m = 5, .outOf =  10 },
   }};
 
   static constexpr std::array<std::pair<GoomFilterEvent, size_t>, NUM_GOOM_FILTER_EVENTS> WEIGHTED_FILTER_EVENTS{{
-    { GoomFilterEvent::waveModeWithHyperCosEffect,  3 },
-    { GoomFilterEvent::waveMode,                    3 },
-    { GoomFilterEvent::crystalBallMode,             1 },
-    { GoomFilterEvent::crystalBallModeWithEffects,  2 },
-    { GoomFilterEvent::amuletMode,                  2 },
-    { GoomFilterEvent::waterMode,                   2 },
-    { GoomFilterEvent::scrunchMode,                 2 },
-    { GoomFilterEvent::scrunchModeWithEffects,      2 },
-    { GoomFilterEvent::hyperCos1Mode,               3 },
-    { GoomFilterEvent::hyperCos2Mode,               2 },
-    { GoomFilterEvent::yOnlyMode,                   3 },
-    { GoomFilterEvent::speedwayMode,                3 },
-    { GoomFilterEvent::normalMode,                  2 },
+    {  GoomFilterEvent::WAVE_MODE_WITH_HYPER_COS_EFFECT, 3 },
+    {  GoomFilterEvent::WAVE_MODE,                       3 },
+    {  GoomFilterEvent::CRYSTAL_BALL_MODE,               1 },
+    {  GoomFilterEvent::CRYSTAL_BALL_MODE_WITH_EFFECTS,  2 },
+    {  GoomFilterEvent::AMULET_MODE,                     2 },
+    {  GoomFilterEvent::WATER_MODE,                      2 },
+    {  GoomFilterEvent::SCRUNCH_MODE,                    2 },
+    {  GoomFilterEvent::SCRUNCH_MODE_WITH_EFFECTS,       2 },
+    {  GoomFilterEvent::HYPER_COS1_MODE,                 3 },
+    {  GoomFilterEvent::HYPER_COS2_MODE,                 2 },
+    { GoomFilterEvent::Y_ONLY_MODE,                     3 },
+    { GoomFilterEvent::SPEEDWAY_MODE,                   3 },
+    { GoomFilterEvent::NORMAL_MODE,                     2 },
   } };
 
   static constexpr
@@ -242,7 +239,7 @@ private:
     const DrawableInfoArray drawables;
   };
   using WeightedStatesArray = std::vector<State>;
-  static const WeightedStatesArray g_States;
+  static const WeightedStatesArray STATES;
   static auto GetWeightedStates(const WeightedStatesArray& theStates)
       -> std::vector<std::pair<uint16_t, size_t>>;
   const Weights<uint16_t> m_weightedStates;
@@ -250,7 +247,7 @@ private:
 };
 
 // clang-format off
-const GoomStates::WeightedStatesArray GoomStates::g_States{{
+const GoomStates::WeightedStatesArray GoomStates::STATES{{
   {
     .weight = 1,
     .drawables {{
@@ -260,173 +257,163 @@ const GoomStates::WeightedStatesArray GoomStates::g_States{{
   {
     .weight = 1,
     .drawables {{
-      { .fx = GoomDrawable::dots,      .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::DOTS,      .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
     }},
   },
   {
     .weight = 1,
     .drawables {{
-      { .fx = GoomDrawable::stars,     .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = false } },
+      { .fx = GoomDrawable::STARS,     .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = false } },
   }},
  },
   {
     .weight = 200,
     .drawables {{
       { .fx = GoomDrawable::IFS,       .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::dots,      .buffSettings = { .buffIntensity = 0.1, .allowOverexposed = false } },
+      { .fx = GoomDrawable::DOTS,      .buffSettings = { .buffIntensity = 0.1, .allowOverexposed = false } },
     }},
   },
   {
     .weight = 200,
     .drawables {{
       { .fx = GoomDrawable::IFS,       .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::stars,     .buffSettings = { .buffIntensity = 0.3, .allowOverexposed = false } },
+      { .fx = GoomDrawable::STARS,     .buffSettings = { .buffIntensity = 0.3, .allowOverexposed = false } },
     }},
   },
   {
     .weight = 200,
     .drawables {{
-      { .fx = GoomDrawable::tentacles, .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::dots,      .buffSettings = { .buffIntensity = 0.1, .allowOverexposed = false } },
+      { .fx = GoomDrawable::TENTACLES, .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::DOTS,      .buffSettings = { .buffIntensity = 0.1, .allowOverexposed = false } },
     }},
   },
   {
     .weight = 200,
     .drawables {{
-      { .fx = GoomDrawable::tentacles, .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::lines,     .buffSettings = { .buffIntensity = 0.2, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::scope,     .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::farScope,  .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::TENTACLES, .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::LINES,     .buffSettings = { .buffIntensity = 0.2, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::SCOPE,     .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::FAR_SCOPE, .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
     }},
   },
   {
     .weight = 100,
     .drawables {{
       { .fx = GoomDrawable::IFS,       .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::dots,      .buffSettings = { .buffIntensity = 0.3, .allowOverexposed = false } },
-      { .fx = GoomDrawable::stars,     .buffSettings = { .buffIntensity = 0.3, .allowOverexposed = false } },
+      { .fx = GoomDrawable::DOTS,      .buffSettings = { .buffIntensity = 0.3, .allowOverexposed = false } },
+      { .fx = GoomDrawable::STARS,     .buffSettings = { .buffIntensity = 0.3, .allowOverexposed = false } },
     }},
   },
   {
     .weight = 20,
     .drawables {{
       { .fx = GoomDrawable::IFS,       .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = false } },
-      { .fx = GoomDrawable::tentacles, .buffSettings = { .buffIntensity = 0.2, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::stars,     .buffSettings = { .buffIntensity = 0.2, .allowOverexposed = false } },
+      { .fx = GoomDrawable::TENTACLES, .buffSettings = { .buffIntensity = 0.2, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::STARS,     .buffSettings = { .buffIntensity = 0.2, .allowOverexposed = false } },
     }},
   },
   {
     .weight = 60,
     .drawables {{
       { .fx = GoomDrawable::IFS,       .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::stars,     .buffSettings = { .buffIntensity = 0.4, .allowOverexposed = false } },
-      { .fx = GoomDrawable::lines,     .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::scope,     .buffSettings = { .buffIntensity = 0.2, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::farScope,  .buffSettings = { .buffIntensity = 0.2, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::STARS,     .buffSettings = { .buffIntensity = 0.4, .allowOverexposed = false } },
+      { .fx = GoomDrawable::LINES,     .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::SCOPE,     .buffSettings = { .buffIntensity = 0.2, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::FAR_SCOPE, .buffSettings = { .buffIntensity = 0.2, .allowOverexposed = true  } },
     }},
   },
   {
     .weight = 70,
     .drawables {{
       { .fx = GoomDrawable::IFS,       .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::tentacles, .buffSettings = { .buffIntensity = 0.2, .allowOverexposed = false } },
+      { .fx = GoomDrawable::TENTACLES, .buffSettings = { .buffIntensity = 0.2, .allowOverexposed = false } },
     }},
   },
   {
     .weight = 70,
     .drawables {{
       { .fx = GoomDrawable::IFS,       .buffSettings = { .buffIntensity = 0.2, .allowOverexposed = true } },
-      { .fx = GoomDrawable::tentacles, .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true } },
+      { .fx = GoomDrawable::TENTACLES, .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true } },
     }},
   },
   {
     .weight = 40,
     .drawables {{
-      { .fx = GoomDrawable::dots,      .buffSettings = { .buffIntensity = 0.3, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::tentacles, .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::stars,     .buffSettings = { .buffIntensity = 0.3, .allowOverexposed = false } },
-      { .fx = GoomDrawable::lines,     .buffSettings = { .buffIntensity = 0.2, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::scope,     .buffSettings = { .buffIntensity = 0.2, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::farScope,  .buffSettings = { .buffIntensity = 0.2, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::DOTS,      .buffSettings = { .buffIntensity = 0.3, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::TENTACLES, .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::STARS,     .buffSettings = { .buffIntensity = 0.3, .allowOverexposed = false } },
+      { .fx = GoomDrawable::LINES,     .buffSettings = { .buffIntensity = 0.2, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::SCOPE,     .buffSettings = { .buffIntensity = 0.2, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::FAR_SCOPE, .buffSettings = { .buffIntensity = 0.2, .allowOverexposed = true  } },
     }},
   },
   {
     .weight = 40,
     .drawables {{
-      { .fx = GoomDrawable::dots,      .buffSettings = { .buffIntensity = 0.2, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::tentacles, .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::lines,     .buffSettings = { .buffIntensity = 0.2, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::scope,     .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::farScope,  .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::DOTS,      .buffSettings = { .buffIntensity = 0.2, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::TENTACLES, .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::LINES,     .buffSettings = { .buffIntensity = 0.2, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::SCOPE,     .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::FAR_SCOPE, .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
     }},
   },
   {
     .weight = 100,
     .drawables {{
-      { .fx = GoomDrawable::dots,      .buffSettings = { .buffIntensity = 0.4, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::tentacles, .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::stars,     .buffSettings = { .buffIntensity = 0.4, .allowOverexposed = false } },
+      { .fx = GoomDrawable::DOTS,      .buffSettings = { .buffIntensity = 0.4, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::TENTACLES, .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::STARS,     .buffSettings = { .buffIntensity = 0.4, .allowOverexposed = false } },
     }},
   },
   {
     .weight = 70,
     .drawables {{
-      { .fx = GoomDrawable::dots,      .buffSettings = { .buffIntensity = 0.3, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::tentacles, .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::DOTS,      .buffSettings = { .buffIntensity = 0.3, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::TENTACLES, .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
     }},
   },
   {
     .weight = 100,
     .drawables {{
-      { .fx = GoomDrawable::tentacles, .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::stars,     .buffSettings = { .buffIntensity = 0.4, .allowOverexposed = false } },
-      { .fx = GoomDrawable::lines,     .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::farScope,  .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::TENTACLES, .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::STARS,     .buffSettings = { .buffIntensity = 0.4, .allowOverexposed = false } },
+      { .fx = GoomDrawable::LINES,     .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::FAR_SCOPE, .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
     }},
   },
   {
     .weight = 60,
     .drawables {{
-      { .fx = GoomDrawable::stars,     .buffSettings = { .buffIntensity = 0.4, .allowOverexposed = false } },
-      { .fx = GoomDrawable::lines,     .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::scope,     .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::farScope,  .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::STARS,     .buffSettings = { .buffIntensity = 0.4, .allowOverexposed = false } },
+      { .fx = GoomDrawable::LINES,     .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::SCOPE,     .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::FAR_SCOPE, .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
     }},
   },
   {
     .weight = 60,
     .drawables {{
-      { .fx = GoomDrawable::dots,      .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::stars,     .buffSettings = { .buffIntensity = 0.3, .allowOverexposed = false } },
+      { .fx = GoomDrawable::DOTS,      .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::STARS,     .buffSettings = { .buffIntensity = 0.3, .allowOverexposed = false } },
     }},
   },
   {
     .weight = 60,
     .drawables {{
-      { .fx = GoomDrawable::dots,      .buffSettings = { .buffIntensity = 0.3, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::lines,     .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::scope,     .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
-      { .fx = GoomDrawable::farScope,  .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::DOTS,      .buffSettings = { .buffIntensity = 0.3, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::LINES,     .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::SCOPE,     .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::FAR_SCOPE, .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
     }},
   },
 }};
-
-  /**
-  { .weight =  60, .drawables = { GD::IFS,                                                 GD::scope, GD::farScope }},
-  **/
-  /**
-//  { .weight =  40, .drawables = { GD::IFS,             GD::tentacles,                      GD::scope, GD::farScope }},
-  { .weight =  40, .drawables = {                      GD::tentacles,                      GD::scope, GD::farScope }},
-  { .weight =  40, .drawables = {                      GD::tentacles,                                 GD::farScope }},
-  { .weight =  40, .drawables = {                      GD::tentacles,                      GD::scope               }},
-  { .weight =  40, .drawables = {                      GD::tentacles,                                              }},
-  **/
 // clang-format on
 
 class GoomStats
 {
 public:
   GoomStats() noexcept = default;
+  ~GoomStats() noexcept = default;
   GoomStats(const GoomStats&) = delete;
   GoomStats(const GoomStats&&) = delete;
   auto operator=(const GoomStats&) -> GoomStats& = delete;
@@ -717,8 +704,8 @@ inline void GoomStats::UpdateChange(const size_t currentState,
   const auto timeNow = std::chrono::high_resolution_clock::now();
   if (m_numUpdates > 0)
   {
-    using ms = std::chrono::milliseconds;
-    const ms diff = std::chrono::duration_cast<ms>(timeNow - m_timeNowHiRes);
+    using Ms = std::chrono::milliseconds;
+    const Ms diff = std::chrono::duration_cast<Ms>(timeNow - m_timeNowHiRes);
     const auto timeInUpdateMs = static_cast<uint32_t>(diff.count());
     if (timeInUpdateMs < m_minTimeInUpdatesMs)
     {
@@ -877,7 +864,7 @@ class GoomImageBuffers
 {
 public:
   GoomImageBuffers() noexcept = default;
-  explicit GoomImageBuffers(uint32_t resx, uint32_t resy) noexcept;
+  GoomImageBuffers(uint32_t resx, uint32_t resy) noexcept;
   ~GoomImageBuffers() noexcept;
   GoomImageBuffers(const GoomImageBuffers& val) = delete;
   GoomImageBuffers(const GoomImageBuffers&& val) = delete;
@@ -893,12 +880,12 @@ public:
   void SetOutputBuff(PixelBuffer& val) { m_outputBuff = &val; }
 
   static constexpr size_t MAX_NUM_BUFFS = 10;
-  static constexpr size_t m_maxBuffInc = MAX_NUM_BUFFS / 2;
+  static constexpr size_t MAX_BUFF_INC = MAX_NUM_BUFFS / 2;
   void SetBuffInc(size_t i);
   void RotateBuffers();
 
 private:
-  std::vector<std::unique_ptr<PixelBuffer>> buffs{};
+  std::vector<std::unique_ptr<PixelBuffer>> m_buffs{};
   PixelBuffer* m_p1{};
   PixelBuffer* m_p2{};
   PixelBuffer* m_outputBuff{};
@@ -921,9 +908,9 @@ auto GoomImageBuffers::GetPixelBuffs(const uint32_t resx, const uint32_t resy)
 }
 
 GoomImageBuffers::GoomImageBuffers(const uint32_t resx, const uint32_t resy) noexcept
-  : buffs{GetPixelBuffs(resx, resy)},
-    m_p1{buffs[0].get()},
-    m_p2{buffs[1].get()},
+  : m_buffs{GetPixelBuffs(resx, resy)},
+    m_p1{m_buffs[0].get()},
+    m_p2{m_buffs[1].get()},
     m_nextBuff{MAX_NUM_BUFFS == 2 ? 0 : 2}
 {
 }
@@ -932,16 +919,16 @@ GoomImageBuffers::~GoomImageBuffers() noexcept = default;
 
 void GoomImageBuffers::SetResolution(const uint32_t resx, const uint32_t resy)
 {
-  buffs = GetPixelBuffs(resx, resy);
-  m_p1 = buffs[0].get();
-  m_p2 = buffs[1].get();
+  m_buffs = GetPixelBuffs(resx, resy);
+  m_p1 = m_buffs[0].get();
+  m_p2 = m_buffs[1].get();
   m_nextBuff = MAX_NUM_BUFFS == 2 ? 0 : 2;
   m_buffInc = 1;
 }
 
 void GoomImageBuffers::SetBuffInc(const size_t i)
 {
-  if (i < 1 || i > m_maxBuffInc)
+  if (i < 1 || i > MAX_BUFF_INC)
   {
     throw std::logic_error("Cannot set buff inc: i out of range.");
   }
@@ -951,9 +938,9 @@ void GoomImageBuffers::SetBuffInc(const size_t i)
 void GoomImageBuffers::RotateBuffers()
 {
   m_p1 = m_p2;
-  m_p2 = buffs[m_nextBuff].get();
+  m_p2 = m_buffs[m_nextBuff].get();
   m_nextBuff += +m_buffInc;
-  if (m_nextBuff >= buffs.size())
+  if (m_nextBuff >= m_buffs.size())
   {
     m_nextBuff = 0;
   }
@@ -1142,7 +1129,6 @@ private:
   std::unordered_set<GoomDrawable> m_curGDrawables{};
   GoomMessage m_messageData{};
   GoomData m_goomData{};
-  GoomDraw m_draw{};
   TextDraw m_text{};
 
   // Line Fx
@@ -1363,9 +1349,9 @@ auto GoomControl::GoomControlImpl::operator==(const GoomControlImpl& c) const ->
   return result;
 }
 
-static const Pixel lRed = GetRedLineColor();
-static const Pixel lGreen = GetGreenLineColor();
-static const Pixel lBlack = GetBlackLineColor();
+static const Pixel RED_LINE = GetRedLineColor();
+static const Pixel GREEN_LINE = GetGreenLineColor();
+static const Pixel BLACK_LINE = GetBlackLineColor();
 
 GoomControl::GoomControlImpl::GoomControlImpl() noexcept : m_parallel{}
 {
@@ -1378,24 +1364,23 @@ GoomControl::GoomControlImpl::GoomControlImpl(const uint32_t screenWidth,
     m_imageBuffers{screenWidth, screenHeight},
     m_visualFx{m_parallel, std::const_pointer_cast<const PluginInfo>(
                                std::dynamic_pointer_cast<PluginInfo>(m_goomInfo))},
-    m_draw{screenWidth, screenHeight},
     m_text{screenWidth, screenHeight},
     m_gmline1{std::const_pointer_cast<const PluginInfo>(
                   std::dynamic_pointer_cast<PluginInfo>(m_goomInfo)),
               LinesFx::LineType::hline,
               static_cast<float>(screenHeight),
-              lBlack,
+              BLACK_LINE,
               LinesFx::LineType::circle,
-              0.4f * static_cast<float>(screenHeight),
-              lGreen},
+              0.4F * static_cast<float>(screenHeight),
+              GREEN_LINE},
     m_gmline2{std::const_pointer_cast<const PluginInfo>(
                   std::dynamic_pointer_cast<PluginInfo>(m_goomInfo)),
               LinesFx::LineType::hline,
               0,
-              lBlack,
+              BLACK_LINE,
               LinesFx::LineType::circle,
               0.2F * static_cast<float>(screenHeight),
-              lRed}
+              RED_LINE}
 {
   logDebug("Initialize goom: screenWidth = {}, screenHeight = {}.", screenWidth, screenHeight);
 }
@@ -1438,12 +1423,12 @@ inline auto GoomControl::GoomControlImpl::ChangeFilterModeEventHappens() -> bool
   // then get out with a different probability.
   // (Rationale: get tentacles going earlier with another mode.)
   if ((m_goomData.zoomFilterData.mode == ZoomFilterMode::amuletMode) &&
-      m_states.GetCurrentDrawables().contains(GoomDrawable::tentacles))
+      m_states.GetCurrentDrawables().contains(GoomDrawable::TENTACLES))
   {
-    return m_goomEvent.Happens(GoomEvent::changeFilterFromAmuletMode);
+    return GoomEvents::Happens(GoomEvent::CHANGE_FILTER_FROM_AMULET_MODE);
   }
 
-  return m_goomEvent.Happens(GoomEvent::changeFilterMode);
+  return GoomEvents::Happens(GoomEvent::CHANGE_FILTER_MODE);
 }
 
 void GoomControl::GoomControlImpl::Start()
@@ -1451,7 +1436,6 @@ void GoomControl::GoomControlImpl::Start()
   m_timeInState = 0;
   ChangeState();
   ChangeFilterMode();
-  m_goomEvent.SetGoomInfo(m_goomInfo.get());
 
   m_curGDrawables = m_states.GetCurrentDrawables();
   SetNextFilterMode();
@@ -1574,7 +1558,7 @@ void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,
   // affichage et swappage des buffers...
   m_visualFx.convolve_fx->Convolve(m_imageBuffers.GetP2(), m_imageBuffers.GetOutputBuff());
 
-  m_imageBuffers.SetBuffInc(getRandInRange(1U, GoomImageBuffers::m_maxBuffInc + 1));
+  m_imageBuffers.SetBuffInc(getRandInRange(1U, GoomImageBuffers::MAX_BUFF_INC + 1));
   m_imageBuffers.RotateBuffers();
 
 #ifdef SHOW_STATE_TEXT_ON_SCREEN
@@ -1606,12 +1590,12 @@ void GoomControl::GoomControlImpl::ChooseGoomLine(float* param1,
         *amplitude = 0.8F;
         break;
       }
-      if (m_goomEvent.Happens(GoomEvent::changeLineCircleAmplitude))
+      if (GoomEvents::Happens(GoomEvent::CHANGE_LINE_CIRCLE_AMPLITUDE))
       {
         *param1 = *param2 = 0;
         *amplitude = 3.0F;
       }
-      else if (m_goomEvent.Happens(GoomEvent::changeLineCircleParams))
+      else if (GoomEvents::Happens(GoomEvent::CHANGE_LINE_CIRCLE_PARAMS))
       {
         *param1 = 0.40F * GetScreenHeight();
         *param2 = 0.22F * GetScreenHeight();
@@ -1622,7 +1606,7 @@ void GoomControl::GoomControlImpl::ChooseGoomLine(float* param1,
       }
       break;
     case LinesFx::LineType::hline:
-      if (m_goomEvent.Happens(GoomEvent::changeHLineParams) || far)
+      if (GoomEvents::Happens(GoomEvent::CHANGE_H_LINE_PARAMS) || far)
       {
         *param1 = GetScreenHeight() / 7.0F;
         *param2 = 6.0F * GetScreenHeight() / 7.0F;
@@ -1634,7 +1618,7 @@ void GoomControl::GoomControlImpl::ChooseGoomLine(float* param1,
       }
       break;
     case LinesFx::LineType::vline:
-      if (m_goomEvent.Happens(GoomEvent::changeVLineParams) || far)
+      if (GoomEvents::Happens(GoomEvent::CHANGE_V_LINE_PARAMS) || far)
       {
         *param1 = GetScreenWidth() / 7.0F;
         *param2 = 6.0F * GetScreenWidth() / 7.0F;
@@ -1716,33 +1700,33 @@ void GoomControl::GoomControlImpl::SetNextFilterMode()
 
   switch (m_goomEvent.GetRandomFilterEvent())
   {
-    case GoomFilterEvent::yOnlyMode:
+    case GoomFilterEvent::Y_ONLY_MODE:
       m_goomData.zoomFilterData.mode = ZoomFilterMode::yOnlyMode;
       break;
-    case GoomFilterEvent::speedwayMode:
+    case GoomFilterEvent::SPEEDWAY_MODE:
       m_goomData.zoomFilterData.mode = ZoomFilterMode::speedwayMode;
       m_goomData.zoomFilterData.speedwayAmplitude = getRandInRange(
           ZoomFilterData::MIN_SPEEDWAY_AMPLITUDE, ZoomFilterData::MAX_SPEEDWAY_AMPLITUDE);
       break;
-    case GoomFilterEvent::normalMode:
+    case GoomFilterEvent::NORMAL_MODE:
       m_goomData.zoomFilterData.mode = ZoomFilterMode::normalMode;
       break;
-    case GoomFilterEvent::waveModeWithHyperCosEffect:
+    case GoomFilterEvent::WAVE_MODE_WITH_HYPER_COS_EFFECT:
       m_goomData.zoomFilterData.hypercosEffect =
-          GetHypercosEffect(m_goomEvent.Happens(GoomEvent::hypercosEffectOnWithWaveMode));
+          GetHypercosEffect(GoomEvents::Happens(GoomEvent::HYPERCOS_EFFECT_ON_WITH_WAVE_MODE));
       [[fallthrough]];
-    case GoomFilterEvent::waveMode:
+    case GoomFilterEvent::WAVE_MODE:
       m_goomData.zoomFilterData.mode = ZoomFilterMode::waveMode;
       m_goomData.zoomFilterData.reverse = false;
       m_goomData.zoomFilterData.waveEffect =
-          m_goomEvent.Happens(GoomEvent::waveEffectOnWithWaveMode);
-      if (m_goomEvent.Happens(GoomEvent::changeVitesseWithWaveMode))
+          GoomEvents::Happens(GoomEvent::WAVE_EFFECT_ON_WITH_WAVE_MODE);
+      if (GoomEvents::Happens(GoomEvent::CHANGE_VITESSE_WITH_WAVE_MODE))
       {
         m_goomData.zoomFilterData.vitesse = (m_goomData.zoomFilterData.vitesse + 127) >> 1;
       }
       m_goomData.zoomFilterData.waveEffectType =
           static_cast<ZoomFilterData::WaveEffect>(getRandInRange(0, 2));
-      if (m_goomEvent.Happens(GoomEvent::allowStrangeWaveValues))
+      if (GoomEvents::Happens(GoomEvent::ALLOW_STRANGE_WAVE_VALUES))
       {
         // BUG HERE - wrong ranges - BUT GIVES GOOD AFFECT
         m_goomData.zoomFilterData.waveAmplitude = getRandInRange(
@@ -1758,49 +1742,49 @@ void GoomControl::GoomControlImpl::SetNextFilterMode()
             ZoomFilterData::MIN_WAVE_FREQ_FACTOR, ZoomFilterData::MAX_WAVE_FREQ_FACTOR);
       }
       break;
-    case GoomFilterEvent::crystalBallMode:
+    case GoomFilterEvent::CRYSTAL_BALL_MODE:
       m_goomData.zoomFilterData.mode = ZoomFilterMode::crystalBallMode;
       m_goomData.zoomFilterData.crystalBallAmplitude = getRandInRange(
           ZoomFilterData::MIN_CRYSTAL_BALL_AMPLITUDE, ZoomFilterData::MAX_CRYSTAL_BALL_AMPLITUDE);
       break;
-    case GoomFilterEvent::crystalBallModeWithEffects:
+    case GoomFilterEvent::CRYSTAL_BALL_MODE_WITH_EFFECTS:
       m_goomData.zoomFilterData.mode = ZoomFilterMode::crystalBallMode;
       m_goomData.zoomFilterData.waveEffect =
-          m_goomEvent.Happens(GoomEvent::waveEffectOnWithCrystalBallMode);
-      m_goomData.zoomFilterData.hypercosEffect =
-          GetHypercosEffect(m_goomEvent.Happens(GoomEvent::hypercosEffectOnWithCrystalBallMode));
+          GoomEvents::Happens(GoomEvent::WAVE_EFFECT_ON_WITH_CRYSTAL_BALL_MODE);
+      m_goomData.zoomFilterData.hypercosEffect = GetHypercosEffect(
+          GoomEvents::Happens(GoomEvent::HYPERCOS_EFFECT_ON_WITH_CRYSTAL_BALL_MODE));
       m_goomData.zoomFilterData.crystalBallAmplitude = getRandInRange(
           ZoomFilterData::MIN_CRYSTAL_BALL_AMPLITUDE, ZoomFilterData::MAX_CRYSTAL_BALL_AMPLITUDE);
       break;
-    case GoomFilterEvent::amuletMode:
+    case GoomFilterEvent::AMULET_MODE:
       m_goomData.zoomFilterData.mode = ZoomFilterMode::amuletMode;
       m_goomData.zoomFilterData.amuletteAmplitude = getRandInRange(
           ZoomFilterData::MIN_AMULET_AMPLITUDE, ZoomFilterData::MAX_AMULET_AMPLITUDE);
       break;
-    case GoomFilterEvent::waterMode:
+    case GoomFilterEvent::WATER_MODE:
       m_goomData.zoomFilterData.mode = ZoomFilterMode::waterMode;
       break;
-    case GoomFilterEvent::scrunchMode:
+    case GoomFilterEvent::SCRUNCH_MODE:
       m_goomData.zoomFilterData.mode = ZoomFilterMode::scrunchMode;
       m_goomData.zoomFilterData.scrunchAmplitude = getRandInRange(
           ZoomFilterData::MIN_SCRUNCH_AMPLITUDE, ZoomFilterData::MAX_SCRUNCH_AMPLITUDE);
       break;
-    case GoomFilterEvent::scrunchModeWithEffects:
+    case GoomFilterEvent::SCRUNCH_MODE_WITH_EFFECTS:
       m_goomData.zoomFilterData.mode = ZoomFilterMode::scrunchMode;
       m_goomData.zoomFilterData.waveEffect = true;
       m_goomData.zoomFilterData.hypercosEffect = GetHypercosEffect(true);
       m_goomData.zoomFilterData.scrunchAmplitude = getRandInRange(
           ZoomFilterData::MIN_SCRUNCH_AMPLITUDE, ZoomFilterData::MAX_SCRUNCH_AMPLITUDE);
       break;
-    case GoomFilterEvent::hyperCos1Mode:
+    case GoomFilterEvent::HYPER_COS1_MODE:
       m_goomData.zoomFilterData.mode = ZoomFilterMode::hyperCos1Mode;
-      m_goomData.zoomFilterData.hypercosEffect =
-          GetHypercosEffect(m_goomEvent.Happens(GoomEvent::hypercosEffectOnWithHyperCos1Mode));
+      m_goomData.zoomFilterData.hypercosEffect = GetHypercosEffect(
+          GoomEvents::Happens(GoomEvent::HYPERCOS_EFFECT_ON_WITH_HYPER_COS1_MODE));
       break;
-    case GoomFilterEvent::hyperCos2Mode:
+    case GoomFilterEvent::HYPER_COS2_MODE:
       m_goomData.zoomFilterData.mode = ZoomFilterMode::hyperCos2Mode;
-      m_goomData.zoomFilterData.hypercosEffect =
-          GetHypercosEffect(m_goomEvent.Happens(GoomEvent::hypercosEffectOnWithHyperCos2Mode));
+      m_goomData.zoomFilterData.hypercosEffect = GetHypercosEffect(
+          GoomEvents::Happens(GoomEvent::HYPERCOS_EFFECT_ON_WITH_HYPER_COS2_MODE));
       break;
     default:
       throw std::logic_error("GoomFilterEvent not implemented.");
@@ -1816,7 +1800,7 @@ void GoomControl::GoomControlImpl::SetNextFilterMode()
 
   if (m_goomData.zoomFilterData.mode == ZoomFilterMode::amuletMode)
   {
-    m_curGDrawables.erase(GoomDrawable::tentacles);
+    m_curGDrawables.erase(GoomDrawable::TENTACLES);
     m_stats.TentaclesDisabled();
   }
   else
@@ -1866,7 +1850,7 @@ void GoomControl::GoomControlImpl::ChangeState()
     {
       m_visualFx.ifs_fx->Init();
     }
-    else if (m_goomEvent.Happens(GoomEvent::ifsRenew))
+    else if (GoomEvents::Happens(GoomEvent::IFS_RENEW))
     {
       m_visualFx.ifs_fx->Renew();
       m_stats.IfsRenew();
@@ -1874,18 +1858,18 @@ void GoomControl::GoomControlImpl::ChangeState()
     m_visualFx.ifs_fx->UpdateIncr();
   }
 
-  if (!m_states.IsCurrentlyDrawable(GoomDrawable::scope))
+  if (!m_states.IsCurrentlyDrawable(GoomDrawable::SCOPE))
   {
     m_goomData.stopLines = 0xf000 & 5;
   }
-  if (!m_states.IsCurrentlyDrawable(GoomDrawable::farScope))
+  if (!m_states.IsCurrentlyDrawable(GoomDrawable::FAR_SCOPE))
   {
     m_goomData.stopLines = 0;
     m_goomData.lineMode = m_goomData.drawLinesDuration;
   }
 
   // Tentacles and amulette don't look so good together.
-  if (m_states.IsCurrentlyDrawable(GoomDrawable::tentacles) &&
+  if (m_states.IsCurrentlyDrawable(GoomDrawable::TENTACLES) &&
       (m_goomData.zoomFilterData.mode == ZoomFilterMode::amuletMode))
   {
     ChangeFilterMode();
@@ -1905,28 +1889,28 @@ void GoomControl::GoomControlImpl::ChangeMilieu()
   else
   {
     // clang-format off
-    enum class MiddlePointEvents { event1, event2, event3, event4 };
-    static const Weights<MiddlePointEvents> middlePointWeights{{
-      { MiddlePointEvents::event1,  3 },
-      { MiddlePointEvents::event2,  2 },
-      { MiddlePointEvents::event3,  2 },
-      { MiddlePointEvents::event4, 18 },
+    enum class MiddlePointEvents { EVENT1, EVENT2, EVENT3, EVENT4 };
+    static const Weights<MiddlePointEvents> s_middlePointWeights{{
+      { MiddlePointEvents::EVENT1,  3 },
+      { MiddlePointEvents::EVENT2,  2 },
+      { MiddlePointEvents::EVENT3,  2 },
+      { MiddlePointEvents::EVENT4, 18 },
     }};
     // clang-format on
 
-    switch (middlePointWeights.getRandomWeighted())
+    switch (s_middlePointWeights.getRandomWeighted())
     {
-      case MiddlePointEvents::event1:
+      case MiddlePointEvents::EVENT1:
         m_goomData.zoomFilterData.middleX = GetScreenWidth() / 2;
         m_goomData.zoomFilterData.middleY = GetScreenHeight() - 1;
         break;
-      case MiddlePointEvents::event2:
+      case MiddlePointEvents::EVENT2:
         m_goomData.zoomFilterData.middleX = GetScreenWidth() - 1;
         break;
-      case MiddlePointEvents::event3:
+      case MiddlePointEvents::EVENT3:
         m_goomData.zoomFilterData.middleX = 1;
         break;
-      case MiddlePointEvents::event4:
+      case MiddlePointEvents::EVENT4:
         m_goomData.zoomFilterData.middleX = GetScreenWidth() / 2;
         m_goomData.zoomFilterData.middleY = GetScreenHeight() / 2;
         break;
@@ -1937,51 +1921,51 @@ void GoomControl::GoomControlImpl::ChangeMilieu()
 
   // clang-format off
   // @formatter:off
-  enum class PlaneEffectEvents { event1, event2, event3, event4, event5, event6, event7, event8 };
+  enum class PlaneEffectEvents { EVENT1, EVENT2, EVENT3, EVENT4, EVENT5, EVENT6, EVENT7, EVENT8 };
   static const Weights<PlaneEffectEvents> s_planeEffectWeights{{
-    { PlaneEffectEvents::event1,  1 },
-    { PlaneEffectEvents::event2,  1 },
-    { PlaneEffectEvents::event3,  4 },
-    { PlaneEffectEvents::event4,  1 },
-    { PlaneEffectEvents::event5,  1 },
-    { PlaneEffectEvents::event6,  1 },
-    { PlaneEffectEvents::event7,  1 },
-    { PlaneEffectEvents::event8,  2 },
+    { PlaneEffectEvents::EVENT1,  1 },
+    { PlaneEffectEvents::EVENT2,  1 },
+    { PlaneEffectEvents::EVENT3,  4 },
+    { PlaneEffectEvents::EVENT4,  1 },
+    { PlaneEffectEvents::EVENT5,  1 },
+    { PlaneEffectEvents::EVENT6,  1 },
+    { PlaneEffectEvents::EVENT7,  1 },
+    { PlaneEffectEvents::EVENT8,  2 },
   }};
   // clang-format on
   // @formatter:on
 
   switch (s_planeEffectWeights.getRandomWeighted())
   {
-    case PlaneEffectEvents::event1:
+    case PlaneEffectEvents::EVENT1:
       m_goomData.zoomFilterData.vPlaneEffect = getRandInRange(-2, +3);
       m_goomData.zoomFilterData.hPlaneEffect = getRandInRange(-2, +3);
       break;
-    case PlaneEffectEvents::event2:
+    case PlaneEffectEvents::EVENT2:
       m_goomData.zoomFilterData.vPlaneEffect = 0;
       m_goomData.zoomFilterData.hPlaneEffect = getRandInRange(-7, +8);
       break;
-    case PlaneEffectEvents::event3:
+    case PlaneEffectEvents::EVENT3:
       m_goomData.zoomFilterData.vPlaneEffect = getRandInRange(-5, +6);
       m_goomData.zoomFilterData.hPlaneEffect = -m_goomData.zoomFilterData.vPlaneEffect;
       break;
-    case PlaneEffectEvents::event4:
+    case PlaneEffectEvents::EVENT4:
       m_goomData.zoomFilterData.hPlaneEffect = static_cast<int>(getRandInRange(5U, 13U));
       m_goomData.zoomFilterData.vPlaneEffect = -m_goomData.zoomFilterData.hPlaneEffect;
       break;
-    case PlaneEffectEvents::event5:
+    case PlaneEffectEvents::EVENT5:
       m_goomData.zoomFilterData.vPlaneEffect = static_cast<int>(getRandInRange(5U, 13U));
       m_goomData.zoomFilterData.hPlaneEffect = -m_goomData.zoomFilterData.hPlaneEffect;
       break;
-    case PlaneEffectEvents::event6:
+    case PlaneEffectEvents::EVENT6:
       m_goomData.zoomFilterData.hPlaneEffect = 0;
       m_goomData.zoomFilterData.vPlaneEffect = getRandInRange(-9, +10);
       break;
-    case PlaneEffectEvents::event7:
+    case PlaneEffectEvents::EVENT7:
       m_goomData.zoomFilterData.hPlaneEffect = getRandInRange(-9, +10);
       m_goomData.zoomFilterData.vPlaneEffect = getRandInRange(-9, +10);
       break;
-    case PlaneEffectEvents::event8:
+    case PlaneEffectEvents::EVENT8:
       m_goomData.zoomFilterData.vPlaneEffect = 0;
       m_goomData.zoomFilterData.hPlaneEffect = 0;
       break;
@@ -2004,7 +1988,7 @@ void GoomControl::GoomControlImpl::BigNormalUpdate(ZoomFilterData** pzfd)
   {
     m_goomData.stateSelectionBlocker--;
   }
-  else if (m_goomEvent.Happens(GoomEvent::changeState))
+  else if (GoomEvents::Happens(GoomEvent::CHANGE_STATE))
   {
     m_goomData.stateSelectionBlocker = 3;
     ChangeState();
@@ -2017,32 +2001,32 @@ void GoomControl::GoomControlImpl::BigNormalUpdate(ZoomFilterData** pzfd)
       static_cast<int32_t>(3.5F * std::log10(m_goomInfo->GetSoundInfo().GetSpeed() * 60.0F + 1.0F));
   // retablir le zoom avant..
   if ((m_goomData.zoomFilterData.reverse) && (!(m_cycle % 13)) &&
-      m_goomEvent.Happens(GoomEvent::filterReverseOffAndStopSpeed))
+      GoomEvents::Happens(GoomEvent::FILTER_REVERSE_OFF_AND_STOP_SPEED))
   {
     m_goomData.zoomFilterData.reverse = false;
     m_goomData.zoomFilterData.vitesse = STOP_SPEED - 2;
     m_goomData.lockVar = 75;
     m_stats.LockChange();
   }
-  if (m_goomEvent.Happens(GoomEvent::filterReverseOn))
+  if (GoomEvents::Happens(GoomEvent::FILTER_REVERSE_ON))
   {
     m_goomData.zoomFilterData.reverse = true;
     m_goomData.lockVar = 100;
     m_stats.LockChange();
   }
 
-  if (m_goomEvent.Happens(GoomEvent::filterVitesseStopSpeedMinus1))
+  if (GoomEvents::Happens(GoomEvent::FILTER_VITESSE_STOP_SPEED_MINUS1))
   {
     m_goomData.zoomFilterData.vitesse = STOP_SPEED - 1;
   }
-  if (m_goomEvent.Happens(GoomEvent::filterVitesseStopSpeedPlus1))
+  if (GoomEvents::Happens(GoomEvent::FILTER_VITESSE_STOP_SPEED_PLUS1))
   {
     m_goomData.zoomFilterData.vitesse = STOP_SPEED + 1;
   }
 
   ChangeMilieu();
 
-  if (m_goomEvent.Happens(GoomEvent::turnOffNoise))
+  if (GoomEvents::Happens(GoomEvent::TURN_OFF_NOISE))
   {
     m_goomData.zoomFilterData.noisify = false;
   }
@@ -2055,7 +2039,7 @@ void GoomControl::GoomControlImpl::BigNormalUpdate(ZoomFilterData** pzfd)
     m_stats.DoNoise();
   }
 
-  if (!m_goomEvent.Happens(GoomEvent::changeBlockyWavyToOn))
+  if (!GoomEvents::Happens(GoomEvent::CHANGE_BLOCKY_WAVY_TO_ON))
   {
     m_goomData.zoomFilterData.blockyWavy = false;
   }
@@ -2065,7 +2049,7 @@ void GoomControl::GoomControlImpl::BigNormalUpdate(ZoomFilterData** pzfd)
     m_goomData.zoomFilterData.blockyWavy = true;
   }
 
-  if (!m_goomEvent.Happens(GoomEvent::changeZoomFilterAllowOverexposedToOn))
+  if (!GoomEvents::Happens(GoomEvent::CHANGE_ZOOM_FILTER_ALLOW_OVEREXPOSED_TO_ON))
   {
     m_visualFx.zoomFilter_fx->SetBuffSettings({.buffIntensity = 0.5, .allowOverexposed = false});
   }
@@ -2086,7 +2070,7 @@ void GoomControl::GoomControlImpl::BigNormalUpdate(ZoomFilterData** pzfd)
       (m_goomData.zoomFilterData.middleX == GetScreenWidth() - 1))
   {
     m_goomData.zoomFilterData.vPlaneEffect = 0;
-    if (m_goomEvent.Happens(GoomEvent::filterZeroHPlaneEffect))
+    if (GoomEvents::Happens(GoomEvent::FILTER_ZERO_H_PLANE_EFFECT))
     {
       m_goomData.zoomFilterData.hPlaneEffect = 0;
     }
@@ -2102,7 +2086,7 @@ void GoomControl::GoomControlImpl::BigNormalUpdate(ZoomFilterData** pzfd)
     *pzfd = &m_goomData.zoomFilterData;
     if (((newvit < (STOP_SPEED - 7)) && (m_goomData.zoomFilterData.vitesse < STOP_SPEED - 6) &&
          (m_cycle % 3 == 0)) ||
-        m_goomEvent.Happens(GoomEvent::filterChangeVitesseAndToggleReverse))
+        GoomEvents::Happens(GoomEvent::FILTER_CHANGE_VITESSE_AND_TOGGLE_REVERSE))
     {
       m_goomData.zoomFilterData.vitesse =
           STOP_SPEED - static_cast<int32_t>(getNRand(2)) + static_cast<int32_t>(getNRand(2));
@@ -2149,7 +2133,7 @@ void GoomControl::GoomControlImpl::BigUpdate(ZoomFilterData** pzfd)
   }
 
   // mode mega-lent
-  if (m_goomEvent.Happens(GoomEvent::changeToMegaLentMode))
+  if (GoomEvents::Happens(GoomEvent::CHANGE_TO_MEGA_LENT_MODE))
   {
     m_stats.MegaLentChange();
     MegaLentUpdate(pzfd);
@@ -2160,7 +2144,7 @@ void GoomControl::GoomControlImpl::BigUpdate(ZoomFilterData** pzfd)
  */
 void GoomControl::GoomControlImpl::ChangeZoomEffect(ZoomFilterData* pzfd, const int forceMode)
 {
-  if (!m_goomEvent.Happens(GoomEvent::changeBlockyWavyToOn))
+  if (!GoomEvents::Happens(GoomEvent::CHANGE_BLOCKY_WAVY_TO_ON))
   {
     m_goomData.zoomFilterData.blockyWavy = false;
   }
@@ -2170,7 +2154,7 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect(ZoomFilterData* pzfd, const 
     m_stats.DoBlockyWavy();
   }
 
-  if (!m_goomEvent.Happens(GoomEvent::changeZoomFilterAllowOverexposedToOn))
+  if (!GoomEvents::Happens(GoomEvent::CHANGE_ZOOM_FILTER_ALLOW_OVEREXPOSED_TO_ON))
   {
     m_visualFx.zoomFilter_fx->SetBuffSettings({.buffIntensity = 0.5, .allowOverexposed = false});
   }
@@ -2238,7 +2222,7 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect(ZoomFilterData* pzfd, const 
 
 void GoomControl::GoomControlImpl::ApplyTentaclesIfRequired()
 {
-  if (!m_curGDrawables.contains(GoomDrawable::tentacles))
+  if (!m_curGDrawables.contains(GoomDrawable::TENTACLES))
   {
     m_visualFx.tentacles_fx->ApplyNoDraw();
     return;
@@ -2247,20 +2231,20 @@ void GoomControl::GoomControlImpl::ApplyTentaclesIfRequired()
   logDebug("curGDrawables tentacles is set.");
   m_stats.DoTentacles();
   m_visualFx.tentacles_fx->SetBuffSettings(
-      m_states.GetCurrentBuffSettings(GoomDrawable::tentacles));
+      m_states.GetCurrentBuffSettings(GoomDrawable::TENTACLES));
   m_visualFx.tentacles_fx->Apply(m_imageBuffers.GetP2(), m_imageBuffers.GetP1());
 }
 
 void GoomControl::GoomControlImpl::ApplyStarsIfRequired()
 {
-  if (!m_curGDrawables.contains(GoomDrawable::stars))
+  if (!m_curGDrawables.contains(GoomDrawable::STARS))
   {
     return;
   }
 
   logDebug("curGDrawables stars is set.");
   m_stats.DoStars();
-  m_visualFx.star_fx->SetBuffSettings(m_states.GetCurrentBuffSettings(GoomDrawable::stars));
+  m_visualFx.star_fx->SetBuffSettings(m_states.GetCurrentBuffSettings(GoomDrawable::STARS));
   //  visualFx.star_fx->apply(imageBuffers.getP2(), imageBuffers.getP1());
   m_visualFx.star_fx->Apply(m_imageBuffers.GetP2(), m_imageBuffers.GetP1());
 }
@@ -2422,7 +2406,7 @@ void GoomControl::GoomControlImpl::StopRequest()
 {
   logDebug("goomData.stopLines = {},"
            " curGDrawables.contains(GoomDrawable::scope) = {}",
-           m_goomData.stopLines, m_curGDrawables.contains(GoomDrawable::scope));
+           m_goomData.stopLines, m_curGDrawables.contains(GoomDrawable::SCOPE));
 
   float param1 = 0.0;
   float param2 = 0.0;
@@ -2450,14 +2434,14 @@ void GoomControl::GoomControlImpl::StopRandomLineChangeMode()
       m_goomData.lineMode = 0;
     }
   }
-  else if ((m_cycle % 80 == 0) && m_goomEvent.Happens(GoomEvent::reduceLineMode) &&
+  else if ((m_cycle % 80 == 0) && GoomEvents::Happens(GoomEvent::REDUCE_LINE_MODE) &&
            m_goomData.lineMode)
   {
     m_goomData.lineMode--;
   }
 
-  if ((m_cycle % 120 == 0) && m_goomEvent.Happens(GoomEvent::updateLineMode) &&
-      m_curGDrawables.contains(GoomDrawable::scope))
+  if ((m_cycle % 120 == 0) && GoomEvents::Happens(GoomEvent::UPDATE_LINE_MODE) &&
+      m_curGDrawables.contains(GoomDrawable::SCOPE))
   {
     if (m_goomData.lineMode == 0)
     {
@@ -2478,7 +2462,7 @@ void GoomControl::GoomControlImpl::StopRandomLineChangeMode()
       if (m_goomData.stopLines)
       {
         m_goomData.stopLines--;
-        if (m_goomEvent.Happens(GoomEvent::changeLineToBlack))
+        if (GoomEvents::Happens(GoomEvent::CHANGE_LINE_TO_BLACK))
         {
           color2 = color1 = GetBlackLineColor();
         }
@@ -2495,7 +2479,7 @@ void GoomControl::GoomControlImpl::StopRandomLineChangeMode()
 
 void GoomControl::GoomControlImpl::DisplayLines(const AudioSamples& soundData)
 {
-  if (!m_curGDrawables.contains(GoomDrawable::lines))
+  if (!m_curGDrawables.contains(GoomDrawable::LINES))
   {
     return;
   }
@@ -2511,7 +2495,7 @@ void GoomControl::GoomControlImpl::DisplayLines(const AudioSamples& soundData)
   m_gmline2.DrawLines(audioSample, m_imageBuffers.GetP1(), m_imageBuffers.GetP2());
   //  gmline2.drawLines(soundData.GetSample(1), imageBuffers.getP1(), imageBuffers.getP2());
 
-  if (((m_cycle % 121) == 9) && m_goomEvent.Happens(GoomEvent::changeGoomLine) &&
+  if (((m_cycle % 121) == 9) && GoomEvents::Happens(GoomEvent::CHANGE_GOOM_LINE) &&
       ((m_goomData.lineMode == 0) || (m_goomData.lineMode == m_goomData.drawLinesDuration)))
   {
     logDebug("cycle % 121 etc.: goomInfo->cycle = {}, rand1_3 = ?", m_cycle);
@@ -2526,7 +2510,7 @@ void GoomControl::GoomControlImpl::DisplayLines(const AudioSamples& soundData)
     if (m_goomData.stopLines)
     {
       m_goomData.stopLines--;
-      if (m_goomEvent.Happens(GoomEvent::changeLineToBlack))
+      if (GoomEvents::Happens(GoomEvent::CHANGE_LINE_TO_BLACK))
       {
         color2 = color1 = GetBlackLineColor();
       }
@@ -2602,8 +2586,8 @@ void GoomControl::GoomControlImpl::ForceFilterModeIfSet(ZoomFilterData** pzfd, c
 void GoomControl::GoomControlImpl::StopIfRequested()
 {
   logDebug("goomData.stopLines = {}, curGState->scope = {}", m_goomData.stopLines,
-           m_states.IsCurrentlyDrawable(GoomDrawable::scope));
-  if ((m_goomData.stopLines & 0xf000) || !m_states.IsCurrentlyDrawable(GoomDrawable::scope))
+           m_states.IsCurrentlyDrawable(GoomDrawable::SCOPE));
+  if ((m_goomData.stopLines & 0xf000) || !m_states.IsCurrentlyDrawable(GoomDrawable::SCOPE))
   {
     StopRequest();
   }
@@ -2642,7 +2626,7 @@ void GoomControl::GoomControlImpl::RegularlyLowerTheSpeed(ZoomFilterData** pzfd)
            m_cycle);
   if ((m_cycle % 73 == 0) && (m_goomData.zoomFilterData.vitesse < (STOP_SPEED - 5)))
   {
-    logDebug("cycle % 73 = 0 && dgoomData.zoomFilterData.vitesse = {} < {} - 5, ", m_cycle,
+    logDebug("cycle % 73 = 0 && goomData.zoomFilterData.vitesse = {} < {} - 5, ", m_cycle,
              m_goomData.zoomFilterData.vitesse, STOP_SPEED);
     LowerSpeed(pzfd);
   }
@@ -2662,7 +2646,7 @@ void GoomControl::GoomControlImpl::StopDecrementingAfterAWhile(ZoomFilterData** 
 
 void GoomControl::GoomControlImpl::ApplyDotsIfRequired()
 {
-  if (!m_curGDrawables.contains(GoomDrawable::dots))
+  if (!m_curGDrawables.contains(GoomDrawable::DOTS))
   {
     return;
   }
@@ -2679,12 +2663,7 @@ GoomEvents::GoomEvents() noexcept
 {
 }
 
-void GoomEvents::SetGoomInfo(PluginInfo* info)
-{
-  m_goomInfo = info;
-}
-
-inline auto GoomEvents::Happens(const GoomEvent event) const -> bool
+inline auto GoomEvents::Happens(const GoomEvent event) -> bool
 {
   const WeightedEvent& weightedEvent = WEIGHTED_EVENTS[static_cast<size_t>(event)];
   return probabilityOfMInN(weightedEvent.m, weightedEvent.outOf);
@@ -2714,7 +2693,7 @@ inline auto GoomEvents::GetRandomLineTypeEvent() const -> LinesFx::LineType
   return m_lineTypeWeights.getRandomWeighted();
 }
 
-GoomStates::GoomStates() : m_weightedStates{GetWeightedStates(g_States)}
+GoomStates::GoomStates() : m_weightedStates{GetWeightedStates(STATES)}
 {
   DoRandomStateChange();
 }
@@ -2732,7 +2711,7 @@ inline auto GoomStates::GetCurrentStateIndex() const -> size_t
 inline auto GoomStates::GetCurrentDrawables() const -> GoomStates::DrawablesState
 {
   GoomStates::DrawablesState currentDrawables{};
-  for (const auto d : g_States[m_currentStateIndex].drawables)
+  for (const auto d : STATES[m_currentStateIndex].drawables)
   {
     currentDrawables.insert(d.fx);
   }
@@ -2741,7 +2720,7 @@ inline auto GoomStates::GetCurrentDrawables() const -> GoomStates::DrawablesStat
 
 auto GoomStates::GetCurrentBuffSettings(const GoomDrawable theFx) const -> FXBuffSettings
 {
-  for (const auto& d : g_States[m_currentStateIndex].drawables)
+  for (const auto& d : STATES[m_currentStateIndex].drawables)
   {
     if (d.fx == theFx)
     {

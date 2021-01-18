@@ -71,10 +71,14 @@ private:
   struct RectImpl : public Rect
   {
     RectImpl() noexcept = default;
+    ~RectImpl() noexcept = default;
     RectImpl(int left, int top, int right, int bottom) noexcept;
     RectImpl(const RectImpl&) noexcept = default;
+    RectImpl(const RectImpl&&) noexcept = delete;
+    auto operator=(const RectImpl&) noexcept -> RectImpl = delete;
+    auto operator=(const RectImpl&&) noexcept -> RectImpl = delete;
 
-    void Include(const Vec2& v);
+    void Include(const Vec2& span);
   };
 
   struct Spans

@@ -5,12 +5,9 @@
 #include "goomutils/colorutils.h"
 #include "goomutils/logging_control.h"
 //#undef NO_LOGGING
-#include "goomutils/goomrand.h"
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
 
-#include <algorithm>
-#include <assert.h>
 #include <cmath>
 #include <format>
 #include <limits>
@@ -388,12 +385,14 @@ auto Tentacle3D::operator==(const Tentacle3D& t) const -> bool
       return false;
     }
     /**
-    const TentacleColorMapColorizer* c1 = dynamic_cast<const TentacleColorMapColorizer*>(colorizer.get());
+    const TentacleColorMapColorizer* c1 =
+        dynamic_cast<const TentacleColorMapColorizer*>(colorizer.get());
     if (c1 == nullptr)
     {
       continue;
     }
-    const TentacleColorMapColorizer* c2 = dynamic_cast<const TentacleColorMapColorizer*>(t.colorizer.get());
+    const TentacleColorMapColorizer* c2 =
+        dynamic_cast<const TentacleColorMapColorizer*>(t.colorizer.get());
     if (c2 == nullptr)
     {
       logInfo("Tentacle3D colorizer not of same type");
@@ -478,24 +477,13 @@ auto Tentacle3D::GetMixedColors(size_t nodeNum,
   //constexpr float gamma = 4.2;
   //const float brightnessWithGamma = std::pow(brightness, 1.0F / gamma);
   const float brightnessWithGamma = brightness;
-  //  const float brightnessWithGamma = std::max(0.4F, std::pow(brightness * getLuma(color), 1.0F / gamma));
-  //  const float brightnessWithGammaLow = std::max(0.4F, std::pow(brightness * getLuma(colorLow), 1.0F / gamma));
+  //  const float brightnessWithGamma =
+  //      std::max(0.4F, std::pow(brightness * getLuma(color), 1.0F / gamma));
+  //  const float brightnessWithGammaLow =
+  //      std::max(0.4F, std::pow(brightness * getLuma(colorLow), 1.0F / gamma));
   return std::make_tuple(
       getBrighterColor(brightnessWithGamma, mixedColorPixel, m_allowOverexposed),
       getBrighterColor(brightnessWithGamma, mixedColorLowPixel, m_allowOverexposed));
-}
-
-static auto GetMin(const std::vector<double>& vec) -> double
-{
-  double vmin = std::numeric_limits<double>::max();
-  for (const auto& v : vec)
-  {
-    if (v < vmin)
-    {
-      vmin = v;
-    }
-  }
-  return vmin;
 }
 
 auto Tentacle3D::GetVertices() const -> std::vector<V3d>

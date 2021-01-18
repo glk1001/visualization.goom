@@ -26,7 +26,7 @@ class ConvolveFx::ConvolveImpl
 {
 public:
   ConvolveImpl() noexcept;
-  explicit ConvolveImpl(Parallel&, std::shared_ptr<const PluginInfo>) noexcept;
+  explicit ConvolveImpl(Parallel& p, std::shared_ptr<const PluginInfo> goomInfo) noexcept;
   ~ConvolveImpl() noexcept = default;
   ConvolveImpl(const ConvolveImpl&) = delete;
   ConvolveImpl(const ConvolveImpl&&) = delete;
@@ -52,9 +52,9 @@ private:
 
   friend class cereal::access;
   template<class Archive>
-  void save(Archive&) const;
+  void save(Archive& ar) const;
   template<class Archive>
-  void load(Archive&);
+  void load(Archive& ar);
 };
 
 ConvolveFx::ConvolveFx() noexcept : m_fxImpl{new ConvolveImpl{}}
@@ -90,7 +90,7 @@ void ConvolveFx::Log(const StatsLogValueFunc&) const
 {
 }
 
-std::string ConvolveFx::GetFxName() const
+auto ConvolveFx::GetFxName() const -> std::string
 {
   return "Convolve FX";
 }
