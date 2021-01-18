@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-namespace goom::utils
+namespace GOOM::UTILS
 {
 
 std::vector<std::string> splitString(const std::string& str, const std::string& delim);
@@ -29,5 +29,5 @@ E stringToEnum(const std::string& eStr)
   throw std::runtime_error("Unknown enum value \"" + eStr + "\".");
 }
 
-} // namespace goom::utils
+} // namespace GOOM::UTILS
 #endif

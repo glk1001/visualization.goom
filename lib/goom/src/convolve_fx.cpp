@@ -14,13 +14,13 @@
 #include <string>
 #include <utility>
 
-CEREAL_REGISTER_TYPE(goom::ConvolveFx)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::IVisualFx, goom::ConvolveFx)
+CEREAL_REGISTER_TYPE(GOOM::ConvolveFx)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::IVisualFx, GOOM::ConvolveFx)
 
-namespace goom
+namespace GOOM
 {
 
-using namespace goom::utils;
+using namespace GOOM::UTILS;
 
 class ConvolveFx::ConvolveImpl
 {
@@ -206,4 +206,4 @@ void ConvolveFx::ConvolveImpl::CreateOutputWithBrightness(const PixelBuffer& src
   m_parallel->forLoop(m_goomInfo->GetScreenInfo().size, setDestPixel);
 }
 
-} // namespace goom
+} // namespace GOOM

@@ -40,15 +40,15 @@
 #include <string>
 #include <vector>
 
-CEREAL_REGISTER_TYPE(goom::ZoomFilterFx)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::IVisualFx, goom::ZoomFilterFx)
+CEREAL_REGISTER_TYPE(GOOM::ZoomFilterFx)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::IVisualFx, GOOM::ZoomFilterFx)
 
 static constexpr bool SERIALIZE_BUFFERS = false;
 
-namespace goom
+namespace GOOM
 {
 
-using namespace goom::utils;
+using namespace GOOM::UTILS;
 
 class FilterStats
 {
@@ -1364,4 +1364,4 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetBlockyMixedColor(const CoeffArray& 
   return GetMixedColor(coeffs, reorderedColors);
 }
 
-} // namespace goom
+} // namespace GOOM

@@ -15,7 +15,7 @@
 #include <vector>
 #include <vivid/vivid.h>
 
-namespace goom
+namespace GOOM
 {
 
 class ITentacleColorizer
@@ -28,8 +28,8 @@ public:
   auto operator=(const ITentacleColorizer&) noexcept -> ITentacleColorizer& = delete;
   auto operator=(const ITentacleColorizer&&) noexcept -> ITentacleColorizer& = delete;
 
-  [[nodiscard]] virtual auto GetColorMapGroup() const -> utils::ColorMapGroup = 0;
-  virtual void SetColorMapGroup(utils::ColorMapGroup) = 0;
+  [[nodiscard]] virtual auto GetColorMapGroup() const -> UTILS::ColorMapGroup = 0;
+  virtual void SetColorMapGroup(UTILS::ColorMapGroup) = 0;
   virtual void ChangeColorMap() = 0;
   [[nodiscard]] virtual auto GetColor(size_t nodeNum) const -> Pixel = 0;
 };
@@ -116,7 +116,7 @@ private:
   std::vector<double> m_dampedYVec{};
   std::vector<double> m_dampingCache{};
   XAndYVectors m_dampedVecs{std::make_tuple(std::ref(m_xvec), std::ref(m_dampedYVec))};
-  std::unique_ptr<utils::DampingFunction> m_dampingFunc{};
+  std::unique_ptr<UTILS::DampingFunction> m_dampingFunc{};
   bool m_doDamping = true;
 
   auto GetFirstY() -> float;
@@ -132,7 +132,7 @@ private:
   void ValidatePrevYWeight() const;
   void ValidateCurrentYWeight() const;
 
-  using DampingFuncPtr = std::unique_ptr<utils::DampingFunction>;
+  using DampingFuncPtr = std::unique_ptr<UTILS::DampingFunction>;
   static auto CreateDampingFunc(double prevYWeight, double xmin, double xmax) -> DampingFuncPtr;
   static auto CreateExpDampingFunc(double xmin, double xmax) -> DampingFuncPtr;
   static auto CreateLinearDampingFunc(double xmin, double xmax) -> DampingFuncPtr;
@@ -377,5 +377,5 @@ void Tentacles3D::serialize(Archive& ar)
   ar(CEREAL_NVP(m_tentacles));
 }
 
-} // namespace goom
+} // namespace GOOM
 #endif

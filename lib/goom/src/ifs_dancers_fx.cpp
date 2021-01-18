@@ -67,13 +67,13 @@
 #include <utility>
 #include <vector>
 
-CEREAL_REGISTER_TYPE(goom::IfsDancersFx)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::IVisualFx, goom::IfsDancersFx)
+CEREAL_REGISTER_TYPE(GOOM::IfsDancersFx)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::IVisualFx, GOOM::IfsDancersFx)
 
-namespace goom
+namespace GOOM
 {
 
-using namespace goom::utils;
+using namespace GOOM::UTILS;
 
 class IfsStats
 {
@@ -1630,4 +1630,4 @@ void IfsDancersFx::IfsDancersFxImpl::UpdateLowDensityThreshold()
   m_blurrer.SetWidth(blurWidth);
 }
 
-} // namespace goom
+} // namespace GOOM

@@ -7,13 +7,13 @@
 #include <memory>
 #include <string>
 
-namespace goom
+namespace GOOM
 {
 
-namespace utils
+namespace UTILS
 {
 class Parallel;
-} // namespace utils
+} // namespace UTILS
 
 class PluginInfo;
 class PixelBuffer;
@@ -22,7 +22,7 @@ class ConvolveFx : public IVisualFx
 {
 public:
   ConvolveFx() noexcept;
-  ConvolveFx(utils::Parallel&, const std::shared_ptr<const PluginInfo>&) noexcept;
+  ConvolveFx(UTILS::Parallel&, const std::shared_ptr<const PluginInfo>&) noexcept;
   ~ConvolveFx() noexcept override;
   ConvolveFx(const ConvolveFx&) = delete;
   ConvolveFx(const ConvolveFx&&) = delete;
@@ -51,8 +51,8 @@ private:
 
   friend class cereal::access;
   template<class Archive>
-  void serialize(Archive&);
+  void serialize(Archive& ar);
 };
 
-} // namespace goom
+} // namespace GOOM
 #endif

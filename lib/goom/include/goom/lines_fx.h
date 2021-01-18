@@ -18,7 +18,7 @@
 #include <string>
 #include <vector>
 
-namespace goom
+namespace GOOM
 {
 
 class PluginInfo;
@@ -80,5 +80,5 @@ private:
   void serialize(Archive&);
 };
 
-} // namespace goom
+} // namespace GOOM
 #endif

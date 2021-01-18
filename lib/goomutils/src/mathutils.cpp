@@ -11,24 +11,24 @@
 
 // NOTE: Cereal is not happy with these calls inside the 'goom' namespace.
 //   But they work OK here.
-CEREAL_REGISTER_TYPE(goom::utils::SineWaveMultiplier)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::utils::SequenceFunction, goom::utils::SineWaveMultiplier)
+CEREAL_REGISTER_TYPE(GOOM::UTILS::SineWaveMultiplier)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::UTILS::SequenceFunction, GOOM::UTILS::SineWaveMultiplier)
 
-CEREAL_REGISTER_TYPE(goom::utils::FlatDampingFunction)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::utils::DampingFunction, goom::utils::FlatDampingFunction)
+CEREAL_REGISTER_TYPE(GOOM::UTILS::FlatDampingFunction)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::UTILS::DampingFunction, GOOM::UTILS::FlatDampingFunction)
 
-CEREAL_REGISTER_TYPE(goom::utils::ExpDampingFunction)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::utils::DampingFunction, goom::utils::ExpDampingFunction)
+CEREAL_REGISTER_TYPE(GOOM::UTILS::ExpDampingFunction)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::UTILS::DampingFunction, GOOM::UTILS::ExpDampingFunction)
 
-CEREAL_REGISTER_TYPE(goom::utils::LinearDampingFunction)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::utils::DampingFunction,
-                                     goom::utils::LinearDampingFunction)
+CEREAL_REGISTER_TYPE(GOOM::UTILS::LinearDampingFunction)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::UTILS::DampingFunction,
+                                     GOOM::UTILS::LinearDampingFunction)
 
-CEREAL_REGISTER_TYPE(goom::utils::PiecewiseDampingFunction)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::utils::DampingFunction,
-                                     goom::utils::PiecewiseDampingFunction)
+CEREAL_REGISTER_TYPE(GOOM::UTILS::PiecewiseDampingFunction)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::UTILS::DampingFunction,
+                                     GOOM::UTILS::PiecewiseDampingFunction)
 
-namespace goom::utils
+namespace GOOM::UTILS
 {
 
 ExpIncreasingFunction::ExpIncreasingFunction(const double x0,
@@ -251,4 +251,4 @@ const std::array<float, numSinCosAngles> cos256 = {
 };
 // clang-format on
 
-} // namespace goom::utils
+} // namespace GOOM::UTILS

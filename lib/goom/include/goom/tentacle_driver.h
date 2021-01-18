@@ -15,7 +15,7 @@
 #include <memory>
 #include <vector>
 
-namespace goom
+namespace GOOM
 {
 
 class IterTimer
@@ -107,7 +107,7 @@ private:
     size_t numNodes = 200;
     float prevYWeight = 0.770F;
     float iterZeroYValWaveFreq = 1.0F;
-    utils::SineWaveMultiplier iterZeroYValWave{};
+    UTILS::SineWaveMultiplier iterZeroYValWave{};
     float length = 50.0F;
     auto operator==(const IterationParams&) const -> bool;
     template<class Archive>
@@ -130,7 +130,7 @@ private:
   uint32_t m_screenHeight = 0;
   GoomDraw m_draw{};
   FXBuffSettings m_buffSettings{};
-  const utils::ColorMaps m_colorMaps{};
+  const UTILS::ColorMaps m_colorMaps{};
   std::vector<std::shared_ptr<ITentacleColorizer>> m_colorizers{};
 
   size_t m_updateNum = 0;
@@ -140,7 +140,7 @@ private:
   std::vector<IterationParams> m_tentacleParams{};
   static const size_t g_ChangeCurrentColorMapGroupEveryNUpdates;
   static const size_t g_ChangeTentacleColorMapEveryNUpdates;
-  [[nodiscard]] auto GetNextColorMapGroups() const -> std::vector<utils::ColorMapGroup>;
+  [[nodiscard]] auto GetNextColorMapGroups() const -> std::vector<UTILS::ColorMapGroup>;
 
   static auto CreateNewTentacle2D(size_t id, const IterationParams& p)
       -> std::unique_ptr<Tentacle2D>;
@@ -166,14 +166,14 @@ class TentacleColorMapColorizer : public ITentacleColorizer
 public:
   TentacleColorMapColorizer() noexcept = default;
   ~TentacleColorMapColorizer() noexcept override = default;
-  explicit TentacleColorMapColorizer(utils::ColorMapGroup, size_t numNodes) noexcept;
+  explicit TentacleColorMapColorizer(UTILS::ColorMapGroup, size_t numNodes) noexcept;
   TentacleColorMapColorizer(const TentacleColorMapColorizer&) = delete;
   TentacleColorMapColorizer(const TentacleColorMapColorizer&&) = delete;
   auto operator=(const TentacleColorMapColorizer&) -> TentacleColorMapColorizer& = delete;
   auto operator=(const TentacleColorMapColorizer&&) -> TentacleColorMapColorizer& = delete;
 
-  auto GetColorMapGroup() const -> utils::ColorMapGroup override;
-  void SetColorMapGroup(utils::ColorMapGroup c) override;
+  auto GetColorMapGroup() const -> UTILS::ColorMapGroup override;
+  void SetColorMapGroup(UTILS::ColorMapGroup c) override;
   void ChangeColorMap() override;
   auto GetColor(size_t nodeNum) const -> Pixel override;
 
@@ -186,10 +186,10 @@ public:
 
 private:
   size_t m_numNodes = 0;
-  utils::ColorMapGroup m_currentColorMapGroup{};
-  const utils::ColorMaps m_colorMaps{};
-  const utils::ColorMap* m_colorMap{};
-  const utils::ColorMap* m_prevColorMap{};
+  UTILS::ColorMapGroup m_currentColorMapGroup{};
+  const UTILS::ColorMaps m_colorMaps{};
+  const UTILS::ColorMap* m_colorMap{};
+  const UTILS::ColorMap* m_prevColorMap{};
   static constexpr uint32_t MAX_COUNT_SINCE_COLORMAP_CHANGE = 100;
   static constexpr float TRANSITION_STEP =
       1.0 / static_cast<float>(MAX_COUNT_SINCE_COLORMAP_CHANGE);
@@ -249,8 +249,8 @@ void TentacleDriver::IterParamsGroup::serialize(Archive& ar)
 template<class Archive>
 void TentacleColorMapColorizer::save(Archive& ar) const
 {
-  const utils::colordata::ColorMapName colorMapName = m_colorMap->GetMapName();
-  const utils::colordata::ColorMapName prevColorMapName = m_prevColorMap->GetMapName();
+  const UTILS::COLOR_DATA::ColorMapName colorMapName = m_colorMap->GetMapName();
+  const UTILS::COLOR_DATA::ColorMapName prevColorMapName = m_prevColorMap->GetMapName();
   ar(CEREAL_NVP(m_numNodes), CEREAL_NVP(m_currentColorMapGroup), CEREAL_NVP(colorMapName),
      CEREAL_NVP(prevColorMapName), CEREAL_NVP(m_tTransition));
 }
@@ -258,19 +258,19 @@ void TentacleColorMapColorizer::save(Archive& ar) const
 template<class Archive>
 void TentacleColorMapColorizer::load(Archive& ar)
 {
-  utils::colordata::ColorMapName colorMapName;
-  utils::colordata::ColorMapName prevColorMapName;
+  UTILS::COLOR_DATA::ColorMapName colorMapName;
+  UTILS::COLOR_DATA::ColorMapName prevColorMapName;
   ar(CEREAL_NVP(m_numNodes), CEREAL_NVP(m_currentColorMapGroup), CEREAL_NVP(colorMapName),
      CEREAL_NVP(prevColorMapName), CEREAL_NVP(m_tTransition));
   m_colorMap = &m_colorMaps.GetColorMap(colorMapName);
   m_prevColorMap = &m_colorMaps.GetColorMap(prevColorMapName);
 }
 
-} // namespace goom
+} // namespace GOOM
 
 // NOTE: Cereal is not happy with these calls inside the 'goom' namespace.
 //   But they work OK here.
-CEREAL_REGISTER_TYPE(goom::TentacleColorMapColorizer)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::ITentacleColorizer, goom::TentacleColorMapColorizer)
+CEREAL_REGISTER_TYPE(GOOM::TentacleColorMapColorizer)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::ITentacleColorizer, GOOM::TentacleColorMapColorizer)
 
 #endif

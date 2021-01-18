@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace goom
+namespace GOOM
 {
 
 class AudioSamples
@@ -148,5 +148,5 @@ inline auto SoundInfo::GetAllTimesMinVolume() const -> int16_t
   return m_allTimesMinVolume;
 }
 
-} // namespace goom
+} // namespace GOOM
 #endif

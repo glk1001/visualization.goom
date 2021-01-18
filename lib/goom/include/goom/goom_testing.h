@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-namespace goom
+namespace GOOM
 {
 
 #define GOOM_VER_NAME "Goom Library"
@@ -129,5 +129,5 @@ static inline void saveIndexedFloatSetting(FILE* f,
   saveFloatSetting(f, parent, indexedSettingName, value, srceFilename, lineNum);
 }
 
-} // namespace goom
+} // namespace GOOM
 #endif

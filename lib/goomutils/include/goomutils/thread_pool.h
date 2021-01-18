@@ -13,7 +13,7 @@
 #include <utility>
 #include <vector>
 
-namespace goom::utils
+namespace GOOM::UTILS
 {
 
 class ThreadPool
@@ -186,6 +186,6 @@ auto ThreadPool::ScheduleAndGetFuture(FuncT&& func, ArgsT&&... args)
   return ret_future;
 }
 
-} // namespace goom::utils
+} // namespace GOOM::UTILS
 
 #endif // LIB_GOOMUTILS_INCLUDE_GOOMUTILS_THREAD_POOL_H_

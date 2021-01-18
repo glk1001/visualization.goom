@@ -1,7 +1,7 @@
 #ifndef _V3D_H
 #define _V3D_H
 
-namespace goom
+namespace GOOM
 {
 
 struct v3d
@@ -24,5 +24,5 @@ struct v2g
   double y;
 };
 
-} // namespace goom
+} // namespace GOOM
 #endif

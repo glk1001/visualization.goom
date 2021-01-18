@@ -18,7 +18,7 @@
 #include <ostream>
 #include <string>
 
-namespace goom
+namespace GOOM
 {
 
 class PixelBuffer;
@@ -61,5 +61,5 @@ public:
   virtual void Finish(){};
 };
 
-} // namespace goom
+} // namespace GOOM
 #endif

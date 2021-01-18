@@ -8,7 +8,7 @@
 #include <memory>
 #include <string>
 
-namespace goom
+namespace GOOM
 {
 
 class PixelBuffer;
@@ -140,7 +140,7 @@ struct ZoomFilterData
  * resx,resy : taille des buffers.
  */
 
-namespace utils
+namespace UTILS
 {
 class Parallel;
 } // namespace utils
@@ -151,7 +151,7 @@ class ZoomFilterFx : public IVisualFx
 {
 public:
   ZoomFilterFx() noexcept;
-  ZoomFilterFx(utils::Parallel&, const std::shared_ptr<const PluginInfo>&) noexcept;
+  ZoomFilterFx(UTILS::Parallel&, const std::shared_ptr<const PluginInfo>&) noexcept;
   ~ZoomFilterFx() noexcept override;
   ZoomFilterFx(const ZoomFilterFx&) = delete;
   ZoomFilterFx(const ZoomFilterFx&&) = delete;
@@ -187,5 +187,5 @@ private:
   void serialize(Archive&);
 };
 
-} // namespace goom
+} // namespace GOOM
 #endif

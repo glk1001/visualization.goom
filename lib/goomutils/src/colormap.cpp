@@ -9,10 +9,10 @@
 #include <vector>
 #include <vivid/vivid.h>
 
-namespace goom::utils
+namespace GOOM::UTILS
 {
 
-using colordata::ColorMapName;
+using COLOR_DATA::ColorMapName;
 
 class ColorMapWrapper : public ColorMap
 {
@@ -25,7 +25,7 @@ public:
   auto operator=(const ColorMapWrapper&&) -> ColorMapWrapper& = delete;
 
   [[nodiscard]] auto GetNumStops() const -> size_t override;
-  [[nodiscard]] auto GetMapName() const -> colordata::ColorMapName override;
+  [[nodiscard]] auto GetMapName() const -> COLOR_DATA::ColorMapName override;
   [[nodiscard]] auto GetColor(float t) const -> Pixel override;
 
   [[nodiscard]] auto GetRandomColor(float t0, float t1) const -> Pixel override;
@@ -46,7 +46,7 @@ inline auto ColorMapWrapper::GetNumStops() const -> size_t
   return m_colorMap.GetNumStops();
 }
 
-inline auto ColorMapWrapper::GetMapName() const -> colordata::ColorMapName
+inline auto ColorMapWrapper::GetMapName() const -> COLOR_DATA::ColorMapName
 {
   return m_colorMap.GetMapName();
 }
@@ -117,14 +117,14 @@ public:
   };
 
   PrebuiltColorMap() noexcept = delete;
-  PrebuiltColorMap(colordata::ColorMapName mapNm, vivid::ColorMap cm);
+  PrebuiltColorMap(COLOR_DATA::ColorMapName mapNm, vivid::ColorMap cm);
   ~PrebuiltColorMap() noexcept override = default;
   PrebuiltColorMap(const PrebuiltColorMap&) = delete;
   auto operator=(const PrebuiltColorMap&) -> PrebuiltColorMap& = delete;
   auto operator=(const PrebuiltColorMap&&) -> PrebuiltColorMap& = delete;
 
   [[nodiscard]] auto GetNumStops() const -> size_t override { return m_cmap.numStops(); }
-  [[nodiscard]] auto GetMapName() const -> colordata::ColorMapName override { return m_mapName; }
+  [[nodiscard]] auto GetMapName() const -> COLOR_DATA::ColorMapName override { return m_mapName; }
   [[nodiscard]] auto GetColor(float t) const -> Pixel override;
 
   [[nodiscard]] auto GetRandomColor(float t0, float t1) const -> Pixel override;
@@ -132,7 +132,7 @@ public:
 
 private:
   PrebuiltColorMap(PrebuiltColorMap&& other) noexcept;
-  colordata::ColorMapName m_mapName;
+  COLOR_DATA::ColorMapName m_mapName;
   const vivid::ColorMap m_cmap;
 };
 
@@ -146,18 +146,18 @@ public:
   auto operator=(const ColorMapsImpl&) -> ColorMapsImpl& = delete;
   auto operator=(const ColorMapsImpl&&) -> const ColorMapsImpl&& = delete;
 
-  using ColorMapNames = std::vector<colordata::ColorMapName>;
+  using ColorMapNames = std::vector<COLOR_DATA::ColorMapName>;
   [[nodiscard]] static auto GetColorMapNames(ColorMapGroup groupName) -> const ColorMapNames&;
 
-  [[nodiscard]] static auto GetRandomColorMapName() -> colordata::ColorMapName;
+  [[nodiscard]] static auto GetRandomColorMapName() -> COLOR_DATA::ColorMapName;
   [[nodiscard]] static auto GetRandomColorMapName(ColorMapGroup groupName)
-      -> colordata::ColorMapName;
+      -> COLOR_DATA::ColorMapName;
 
-  [[nodiscard]] static auto GetColorMap(colordata::ColorMapName mapName) -> const ColorMap&;
+  [[nodiscard]] static auto GetColorMap(COLOR_DATA::ColorMapName mapName) -> const ColorMap&;
   [[nodiscard]] static auto GetRandomColorMap() -> const ColorMap&;
   [[nodiscard]] static auto GetRandomColorMap(ColorMapGroup groupName) -> const ColorMap&;
 
-  [[nodiscard]] auto GetColorMapPtr(colordata::ColorMapName mapName, float tRotatePoint) const
+  [[nodiscard]] auto GetColorMapPtr(COLOR_DATA::ColorMapName mapName, float tRotatePoint) const
       -> std::shared_ptr<const ColorMap>;
   [[nodiscard]] auto GetRandomColorMapPtr(bool includeRotatePoints) const
       -> std::shared_ptr<const ColorMap>;
@@ -195,17 +195,17 @@ auto ColorMaps::GetColorMapNames(ColorMapGroup cmg) const -> const ColorMaps::Co
   return m_colorMapImpl->GetColorMapNames(cmg);
 }
 
-auto ColorMaps::GetRandomColorMapName() const -> colordata::ColorMapName
+auto ColorMaps::GetRandomColorMapName() const -> COLOR_DATA::ColorMapName
 {
   return m_colorMapImpl->GetRandomColorMapName();
 }
 
-auto ColorMaps::GetRandomColorMapName(ColorMapGroup cmg) const -> colordata::ColorMapName
+auto ColorMaps::GetRandomColorMapName(ColorMapGroup cmg) const -> COLOR_DATA::ColorMapName
 {
   return m_colorMapImpl->GetRandomColorMapName(cmg);
 }
 
-auto ColorMaps::GetColorMap(colordata::ColorMapName mapName) const -> const ColorMap&
+auto ColorMaps::GetColorMap(COLOR_DATA::ColorMapName mapName) const -> const ColorMap&
 {
   return m_colorMapImpl->GetColorMap(mapName);
 }
@@ -220,7 +220,7 @@ auto ColorMaps::GetRandomColorMap(ColorMapGroup cmg) const -> const ColorMap&
   return m_colorMapImpl->GetRandomColorMap(cmg);
 }
 
-auto ColorMaps::GetColorMapPtr(colordata::ColorMapName mapName, const float tRotatePoint) const
+auto ColorMaps::GetColorMapPtr(COLOR_DATA::ColorMapName mapName, const float tRotatePoint) const
     -> std::shared_ptr<const ColorMap>
 {
   return m_colorMapImpl->GetColorMapPtr(mapName, tRotatePoint);
@@ -292,7 +292,7 @@ auto ColorMaps::ColorMapsImpl::GetColorMap(const ColorMapName name) -> const Col
   return s_preBuiltColorMaps[static_cast<size_t>(name)];
 }
 
-auto ColorMaps::ColorMapsImpl::GetColorMapPtr(colordata::ColorMapName mapName,
+auto ColorMaps::ColorMapsImpl::GetColorMapPtr(COLOR_DATA::ColorMapName mapName,
                                               const float tRotatePoint) const
     -> std::shared_ptr<const ColorMap>
 {
@@ -337,8 +337,8 @@ void ColorMaps::ColorMapsImpl::InitPrebuiltColorMaps()
   {
     return;
   }
-  s_preBuiltColorMaps.reserve(colordata::allMaps.size());
-  for (const auto& [name, vividMap] : colordata::allMaps)
+  s_preBuiltColorMaps.reserve(COLOR_DATA::allMaps.size());
+  for (const auto& [name, vividMap] : COLOR_DATA::allMaps)
   {
     (void)s_preBuiltColorMaps.emplace_back(name, vividMap);
   }
@@ -362,14 +362,15 @@ void ColorMaps::ColorMapsImpl::InitGroups()
   {
     return;
   }
-  at(s_groups, ColorMapGroup::perceptuallyUniformSequential) = &colordata::perc_unif_sequentialMaps;
-  at(s_groups, ColorMapGroup::sequential) = &colordata::sequentialMaps;
-  at(s_groups, ColorMapGroup::sequential2) = &colordata::sequential2Maps;
-  at(s_groups, ColorMapGroup::cyclic) = &colordata::cyclicMaps;
-  at(s_groups, ColorMapGroup::diverging) = &colordata::divergingMaps;
-  at(s_groups, ColorMapGroup::diverging_black) = &colordata::diverging_blackMaps;
-  at(s_groups, ColorMapGroup::qualitative) = &colordata::qualitativeMaps;
-  at(s_groups, ColorMapGroup::misc) = &colordata::miscMaps;
+  at(s_groups, ColorMapGroup::perceptuallyUniformSequential) =
+      &COLOR_DATA::perc_unif_sequentialMaps;
+  at(s_groups, ColorMapGroup::sequential) = &COLOR_DATA::sequentialMaps;
+  at(s_groups, ColorMapGroup::sequential2) = &COLOR_DATA::sequential2Maps;
+  at(s_groups, ColorMapGroup::cyclic) = &COLOR_DATA::cyclicMaps;
+  at(s_groups, ColorMapGroup::diverging) = &COLOR_DATA::divergingMaps;
+  at(s_groups, ColorMapGroup::diverging_black) = &COLOR_DATA::diverging_blackMaps;
+  at(s_groups, ColorMapGroup::qualitative) = &COLOR_DATA::qualitativeMaps;
+  at(s_groups, ColorMapGroup::misc) = &COLOR_DATA::miscMaps;
 }
 
 WeightedColorMaps::WeightedColorMaps() : ColorMaps{}, m_weights{}, m_weightsActive{true}
@@ -438,4 +439,4 @@ auto PrebuiltColorMap::GetColorMix(const Pixel& col1, const Pixel& col2, float t
   return Pixel{vivid::lerpHsl(c1, c2, t).rgb32()};
 }
 
-} // namespace goom::utils
+} // namespace GOOM::UTILS

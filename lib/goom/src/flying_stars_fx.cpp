@@ -23,14 +23,14 @@
 #include <utility>
 #include <vector>
 
-CEREAL_REGISTER_TYPE(goom::FlyingStarsFx)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::IVisualFx, goom::FlyingStarsFx)
+CEREAL_REGISTER_TYPE(GOOM::FlyingStarsFx)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::IVisualFx, GOOM::FlyingStarsFx)
 
-namespace goom
+namespace GOOM
 {
 
-using namespace goom::utils;
-using utils::colordata::ColorMapName;
+using namespace GOOM::UTILS;
+using UTILS::COLOR_DATA::ColorMapName;
 
 class StarsStats
 {
@@ -829,4 +829,4 @@ auto FlyingStarsFx::FlyingStarsImpl::GetBombAngle(const float x,
                                static_cast<float>(numSinCosAngles - 1) * randAngle / m_two_pi);
 }
 
-} // namespace goom
+} // namespace GOOM

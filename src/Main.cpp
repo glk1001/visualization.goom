@@ -28,9 +28,9 @@
 #undef NO_LOGGING
 #include "goomutils/logging.h"
 
-using goom::Pixel;
-using goom::PixelBuffer;
-using goom::utils::Logging;
+using GOOM::Pixel;
+using GOOM::PixelBuffer;
+using GOOM::UTILS::Logging;
 
 CVisualizationGoom::CVisualizationGoom()
 {
@@ -207,7 +207,7 @@ void CVisualizationGoom::AudioData(const float* pAudioData,
   }
 
   std::unique_lock<std::mutex> lock(m_mutex);
-  if (m_buffer.data_available() >= g_GCircularBufferSize)
+  if (m_buffer.data_available() >= CIRCULAR_BUFFER_SIZE)
   {
     AudioDataQueueTooBig();
     return;
@@ -354,7 +354,7 @@ void CVisualizationGoom::Process()
   // goom will use same random sequence if following is uncommented
   // goom::GoomControl::setRandSeed(1);
 
-  m_goomControl = std::make_unique<goom::GoomControl>(static_cast<uint16_t>(m_texWidth),
+  m_goomControl = std::make_unique<GOOM::GoomControl>(static_cast<uint16_t>(m_texWidth),
                                                       static_cast<uint16_t>(m_texHeight));
   if (!m_goomControl)
   {
@@ -416,7 +416,7 @@ void CVisualizationGoom::Process()
     }
     lk.unlock();
 
-    std::shared_ptr<goom::PixelBuffer> pixels;
+    std::shared_ptr<GOOM::PixelBuffer> pixels;
     lk.lock();
     if (!m_storedQueue.empty())
     {
@@ -446,7 +446,7 @@ void CVisualizationGoom::UpdateGoomBuffer(const char* title,
                                           const float floatAudioData[],
                                           std::shared_ptr<PixelBuffer>& pixels)
 {
-  const goom::AudioSamples audioData{m_channels, floatAudioData};
+  const GOOM::AudioSamples audioData{m_channels, floatAudioData};
   m_goomControl->SetScreenBuffer(*pixels);
   m_goomControl->Update(audioData, 0, 0.0F, title, "");
 }

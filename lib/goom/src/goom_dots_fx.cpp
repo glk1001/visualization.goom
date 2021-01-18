@@ -18,13 +18,13 @@
 #include <string>
 #include <vector>
 
-CEREAL_REGISTER_TYPE(goom::GoomDotsFx)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::IVisualFx, goom::GoomDotsFx)
+CEREAL_REGISTER_TYPE(GOOM::GoomDotsFx)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::IVisualFx, GOOM::GoomDotsFx)
 
-namespace goom
+namespace GOOM
 {
 
-using namespace goom::utils;
+using namespace GOOM::UTILS;
 
 inline auto ChangeDotColorsEvent() -> bool
 {
@@ -62,12 +62,12 @@ private:
   GoomDraw m_draw{};
   FXBuffSettings m_buffSettings{};
 
-  utils::WeightedColorMaps m_colorMaps{};
-  const utils::ColorMap* m_colorMap1 = nullptr;
-  const utils::ColorMap* m_colorMap2 = nullptr;
-  const utils::ColorMap* m_colorMap3 = nullptr;
-  const utils::ColorMap* m_colorMap4 = nullptr;
-  const utils::ColorMap* m_colorMap5 = nullptr;
+  UTILS::WeightedColorMaps m_colorMaps{};
+  const UTILS::ColorMap* m_colorMap1 = nullptr;
+  const UTILS::ColorMap* m_colorMap2 = nullptr;
+  const UTILS::ColorMap* m_colorMap3 = nullptr;
+  const UTILS::ColorMap* m_colorMap4 = nullptr;
+  const UTILS::ColorMap* m_colorMap5 = nullptr;
   Pixel m_middleColor{};
   bool m_useSingleBufferOnly = true;
   bool m_useGrayScale = false;
@@ -398,4 +398,4 @@ void GoomDotsFx::GoomDotsImpl::DotFilter(PixelBuffer& currentBuff,
   m_draw.FilledCircle(currentBuff, xMid, yMid, static_cast<int>(radius), color);
 }
 
-} // namespace goom
+} // namespace GOOM

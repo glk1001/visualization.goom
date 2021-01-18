@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <memory>
 
-namespace goom
+namespace GOOM
 {
 
 class PluginInfo
@@ -113,5 +113,5 @@ inline void WritablePluginInfo::ProcessSoundSample(const AudioSamples& soundData
   PluginInfo::ProcessSoundSample(soundData);
 }
 
-} // namespace goom
+} // namespace GOOM
 #endif

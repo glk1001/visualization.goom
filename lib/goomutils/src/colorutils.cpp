@@ -6,7 +6,7 @@
 #include <cmath>
 #include <cstdint>
 
-namespace goom
+namespace GOOM
 {
 
 static_assert(sizeof(Pixel) == sizeof(uint32_t));
@@ -74,4 +74,4 @@ Pixel getEvolvedColor(const Pixel& baseColor)
   return newColor;
 }
 
-} // namespace goom
+} // namespace GOOM

@@ -5,7 +5,7 @@
 #include <memory>
 #include <string>
 
-namespace goom
+namespace GOOM
 {
 
 class Pixel;
@@ -65,5 +65,5 @@ private:
   std::unique_ptr<TextDrawImpl> m_textDrawImpl;
 };
 
-} // namespace goom
+} // namespace GOOM
 #endif

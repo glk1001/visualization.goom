@@ -15,7 +15,7 @@
 #include <random>
 #include <stdexcept>
 
-namespace goom::utils
+namespace GOOM::UTILS
 {
 
 const uint32_t randMax = (xoshiro256plus64::max() > std::numeric_limits<uint32_t>::max())
@@ -115,4 +115,4 @@ float getRandInRange(const float x0, const float x1)
   //  return std::lerp(x0, x1, static_cast<float>(dis(eng)));
 }
 
-} // namespace goom::utils
+} // namespace GOOM::UTILS

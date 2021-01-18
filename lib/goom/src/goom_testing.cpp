@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-namespace goom
+namespace GOOM
 {
 
 void getVersionAtRuntime(int* verMajor, int* verMinor, int* verRevision)
@@ -118,4 +118,4 @@ float getIndexedFloatSetting(FILE* f,
   return getFloatSetting(f, parent, indexedSettingName, srceFilename, lineNum);
 }
 
-} // namespace goom
+} // namespace GOOM

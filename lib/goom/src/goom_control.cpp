@@ -46,15 +46,15 @@
 #include <variant>
 #include <vector>
 
-CEREAL_REGISTER_TYPE(goom::WritablePluginInfo)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::PluginInfo, goom::WritablePluginInfo)
+CEREAL_REGISTER_TYPE(GOOM::WritablePluginInfo)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::PluginInfo, GOOM::WritablePluginInfo)
 
 // #define SHOW_STATE_TEXT_ON_SCREEN
 
-namespace goom
+namespace GOOM
 {
 
-using namespace goom::utils;
+using namespace GOOM::UTILS;
 
 enum class GoomDrawable
 {
@@ -1211,13 +1211,13 @@ private:
 
 auto GoomControl::GetRandSeed() -> uint64_t
 {
-  return goom::utils::getRandSeed();
+  return GOOM::UTILS::getRandSeed();
 }
 
 void GoomControl::SetRandSeed(const uint64_t seed)
 {
   logDebug("Set goom seed = {}.", seed);
-  goom::utils::setRandSeed(seed);
+  GOOM::UTILS::setRandSeed(seed);
 }
 
 GoomControl::GoomControl() noexcept : m_controller{new GoomControlImpl{}}
@@ -2746,4 +2746,4 @@ auto GoomStates::GetWeightedStates(const GoomStates::WeightedStatesArray& theSta
   return weightedVals;
 }
 
-} // namespace goom
+} // namespace GOOM

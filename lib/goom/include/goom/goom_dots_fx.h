@@ -7,7 +7,7 @@
 #include <memory>
 #include <string>
 
-namespace goom
+namespace GOOM
 {
 
 class PluginInfo;
@@ -43,9 +43,9 @@ private:
 
   friend class cereal::access;
   template<class Archive>
-  void serialize(Archive&);
+  void serialize(Archive& ar);
 };
 
-} // namespace goom
+} // namespace GOOM
 
 #endif /* VISUALIZATION_GOOM_GOOM_DOTS_FX_H */

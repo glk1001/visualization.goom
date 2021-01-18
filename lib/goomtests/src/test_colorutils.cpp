@@ -4,7 +4,7 @@
 
 #include <algorithm>
 
-using namespace goom;
+using namespace GOOM;
 
 TEST_CASE("Test max channels", "[channels-max]")
 {

@@ -5,7 +5,7 @@
 #include <thread>
 #include <utility>
 
-namespace goom::utils
+namespace GOOM::UTILS
 {
 
 ThreadPool::ThreadPool(const size_t numWrkers) noexcept : numWorkers(numWrkers)
@@ -108,4 +108,4 @@ void ThreadPool::threadLoop()
   }
 }
 
-} // namespace goom::utils
+} // namespace GOOM::UTILS

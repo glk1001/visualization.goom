@@ -10,7 +10,7 @@
 #include <utility>
 #include <vector>
 
-namespace goom::utils
+namespace GOOM::UTILS
 {
 
 class ColorMap
@@ -23,7 +23,7 @@ public:
   auto operator=(const ColorMap&&) -> ColorMap& = delete;
 
   [[nodiscard]] virtual auto GetNumStops() const -> size_t = 0;
-  [[nodiscard]] virtual auto GetMapName() const -> colordata::ColorMapName = 0;
+  [[nodiscard]] virtual auto GetMapName() const -> COLOR_DATA::ColorMapName = 0;
   [[nodiscard]] virtual auto GetColor(float t) const -> Pixel = 0;
 
   [[nodiscard]] virtual auto GetRandomColor(float t0, float t1) const -> Pixel = 0;
@@ -65,17 +65,17 @@ public:
   auto operator=(const ColorMaps&) -> ColorMaps& = delete;
   auto operator=(const ColorMaps&&) -> ColorMaps& = delete;
 
-  using ColorMapNames = std::vector<colordata::ColorMapName>;
+  using ColorMapNames = std::vector<COLOR_DATA::ColorMapName>;
   [[nodiscard]] auto GetColorMapNames(ColorMapGroup cmg) const -> const ColorMapNames&;
 
-  [[nodiscard]] auto GetRandomColorMapName() const -> colordata::ColorMapName;
-  [[nodiscard]] auto GetRandomColorMapName(ColorMapGroup cmg) const -> colordata::ColorMapName;
+  [[nodiscard]] auto GetRandomColorMapName() const -> COLOR_DATA::ColorMapName;
+  [[nodiscard]] auto GetRandomColorMapName(ColorMapGroup cmg) const -> COLOR_DATA::ColorMapName;
 
-  [[nodiscard]] auto GetColorMap(colordata::ColorMapName mapName) const -> const ColorMap&;
+  [[nodiscard]] auto GetColorMap(COLOR_DATA::ColorMapName mapName) const -> const ColorMap&;
   [[nodiscard]] auto GetRandomColorMap() const -> const ColorMap&;
   [[nodiscard]] auto GetRandomColorMap(ColorMapGroup cmg) const -> const ColorMap&;
 
-  [[nodiscard]] auto GetColorMapPtr(colordata::ColorMapName mapName, float tRotatePoint = 0) const
+  [[nodiscard]] auto GetColorMapPtr(COLOR_DATA::ColorMapName mapName, float tRotatePoint = 0) const
       -> std::shared_ptr<const ColorMap>;
   [[nodiscard]] auto GetRandomColorMapPtr(bool includeRotatePoints = false) const
       -> std::shared_ptr<const ColorMap>;
@@ -114,5 +114,5 @@ private:
   bool m_weightsActive;
 };
 
-} // namespace goom::utils
+} // namespace GOOM::UTILS
 #endif

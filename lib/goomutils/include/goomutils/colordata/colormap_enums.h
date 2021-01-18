@@ -1,6 +1,6 @@
 #pragma once
 
-namespace goom::utils::colordata
+namespace GOOM::UTILS::COLOR_DATA
 {
 
 enum class ColorMapName
@@ -96,4 +96,4 @@ enum class ColorMapName
   YlOrRd,
 };
 
-} // namespace goom::utils::colordata
+} // namespace GOOM::UTILS::COLOR_DATA

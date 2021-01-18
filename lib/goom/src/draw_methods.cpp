@@ -11,7 +11,7 @@
 #include <functional>
 #include <vector>
 
-namespace goom
+namespace GOOM
 {
 
 void DrawCircle(PixelBuffer& buff,
@@ -734,4 +734,4 @@ static void DrawThickLine(std::vector<PixelBuffer*>& buffs,
   }
 }
 
-} // namespace goom
+} // namespace GOOM

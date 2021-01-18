@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-using namespace goom::utils;
+using namespace GOOM::UTILS;
 
 TEST_CASE("splitString", "[splitString]")
 {

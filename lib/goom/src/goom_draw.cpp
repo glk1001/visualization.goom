@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace goom
+namespace GOOM
 {
 
 GoomDraw::GoomDraw() : m_screenWidth{0}, m_screenHeight{0}
@@ -104,4 +104,4 @@ void GoomDraw::SetPixelRgb(std::vector<PixelBuffer*>& buffs,
   DrawPixels(buffs, pos, colors, m_intBuffIntensity, m_allowOverexposed);
 }
 
-} // namespace goom
+} // namespace GOOM

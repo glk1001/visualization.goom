@@ -52,6 +52,10 @@ class ATTRIBUTE_HIDDEN CVisualizationGoom : public kodi::addon::CAddonBase,
 public:
   CVisualizationGoom();
   ~CVisualizationGoom() override;
+  CVisualizationGoom(const CVisualizationGoom&) noexcept = delete;
+  CVisualizationGoom(const CVisualizationGoom&&) noexcept = delete;
+  auto operator=(const CVisualizationGoom&) -> CVisualizationGoom = delete;
+  auto operator=(const CVisualizationGoom&&) -> CVisualizationGoom = delete;
 
   auto Start(int channels, int samplesPerSec, int bitsPerSample, std::string songName)
       -> bool override;
@@ -69,29 +73,29 @@ public:
   auto OnEnabled() -> bool override;
 
 protected:
-  const static size_t g_GNumAudioBuffersInCircularBuffer = 16;
-  [[nodiscard]] auto GetGoomControl() const -> const goom::GoomControl& { return *m_goomControl; };
-  auto GetGoomControl() -> goom::GoomControl& { return *m_goomControl; };
-  auto AudioBufferLen() const -> size_t { return m_audioBufferLen; };
-  auto TexWidth() const -> int { return m_texWidth; };
-  auto TexHeight() const -> int { return m_texHeight; };
-  auto GoomBufferLen() const -> int { return m_goomBufferLen; };
+  const static size_t NUM_AUDIO_BUFFERS_IN_CIRCULAR_BUFFER = 16;
+  [[nodiscard]] auto GetGoomControl() const -> const GOOM::GoomControl& { return *m_goomControl; };
+  [[nodiscard]] auto GetGoomControl() -> GOOM::GoomControl& { return *m_goomControl; };
+  [[nodiscard]] auto AudioBufferLen() const -> size_t { return m_audioBufferLen; };
+  [[nodiscard]] auto TexWidth() const -> int { return m_texWidth; };
+  [[nodiscard]] auto TexHeight() const -> int { return m_texHeight; };
+  [[nodiscard]] auto GoomBufferLen() const -> int { return m_goomBufferLen; };
   [[nodiscard]] auto CurrentSongName() const -> const std::string& { return m_currentSongName; };
-  auto NumChannels() const -> size_t { return m_channels; };
+  [[nodiscard]] auto NumChannels() const -> size_t { return m_channels; };
   virtual void NoActiveBufferAvailable() {}
   virtual void AudioDataQueueTooBig() {}
   virtual void SkippedAudioData() {}
   virtual void AudioDataIncorrectReadLength() {}
   virtual void UpdateGoomBuffer(const char* title,
                                 const float floatAudioData[],
-                                std::shared_ptr<goom::PixelBuffer>& pixels);
+                                std::shared_ptr<GOOM::PixelBuffer>& pixels);
 
 private:
   void Process();
   auto InitGlObjects() -> bool;
   void InitQuadData();
-  auto GetNextActivePixels() -> std::shared_ptr<goom::PixelBuffer>;
-  void PushUsedPixels(const std::shared_ptr<goom::PixelBuffer>& pixels);
+  auto GetNextActivePixels() -> std::shared_ptr<GOOM::PixelBuffer>;
+  void PushUsedPixels(const std::shared_ptr<GOOM::PixelBuffer>& pixels);
 
   int m_texWidth = GOOM_TEXTURE_WIDTH;
   int m_texHeight = GOOM_TEXTURE_HEIGHT;
@@ -134,12 +138,12 @@ private:
   GLint m_aCoordLoc = -1;
 
   // Goom's data itself
-  std::unique_ptr<goom::GoomControl> m_goomControl = nullptr;
+  std::unique_ptr<GOOM::GoomControl> m_goomControl = nullptr;
 
   // Audio buffer storage
-  const static size_t g_GCircularBufferSize =
-      g_GNumAudioBuffersInCircularBuffer * NUM_AUDIO_SAMPLES * AUDIO_SAMPLE_LEN;
-  circular_buffer<float> m_buffer{g_GCircularBufferSize};
+  static const size_t CIRCULAR_BUFFER_SIZE =
+      NUM_AUDIO_BUFFERS_IN_CIRCULAR_BUFFER * NUM_AUDIO_SAMPLES * AUDIO_SAMPLE_LEN;
+  circular_buffer<float> m_buffer{CIRCULAR_BUFFER_SIZE};
 
   // Goom process thread handles
   bool m_threadExit = false;
@@ -153,8 +157,8 @@ protected:
   static constexpr size_t MAX_ACTIVE_QUEUE_LENGTH = 20;
 
 private:
-  std::queue<std::shared_ptr<goom::PixelBuffer>> m_activeQueue;
-  std::queue<std::shared_ptr<goom::PixelBuffer>> m_storedQueue;
+  std::queue<std::shared_ptr<GOOM::PixelBuffer>> m_activeQueue;
+  std::queue<std::shared_ptr<GOOM::PixelBuffer>> m_storedQueue;
 
   // Start flag to know init was OK
   bool m_started = false;

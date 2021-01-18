@@ -9,7 +9,7 @@
 #include <thread>
 #include <vector>
 
-namespace goom::utils
+namespace GOOM::UTILS
 {
 
 class Parallel
@@ -83,5 +83,5 @@ void Parallel::forLoop(const uint32_t numIters, const Callable loopFunc)
   }
 }
 
-} // namespace goom::utils
+} // namespace GOOM::UTILS
 #endif /* LIBS_GOOMUTILS_INCLUDE_GOOMUTILS_COLORMAP_H_ */

@@ -22,10 +22,10 @@
 #include <utility>
 #include <vector>
 
-namespace goom
+namespace GOOM
 {
 
-using namespace goom::utils;
+using namespace GOOM::UTILS;
 
 inline auto ChangeCurrentColorMapEvent() -> bool
 {
@@ -192,7 +192,7 @@ void TentacleDriver::Init(const ITentacleLayout& l)
   const float tStep = 1.0F / static_cast<float>(numInParamGroup - 1);
   logDebug("numInTentacleGroup = {}, tStep = {:.2f}.", numInParamGroup, tStep);
 
-  const utils::ColorMapGroup initialColorMapGroup = m_colorMaps.GetRandomGroup();
+  const UTILS::ColorMapGroup initialColorMapGroup = m_colorMaps.GetRandomGroup();
 
   size_t paramsIndex = 0;
   float t = 0.0;
@@ -370,20 +370,20 @@ void TentacleDriver::UpdateIterTimers()
   }
 }
 
-auto TentacleDriver::GetNextColorMapGroups() const -> std::vector<utils::ColorMapGroup>
+auto TentacleDriver::GetNextColorMapGroups() const -> std::vector<UTILS::ColorMapGroup>
 {
   const size_t numDifferentGroups =
       (m_colorMode == ColorModes::minimal || m_colorMode == ColorModes::oneGroupForAll ||
        probabilityOfMInN(99, 100))
           ? 1
           : getRandInRange(1U, std::min(size_t(5U), m_colorizers.size()));
-  std::vector<utils::ColorMapGroup> groups(numDifferentGroups);
+  std::vector<UTILS::ColorMapGroup> groups(numDifferentGroups);
   for (size_t i = 0; i < numDifferentGroups; i++)
   {
     groups[i] = m_colorMaps.GetRandomGroup();
   }
 
-  std::vector<utils::ColorMapGroup> nextColorMapGroups(m_colorizers.size());
+  std::vector<UTILS::ColorMapGroup> nextColorMapGroups(m_colorizers.size());
   const size_t numPerGroup = nextColorMapGroups.size() / numDifferentGroups;
   size_t n = 0;
   for (size_t i = 0; i < nextColorMapGroups.size(); i++)
@@ -409,7 +409,7 @@ void TentacleDriver::CheckForTimerEvents()
 
   if (m_updateNum % g_ChangeCurrentColorMapGroupEveryNUpdates == 0)
   {
-    const std::vector<utils::ColorMapGroup> nextGroups = GetNextColorMapGroups();
+    const std::vector<UTILS::ColorMapGroup> nextGroups = GetNextColorMapGroups();
     for (size_t i = 0; i < m_colorizers.size(); i++)
     {
       m_colorizers[i]->SetColorMapGroup(nextGroups[i]);
@@ -429,7 +429,7 @@ void TentacleDriver::CheckForTimerEvents()
 
 void TentacleDriver::FreshStart()
 {
-  const utils::ColorMapGroup nextColorMapGroup = m_colorMaps.GetRandomGroup();
+  const UTILS::ColorMapGroup nextColorMapGroup = m_colorMaps.GetRandomGroup();
   for (auto& colorizer : m_colorizers)
   {
     colorizer->SetColorMapGroup(nextColorMapGroup);
@@ -664,7 +664,7 @@ inline void TentacleDriver::TranslateV3D(const V3d& vadd, V3d& vinOut)
   vinOut.z += vadd.z;
 }
 
-TentacleColorMapColorizer::TentacleColorMapColorizer(const utils::ColorMapGroup cmg,
+TentacleColorMapColorizer::TentacleColorMapColorizer(const UTILS::ColorMapGroup cmg,
                                                      const size_t nNodes) noexcept
   : m_numNodes{nNodes},
     m_currentColorMapGroup{cmg},
@@ -693,7 +693,7 @@ auto TentacleColorMapColorizer::operator==(const TentacleColorMapColorizer& t) c
   return result;
 }
 
-auto TentacleColorMapColorizer::GetColorMapGroup() const -> utils::ColorMapGroup
+auto TentacleColorMapColorizer::GetColorMapGroup() const -> UTILS::ColorMapGroup
 {
   return m_currentColorMapGroup;
 }
@@ -860,4 +860,4 @@ auto CirclesTentacleLayout::GetPoints() const -> const std::vector<V3d>&
   return m_points;
 }
 
-} // namespace goom
+} // namespace GOOM

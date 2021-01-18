@@ -14,7 +14,7 @@
 #include <tuple>
 #include <vector>
 
-namespace goom::utils
+namespace GOOM::UTILS
 {
 
 constexpr float m_pi = std::numbers::pi;
@@ -306,6 +306,6 @@ void PiecewiseDampingFunction::serialize(Archive& ar)
   ar(CEREAL_NVP(pieces));
 }
 
-} // namespace goom::utils
+} // namespace GOOM::UTILS
 
 #endif

@@ -8,7 +8,7 @@
 #include <utility>
 #include <vector>
 
-namespace goom::utils::colordata
+namespace GOOM::UTILS::COLOR_DATA
 {
 
 // array of raw maps matching elements of enum 'ColorMapName'
@@ -23,4 +23,4 @@ extern const std::vector<ColorMapName> qualitativeMaps;
 extern const std::vector<ColorMapName> miscMaps;
 extern const std::vector<ColorMapName> cyclicMaps;
 
-} // namespace goom::utils::colordata
+} // namespace GOOM::UTILS::COLOR_DATA

@@ -8,7 +8,7 @@
 #include <cmath>
 #include <cstdint>
 
-namespace goom
+namespace GOOM
 {
 
 Pixel getIntColor(uint8_t r, uint8_t g, uint8_t b);
@@ -273,6 +273,6 @@ inline Pixel GammaCorrection::getCorrection(const float brightness, const Pixel&
   return getBrighterColor(std::pow(brightness, gammaReciprocal), color, true);
 }
 
-} // namespace goom
+} // namespace GOOM
 
 #endif

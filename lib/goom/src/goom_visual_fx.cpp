@@ -1,6 +1,6 @@
 #include "goom_visual_fx.h"
 
-namespace goom
+namespace GOOM
 {
 
-} // namespace goom
+} // namespace GOOM

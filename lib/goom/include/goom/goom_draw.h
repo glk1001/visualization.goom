@@ -9,7 +9,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace goom
+namespace GOOM
 {
 
 class GoomDraw
@@ -132,6 +132,6 @@ inline void GoomDraw::SetBuffIntensity(const float val)
   m_intBuffIntensity = static_cast<uint32_t>(channel_limits<float>::max() * m_buffIntensity);
 }
 
-} // namespace goom
+} // namespace GOOM
 
 #endif /* VISUALIZATION_GOOM_GOOM_DRAW_H */

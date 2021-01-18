@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace goom
+namespace GOOM
 {
 
 void DrawCircle(PixelBuffer& buff,
@@ -109,5 +109,5 @@ inline void DrawPixel(PixelBuffer* buff,
     }
   }
 
-} // namespace goom
+  } // namespace GOOM
 #endif

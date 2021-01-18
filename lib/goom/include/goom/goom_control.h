@@ -10,7 +10,7 @@
 #include <ostream>
 #include <string>
 
-namespace goom
+namespace GOOM
 {
 
 class AudioSamples;
@@ -61,8 +61,8 @@ private:
 
   friend class cereal::access;
   template<class Archive>
-  void serialize(Archive&);
+  void serialize(Archive& ar);
 };
 
-} // namespace goom
+} // namespace GOOM
 #endif

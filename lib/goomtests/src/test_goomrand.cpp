@@ -8,7 +8,7 @@
 #include <tuple>
 #include <vector>
 
-using namespace goom::utils;
+using namespace GOOM::UTILS;
 
 TEST_CASE("save/restore random state", "[saveRestoreRandState]")
 {

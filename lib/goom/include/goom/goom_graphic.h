@@ -9,7 +9,7 @@
 #include <cstring>
 #include <vector>
 
-namespace goom
+namespace GOOM
 {
 
 template<class T>
@@ -309,5 +309,5 @@ inline auto PixelBuffer::operator()(const size_t x, const size_t y) -> Pixel&
   return (*this)(y * m_width + x);
 }
 
-} // namespace goom
+} // namespace GOOM
 #endif

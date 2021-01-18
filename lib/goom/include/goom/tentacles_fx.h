@@ -7,7 +7,7 @@
 #include <memory>
 #include <string>
 
-namespace goom
+namespace GOOM
 {
 
 class PluginInfo;
@@ -50,5 +50,5 @@ private:
   void serialize(Archive& ar);
 };
 
-} // namespace goom
+} // namespace GOOM
 #endif

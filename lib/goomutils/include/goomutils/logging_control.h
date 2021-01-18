@@ -1,12 +1,12 @@
 #ifndef LIB_GOOMUTILS_INCLUDE_GOOMUTILS_LOGGING_CONTROL_H_
 #define LIB_GOOMUTILS_INCLUDE_GOOMUTILS_LOGGING_CONTROL_H_
 
-namespace goom::utils
+namespace GOOM::UTILS
 {
 
 #ifndef FORCE_LOGGING
 #define NO_LOGGING
 #endif
 
-} // namespace goom::utils
+} // namespace GOOM::UTILS
 #endif

@@ -18,7 +18,7 @@
 #include <memory>
 #include <vector>
 
-using namespace goom;
+using namespace GOOM;
 
 constexpr uint32_t screenWidth = 100;
 constexpr uint32_t screenHeight = 100;
@@ -80,7 +80,7 @@ TEST_CASE("save/restore convolve object", "[saveRestoreConvolve]")
 {
   std::unique_ptr<PixelBuffer> prevBuff{getNewBuffer()};
   std::unique_ptr<PixelBuffer> currentBuff{getNewBuffer()};
-  utils::Parallel parallel{};
+  UTILS::Parallel parallel{};
 
   ConvolveFx convolveFx{parallel, getGoomInfo()};
   for (size_t i = 0; i < 100; i++)
@@ -108,7 +108,7 @@ TEST_CASE("save/restore filter", "[saveRestoreFilter]")
 {
   std::unique_ptr<PixelBuffer> prevBuff{getNewBuffer()};
   std::unique_ptr<PixelBuffer> currentBuff{getNewBuffer()};
-  utils::Parallel parallel{};
+  UTILS::Parallel parallel{};
 
   ZoomFilterFx filterFx{parallel, getGoomInfo()};
   const ZoomFilterData* zf = nullptr;

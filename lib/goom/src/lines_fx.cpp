@@ -21,10 +21,10 @@
 #include <utility>
 #include <vector>
 
-namespace goom
+namespace GOOM
 {
 
-using namespace goom::utils;
+using namespace GOOM::UTILS;
 
 class LinesFx::LinesImpl
 {
@@ -60,7 +60,7 @@ public:
 private:
   std::shared_ptr<const PluginInfo> m_goomInfo{};
   GoomDraw m_draw{};
-  utils::ColorMaps m_colorMaps{};
+  UTILS::ColorMaps m_colorMaps{};
 
   struct LinePoint
   {
@@ -486,4 +486,4 @@ void LinesFx::LinesImpl::DrawLines(const std::vector<int16_t>& soundData,
   GoomLinesMove();
 }
 
-} // namespace goom
+} // namespace GOOM

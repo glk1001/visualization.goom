@@ -10,7 +10,7 @@
 #include <utility>
 #include <vector>
 
-namespace goom::utils
+namespace GOOM::UTILS
 {
 
 uint64_t getRandSeed();
@@ -181,5 +181,5 @@ E Weights<E>::getRandomWeighted() const
   throw std::logic_error(std20::format("Should not get here. randVal = {}.", randVal));
 }
 
-} // namespace goom::utils
+} // namespace GOOM::UTILS
 #endif

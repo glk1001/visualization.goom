@@ -3,7 +3,7 @@
 #include "vivid/types.h"
 #include <vector>
 
-namespace goom::utils::colordata
+namespace GOOM::UTILS::COLOR_DATA
 {
 
 // clang-format off
@@ -24,4 +24,4 @@ static const std::vector<vivid::srgb_t> Paired
 };
 // clang-format on
 
-} // namespace goom::utils::colordata
+} // namespace GOOM::UTILS::COLOR_DATA

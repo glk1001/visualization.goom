@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace goom::utils
+namespace GOOM::UTILS
 {
 
 std::vector<std::string> splitString(const std::string& str, const std::string& delim)
@@ -23,4 +23,4 @@ std::vector<std::string> splitString(const std::string& str, const std::string& 
   return vec;
 }
 
-} // namespace goom::utils
+} // namespace GOOM::UTILS

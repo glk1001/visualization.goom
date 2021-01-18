@@ -25,13 +25,13 @@
 #include <tuple>
 #include <vector>
 
-CEREAL_REGISTER_TYPE(goom::TentaclesFx)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::IVisualFx, goom::TentaclesFx)
+CEREAL_REGISTER_TYPE(GOOM::TentaclesFx)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::IVisualFx, GOOM::TentaclesFx)
 
-namespace goom
+namespace GOOM
 {
 
-using namespace goom::utils;
+using namespace GOOM::UTILS;
 
 inline auto StartPrettyMoveEvent() -> bool
 {
@@ -1145,4 +1145,4 @@ void TentaclesFx::TentaclesImpl::PrettyMove(const float acceleration)
            doRotation);
 }
 
-} // namespace goom
+} // namespace GOOM

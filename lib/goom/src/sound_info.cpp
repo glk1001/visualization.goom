@@ -9,7 +9,7 @@
 #include <stdexcept>
 #include <vector>
 
-namespace goom
+namespace GOOM
 {
 
 inline auto FloatToInt16(const float f) -> int16_t
@@ -249,4 +249,4 @@ void SoundInfo::ProcessSample(const AudioSamples& samples)
   // m_bigGoomLimit == m_goomLimit*9/8+7 ?
 }
 
-} // namespace goom
+} // namespace GOOM

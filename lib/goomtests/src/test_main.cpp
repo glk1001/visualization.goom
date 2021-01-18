@@ -9,7 +9,7 @@
 #include <ostream>
 #include <string>
 
-using goom::utils::Logging;
+using GOOM::UTILS::Logging;
 
 int main(int argc, char* argv[])
 {

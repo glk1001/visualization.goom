@@ -17,10 +17,10 @@
 #include <utility>
 #include <vector>
 
-namespace goom
+namespace GOOM
 {
 
-using namespace goom::utils;
+using namespace GOOM::UTILS;
 
 Tentacle2D::Tentacle2D() noexcept = default;
 
@@ -542,4 +542,4 @@ void Tentacles3D::SetAllowOverexposed(const bool val)
   }
 }
 
-} // namespace goom
+} // namespace GOOM

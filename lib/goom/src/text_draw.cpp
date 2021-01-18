@@ -10,7 +10,7 @@
 #include <format>
 #include <fstream>
 
-namespace goom
+namespace GOOM
 {
 
 class TextDraw::TextDrawImpl
@@ -708,4 +708,4 @@ void TextDraw::TextDrawImpl::DrawBitmap(
 }
 **/
 
-} // namespace goom
+} // namespace GOOM

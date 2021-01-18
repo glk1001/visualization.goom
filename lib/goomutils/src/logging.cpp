@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace goom::utils
+namespace GOOM::UTILS
 {
 
 std::unique_ptr<Logging> Logging::logger(new Logging());
@@ -115,4 +115,4 @@ void Logging::doFlush()
   logEntries.clear();
 }
 
-} // namespace goom::utils
+} // namespace GOOM::UTILS
