@@ -49,8 +49,8 @@ private:
   int m_fontSize = 100;
   uint32_t m_horizontalResolution = 90;
   uint32_t m_verticalResolution = 90;
-  float m_outlineWidth = 3;
-  float m_charSpacing = 0;
+  float m_outlineWidth = 3.0;
+  float m_charSpacing = 0.0;
   std::string m_fontFilename{};
   std::vector<unsigned char> m_fontBuffer{};
   std::string m_theText{};
@@ -232,7 +232,7 @@ void TextDraw::TextDrawImpl::SetFontFile(const std::string& filename)
   std::fstream::pos_type fontFileSize = fontFile.tellg();
   (void)fontFile.seekg(0);
   m_fontBuffer.resize(static_cast<size_t>(fontFileSize));
-  (void)fontFile.read((char*)m_fontBuffer.data(), fontFileSize);
+  (void)fontFile.read(reinterpret_cast<char*>(m_fontBuffer.data()), fontFileSize);
 
   // Create a face from a memory buffer.  Be sure not to delete the memory buffer
   // until we are done using that font as FreeType will reference it directly.
@@ -251,7 +251,7 @@ void TextDraw::TextDrawImpl::SetFaceFontSize()
   }
 }
 
-void TextDraw::TextDrawImpl::SetFontSize(int val)
+void TextDraw::TextDrawImpl::SetFontSize(const int val)
 {
   if (val <= 0)
   {
@@ -265,9 +265,9 @@ void TextDraw::TextDrawImpl::SetFontSize(int val)
   }
 }
 
-void TextDraw::TextDrawImpl::SetOutlineWidth(float val)
+void TextDraw::TextDrawImpl::SetOutlineWidth(const float val)
 {
-  if (val <= 0)
+  if (val <= 0.0)
   {
     throw std::logic_error(std20::format("Outline width <= 0: {}.", val));
   }
@@ -276,7 +276,7 @@ void TextDraw::TextDrawImpl::SetOutlineWidth(float val)
 
 void TextDraw::TextDrawImpl::SetCharSpacing(const float val)
 {
-  if (val < 0)
+  if (val < 0.0)
   {
     throw std::logic_error(std20::format("Char spacing < 0: {}.", val));
   }
@@ -360,7 +360,7 @@ auto TextDraw::TextDrawImpl::GetStartXPen(const int xPen) const -> int
   }
 }
 
-int TextDraw::TextDrawImpl::GetStartYPen(const int yPen)
+auto TextDraw::TextDrawImpl::GetStartYPen(const int yPen) -> int
 {
   return yPen;
 }
