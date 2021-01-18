@@ -786,19 +786,20 @@ public:
 
 private:
   WeightedColorMaps m_colorMaps{Weights<ColorMapGroup>{{
-      {ColorMapGroup::perceptuallyUniformSequential, 10},
-      {ColorMapGroup::sequential, 10},
-      {ColorMapGroup::sequential2, 10},
-      {ColorMapGroup::cyclic, 10},
-      {ColorMapGroup::diverging, 20},
-      {ColorMapGroup::diverging_black, 1},
-      {ColorMapGroup::qualitative, 10},
-      {ColorMapGroup::misc, 20},
+      {ColorMapGroup::PERCEPTUALLY_UNIFORM_SEQUENTIAL, 10},
+      {ColorMapGroup::SEQUENTIAL, 10},
+      {ColorMapGroup::SEQUENTIAL2, 10},
+      {ColorMapGroup::CYCLIC, 10},
+      {ColorMapGroup::DIVERGING, 20},
+      {ColorMapGroup::DIVERGING_BLACK, 1},
+      {ColorMapGroup::QUALITATIVE, 10},
+      {ColorMapGroup::MISC, 20},
   }}};
-  const IColorMap* m_mixerMap1;
-  const IColorMap* m_prevMixerMap1;
-  const IColorMap* m_mixerMap2;
-  const IColorMap* m_prevMixerMap2;
+  static constexpr bool USE_ALL_MAPS = true;
+  std::shared_ptr<const IColorMap> m_mixerMap1;
+  std::shared_ptr<const IColorMap> m_prevMixerMap1;
+  std::shared_ptr<const IColorMap> m_mixerMap2;
+  std::shared_ptr<const IColorMap> m_prevMixerMap2;
   mutable uint32_t m_countSinceColorMapChange = 0;
   static constexpr uint32_t MIN_COLOR_MAP_CHANGE_COMPLETED = 5;
   static constexpr uint32_t MAX_COLOR_MAP_CHANGE_COMPLETED = 50;
@@ -814,9 +815,9 @@ private:
 };
 
 Colorizer::Colorizer() noexcept
-  : m_mixerMap1{&m_colorMaps.GetRandomColorMap()},
+  : m_mixerMap1{m_colorMaps.GetRandomColorMapPtr(USE_ALL_MAPS)},
     m_prevMixerMap1{m_mixerMap1},
-    m_mixerMap2{&m_colorMaps.GetRandomColorMap()},
+    m_mixerMap2{m_colorMaps.GetRandomColorMapPtr(USE_ALL_MAPS)},
     m_prevMixerMap2{m_mixerMap2}
 {
 }
@@ -837,15 +838,16 @@ void Colorizer::serialize(Archive& ar)
   ar(cereal::make_nvp("mixerMap1", mixerMapName1));
   auto prevMixerMapName1 = m_prevMixerMap1->GetMapName();
   ar(cereal::make_nvp("prevMixerMap1", prevMixerMapName1));
-  m_mixerMap1 = &m_colorMaps.GetColorMap(mixerMapName1);
-  m_prevMixerMap1 = &m_colorMaps.GetColorMap(prevMixerMapName1);
+  // TODO FIX THIS WRAPPER PROBLEM
+  // m_mixerMap1 = m_colorMaps.GetColorMap(mixerMapName1);
+  // m_prevMixerMap1 = m_colorMaps.GetColorMap(prevMixerMapName1);
 
   auto mixerMapName2 = m_mixerMap2->GetMapName();
   ar(cereal::make_nvp("mixerMap2", mixerMapName2));
   auto prevMixerMapName2 = m_prevMixerMap2->GetMapName();
   ar(cereal::make_nvp("prevMixerMap2", prevMixerMapName2));
-  m_mixerMap2 = &m_colorMaps.GetColorMap(mixerMapName2);
-  m_prevMixerMap2 = &m_colorMaps.GetColorMap(prevMixerMapName2);
+  // m_mixerMap2 = &m_colorMaps.GetColorMap(mixerMapName2);
+  // m_prevMixerMap2 = &m_colorMaps.GetColorMap(prevMixerMapName2);
 }
 
 inline void Colorizer::SetMaxHitCount(uint32_t val)
@@ -902,9 +904,9 @@ auto Colorizer::GetNextColorMode() -> IfsDancersFx::ColorMode
 void Colorizer::ChangeColorMaps()
 {
   m_prevMixerMap1 = m_mixerMap1;
-  m_mixerMap1 = &m_colorMaps.GetRandomColorMap();
+  m_mixerMap1 = m_colorMaps.GetRandomColorMapPtr(USE_ALL_MAPS);
   m_prevMixerMap2 = m_mixerMap2;
-  m_mixerMap2 = &m_colorMaps.GetRandomColorMap();
+  m_mixerMap2 = m_colorMaps.GetRandomColorMapPtr(USE_ALL_MAPS);
   //  logInfo("prevMixerMap = {}", enumToString(prevMixerMap->GetMapName()));
   //  logInfo("mixerMap = {}", enumToString(mixerMap->GetMapName()));
   m_colorMapChangeCompleted =
@@ -1056,7 +1058,7 @@ void LowDensityBlurrer::DoBlur(std::vector<IfsPoint>& lowDensityPoints,
       }
       neighY++;
     }
-    p.color = getColorAverage(neighbours);
+    p.color = GetColorAverage(neighbours);
   }
 
   for (const auto& p : lowDensityPoints)

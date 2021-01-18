@@ -238,24 +238,24 @@ private:
   std::shared_ptr<const PluginInfo> m_goomInfo{};
 
   const WeightedColorMaps m_colorMaps{Weights<ColorMapGroup>{{
-      {ColorMapGroup::perceptuallyUniformSequential, 10},
-      {ColorMapGroup::sequential, 10},
-      {ColorMapGroup::sequential2, 10},
-      {ColorMapGroup::cyclic, 0},
-      {ColorMapGroup::diverging, 0},
-      {ColorMapGroup::diverging_black, 0},
-      {ColorMapGroup::qualitative, 10},
-      {ColorMapGroup::misc, 10},
+      {ColorMapGroup::PERCEPTUALLY_UNIFORM_SEQUENTIAL, 10},
+      {ColorMapGroup::SEQUENTIAL, 10},
+      {ColorMapGroup::SEQUENTIAL2, 10},
+      {ColorMapGroup::CYCLIC, 0},
+      {ColorMapGroup::DIVERGING, 0},
+      {ColorMapGroup::DIVERGING_BLACK, 0},
+      {ColorMapGroup::QUALITATIVE, 10},
+      {ColorMapGroup::MISC, 10},
   }}};
   const WeightedColorMaps m_lowColorMaps{Weights<ColorMapGroup>{{
-      {ColorMapGroup::perceptuallyUniformSequential, 10},
-      {ColorMapGroup::sequential, 0},
-      {ColorMapGroup::sequential2, 10},
-      {ColorMapGroup::cyclic, 5},
-      {ColorMapGroup::diverging, 10},
-      {ColorMapGroup::diverging_black, 20},
-      {ColorMapGroup::qualitative, 1},
-      {ColorMapGroup::misc, 10},
+      {ColorMapGroup::PERCEPTUALLY_UNIFORM_SEQUENTIAL, 10},
+      {ColorMapGroup::SEQUENTIAL, 0},
+      {ColorMapGroup::SEQUENTIAL2, 10},
+      {ColorMapGroup::CYCLIC, 5},
+      {ColorMapGroup::DIVERGING, 10},
+      {ColorMapGroup::DIVERGING_BLACK, 20},
+      {ColorMapGroup::QUALITATIVE, 1},
+      {ColorMapGroup::MISC, 10},
   }}};
 
   ColorMode m_colorMode = ColorMode::mixColors;

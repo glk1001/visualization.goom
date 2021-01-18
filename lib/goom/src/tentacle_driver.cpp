@@ -32,8 +32,8 @@ inline auto ChangeCurrentColorMapEvent() -> bool
   return probabilityOfMInN(3, 5);
 }
 
-const size_t TentacleDriver::g_ChangeCurrentColorMapGroupEveryNUpdates = 400;
-const size_t TentacleDriver::g_ChangeTentacleColorMapEveryNUpdates = 100;
+const size_t TentacleDriver::CHANGE_CURRENT_COLOR_MAP_GROUP_EVERY_N_UPDATES = 400;
+const size_t TentacleDriver::CHANGE_TENTACLE_COLOR_MAP_EVERY_N_UPDATES = 100;
 
 TentacleDriver::TentacleDriver() noexcept = default;
 
@@ -192,7 +192,7 @@ void TentacleDriver::Init(const ITentacleLayout& l)
   const float tStep = 1.0F / static_cast<float>(numInParamGroup - 1);
   logDebug("numInTentacleGroup = {}, tStep = {:.2f}.", numInParamGroup, tStep);
 
-  const UTILS::ColorMapGroup initialColorMapGroup = m_colorMaps.GetRandomGroup();
+  const ColorMapGroup initialColorMapGroup = m_colorMaps.GetRandomGroup();
 
   size_t paramsIndex = 0;
   float t = 0.0;
@@ -219,7 +219,7 @@ void TentacleDriver::Init(const ITentacleLayout& l)
     logDebug("Created tentacle2D {}.", i);
 
     // To hide the annoying flapping tentacle head, make near the head very dark.
-    const Pixel headColor = getIntColor(5, 5, 5);
+    const Pixel headColor = GetIntColor(5, 5, 5);
     const Pixel headColorLow = headColor;
     Tentacle3D tentacle{std::move(tentacle2D),
                         m_colorizers[m_colorizers.size() - 1],
@@ -370,20 +370,20 @@ void TentacleDriver::UpdateIterTimers()
   }
 }
 
-auto TentacleDriver::GetNextColorMapGroups() const -> std::vector<UTILS::ColorMapGroup>
+auto TentacleDriver::GetNextColorMapGroups() const -> std::vector<ColorMapGroup>
 {
   const size_t numDifferentGroups =
       (m_colorMode == ColorModes::minimal || m_colorMode == ColorModes::oneGroupForAll ||
        probabilityOfMInN(99, 100))
           ? 1
           : getRandInRange(1U, std::min(size_t(5U), m_colorizers.size()));
-  std::vector<UTILS::ColorMapGroup> groups(numDifferentGroups);
+  std::vector<ColorMapGroup> groups(numDifferentGroups);
   for (size_t i = 0; i < numDifferentGroups; i++)
   {
     groups[i] = m_colorMaps.GetRandomGroup();
   }
 
-  std::vector<UTILS::ColorMapGroup> nextColorMapGroups(m_colorizers.size());
+  std::vector<ColorMapGroup> nextColorMapGroups(m_colorizers.size());
   const size_t numPerGroup = nextColorMapGroups.size() / numDifferentGroups;
   size_t n = 0;
   for (size_t i = 0; i < nextColorMapGroups.size(); i++)
@@ -407,9 +407,9 @@ void TentacleDriver::CheckForTimerEvents()
 {
   //  logDebug("Update num = {}: checkForTimerEvents", updateNum);
 
-  if (m_updateNum % g_ChangeCurrentColorMapGroupEveryNUpdates == 0)
+  if (m_updateNum % CHANGE_CURRENT_COLOR_MAP_GROUP_EVERY_N_UPDATES == 0)
   {
-    const std::vector<UTILS::ColorMapGroup> nextGroups = GetNextColorMapGroups();
+    const std::vector<ColorMapGroup> nextGroups = GetNextColorMapGroups();
     for (size_t i = 0; i < m_colorizers.size(); i++)
     {
       m_colorizers[i]->SetColorMapGroup(nextGroups[i]);
@@ -429,7 +429,7 @@ void TentacleDriver::CheckForTimerEvents()
 
 void TentacleDriver::FreshStart()
 {
-  const UTILS::ColorMapGroup nextColorMapGroup = m_colorMaps.GetRandomGroup();
+  const ColorMapGroup nextColorMapGroup = m_colorMaps.GetRandomGroup();
   for (auto& colorizer : m_colorizers)
   {
     colorizer->SetColorMapGroup(nextColorMapGroup);
@@ -664,11 +664,11 @@ inline void TentacleDriver::TranslateV3D(const V3d& vadd, V3d& vinOut)
   vinOut.z += vadd.z;
 }
 
-TentacleColorMapColorizer::TentacleColorMapColorizer(const UTILS::ColorMapGroup cmg,
+TentacleColorMapColorizer::TentacleColorMapColorizer(const ColorMapGroup cmg,
                                                      const size_t nNodes) noexcept
   : m_numNodes{nNodes},
     m_currentColorMapGroup{cmg},
-    m_colorMap{&m_colorMaps.GetRandomColorMap(m_currentColorMapGroup)},
+    m_colorMap{m_colorMaps.GetRandomColorMapPtr(m_currentColorMapGroup, USE_ALL_MAPS)},
     m_prevColorMap{m_colorMap}
 {
 }
@@ -693,7 +693,7 @@ auto TentacleColorMapColorizer::operator==(const TentacleColorMapColorizer& t) c
   return result;
 }
 
-auto TentacleColorMapColorizer::GetColorMapGroup() const -> UTILS::ColorMapGroup
+auto TentacleColorMapColorizer::GetColorMapGroup() const -> ColorMapGroup
 {
   return m_currentColorMapGroup;
 }
@@ -708,7 +708,7 @@ void TentacleColorMapColorizer::ChangeColorMap()
   // Save the current color map to do smooth transitions to next color map.
   m_prevColorMap = m_colorMap;
   m_tTransition = 1.0;
-  m_colorMap = &m_colorMaps.GetRandomColorMap(m_currentColorMapGroup);
+  m_colorMap = m_colorMaps.GetRandomColorMapPtr(m_currentColorMapGroup, USE_ALL_MAPS);
 }
 
 auto TentacleColorMapColorizer::GetColor(size_t nodeNum) const -> Pixel

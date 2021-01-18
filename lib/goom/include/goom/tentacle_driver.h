@@ -138,8 +138,8 @@ private:
   static constexpr float ITER_ZERO_Y_VAL = 10.0;
   size_t m_numTentacles = 0;
   std::vector<IterationParams> m_tentacleParams{};
-  static const size_t g_ChangeCurrentColorMapGroupEveryNUpdates;
-  static const size_t g_ChangeTentacleColorMapEveryNUpdates;
+  static const size_t CHANGE_CURRENT_COLOR_MAP_GROUP_EVERY_N_UPDATES;
+  static const size_t CHANGE_TENTACLE_COLOR_MAP_EVERY_N_UPDATES;
   [[nodiscard]] auto GetNextColorMapGroups() const -> std::vector<UTILS::ColorMapGroup>;
 
   static auto CreateNewTentacle2D(size_t id, const IterationParams& p)
@@ -188,8 +188,9 @@ private:
   size_t m_numNodes = 0;
   UTILS::ColorMapGroup m_currentColorMapGroup{};
   const UTILS::ColorMaps m_colorMaps{};
-  const UTILS::IColorMap* m_colorMap{};
-  const UTILS::IColorMap* m_prevColorMap{};
+  static constexpr bool USE_ALL_MAPS = true;
+  std::shared_ptr<const UTILS::IColorMap> m_colorMap{};
+  std::shared_ptr<const UTILS::IColorMap> m_prevColorMap{};
   static constexpr uint32_t MAX_COUNT_SINCE_COLORMAP_CHANGE = 100;
   static constexpr float TRANSITION_STEP =
       1.0 / static_cast<float>(MAX_COUNT_SINCE_COLORMAP_CHANGE);
@@ -262,8 +263,8 @@ void TentacleColorMapColorizer::load(Archive& ar)
   UTILS::COLOR_DATA::ColorMapName prevColorMapName;
   ar(CEREAL_NVP(m_numNodes), CEREAL_NVP(m_currentColorMapGroup), CEREAL_NVP(colorMapName),
      CEREAL_NVP(prevColorMapName), CEREAL_NVP(m_tTransition));
-  m_colorMap = &m_colorMaps.GetColorMap(colorMapName);
-  m_prevColorMap = &m_colorMaps.GetColorMap(prevColorMapName);
+  m_colorMap = m_colorMaps.GetColorMapPtr(colorMapName, 0.0);
+  m_prevColorMap = m_colorMaps.GetColorMapPtr(prevColorMapName, 0.0);
 }
 
 } // namespace GOOM
