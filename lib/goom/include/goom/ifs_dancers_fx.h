@@ -57,10 +57,10 @@ public:
   void Start() override;
 
   void ApplyNoDraw() override;
-  void Apply(PixelBuffer&) override;
+  void Apply(PixelBuffer& currentBuff) override;
   void Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff) override;
 
-  void Log(const StatsLogValueFunc&) const override;
+  void Log(const StatsLogValueFunc& l) const override;
   void Finish() override;
 
   auto operator==(const IfsDancersFx& i) const -> bool;

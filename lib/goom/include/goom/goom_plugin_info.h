@@ -28,15 +28,17 @@ public:
   };
 
   PluginInfo() noexcept;
+  virtual ~PluginInfo() noexcept = default;
   PluginInfo(uint32_t width, uint32_t height) noexcept;
   PluginInfo(const PluginInfo& p) noexcept;
   PluginInfo(const PluginInfo&&) noexcept = delete;
-  virtual ~PluginInfo() noexcept = default;
+  auto operator=(const PluginInfo&) -> PluginInfo& = delete;
+  auto operator=(const PluginInfo&&) -> PluginInfo& = delete;
 
   [[nodiscard]] auto GetScreenInfo() const -> const Screen&;
   [[nodiscard]] auto GetSoundInfo() const -> const SoundInfo&;
 
-  bool operator==(const PluginInfo& /*p*/) const;
+  auto operator==(const PluginInfo& /*p*/) const -> bool;
 
   template<class Archive>
   void serialize(Archive& ar)

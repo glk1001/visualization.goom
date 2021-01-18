@@ -1,5 +1,5 @@
-#ifndef _TEXT_DRAW_H
-#define _TEXT_DRAW_H
+#ifndef VISUALIZATION_GOOM_TEXT_DRAW_H
+#define VISUALIZATION_GOOM_TEXT_DRAW_H
 
 #include <functional>
 #include <memory>

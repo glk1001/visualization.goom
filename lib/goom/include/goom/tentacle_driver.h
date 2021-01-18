@@ -42,7 +42,13 @@ private:
 class ITentacleLayout
 {
 public:
+  ITentacleLayout() noexcept = default;
   virtual ~ITentacleLayout() noexcept = default;
+  ITentacleLayout(const ITentacleLayout&) noexcept = default;
+  ITentacleLayout(const ITentacleLayout&&) noexcept = delete;
+  auto operator=(const ITentacleLayout&) -> ITentacleLayout& = delete;
+  auto operator=(const ITentacleLayout&&) -> ITentacleLayout& = delete;
+
   [[nodiscard]] virtual auto GetNumPoints() const -> size_t = 0;
   [[nodiscard]] virtual auto GetPoints() const -> const std::vector<V3d>& = 0;
 };
@@ -125,7 +131,7 @@ private:
   GoomDraw m_draw{};
   FXBuffSettings m_buffSettings{};
   const utils::ColorMaps m_colorMaps{};
-  std::vector<std::shared_ptr<TentacleColorizer>> m_colorizers{};
+  std::vector<std::shared_ptr<ITentacleColorizer>> m_colorizers{};
 
   size_t m_updateNum = 0;
   Tentacles3D m_tentacles{};
@@ -155,7 +161,7 @@ private:
   static void TranslateV3D(const V3d& add, V3d& inOut);
 };
 
-class TentacleColorMapColorizer : public TentacleColorizer
+class TentacleColorMapColorizer : public ITentacleColorizer
 {
 public:
   TentacleColorMapColorizer() noexcept = default;
@@ -265,6 +271,6 @@ void TentacleColorMapColorizer::load(Archive& ar)
 // NOTE: Cereal is not happy with these calls inside the 'goom' namespace.
 //   But they work OK here.
 CEREAL_REGISTER_TYPE(goom::TentacleColorMapColorizer)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::TentacleColorizer, goom::TentacleColorMapColorizer)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(goom::ITentacleColorizer, goom::TentacleColorMapColorizer)
 
 #endif

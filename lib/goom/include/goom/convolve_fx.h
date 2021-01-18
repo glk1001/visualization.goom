@@ -13,7 +13,7 @@ namespace goom
 namespace utils
 {
 class Parallel;
-}
+} // namespace utils
 
 class PluginInfo;
 class PixelBuffer;
@@ -22,7 +22,7 @@ class ConvolveFx : public IVisualFx
 {
 public:
   ConvolveFx() noexcept;
-  explicit ConvolveFx(utils::Parallel&, const std::shared_ptr<const PluginInfo>&) noexcept;
+  ConvolveFx(utils::Parallel&, const std::shared_ptr<const PluginInfo>&) noexcept;
   ~ConvolveFx() noexcept override;
   ConvolveFx(const ConvolveFx&) = delete;
   ConvolveFx(const ConvolveFx&&) = delete;
@@ -31,15 +31,15 @@ public:
 
   void Convolve(const PixelBuffer& currentBuff, PixelBuffer& outputBuff);
 
-  [[nodiscard]] std::string GetFxName() const override;
-  void SetBuffSettings(const FXBuffSettings&) override;
+  [[nodiscard]] auto GetFxName() const -> std::string override;
+  void SetBuffSettings(const FXBuffSettings& settings) override;
 
   void Start() override;
 
   void Apply(PixelBuffer& currentBuff) override;
   void Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff) override;
 
-  void Log(const StatsLogValueFunc&) const override;
+  void Log(const StatsLogValueFunc& l) const override;
   void Finish() override;
 
   auto operator==(const ConvolveFx&) const -> bool;

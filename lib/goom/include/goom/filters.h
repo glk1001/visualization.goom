@@ -81,11 +81,11 @@ struct ZoomFilterData
 
   enum class WaveEffect
   {
-    waveSinEffect,
-    waveCosEffect,
-    waveSinCosEffect
+    WAVE_SIN_EFFECT,
+    WAVE_COS_EFFECT,
+    WAVE_SIN_COS_EFFECT
   };
-  static constexpr WaveEffect DEFAULT_WAVE_EFFECT_TYPE = WaveEffect::waveSinEffect;
+  static constexpr WaveEffect DEFAULT_WAVE_EFFECT_TYPE = WaveEffect::WAVE_SIN_EFFECT;
   WaveEffect waveEffectType = DEFAULT_WAVE_EFFECT_TYPE;
 
   static constexpr float DEFAULT_SCRUNCH_AMPLITUDE = 0.1;
@@ -143,7 +143,7 @@ struct ZoomFilterData
 namespace utils
 {
 class Parallel;
-}
+} // namespace utils
 
 class PluginInfo;
 
@@ -151,7 +151,7 @@ class ZoomFilterFx : public IVisualFx
 {
 public:
   ZoomFilterFx() noexcept;
-  explicit ZoomFilterFx(utils::Parallel&, const std::shared_ptr<const PluginInfo>&) noexcept;
+  ZoomFilterFx(utils::Parallel&, const std::shared_ptr<const PluginInfo>&) noexcept;
   ~ZoomFilterFx() noexcept override;
   ZoomFilterFx(const ZoomFilterFx&) = delete;
   ZoomFilterFx(const ZoomFilterFx&&) = delete;
@@ -164,15 +164,15 @@ public:
                          int switchIncr,
                          float switchMult);
 
-  [[nodiscard]] std::string GetFxName() const override;
-  void SetBuffSettings(const FXBuffSettings&) override;
+  [[nodiscard]] auto GetFxName() const -> std::string override;
+  void SetBuffSettings(const FXBuffSettings& settings) override;
 
   void Start() override;
 
-  void Apply(PixelBuffer&) override;
+  void Apply(PixelBuffer& currentBuff) override;
   void Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff) override;
 
-  void Log(const StatsLogValueFunc&) const override;
+  void Log(const StatsLogValueFunc& l) const override;
   void Finish() override;
 
   auto operator==(const ZoomFilterFx&) const -> bool;

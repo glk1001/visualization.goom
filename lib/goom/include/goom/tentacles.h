@@ -18,10 +18,16 @@
 namespace goom
 {
 
-class TentacleColorizer
+class ITentacleColorizer
 {
 public:
-  virtual ~TentacleColorizer() noexcept = default;
+  ITentacleColorizer() noexcept = default;
+  virtual ~ITentacleColorizer() noexcept = default;
+  ITentacleColorizer(const ITentacleColorizer&) noexcept = delete;
+  ITentacleColorizer(const ITentacleColorizer&&) noexcept = delete;
+  auto operator=(const ITentacleColorizer&) noexcept -> ITentacleColorizer& = delete;
+  auto operator=(const ITentacleColorizer&&) noexcept -> ITentacleColorizer& = delete;
+
   [[nodiscard]] virtual auto GetColorMapGroup() const -> utils::ColorMapGroup = 0;
   virtual void SetColorMapGroup(utils::ColorMapGroup) = 0;
   virtual void ChangeColorMap() = 0;
@@ -159,7 +165,7 @@ public:
              const V3d& head,
              size_t numHeadNodes) noexcept;
   Tentacle3D(std::unique_ptr<Tentacle2D>,
-             std::shared_ptr<const TentacleColorizer>,
+             std::shared_ptr<const ITentacleColorizer>,
              const Pixel& headColor,
              const Pixel& headColorLow,
              const V3d& head,
@@ -203,7 +209,7 @@ public:
 
 private:
   std::unique_ptr<Tentacle2D> m_tentacle{};
-  std::shared_ptr<const TentacleColorizer> m_colorizer{};
+  std::shared_ptr<const ITentacleColorizer> m_colorizer{};
   Pixel m_headColor{};
   Pixel m_headColorLow{};
   V3d m_head{};

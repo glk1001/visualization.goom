@@ -91,7 +91,8 @@ inline void DrawPixel(PixelBuffer* buff,
       const Pixel existingColorBlended =
           getBrighterColorInt(buffIntensity, *p, allowOverexposed);
       const Pixel pixColorBlended =
-          getBrighterColorInt(channel_limits<uint32_t>::max() - buffIntensity, newColors[i], allowOverexposed);
+          getBrighterColorInt(channel_limits<uint32_t>::max() - buffIntensity, newColors[i],
+                              allowOverexposed);
       *p = getColorAdd(existingColorBlended, pixColorBlended, allowOverexposed);
     ***/
   }

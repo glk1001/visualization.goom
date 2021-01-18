@@ -55,7 +55,7 @@ public:
   auto operator=(const LinesFx&) -> LinesFx& = delete;
   auto operator=(const LinesFx&&) -> LinesFx& = delete;
 
-  Pixel GetRandomLineColor();
+  auto GetRandomLineColor() -> Pixel;
 
   [[nodiscard]] auto GetPower() const -> float;
   void SetPower(float val);
@@ -66,7 +66,7 @@ public:
                  PixelBuffer& prevBuff,
                  PixelBuffer& currentBuff);
 
-  [[nodiscard]] auto getFxName() const -> std::string;
+  [[nodiscard]] auto GetFxName() const -> std::string;
 
   auto operator==(const LinesFx& l) const -> bool;
 

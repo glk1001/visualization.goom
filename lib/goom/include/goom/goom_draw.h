@@ -24,10 +24,10 @@ public:
   [[nodiscard]] auto GetBuffIntensity() const -> float;
   void SetBuffIntensity(float val);
 
-  [[nodiscard]] auto GetPixelRgb(const PixelBuffer& buff, uint32_t x, uint32_t y) const -> Pixel;
+  [[nodiscard]] static auto GetPixelRgb(const PixelBuffer& buff, uint32_t x, uint32_t y) -> Pixel;
   void SetPixelRgb(PixelBuffer& buff, uint32_t x, uint32_t y, const Pixel& color) const;
   // Set the pixel but don't blend it with the existing pixel value.
-  void SetPixelRgbNoBlend(PixelBuffer& buff, uint32_t x, uint32_t y, const Pixel& color);
+  static void SetPixelRgbNoBlend(PixelBuffer& buff, uint32_t x, uint32_t y, const Pixel& color);
 
   [[nodiscard]] auto GetPixelRgb(const std::vector<PixelBuffer*>& buffs,
                                  uint32_t x,
@@ -92,7 +92,7 @@ inline void GoomDraw::SetPixelRgbNoBlend(PixelBuffer& buff,
   buff(x, y) = color;
 }
 
-inline auto GoomDraw::GetPixelRgb(const PixelBuffer& buff, const uint32_t x, const uint32_t y) const
+inline auto GoomDraw::GetPixelRgb(const PixelBuffer& buff, const uint32_t x, const uint32_t y)
     -> Pixel
 {
   return buff(x, y);
