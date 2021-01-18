@@ -746,38 +746,38 @@ auto ZoomFilterFx::operator==(const ZoomFilterFx& f) const -> bool
   return m_fxImpl->operator==(*f.m_fxImpl);
 }
 
-void ZoomFilterFx::setBuffSettings(const FXBuffSettings& settings)
+void ZoomFilterFx::SetBuffSettings(const FXBuffSettings& settings)
 {
   m_fxImpl->setBuffSettings(settings);
 }
 
-void ZoomFilterFx::start()
+void ZoomFilterFx::Start()
 {
 }
 
-void ZoomFilterFx::finish()
+void ZoomFilterFx::Finish()
 {
 }
 
-void ZoomFilterFx::log(const StatsLogValueFunc& logVal) const
+void ZoomFilterFx::Log(const StatsLogValueFunc& logVal) const
 {
   m_fxImpl->log(logVal);
 }
 
-std::string ZoomFilterFx::getFxName() const
+std::string ZoomFilterFx::GetFxName() const
 {
   return "ZoomFilter FX";
 }
 
-void ZoomFilterFx::apply([[maybe_unused]] PixelBuffer& currentBuff)
+void ZoomFilterFx::Apply([[maybe_unused]] PixelBuffer& currentBuff)
 {
-  throw std::logic_error("ZoomFilterFx::apply should never be called.");
+  throw std::logic_error("ZoomFilterFx::Apply should never be called.");
 }
 
-void ZoomFilterFx::apply([[maybe_unused]] PixelBuffer& currentBuff,
+void ZoomFilterFx::Apply([[maybe_unused]] PixelBuffer& currentBuff,
                          [[maybe_unused]] PixelBuffer& nextBuff)
 {
-  throw std::logic_error("ZoomFilterFx::apply should never be called.");
+  throw std::logic_error("ZoomFilterFx::Apply should never be called.");
 }
 
 void ZoomFilterFx::ZoomFilterFastRgb(const PixelBuffer& pix1,

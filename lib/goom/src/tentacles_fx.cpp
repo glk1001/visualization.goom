@@ -550,7 +550,7 @@ auto TentaclesFx::operator==(const TentaclesFx& t) const -> bool
   return m_fxImpl->operator==(*t.m_fxImpl);
 }
 
-void TentaclesFx::setBuffSettings(const FXBuffSettings& settings)
+void TentaclesFx::SetBuffSettings(const FXBuffSettings& settings)
 {
   m_fxImpl->SetBuffSettings(settings);
 }
@@ -560,25 +560,25 @@ void TentaclesFx::FreshStart()
   m_fxImpl->FreshStart();
 }
 
-void TentaclesFx::start()
+void TentaclesFx::Start()
 {
 }
 
-void TentaclesFx::finish()
+void TentaclesFx::Finish()
 {
 }
 
-void TentaclesFx::log(const StatsLogValueFunc& logVal) const
+void TentaclesFx::Log(const StatsLogValueFunc& logVal) const
 {
   m_fxImpl->LogStats(logVal);
 }
 
-void TentaclesFx::apply(PixelBuffer&)
+void TentaclesFx::Apply(PixelBuffer&)
 {
-  throw std::logic_error("TentaclesFx::apply should never be called.");
+  throw std::logic_error("TentaclesFx::Apply should never be called.");
 }
 
-void TentaclesFx::apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
+void TentaclesFx::Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
 {
   if (!m_enabled)
   {
@@ -588,7 +588,7 @@ void TentaclesFx::apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
   m_fxImpl->Update(currentBuff, nextBuff);
 }
 
-void TentaclesFx::applyNoDraw()
+void TentaclesFx::ApplyNoDraw()
 {
   if (!m_enabled)
   {
@@ -598,7 +598,7 @@ void TentaclesFx::applyNoDraw()
   m_fxImpl->UpdateWithNoDraw();
 }
 
-std::string TentaclesFx::getFxName() const
+std::string TentaclesFx::GetFxName() const
 {
   return "Tentacles FX";
 }

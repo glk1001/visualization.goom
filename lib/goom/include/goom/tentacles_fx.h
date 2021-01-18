@@ -24,19 +24,19 @@ public:
   auto operator=(const TentaclesFx&) -> TentaclesFx& = delete;
   auto operator=(const TentaclesFx&&) -> TentaclesFx& = delete;
 
-  [[nodiscard]] std::string getFxName() const override;
-  void setBuffSettings(const FXBuffSettings&) override;
+  [[nodiscard]] std::string GetFxName() const override;
+  void SetBuffSettings(const FXBuffSettings&) override;
 
   void FreshStart();
 
-  void start() override;
+  void Start() override;
 
-  void applyNoDraw() override;
-  void apply(PixelBuffer&) override;
-  void apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff) override;
+  void ApplyNoDraw() override;
+  void Apply(PixelBuffer&) override;
+  void Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff) override;
 
-  void log(const StatsLogValueFunc&) const override;
-  void finish() override;
+  void Log(const StatsLogValueFunc&) const override;
+  void Finish() override;
 
   auto operator==(const TentaclesFx&) const -> bool;
 

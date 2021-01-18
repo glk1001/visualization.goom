@@ -164,16 +164,16 @@ public:
                          int switchIncr,
                          float switchMult);
 
-  [[nodiscard]] std::string getFxName() const override;
-  void setBuffSettings(const FXBuffSettings&) override;
+  [[nodiscard]] std::string GetFxName() const override;
+  void SetBuffSettings(const FXBuffSettings&) override;
 
-  void start() override;
+  void Start() override;
 
-  void apply(PixelBuffer&) override;
-  void apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff) override;
+  void Apply(PixelBuffer&) override;
+  void Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff) override;
 
-  void log(const StatsLogValueFunc&) const override;
-  void finish() override;
+  void Log(const StatsLogValueFunc&) const override;
+  void Finish() override;
 
   auto operator==(const ZoomFilterFx&) const -> bool;
 

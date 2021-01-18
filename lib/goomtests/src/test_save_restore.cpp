@@ -150,7 +150,7 @@ TEST_CASE("save/restore flying stars", "[saveRestoreFlyingStars]")
   FlyingStarsFx flyingStarsFx{getGoomInfo()};
   for (size_t i = 0; i < 100; i++)
   {
-    flyingStarsFx.apply(*prevBuff, *currentBuff);
+    flyingStarsFx.Apply(*prevBuff, *currentBuff);
   }
   std::stringstream ss;
   {
@@ -184,7 +184,7 @@ TEST_CASE("save/restore goom dots", "[saveRestoreGoomDots]")
   GoomDotsFx dotsFx{getGoomInfo()};
   for (size_t i = 0; i < 100; i++)
   {
-    dotsFx.apply(*prevBuff, *currentBuff);
+    dotsFx.Apply(*prevBuff, *currentBuff);
   }
   std::stringstream ss;
   {
@@ -218,7 +218,7 @@ TEST_CASE("save/restore ifs", "[saveRestoreIfs]")
   IfsDancersFx ifsFx{getGoomInfo()};
   for (size_t i = 0; i < 100; i++)
   {
-    ifsFx.apply(*prevBuff, *currentBuff);
+    ifsFx.Apply(*prevBuff, *currentBuff);
   }
   std::stringstream ss;
   {
@@ -288,7 +288,7 @@ TEST_CASE("save/restore tentacles", "[saveRestoreTentacles]")
   TentaclesFx tentaclesFx{getGoomInfo()};
   for (size_t i = 0; i < 100; i++)
   {
-    tentaclesFx.apply(*prevBuff, *currentBuff);
+    tentaclesFx.Apply(*prevBuff, *currentBuff);
   }
   std::stringstream ss;
   {

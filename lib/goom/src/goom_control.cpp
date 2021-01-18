@@ -1043,9 +1043,9 @@ auto GoomVisualFx::operator==(const GoomVisualFx& f) const -> bool
       logDebug("lists not same type at index {}.", i);
       return false;
     }
-    if (list[i]->getFxName() != f.list[i]->getFxName())
+    if (list[i]->GetFxName() != f.list[i]->GetFxName())
     {
-      logDebug("list {} not same name as list {}.", list[i]->getFxName(), f.list[i]->getFxName());
+      logDebug("list {} not same name as list {}.", list[i]->GetFxName(), f.list[i]->GetFxName());
       return false;
     }
   }
@@ -1465,7 +1465,7 @@ void GoomControl::GoomControlImpl::Start()
 
   for (auto& v : m_visualFx.list)
   {
-    v->start();
+    v->Start();
   }
 }
 
@@ -1480,12 +1480,12 @@ void GoomControl::GoomControlImpl::Finish()
 {
   for (auto& v : m_visualFx.list)
   {
-    v->finish();
+    v->Finish();
   }
 
   for (auto& v : m_visualFx.list)
   {
-    v->log(LogStatsValue);
+    v->Log(LogStatsValue);
   }
 
   m_stats.SetStateLastValue(m_states.GetCurrentStateIndex());
@@ -2067,12 +2067,12 @@ void GoomControl::GoomControlImpl::BigNormalUpdate(ZoomFilterData** pzfd)
 
   if (!m_goomEvent.Happens(GoomEvent::changeZoomFilterAllowOverexposedToOn))
   {
-    m_visualFx.zoomFilter_fx->setBuffSettings({.buffIntensity = 0.5, .allowOverexposed = false});
+    m_visualFx.zoomFilter_fx->SetBuffSettings({.buffIntensity = 0.5, .allowOverexposed = false});
   }
   else
   {
     m_stats.DoZoomFilterAllowOverexposed();
-    m_visualFx.zoomFilter_fx->setBuffSettings({.buffIntensity = 0.5, .allowOverexposed = true});
+    m_visualFx.zoomFilter_fx->SetBuffSettings({.buffIntensity = 0.5, .allowOverexposed = true});
   }
 
   if (m_goomData.zoomFilterData.mode == ZoomFilterMode::amuletMode)
@@ -2172,12 +2172,12 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect(ZoomFilterData* pzfd, const 
 
   if (!m_goomEvent.Happens(GoomEvent::changeZoomFilterAllowOverexposedToOn))
   {
-    m_visualFx.zoomFilter_fx->setBuffSettings({.buffIntensity = 0.5, .allowOverexposed = false});
+    m_visualFx.zoomFilter_fx->SetBuffSettings({.buffIntensity = 0.5, .allowOverexposed = false});
   }
   else
   {
     m_stats.DoZoomFilterAllowOverexposed();
-    m_visualFx.zoomFilter_fx->setBuffSettings({.buffIntensity = 0.5, .allowOverexposed = true});
+    m_visualFx.zoomFilter_fx->SetBuffSettings({.buffIntensity = 0.5, .allowOverexposed = true});
   }
 
   if (pzfd)
@@ -2240,15 +2240,15 @@ void GoomControl::GoomControlImpl::ApplyTentaclesIfRequired()
 {
   if (!m_curGDrawables.contains(GoomDrawable::tentacles))
   {
-    m_visualFx.tentacles_fx->applyNoDraw();
+    m_visualFx.tentacles_fx->ApplyNoDraw();
     return;
   }
 
   logDebug("curGDrawables tentacles is set.");
   m_stats.DoTentacles();
-  m_visualFx.tentacles_fx->setBuffSettings(
+  m_visualFx.tentacles_fx->SetBuffSettings(
       m_states.GetCurrentBuffSettings(GoomDrawable::tentacles));
-  m_visualFx.tentacles_fx->apply(m_imageBuffers.GetP2(), m_imageBuffers.GetP1());
+  m_visualFx.tentacles_fx->Apply(m_imageBuffers.GetP2(), m_imageBuffers.GetP1());
 }
 
 void GoomControl::GoomControlImpl::ApplyStarsIfRequired()
@@ -2260,9 +2260,9 @@ void GoomControl::GoomControlImpl::ApplyStarsIfRequired()
 
   logDebug("curGDrawables stars is set.");
   m_stats.DoStars();
-  m_visualFx.star_fx->setBuffSettings(m_states.GetCurrentBuffSettings(GoomDrawable::stars));
+  m_visualFx.star_fx->SetBuffSettings(m_states.GetCurrentBuffSettings(GoomDrawable::stars));
   //  visualFx.star_fx->apply(imageBuffers.getP2(), imageBuffers.getP1());
-  m_visualFx.star_fx->apply(m_imageBuffers.GetP2(), m_imageBuffers.GetP1());
+  m_visualFx.star_fx->Apply(m_imageBuffers.GetP2(), m_imageBuffers.GetP1());
 }
 
 #ifdef SHOW_STATE_TEXT_ON_SCREEN
@@ -2626,14 +2626,14 @@ void GoomControl::GoomControlImpl::ApplyIfsIfRequired()
 {
   if (!m_curGDrawables.contains(GoomDrawable::IFS))
   {
-    m_visualFx.ifs_fx->applyNoDraw();
+    m_visualFx.ifs_fx->ApplyNoDraw();
     return;
   }
 
   logDebug("curGDrawables IFS is set");
   m_stats.DoIfs();
-  m_visualFx.ifs_fx->setBuffSettings(m_states.GetCurrentBuffSettings(GoomDrawable::IFS));
-  m_visualFx.ifs_fx->apply(m_imageBuffers.GetP2(), m_imageBuffers.GetP1());
+  m_visualFx.ifs_fx->SetBuffSettings(m_states.GetCurrentBuffSettings(GoomDrawable::IFS));
+  m_visualFx.ifs_fx->Apply(m_imageBuffers.GetP2(), m_imageBuffers.GetP1());
 }
 
 void GoomControl::GoomControlImpl::RegularlyLowerTheSpeed(ZoomFilterData** pzfd)
@@ -2669,7 +2669,7 @@ void GoomControl::GoomControlImpl::ApplyDotsIfRequired()
 
   logDebug("goomInfo->curGDrawables points is set.");
   m_stats.DoDots();
-  m_visualFx.goomDots_fx->apply(m_imageBuffers.GetP1());
+  m_visualFx.goomDots_fx->Apply(m_imageBuffers.GetP1());
   logDebug("sound GetTimeSinceLastGoom() = {}", m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom());
 }
 

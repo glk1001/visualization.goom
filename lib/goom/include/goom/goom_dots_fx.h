@@ -24,15 +24,15 @@ public:
   auto operator=(const GoomDotsFx&) -> GoomDotsFx& = delete;
   auto operator=(const GoomDotsFx&&) -> GoomDotsFx& = delete;
 
-  [[nodiscard]] auto getFxName() const -> std::string override;
-  void setBuffSettings(const FXBuffSettings& settings) override;
+  [[nodiscard]] auto GetFxName() const -> std::string override;
+  void SetBuffSettings(const FXBuffSettings& settings) override;
 
-  void start() override;
+  void Start() override;
 
-  void apply(PixelBuffer& currentBuff) override;
-  void apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff) override;
+  void Apply(PixelBuffer& currentBuff) override;
+  void Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff) override;
 
-  void finish() override;
+  void Finish() override;
 
   auto operator==(const GoomDotsFx& d) const -> bool;
 

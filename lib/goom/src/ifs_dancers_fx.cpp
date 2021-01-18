@@ -1170,31 +1170,31 @@ auto IfsDancersFx::operator==(const IfsDancersFx& i) const -> bool
   return m_fxImpl->operator==(*i.m_fxImpl);
 }
 
-void IfsDancersFx::setBuffSettings(const FXBuffSettings& settings)
+void IfsDancersFx::SetBuffSettings(const FXBuffSettings& settings)
 {
   m_fxImpl->SetBuffSettings(settings);
 }
 
-void IfsDancersFx::start()
+void IfsDancersFx::Start()
 {
 }
 
-void IfsDancersFx::finish()
+void IfsDancersFx::Finish()
 {
   m_fxImpl->Finish();
 }
 
-void IfsDancersFx::log(const StatsLogValueFunc& logVal) const
+void IfsDancersFx::Log(const StatsLogValueFunc& logVal) const
 {
   m_fxImpl->Log(logVal);
 }
 
-std::string IfsDancersFx::getFxName() const
+std::string IfsDancersFx::GetFxName() const
 {
   return "IFS FX";
 }
 
-void IfsDancersFx::applyNoDraw()
+void IfsDancersFx::ApplyNoDraw()
 {
   if (!m_enabled)
   {
@@ -1204,12 +1204,12 @@ void IfsDancersFx::applyNoDraw()
   m_fxImpl->ApplyNoDraw();
 }
 
-void IfsDancersFx::apply(PixelBuffer&)
+void IfsDancersFx::Apply(PixelBuffer&)
 {
-  throw std::logic_error("IfsDancersFx::apply should never be called.");
+  throw std::logic_error("IfsDancersFx::Apply should never be called.");
 }
 
-void IfsDancersFx::apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
+void IfsDancersFx::Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
 {
   if (!m_enabled)
   {

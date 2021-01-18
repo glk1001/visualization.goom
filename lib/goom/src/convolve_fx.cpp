@@ -73,37 +73,37 @@ auto ConvolveFx::operator==(const ConvolveFx& c) const -> bool
   return m_fxImpl->operator==(*c.m_fxImpl);
 }
 
-void ConvolveFx::setBuffSettings(const FXBuffSettings& settings)
+void ConvolveFx::SetBuffSettings(const FXBuffSettings& settings)
 {
   m_fxImpl->SetBuffSettings(settings);
 }
 
-void ConvolveFx::start()
+void ConvolveFx::Start()
 {
 }
 
-void ConvolveFx::finish()
+void ConvolveFx::Finish()
 {
 }
 
-void ConvolveFx::log(const StatsLogValueFunc&) const
+void ConvolveFx::Log(const StatsLogValueFunc&) const
 {
 }
 
-std::string ConvolveFx::getFxName() const
+std::string ConvolveFx::GetFxName() const
 {
   return "Convolve FX";
 }
 
-void ConvolveFx::apply([[maybe_unused]] PixelBuffer& currentBuff)
+void ConvolveFx::Apply([[maybe_unused]] PixelBuffer& currentBuff)
 {
-  throw std::logic_error("ConvolveFx::apply should never be called.");
+  throw std::logic_error("ConvolveFx::Apply should never be called.");
 }
 
-void ConvolveFx::apply([[maybe_unused]] PixelBuffer& currentBuff,
+void ConvolveFx::Apply([[maybe_unused]] PixelBuffer& currentBuff,
                        [[maybe_unused]] PixelBuffer& nextBuff)
 {
-  throw std::logic_error("ConvolveFx::apply should never be called.");
+  throw std::logic_error("ConvolveFx::Apply should never be called.");
 }
 
 void ConvolveFx::Convolve(const PixelBuffer& currentBuff, PixelBuffer& outputBuff)

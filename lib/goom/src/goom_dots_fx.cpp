@@ -113,25 +113,25 @@ auto GoomDotsFx::operator==(const GoomDotsFx& d) const -> bool
   return m_fxImpl->operator==(*d.m_fxImpl);
 }
 
-void GoomDotsFx::setBuffSettings(const FXBuffSettings& settings)
+void GoomDotsFx::SetBuffSettings(const FXBuffSettings& settings)
 {
   m_fxImpl->setBuffSettings(settings);
 }
 
-void GoomDotsFx::start()
+void GoomDotsFx::Start()
 {
 }
 
-void GoomDotsFx::finish()
+void GoomDotsFx::Finish()
 {
 }
 
-auto GoomDotsFx::getFxName() const -> std::string
+auto GoomDotsFx::GetFxName() const -> std::string
 {
   return "goom dots";
 }
 
-void GoomDotsFx::apply(PixelBuffer& currentBuff)
+void GoomDotsFx::Apply(PixelBuffer& currentBuff)
 {
   if (!m_enabled)
   {
@@ -140,7 +140,7 @@ void GoomDotsFx::apply(PixelBuffer& currentBuff)
   m_fxImpl->apply(currentBuff);
 }
 
-void GoomDotsFx::apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
+void GoomDotsFx::Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
 {
   if (!m_enabled)
   {
@@ -330,7 +330,7 @@ void GoomDotsFx::GoomDotsImpl::apply(PixelBuffer& currentBuff)
 
 void GoomDotsFx::GoomDotsImpl::apply(PixelBuffer&, PixelBuffer&)
 {
-  throw std::logic_error("GoomDotsFx::GoomDotsImpl::apply should never be called.");
+  throw std::logic_error("GoomDotsFx::GoomDotsImpl::Apply should never be called.");
 }
 
 auto GoomDotsFx::GoomDotsImpl::GetColor(const Pixel& color0,

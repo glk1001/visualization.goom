@@ -27,7 +27,7 @@ struct FXBuffSettings
 {
   float buffIntensity = 0.5;
   bool allowOverexposed = true;
-  bool operator==(const FXBuffSettings&) const = default;
+  auto operator==(const FXBuffSettings&) const -> bool = default;
   template<class Archive>
   void serialize(Archive&);
 };
@@ -48,17 +48,17 @@ public:
   auto operator=(const IVisualFx&) -> IVisualFx& = delete;
   auto operator=(const IVisualFx&&) -> IVisualFx& = delete;
 
-  [[nodiscard]] virtual std::string getFxName() const = 0;
-  virtual void setBuffSettings(const FXBuffSettings&) = 0;
+  [[nodiscard]] virtual auto GetFxName() const -> std::string = 0;
+  virtual void SetBuffSettings(const FXBuffSettings& settings) = 0;
 
-  virtual void start(){};
+  virtual void Start(){};
 
-  virtual void applyNoDraw(){};
-  virtual void apply(PixelBuffer& currentBuff) = 0;
-  virtual void apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff) = 0;
+  virtual void ApplyNoDraw(){};
+  virtual void Apply(PixelBuffer& currentBuff) = 0;
+  virtual void Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff) = 0;
 
-  virtual void log(const StatsLogValueFunc&) const {};
-  virtual void finish(){};
+  virtual void Log([[maybe_unused]] const StatsLogValueFunc& l) const {};
+  virtual void Finish(){};
 };
 
 } // namespace goom

@@ -318,36 +318,36 @@ auto FlyingStarsFx::operator==(const FlyingStarsFx& f) const -> bool
   return m_fxImpl->operator==(*f.m_fxImpl);
 }
 
-void FlyingStarsFx::setBuffSettings(const FXBuffSettings& settings)
+void FlyingStarsFx::SetBuffSettings(const FXBuffSettings& settings)
 {
   m_fxImpl->SetBuffSettings(settings);
 }
 
-void FlyingStarsFx::start()
+void FlyingStarsFx::Start()
 {
 }
 
-void FlyingStarsFx::finish()
+void FlyingStarsFx::Finish()
 {
   m_fxImpl->Finish();
 }
 
-void FlyingStarsFx::log(const StatsLogValueFunc& logVal) const
+void FlyingStarsFx::Log(const StatsLogValueFunc& logVal) const
 {
   m_fxImpl->Log(logVal);
 }
 
-auto FlyingStarsFx::getFxName() const -> std::string
+auto FlyingStarsFx::GetFxName() const -> std::string
 {
   return "Flying Stars FX";
 }
 
-void FlyingStarsFx::apply(PixelBuffer&)
+void FlyingStarsFx::Apply(PixelBuffer&)
 {
-  throw std::logic_error("FlyingStarsFx::apply should never be called.");
+  throw std::logic_error("FlyingStarsFx::Apply should never be called.");
 }
 
-void FlyingStarsFx::apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
+void FlyingStarsFx::Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
 {
   if (!m_enabled)
   {
