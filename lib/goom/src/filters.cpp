@@ -977,8 +977,8 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff, PixelBuffe
         if ((tranPx >= tranAx) || (tranPy >= tranAy))
         {
           m_stats.DoCZoomOutOfRange();
-          const size_t xIndex = getRandInRange(0U, 1U + (tranAx & PERTE_MASK));
-          const size_t yIndex = getRandInRange(0U, 1U + (tranAy & PERTE_MASK));
+          const size_t xIndex = GetRandInRange(0U, 1U + (tranAx & PERTE_MASK));
+          const size_t yIndex = GetRandInRange(0U, 1U + (tranAy & PERTE_MASK));
           return std::make_tuple(destPos, CoeffArray{.intVal = m_precalcCoeffs[xIndex][yIndex]});
         }
          **/
@@ -1089,16 +1089,16 @@ void ZoomFilterFx::ZoomFilterImpl::GenerateWaterFxHorizontalBuffer()
 {
   m_stats.DoGenerateWaterFxHorizontalBuffer();
 
-  int32_t decc = getRandInRange(-4, +4);
-  int32_t spdc = getRandInRange(-4, +4);
-  int32_t accel = getRandInRange(-4, +4);
+  int32_t decc = GetRandInRange(-4, +4);
+  int32_t spdc = GetRandInRange(-4, +4);
+  int32_t accel = GetRandInRange(-4, +4);
 
   for (size_t loopv = m_screenHeight; loopv != 0;)
   {
     loopv--;
     m_firedec[loopv] = decc;
     decc += spdc / 10;
-    spdc += getRandInRange(-2, +3);
+    spdc += GetRandInRange(-2, +3);
 
     if (decc > 4)
     {
@@ -1111,27 +1111,27 @@ void ZoomFilterFx::ZoomFilterImpl::GenerateWaterFxHorizontalBuffer()
 
     if (spdc > 30)
     {
-      spdc = spdc - static_cast<int32_t>(getNRand(3)) + accel / 10;
+      spdc = spdc - static_cast<int32_t>(GetNRand(3)) + accel / 10;
     }
     if (spdc < -30)
     {
-      spdc = spdc + static_cast<int32_t>(getNRand(3)) + accel / 10;
+      spdc = spdc + static_cast<int32_t>(GetNRand(3)) + accel / 10;
     }
 
     if (decc > 8 && spdc > 1)
     {
-      spdc -= getRandInRange(-2, +1);
+      spdc -= GetRandInRange(-2, +1);
     }
     if (decc < -8 && spdc < -1)
     {
-      spdc += static_cast<int32_t>(getNRand(3)) + 2;
+      spdc += static_cast<int32_t>(GetNRand(3)) + 2;
     }
     if (decc > 8 || decc < -8)
     {
       decc = decc * 8 / 9;
     }
 
-    accel += getRandInRange(-1, +2);
+    accel += GetRandInRange(-1, +2);
     if (accel > 20)
     {
       accel -= 2;
@@ -1158,19 +1158,19 @@ auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float normX, const float 
     case ZoomFilterMode::crystalBallMode:
     {
       m_stats.DoZoomVectorCrystalBallMode();
-      coefVitesse -= m_filterData.crystalBallAmplitude * (sq_distance(normX, normY) - 0.3F);
+      coefVitesse -= m_filterData.crystalBallAmplitude * (SqDistance(normX, normY) - 0.3F);
       break;
     }
     case ZoomFilterMode::amuletMode:
     {
       m_stats.DoZoomVectorAmuletMode();
-      coefVitesse += m_filterData.amuletteAmplitude * sq_distance(normX, normY);
+      coefVitesse += m_filterData.amuletteAmplitude * SqDistance(normX, normY);
       break;
     }
     case ZoomFilterMode::waveMode:
     {
       m_stats.DoZoomVectorWaveMode();
-      const float angle = sq_distance(normX, normY) * m_filterData.waveFreqFactor;
+      const float angle = SqDistance(normX, normY) * m_filterData.waveFreqFactor;
       float periodicPart;
       switch (m_filterData.waveEffectType)
       {
@@ -1192,7 +1192,7 @@ auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float normX, const float 
     case ZoomFilterMode::scrunchMode:
     {
       m_stats.DoZoomVectorScrunchMode();
-      coefVitesse += m_filterData.scrunchAmplitude * sq_distance(normX, normY);
+      coefVitesse += m_filterData.scrunchAmplitude * SqDistance(normX, normY);
       break;
     }
       //case ZoomFilterMode::HYPERCOS1_MODE:
@@ -1243,10 +1243,10 @@ auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float normX, const float 
       m_stats.DoZoomVectorNoiseFactor();
       //    const float xAmp = 1.0/getRandInRange(50.0f, 200.0f);
       //    const float yAmp = 1.0/getRandInRange(50.0f, 200.0f);
-      const float amp = m_filterData.noiseFactor / getRandInRange(NOISE_MIN, NOISE_MAX);
+      const float amp = m_filterData.noiseFactor / GetRandInRange(NOISE_MIN, NOISE_MAX);
       m_filterData.noiseFactor *= 0.999;
-      vx += amp * (getRandInRange(0.0F, 1.0F) - 0.5F);
-      vy += amp * (getRandInRange(0.0F, 1.0F) - 0.5F);
+      vx += amp * (GetRandInRange(0.0F, 1.0F) - 0.5F);
+      vy += amp * (GetRandInRange(0.0F, 1.0F) - 0.5F);
     }
   }
 

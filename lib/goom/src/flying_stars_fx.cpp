@@ -437,16 +437,16 @@ void FlyingStarsFx::FlyingStarsImpl::UpdateBuffers(PixelBuffer& currentBuff, Pix
 {
   m_counter++;
 
-  m_maxStars = getRandInRange(100U, MAX_STARS_LIMIT);
+  m_maxStars = GetRandInRange(100U, MAX_STARS_LIMIT);
 
   // look for events
   if (m_stars.empty() || m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom() < 1)
   {
     SoundEventOccurred();
-    if (getNRand(20) == 1)
+    if (GetNRand(20) == 1)
     {
       // Give a slight weight towards noFx mode by using numFX + 2.
-      const uint32_t newVal = getNRand(NUM_FX + 2);
+      const uint32_t newVal = GetNRand(NUM_FX + 2);
       m_fxMode = newVal >= NUM_FX ? StarModes::NO_FX : static_cast<StarModes>(newVal);
       ChangeColorMode();
     }
@@ -461,7 +461,7 @@ void FlyingStarsFx::FlyingStarsImpl::UpdateBuffers(PixelBuffer& currentBuff, Pix
   // update particules
   m_stats.UpdateStars();
 
-  const float flipSpeed = getRandInRange(0.1F, 10.0F);
+  const float flipSpeed = GetRandInRange(0.1F, 10.0F);
 
   for (auto& star : m_stars)
   {
@@ -491,7 +491,7 @@ void FlyingStarsFx::FlyingStarsImpl::UpdateBuffers(PixelBuffer& currentBuff, Pix
       const int32_t y2 =
           y0 - static_cast<int32_t>(0.5 * (1.0 + std::cos(flipSpeed * star.yVelocity * j)) *
                                     star.yVelocity * j);
-      const uint8_t thickness = tAge < OLD_AGE ? 1 : getRandInRange(2U, 5U);
+      const uint8_t thickness = tAge < OLD_AGE ? 1 : GetRandInRange(2U, 5U);
 
       const float brightness =
           2.0F * (1.0F - tAge) * static_cast<float>(j - 1) / static_cast<float>(numParts - 1);
@@ -541,7 +541,7 @@ void FlyingStarsFx::FlyingStarsImpl::ChangeColorMode()
   }};
   // clang-format on
 
-  m_colorMode = s_colorModeWeights.getRandomWeighted();
+  m_colorMode = s_colorModeWeights.GetRandomWeighted();
 }
 
 inline auto FlyingStarsFx::FlyingStarsImpl::GetMixedColors(const Star& star,
@@ -605,13 +605,13 @@ inline auto FlyingStarsFx::FlyingStarsImpl::GetMixedColors(const Star& star,
   constexpr float MAX_MIX = 0.8;
   const float tMix = std::lerp(MIN_MIX, MAX_MIX, t);
   const Pixel mixedColor =
-      s_gammaCorrect.getCorrection(brightness, IColorMap::GetColorMix(color, dominantColor, tMix));
+      s_gammaCorrect.GetCorrection(brightness, IColorMap::GetColorMix(color, dominantColor, tMix));
   const Pixel mixedLowColor =
-      getLightenedColor(IColorMap::GetColorMix(lowColor, dominantLowColor, tMix), 10.0F);
+      GetLightenedColor(IColorMap::GetColorMix(lowColor, dominantLowColor, tMix), 10.0F);
   const Pixel remixedLowColor =
       m_colorMode == ColorMode::similarLowColors
           ? mixedLowColor
-          : s_gammaCorrect.getCorrection(brightness,
+          : s_gammaCorrect.GetCorrection(brightness,
                                          IColorMap::GetColorMix(mixedColor, mixedLowColor, 0.4));
 
   return std::make_tuple(mixedColor, remixedLowColor);
@@ -639,11 +639,11 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
   const auto halfWidth = static_cast<int32_t>(m_goomInfo->GetScreenInfo().width / 2);
   const auto halfHeight = static_cast<int32_t>(m_goomInfo->GetScreenInfo().height / 2);
 
-  m_maxStarAge = MIN_STAR_AGE + getNRand(MAX_STAR_EXTRA_AGE);
-  m_useSingleBufferOnly = probabilityOfMInN(1, 100);
+  m_maxStarAge = MIN_STAR_AGE + GetNRand(MAX_STAR_EXTRA_AGE);
+  m_useSingleBufferOnly = ProbabilityOfMInN(1, 100);
 
   float radius = (1.0F + m_goomInfo->GetSoundInfo().GetGoomPower()) *
-                 static_cast<float>(getNRand(150) + 50) / 300.0F;
+                 static_cast<float>(GetNRand(150) + 50) / 300.0F;
   float gravity = 0.02F;
 
   int32_t mx;
@@ -661,10 +661,10 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
       const auto rsq = static_cast<double>(halfHeight * halfHeight);
       while (true)
       {
-        mx = static_cast<int32_t>(getNRand(m_goomInfo->GetScreenInfo().width));
-        my = static_cast<int32_t>(getNRand(m_goomInfo->GetScreenInfo().height));
+        mx = static_cast<int32_t>(GetNRand(m_goomInfo->GetScreenInfo().width));
+        my = static_cast<int32_t>(GetNRand(m_goomInfo->GetScreenInfo().height));
         const double sqDist =
-            sq_distance(static_cast<float>(mx - halfWidth), static_cast<float>(my - halfHeight));
+            SqDistance(static_cast<float>(mx - halfWidth), static_cast<float>(my - halfHeight));
         if (sqDist < rsq)
         {
           break;
@@ -678,8 +678,8 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
       m_stats.RainFxChosen();
       const auto x0 = static_cast<int32_t>(m_goomInfo->GetScreenInfo().width / 25);
       mx = static_cast<int32_t>(
-          getRandInRange(x0, static_cast<int32_t>(m_goomInfo->GetScreenInfo().width) - x0));
-      my = -getRandInRange(3, 64);
+          GetRandInRange(x0, static_cast<int32_t>(m_goomInfo->GetScreenInfo().width) - x0));
+      my = -GetRandInRange(3, 64);
       radius *= 1.5;
       vage = 0.002F;
     }
@@ -689,8 +689,8 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
       m_stats.FountainFxChosen();
       m_maxStarAge *= 2.0 / 3.0;
       const int32_t x0 = halfWidth / 5;
-      mx = getRandInRange(halfWidth - x0, halfWidth + x0);
-      my = static_cast<int32_t>(m_goomInfo->GetScreenInfo().height + getRandInRange(3U, 64U));
+      mx = GetRandInRange(halfWidth - x0, halfWidth + x0);
+      my = static_cast<int32_t>(m_goomInfo->GetScreenInfo().height + GetRandInRange(3U, 64U));
       vage = 0.001F;
       radius += 1.0F;
       gravity = 0.05F;
@@ -704,7 +704,7 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
   const auto heightRatio = static_cast<float>(m_goomInfo->GetScreenInfo().height) / 200.0F;
   auto maxStarsInBomb = static_cast<size_t>(
       heightRatio * (100.0F + (1.0F + m_goomInfo->GetSoundInfo().GetGoomPower()) *
-                                  static_cast<float>(getNRand(150))));
+                                  static_cast<float>(GetNRand(150))));
   radius *= heightRatio;
   if (m_goomInfo->GetSoundInfo().GetTimeSinceLastBigGoom() < 1)
   {
@@ -721,7 +721,7 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
   std::shared_ptr<const IColorMap> dominantColorMap = m_colorMaps.GetRandomColorMapPtr(true);
   std::shared_ptr<const IColorMap> dominantLowColorMap = m_lowColorMaps.GetRandomColorMapPtr(true);
 
-  const bool megaColorMode = probabilityOfMInN(1, 10);
+  const bool megaColorMode = ProbabilityOfMInN(1, 10);
   const ColorMapName colorMapName = m_colorMaps.GetRandomColorMapName();
   const ColorMapName lowColorMapName = m_lowColorMaps.GetRandomColorMapName();
   for (size_t i = 0; i < maxStarsInBomb; i++)
@@ -734,9 +734,9 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
     else
     {
       std::shared_ptr<const IColorMap> colorMap =
-          m_colorMaps.GetColorMapPtr(colorMapName, getRandInRange(0.0F, 1.0F));
+          m_colorMaps.GetColorMapPtr(colorMapName, GetRandInRange(0.0F, 1.0F));
       std::shared_ptr<const IColorMap> lowColorMap =
-          m_lowColorMaps.GetColorMapPtr(lowColorMapName, getRandInRange(0.0F, 1.0F));
+          m_lowColorMaps.GetColorMapPtr(lowColorMapName, GetRandInRange(0.0F, 1.0F));
       AddABomb(dominantColorMap, dominantLowColorMap, colorMap, lowColorMap, mx, my, radius, vage,
                gravity);
     }
@@ -775,16 +775,16 @@ void FlyingStarsFx::FlyingStarsImpl::AddABomb(std::shared_ptr<const IColorMap> d
   m_stars[i].currentColorMap = std::move(colorMap);
   m_stars[i].currentLowColorMap = std::move(lowColorMap);
 
-  const float ro = radius * getRandInRange(0.01F, 2.0F);
+  const float ro = radius * GetRandInRange(0.01F, 2.0F);
   const uint32_t theta = GetBombAngle(m_stars[i].x, m_stars[i].y);
 
   m_stars[i].xVelocity = ro * cos256[theta];
   m_stars[i].yVelocity = -0.2F + ro * sin256[theta];
 
-  m_stars[i].xAcceleration = getRandInRange(-0.01F, 0.01F);
+  m_stars[i].xAcceleration = GetRandInRange(-0.01F, 0.01F);
   m_stars[i].yAcceleration = gravity;
 
-  m_stars[i].age = getRandInRange(m_minAge, 0.5F * m_maxAge);
+  m_stars[i].age = GetRandInRange(m_minAge, 0.5F * m_maxAge);
   if (vage < m_minAge)
   {
     vage = m_minAge;
@@ -824,9 +824,9 @@ auto FlyingStarsFx::FlyingStarsImpl::GetBombAngle(const float x,
       throw std::logic_error("Unknown StarModes enum.");
   }
 
-  const float randAngle = getRandInRange(minAngle, maxAngle);
+  const float randAngle = GetRandInRange(minAngle, maxAngle);
   return static_cast<uint32_t>(0.001 +
-                               static_cast<float>(numSinCosAngles - 1) * randAngle / m_two_pi);
+                               static_cast<float>(NUM_SIN_COS_ANGLES - 1) * randAngle / m_two_pi);
 }
 
 } // namespace GOOM

@@ -1212,13 +1212,13 @@ private:
 
 auto GoomControl::GetRandSeed() -> uint64_t
 {
-  return GOOM::UTILS::getRandSeed();
+  return GOOM::UTILS::GetRandSeed();
 }
 
 void GoomControl::SetRandSeed(const uint64_t seed)
 {
   logDebug("Set goom seed = {}.", seed);
-  GOOM::UTILS::setRandSeed(seed);
+  GOOM::UTILS::SetRandSeed(seed);
 }
 
 GoomControl::GoomControl() noexcept : m_controller{new GoomControlImpl{}}
@@ -1559,7 +1559,7 @@ void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,
   // affichage et swappage des buffers...
   m_visualFx.convolve_fx->Convolve(m_imageBuffers.GetP2(), m_imageBuffers.GetOutputBuff());
 
-  m_imageBuffers.SetBuffInc(getRandInRange(1U, GoomImageBuffers::MAX_BUFF_INC + 1));
+  m_imageBuffers.SetBuffInc(GetRandInRange(1U, GoomImageBuffers::MAX_BUFF_INC + 1));
   m_imageBuffers.RotateBuffers();
 
 #ifdef SHOW_STATE_TEXT_ON_SCREEN
@@ -1668,7 +1668,7 @@ inline auto GetHypercosEffect(const bool active) -> ZoomFilterData::HypercosEffe
   }
 
   return static_cast<ZoomFilterData::HypercosEffect>(
-      getRandInRange(static_cast<uint32_t>(ZoomFilterData::HypercosEffect::none) + 1,
+      GetRandInRange(static_cast<uint32_t>(ZoomFilterData::HypercosEffect::none) + 1,
                      static_cast<uint32_t>(ZoomFilterData::HypercosEffect::_size)));
 }
 
@@ -1706,7 +1706,7 @@ void GoomControl::GoomControlImpl::SetNextFilterMode()
       break;
     case GoomFilterEvent::SPEEDWAY_MODE:
       m_goomData.zoomFilterData.mode = ZoomFilterMode::speedwayMode;
-      m_goomData.zoomFilterData.speedwayAmplitude = getRandInRange(
+      m_goomData.zoomFilterData.speedwayAmplitude = GetRandInRange(
           ZoomFilterData::MIN_SPEEDWAY_AMPLITUDE, ZoomFilterData::MAX_SPEEDWAY_AMPLITUDE);
       break;
     case GoomFilterEvent::NORMAL_MODE:
@@ -1726,26 +1726,26 @@ void GoomControl::GoomControlImpl::SetNextFilterMode()
         m_goomData.zoomFilterData.vitesse = (m_goomData.zoomFilterData.vitesse + 127) >> 1;
       }
       m_goomData.zoomFilterData.waveEffectType =
-          static_cast<ZoomFilterData::WaveEffect>(getRandInRange(0, 2));
+          static_cast<ZoomFilterData::WaveEffect>(GetRandInRange(0, 2));
       if (GoomEvents::Happens(GoomEvent::ALLOW_STRANGE_WAVE_VALUES))
       {
         // BUG HERE - wrong ranges - BUT GIVES GOOD AFFECT
-        m_goomData.zoomFilterData.waveAmplitude = getRandInRange(
+        m_goomData.zoomFilterData.waveAmplitude = GetRandInRange(
             ZoomFilterData::MIN_LARGE_WAVE_AMPLITUDE, ZoomFilterData::MAX_LARGE_WAVE_AMPLITUDE);
-        m_goomData.zoomFilterData.waveFreqFactor = getRandInRange(
+        m_goomData.zoomFilterData.waveFreqFactor = GetRandInRange(
             ZoomFilterData::MIN_WAVE_SMALL_FREQ_FACTOR, ZoomFilterData::MAX_WAVE_SMALL_FREQ_FACTOR);
       }
       else
       {
         m_goomData.zoomFilterData.waveAmplitude =
-            getRandInRange(ZoomFilterData::MIN_WAVE_AMPLITUDE, ZoomFilterData::MAX_WAVE_AMPLITUDE);
-        m_goomData.zoomFilterData.waveFreqFactor = getRandInRange(
+            GetRandInRange(ZoomFilterData::MIN_WAVE_AMPLITUDE, ZoomFilterData::MAX_WAVE_AMPLITUDE);
+        m_goomData.zoomFilterData.waveFreqFactor = GetRandInRange(
             ZoomFilterData::MIN_WAVE_FREQ_FACTOR, ZoomFilterData::MAX_WAVE_FREQ_FACTOR);
       }
       break;
     case GoomFilterEvent::CRYSTAL_BALL_MODE:
       m_goomData.zoomFilterData.mode = ZoomFilterMode::crystalBallMode;
-      m_goomData.zoomFilterData.crystalBallAmplitude = getRandInRange(
+      m_goomData.zoomFilterData.crystalBallAmplitude = GetRandInRange(
           ZoomFilterData::MIN_CRYSTAL_BALL_AMPLITUDE, ZoomFilterData::MAX_CRYSTAL_BALL_AMPLITUDE);
       break;
     case GoomFilterEvent::CRYSTAL_BALL_MODE_WITH_EFFECTS:
@@ -1754,12 +1754,12 @@ void GoomControl::GoomControlImpl::SetNextFilterMode()
           GoomEvents::Happens(GoomEvent::WAVE_EFFECT_ON_WITH_CRYSTAL_BALL_MODE);
       m_goomData.zoomFilterData.hypercosEffect = GetHypercosEffect(
           GoomEvents::Happens(GoomEvent::HYPERCOS_EFFECT_ON_WITH_CRYSTAL_BALL_MODE));
-      m_goomData.zoomFilterData.crystalBallAmplitude = getRandInRange(
+      m_goomData.zoomFilterData.crystalBallAmplitude = GetRandInRange(
           ZoomFilterData::MIN_CRYSTAL_BALL_AMPLITUDE, ZoomFilterData::MAX_CRYSTAL_BALL_AMPLITUDE);
       break;
     case GoomFilterEvent::AMULET_MODE:
       m_goomData.zoomFilterData.mode = ZoomFilterMode::amuletMode;
-      m_goomData.zoomFilterData.amuletteAmplitude = getRandInRange(
+      m_goomData.zoomFilterData.amuletteAmplitude = GetRandInRange(
           ZoomFilterData::MIN_AMULET_AMPLITUDE, ZoomFilterData::MAX_AMULET_AMPLITUDE);
       break;
     case GoomFilterEvent::WATER_MODE:
@@ -1767,14 +1767,14 @@ void GoomControl::GoomControlImpl::SetNextFilterMode()
       break;
     case GoomFilterEvent::SCRUNCH_MODE:
       m_goomData.zoomFilterData.mode = ZoomFilterMode::scrunchMode;
-      m_goomData.zoomFilterData.scrunchAmplitude = getRandInRange(
+      m_goomData.zoomFilterData.scrunchAmplitude = GetRandInRange(
           ZoomFilterData::MIN_SCRUNCH_AMPLITUDE, ZoomFilterData::MAX_SCRUNCH_AMPLITUDE);
       break;
     case GoomFilterEvent::SCRUNCH_MODE_WITH_EFFECTS:
       m_goomData.zoomFilterData.mode = ZoomFilterMode::scrunchMode;
       m_goomData.zoomFilterData.waveEffect = true;
       m_goomData.zoomFilterData.hypercosEffect = GetHypercosEffect(true);
-      m_goomData.zoomFilterData.scrunchAmplitude = getRandInRange(
+      m_goomData.zoomFilterData.scrunchAmplitude = GetRandInRange(
           ZoomFilterData::MIN_SCRUNCH_AMPLITUDE, ZoomFilterData::MAX_SCRUNCH_AMPLITUDE);
       break;
     case GoomFilterEvent::HYPER_COS1_MODE:
@@ -1794,8 +1794,8 @@ void GoomControl::GoomControlImpl::SetNextFilterMode()
   if (m_goomData.zoomFilterData.hypercosEffect != ZoomFilterData::HypercosEffect::none)
   {
     m_goomData.zoomFilterData.hypercosFreq =
-        getRandInRange(ZoomFilterData::MIN_HYPERCOS_FREQ, ZoomFilterData::MAX_HYPERCOS_FREQ);
-    m_goomData.zoomFilterData.hypercosAmplitude = getRandInRange(
+        GetRandInRange(ZoomFilterData::MIN_HYPERCOS_FREQ, ZoomFilterData::MAX_HYPERCOS_FREQ);
+    m_goomData.zoomFilterData.hypercosAmplitude = GetRandInRange(
         ZoomFilterData::MIN_HYPERCOS_AMPLITUDE, ZoomFilterData::MAX_HYPERCOS_AMPLITUDE);
   }
 
@@ -1899,7 +1899,7 @@ void GoomControl::GoomControlImpl::ChangeMilieu()
     }};
     // clang-format on
 
-    switch (s_middlePointWeights.getRandomWeighted())
+    switch (s_middlePointWeights.GetRandomWeighted())
     {
       case MiddlePointEvents::EVENT1:
         m_goomData.zoomFilterData.middleX = GetScreenWidth() / 2;
@@ -1936,35 +1936,35 @@ void GoomControl::GoomControlImpl::ChangeMilieu()
   // clang-format on
   // @formatter:on
 
-  switch (s_planeEffectWeights.getRandomWeighted())
+  switch (s_planeEffectWeights.GetRandomWeighted())
   {
     case PlaneEffectEvents::EVENT1:
-      m_goomData.zoomFilterData.vPlaneEffect = getRandInRange(-2, +3);
-      m_goomData.zoomFilterData.hPlaneEffect = getRandInRange(-2, +3);
+      m_goomData.zoomFilterData.vPlaneEffect = GetRandInRange(-2, +3);
+      m_goomData.zoomFilterData.hPlaneEffect = GetRandInRange(-2, +3);
       break;
     case PlaneEffectEvents::EVENT2:
       m_goomData.zoomFilterData.vPlaneEffect = 0;
-      m_goomData.zoomFilterData.hPlaneEffect = getRandInRange(-7, +8);
+      m_goomData.zoomFilterData.hPlaneEffect = GetRandInRange(-7, +8);
       break;
     case PlaneEffectEvents::EVENT3:
-      m_goomData.zoomFilterData.vPlaneEffect = getRandInRange(-5, +6);
+      m_goomData.zoomFilterData.vPlaneEffect = GetRandInRange(-5, +6);
       m_goomData.zoomFilterData.hPlaneEffect = -m_goomData.zoomFilterData.vPlaneEffect;
       break;
     case PlaneEffectEvents::EVENT4:
-      m_goomData.zoomFilterData.hPlaneEffect = static_cast<int>(getRandInRange(5U, 13U));
+      m_goomData.zoomFilterData.hPlaneEffect = static_cast<int>(GetRandInRange(5U, 13U));
       m_goomData.zoomFilterData.vPlaneEffect = -m_goomData.zoomFilterData.hPlaneEffect;
       break;
     case PlaneEffectEvents::EVENT5:
-      m_goomData.zoomFilterData.vPlaneEffect = static_cast<int>(getRandInRange(5U, 13U));
+      m_goomData.zoomFilterData.vPlaneEffect = static_cast<int>(GetRandInRange(5U, 13U));
       m_goomData.zoomFilterData.hPlaneEffect = -m_goomData.zoomFilterData.hPlaneEffect;
       break;
     case PlaneEffectEvents::EVENT6:
       m_goomData.zoomFilterData.hPlaneEffect = 0;
-      m_goomData.zoomFilterData.vPlaneEffect = getRandInRange(-9, +10);
+      m_goomData.zoomFilterData.vPlaneEffect = GetRandInRange(-9, +10);
       break;
     case PlaneEffectEvents::EVENT7:
-      m_goomData.zoomFilterData.hPlaneEffect = getRandInRange(-9, +10);
-      m_goomData.zoomFilterData.vPlaneEffect = getRandInRange(-9, +10);
+      m_goomData.zoomFilterData.hPlaneEffect = GetRandInRange(-9, +10);
+      m_goomData.zoomFilterData.vPlaneEffect = GetRandInRange(-9, +10);
       break;
     case PlaneEffectEvents::EVENT8:
       m_goomData.zoomFilterData.vPlaneEffect = 0;
@@ -1973,12 +1973,12 @@ void GoomControl::GoomControlImpl::ChangeMilieu()
     default:
       throw std::logic_error("Unknown MiddlePointEvents enum.");
   }
-  m_goomData.zoomFilterData.hPlaneEffectAmplitude = getRandInRange(
+  m_goomData.zoomFilterData.hPlaneEffectAmplitude = GetRandInRange(
       ZoomFilterData::MIN_H_PLANE_EFFECT_AMPLITUDE, ZoomFilterData::MAX_H_PLANE_EFFECT_AMPLITUDE);
   // I think 'vPlaneEffectAmplitude' has to be the same as 'hPlaneEffectAmplitude' otherwise
   //   buffer breaking effects occur.
   m_goomData.zoomFilterData.vPlaneEffectAmplitude =
-      m_goomData.zoomFilterData.hPlaneEffectAmplitude + getRandInRange(-0.0009F, 0.0009F);
+      m_goomData.zoomFilterData.hPlaneEffectAmplitude + GetRandInRange(-0.0009F, 0.0009F);
   //  goomData.zoomFilterData.vPlaneEffectAmplitude = getRandInRange(
   //      ZoomFilterData::minVPlaneEffectAmplitude, ZoomFilterData::maxVPlaneEffectAmplitude);
 }
@@ -2090,7 +2090,7 @@ void GoomControl::GoomControlImpl::BigNormalUpdate(ZoomFilterData** pzfd)
         GoomEvents::Happens(GoomEvent::FILTER_CHANGE_VITESSE_AND_TOGGLE_REVERSE))
     {
       m_goomData.zoomFilterData.vitesse =
-          STOP_SPEED - static_cast<int32_t>(getNRand(2)) + static_cast<int32_t>(getNRand(2));
+          STOP_SPEED - static_cast<int32_t>(GetNRand(2)) + static_cast<int32_t>(GetNRand(2));
       m_goomData.zoomFilterData.reverse = !m_goomData.zoomFilterData.reverse;
     }
     else
@@ -2671,7 +2671,7 @@ GoomEvents::GoomEvents() noexcept
 inline auto GoomEvents::Happens(const GoomEvent event) -> bool
 {
   const WeightedEvent& weightedEvent = WEIGHTED_EVENTS[static_cast<size_t>(event)];
-  return probabilityOfMInN(weightedEvent.m, weightedEvent.outOf);
+  return ProbabilityOfMInN(weightedEvent.m, weightedEvent.outOf);
 }
 
 inline auto GoomEvents::GetRandomFilterEvent() const -> GoomEvents::GoomFilterEvent
@@ -2679,14 +2679,14 @@ inline auto GoomEvents::GetRandomFilterEvent() const -> GoomEvents::GoomFilterEv
   //////////////////return GoomFilterEvent::amuletMode;
   //////////////////return GoomFilterEvent::waveModeWithHyperCosEffect;
 
-  GoomEvents::GoomFilterEvent nextEvent = m_filterWeights.getRandomWeighted();
+  GoomEvents::GoomFilterEvent nextEvent = m_filterWeights.GetRandomWeighted();
   for (size_t i = 0; i < 10; i++)
   {
     if (nextEvent != m_lastReturnedFilterEvent)
     {
       break;
     }
-    nextEvent = m_filterWeights.getRandomWeighted();
+    nextEvent = m_filterWeights.GetRandomWeighted();
   }
   m_lastReturnedFilterEvent = nextEvent;
 
@@ -2695,7 +2695,7 @@ inline auto GoomEvents::GetRandomFilterEvent() const -> GoomEvents::GoomFilterEv
 
 inline auto GoomEvents::GetRandomLineTypeEvent() const -> LinesFx::LineType
 {
-  return m_lineTypeWeights.getRandomWeighted();
+  return m_lineTypeWeights.GetRandomWeighted();
 }
 
 GoomStates::GoomStates() : m_weightedStates{GetWeightedStates(STATES)}
@@ -2737,7 +2737,7 @@ auto GoomStates::GetCurrentBuffSettings(const GoomDrawable theFx) const -> FXBuf
 
 inline void GoomStates::DoRandomStateChange()
 {
-  m_currentStateIndex = static_cast<size_t>(m_weightedStates.getRandomWeighted());
+  m_currentStateIndex = static_cast<size_t>(m_weightedStates.GetRandomWeighted());
 }
 
 auto GoomStates::GetWeightedStates(const GoomStates::WeightedStatesArray& theStates)

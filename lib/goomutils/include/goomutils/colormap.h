@@ -1,5 +1,5 @@
-#ifndef VISUALIZATION_GOOM_COLORMAP_H
-#define VISUALIZATION_GOOM_COLORMAP_H
+#ifndef VISUALIZATION_GOOM_LIB_GOOMUTILS_COLORMAP_H
+#define VISUALIZATION_GOOM_LIB_GOOMUTILS_COLORMAP_H
 
 #include "goom/goom_graphic.h"
 #include "goomutils/colordata/colormap_enums.h"

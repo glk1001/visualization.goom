@@ -81,19 +81,20 @@ inline void DrawPixel(PixelBuffer* buff,
                       const uint32_t buffIntensity,
                       const bool allowOverexposed)
 {
-  const Pixel brighterPixColor = getBrighterColorInt(buffIntensity, newColor, allowOverexposed);
+  const Pixel brighterPixColor =
+      UTILS::GetBrighterColorInt(buffIntensity, newColor, allowOverexposed);
   Pixel& p = (*buff)(static_cast<size_t>(pos));
-  p = getColorAdd(p, brighterPixColor, allowOverexposed);
+  p = UTILS::GetColorAdd(p, brighterPixColor, allowOverexposed);
 
   /***
     ATTEMPT AT BLENDING - WON'T WORK THOUGH - BECAUSE OF MULTIPLE BUFFERS??
       Pixel* const p = &(buffs[i][pos]);
       const Pixel existingColorBlended =
-          getBrighterColorInt(buffIntensity, *p, allowOverexposed);
+          GetBrighterColorInt(buffIntensity, *p, allowOverexposed);
       const Pixel pixColorBlended =
-          getBrighterColorInt(channel_limits<uint32_t>::max() - buffIntensity, newColors[i],
+          GetBrighterColorInt(channel_limits<uint32_t>::max() - buffIntensity, newColors[i],
                               allowOverexposed);
-      *p = getColorAdd(existingColorBlended, pixColorBlended, allowOverexposed);
+      *p = GetColorAdd(existingColorBlended, pixColorBlended, allowOverexposed);
     ***/
   }
 

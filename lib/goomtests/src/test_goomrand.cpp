@@ -14,33 +14,33 @@ TEST_CASE("save/restore random state", "[saveRestoreRandState]")
 {
   const uint64_t seed = 1000;
 
-  setRandSeed(seed);
-  REQUIRE(seed == getRandSeed());
+  SetRandSeed(seed);
+  REQUIRE(seed == GetRandSeed());
 
-  const uint32_t r1 = getRand();
-  const uint32_t r2 = getRand();
+  const uint32_t r1 = GetRand();
+  const uint32_t r2 = GetRand();
   REQUIRE(r1 != r2);
 
   const std::string saveFile = "/tmp/rand.txt";
   std::ofstream fout{saveFile, std::ofstream::out};
-  saveRandState(fout);
+  SaveRandState(fout);
   fout.close();
-  const uint32_t r_justAfterSave = getRand();
+  const uint32_t r_justAfterSave = GetRand();
 
   // Scramble things a bit
-  setRandSeed(seed + 10);
+  SetRandSeed(seed + 10);
   uint32_t r = 0;
   for (size_t i = 0; i < 1000; i++)
   {
-    r = getRand();
+    r = GetRand();
   }
-  REQUIRE(seed != getRandSeed());
+  REQUIRE(seed != GetRandSeed());
   REQUIRE(r != r_justAfterSave);
 
   std::ifstream fin{saveFile, std::ifstream::in};
-  restoreRandState(fin);
-  r = getRand();
-  REQUIRE(seed == getRandSeed());
+  RestoreRandState(fin);
+  r = GetRand();
+  REQUIRE(seed == GetRandSeed());
   REQUIRE(r == r_justAfterSave);
 }
 
@@ -48,34 +48,34 @@ TEST_CASE("repeatable random sequence", "[repeatableRandomSequence]")
 {
   const uint64_t seed = 1000;
 
-  setRandSeed(seed);
-  REQUIRE(seed == getRandSeed());
+  SetRandSeed(seed);
+  REQUIRE(seed == GetRandSeed());
   std::vector<uint32_t> seq1(1000);
   std::vector<float> fseq1(1000);
   for (size_t i = 0; i < 1000; i++)
   {
-    seq1[i] = getRand();
-    fseq1[i] = getRandInRange(0.0F, 1.0F);
+    seq1[i] = GetRand();
+    fseq1[i] = GetRandInRange(0.0F, 1.0F);
   }
 
-  setRandSeed(seed);
-  REQUIRE(seed == getRandSeed());
+  SetRandSeed(seed);
+  REQUIRE(seed == GetRandSeed());
   std::vector<uint32_t> seq2(1000);
   std::vector<float> fseq2(1000);
   for (size_t i = 0; i < 1000; i++)
   {
-    seq2[i] = getRand();
-    fseq2[i] = getRandInRange(0.0F, 1.0F);
+    seq2[i] = GetRand();
+    fseq2[i] = GetRandInRange(0.0F, 1.0F);
   }
 
-  setRandSeed(seed + 1);
-  REQUIRE(seed + 1 == getRandSeed());
+  SetRandSeed(seed + 1);
+  REQUIRE(seed + 1 == GetRandSeed());
   std::vector<uint32_t> seq3(1000);
   std::vector<float> fseq3(1000);
   for (size_t i = 0; i < 1000; i++)
   {
-    seq3[i] = getRand();
-    fseq3[i] = getRandInRange(0.0F, 1.0F);
+    seq3[i] = GetRand();
+    fseq3[i] = GetRandInRange(0.0F, 1.0F);
   }
 
   REQUIRE(seq1 == seq2);
@@ -94,7 +94,7 @@ std::tuple<valtype, valtype> getMinMax(const size_t numLoop,
   valtype max = std::numeric_limits<valtype>::min();
   for (size_t i = 0; i < numLoop; i++)
   {
-    valtype r = getRandInRange(nMin, nMax);
+    valtype r = GetRandInRange(nMin, nMax);
     if (r < min)
     {
       min = r;
@@ -126,8 +126,8 @@ TEST_CASE("uint32_t min max get random", "[uintMinMaxGetRandom]")
   REQUIRE(min2 == nMin2);
   REQUIRE(max2 == nMax2 - 1);
 
-  REQUIRE_NOTHROW(getRandInRange(5U, 6U));
-  REQUIRE_THROWS_WITH(getRandInRange(5U, 1U), "uint n0 >= n1");
+  REQUIRE_NOTHROW(GetRandInRange(5U, 6U));
+  REQUIRE_THROWS_WITH(GetRandInRange(5U, 1U), "uint n0 >= n1");
 }
 
 TEST_CASE("int32_t min max get random", "[intMinMaxGetRandom]")
@@ -160,12 +160,12 @@ TEST_CASE("int32_t min max get random", "[intMinMaxGetRandom]")
   REQUIRE(min4 == nMin4);
   REQUIRE(max4 == nMax4 - 1);
 
-  REQUIRE_NOTHROW(getRandInRange(5, 6));
-  REQUIRE_NOTHROW(getRandInRange(-6, -5));
-  REQUIRE_NOTHROW(getRandInRange(-6, 10));
-  REQUIRE_THROWS_WITH(getRandInRange(-5, -6), "int n0 >= n1");
-  REQUIRE_THROWS_WITH(getRandInRange(5, 1), "int n0 >= n1");
-  REQUIRE_THROWS_WITH(getRandInRange(5, -1), "int n0 >= n1");
+  REQUIRE_NOTHROW(GetRandInRange(5, 6));
+  REQUIRE_NOTHROW(GetRandInRange(-6, -5));
+  REQUIRE_NOTHROW(GetRandInRange(-6, 10));
+  REQUIRE_THROWS_WITH(GetRandInRange(-5, -6), "int n0 >= n1");
+  REQUIRE_THROWS_WITH(GetRandInRange(5, 1), "int n0 >= n1");
+  REQUIRE_THROWS_WITH(GetRandInRange(5, -1), "int n0 >= n1");
 }
 
 TEST_CASE("float min max get random", "[fltMinMaxGetRandom]")
@@ -192,10 +192,10 @@ TEST_CASE("float min max get random", "[fltMinMaxGetRandom]")
   REQUIRE(std::fabs(min3 - nMin3) < 0.0001);
   REQUIRE(std::fabs(max3 - nMax3) < 0.0001);
 
-  REQUIRE_NOTHROW(getRandInRange(5.0F, 6.0F));
-  REQUIRE_NOTHROW(getRandInRange(-6.0F, -5.0F));
-  REQUIRE_NOTHROW(getRandInRange(-6.0F, 10.0F));
-  REQUIRE_THROWS_WITH(getRandInRange(-5.0F, -6.0F), "float x0 >= x1");
-  REQUIRE_THROWS_WITH(getRandInRange(5.0F, 1.0F), "float x0 >= x1");
-  REQUIRE_THROWS_WITH(getRandInRange(5.0F, -1.0F), "float x0 >= x1");
+  REQUIRE_NOTHROW(GetRandInRange(5.0F, 6.0F));
+  REQUIRE_NOTHROW(GetRandInRange(-6.0F, -5.0F));
+  REQUIRE_NOTHROW(GetRandInRange(-6.0F, 10.0F));
+  REQUIRE_THROWS_WITH(GetRandInRange(-5.0F, -6.0F), "float x0 >= x1");
+  REQUIRE_THROWS_WITH(GetRandInRange(5.0F, 1.0F), "float x0 >= x1");
+  REQUIRE_THROWS_WITH(GetRandInRange(5.0F, -1.0F), "float x0 >= x1");
 }

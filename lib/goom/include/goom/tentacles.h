@@ -116,7 +116,7 @@ private:
   std::vector<double> m_dampedYVec{};
   std::vector<double> m_dampingCache{};
   XAndYVectors m_dampedVecs{std::make_tuple(std::ref(m_xvec), std::ref(m_dampedYVec))};
-  std::unique_ptr<UTILS::DampingFunction> m_dampingFunc{};
+  std::unique_ptr<UTILS::IDampingFunction> m_dampingFunc{};
   bool m_doDamping = true;
 
   auto GetFirstY() -> float;
@@ -132,7 +132,7 @@ private:
   void ValidatePrevYWeight() const;
   void ValidateCurrentYWeight() const;
 
-  using DampingFuncPtr = std::unique_ptr<UTILS::DampingFunction>;
+  using DampingFuncPtr = std::unique_ptr<UTILS::IDampingFunction>;
   static auto CreateDampingFunc(double prevYWeight, double xmin, double xmax) -> DampingFuncPtr;
   static auto CreateExpDampingFunc(double xmin, double xmax) -> DampingFuncPtr;
   static auto CreateLinearDampingFunc(double xmin, double xmax) -> DampingFuncPtr;

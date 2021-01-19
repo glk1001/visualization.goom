@@ -200,7 +200,7 @@ void ConvolveFx::ConvolveImpl::CreateOutputWithBrightness(const PixelBuffer& src
                                                           const uint32_t flashInt)
 {
   const auto setDestPixel = [&](const uint32_t i) {
-    dest(i) = getBrighterColorInt(flashInt, src(i), m_buffSettings.allowOverexposed);
+    dest(i) = GetBrighterColorInt(flashInt, src(i), m_buffSettings.allowOverexposed);
   };
 
   m_parallel->forLoop(m_goomInfo->GetScreenInfo().size, setDestPixel);

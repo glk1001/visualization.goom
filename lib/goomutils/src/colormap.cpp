@@ -259,7 +259,7 @@ auto ColorMaps::ColorMapsImpl::GetRandomColorMapName() -> ColorMapName
 {
   InitPrebuiltColorMaps();
 
-  return static_cast<ColorMapName>(getRandInRange(0U, s_preBuiltColorMaps.size()));
+  return static_cast<ColorMapName>(GetRandInRange(0U, s_preBuiltColorMaps.size()));
 }
 
 auto ColorMaps::ColorMapsImpl::GetRandomColorMapName(const ColorMapGroup groupName) -> ColorMapName
@@ -268,14 +268,14 @@ auto ColorMaps::ColorMapsImpl::GetRandomColorMapName(const ColorMapGroup groupNa
   InitPrebuiltColorMaps();
 
   const std::vector<ColorMapName>* group = at(s_groups, groupName);
-  return group->at(getRandInRange(0U, group->size()));
+  return group->at(GetRandInRange(0U, group->size()));
 }
 
 auto ColorMaps::ColorMapsImpl::GetRandomColorMap() -> const IColorMap&
 {
   InitPrebuiltColorMaps();
 
-  return s_preBuiltColorMaps[getRandInRange(0U, s_preBuiltColorMaps.size())];
+  return s_preBuiltColorMaps[GetRandInRange(0U, s_preBuiltColorMaps.size())];
 }
 
 auto ColorMaps::ColorMapsImpl::GetRandomColorMap(const ColorMapGroup groupName) -> const IColorMap&
@@ -284,7 +284,7 @@ auto ColorMaps::ColorMapsImpl::GetRandomColorMap(const ColorMapGroup groupName) 
   InitPrebuiltColorMaps();
 
   const std::vector<ColorMapName>* group = at(s_groups, groupName);
-  return GetColorMap(group->at(getRandInRange(0U, group->size())));
+  return GetColorMap(group->at(GetRandInRange(0U, group->size())));
 }
 
 auto ColorMaps::ColorMapsImpl::GetColorMap(const ColorMapName name) -> const IColorMap&
@@ -311,7 +311,7 @@ auto ColorMaps::ColorMapsImpl::GetRandomColorMapPtr(const bool includeRotatePoin
   {
     return std::make_shared<ColorMapWrapper>(GetRandomColorMap());
   }
-  return std::make_shared<RotatedColorMap>(GetRandomColorMap(), getRandInRange(0.1F, 0.9F));
+  return std::make_shared<RotatedColorMap>(GetRandomColorMap(), GetRandInRange(0.1F, 0.9F));
 }
 
 auto ColorMaps::ColorMapsImpl::GetRandomColorMapPtr(ColorMapGroup cmg,
@@ -322,7 +322,7 @@ auto ColorMaps::ColorMapsImpl::GetRandomColorMapPtr(ColorMapGroup cmg,
   {
     return std::make_shared<ColorMapWrapper>(GetRandomColorMap(cmg));
   }
-  return std::make_shared<RotatedColorMap>(GetRandomColorMap(cmg), getRandInRange(0.1F, 0.9F));
+  return std::make_shared<RotatedColorMap>(GetRandomColorMap(cmg), GetRandInRange(0.1F, 0.9F));
 }
 
 auto ColorMaps::ColorMapsImpl::GetColorMapNames(const ColorMapGroup groupName)
@@ -354,7 +354,7 @@ auto ColorMaps::ColorMapsImpl::GetNumGroups() -> size_t
 auto ColorMaps::ColorMapsImpl::GetRandomGroup() const -> ColorMapGroup
 {
   InitGroups();
-  return static_cast<ColorMapGroup>(getRandInRange(0U, static_cast<size_t>(ColorMapGroup::_SIZE)));
+  return static_cast<ColorMapGroup>(GetRandInRange(0U, static_cast<size_t>(ColorMapGroup::_SIZE)));
 }
 
 void ColorMaps::ColorMapsImpl::InitGroups()
@@ -410,7 +410,7 @@ auto WeightedColorMaps::GetRandomGroup() const -> ColorMapGroup
     return ColorMaps::GetRandomGroup();
   }
 
-  return m_weights.getRandomWeighted();
+  return m_weights.GetRandomWeighted();
 }
 
 PrebuiltColorMap::PrebuiltColorMap(const ColorMapName mapNm, vivid::ColorMap cm)
@@ -430,7 +430,7 @@ auto PrebuiltColorMap::GetColor(const float t) const -> Pixel
 
 auto PrebuiltColorMap::GetRandomColor(const float t0, const float t1) const -> Pixel
 {
-  return GetColor(getRandInRange(t0, t1));
+  return GetColor(GetRandInRange(t0, t1));
 }
 
 auto PrebuiltColorMap::GetColorMix(const Pixel& col1, const Pixel& col2, float t) -> Pixel

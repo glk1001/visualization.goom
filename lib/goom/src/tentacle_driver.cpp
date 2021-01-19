@@ -29,7 +29,7 @@ using namespace GOOM::UTILS;
 
 inline auto ChangeCurrentColorMapEvent() -> bool
 {
-  return probabilityOfMInN(3, 5);
+  return ProbabilityOfMInN(3, 5);
 }
 
 const size_t TentacleDriver::CHANGE_CURRENT_COLOR_MAP_GROUP_EVERY_N_UPDATES = 400;
@@ -242,19 +242,19 @@ auto TentacleDriver::IterParamsGroup::GetNext(const float t) const
     -> TentacleDriver::IterationParams
 {
   const float prevYWeight =
-      getRandInRange(0.9F, 1.1F) *
+      GetRandInRange(0.9F, 1.1F) *
       std::lerp(static_cast<float>(first.prevYWeight), static_cast<float>(last.prevYWeight), t);
   IterationParams params{};
   params.length =
-      size_t(getRandInRange(1.0F, 1.1F) *
+      size_t(GetRandInRange(1.0F, 1.1F) *
              std::lerp(static_cast<float>(first.length), static_cast<float>(last.length), t));
   params.numNodes =
-      size_t(getRandInRange(0.9F, 1.1F) *
+      size_t(GetRandInRange(0.9F, 1.1F) *
              std::lerp(static_cast<float>(first.numNodes), static_cast<float>(last.numNodes), t));
   params.prevYWeight = prevYWeight;
   params.iterZeroYValWave = first.iterZeroYValWave;
   params.iterZeroYValWaveFreq =
-      getRandInRange(0.9F, 1.1F) * std::lerp(static_cast<float>(first.iterZeroYValWaveFreq),
+      GetRandInRange(0.9F, 1.1F) * std::lerp(static_cast<float>(first.iterZeroYValWaveFreq),
                                              static_cast<float>(last.iterZeroYValWaveFreq), t);
   return params;
 }
@@ -264,7 +264,7 @@ auto TentacleDriver::CreateNewTentacle2D(size_t id, const IterationParams& p)
 {
   logDebug("Creating new tentacle2D {}...", id);
 
-  const size_t tentacleLen = getRandInRange(0.99F, 1.01F) * static_cast<float>(p.length);
+  const size_t tentacleLen = GetRandInRange(0.99F, 1.01F) * static_cast<float>(p.length);
   //const size_t tentacleLen = params.length;
   const double tent2d_xmax = TENT2D_XMIN + tentacleLen;
 
@@ -350,7 +350,7 @@ void TentacleDriver::MultiplyIterZeroYValWaveFreq(const float val)
   for (size_t i = 0; i < m_numTentacles; i++)
   {
     const float newFreq = val * m_tentacleParams[i].iterZeroYValWaveFreq;
-    m_tentacleParams[i].iterZeroYValWave.setFrequency(newFreq);
+    m_tentacleParams[i].iterZeroYValWave.SetFrequency(newFreq);
   }
 }
 
@@ -374,9 +374,9 @@ auto TentacleDriver::GetNextColorMapGroups() const -> std::vector<ColorMapGroup>
 {
   const size_t numDifferentGroups =
       (m_colorMode == ColorModes::minimal || m_colorMode == ColorModes::oneGroupForAll ||
-       probabilityOfMInN(99, 100))
+       ProbabilityOfMInN(99, 100))
           ? 1
-          : getRandInRange(1U, std::min(size_t(5U), m_colorizers.size()));
+          : GetRandInRange(1U, std::min(size_t(5U), m_colorizers.size()));
   std::vector<ColorMapGroup> groups(numDifferentGroups);
   for (size_t i = 0; i < numDifferentGroups; i++)
   {
@@ -395,7 +395,7 @@ auto TentacleDriver::GetNextColorMapGroups() const -> std::vector<ColorMapGroup>
     }
   }
 
-  if (probabilityOfMInN(1, 2))
+  if (ProbabilityOfMInN(1, 2))
   {
     std::random_shuffle(nextColorMapGroups.begin(), nextColorMapGroups.end());
   }
@@ -461,7 +461,7 @@ void TentacleDriver::Update(float angle,
     Tentacle3D& tentacle = m_tentacles[i];
     Tentacle2D& tentacle2D = tentacle.Get2DTentacle();
 
-    const float iterZeroYVal = m_tentacleParams[i].iterZeroYValWave.getNext();
+    const float iterZeroYVal = m_tentacleParams[i].iterZeroYValWave.GetNext();
     tentacle2D.SetIterZeroLerpFactor(ITER_ZERO_LERP_FACTOR);
     tentacle2D.SetIterZeroYVal(iterZeroYVal);
 
@@ -550,7 +550,7 @@ void TentacleDriver::Plot3D(const Tentacle3D& tentacle,
   };
   if (distance2 > 30.0)
   {
-    const float randBrightness = getRandInRange(0.1F, 0.2F);
+    const float randBrightness = GetRandInRange(0.1F, 0.2F);
     float brightness = std::max(randBrightness, 30.0F / distance2) * brightnessCut;
     getMixedColors = [&, brightness](const size_t nodeNum) {
       return tentacle.GetMixedColors(nodeNum, dominantColor, dominantColorLow, brightness);

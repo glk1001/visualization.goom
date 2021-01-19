@@ -454,8 +454,8 @@ auto Tentacle3D::GetMixedColors(size_t nodeNum, const Pixel& color, const Pixel&
   if (std::abs(GetHead().x) < 10)
   {
     const float brightnessCut = t * t;
-    return std::make_tuple(getBrighterColor(brightnessCut, mixedColor, true),
-                           getBrighterColor(brightnessCut, mixedColorLow, true));
+    return std::make_tuple(GetBrighterColor(brightnessCut, mixedColor, true),
+                           GetBrighterColor(brightnessCut, mixedColorLow, true));
   }
 
   return std::make_tuple(mixedColor, mixedColorLow);
@@ -482,8 +482,8 @@ auto Tentacle3D::GetMixedColors(size_t nodeNum,
   //  const float brightnessWithGammaLow =
   //      std::max(0.4F, std::pow(brightness * getLuma(colorLow), 1.0F / gamma));
   return std::make_tuple(
-      getBrighterColor(brightnessWithGamma, mixedColorPixel, m_allowOverexposed),
-      getBrighterColor(brightnessWithGamma, mixedColorLowPixel, m_allowOverexposed));
+      GetBrighterColor(brightnessWithGamma, mixedColorPixel, m_allowOverexposed),
+      GetBrighterColor(brightnessWithGamma, mixedColorLowPixel, m_allowOverexposed));
 }
 
 auto Tentacle3D::GetVertices() const -> std::vector<V3d>

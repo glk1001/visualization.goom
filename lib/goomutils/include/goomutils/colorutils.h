@@ -1,5 +1,5 @@
-#ifndef LIB_GOOMUTILS_INCLUDE_GOOMUTILS_COLORUTILS_H_
-#define LIB_GOOMUTILS_INCLUDE_GOOMUTILS_COLORUTILS_H_
+#ifndef VISUALIZATION_GOOM_LIB_GOOMUTILS_COLORUTILS_H_
+#define VISUALIZATION_GOOM_LIB_GOOMUTILS_COLORUTILS_H_
 
 #include "goom/goom_graphic.h"
 
@@ -8,48 +8,48 @@
 #include <cmath>
 #include <cstdint>
 
-namespace GOOM
+namespace GOOM::UTILS
 {
 
-Pixel GetIntColor(uint8_t r, uint8_t g, uint8_t b);
+auto GetIntColor(uint8_t r, uint8_t g, uint8_t b) -> Pixel;
 
-Pixel GetColorAverage(const std::vector<Pixel>& colors);
-Pixel getColorAverage(const Pixel& color1, const Pixel& color2);
-Pixel getColorBlend(const Pixel& srceColor);
-Pixel getColorAdd(const Pixel& color1, const Pixel& color2, bool allowOverexposed);
-Pixel getColorSubtract(const Pixel& color1, const Pixel& color2);
-Pixel getBrighterColorInt(uint32_t brightness, const Pixel& color, bool allowOverexposed);
-Pixel getBrighterColorInt(const float brightness, const Pixel&, const bool) = delete;
+auto GetColorAverage(const std::vector<Pixel>& colors) -> Pixel;
+auto GetColorAverage(const Pixel& color1, const Pixel& color2) -> Pixel;
+auto GetColorBlend(const Pixel& srceColor) -> Pixel;
+auto GetColorAdd(const Pixel& color1, const Pixel& color2, bool allowOverexposed) -> Pixel;
+auto GetColorSubtract(const Pixel& color1, const Pixel& color2) -> Pixel;
+auto GetBrighterColorInt(uint32_t brightness, const Pixel& color, bool allowOverexposed) -> Pixel;
+auto GetBrighterColorInt(const float brightness, const Pixel&, const bool) -> Pixel = delete;
 
-Pixel getBrighterColor(float brightness, const Pixel& color, bool allowOverexposed);
-Pixel getBrighterColor(const uint32_t brightness, const Pixel&, const bool) = delete;
+auto GetBrighterColor(float brightness, const Pixel& color, bool allowOverexposed) -> Pixel;
+auto GetBrighterColor(const uint32_t brightness, const Pixel&, const bool) -> Pixel = delete;
 
-Pixel getRightShiftedChannels(const Pixel& color, int value);
-Pixel getHalfIntensityColor(const Pixel& color);
+auto GetRightShiftedChannels(const Pixel& color, int value) -> Pixel;
+auto GetHalfIntensityColor(const Pixel& color) -> Pixel;
 
-Pixel getLightenedColor(const Pixel& oldColor, float power);
-Pixel getEvolvedColor(const Pixel& baseColor);
+auto GetLightenedColor(const Pixel& oldColor, float power) -> Pixel;
+auto GetEvolvedColor(const Pixel& baseColor) -> Pixel;
 
-uint32_t getLuma(const Pixel& color);
+auto GetLuma(const Pixel& color) -> uint32_t;
 
 class GammaCorrection
 {
 public:
   GammaCorrection(float gamma, float threshold);
-  [[nodiscard]] Pixel getCorrection(float brightness, const Pixel& color) const;
+  [[nodiscard]] auto GetCorrection(float brightness, const Pixel& color) const -> Pixel;
 
 private:
-  const float gammaReciprocal;
-  const float threshold;
+  const float m_gammaReciprocal;
+  const float m_threshold;
 };
 
 
-inline uint32_t colorChannelAdd(const uint8_t c1, const uint8_t c2)
+inline auto ColorChannelAdd(const uint8_t c1, const uint8_t c2) -> uint32_t
 {
   return static_cast<uint32_t>(c1) + static_cast<uint32_t>(c2);
 }
 
-inline uint32_t colorChannelSubtract(const uint8_t c1, const uint8_t c2)
+inline auto ColorChannelSubtract(const uint8_t c1, const uint8_t c2) -> uint32_t
 {
   if (c1 < c2)
   {
@@ -58,7 +58,7 @@ inline uint32_t colorChannelSubtract(const uint8_t c1, const uint8_t c2)
   return static_cast<uint32_t>(c1) - static_cast<uint32_t>(c2);
 }
 
-inline Pixel GetColorAverage(const std::vector<Pixel>& colors)
+inline auto GetColorAverage(const std::vector<Pixel>& colors) -> Pixel
 {
   uint32_t newR = 0;
   uint32_t newG = 0;
@@ -81,12 +81,12 @@ inline Pixel GetColorAverage(const std::vector<Pixel>& colors)
   }};
 }
 
-inline Pixel getColorAverage(const Pixel& color1, const Pixel& color2)
+inline auto GetColorAverage(const Pixel& color1, const Pixel& color2) -> Pixel
 {
-  const uint32_t newR = colorChannelAdd(color1.R(), color2.R()) >> 1;
-  const uint32_t newG = colorChannelAdd(color1.G(), color2.G()) >> 1;
-  const uint32_t newB = colorChannelAdd(color1.B(), color2.B()) >> 1;
-  const uint32_t newA = colorChannelAdd(color1.A(), color2.A()) >> 1;
+  const uint32_t newR = ColorChannelAdd(color1.R(), color2.R()) >> 1;
+  const uint32_t newG = ColorChannelAdd(color1.G(), color2.G()) >> 1;
+  const uint32_t newB = ColorChannelAdd(color1.B(), color2.B()) >> 1;
+  const uint32_t newA = ColorChannelAdd(color1.A(), color2.A()) >> 1;
 
   return Pixel{{
       .r = static_cast<uint8_t>(newR),
@@ -96,7 +96,7 @@ inline Pixel getColorAverage(const Pixel& color1, const Pixel& color2)
   }};
 }
 
-inline Pixel getColorBlend(const Pixel& srce, const Pixel& dest)
+inline auto GetColorBlend(const Pixel& srce, const Pixel& dest) -> Pixel
 {
   const auto srceR = static_cast<int>(srce.R());
   const auto srceG = static_cast<int>(srce.G());
@@ -123,12 +123,12 @@ inline Pixel getColorBlend(const Pixel& srce, const Pixel& dest)
   }};
 }
 
-inline Pixel getColorAdd(const Pixel& color1, const Pixel& color2, const bool allowOverexposed)
+inline auto GetColorAdd(const Pixel& color1, const Pixel& color2, bool allowOverexposed) -> Pixel
 {
-  uint32_t newR = colorChannelAdd(color1.R(), color2.R());
-  uint32_t newG = colorChannelAdd(color1.G(), color2.G());
-  uint32_t newB = colorChannelAdd(color1.B(), color2.B());
-  const uint32_t newA = colorChannelAdd(color1.A(), color2.A());
+  uint32_t newR = ColorChannelAdd(color1.R(), color2.R());
+  uint32_t newG = ColorChannelAdd(color1.G(), color2.G());
+  uint32_t newB = ColorChannelAdd(color1.B(), color2.B());
+  const uint32_t newA = ColorChannelAdd(color1.A(), color2.A());
 
   if (!allowOverexposed)
   {
@@ -150,12 +150,12 @@ inline Pixel getColorAdd(const Pixel& color1, const Pixel& color2, const bool al
   }};
 }
 
-inline Pixel getColorSubtract(const Pixel& color1, const Pixel& color2)
+inline auto GetColorSubtract(const Pixel& color1, const Pixel& color2) -> Pixel
 {
-  const uint32_t newR = colorChannelSubtract(color1.R(), color2.R());
-  const uint32_t newG = colorChannelSubtract(color1.G(), color2.G());
-  const uint32_t newB = colorChannelSubtract(color1.B(), color2.B());
-  const uint32_t newA = colorChannelSubtract(color1.A(), color2.A());
+  const uint32_t newR = ColorChannelSubtract(color1.R(), color2.R());
+  const uint32_t newG = ColorChannelSubtract(color1.G(), color2.G());
+  const uint32_t newB = ColorChannelSubtract(color1.B(), color2.B());
+  const uint32_t newA = ColorChannelSubtract(color1.A(), color2.A());
 
   return Pixel{{
       .r = static_cast<uint8_t>(newR),
@@ -166,19 +166,18 @@ inline Pixel getColorSubtract(const Pixel& color1, const Pixel& color2)
 }
 
 
-inline uint32_t getBrighterChannelColor(const uint32_t brightness, const uint8_t channelVal)
+inline auto GetBrighterChannelColor(const uint32_t brightness, const uint8_t channelVal) -> uint32_t
 {
   return (brightness * static_cast<uint32_t>(channelVal)) >> 8;
 }
 
-inline Pixel getBrighterColorInt(const uint32_t brightness,
-                                 const Pixel& color,
-                                 const bool allowOverexposed)
+inline auto GetBrighterColorInt(uint32_t brightness, const Pixel& color, bool allowOverexposed)
+    -> Pixel
 {
-  uint32_t newR = getBrighterChannelColor(brightness, color.R());
-  uint32_t newG = getBrighterChannelColor(brightness, color.G());
-  uint32_t newB = getBrighterChannelColor(brightness, color.B());
-  const uint32_t newA = getBrighterChannelColor(brightness, color.A());
+  uint32_t newR = GetBrighterChannelColor(brightness, color.R());
+  uint32_t newG = GetBrighterChannelColor(brightness, color.G());
+  uint32_t newB = GetBrighterChannelColor(brightness, color.B());
+  const uint32_t newA = GetBrighterChannelColor(brightness, color.A());
 
   if (!allowOverexposed)
   {
@@ -201,17 +200,15 @@ inline Pixel getBrighterColorInt(const uint32_t brightness,
 }
 
 
-inline Pixel getBrighterColor(const float brightness,
-                              const Pixel& color,
-                              const bool allowOverexposed)
+inline auto GetBrighterColor(float brightness, const Pixel& color, bool allowOverexposed) -> Pixel
 {
   assert(brightness >= 0.0 && brightness <= 2.0);
   const auto br = static_cast<uint32_t>(std::round(brightness * 256 + 0.0001f));
-  return getBrighterColorInt(br, color, allowOverexposed);
+  return GetBrighterColorInt(br, color, allowOverexposed);
 }
 
 
-inline Pixel getRightShiftedChannels(const Pixel& color, const int value)
+inline auto GetRightShiftedChannels(const Pixel& color, int value) -> Pixel
 {
   Pixel p = color;
 
@@ -223,9 +220,9 @@ inline Pixel getRightShiftedChannels(const Pixel& color, const int value)
 }
 
 
-inline Pixel getHalfIntensityColor(const Pixel& color)
+inline auto GetHalfIntensityColor(const Pixel& color) -> Pixel
 {
-  return getRightShiftedChannels(color, 1);
+  return GetRightShiftedChannels(color, 1);
 }
 
 
@@ -251,7 +248,7 @@ inline Pixel getHalfIntensityColor(const Pixel& color)
 //
 //     Y = (R+R+R+B+G+G+G+G)>>3
 
-inline uint32_t getLuma(const Pixel& color)
+inline auto GetLuma(const Pixel& color) -> uint32_t
 {
   const uint32_t r = color.R();
   const uint32_t g = color.G();
@@ -260,19 +257,19 @@ inline uint32_t getLuma(const Pixel& color)
 }
 
 inline GammaCorrection::GammaCorrection(const float gamma, const float thresh)
-  : gammaReciprocal(1.0F / gamma), threshold(thresh)
+  : m_gammaReciprocal(1.0F / gamma), m_threshold(thresh)
 {
 }
 
-inline Pixel GammaCorrection::getCorrection(const float brightness, const Pixel& color) const
+inline auto GammaCorrection::GetCorrection(float brightness, const Pixel& color) const -> Pixel
 {
-  if (brightness < threshold)
+  if (brightness < m_threshold)
   {
-    return getBrighterColor(brightness, color, true);
+    return GetBrighterColor(brightness, color, true);
   }
-  return getBrighterColor(std::pow(brightness, gammaReciprocal), color, true);
+  return GetBrighterColor(std::pow(brightness, m_gammaReciprocal), color, true);
 }
 
-} // namespace GOOM
+} // namespace GOOM::UTILS
 
 #endif

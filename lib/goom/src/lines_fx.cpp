@@ -309,12 +309,12 @@ void LinesFx::LinesImpl::GoomLinesMove()
   if (m_power < 1.1F)
   {
     m_power = 1.1F;
-    m_powinc = static_cast<float>(getNRand(20) + 10) / 300.0F;
+    m_powinc = static_cast<float>(GetNRand(20) + 10) / 300.0F;
   }
   if (m_power > 17.5F)
   {
     m_power = 17.5F;
-    m_powinc = -static_cast<float>(getNRand(20) + 10) / 300.0F;
+    m_powinc = -static_cast<float>(GetNRand(20) + 10) / 300.0F;
   }
 
   m_amplitude = (99.0F * m_amplitude + m_amplitudeF) / 100.0F;
@@ -381,9 +381,9 @@ auto GetRedLineColor() -> Pixel
 
 auto LinesFx::LinesImpl::GetRandomLineColor() -> Pixel
 {
-  if (getNRand(10) == 0)
+  if (GetNRand(10) == 0)
   {
-    return GetColor(static_cast<int>(getNRand(6)));
+    return GetColor(static_cast<int>(GetNRand(6)));
   }
   return m_colorMaps.GetRandomColorMap().GetRandomColor(0.0F, 1.0F);
 }
@@ -411,7 +411,7 @@ auto SimpleMovingAverage(const std::vector<int16_t>& x, const uint32_t winLen) -
 inline auto GetDataPoints(const std::vector<int16_t>& x) -> std::vector<float>
 {
   return std::vector<float>{x.data(), x.data() + AUDIO_SAMPLE_LEN};
-  if (probabilityOfMInN(9999, 10000))
+  if (ProbabilityOfMInN(9999, 10000))
   {
     return std::vector<float>{x.data(), x.data() + AUDIO_SAMPLE_LEN};
   }
@@ -425,7 +425,7 @@ void LinesFx::LinesImpl::DrawLines(const std::vector<int16_t>& soundData,
 {
   std::vector<PixelBuffer*> buffs{&currentBuff, &prevBuff};
   const LinePoint* pt0 = &(m_points1[0]);
-  const Pixel lineColor = getLightenedColor(m_color1, m_power);
+  const Pixel lineColor = GetLightenedColor(m_color1, m_power);
 
   const auto audioRange = static_cast<float>(m_goomInfo->GetSoundInfo().GetAllTimesMaxVolume() -
                                              m_goomInfo->GetSoundInfo().GetAllTimesMinVolume());
@@ -459,11 +459,11 @@ void LinesFx::LinesImpl::DrawLines(const std::vector<int16_t>& soundData,
     const auto x = static_cast<int>(pt->x + m_amplitude * cosAngle * normalizedDataVal);
     const auto y = static_cast<int>(pt->y + m_amplitude * sinAngle * normalizedDataVal);
     const float maxBrightness =
-        getRandInRange(1.0F, 3.0F) * normalizedDataVal / static_cast<float>(MAX_NORMALIZED_PEAK);
+        GetRandInRange(1.0F, 3.0F) * normalizedDataVal / static_cast<float>(MAX_NORMALIZED_PEAK);
     const float t = std::min(1.0F, maxBrightness);
     static GammaCorrection s_gammaCorrect{4.2, 0.1};
     const Pixel modColor =
-        s_gammaCorrect.getCorrection(t, IColorMap::GetColorMix(lineColor, randColor, t));
+        s_gammaCorrect.GetCorrection(t, IColorMap::GetColorMix(lineColor, randColor, t));
     return std::make_tuple(x, y, modColor);
   };
 

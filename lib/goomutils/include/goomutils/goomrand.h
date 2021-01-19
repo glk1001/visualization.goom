@@ -1,5 +1,5 @@
-#ifndef LIB_GOOMUTILS_INCLUDE_GOOMUTILS_GOOMRAND_H_
-#define LIB_GOOMUTILS_INCLUDE_GOOMUTILS_GOOMRAND_H_
+#ifndef VISUALIZATION_GOOM_LIB_GOOMUTILS_GOOMRAND_H_
+#define VISUALIZATION_GOOM_LIB_GOOMUTILS_GOOMRAND_H_
 
 #include <cmath>
 #include <cstdlib>
@@ -13,100 +13,98 @@
 namespace GOOM::UTILS
 {
 
-uint64_t getRandSeed();
-void setRandSeed(uint64_t seed);
-extern const uint32_t randMax;
+auto GetRandSeed() -> uint64_t;
+void SetRandSeed(uint64_t seed);
+extern const uint32_t g_randMax;
 
-void saveRandState(std::ostream&);
-void restoreRandState(std::istream&);
+void SaveRandState(std::ostream& f);
+void RestoreRandState(std::istream& f);
 
 // Return random sign integer, either -1 or +1.
-inline int getRandSignInt();
+inline auto GetRandSignInt() -> int;
 // Return random sign float, either -1.0 or +1.0.
-inline float getRandSignFlt();
+inline auto GetRandSignFlt() -> float;
 
 // Return random positive integer in the range n0 <= n < n1.
-uint32_t getRandInRange(uint32_t n0, uint32_t n1);
+auto GetRandInRange(uint32_t n0, uint32_t n1) -> uint32_t;
 // Return random integer in the range 0 <= n < nmax.
-uint32_t getNRand(uint32_t nmax);
+auto GetNRand(uint32_t nmax) -> uint32_t;
 // Return random integer in the range 0 <= n < randMax.
-uint32_t getRand();
+auto GetRand() -> uint32_t;
 // Return random integer in the range n0 <= n < n1.
-int32_t getRandInRange(int32_t n0, int32_t n1);
+auto GetRandInRange(int32_t n0, int32_t n1) -> int32_t;
 // Return random float in the range x0 <= n <= x1.
-float getRandInRange(float x0, float x1);
+auto GetRandInRange(float x0, float x1) -> float;
 
 // Return prob(m/n)
-inline bool probabilityOfMInN(uint32_t m, uint32_t n);
+inline auto ProbabilityOfMInN(uint32_t m, uint32_t n) -> bool;
 
 template<class E>
 class Weights
 {
 public:
   Weights() noexcept;
-  explicit Weights(const std::vector<std::pair<E, size_t>>&);
+  explicit Weights(const std::vector<std::pair<E, size_t>>& w);
 
-  void clearWeights(size_t value);
-  [[nodiscard]] size_t getNumElements() const;
-  void setWeight(E, size_t value);
-  size_t getWeight(E) const;
+  void ClearWeights(size_t value);
+  [[nodiscard]] auto GetNumElements() const -> size_t;
+  void SetWeight(E e, size_t value);
+  auto GetWeight(E e) const -> size_t;
 
-  [[nodiscard]] size_t getSumOfWeights() const { return sumOfWeights; }
+  [[nodiscard]] auto GetSumOfWeights() const -> size_t { return m_sumOfWeights; }
 
-  E getRandomWeighted() const;
+  auto GetRandomWeighted() const -> E;
 
 private:
-  std::vector<std::pair<E, size_t>> weights;
-  size_t sumOfWeights;
-  static size_t getSumOfWeights(const std::vector<std::pair<E, size_t>>&);
+  std::vector<std::pair<E, size_t>> m_weights{};
+  size_t m_sumOfWeights{};
+  static auto GetSumOfWeights(const std::vector<std::pair<E, size_t>>& w) -> size_t;
 };
 
-inline int getRandSignInt()
+inline auto GetRandSignInt() -> int
 {
-  return getRandInRange(0u, 100u) < 50 ? -1 : +1;
+  return GetRandInRange(0U, 100U) < 50 ? -1 : +1;
 }
 
-inline float getRandSignFlt()
+inline auto GetRandSignFlt() -> float
 {
-  return getRandInRange(0u, 100u) < 50 ? -1.0f : +1.0f;
+  return GetRandInRange(0U, 100U) < 50 ? -1.0F : +1.0F;
 }
 
-inline uint32_t getNRand(const uint32_t nmax)
+inline auto GetNRand(uint32_t nmax) -> uint32_t
 {
-  return getRandInRange(0u, nmax);
+  return GetRandInRange(0U, nmax);
 }
 
-inline uint32_t getRand()
+inline auto GetRand() -> uint32_t
 {
-  return getRandInRange(0u, randMax);
+  return GetRandInRange(0U, g_randMax);
 }
 
-inline bool probabilityOfMInN(const uint32_t m, const uint32_t n)
+inline auto ProbabilityOfMInN(uint32_t m, uint32_t n) -> bool
 {
   if (m == 1)
   {
-    return getNRand(n) == 0;
+    return GetNRand(n) == 0;
   }
   if (m == n - 1)
   {
-    return getNRand(n) > 0;
+    return GetNRand(n) > 0;
   }
-  return getRandInRange(0.0f, 1.0f) <= static_cast<float>(m) / static_cast<float>(n);
+  return GetRandInRange(0.0F, 1.0F) <= static_cast<float>(m) / static_cast<float>(n);
 }
 
 template<class E>
-Weights<E>::Weights() noexcept : weights{}, sumOfWeights{0}
-{
-}
+Weights<E>::Weights() noexcept = default;
 
 template<class E>
 Weights<E>::Weights(const std::vector<std::pair<E, size_t>>& w)
-  : weights{w}, sumOfWeights{getSumOfWeights(w)}
+  : m_weights{w}, m_sumOfWeights{GetSumOfWeights(w)}
 {
 }
 
 template<class E>
-size_t Weights<E>::getSumOfWeights(const std::vector<std::pair<E, size_t>>& weights)
+auto Weights<E>::GetSumOfWeights(const std::vector<std::pair<E, size_t>>& weights) -> size_t
 {
   size_t sumOfWeights = 0;
   for (const auto& [e, w] : weights)
@@ -117,31 +115,31 @@ size_t Weights<E>::getSumOfWeights(const std::vector<std::pair<E, size_t>>& weig
 }
 
 template<class E>
-size_t Weights<E>::getNumElements() const
+auto Weights<E>::GetNumElements() const -> size_t
 {
-  return weights.size();
+  return m_weights.size();
 }
 
 template<class E>
-void Weights<E>::setWeight(const E enumClass, size_t value)
+void Weights<E>::SetWeight(const E enumClass, size_t value)
 {
-  for (auto& [e, w] : weights)
+  for (auto& [e, w] : m_weights)
   {
     if (e == enumClass)
     {
       w = value;
-      sumOfWeights = getSumOfWeights(weights);
+      m_sumOfWeights = GetSumOfWeights(m_weights);
       return;
     }
   }
-  weights.emplace_back(std::make_pair(enumClass, value));
-  sumOfWeights = getSumOfWeights(weights);
+  m_weights.emplace_back(std::make_pair(enumClass, value));
+  m_sumOfWeights = GetSumOfWeights(m_weights);
 }
 
 template<class E>
-size_t Weights<E>::getWeight(const E enumClass) const
+auto Weights<E>::GetWeight(const E enumClass) const -> size_t
 {
-  for (const auto& [e, w] : weights)
+  for (const auto& [e, w] : m_weights)
   {
     if (e == enumClass)
     {
@@ -152,25 +150,25 @@ size_t Weights<E>::getWeight(const E enumClass) const
 }
 
 template<class E>
-void Weights<E>::clearWeights(const size_t value)
+void Weights<E>::ClearWeights(size_t value)
 {
-  for (auto& [e, w] : weights)
+  for (auto& [e, w] : m_weights)
   {
     w = value;
   }
-  sumOfWeights = getSumOfWeights(weights);
+  m_sumOfWeights = GetSumOfWeights(m_weights);
 }
 
 template<class E>
-E Weights<E>::getRandomWeighted() const
+auto Weights<E>::GetRandomWeighted() const -> E
 {
-  if (weights.empty())
+  if (m_weights.empty())
   {
     throw std::logic_error("The are no weights set.");
   }
 
-  uint32_t randVal = getRandInRange(0u, sumOfWeights);
-  for (const auto& [e, w] : weights)
+  uint32_t randVal = GetRandInRange(0U, m_sumOfWeights);
+  for (const auto& [e, w] : m_weights)
   {
     if (randVal < w)
     {

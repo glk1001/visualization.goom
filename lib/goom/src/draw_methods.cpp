@@ -269,7 +269,7 @@ static void DrawWuLine(std::vector<PixelBuffer*>& buffs,
     {
       for (size_t i = 0; i < colors.size(); i++)
       {
-        tempColors[i] = getBrighterColor(brightness, colors[i], allowOverexposed);
+        tempColors[i] = UTILS::GetBrighterColor(brightness, colors[i], allowOverexposed);
       }
       DrawPixels(buffs, pos, tempColors, buffIntensity, allowOverexposed);
     }
@@ -421,7 +421,7 @@ static void DrawLineOverlap(std::vector<PixelBuffer*>& buffs,
     {
       for (size_t i = 0; i < colors.size(); i++)
       {
-        tempColors[i] = getBrighterColor(brightness, colors[i], allowOverexposed);
+        tempColors[i] = UTILS::GetBrighterColor(brightness, colors[i], allowOverexposed);
       }
       DrawPixels(buffs, pos, tempColors, buffIntensity, allowOverexposed);
     }

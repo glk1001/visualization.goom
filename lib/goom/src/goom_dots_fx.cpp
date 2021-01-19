@@ -28,7 +28,7 @@ using namespace GOOM::UTILS;
 
 inline auto ChangeDotColorsEvent() -> bool
 {
-  return probabilityOfMInN(1, 3);
+  return ProbabilityOfMInN(1, 3);
 }
 
 class GoomDotsFx::GoomDotsImpl
@@ -246,8 +246,8 @@ void GoomDotsFx::GoomDotsImpl::ChangeColors()
   m_middleColor =
       m_colorMaps.GetRandomColorMapPtr(ColorMapGroup::MISC, USE_ALL_MAPS)->GetRandomColor(0.1, 1);
 
-  m_useSingleBufferOnly = probabilityOfMInN(0, 2);
-  m_useGrayScale = probabilityOfMInN(0, 10);
+  m_useSingleBufferOnly = ProbabilityOfMInN(0, 2);
+  m_useGrayScale = ProbabilityOfMInN(0, 10);
 }
 
 void GoomDotsFx::GoomDotsImpl::Apply(PixelBuffer& currentBuff)
@@ -256,7 +256,7 @@ void GoomDotsFx::GoomDotsImpl::Apply(PixelBuffer& currentBuff)
   if ((m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom() == 0) || ChangeDotColorsEvent())
   {
     ChangeColors();
-    radius = getRandInRange(5U, 7U);
+    radius = GetRandInRange(5U, 7U);
   }
 
   const float largeFactor = GetLargeSoundFactor(m_goomInfo->GetSoundInfo());
@@ -342,7 +342,7 @@ auto GoomDotsFx::GoomDotsImpl::GetColor(const Pixel& color0,
 {
   constexpr float T_MIN = 0.5;
   constexpr float T_MAX = 1.0;
-  const float t = getRandInRange(T_MIN, T_MAX);
+  const float t = GetRandInRange(T_MIN, T_MAX);
   Pixel color{};
   if (!m_useGrayScale)
   {
@@ -356,7 +356,7 @@ auto GoomDotsFx::GoomDotsImpl::GetColor(const Pixel& color0,
                             .a = 0xff}};
   }
 
-  return m_gammaCorrect.getCorrection(brightness, color);
+  return m_gammaCorrect.GetCorrection(brightness, color);
 }
 
 auto GoomDotsFx::GoomDotsImpl::GetLargeSoundFactor(const SoundInfo& soundInfo) -> float

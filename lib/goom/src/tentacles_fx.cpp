@@ -35,28 +35,28 @@ using namespace GOOM::UTILS;
 
 inline auto StartPrettyMoveEvent() -> bool
 {
-  return probabilityOfMInN(1, 400);
+  return ProbabilityOfMInN(1, 400);
 }
 
 inline auto ChangeRotationEvent() -> bool
 {
-  return probabilityOfMInN(1, 100);
+  return ProbabilityOfMInN(1, 100);
 }
 
 inline auto TurnRotationOnEvent() -> bool
 {
-  return probabilityOfMInN(1, 2);
+  return ProbabilityOfMInN(1, 2);
 }
 
 inline auto ChangeDominantColorMapEvent() -> bool
 {
-  return probabilityOfMInN(1, 50);
+  return ProbabilityOfMInN(1, 50);
 }
 
 // IMPORTANT. Very delicate here - 1 in 30 seems just right
 inline auto ChangeDominantColorEvent() -> bool
 {
-  return probabilityOfMInN(1, 30);
+  return ProbabilityOfMInN(1, 30);
 }
 
 class TentacleStats
@@ -726,8 +726,8 @@ void TentaclesFx::TentaclesImpl::SetupDrivers()
   /**
 // Temp hack of weights
 Weights<ColorMapGroup> colorGroupWeights = colorMaps.getWeights();
-colorGroupWeights.clearWeights(1);
-colorGroupWeights.setWeight(ColorMapGroup::misc, 30000);
+colorGroupWeights.ClearWeights(1);
+colorGroupWeights.SetWeight(ColorMapGroup::misc, 30000);
 colorMaps.setWeights(colorGroupWeights);
 ***/
 
@@ -737,9 +737,9 @@ colorMaps.setWeights(colorGroupWeights);
         new TentacleDriver{m_goomInfo->GetScreenInfo().width, m_goomInfo->GetScreenInfo().height});
   }
 
-  if (NUM_DRIVERS != m_driverWeights.getNumElements())
+  if (NUM_DRIVERS != m_driverWeights.GetNumElements())
   {
-    throw std::logic_error("numDrivers != driverWeights.getNumElements()");
+    throw std::logic_error("numDrivers != driverWeights.GetNumElements()");
   }
 
   for (size_t i = 0; i < NUM_DRIVERS; i++)
@@ -826,11 +826,11 @@ void TentaclesFx::TentaclesImpl::Init()
 {
   m_currentDriver->FreshStart();
 
-  if (probabilityOfMInN(1, 500))
+  if (ProbabilityOfMInN(1, 500))
   {
     m_currentDriver->SetColorMode(TentacleDriver::ColorModes::minimal);
   }
-  else if (probabilityOfMInN(1, 500))
+  else if (ProbabilityOfMInN(1, 500))
   {
     m_currentDriver->SetColorMode(TentacleDriver::ColorModes::multiGroups);
   }
@@ -838,7 +838,7 @@ void TentaclesFx::TentaclesImpl::Init()
   {
     m_currentDriver->SetColorMode(TentacleDriver::ColorModes::oneGroupForAll);
   }
-  m_currentDriver->SetReverseColorMix(probabilityOfMInN(3, 10));
+  m_currentDriver->SetReverseColorMix(ProbabilityOfMInN(3, 10));
 
   m_distt = std::lerp(DISTT_MIN, DISTT_MAX, 0.3);
   m_distt2 = DISTT2_MIN;
@@ -848,7 +848,7 @@ void TentaclesFx::TentaclesImpl::Init()
   m_prePrettyMoveLock = 0;
   m_postPrettyMoveLock = 0;
   m_prettyMoveReadyToStart = false;
-  if (probabilityOfMInN(1, 5))
+  if (ProbabilityOfMInN(1, 5))
   {
     m_isPrettyMoveHappening = false;
     m_prettyMoveHappeningTimer = 0;
@@ -964,17 +964,17 @@ void TentaclesFx::TentaclesImpl::ChangeDominantColor()
 inline auto TentaclesFx::TentaclesImpl::GetModColors() -> std::tuple<Pixel, Pixel>
 {
   // IMPORTANT. getEvolvedColor works just right - not sure why
-  m_dominantColor = getEvolvedColor(m_dominantColor);
+  m_dominantColor = GetEvolvedColor(m_dominantColor);
 
-  const Pixel modColor = getLightenedColor(m_dominantColor, m_lig * 2.0F + 2.0F);
-  const Pixel modColorLow = getLightenedColor(modColor, (m_lig / 2.0F) + 0.67F);
+  const Pixel modColor = GetLightenedColor(m_dominantColor, m_lig * 2.0F + 2.0F);
+  const Pixel modColorLow = GetLightenedColor(modColor, (m_lig / 2.0F) + 0.67F);
 
   return std::make_tuple(modColor, modColorLow);
 }
 
 void TentaclesFx::TentaclesImpl::PrettyMovePreStart()
 {
-  m_prePrettyMoveLock = getRandInRange(MIN_PRE_PRETTY_MOVE_LOCK, MAX_PRE_PRETTY_MOVE_LOCK);
+  m_prePrettyMoveLock = GetRandInRange(MIN_PRE_PRETTY_MOVE_LOCK, MAX_PRE_PRETTY_MOVE_LOCK);
   m_distt2OffsetPreStep =
       std::lerp(DISTT2_MIN, DISTT2_MAX, 0.2F) / static_cast<float>(m_prePrettyMoveLock);
   m_distt2Offset = 0;
@@ -991,14 +991,14 @@ void TentaclesFx::TentaclesImpl::PrettyMoveStart(const float acceleration, const
   else
   {
     m_prettyMoveHappeningTimer =
-        static_cast<int>(getRandInRange(PRETTY_MOVE_HAPPENING_MIN, PRETTY_MOVE_HAPPENING_MAX));
+        static_cast<int>(GetRandInRange(PRETTY_MOVE_HAPPENING_MIN, PRETTY_MOVE_HAPPENING_MAX));
   }
   m_prettyMoveCheckStopMark = m_prettyMoveHappeningTimer / 4;
   m_postPrettyMoveLock = 3 * m_prettyMoveHappeningTimer / 2;
 
-  m_distt2Offset = (1.0F / (1.10F - acceleration)) * getRandInRange(DISTT2_MIN, DISTT2_MAX);
+  m_distt2Offset = (1.0F / (1.10F - acceleration)) * GetRandInRange(DISTT2_MIN, DISTT2_MAX);
   m_rotAtStartOfPrettyMove = m_rot;
-  m_cycleInc = getRandInRange(CYCLE_INC_MIN, CYCLE_INC_MAX);
+  m_cycleInc = GetRandInRange(CYCLE_INC_MIN, CYCLE_INC_MAX);
 }
 
 /****
@@ -1066,7 +1066,7 @@ void TentaclesFx::TentaclesImpl::IsPrettyMoveHappeningUpdate(const float acceler
 
 inline auto TentaclesFx::TentaclesImpl::GetNextDriver() const -> TentacleDriver*
 {
-  const size_t driverIndex = m_driverWeights.getRandomWeighted();
+  const size_t driverIndex = m_driverWeights.GetRandomWeighted();
   m_stats.ChangeTentacleDriver(driverIndex);
   return m_drivers[driverIndex].get();
 }

@@ -480,7 +480,7 @@ void TextDraw::TextDrawImpl::WriteSpansToImage(const SpanArray& spans,
       const Pixel srceColor{{.r = color.R(), .g = color.G(), .b = color.B(), .a = coverage}};
 
       Pixel& destColor = buff(static_cast<size_t>(xPos), static_cast<size_t>(yPos));
-      destColor = getColorBlend(srceColor, destColor);
+      destColor = UTILS::GetColorBlend(srceColor, destColor);
     }
   }
 }

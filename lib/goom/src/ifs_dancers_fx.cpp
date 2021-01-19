@@ -209,12 +209,12 @@ void IfsStats::UpdateHighLowDensityBlurThreshold()
 
 inline auto MegaChangeColorMapEvent() -> bool
 {
-  return probabilityOfMInN(9, 10);
+  return ProbabilityOfMInN(9, 10);
 }
 
 inline auto AllowOverexposedEvent() -> bool
 {
-  return probabilityOfMInN(10, 50);
+  return ProbabilityOfMInN(10, 50);
 }
 
 struct IfsPoint
@@ -373,7 +373,7 @@ void FractalHits::AddHit(uint32_t x, uint32_t y, const Pixel& p)
 
   HitInfo& h = m_hitInfo[uy][ux];
 
-  h.color = getColorAverage(h.color, p);
+  h.color = GetColorAverage(h.color, p);
   h.count++;
 
   if (h.count > m_maxHitCount)
@@ -498,9 +498,9 @@ void Fractal::Init()
     {3,  1},
   }};
   // clang-format on
-  assert(centreWeights.getNumElements() == centreList.size());
+  assert(centreWeights.GetNumElements() == centreList.size());
 
-  const size_t numCentres = 2 + s_centreWeights.getRandomWeighted();
+  const size_t numCentres = 2 + s_centreWeights.GetRandomWeighted();
 
   m_depth = CENTRE_LIST.at(numCentres - 2).depth;
   m_r1Mean = CENTRE_LIST[numCentres - 2].r1Mean;
@@ -518,7 +518,7 @@ void Fractal::Init()
 
 void Fractal::ResetCurrentIfsFunc()
 {
-  if (probabilityOfMInN(3, 10))
+  if (ProbabilityOfMInN(3, 10))
   {
     m_curFunc = [&](const Similitude& simi, const float x1, const float y1, const float x2,
                     const float y2) -> FltPoint {
@@ -670,14 +670,14 @@ constexpr auto Fractal::Get_1_minus_exp_neg_S(const Dbl S) -> Dbl
 
 auto Fractal::GaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S) -> Dbl
 {
-  const Dbl x = getRandInRange(0.0F, 1.0F);
+  const Dbl x = GetRandInRange(0.0F, 1.0F);
   const Dbl y = A_mult_1_minus_exp_neg_S * (1.0 - std::exp(-x * x * S));
-  return probabilityOfMInN(1, 2) ? c + y : c - y;
+  return ProbabilityOfMInN(1, 2) ? c + y : c - y;
 }
 
 auto Fractal::HalfGaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S) -> Dbl
 {
-  const Dbl x = getRandInRange(0.0F, 1.0F);
+  const Dbl x = GetRandInRange(0.0F, 1.0F);
   const Dbl y = A_mult_1_minus_exp_neg_S * (1.0 - std::exp(-x * x * S));
   return c + y;
 }
@@ -898,7 +898,7 @@ auto Colorizer::GetNextColorMode() -> IfsDancersFx::ColorMode
   }};
   // clang-format on
 
-  return s_colorModeWeights.getRandomWeighted();
+  return s_colorModeWeights.GetRandomWeighted();
 }
 
 void Colorizer::ChangeColorMaps()
@@ -910,8 +910,8 @@ void Colorizer::ChangeColorMaps()
   //  logInfo("prevMixerMap = {}", enumToString(prevMixerMap->GetMapName()));
   //  logInfo("mixerMap = {}", enumToString(mixerMap->GetMapName()));
   m_colorMapChangeCompleted =
-      getRandInRange(MIN_COLOR_MAP_CHANGE_COMPLETED, MAX_COLOR_MAP_CHANGE_COMPLETED);
-  m_tBetweenColors = getRandInRange(0.2F, 0.8F);
+      GetRandInRange(MIN_COLOR_MAP_CHANGE_COMPLETED, MAX_COLOR_MAP_CHANGE_COMPLETED);
+  m_tBetweenColors = GetRandInRange(0.2F, 0.8F);
   m_countSinceColorMapChange = m_colorMapChangeCompleted;
 }
 
@@ -951,7 +951,7 @@ inline auto Colorizer::GetMixedColor(
     case IfsDancersFx::ColorMode::mapColors:
     case IfsDancersFx::ColorMode::megaMapColorChange:
       mixColor = GetNextMixerMapColor(logAlpha, x, y);
-      tBaseMix = getRandInRange(0.1F, 0.3F);
+      tBaseMix = GetRandInRange(0.1F, 0.3F);
       break;
 
     case IfsDancersFx::ColorMode::mixColors:
@@ -995,7 +995,7 @@ inline auto Colorizer::GetMixedColor(
 
   static GammaCorrection s_gammaCorrect{4.2, 0.01};
 
-  return s_gammaCorrect.getCorrection(logAlpha, mixColor);
+  return s_gammaCorrect.GetCorrection(logAlpha, mixColor);
 }
 
 class LowDensityBlurrer
@@ -1351,7 +1351,7 @@ void IfsDancersFx::IfsDancersFxImpl::Renew()
   m_colorizer.ChangeColorMode();
   UpdateAllowOverexposed();
 
-  m_fractal->SetSpeed(static_cast<uint32_t>(std::min(getRandInRange(1.1F, 10.0F), 5.1F) /
+  m_fractal->SetSpeed(static_cast<uint32_t>(std::min(GetRandInRange(1.1F, 10.0F), 5.1F) /
                                             (1.1F - m_goomInfo->GetSoundInfo().GetAcceleration())));
 }
 
@@ -1386,7 +1386,7 @@ void IfsDancersFx::IfsDancersFxImpl::UpdateIfs(PixelBuffer& currentBuff, PixelBu
     m_cycle = 0;
     m_stats.UpdateCycleChanges();
 
-    if (probabilityOfMInN(15, 20))
+    if (ProbabilityOfMInN(15, 20))
     {
       m_lowDensityBlurThreshold = 0.99;
       m_stats.UpdateHighLowDensityBlurThreshold();
@@ -1586,7 +1586,7 @@ void IfsDancersFx::IfsDancersFxImpl::SetLowDensityColors(std::vector<IfsPoint>& 
 {
   const std::function<Pixel(const IfsPoint&)> getRandomColor =
       [&]([[maybe_unused]] const IfsPoint& p) {
-        const float t = getRandInRange(0.0F, 1.0F);
+        const float t = GetRandInRange(0.0F, 1.0F);
         return m_colorizer.GetColorMaps().GetRandomColorMap().GetColor(t);
       };
 
@@ -1612,7 +1612,7 @@ void IfsDancersFx::IfsDancersFxImpl::SetLowDensityColors(std::vector<IfsPoint>& 
 
 void IfsDancersFx::IfsDancersFxImpl::UpdateLowDensityThreshold()
 {
-  m_lowDensityCount = getRandInRange(MIN_DENSITY_COUNT, MAX_DENSITY_COUNT);
+  m_lowDensityCount = GetRandInRange(MIN_DENSITY_COUNT, MAX_DENSITY_COUNT);
 
   uint32_t blurWidth;
   constexpr uint32_t NUM_WIDTHS = 3;
