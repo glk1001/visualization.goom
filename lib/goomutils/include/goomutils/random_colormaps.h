@@ -14,11 +14,11 @@
 namespace GOOM::UTILS
 {
 
-class RandomColorMaps
+class RandomColorMaps : public ColorMaps
 {
 public:
   RandomColorMaps() noexcept;
-  virtual ~RandomColorMaps() noexcept;
+  ~RandomColorMaps() noexcept override;
   RandomColorMaps(const RandomColorMaps&) noexcept = delete;
   RandomColorMaps(RandomColorMaps&&) noexcept = delete;
   auto operator=(const RandomColorMaps&) -> RandomColorMaps& = delete;
@@ -37,12 +37,10 @@ public:
 
   [[nodiscard]] virtual auto GetRandomGroup() const -> ColorMapGroup;
 
-private:
-  class RandomColorMapsImpl;
-  std::unique_ptr<RandomColorMapsImpl> m_random_colorMapsImpl;
+  [[nodiscard]] static auto GetRandomColor(const IColorMap& colorMap, float t0, float t1) -> Pixel;
 };
 
-class WeightedColorMaps : public ColorMaps
+class WeightedColorMaps : public RandomColorMaps
 {
 public:
   WeightedColorMaps();

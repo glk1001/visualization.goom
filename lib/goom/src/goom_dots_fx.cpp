@@ -9,6 +9,8 @@
 #include "goomutils/logging_control.h"
 #undef NO_LOGGING
 #include "goomutils/logging.h"
+#include "goomutils/mathutils.h"
+#include "goomutils/random_colormaps.h"
 
 #include <cereal/archives/json.hpp>
 #include <cereal/types/memory.hpp>
@@ -243,8 +245,8 @@ void GoomDotsFx::GoomDotsImpl::ChangeColors()
   m_colorMap3 = m_colorMaps.GetRandomColorMapPtr(USE_ALL_MAPS);
   m_colorMap4 = m_colorMaps.GetRandomColorMapPtr(USE_ALL_MAPS);
   m_colorMap5 = m_colorMaps.GetRandomColorMapPtr(USE_ALL_MAPS);
-  m_middleColor =
-      m_colorMaps.GetRandomColorMapPtr(ColorMapGroup::MISC, USE_ALL_MAPS)->GetRandomColor(0.1, 1);
+  m_middleColor = RandomColorMaps::GetRandomColor(
+      *m_colorMaps.GetRandomColorMapPtr(ColorMapGroup::MISC, USE_ALL_MAPS), 0.1, 1.0);
 
   m_useSingleBufferOnly = ProbabilityOfMInN(0, 2);
   m_useGrayScale = ProbabilityOfMInN(0, 10);

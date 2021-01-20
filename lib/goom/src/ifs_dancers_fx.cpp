@@ -47,6 +47,7 @@
 // #undef NO_LOGGING
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
+#include "goomutils/random_colormaps.h"
 #include "goomutils/strutils.h"
 
 #include <array>
@@ -405,7 +406,7 @@ class Fractal
 public:
   Fractal() noexcept = default;
   Fractal(const std::shared_ptr<const PluginInfo>& goomInfo,
-          const ColorMaps& cm,
+          const RandomColorMaps& cm,
           IfsStats* s) noexcept;
   ~Fractal() noexcept = default;
   Fractal(const Fractal&) noexcept = delete;
@@ -432,7 +433,7 @@ private:
   static constexpr size_t MAX_SIMI = 6;
   static constexpr size_t MAX_COUNT_TIMES_SPEED = 1000;
 
-  const ColorMaps* m_colorMaps{};
+  const RandomColorMaps* m_colorMaps{};
   IfsStats* m_stats{};
 
   uint32_t m_lx = 0;
@@ -469,7 +470,7 @@ private:
 };
 
 Fractal::Fractal(const std::shared_ptr<const PluginInfo>& goomInfo,
-                 const ColorMaps& cm,
+                 const RandomColorMaps& cm,
                  IfsStats* s) noexcept
   : m_colorMaps{&cm},
     m_stats{s},
@@ -713,7 +714,7 @@ void Fractal::RandomSimis(const size_t start, const size_t num)
     m_components[i].r2 = 0;
 
     m_components[i].color =
-        m_colorMaps->GetRandomColorMap(colorMapGroup).GetRandomColor(0.0F, 1.0F);
+        RandomColorMaps::GetRandomColor(m_colorMaps->GetRandomColorMap(colorMapGroup), 0.0F, 1.0F);
   }
 }
 
@@ -766,7 +767,7 @@ public:
   auto operator=(const Colorizer&) -> Colorizer& = delete;
   auto operator=(const Colorizer&&) -> Colorizer& = delete;
 
-  auto GetColorMaps() const -> const ColorMaps&;
+  auto GetColorMaps() const -> const RandomColorMaps&;
 
   auto GetColorMode() const -> IfsDancersFx::ColorMode;
   void SetForcedColorMode(IfsDancersFx::ColorMode c);
@@ -856,7 +857,7 @@ inline void Colorizer::SetMaxHitCount(uint32_t val)
   m_logMaxHitCount = std::log(m_maxHitCount);
 }
 
-inline auto Colorizer::GetColorMaps() const -> const ColorMaps&
+inline auto Colorizer::GetColorMaps() const -> const RandomColorMaps&
 {
   return m_colorMaps;
 }

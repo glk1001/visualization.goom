@@ -11,6 +11,7 @@
 #include "goomutils/mathutils.h"
 //#undef NO_LOGGING
 #include "goomutils/logging.h"
+#include "goomutils/random_colormaps.h"
 #include "tentacle_driver.h"
 
 #include <cereal/archives/json.hpp>
@@ -709,7 +710,7 @@ TentaclesFx::TentaclesImpl::TentaclesImpl() noexcept = default;
 TentaclesFx::TentaclesImpl::TentaclesImpl(const std::shared_ptr<const PluginInfo>& info)
   : m_goomInfo{info},
     m_dominantColorMap{m_colorMaps.GetRandomColorMapPtr(USE_ALL_MAPS)},
-    m_dominantColor{m_dominantColorMap->GetRandomColor(0.0F, 1.0F)},
+    m_dominantColor{RandomColorMaps::GetRandomColor(*m_dominantColorMap, 0.0F, 1.0F)},
     m_rot{GetStableRotationOffset(0)}
 {
   SetupDrivers();
@@ -957,7 +958,7 @@ void TentaclesFx::TentaclesImpl::Update(PixelBuffer& currentBuff, PixelBuffer& n
 void TentaclesFx::TentaclesImpl::ChangeDominantColor()
 {
   m_stats.ChangeDominantColor();
-  const Pixel newColor = m_dominantColorMap->GetRandomColor(0.0F, 1.0F);
+  const Pixel newColor = RandomColorMaps::GetRandomColor(*m_dominantColorMap, 0.0F, 1.0F);
   m_dominantColor = IColorMap::GetColorMix(m_dominantColor, newColor, 0.7);
 }
 

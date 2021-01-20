@@ -24,6 +24,7 @@
 #undef NO_LOGGING
 #include "goomutils/logging.h"
 #include "goomutils/parallel_utils.h"
+#include "goomutils/random_colormaps.h"
 #include "goomutils/strutils.h"
 #include "ifs_dancers_fx.h"
 #include "lines_fx.h"
@@ -2306,7 +2307,7 @@ void GoomControl::GoomControlImpl::DisplayText(const char* songTitle,
   {
     if (m_goomData.timeOfTitleDisplay == GoomData::maxTitleDisplayTime)
     {
-      m_textColorMap = &(ColorMaps{}.GetRandomColorMap());
+      m_textColorMap = &(RandomColorMaps{}.GetRandomColorMap());
     }
     const auto xPos = static_cast<int>(GetScreenWidth() / 10);
     const auto yPos = static_cast<int>(GetScreenHeight() / 4 + 7);
@@ -2346,9 +2347,10 @@ void GoomControl::GoomControlImpl::DrawText(const std::string& str,
 
   const float t = static_cast<float>(m_goomData.timeOfTitleDisplay) /
                   static_cast<float>(GoomData::maxTitleDisplayTime);
-  const IColorMap& charColorMap = m_goomData.timeOfTitleDisplay > GoomData::timeToSpaceTitleDisplay
-                                      ? ColorMaps{}.GetColorMap(COLOR_DATA::ColorMapName::autumn)
-                                      : ColorMaps{}.GetRandomColorMap(/*ColorMapGroup::diverging*/);
+  const IColorMap& charColorMap =
+      m_goomData.timeOfTitleDisplay > GoomData::timeToSpaceTitleDisplay
+          ? RandomColorMaps{}.GetColorMap(COLOR_DATA::ColorMapName::autumn)
+          : RandomColorMaps{}.GetRandomColorMap(/*ColorMapGroup::diverging*/);
   const float tMix = m_goomData.timeOfTitleDisplay > GoomData::timeToSpaceTitleDisplay ? 0.6 : 0.0;
   const auto lastTextIndex = static_cast<float>(str.size() - 1);
   //  const ColorMap& colorMap2 = colorMaps.getColorMap(colordata::ColorMapName::Blues);

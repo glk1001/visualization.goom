@@ -8,6 +8,7 @@
 //#undef NO_LOGGING
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
+#include "goomutils/random_colormaps.h"
 #include "tentacles.h"
 #include "v3d.h"
 

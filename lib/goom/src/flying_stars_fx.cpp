@@ -10,6 +10,7 @@
 //#undef NO_LOGGING
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
+#include "goomutils/random_colormaps.h"
 
 #include <array>
 #include <cereal/archives/json.hpp>

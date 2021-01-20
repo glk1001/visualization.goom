@@ -6,6 +6,7 @@
 #include "goom_visual_fx.h"
 #include "goomutils/colormaps.h"
 #include "goomutils/mathutils.h"
+#include "goomutils/random_colormaps.h"
 #include "tentacles.h"
 #include "v3d.h"
 
@@ -130,7 +131,7 @@ private:
   uint32_t m_screenHeight = 0;
   GoomDraw m_draw{};
   FXBuffSettings m_buffSettings{};
-  const UTILS::ColorMaps m_colorMaps{};
+  const UTILS::RandomColorMaps m_colorMaps{};
   std::vector<std::shared_ptr<ITentacleColorizer>> m_colorizers{};
 
   size_t m_updateNum = 0;
@@ -187,7 +188,7 @@ public:
 private:
   size_t m_numNodes = 0;
   UTILS::ColorMapGroup m_currentColorMapGroup{};
-  const UTILS::ColorMaps m_colorMaps{};
+  const UTILS::RandomColorMaps m_colorMaps{};
   static constexpr bool USE_ALL_MAPS = true;
   std::shared_ptr<const UTILS::IColorMap> m_colorMap{};
   std::shared_ptr<const UTILS::IColorMap> m_prevColorMap{};

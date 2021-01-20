@@ -8,6 +8,7 @@
 #include "goomutils/colorutils.h"
 #include "goomutils/goomrand.h"
 #include "goomutils/mathutils.h"
+#include "goomutils/random_colormaps.h"
 
 #undef NDEBUG
 #include <cassert>
@@ -60,7 +61,7 @@ public:
 private:
   std::shared_ptr<const PluginInfo> m_goomInfo{};
   GoomDraw m_draw{};
-  UTILS::ColorMaps m_colorMaps{};
+  RandomColorMaps m_colorMaps{};
 
   struct LinePoint
   {
@@ -385,7 +386,7 @@ auto LinesFx::LinesImpl::GetRandomLineColor() -> Pixel
   {
     return GetColor(static_cast<int>(GetNRand(6)));
   }
-  return m_colorMaps.GetRandomColorMap().GetRandomColor(0.0F, 1.0F);
+  return RandomColorMaps::GetRandomColor(m_colorMaps.GetRandomColorMap(), 0.0F, 1.0F);
 }
 
 auto SimpleMovingAverage(const std::vector<int16_t>& x, const uint32_t winLen) -> std::vector<float>
