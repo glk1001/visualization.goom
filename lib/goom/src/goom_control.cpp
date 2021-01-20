@@ -18,7 +18,7 @@
 #include "goom_graphic.h"
 #include "goom_plugin_info.h"
 #include "goom_visual_fx.h"
-#include "goomutils/colormap.h"
+#include "goomutils/colormaps.h"
 #include "goomutils/goomrand.h"
 #include "goomutils/logging_control.h"
 #undef NO_LOGGING

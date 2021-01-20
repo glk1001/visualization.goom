@@ -88,7 +88,7 @@ public:
 
 private:
   class ColorMapsImpl;
-  std::unique_ptr<ColorMapsImpl> m_colorMapImpl;
+  std::unique_ptr<ColorMapsImpl> m_colorMapsImpl;
 };
 
 class WeightedColorMaps : public ColorMaps

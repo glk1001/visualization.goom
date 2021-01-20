@@ -1,4 +1,4 @@
-#include "colormap.h"
+#include "colormaps.h"
 
 #include "colordata/all_maps.h"
 #include "colordata/colormap_enums.h"
@@ -185,7 +185,7 @@ auto IColorMap::GetColorMix(const Pixel& col1, const Pixel& col2, float t) -> Pi
   return PrebuiltColorMap::GetColorMix(col1, col2, t);
 }
 
-ColorMaps::ColorMaps() noexcept : m_colorMapImpl{std::make_unique<ColorMapsImpl>()}
+ColorMaps::ColorMaps() noexcept : m_colorMapsImpl{std::make_unique<ColorMapsImpl>()}
 {
 }
 
@@ -193,60 +193,60 @@ ColorMaps::~ColorMaps() noexcept = default;
 
 auto ColorMaps::GetColorMapNames(ColorMapGroup cmg) const -> const ColorMaps::ColorMapNames&
 {
-  return m_colorMapImpl->GetColorMapNames(cmg);
+  return m_colorMapsImpl->GetColorMapNames(cmg);
 }
 
 auto ColorMaps::GetRandomColorMapName() const -> COLOR_DATA::ColorMapName
 {
-  return m_colorMapImpl->GetRandomColorMapName();
+  return m_colorMapsImpl->GetRandomColorMapName();
 }
 
 auto ColorMaps::GetRandomColorMapName(ColorMapGroup cmg) const -> COLOR_DATA::ColorMapName
 {
-  return m_colorMapImpl->GetRandomColorMapName(cmg);
+  return m_colorMapsImpl->GetRandomColorMapName(cmg);
 }
 
 auto ColorMaps::GetColorMap(COLOR_DATA::ColorMapName mapName) const -> const IColorMap&
 {
-  return m_colorMapImpl->GetColorMap(mapName);
+  return m_colorMapsImpl->GetColorMap(mapName);
 }
 
 auto ColorMaps::GetRandomColorMap() const -> const IColorMap&
 {
-  return m_colorMapImpl->GetRandomColorMap();
+  return m_colorMapsImpl->GetRandomColorMap();
 }
 
 auto ColorMaps::GetRandomColorMap(ColorMapGroup cmg) const -> const IColorMap&
 {
-  return m_colorMapImpl->GetRandomColorMap(cmg);
+  return m_colorMapsImpl->GetRandomColorMap(cmg);
 }
 
 auto ColorMaps::GetColorMapPtr(COLOR_DATA::ColorMapName mapName, const float tRotatePoint) const
     -> std::shared_ptr<const IColorMap>
 {
-  return m_colorMapImpl->GetColorMapPtr(mapName, tRotatePoint);
+  return m_colorMapsImpl->GetColorMapPtr(mapName, tRotatePoint);
 }
 
 auto ColorMaps::GetRandomColorMapPtr(const bool includeRotatePoints) const
     -> std::shared_ptr<const IColorMap>
 {
-  return m_colorMapImpl->GetRandomColorMapPtr(includeRotatePoints);
+  return m_colorMapsImpl->GetRandomColorMapPtr(includeRotatePoints);
 }
 
 auto ColorMaps::GetRandomColorMapPtr(ColorMapGroup cmg, const bool includeRotatePoints) const
     -> std::shared_ptr<const IColorMap>
 {
-  return m_colorMapImpl->GetRandomColorMapPtr(cmg, includeRotatePoints);
+  return m_colorMapsImpl->GetRandomColorMapPtr(cmg, includeRotatePoints);
 }
 
 auto ColorMaps::GetNumGroups() const -> size_t
 {
-  return m_colorMapImpl->GetNumGroups();
+  return m_colorMapsImpl->GetNumGroups();
 }
 
 auto ColorMaps::GetRandomGroup() const -> ColorMapGroup
 {
-  return m_colorMapImpl->GetRandomGroup();
+  return m_colorMapsImpl->GetRandomGroup();
 }
 
 std::vector<PrebuiltColorMap, PrebuiltColorMap::ColorMapAllocator>

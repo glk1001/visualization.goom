@@ -2,7 +2,7 @@
 #define VISUALIZATION_GOOM_TENTACLES_H
 
 #include "goom_graphic.h"
-#include "goomutils/colormap.h"
+#include "goomutils/colormaps.h"
 #include "goomutils/mathutils.h"
 
 #include <cereal/archives/json.hpp>

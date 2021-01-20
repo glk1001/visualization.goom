@@ -4,7 +4,7 @@
 #include "goom_draw.h"
 #include "goom_graphic.h"
 #include "goom_plugin_info.h"
-#include "goomutils/colormap.h"
+#include "goomutils/colormaps.h"
 #include "goomutils/colorutils.h"
 #include "goomutils/goomrand.h"
 #include "goomutils/mathutils.h"
