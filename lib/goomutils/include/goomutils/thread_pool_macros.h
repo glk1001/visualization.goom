@@ -1,5 +1,5 @@
-#ifndef LIB_GOOMUTILS_INCLUDE_GOOMUTILS_MACROS_H_
-#define LIB_GOOMUTILS_INCLUDE_GOOMUTILS_MACROS_H_
+#ifndef VISUALIZATION_GOOM_LIB_GOOMUTILS_MACROS_H_
+#define VISUALIZATION_GOOM_LIB_GOOMUTILS_MACROS_H_
 
 // This file contains macros that we use to workaround some features that aren't
 // available in C++11.
@@ -17,4 +17,4 @@
 #error("C++ version is too old! C++98 is not supported.")
 #endif
 
-#endif // LIB_GOOMUTILS_INCLUDE_GOOMUTILS_MACROS_H_
+#endif

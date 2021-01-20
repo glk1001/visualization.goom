@@ -1033,7 +1033,7 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff, PixelBuffe
     }
   };
 
-  m_parallel->forLoop(m_bufferSize, setDestPixel);
+  m_parallel->ForLoop(m_bufferSize, setDestPixel);
 }
 
 /*
@@ -1076,7 +1076,7 @@ void ZoomFilterFx::ZoomFilterImpl::MakeZoomBufferStripe(const uint32_t interlace
     }
   };
 
-  m_parallel->forLoop(static_cast<uint32_t>(maxEnd - m_interlaceStart), doStripeLine);
+  m_parallel->ForLoop(static_cast<uint32_t>(maxEnd - m_interlaceStart), doStripeLine);
 
   m_interlaceStart += static_cast<int32_t>(interlaceIncrement);
   if (maxEnd == static_cast<int32_t>(m_screenHeight))

@@ -207,13 +207,13 @@ void CVisualizationGoom::AudioData(const float* pAudioData,
   }
 
   std::unique_lock<std::mutex> lock(m_mutex);
-  if (m_buffer.data_available() >= CIRCULAR_BUFFER_SIZE)
+  if (m_buffer.DataAvailable() >= CIRCULAR_BUFFER_SIZE)
   {
     AudioDataQueueTooBig();
     return;
   }
 
-  (void)m_buffer.write(pAudioData, iAudioDataLength);
+  (void)m_buffer.Write(pAudioData, iAudioDataLength);
   m_wait.notify_one();
 }
 
@@ -376,11 +376,11 @@ void CVisualizationGoom::Process()
     {
       break;
     }
-    if (m_buffer.data_available() < m_audioBufferLen)
+    if (m_buffer.DataAvailable() < m_audioBufferLen)
     {
       m_wait.wait(lk);
     }
-    unsigned read = m_buffer.read(floatAudioData, m_audioBufferLen);
+    unsigned read = m_buffer.Read(floatAudioData, m_audioBufferLen);
     if (read != m_audioBufferLen)
     {
       kodi::Log(

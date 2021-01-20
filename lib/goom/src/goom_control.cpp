@@ -549,7 +549,7 @@ void GoomStats::Log(const StatsLogValueFunc& logVal) const
 
   logVal(MODULE, "songTitle", m_songTitle);
   logVal(MODULE, "startingState", m_startingState);
-  logVal(MODULE, "startingFilterMode", enumToString(m_startingFilterMode));
+  logVal(MODULE, "startingFilterMode", EnumToString(m_startingFilterMode));
   logVal(MODULE, "startingSeed", m_startingSeed);
   logVal(MODULE, "lastState", m_lastState);
   logVal(MODULE, "lastSeed", m_lastSeed);
@@ -562,7 +562,7 @@ void GoomStats::Log(const StatsLogValueFunc& logVal) const
   }
   else
   {
-    logVal(MODULE, "lastZoomFilterData->mode", enumToString(m_lastZoomFilterData->mode));
+    logVal(MODULE, "lastZoomFilterData->mode", EnumToString(m_lastZoomFilterData->mode));
     logVal(MODULE, "lastZoomFilterData->vitesse", m_lastZoomFilterData->vitesse);
     logVal(MODULE, "lastZoomFilterData->pertedec", static_cast<uint32_t>(ZoomFilterData::pertedec));
     logVal(MODULE, "lastZoomFilterData->middleX", m_lastZoomFilterData->middleX);
@@ -574,7 +574,7 @@ void GoomStats::Log(const StatsLogValueFunc& logVal) const
     logVal(MODULE, "lastZoomFilterData->waveEffect",
            static_cast<uint32_t>(m_lastZoomFilterData->waveEffect));
     logVal(MODULE, "lastZoomFilterData->hypercosEffect",
-           enumToString(m_lastZoomFilterData->hypercosEffect));
+           EnumToString(m_lastZoomFilterData->hypercosEffect));
     logVal(MODULE, "lastZoomFilterData->noisify",
            static_cast<uint32_t>(m_lastZoomFilterData->noisify));
     logVal(MODULE, "lastZoomFilterData->noiseFactor",
@@ -584,7 +584,7 @@ void GoomStats::Log(const StatsLogValueFunc& logVal) const
     logVal(MODULE, "lastZoomFilterData->waveFreqFactor", m_lastZoomFilterData->waveFreqFactor);
     logVal(MODULE, "lastZoomFilterData->waveAmplitude", m_lastZoomFilterData->waveAmplitude);
     logVal(MODULE, "lastZoomFilterData->waveEffectType",
-           enumToString(m_lastZoomFilterData->waveEffectType));
+           EnumToString(m_lastZoomFilterData->waveEffectType));
     logVal(MODULE, "lastZoomFilterData->scrunchAmplitude", m_lastZoomFilterData->scrunchAmplitude);
     logVal(MODULE, "lastZoomFilterData->speedwayAmplitude",
            m_lastZoomFilterData->speedwayAmplitude);
@@ -609,10 +609,10 @@ void GoomStats::Log(const StatsLogValueFunc& logVal) const
   logVal(MODULE, "avTimeInUpdateMs", avTimeInUpdateMs);
   logVal(MODULE, "minTimeInUpdatesMs", m_minTimeInUpdatesMs);
   logVal(MODULE, "stateAtMin", m_stateAtMin);
-  logVal(MODULE, "filterModeAtMin", enumToString(m_filterModeAtMin));
+  logVal(MODULE, "filterModeAtMin", EnumToString(m_filterModeAtMin));
   logVal(MODULE, "maxTimeInUpdatesMs", m_maxTimeInUpdatesMs);
   logVal(MODULE, "stateAtMax", m_stateAtMax);
-  logVal(MODULE, "filterModeAtMax", enumToString(m_filterModeAtMax));
+  logVal(MODULE, "filterModeAtMax", EnumToString(m_filterModeAtMax));
   logVal(MODULE, "totalStateChanges", m_totalStateChanges);
   const float avStateDuration =
       m_totalStateChanges == 0
@@ -634,7 +634,7 @@ void GoomStats::Log(const StatsLogValueFunc& logVal) const
   logVal(MODULE, "totalFilterModeChanges", m_totalFilterModeChanges);
   for (size_t i = 0; i < m_numFilterModeChanges.size(); i++)
   {
-    logVal(MODULE, "numFilterMode_" + enumToString(static_cast<ZoomFilterMode>(i)) + "_Changes",
+    logVal(MODULE, "numFilterMode_" + EnumToString(static_cast<ZoomFilterMode>(i)) + "_Changes",
            m_numFilterModeChanges[i]);
   }
   logVal(MODULE, "numLockChanges", m_numLockChanges);
@@ -1477,7 +1477,7 @@ void GoomControl::GoomControlImpl::Finish()
   m_stats.SetStateLastValue(m_states.GetCurrentStateIndex());
   m_stats.SetZoomFilterLastValue(&m_goomData.zoomFilterData);
   m_stats.SetSeedLastValue(GetRandSeed());
-  m_stats.SetNumThreadsUsedValue(m_parallel.getNumThreadsUsed());
+  m_stats.SetNumThreadsUsedValue(m_parallel.GetNumThreadsUsed());
 
   m_stats.Log(LogStatsValue);
 }
@@ -2384,7 +2384,7 @@ void GoomControl::GoomControlImpl::UpdateMessage(const char* message)
   if (message != nullptr)
   {
     m_messageData.message = message;
-    const std::vector<std::string> msgLines = splitString(m_messageData.message, "\n");
+    const std::vector<std::string> msgLines = SplitString(m_messageData.message, "\n");
     m_messageData.numberOfLinesInMessage = msgLines.size();
     m_messageData.affiche = 100 + 25 * m_messageData.numberOfLinesInMessage;
   }
@@ -2396,7 +2396,7 @@ void GoomControl::GoomControlImpl::UpdateMessage(const char* message)
     updateMessageText.SetFontSize(15);
     updateMessageText.SetOutlineWidth(1);
     updateMessageText.SetAlignment(TextDraw::TextAlignment::left);
-    const std::vector<std::string> msgLines = splitString(m_messageData.message, "\n");
+    const std::vector<std::string> msgLines = SplitString(m_messageData.message, "\n");
     for (size_t i = 0; i < msgLines.size(); i++)
     {
       const auto yPos = static_cast<int>(10 + m_messageData.affiche -

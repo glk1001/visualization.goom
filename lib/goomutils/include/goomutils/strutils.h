@@ -1,5 +1,5 @@
-#ifndef LIB_GOOMUTILS_INCLUDE_GOOMUTILS_STRUTILS_H_
-#define LIB_GOOMUTILS_INCLUDE_GOOMUTILS_STRUTILS_H_
+#ifndef VISUALIZATION_GOOM_LIB_GOOMUTILS_STRUTILS_H_
+#define VISUALIZATION_GOOM_LIB_GOOMUTILS_STRUTILS_H_
 
 #include <magic_enum.hpp>
 #include <stdexcept>
@@ -9,16 +9,16 @@
 namespace GOOM::UTILS
 {
 
-std::vector<std::string> splitString(const std::string& str, const std::string& delim);
+auto SplitString(const std::string& str, const std::string& delim) -> std::vector<std::string>;
 
 template<class E>
-std::string enumToString(const E e)
+auto EnumToString(const E e) -> std::string
 {
   return std::string(magic_enum::enum_name(e));
 }
 
 template<class E>
-E stringToEnum(const std::string& eStr)
+auto StringToEnum(const std::string& eStr) -> E
 {
   const auto val = magic_enum::enum_cast<E>(eStr);
   if (val)

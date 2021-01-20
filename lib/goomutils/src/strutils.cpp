@@ -7,7 +7,7 @@
 namespace GOOM::UTILS
 {
 
-std::vector<std::string> splitString(const std::string& str, const std::string& delim)
+auto SplitString(const std::string& str, const std::string& delim) -> std::vector<std::string>
 {
   auto parts = str | std::views::split(delim);
   std::vector<std::string> vec;

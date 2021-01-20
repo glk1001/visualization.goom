@@ -1,5 +1,5 @@
-#ifndef LIB_GOOMUTILS_INCLUDE_GOOMUTILS_PARALLEL_UTILS_H_
-#define LIB_GOOMUTILS_INCLUDE_GOOMUTILS_PARALLEL_UTILS_H_
+#ifndef VISUALIZATION_GOOM_LIB_GOOMUTILS_PARALLEL_UTILS_H_
+#define VISUALIZATION_GOOM_LIB_GOOMUTILS_PARALLEL_UTILS_H_
 
 #include "thread_pool.h"
 
@@ -17,36 +17,40 @@ class Parallel
 public:
   // numPoolThreads > 0:  use this number of threads in pool
   // numPoolThreads <= 0: use max cores - this number of threads
+  ~Parallel() noexcept = default;
   explicit Parallel(int32_t numPoolThreads = 0) noexcept;
   Parallel(const Parallel&) = delete;
-  Parallel& operator=(const Parallel&) = delete;
+  Parallel(Parallel&&) = delete;
+  auto operator=(const Parallel&) -> Parallel& = delete;
+  auto operator=(Parallel&&) -> Parallel& = delete;
 
-  size_t getNumThreadsUsed() const;
+  auto GetNumThreadsUsed() const -> size_t;
 
   template<typename Callable>
-  void forLoop(uint32_t numIters, Callable loopFunc);
+  void ForLoop(uint32_t numIters, Callable loopFunc);
 
 private:
-  ThreadPool threadPool;
+  ThreadPool m_threadPool;
 };
 
 inline Parallel::Parallel(const int32_t numPoolThreads) noexcept
-  : threadPool{(numPoolThreads <= 0)
-                   ? static_cast<size_t>(static_cast<int32_t>(std::thread::hardware_concurrency()) +
-                                         numPoolThreads)
-                   : static_cast<size_t>(numPoolThreads)}
+  : m_threadPool{
+        (numPoolThreads <= 0)
+            ? static_cast<size_t>(static_cast<int32_t>(std::thread::hardware_concurrency()) +
+                                  numPoolThreads)
+            : static_cast<size_t>(numPoolThreads)}
 {
 }
 
-inline size_t Parallel::getNumThreadsUsed() const
+inline auto Parallel::GetNumThreadsUsed() const -> size_t
 {
-  return threadPool.NumWorkers();
+  return m_threadPool.NumWorkers();
 }
 
 template<typename Callable>
-void Parallel::forLoop(const uint32_t numIters, const Callable loopFunc)
+void Parallel::ForLoop(uint32_t numIters, const Callable loopFunc)
 {
-  const uint32_t numThreads = threadPool.NumWorkers();
+  const uint32_t numThreads = m_threadPool.NumWorkers();
 
   if (numIters < numThreads)
   {
@@ -74,7 +78,7 @@ void Parallel::forLoop(const uint32_t numIters, const Callable loopFunc)
   std::vector<std::future<void>> futures{};
   for (uint32_t j = 0; j < numThreads; j++)
   {
-    futures.emplace_back(threadPool.ScheduleAndGetFuture(loopContents, j));
+    futures.emplace_back(m_threadPool.ScheduleAndGetFuture(loopContents, j));
   }
 
   for (auto& f : futures)
@@ -84,4 +88,4 @@ void Parallel::forLoop(const uint32_t numIters, const Callable loopFunc)
 }
 
 } // namespace GOOM::UTILS
-#endif /* LIBS_GOOMUTILS_INCLUDE_GOOMUTILS_COLORMAP_H_ */
+#endif

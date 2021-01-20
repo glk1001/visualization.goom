@@ -11,7 +11,7 @@
 
 using GOOM::UTILS::Logging;
 
-int main(int argc, char* argv[])
+auto main(int argc, char* argv[]) -> int
 {
   // global setup...
   const auto f_console_log = [](Logging::LogLevel, const std::string& s) {

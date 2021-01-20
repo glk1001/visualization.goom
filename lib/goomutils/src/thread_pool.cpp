@@ -8,14 +8,14 @@
 namespace GOOM::UTILS
 {
 
-ThreadPool::ThreadPool(const size_t numWrkers) noexcept : numWorkers(numWrkers)
+ThreadPool::ThreadPool(const size_t numWorkers) noexcept : m_numWorkers(numWorkers)
 {
-  assert(numWorkers > 0);
+  assert(m_numWorkers > 0);
   // TODO(cbraley): Handle thread construction exceptions.
-  workers.reserve(numWorkers);
-  for (size_t i = 0; i < numWorkers; ++i)
+  m_workers.reserve(m_numWorkers);
+  for (size_t i = 0; i < m_numWorkers; ++i)
   {
-    workers.emplace_back(&ThreadPool::threadLoop, this);
+    m_workers.emplace_back(&ThreadPool::ThreadLoop, this);
   }
 }
 
@@ -26,43 +26,43 @@ ThreadPool::~ThreadPool() noexcept
   // thread could "pitch in" to help finish faster.
 
   {
-    const std::lock_guard<std::mutex> lock{mu};
-    finished = true;
+    const std::lock_guard<std::mutex> lock{m_mutex};
+    m_finished = true;
   }
-  newWorkCondition.notify_all(); // Tell *all* workers we are ready.
+  m_newWorkCondition.notify_all(); // Tell *all* workers we are ready.
 
-  for (std::thread& thread : workers)
+  for (std::thread& thread : m_workers)
   {
     thread.join();
   }
 }
 
-int ThreadPool::OutstandingWorkSize() const
+auto ThreadPool::OutstandingWorkSize() const -> int
 {
-  const std::lock_guard<std::mutex> lock{mu};
-  return workQueue.size();
+  const std::lock_guard<std::mutex> lock{m_mutex};
+  return m_workQueue.size();
 }
 
-size_t ThreadPool::NumWorkers() const
+auto ThreadPool::NumWorkers() const -> size_t
 {
-  return numWorkers;
+  return m_numWorkers;
 }
 
 void ThreadPool::SetWorkDoneCallback(std::function<void(int)> func)
 {
-  workDoneCallback = std::move(func);
+  m_workDoneCallback = std::move(func);
 }
 
 void ThreadPool::Wait()
 {
-  std::unique_lock<std::mutex> lock{mu};
-  if (!workQueue.empty())
+  std::unique_lock<std::mutex> lock{m_mutex};
+  if (!m_workQueue.empty())
   {
-    workDoneCondition.wait(lock, [this] { return workQueue.empty(); });
+    m_workDoneCondition.wait(lock, [this] { return m_workQueue.empty(); });
   }
 }
 
-void ThreadPool::threadLoop()
+void ThreadPool::ThreadLoop()
 {
   // Wait until the ThreadPool sends us work.
   while (true)
@@ -71,38 +71,38 @@ void ThreadPool::threadLoop()
 
     int prevWorkSize = -1;
     {
-      std::unique_lock<std::mutex> lock{mu};
-      newWorkCondition.wait(lock, [this] { return finished || (!workQueue.empty()); });
+      std::unique_lock<std::mutex> lock{m_mutex};
+      m_newWorkCondition.wait(lock, [this] { return m_finished || (!m_workQueue.empty()); });
       // ...after the wait(), we hold the lock.
 
       // If all the work is done and exit_ is true, break out of the loop.
-      if (finished && workQueue.empty())
+      if (m_finished && m_workQueue.empty())
       {
         break;
       }
 
       // Pop the work off of the queue - we are careful to execute the
       // work_item.func callback only after we have released the lock.
-      prevWorkSize = workQueue.size();
-      workItem = std::move(workQueue.front());
-      workQueue.pop();
+      prevWorkSize = m_workQueue.size();
+      workItem = std::move(m_workQueue.front());
+      m_workQueue.pop();
     }
 
     // We are careful to do the work without the lock held!
     // TODO(cbraley): Handle exceptions properly.
     workItem.func(); // Do work.
 
-    if (workDoneCallback)
+    if (m_workDoneCallback)
     {
-      workDoneCallback(prevWorkSize - 1);
+      m_workDoneCallback(prevWorkSize - 1);
     }
 
     // Notify if all work is done.
     {
-      const std::unique_lock<std::mutex> lock{mu};
-      if (workQueue.empty() && prevWorkSize == 1)
+      const std::unique_lock<std::mutex> lock{m_mutex};
+      if (m_workQueue.empty() && prevWorkSize == 1)
       {
-        workDoneCondition.notify_all();
+        m_workDoneCondition.notify_all();
       }
     }
   }

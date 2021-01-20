@@ -20,43 +20,43 @@
 
 using namespace GOOM;
 
-constexpr uint32_t screenWidth = 100;
-constexpr uint32_t screenHeight = 100;
-static const std::shared_ptr<PluginInfo> goomInfo{new PluginInfo{screenWidth, screenHeight}};
-inline std::shared_ptr<const PluginInfo> getGoomInfo()
+constexpr uint32_t SCREEN_WIDTH = 100;
+constexpr uint32_t SCREEN_HEIGHT = 100;
+static const std::shared_ptr<PluginInfo> GOOM_INFO{new PluginInfo{SCREEN_WIDTH, SCREEN_HEIGHT}};
+inline auto GetGoomInfo() -> std::shared_ptr<const PluginInfo>
 {
-  return std::const_pointer_cast<const PluginInfo>(goomInfo);
+  return std::const_pointer_cast<const PluginInfo>(GOOM_INFO);
 }
 
-inline PixelBuffer* getNewBuffer()
+inline auto GetNewBuffer() -> PixelBuffer*
 {
-  return new PixelBuffer{screenWidth + 1, screenHeight + 1};
+  return new PixelBuffer{SCREEN_WIDTH + 1, SCREEN_HEIGHT + 1};
 }
 
 TEST_CASE("save/restore plugin info", "[saveRestorePluginInfo]")
 {
-  PluginInfo testGoominfo{*goomInfo};
+  PluginInfo testGoomInfo{*GOOM_INFO};
 
   std::stringstream ss;
   {
     cereal::JSONOutputArchive archive(ss);
-    archive(testGoominfo);
+    archive(testGoomInfo);
   }
   //  std::cout << ss.str() << std::endl;
 
-  PluginInfo testGoominfoRestored{screenWidth + 1, screenHeight + 1};
-  REQUIRE(testGoominfo != testGoominfoRestored);
+  PluginInfo testGoominfoRestored{SCREEN_WIDTH + 1, SCREEN_HEIGHT + 1};
+  REQUIRE(testGoomInfo != testGoominfoRestored);
   {
     cereal::JSONInputArchive archive(ss);
     archive(testGoominfoRestored);
   }
 
-  REQUIRE(testGoominfo == testGoominfoRestored);
+  REQUIRE(testGoomInfo == testGoominfoRestored);
 }
 
 TEST_CASE("save/restore goom draw", "[saveRestoreGoomDraw]")
 {
-  GoomDraw draw{screenWidth, screenHeight};
+  GoomDraw draw{SCREEN_WIDTH, SCREEN_HEIGHT};
   draw.SetAllowOverexposed(not draw.GetAllowOverexposed());
   draw.SetBuffIntensity(0.5 * draw.GetBuffIntensity());
   std::stringstream ss;
@@ -78,11 +78,11 @@ TEST_CASE("save/restore goom draw", "[saveRestoreGoomDraw]")
 
 TEST_CASE("save/restore convolve object", "[saveRestoreConvolve]")
 {
-  std::unique_ptr<PixelBuffer> prevBuff{getNewBuffer()};
-  std::unique_ptr<PixelBuffer> currentBuff{getNewBuffer()};
+  std::unique_ptr<PixelBuffer> prevBuff{GetNewBuffer()};
+  std::unique_ptr<PixelBuffer> currentBuff{GetNewBuffer()};
   UTILS::Parallel parallel{};
 
-  ConvolveFx convolveFx{parallel, getGoomInfo()};
+  ConvolveFx convolveFx{parallel, GetGoomInfo()};
   for (size_t i = 0; i < 100; i++)
   {
     convolveFx.Convolve(*prevBuff, *currentBuff);
@@ -106,11 +106,11 @@ TEST_CASE("save/restore convolve object", "[saveRestoreConvolve]")
 
 TEST_CASE("save/restore filter", "[saveRestoreFilter]")
 {
-  std::unique_ptr<PixelBuffer> prevBuff{getNewBuffer()};
-  std::unique_ptr<PixelBuffer> currentBuff{getNewBuffer()};
+  std::unique_ptr<PixelBuffer> prevBuff{GetNewBuffer()};
+  std::unique_ptr<PixelBuffer> currentBuff{GetNewBuffer()};
   UTILS::Parallel parallel{};
 
-  ZoomFilterFx filterFx{parallel, getGoomInfo()};
+  ZoomFilterFx filterFx{parallel, GetGoomInfo()};
   const ZoomFilterData* zf = nullptr;
   const int switchIncr = 1;
   const float switchMult = 1;
@@ -144,10 +144,10 @@ TEST_CASE("save/restore filter", "[saveRestoreFilter]")
 
 TEST_CASE("save/restore flying stars", "[saveRestoreFlyingStars]")
 {
-  std::unique_ptr<PixelBuffer> prevBuff{getNewBuffer()};
-  std::unique_ptr<PixelBuffer> currentBuff{getNewBuffer()};
+  std::unique_ptr<PixelBuffer> prevBuff{GetNewBuffer()};
+  std::unique_ptr<PixelBuffer> currentBuff{GetNewBuffer()};
 
-  FlyingStarsFx flyingStarsFx{getGoomInfo()};
+  FlyingStarsFx flyingStarsFx{GetGoomInfo()};
   for (size_t i = 0; i < 100; i++)
   {
     flyingStarsFx.Apply(*prevBuff, *currentBuff);
@@ -178,10 +178,10 @@ TEST_CASE("save/restore flying stars", "[saveRestoreFlyingStars]")
 
 TEST_CASE("save/restore goom dots", "[saveRestoreGoomDots]")
 {
-  std::unique_ptr<PixelBuffer> prevBuff{getNewBuffer()};
-  std::unique_ptr<PixelBuffer> currentBuff{getNewBuffer()};
+  std::unique_ptr<PixelBuffer> prevBuff{GetNewBuffer()};
+  std::unique_ptr<PixelBuffer> currentBuff{GetNewBuffer()};
 
-  GoomDotsFx dotsFx{getGoomInfo()};
+  GoomDotsFx dotsFx{GetGoomInfo()};
   for (size_t i = 0; i < 100; i++)
   {
     dotsFx.Apply(*currentBuff);
@@ -212,10 +212,10 @@ TEST_CASE("save/restore goom dots", "[saveRestoreGoomDots]")
 
 TEST_CASE("save/restore ifs", "[saveRestoreIfs]")
 {
-  std::unique_ptr<PixelBuffer> prevBuff{getNewBuffer()};
-  std::unique_ptr<PixelBuffer> currentBuff{getNewBuffer()};
+  std::unique_ptr<PixelBuffer> prevBuff{GetNewBuffer()};
+  std::unique_ptr<PixelBuffer> currentBuff{GetNewBuffer()};
 
-  IfsDancersFx ifsFx{getGoomInfo()};
+  IfsDancersFx ifsFx{GetGoomInfo()};
   for (size_t i = 0; i < 100; i++)
   {
     ifsFx.Apply(*prevBuff, *currentBuff);
@@ -246,16 +246,16 @@ TEST_CASE("save/restore ifs", "[saveRestoreIfs]")
 
 TEST_CASE("save/restore lines", "[saveRestoreLines]")
 {
-  std::unique_ptr<PixelBuffer> prevBuff{getNewBuffer()};
-  std::unique_ptr<PixelBuffer> currentBuff{getNewBuffer()};
+  std::unique_ptr<PixelBuffer> prevBuff{GetNewBuffer()};
+  std::unique_ptr<PixelBuffer> currentBuff{GetNewBuffer()};
 
-  static const Pixel lGreen = GetGreenLineColor();
-  static const Pixel lRed = GetRedLineColor();
-  static const Pixel lBlack = GetBlackLineColor();
-  LinesFx linesFx{getGoomInfo(), LinesFx::LineType::hline,  100,
-                  lBlack,        LinesFx::LineType::circle, 0.4F * static_cast<float>(100),
-                  lGreen};
-  linesFx.SwitchLines(LinesFx::LineType::circle, 1, 2, lRed);
+  static const Pixel s_lGreen = GetGreenLineColor();
+  static const Pixel s_lRed = GetRedLineColor();
+  static const Pixel s_lBlack = GetBlackLineColor();
+  LinesFx linesFx{GetGoomInfo(), LinesFx::LineType::hline,  100,
+                  s_lBlack,      LinesFx::LineType::circle, 0.4F * static_cast<float>(100),
+                  s_lGreen};
+  linesFx.SwitchLines(LinesFx::LineType::circle, 1, 2, s_lRed);
   std::stringstream ss;
   {
     cereal::JSONOutputArchive archive(ss);
@@ -282,10 +282,10 @@ TEST_CASE("save/restore lines", "[saveRestoreLines]")
 
 TEST_CASE("save/restore tentacles", "[saveRestoreTentacles]")
 {
-  std::unique_ptr<PixelBuffer> prevBuff{getNewBuffer()};
-  std::unique_ptr<PixelBuffer> currentBuff{getNewBuffer()};
+  std::unique_ptr<PixelBuffer> prevBuff{GetNewBuffer()};
+  std::unique_ptr<PixelBuffer> currentBuff{GetNewBuffer()};
 
-  TentaclesFx tentaclesFx{getGoomInfo()};
+  TentaclesFx tentaclesFx{GetGoomInfo()};
   for (size_t i = 0; i < 100; i++)
   {
     tentaclesFx.Apply(*prevBuff, *currentBuff);
@@ -316,11 +316,11 @@ TEST_CASE("save/restore tentacles", "[saveRestoreTentacles]")
 
 TEST_CASE("save/restore goom control", "[saveRestoreGoomControl]")
 {
-  std::unique_ptr<PixelBuffer> outputBuff{getNewBuffer()};
+  std::unique_ptr<PixelBuffer> outputBuff{GetNewBuffer()};
 
   constexpr uint64_t SEED = 10;
   GoomControl::SetRandSeed(SEED);
-  GoomControl goomControl{screenWidth, screenHeight};
+  GoomControl goomControl{SCREEN_WIDTH, SCREEN_HEIGHT};
   goomControl.SetScreenBuffer(*outputBuff);
   goomControl.SetFontFile("/tmp/Rubik-Regular.ttf");
   std::vector<float> soundData(NUM_AUDIO_SAMPLES * AUDIO_SAMPLE_LEN);

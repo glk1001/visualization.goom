@@ -1,5 +1,5 @@
-#ifndef LIB_GOOMUTILS_INCLUDE_GOOMUTILS_THREAD_POOL_H_
-#define LIB_GOOMUTILS_INCLUDE_GOOMUTILS_THREAD_POOL_H_
+#ifndef VISUALIZATION_GOOM_LIB_GOOMUTILS_THREAD_POOL_H_
+#define VISUALIZATION_GOOM_LIB_GOOMUTILS_THREAD_POOL_H_
 
 #include "thread_pool_macros.h"
 
@@ -19,12 +19,12 @@ namespace GOOM::UTILS
 class ThreadPool
 {
 public:
-  explicit ThreadPool(const size_t numWorkers) noexcept;
   ThreadPool() noexcept = delete;
-  ThreadPool& operator=(const ThreadPool&) = delete;
+  explicit ThreadPool(size_t numWorkers) noexcept;
   ThreadPool(const ThreadPool&) = delete;
   ThreadPool(ThreadPool&&) noexcept = delete;
-  ThreadPool& operator=(ThreadPool&&) noexcept = delete;
+  auto operator=(const ThreadPool&) -> ThreadPool& = delete;
+  auto operator=(ThreadPool&&) noexcept -> ThreadPool& = delete;
 
   // The `ThreadPool` destructor blocks until all outstanding work is complete.
   ~ThreadPool() noexcept;
@@ -68,40 +68,40 @@ public:
   void Wait();
 
   // Return the number of outstanding functions to be executed.
-  int OutstandingWorkSize() const;
+  auto OutstandingWorkSize() const -> int;
 
-  size_t NumWorkers() const;
+  auto NumWorkers() const -> size_t;
 
   void SetWorkDoneCallback(std::function<void(int)> func);
 
 private:
-  size_t numWorkers = 0;
+  size_t m_numWorkers = 0;
 
   // The destructor sets 'finished' to true and then notifies all workers.
   // 'finished' causes each thread to break out of their work loop.
-  bool finished = false;
+  bool m_finished = false;
 
-  mutable std::mutex mu{};
+  mutable std::mutex m_mutex{};
 
   // Work queue. Guarded by 'mu'.
   struct WorkItem
   {
     std::function<void(void)> func{};
   };
-  std::queue<WorkItem> workQueue{};
+  std::queue<WorkItem> m_workQueue{};
 
-  std::vector<std::thread> workers{};
-  std::condition_variable newWorkCondition{};
-  std::condition_variable workDoneCondition{};
+  std::vector<std::thread> m_workers{};
+  std::condition_variable m_newWorkCondition{};
+  std::condition_variable m_workDoneCondition{};
 
   // Whenever a work item is complete, we call this callback. If this is empty,
   // nothing is done.
-  std::function<void(int)> workDoneCallback{};
+  std::function<void(int)> m_workDoneCallback{};
 
-  void threadLoop();
+  void ThreadLoop();
 };
 
-namespace impl
+namespace IMPL
 {
 
 // This helper class simply returns a std::function that executes:
@@ -121,9 +121,8 @@ template<typename ReturnT>
 struct FuncWrapper
 {
   template<typename FuncT, typename... ArgsT>
-  std::function<void()> GetWrapped(FuncT&& func,
-                                   std::shared_ptr<std::promise<ReturnT>> promise,
-                                   ArgsT&&... args)
+  auto GetWrapped(FuncT&& func, std::shared_ptr<std::promise<ReturnT>> promise, ArgsT&&... args)
+      -> std::function<void()>
   {
     // TODO(cbraley): Capturing by value is inefficient. It would be more
     // efficient to move-capture everything, but we can't do this until C++14
@@ -135,7 +134,9 @@ struct FuncWrapper
 };
 
 template<typename FuncT, typename... ArgsT>
-void InvokeVoidRet(FuncT&& func, std::shared_ptr<std::promise<void>> promise, ArgsT&&... args)
+void InvokeVoidRet(FuncT&& func,
+                   const std::shared_ptr<std::promise<void>>& promise,
+                   ArgsT&&... args)
 {
   INVOKE_MACRO(func, ArgsT, args);
   promise->set_value();
@@ -146,9 +147,8 @@ template<>
 struct FuncWrapper<void>
 {
   template<typename FuncT, typename... ArgsT>
-  std::function<void()> GetWrapped(FuncT&& func,
-                                   std::shared_ptr<std::promise<void>> promise,
-                                   ArgsT&&... args)
+  auto GetWrapped(FuncT&& func, std::shared_ptr<std::promise<void>> promise, ArgsT&&... args)
+      -> std::function<void()>
   {
     return [promise, func, args...]() mutable {
       INVOKE_MACRO(func, ArgsT, args);
@@ -157,7 +157,7 @@ struct FuncWrapper<void>
   }
 };
 
-} // namespace impl
+} // namespace IMPL
 
 template<typename FuncT, typename... ArgsT>
 auto ThreadPool::ScheduleAndGetFuture(FuncT&& func, ArgsT&&... args)
@@ -170,22 +170,22 @@ auto ThreadPool::ScheduleAndGetFuture(FuncT&& func, ArgsT&&... args)
   std::shared_ptr<std::promise<ReturnT>> promise = std::make_shared<std::promise<ReturnT>>();
   std::future<ReturnT> ret_future = promise->get_future();
 
-  impl::FuncWrapper<ReturnT> funcWrapper{};
+  IMPL::FuncWrapper<ReturnT> funcWrapper{};
   std::function<void()> wrappedFunc =
       funcWrapper.GetWrapped(std::move(func), std::move(promise), std::forward<ArgsT>(args)...);
 
   // Acquire the lock, and then push the WorkItem onto the queue.
   {
-    const std::lock_guard<std::mutex> lock{mu};
+    const std::lock_guard<std::mutex> lock{m_mutex};
     WorkItem work{};
     work.func = std::move(wrappedFunc);
-    workQueue.emplace(std::move(work));
+    m_workQueue.emplace(std::move(work));
   }
-  newWorkCondition.notify_one(); // Tell one worker we are ready.
+  m_newWorkCondition.notify_one(); // Tell one worker we are ready.
 
   return ret_future;
 }
 
 } // namespace GOOM::UTILS
 
-#endif // LIB_GOOMUTILS_INCLUDE_GOOMUTILS_THREAD_POOL_H_
+#endif

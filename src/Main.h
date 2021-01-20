@@ -143,7 +143,7 @@ private:
   // Audio buffer storage
   static const size_t CIRCULAR_BUFFER_SIZE =
       NUM_AUDIO_BUFFERS_IN_CIRCULAR_BUFFER * NUM_AUDIO_SAMPLES * AUDIO_SAMPLE_LEN;
-  circular_buffer<float> m_buffer{CIRCULAR_BUFFER_SIZE};
+  CircularBuffer<float> m_buffer{CIRCULAR_BUFFER_SIZE};
 
   // Goom process thread handles
   bool m_threadExit = false;
