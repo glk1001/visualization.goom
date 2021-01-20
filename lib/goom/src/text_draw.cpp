@@ -458,7 +458,7 @@ void TextDraw::TextDrawImpl::WriteSpansToImage(const SpanArray& spans,
 {
   for (const auto& s : spans)
   {
-    const int yPos = m_screenHeight - (yPen + s.y - rect.ymin);
+    const int yPos = m_screenHeight - (yPen + s.y);
     if (yPos < 0 || yPos >= m_screenHeight)
     {
       continue;
