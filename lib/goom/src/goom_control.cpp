@@ -18,6 +18,7 @@
 #include "goom_plugin_info.h"
 #include "goom_visual_fx.h"
 #include "goomutils/colormaps.h"
+#include "goomutils/colorutils.h"
 #include "goomutils/goomrand.h"
 #include "goomutils/logging_control.h"
 #undef NO_LOGGING
@@ -261,7 +262,7 @@ const GoomStates::WeightedStatesArray GoomStates::STATES{{
     }},
   },
   {
-    .weight = 100000000,
+    .weight = 1,
     .drawables {{
       { .fx = GoomDrawable::STARS,     .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = false } },
   }},
@@ -1131,6 +1132,7 @@ private:
   GoomData m_goomData{};
   TextDraw m_text{};
   const IColorMap* m_textColorMap{};
+  Pixel m_textOutlineColor{};
 
   // Line Fx
   LinesFx m_gmline1{};
@@ -2307,16 +2309,17 @@ void GoomControl::GoomControlImpl::DisplayText(const char* songTitle,
     if (m_goomData.timeOfTitleDisplay == GoomData::maxTitleDisplayTime)
     {
       m_textColorMap = &(RandomColorMaps{}.GetRandomColorMap());
+      m_textOutlineColor = Pixel{0xffffffffU};
     }
-    const auto xPos = static_cast<int>(GetScreenWidth() / 10);
-    const auto yPos = static_cast<int>(GetScreenHeight() / 4 + 7);
-    const auto spacing = m_goomData.timeOfTitleDisplay > GoomData::timeToSpaceTitleDisplay
-                             ? 0.0F
-                             : static_cast<float>(GoomData::timeToSpaceTitleDisplay -
-                                                  m_goomData.timeOfTitleDisplay) /
-                                   20.0F;
+    const auto xPos = static_cast<int>(0.085F * static_cast<float>(GetScreenWidth()));
+    const auto yPos = static_cast<int>(0.300F * static_cast<float>(GetScreenHeight()));
+    const auto timeGone =
+        static_cast<float>(GoomData::timeToSpaceTitleDisplay - m_goomData.timeOfTitleDisplay);
+    const float spacing = std::max(0.0F, 0.056F * timeGone);
+    const int xExtra = static_cast<int>(
+        std::max(0.0F, 2.0F * timeGone / static_cast<float>(m_goomData.timeOfTitleDisplay)));
 
-    DrawText(m_goomData.title, xPos, yPos, spacing, m_imageBuffers.GetOutputBuff());
+    DrawText(m_goomData.title, xPos + xExtra, yPos, spacing, m_imageBuffers.GetOutputBuff());
 
     m_goomData.timeOfTitleDisplay--;
 
@@ -2346,23 +2349,32 @@ void GoomControl::GoomControlImpl::DrawText(const std::string& str,
 
   const float t = static_cast<float>(m_goomData.timeOfTitleDisplay) /
                   static_cast<float>(GoomData::maxTitleDisplayTime);
+  const float brightness = t;
+  //      std::min(1.0F, static_cast<float>(m_goomData.timeOfTitleDisplay) /
+  //                         static_cast<float>(GoomData::timeToSpaceTitleDisplay));
+
   const IColorMap& charColorMap =
       m_goomData.timeOfTitleDisplay > GoomData::timeToSpaceTitleDisplay
           ? RandomColorMaps{}.GetColorMap(COLOR_DATA::ColorMapName::autumn)
           : RandomColorMaps{}.GetRandomColorMap(/*ColorMapGroup::diverging*/);
-  const float tMix = m_goomData.timeOfTitleDisplay > GoomData::timeToSpaceTitleDisplay ? 0.6 : 0.0;
   const auto lastTextIndex = static_cast<float>(str.size() - 1);
   //  const ColorMap& colorMap2 = colorMaps.getColorMap(colordata::ColorMapName::Blues);
-  const Pixel fontColor = m_textColorMap->GetColor(t);
-  const Pixel outlineColor = m_textColorMap->GetColor(1.0F - t);
+  //  const Pixel fontColor = m_textColorMap->GetColor(t);
+  const Pixel outlineColor = m_textOutlineColor;
+  static GammaCorrection s_gammaCorrect{4.2, 0.01};
   const auto getFontColor = [&](const size_t textIndexOfChar, float x, float y, float width,
                                 float height) {
-    const float tChar = static_cast<float>(textIndexOfChar) / lastTextIndex;
+    const float tChar = 1.0F - static_cast<float>(textIndexOfChar) / lastTextIndex;
+    const Pixel fontColor = m_textColorMap->GetColor(y / static_cast<float>(height));
     const Pixel charColor = charColorMap.GetColor(tChar);
-    return IColorMap::GetColorMix(fontColor, charColor, tMix);
+    return s_gammaCorrect.GetCorrection(
+        brightness, IColorMap::GetColorMix(fontColor, charColor, x / static_cast<float>(width)));
   };
-  const auto getOutlineFontColor = [&](const size_t textIndexOfChar, float x, float y, float width,
-                                       float height) { return outlineColor; };
+  const auto getOutlineFontColor =
+      [&]([[maybe_unused]] size_t textIndexOfChar, [[maybe_unused]] float x,
+          [[maybe_unused]] float y, [[maybe_unused]] float width, [[maybe_unused]] float height) {
+        return s_gammaCorrect.GetCorrection(brightness, outlineColor);
+      };
 
   //  CALL UP TO PREPARE ONCE ONLY
   m_text.SetText(str);
