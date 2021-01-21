@@ -14,51 +14,10 @@ namespace GOOM::UTILS
 
 using COLOR_DATA::ColorMapName;
 
-class ColorMapWrapper : public IColorMap
-{
-public:
-  ColorMapWrapper() noexcept = delete;
-  explicit ColorMapWrapper(const IColorMap& cm) noexcept;
-  ~ColorMapWrapper() noexcept override = default;
-  ColorMapWrapper(const ColorMapWrapper&) noexcept = delete;
-  ColorMapWrapper(ColorMapWrapper&&) noexcept = delete;
-  auto operator=(const ColorMapWrapper&) -> ColorMapWrapper& = delete;
-  auto operator=(ColorMapWrapper&&) -> ColorMapWrapper& = delete;
-
-  [[nodiscard]] auto GetNumStops() const -> size_t override;
-  [[nodiscard]] auto GetMapName() const -> COLOR_DATA::ColorMapName override;
-  [[nodiscard]] auto GetColor(float t) const -> Pixel override;
-
-protected:
-  [[nodiscard]] auto GetColorMap() const -> const IColorMap& { return m_colorMap; }
-
-private:
-  const IColorMap& m_colorMap;
-};
-
-ColorMapWrapper::ColorMapWrapper(const IColorMap& cm) noexcept : m_colorMap{cm}
-{
-}
-
-inline auto ColorMapWrapper::GetNumStops() const -> size_t
-{
-  return m_colorMap.GetNumStops();
-}
-
-inline auto ColorMapWrapper::GetMapName() const -> COLOR_DATA::ColorMapName
-{
-  return m_colorMap.GetMapName();
-}
-
-inline auto ColorMapWrapper::GetColor(float t) const -> Pixel
-{
-  return m_colorMap.GetColor(t);
-}
-
 class RotatedColorMap : public ColorMapWrapper
 {
 public:
-  explicit RotatedColorMap(const IColorMap& cm, float tRotatePoint);
+  explicit RotatedColorMap(const std::shared_ptr<const IColorMap>& cm, float tRotatePoint);
 
   [[nodiscard]] auto GetColor(float t) const -> Pixel override;
 
@@ -68,7 +27,8 @@ private:
   const float m_tRotatePoint;
 };
 
-RotatedColorMap::RotatedColorMap(const IColorMap& cm, const float tRotatePoint)
+RotatedColorMap::RotatedColorMap(const std::shared_ptr<const IColorMap>& cm,
+                                 const float tRotatePoint)
   : ColorMapWrapper{cm}, m_tRotatePoint{tRotatePoint}
 {
   if (tRotatePoint < MIN_ROTATE_POINT)
@@ -90,7 +50,43 @@ inline auto RotatedColorMap::GetColor(const float t) const -> Pixel
   {
     tNew = 1.0F - (tNew - 1.0F);
   }
-  return GetColorMap().GetColor(tNew);
+  return GetColorMap()->GetColor(tNew);
+}
+
+class TintedColorMap : public ColorMapWrapper
+{
+public:
+  TintedColorMap(const std::shared_ptr<const IColorMap>& cm, float lightness);
+
+  [[nodiscard]] auto GetColor(float t) const -> Pixel override;
+
+private:
+  static constexpr float MIN_LIGHTNESS = 0.1F;
+  static constexpr float MAX_LIGHTNESS = 1.0F;
+  const float m_lightness;
+};
+
+TintedColorMap::TintedColorMap(const std::shared_ptr<const IColorMap>& cm, const float lightness)
+  : ColorMapWrapper{cm}, m_lightness{lightness}
+{
+  if (lightness < MIN_LIGHTNESS)
+  {
+    throw std::logic_error(std20::format("Invalid lightness {} < {}.", lightness, MIN_LIGHTNESS));
+  }
+  if (lightness > MAX_LIGHTNESS)
+  {
+    throw std::logic_error(std20::format("Invalid lightness {} > {}.", lightness, MAX_LIGHTNESS));
+  }
+}
+
+auto TintedColorMap::GetColor(const float t) const -> Pixel
+{
+  const Pixel color = GetColorMap()->GetColor(t);
+
+  vivid::hsv_t hsv{vivid::rgb::fromRgb32(color.Rgba())};
+  hsv[2] = m_lightness;
+
+  return Pixel{vivid::Color{hsv}.rgb32()};
 }
 
 class PrebuiltColorMap : public IColorMap
@@ -147,6 +143,9 @@ public:
 
   [[nodiscard]] auto GetColorMapPtr(COLOR_DATA::ColorMapName mapName, float tRotatePoint) const
       -> std::shared_ptr<const IColorMap>;
+  [[nodiscard]] auto GetTintedColorMapPtr(const std::shared_ptr<const IColorMap>& cm,
+                                          float lightness) const
+      -> std::shared_ptr<const IColorMap>;
 
   [[nodiscard]] static auto GetNumGroups() -> size_t;
 
@@ -188,6 +187,13 @@ auto ColorMaps::GetColorMap(COLOR_DATA::ColorMapName mapName) const -> const ICo
   return m_colorMapsImpl->GetColorMap(mapName);
 }
 
+auto ColorMaps::GetTintedColorMapPtr(const std::shared_ptr<const IColorMap>& cm,
+                                     const float tintValue) const
+    -> std::shared_ptr<const IColorMap>
+{
+  return m_colorMapsImpl->GetTintedColorMapPtr(cm, tintValue);
+}
+
 auto ColorMaps::GetColorMapPtr(COLOR_DATA::ColorMapName mapName, const float tRotatePoint) const
     -> std::shared_ptr<const IColorMap>
 {
@@ -215,11 +221,22 @@ auto ColorMaps::ColorMapsImpl::GetColorMapPtr(COLOR_DATA::ColorMapName mapName,
                                               const float tRotatePoint) const
     -> std::shared_ptr<const IColorMap>
 {
+  const auto makeSharedOfAddr = [&](const IColorMap* cm) {
+    return std::shared_ptr<const IColorMap>{cm, []([[maybe_unused]] const IColorMap* cm) {}};
+  };
+
   if (tRotatePoint > 0.0F)
   {
-    return std::make_shared<ColorMapWrapper>(GetColorMap(mapName));
+    return makeSharedOfAddr(&GetColorMap(mapName));
   }
-  return std::make_shared<RotatedColorMap>(GetColorMap(mapName), tRotatePoint);
+  return std::make_shared<RotatedColorMap>(makeSharedOfAddr(&GetColorMap(mapName)), tRotatePoint);
+}
+
+auto ColorMaps::ColorMapsImpl::GetTintedColorMapPtr(const std::shared_ptr<const IColorMap>& cm,
+                                                    const float lightness) const
+    -> std::shared_ptr<const IColorMap>
+{
+  return std::make_shared<TintedColorMap>(cm, lightness);
 }
 
 auto ColorMaps::ColorMapsImpl::GetNumColorMapNames() const -> size_t

@@ -19,7 +19,8 @@ auto RandomColorMaps::GetRandomColorMapName() const -> COLOR_DATA::ColorMapName
   return static_cast<ColorMapName>(GetRandInRange(0U, GetNumColorMapNames()));
 }
 
-auto RandomColorMaps::GetRandomColorMapName(ColorMapGroup cmg) const -> COLOR_DATA::ColorMapName
+auto RandomColorMaps::GetRandomColorMapName(const ColorMapGroup cmg) const
+    -> COLOR_DATA::ColorMapName
 {
   const ColorMapNames& colorMapNames = GetColorMapNames(cmg);
   return colorMapNames[GetRandInRange(0U, colorMapNames.size())];
@@ -30,7 +31,7 @@ auto RandomColorMaps::GetRandomColorMap() const -> const IColorMap&
   return GetColorMap(GetRandomColorMapName());
 }
 
-auto RandomColorMaps::GetRandomColorMap(ColorMapGroup cmg) const -> const IColorMap&
+auto RandomColorMaps::GetRandomColorMap(const ColorMapGroup cmg) const -> const IColorMap&
 {
   return GetColorMap(GetRandomColorMapName(cmg));
 }
@@ -45,7 +46,8 @@ auto RandomColorMaps::GetRandomColorMapPtr(const bool includeRotatePoints) const
   return GetColorMapPtr(GetRandomColorMapName(), GetRandInRange(0.1F, 0.9F));
 }
 
-auto RandomColorMaps::GetRandomColorMapPtr(ColorMapGroup cmg, const bool includeRotatePoints) const
+auto RandomColorMaps::GetRandomColorMapPtr(const ColorMapGroup cmg,
+                                           const bool includeRotatePoints) const
     -> std::shared_ptr<const IColorMap>
 {
   if (!includeRotatePoints)
@@ -53,6 +55,24 @@ auto RandomColorMaps::GetRandomColorMapPtr(ColorMapGroup cmg, const bool include
     return GetColorMapPtr(GetRandomColorMapName(cmg));
   }
   return GetColorMapPtr(GetRandomColorMapName(cmg), GetRandInRange(0.1F, 0.9F));
+}
+
+auto RandomColorMaps::GetRandomTintedColorMapPtr() const -> std::shared_ptr<const IColorMap>
+{
+  return GetTintedColorMapPtr(GetColorMapPtr(GetRandomColorMapName()), GetRandInRange(0.1F, 0.9F));
+}
+
+auto RandomColorMaps::GetRandomTintedColorMapPtr(const ColorMapGroup cmg) const
+    -> std::shared_ptr<const IColorMap>
+{
+  return GetTintedColorMapPtr(GetColorMapPtr(GetRandomColorMapName(cmg), 0.0),
+                              GetRandInRange(0.1F, 1.0F));
+}
+
+auto RandomColorMaps::GetRandomTintedColorMapPtr(const ColorMapName cmName) const
+    -> std::shared_ptr<const IColorMap>
+{
+  return GetTintedColorMapPtr(GetColorMapPtr(cmName, 0.0), GetRandInRange(0.1F, 1.0F));
 }
 
 auto RandomColorMaps::GetRandomGroup() const -> ColorMapGroup

@@ -35,6 +35,12 @@ public:
   [[nodiscard]] auto GetRandomColorMapPtr(ColorMapGroup cmg, bool includeRotatePoints = false) const
       -> std::shared_ptr<const IColorMap>;
 
+  [[nodiscard]] auto GetRandomTintedColorMapPtr() const -> std::shared_ptr<const IColorMap>;
+  [[nodiscard]] auto GetRandomTintedColorMapPtr(ColorMapGroup cmg) const
+      -> std::shared_ptr<const IColorMap>;
+  [[nodiscard]] auto GetRandomTintedColorMapPtr(COLOR_DATA::ColorMapName cmName) const
+      -> std::shared_ptr<const IColorMap>;
+
   [[nodiscard]] virtual auto GetRandomGroup() const -> ColorMapGroup;
 
   [[nodiscard]] static auto GetRandomColor(const IColorMap& colorMap, float t0, float t1) -> Pixel;

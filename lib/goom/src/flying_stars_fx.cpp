@@ -713,31 +713,28 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
     maxStarsInBomb *= 2;
   }
 
-  //const ColorMapName dominantColorMapName = m_colorMaps.GetRandomColorMapName();
-  //const ColorMapName dominantLowColorMapName = m_lowColorMaps.GetRandomColorMapName();
-  //std::shared_ptr<const ColorMap> dominantColorMap =
-  //    m_colorMaps.GetColorMapPtr(dominantColorMapName, getRandInRange(0.0F, 1.0F));
-  //std::shared_ptr<const ColorMap> dominantLowColorMap =
-  //    m_lowColorMaps.GetColorMapPtr(dominantLowColorMapName, getRandInRange(0.0F, 1.0F));
-  std::shared_ptr<const IColorMap> dominantColorMap = m_colorMaps.GetRandomColorMapPtr(true);
-  std::shared_ptr<const IColorMap> dominantLowColorMap = m_lowColorMaps.GetRandomColorMapPtr(true);
+  const std::shared_ptr<const IColorMap> dominantColorMap =
+      m_colorMaps.GetRandomTintedColorMapPtr();
+  const std::shared_ptr<const IColorMap> dominantLowColorMap =
+      m_lowColorMaps.GetRandomTintedColorMapPtr();
 
   const bool megaColorMode = ProbabilityOfMInN(1, 10);
   const ColorMapName colorMapName = m_colorMaps.GetRandomColorMapName();
   const ColorMapName lowColorMapName = m_lowColorMaps.GetRandomColorMapName();
+
   for (size_t i = 0; i < maxStarsInBomb; i++)
   {
     if (megaColorMode)
     {
-      AddABomb(dominantColorMap, dominantLowColorMap, m_colorMaps.GetRandomColorMapPtr(true),
-               m_lowColorMaps.GetRandomColorMapPtr(true), mx, my, radius, vage, gravity);
+      AddABomb(dominantColorMap, dominantLowColorMap, m_colorMaps.GetRandomTintedColorMapPtr(),
+               m_lowColorMaps.GetRandomTintedColorMapPtr(), mx, my, radius, vage, gravity);
     }
     else
     {
       std::shared_ptr<const IColorMap> colorMap =
-          m_colorMaps.GetColorMapPtr(colorMapName, GetRandInRange(0.0F, 1.0F));
+          m_colorMaps.GetRandomTintedColorMapPtr(colorMapName);
       std::shared_ptr<const IColorMap> lowColorMap =
-          m_lowColorMaps.GetColorMapPtr(lowColorMapName, GetRandInRange(0.0F, 1.0F));
+          m_lowColorMaps.GetRandomTintedColorMapPtr(lowColorMapName);
       AddABomb(dominantColorMap, dominantLowColorMap, colorMap, lowColorMap, mx, my, radius, vage,
                gravity);
     }

@@ -5,6 +5,7 @@
 #include "goomutils/colordata/colormap_enums.h"
 
 #include <memory>
+#include <utility>
 
 namespace GOOM::UTILS
 {
@@ -28,6 +29,28 @@ public:
 
 private:
   friend class ColorMaps;
+};
+
+class ColorMapWrapper : public IColorMap
+{
+public:
+  ColorMapWrapper() noexcept = delete;
+  explicit ColorMapWrapper(std::shared_ptr<const IColorMap> cm) noexcept;
+  ~ColorMapWrapper() noexcept override = default;
+  ColorMapWrapper(const ColorMapWrapper&) noexcept = delete;
+  ColorMapWrapper(ColorMapWrapper&&) noexcept = delete;
+  auto operator=(const ColorMapWrapper&) -> ColorMapWrapper& = delete;
+  auto operator=(ColorMapWrapper&&) -> ColorMapWrapper& = delete;
+
+  [[nodiscard]] auto GetNumStops() const -> size_t override;
+  [[nodiscard]] auto GetMapName() const -> COLOR_DATA::ColorMapName override;
+  [[nodiscard]] auto GetColor(float t) const -> Pixel override;
+
+protected:
+  [[nodiscard]] auto GetColorMap() const -> std::shared_ptr<const IColorMap> { return m_colorMap; }
+
+private:
+  std::shared_ptr<const IColorMap> m_colorMap;
 };
 
 enum class ColorMapGroup : int
@@ -70,6 +93,9 @@ public:
 
   [[nodiscard]] auto GetColorMapPtr(COLOR_DATA::ColorMapName mapName, float tRotatePoint = 0) const
       -> std::shared_ptr<const IColorMap>;
+  [[nodiscard]] auto GetTintedColorMapPtr(const std::shared_ptr<const IColorMap>& cm,
+                                          float lightness) const
+      -> std::shared_ptr<const IColorMap>;
 
   [[nodiscard]] auto GetNumGroups() const -> size_t;
 
@@ -77,6 +103,26 @@ private:
   class ColorMapsImpl;
   std::unique_ptr<ColorMapsImpl> m_colorMapsImpl;
 };
+
+inline ColorMapWrapper::ColorMapWrapper(std::shared_ptr<const IColorMap> cm) noexcept
+  : m_colorMap{std::move(cm)}
+{
+}
+
+inline auto ColorMapWrapper::GetNumStops() const -> size_t
+{
+  return m_colorMap->GetNumStops();
+}
+
+inline auto ColorMapWrapper::GetMapName() const -> COLOR_DATA::ColorMapName
+{
+  return m_colorMap->GetMapName();
+}
+
+inline auto ColorMapWrapper::GetColor(float t) const -> Pixel
+{
+  return m_colorMap->GetColor(t);
+}
 
 } // namespace GOOM::UTILS
 #endif

@@ -14,7 +14,6 @@
 #include "flying_stars_fx.h"
 #include "goom_config.h"
 #include "goom_dots_fx.h"
-#include "goom_draw.h"
 #include "goom_graphic.h"
 #include "goom_plugin_info.h"
 #include "goom_visual_fx.h"
@@ -262,7 +261,7 @@ const GoomStates::WeightedStatesArray GoomStates::STATES{{
     }},
   },
   {
-    .weight = 1,
+    .weight = 100000000,
     .drawables {{
       { .fx = GoomDrawable::STARS,     .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = false } },
   }},
