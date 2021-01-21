@@ -57,22 +57,30 @@ auto RandomColorMaps::GetRandomColorMapPtr(const ColorMapGroup cmg,
   return GetColorMapPtr(GetRandomColorMapName(cmg), GetRandInRange(0.1F, 0.9F));
 }
 
-auto RandomColorMaps::GetRandomTintedColorMapPtr() const -> std::shared_ptr<const IColorMap>
+auto RandomColorMaps::GetRandomTintedColorMapPtr(const float minLightness,
+                                                 const float maxLightness) const
+    -> std::shared_ptr<const IColorMap>
 {
-  return GetTintedColorMapPtr(GetColorMapPtr(GetRandomColorMapName()), GetRandInRange(0.1F, 0.9F));
+  return GetTintedColorMapPtr(GetColorMapPtr(GetRandomColorMapName()),
+                              GetRandInRange(minLightness, maxLightness));
 }
 
-auto RandomColorMaps::GetRandomTintedColorMapPtr(const ColorMapGroup cmg) const
+auto RandomColorMaps::GetRandomTintedColorMapPtr(const ColorMapGroup cmg,
+                                                 const float minLightness,
+                                                 const float maxLightness) const
     -> std::shared_ptr<const IColorMap>
 {
   return GetTintedColorMapPtr(GetColorMapPtr(GetRandomColorMapName(cmg), 0.0),
-                              GetRandInRange(0.1F, 1.0F));
+                              GetRandInRange(minLightness, maxLightness));
 }
 
-auto RandomColorMaps::GetRandomTintedColorMapPtr(const ColorMapName cmName) const
+auto RandomColorMaps::GetRandomTintedColorMapPtr(const ColorMapName cmName,
+                                                 const float minLightness,
+                                                 const float maxLightness) const
     -> std::shared_ptr<const IColorMap>
 {
-  return GetTintedColorMapPtr(GetColorMapPtr(cmName, 0.0), GetRandInRange(0.1F, 1.0F));
+  return GetTintedColorMapPtr(GetColorMapPtr(cmName, 0.0),
+                              GetRandInRange(minLightness, maxLightness));
 }
 
 auto RandomColorMaps::GetRandomGroup() const -> ColorMapGroup

@@ -478,6 +478,7 @@ void FlyingStarsFx::FlyingStarsImpl::UpdateBuffers(PixelBuffer& currentBuff, Pix
     // draws the particule
     constexpr float OLD_AGE = 0.95;
     const float tAge = star.age / static_cast<float>(m_maxStarAge);
+    const float ageBrightness = 0.2F + 1.8F * Sq(0.5F - tAge) / 0.25F;
     const size_t numParts =
         tAge > OLD_AGE ? 4 : 2 + static_cast<size_t>(std::lround((1.0F - tAge) * 2.0F));
     const auto x0 = static_cast<int32_t>(star.x);
@@ -494,8 +495,7 @@ void FlyingStarsFx::FlyingStarsImpl::UpdateBuffers(PixelBuffer& currentBuff, Pix
                                     star.yVelocity * j);
       const uint8_t thickness = tAge < OLD_AGE ? 1 : GetRandInRange(2U, 5U);
 
-      const float brightness =
-          2.0F * (1.0F - tAge) * static_cast<float>(j - 1) / static_cast<float>(numParts - 1);
+      const float brightness = ageBrightness * static_cast<float>(j) / static_cast<float>(numParts);
       const auto [mixedColor, mixedLowColor] = GetMixedColors(star, tAge, brightness);
 
       if (m_useSingleBufferOnly)
@@ -713,10 +713,12 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
     maxStarsInBomb *= 2;
   }
 
+  constexpr float MIN_LIGHTNESS = 0.5F;
+  constexpr float MAX_LIGHTNESS = 1.0F;
   const std::shared_ptr<const IColorMap> dominantColorMap =
-      m_colorMaps.GetRandomTintedColorMapPtr();
+      m_colorMaps.GetRandomTintedColorMapPtr(MIN_LIGHTNESS, MAX_LIGHTNESS);
   const std::shared_ptr<const IColorMap> dominantLowColorMap =
-      m_lowColorMaps.GetRandomTintedColorMapPtr();
+      m_lowColorMaps.GetRandomTintedColorMapPtr(MIN_LIGHTNESS, MAX_LIGHTNESS);
 
   const bool megaColorMode = ProbabilityOfMInN(1, 10);
   const ColorMapName colorMapName = m_colorMaps.GetRandomColorMapName();
@@ -726,15 +728,17 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
   {
     if (megaColorMode)
     {
-      AddABomb(dominantColorMap, dominantLowColorMap, m_colorMaps.GetRandomTintedColorMapPtr(),
-               m_lowColorMaps.GetRandomTintedColorMapPtr(), mx, my, radius, vage, gravity);
+      AddABomb(dominantColorMap, dominantLowColorMap,
+               m_colorMaps.GetRandomTintedColorMapPtr(MIN_LIGHTNESS, MAX_LIGHTNESS),
+               m_lowColorMaps.GetRandomTintedColorMapPtr(MIN_LIGHTNESS, MAX_LIGHTNESS), mx, my,
+               radius, vage, gravity);
     }
     else
     {
       std::shared_ptr<const IColorMap> colorMap =
-          m_colorMaps.GetRandomTintedColorMapPtr(colorMapName);
+          m_colorMaps.GetRandomTintedColorMapPtr(colorMapName, MIN_LIGHTNESS, MAX_LIGHTNESS);
       std::shared_ptr<const IColorMap> lowColorMap =
-          m_lowColorMaps.GetRandomTintedColorMapPtr(lowColorMapName);
+          m_lowColorMaps.GetRandomTintedColorMapPtr(lowColorMapName, MIN_LIGHTNESS, MAX_LIGHTNESS);
       AddABomb(dominantColorMap, dominantLowColorMap, colorMap, lowColorMap, mx, my, radius, vage,
                gravity);
     }
