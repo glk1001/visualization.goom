@@ -11,6 +11,7 @@
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
 #include "goomutils/random_colormaps.h"
+#include "goomutils/random_colormaps_manager.h"
 
 #include <array>
 #include <cereal/archives/json.hpp>
@@ -238,28 +239,39 @@ public:
 private:
   std::shared_ptr<const PluginInfo> m_goomInfo{};
 
-  WeightedColorMaps m_colorMaps{Weights<ColorMapGroup>{{
-      {ColorMapGroup::PERCEPTUALLY_UNIFORM_SEQUENTIAL, 10},
-      {ColorMapGroup::SEQUENTIAL, 10},
-      {ColorMapGroup::SEQUENTIAL2, 10},
-      {ColorMapGroup::CYCLIC, 0},
-      {ColorMapGroup::DIVERGING, 0},
-      {ColorMapGroup::DIVERGING_BLACK, 0},
-      {ColorMapGroup::QUALITATIVE, 10},
-      {ColorMapGroup::MISC, 10},
-  }}};
-  WeightedColorMaps m_lowColorMaps{Weights<ColorMapGroup>{{
-      {ColorMapGroup::PERCEPTUALLY_UNIFORM_SEQUENTIAL, 10},
-      {ColorMapGroup::SEQUENTIAL, 0},
-      {ColorMapGroup::SEQUENTIAL2, 10},
-      {ColorMapGroup::CYCLIC, 5},
-      {ColorMapGroup::DIVERGING, 10},
-      {ColorMapGroup::DIVERGING_BLACK, 20},
-      {ColorMapGroup::QUALITATIVE, 1},
-      {ColorMapGroup::MISC, 10},
-  }}};
+  std::shared_ptr<WeightedColorMaps> m_colorMaps{
+      std::make_shared<WeightedColorMaps>(Weights<ColorMapGroup>{{
+          {ColorMapGroup::PERCEPTUALLY_UNIFORM_SEQUENTIAL, 10},
+          {ColorMapGroup::SEQUENTIAL, 10},
+          {ColorMapGroup::SEQUENTIAL2, 10},
+          {ColorMapGroup::CYCLIC, 0},
+          {ColorMapGroup::DIVERGING, 0},
+          {ColorMapGroup::DIVERGING_BLACK, 0},
+          {ColorMapGroup::QUALITATIVE, 10},
+          {ColorMapGroup::MISC, 10},
+      }})};
+  std::shared_ptr<WeightedColorMaps> m_lowColorMaps{
+      std::make_shared<WeightedColorMaps>(Weights<ColorMapGroup>{{
+          {ColorMapGroup::PERCEPTUALLY_UNIFORM_SEQUENTIAL, 10},
+          {ColorMapGroup::SEQUENTIAL, 0},
+          {ColorMapGroup::SEQUENTIAL2, 10},
+          {ColorMapGroup::CYCLIC, 5},
+          {ColorMapGroup::DIVERGING, 10},
+          {ColorMapGroup::DIVERGING_BLACK, 20},
+          {ColorMapGroup::QUALITATIVE, 1},
+          {ColorMapGroup::MISC, 10},
+      }})};
+  RandomColorMapsManager m_colorMapsManager{};
+  uint32_t m_dominantColorMapID{};
+  uint32_t m_dominantLowColorMapID{};
+  uint32_t m_colorMapID{};
+  uint32_t m_lowColorMapID{};
 
   ColorMode m_colorMode = ColorMode::mixColors;
+  void ChangeColorMode();
+  [[nodiscard]] auto GetMixedColors(const Star& s, float t, float brightness)
+      -> std::tuple<Pixel, Pixel>;
+
   uint32_t m_counter = 0;
   static constexpr uint32_t MAX_COUNT = 100;
 
@@ -281,19 +293,8 @@ private:
 
   void SoundEventOccurred();
   static void UpdateStar(Star* s);
-  void ChangeColorMode();
-  [[nodiscard]] auto GetMixedColors(const Star& s, float t, float brightness)
-      -> std::tuple<Pixel, Pixel>;
   [[nodiscard]] auto IsStarDead(const Star& s) const -> bool;
-  void AddABomb(std::shared_ptr<const IColorMap> dominantColormap,
-                std::shared_ptr<const IColorMap> dominantLowColormap,
-                std::shared_ptr<const IColorMap> colorMap,
-                std::shared_ptr<const IColorMap> lowColorMap,
-                int32_t mx,
-                int32_t my,
-                float radius,
-                float vage,
-                float gravity);
+  void AddABomb(int32_t mx, int32_t my, float radius, float vage, float gravity);
   [[nodiscard]] auto GetBombAngle(float x, float y) const -> uint32_t;
 
   friend class cereal::access;
@@ -414,6 +415,25 @@ FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl(std::shared_ptr<const PluginInfo
     m_draw{m_goomInfo->GetScreenInfo().width, m_goomInfo->GetScreenInfo().height}
 {
   m_stars.reserve(MAX_STARS_LIMIT);
+
+  m_dominantColorMapID =
+      m_colorMapsManager.AddColorMapInfo({m_colorMaps, ColorMapName::_NULL, RandomColorMaps::ALL});
+  m_dominantLowColorMapID = m_colorMapsManager.AddColorMapInfo(
+      {m_lowColorMaps, ColorMapName::_NULL, RandomColorMaps::ALL});
+  m_colorMapID =
+      m_colorMapsManager.AddColorMapInfo({m_colorMaps, ColorMapName::_NULL, RandomColorMaps::ALL});
+  m_lowColorMapID = m_colorMapsManager.AddColorMapInfo(
+      {m_lowColorMaps, ColorMapName::_NULL, RandomColorMaps::ALL});
+
+  constexpr float MIN_SATURATION = 0.5F;
+  constexpr float MAX_SATURATION = 1.0F;
+  m_colorMaps->SetSaturationLimts(MIN_SATURATION, MAX_SATURATION);
+  m_lowColorMaps->SetSaturationLimts(MIN_SATURATION, MAX_SATURATION);
+
+  constexpr float MIN_LIGHTNESS = 0.5F;
+  constexpr float MAX_LIGHTNESS = 1.0F;
+  m_colorMaps->SetLightnessLimits(MIN_LIGHTNESS, MAX_LIGHTNESS);
+  m_lowColorMaps->SetLightnessLimits(MIN_LIGHTNESS, MAX_LIGHTNESS);
 }
 
 void FlyingStarsFx::FlyingStarsImpl::SetBuffSettings(const FXBuffSettings& settings)
@@ -713,62 +733,34 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
     maxStarsInBomb *= 2;
   }
 
-  constexpr float MIN_SATURATION = 0.5F;
-  constexpr float MAX_SATURATION = 1.0F;
-  m_colorMaps.SetSaturationLimts(MIN_SATURATION, MAX_SATURATION);
-  m_lowColorMaps.SetSaturationLimts(MIN_SATURATION, MAX_SATURATION);
-
-  constexpr float MIN_LIGHTNESS = 0.5F;
-  constexpr float MAX_LIGHTNESS = 1.0F;
-  m_colorMaps.SetLightnessLimits(MIN_LIGHTNESS, MAX_LIGHTNESS);
-  m_lowColorMaps.SetLightnessLimits(MIN_LIGHTNESS, MAX_LIGHTNESS);
-
-  //const auto GetRandomColorMap = [&]() {
-  //    return m_colorMaps.GetRandomTintedColorMapPtr(
-  //      MIN_SATURATION, MAX_SATURATION, MIN_LIGHTNESS, MAX_LIGHTNESS);
-  //  };
-  const std::shared_ptr<const IColorMap> dominantColorMap =
-      m_colorMaps.GetRandomColorMapPtr(RandomColorMaps::ALL);
-  const std::shared_ptr<const IColorMap> dominantLowColorMap =
-      m_lowColorMaps.GetRandomColorMapPtr(RandomColorMaps::ALL);
+  m_colorMapsManager.ChangeColorMapNow(m_dominantColorMapID);
+  m_colorMapsManager.ChangeColorMapNow(m_dominantLowColorMapID);
 
   const bool megaColorMode = ProbabilityOfMInN(1, 10);
-  const ColorMapName colorMapName = m_colorMaps.GetRandomColorMapName();
-  const ColorMapName lowColorMapName = m_lowColorMaps.GetRandomColorMapName();
+  if (megaColorMode)
+  {
+    m_colorMapsManager.UpdateColorMapName(m_colorMapID, ColorMapName::_NULL);
+    m_colorMapsManager.UpdateColorMapName(m_lowColorMapID, ColorMapName::_NULL);
+  }
+  else
+  {
+    m_colorMapsManager.UpdateColorMapName(m_colorMapID, m_colorMaps->GetRandomColorMapName());
+    m_colorMapsManager.UpdateColorMapName(m_lowColorMapID, m_lowColorMaps->GetRandomColorMapName());
+  }
 
   for (size_t i = 0; i < maxStarsInBomb; i++)
   {
-    if (megaColorMode)
-    {
-      AddABomb(dominantColorMap, dominantLowColorMap,
-               m_colorMaps.GetRandomColorMapPtr(RandomColorMaps::ALL),
-               m_lowColorMaps.GetRandomColorMapPtr(RandomColorMaps::ALL), mx, my, radius, vage,
-               gravity);
-    }
-    else
-    {
-      std::shared_ptr<const IColorMap> colorMap =
-          m_colorMaps.GetRandomColorMapPtr(colorMapName, RandomColorMaps::ALL);
-      std::shared_ptr<const IColorMap> lowColorMap =
-          m_lowColorMaps.GetRandomColorMapPtr(lowColorMapName, RandomColorMaps::ALL);
-      AddABomb(dominantColorMap, dominantLowColorMap, colorMap, lowColorMap, mx, my, radius, vage,
-               gravity);
-    }
+    m_colorMapsManager.ChangeColorMapNow(m_colorMapID);
+    m_colorMapsManager.ChangeColorMapNow(m_lowColorMapID);
+    AddABomb(mx, my, radius, vage, gravity);
   }
 }
 
 /**
  * Cree une nouvelle 'bombe', c'est a dire une particule appartenant a une fusee d'artifice.
  */
-void FlyingStarsFx::FlyingStarsImpl::AddABomb(std::shared_ptr<const IColorMap> dominantColormap,
-                                              std::shared_ptr<const IColorMap> dominantLowColormap,
-                                              std::shared_ptr<const IColorMap> colorMap,
-                                              std::shared_ptr<const IColorMap> lowColorMap,
-                                              const int32_t mx,
-                                              const int32_t my,
-                                              const float radius,
-                                              float vage,
-                                              const float gravity)
+void FlyingStarsFx::FlyingStarsImpl::AddABomb(
+    const int32_t mx, const int32_t my, const float radius, float vage, const float gravity)
 {
   if (m_stars.size() >= m_maxStars)
   {
@@ -784,10 +776,10 @@ void FlyingStarsFx::FlyingStarsImpl::AddABomb(std::shared_ptr<const IColorMap> d
   m_stars[i].y = my;
 
   // TODO Get colormap based on current mode.
-  m_stars[i].dominantColormap = std::move(dominantColormap);
-  m_stars[i].dominantLowColormap = std::move(dominantLowColormap);
-  m_stars[i].currentColorMap = std::move(colorMap);
-  m_stars[i].currentLowColorMap = std::move(lowColorMap);
+  m_stars[i].dominantColormap = m_colorMapsManager.GetColorMapPtr(m_dominantColorMapID);
+  m_stars[i].dominantLowColormap = m_colorMapsManager.GetColorMapPtr(m_dominantLowColorMapID);
+  m_stars[i].currentColorMap = m_colorMapsManager.GetColorMapPtr(m_colorMapID);
+  m_stars[i].currentLowColorMap = m_colorMapsManager.GetColorMapPtr(m_lowColorMapID);
 
   const float ro = radius * GetRandInRange(0.01F, 2.0F);
   const uint32_t theta = GetBombAngle(m_stars[i].x, m_stars[i].y);
