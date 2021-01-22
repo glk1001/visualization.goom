@@ -5,6 +5,7 @@ namespace GOOM::UTILS::COLOR_DATA
 
 enum class ColorMapName
 {
+  _NULL,
   Accent,
   afmhot,
   autumn,
@@ -94,6 +95,7 @@ enum class ColorMapName
   YlGnBu,
   YlOrBr,
   YlOrRd,
+  _SIZE
 };
 
 } // namespace GOOM::UTILS::COLOR_DATA

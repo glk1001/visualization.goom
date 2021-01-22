@@ -17,6 +17,7 @@ add_library( ${PROJECT_NAME}
         src/random_colormaps.cpp
         src/strutils.cpp
         src/thread_pool.cpp
+        src/random_colormaps_manager.cpp
 )
 
 target_include_directories( ${PROJECT_NAME}
