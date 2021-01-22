@@ -11,6 +11,7 @@
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
 #include "goomutils/random_colormaps.h"
+#include "goomutils/random_colormaps_manager.h"
 
 #include <cereal/archives/json.hpp>
 #include <cereal/types/memory.hpp>
@@ -27,6 +28,7 @@ namespace GOOM
 {
 
 using namespace GOOM::UTILS;
+using COLOR_DATA::ColorMapName;
 
 inline auto ChangeDotColorsEvent() -> bool
 {
@@ -64,16 +66,28 @@ private:
   GoomDraw m_draw{};
   FXBuffSettings m_buffSettings{};
 
-  UTILS::WeightedColorMaps m_colorMaps{};
-  std::shared_ptr<const IColorMap> m_colorMap1{};
-  std::shared_ptr<const IColorMap> m_colorMap2{};
-  std::shared_ptr<const IColorMap> m_colorMap3{};
-  std::shared_ptr<const IColorMap> m_colorMap4{};
-  std::shared_ptr<const IColorMap> m_colorMap5{};
+  std::shared_ptr<WeightedColorMaps> m_colorMaps{
+      std::make_shared<WeightedColorMaps>(Weights<ColorMapGroup>{{
+          {ColorMapGroup::PERCEPTUALLY_UNIFORM_SEQUENTIAL, 10},
+          {ColorMapGroup::SEQUENTIAL, 20},
+          {ColorMapGroup::SEQUENTIAL2, 20},
+          {ColorMapGroup::CYCLIC, 0},
+          {ColorMapGroup::DIVERGING, 0},
+          {ColorMapGroup::DIVERGING_BLACK, 0},
+          {ColorMapGroup::QUALITATIVE, 0},
+          {ColorMapGroup::MISC, 0},
+      }})};
+  RandomColorMapsManager m_colorMapsManager{};
+  uint32_t m_colorMap1Id{};
+  uint32_t m_colorMap2Id{};
+  uint32_t m_colorMap3Id{};
+  uint32_t m_colorMap4Id{};
+  uint32_t m_colorMap5Id{};
   Pixel m_middleColor{};
   bool m_useSingleBufferOnly = true;
   bool m_useGrayScale = false;
-  uint32_t m_loopvar = 0; // mouvement des points
+
+  uint32_t m_loopVar = 0; // mouvement des points
 
   GammaCorrection m_gammaCorrect{4.2, 0.1};
 
@@ -172,7 +186,7 @@ void GoomDotsFx::GoomDotsImpl::save(Archive& ar) const
      CEREAL_NVP(m_pointWidthDiv2), CEREAL_NVP(m_pointHeightDiv2), CEREAL_NVP(m_pointWidthDiv3),
      CEREAL_NVP(m_pointHeightDiv3), CEREAL_NVP(m_draw), CEREAL_NVP(m_buffSettings),
      CEREAL_NVP(m_middleColor), CEREAL_NVP(m_useSingleBufferOnly), CEREAL_NVP(m_useGrayScale),
-     CEREAL_NVP(m_loopvar));
+     CEREAL_NVP(m_loopVar));
 }
 
 template<class Archive>
@@ -182,7 +196,7 @@ void GoomDotsFx::GoomDotsImpl::load(Archive& ar)
      CEREAL_NVP(m_pointWidthDiv2), CEREAL_NVP(m_pointHeightDiv2), CEREAL_NVP(m_pointWidthDiv3),
      CEREAL_NVP(m_pointHeightDiv3), CEREAL_NVP(m_draw), CEREAL_NVP(m_buffSettings),
      CEREAL_NVP(m_middleColor), CEREAL_NVP(m_useSingleBufferOnly), CEREAL_NVP(m_useGrayScale),
-     CEREAL_NVP(m_loopvar));
+     CEREAL_NVP(m_loopVar));
 }
 
 auto GoomDotsFx::GoomDotsImpl::operator==(const GoomDotsImpl& d) const -> bool
@@ -202,7 +216,7 @@ auto GoomDotsFx::GoomDotsImpl::operator==(const GoomDotsImpl& d) const -> bool
          m_pointWidthDiv3 == d.m_pointWidthDiv3 && m_pointHeightDiv3 == d.m_pointHeightDiv3 &&
          m_draw == d.m_draw && m_buffSettings == d.m_buffSettings &&
          m_middleColor == d.m_middleColor && m_useSingleBufferOnly == d.m_useSingleBufferOnly &&
-         m_useGrayScale == d.m_useGrayScale && m_loopvar == d.m_loopvar;
+         m_useGrayScale == d.m_useGrayScale && m_loopVar == d.m_loopVar;
 }
 
 GoomDotsFx::GoomDotsImpl::GoomDotsImpl() noexcept = default;
@@ -215,19 +229,31 @@ GoomDotsFx::GoomDotsImpl::GoomDotsImpl(const std::shared_ptr<const PluginInfo>& 
     m_pointHeightDiv2{static_cast<float>(m_pointHeight / 2.0F)},
     m_pointWidthDiv3{static_cast<float>(m_pointWidth / 3.0F)},
     m_pointHeightDiv3{static_cast<float>(m_pointHeight / 3.0F)},
-    m_draw{m_goomInfo->GetScreenInfo().width, m_goomInfo->GetScreenInfo().height},
-    m_colorMaps{Weights<ColorMapGroup>{{
-        {ColorMapGroup::PERCEPTUALLY_UNIFORM_SEQUENTIAL, 10},
-        {ColorMapGroup::SEQUENTIAL, 20},
-        {ColorMapGroup::SEQUENTIAL2, 20},
-        {ColorMapGroup::CYCLIC, 0},
-        {ColorMapGroup::DIVERGING, 0},
-        {ColorMapGroup::DIVERGING_BLACK, 0},
-        {ColorMapGroup::QUALITATIVE, 0},
-        {ColorMapGroup::MISC, 0},
-    }}}
+    m_draw{m_goomInfo->GetScreenInfo().width, m_goomInfo->GetScreenInfo().height}
 {
+  m_colorMap1Id =
+      m_colorMapsManager.AddColorMapInfo({m_colorMaps, ColorMapName::_NULL, RandomColorMaps::ALL});
+  m_colorMap2Id =
+      m_colorMapsManager.AddColorMapInfo({m_colorMaps, ColorMapName::_NULL, RandomColorMaps::ALL});
+  m_colorMap3Id =
+      m_colorMapsManager.AddColorMapInfo({m_colorMaps, ColorMapName::_NULL, RandomColorMaps::ALL});
+  m_colorMap4Id =
+      m_colorMapsManager.AddColorMapInfo({m_colorMaps, ColorMapName::_NULL, RandomColorMaps::ALL});
+  m_colorMap5Id =
+      m_colorMapsManager.AddColorMapInfo({m_colorMaps, ColorMapName::_NULL, RandomColorMaps::ALL});
+
   ChangeColors();
+}
+
+void GoomDotsFx::GoomDotsImpl::ChangeColors()
+{
+  m_colorMapsManager.ChangeAllColorMapsNow();
+
+  m_middleColor = RandomColorMaps::GetRandomColor(
+      *m_colorMaps->GetRandomColorMapPtr(ColorMapGroup::MISC, RandomColorMaps::ALL), 0.1, 1.0);
+
+  m_useSingleBufferOnly = ProbabilityOfMInN(0, 2);
+  m_useGrayScale = ProbabilityOfMInN(0, 10);
 }
 
 void GoomDotsFx::GoomDotsImpl::SetBuffSettings(const FXBuffSettings& settings)
@@ -235,20 +261,6 @@ void GoomDotsFx::GoomDotsImpl::SetBuffSettings(const FXBuffSettings& settings)
   m_buffSettings = settings;
   m_draw.SetBuffIntensity(m_buffSettings.buffIntensity);
   m_draw.SetAllowOverexposed(m_buffSettings.allowOverexposed);
-}
-
-void GoomDotsFx::GoomDotsImpl::ChangeColors()
-{
-  m_colorMap1 = m_colorMaps.GetRandomColorMapPtr(RandomColorMaps::ALL);
-  m_colorMap2 = m_colorMaps.GetRandomColorMapPtr(RandomColorMaps::ALL);
-  m_colorMap3 = m_colorMaps.GetRandomColorMapPtr(RandomColorMaps::ALL);
-  m_colorMap4 = m_colorMaps.GetRandomColorMapPtr(RandomColorMaps::ALL);
-  m_colorMap5 = m_colorMaps.GetRandomColorMapPtr(RandomColorMaps::ALL);
-  m_middleColor = RandomColorMaps::GetRandomColor(
-      *m_colorMaps.GetRandomColorMapPtr(ColorMapGroup::MISC, RandomColorMaps::ALL), 0.1, 1.0);
-
-  m_useSingleBufferOnly = ProbabilityOfMInN(0, 2);
-  m_useGrayScale = ProbabilityOfMInN(0, 10);
 }
 
 void GoomDotsFx::GoomDotsImpl::Apply(PixelBuffer& currentBuff)
@@ -284,42 +296,47 @@ void GoomDotsFx::GoomDotsImpl::Apply(PixelBuffer& currentBuff)
   float t = T_MIN;
   for (uint32_t i = 1; i <= speedvarMult80Plus15Div15; i++)
   {
-    m_loopvar += speedvarMult50Plus1;
+    m_loopVar += speedvarMult50Plus1;
 
-    const uint32_t loopvarDivI = m_loopvar / i;
+    const uint32_t loopvarDivI = m_loopVar / i;
     const float iMult10 = 10.0F * i;
     const float brightness = 1.5F + 1.0F - t;
 
-    const Pixel colors1 = GetColor(m_middleColor, m_colorMap1->GetColor(t), brightness);
+    const Pixel colors1 = GetColor(
+        m_middleColor, m_colorMapsManager.GetColorMap(m_colorMap1Id).GetColor(t), brightness);
     const float color1T3 = i * 152.0F;
     const float color1T4 = 128.0F;
-    const uint32_t color1Cycle = m_loopvar + i * 2032;
+    const uint32_t color1Cycle = m_loopVar + i * 2032;
 
-    const Pixel colors2 = GetColor(m_middleColor, m_colorMap2->GetColor(t), brightness);
+    const Pixel colors2 = GetColor(
+        m_middleColor, m_colorMapsManager.GetColorMap(m_colorMap2Id).GetColor(t), brightness);
     const float color2T1 = pointWidthDiv2MultLarge / i + iMult10;
     const float color2T2 = pointHeightDiv2MultLarge / i + iMult10;
     const float color2T3 = 96.0F;
     const float color2T4 = i * 80.0F;
     const uint32_t color2Cycle = loopvarDivI;
 
-    const Pixel colors3 = GetColor(m_middleColor, m_colorMap3->GetColor(t), brightness);
+    const Pixel colors3 = GetColor(
+        m_middleColor, m_colorMapsManager.GetColorMap(m_colorMap3Id).GetColor(t), brightness);
     const float color3T1 = pointWidthDiv3MultLarge / i + iMult10;
     const float color3T2 = pointHeightDiv3MultLarge / i + iMult10;
     const float color3T3 = i + 122.0F;
     const float color3T4 = 134.0F;
     const uint32_t color3Cycle = loopvarDivI;
 
-    const Pixel colors4 = GetColor(m_middleColor, m_colorMap4->GetColor(t), brightness);
+    const Pixel colors4 = GetColor(
+        m_middleColor, m_colorMapsManager.GetColorMap(m_colorMap4Id).GetColor(t), brightness);
     const float color4T3 = 58.0F;
     const float color4T4 = i * 66.0F;
     const uint32_t color4Cycle = loopvarDivI;
 
-    const Pixel colors5 = GetColor(m_middleColor, m_colorMap5->GetColor(t), brightness);
+    const Pixel colors5 = GetColor(
+        m_middleColor, m_colorMapsManager.GetColorMap(m_colorMap5Id).GetColor(t), brightness);
     const float color5T1 = (pointWidthMultLarge + iMult10) / i;
     const float color5T2 = (pointHeightMultLarge + iMult10) / i;
     const float color5T3 = 66.0F;
     const float color5T4 = 74.0F;
-    const uint32_t color5Cycle = m_loopvar + i * 500;
+    const uint32_t color5Cycle = m_loopVar + i * 500;
 
     DotFilter(currentBuff, colors1, color1T1, color1T2, color1T3, color1T4, color1Cycle, radius);
     DotFilter(currentBuff, colors2, color2T1, color2T2, color2T3, color2T4, color2Cycle, radius);
@@ -343,17 +360,17 @@ auto GoomDotsFx::GoomDotsImpl::GetColor(const Pixel& color0,
 {
   constexpr float T_MIN = 0.5;
   constexpr float T_MAX = 1.0;
-  const float t = GetRandInRange(T_MIN, T_MAX);
+  const float tMix = GetRandInRange(T_MIN, T_MAX);
   Pixel color{};
   if (!m_useGrayScale)
   {
-    color = IColorMap::GetColorMix(color0, color1, t);
+    color = IColorMap::GetColorMix(color0, color1, tMix);
   }
   else
   {
-    color = Pixel{.channels{.r = static_cast<uint8_t>(t * channel_limits<uint32_t>::max()),
-                            .g = static_cast<uint8_t>(t * channel_limits<uint32_t>::max()),
-                            .b = static_cast<uint8_t>(t * channel_limits<uint32_t>::max()),
+    color = Pixel{.channels{.r = static_cast<uint8_t>(tMix * channel_limits<uint32_t>::max()),
+                            .g = static_cast<uint8_t>(tMix * channel_limits<uint32_t>::max()),
+                            .b = static_cast<uint8_t>(tMix * channel_limits<uint32_t>::max()),
                             .a = 0xff}};
   }
 
