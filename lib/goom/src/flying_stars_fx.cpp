@@ -498,7 +498,7 @@ void FlyingStarsFx::FlyingStarsImpl::UpdateBuffers(PixelBuffer& currentBuff, Pix
     // draws the particule
     constexpr float OLD_AGE = 0.95;
     const float tAge = star.age / static_cast<float>(m_maxStarAge);
-    const float ageBrightness = 0.2F + 1.8F * Sq(0.5F - tAge) / 0.25F;
+    const float ageBrightness = 0.2F + 0.8F * Sq(0.5F - tAge) / 0.25F;
     const size_t numParts =
         tAge > OLD_AGE ? 4 : 2 + static_cast<size_t>(std::lround((1.0F - tAge) * 2.0F));
     const auto x0 = static_cast<int32_t>(star.x);
