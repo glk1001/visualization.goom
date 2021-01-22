@@ -5,7 +5,7 @@ namespace GOOM::UTILS::COLOR_DATA
 
 enum class ColorMapName
 {
-  _NULL,
+  _NULL = -1, // NOTE: Must be '-1' so casts for 0-based arrays work
   Accent,
   afmhot,
   autumn,
@@ -95,7 +95,7 @@ enum class ColorMapName
   YlGnBu,
   YlOrBr,
   YlOrRd,
-  _SIZE
+  _SIZE // unused and marks last enum + 1
 };
 
 } // namespace GOOM::UTILS::COLOR_DATA

@@ -111,7 +111,7 @@ public:
   };
 
   PrebuiltColorMap() noexcept = delete;
-  PrebuiltColorMap(COLOR_DATA::ColorMapName mapNm, vivid::ColorMap cm);
+  PrebuiltColorMap(COLOR_DATA::ColorMapName mapName, vivid::ColorMap cm);
   ~PrebuiltColorMap() noexcept override = default;
   PrebuiltColorMap(const PrebuiltColorMap&) noexcept = delete;
   auto operator=(const PrebuiltColorMap&) -> PrebuiltColorMap& = delete;
@@ -255,6 +255,7 @@ auto ColorMaps::ColorMapsImpl::GetColorMap(const ColorMapName name) -> const ICo
   return s_preBuiltColorMaps[static_cast<size_t>(name)];
 }
 
+// Wrap a raw pointer in a shared_ptr and make sure the raw pointer is never deleted.
 static const auto MAKE_SHARED_ADDR = [](const IColorMap* cm) {
   return std::shared_ptr<const IColorMap>{cm, []([[maybe_unused]] const IColorMap* cm) {}};
 };

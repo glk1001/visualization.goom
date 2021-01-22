@@ -3,14 +3,11 @@ cmake_minimum_required(VERSION 3.13)
 project(visualization.goom)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR})
-
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_COMMON_C_WARNINGS -Wall -Wextra)
+# set(CMAKE_MODULE_PATH "/home/greg/Prj/github/sanitizers-cmake/cmake" ${CMAKE_MODULE_PATH})
 
 find_package(Kodi REQUIRED)
 find_package(glm REQUIRED)
+# find_package(Sanitizers)
 
 #find_package(Freetype REQUIRED)
 set(FREETYPE2_DIR "/home/greg/Prj/github/freetype2")
@@ -30,6 +27,11 @@ else()
   set(includes ${OPENGLES_INCLUDE_DIR})
   add_definitions(${OPENGLES_DEFINITIONS})
 endif()
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_COMMON_C_WARNINGS -Wall -Wextra)
 
 set(LIBS_DIR ${CMAKE_SOURCE_DIR}/lib)
 add_subdirectory(lib)
