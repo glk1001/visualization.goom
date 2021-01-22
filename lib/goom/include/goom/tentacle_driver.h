@@ -189,7 +189,6 @@ private:
   size_t m_numNodes = 0;
   UTILS::ColorMapGroup m_currentColorMapGroup{};
   const UTILS::RandomColorMaps m_colorMaps{};
-  static constexpr bool USE_ALL_MAPS = true;
   std::shared_ptr<const UTILS::IColorMap> m_colorMap{};
   std::shared_ptr<const UTILS::IColorMap> m_prevColorMap{};
   static constexpr uint32_t MAX_COUNT_SINCE_COLORMAP_CHANGE = 100;
@@ -264,8 +263,8 @@ void TentacleColorMapColorizer::load(Archive& ar)
   UTILS::COLOR_DATA::ColorMapName prevColorMapName;
   ar(CEREAL_NVP(m_numNodes), CEREAL_NVP(m_currentColorMapGroup), CEREAL_NVP(colorMapName),
      CEREAL_NVP(prevColorMapName), CEREAL_NVP(m_tTransition));
-  m_colorMap = m_colorMaps.GetColorMapPtr(colorMapName, 0.0);
-  m_prevColorMap = m_colorMaps.GetColorMapPtr(prevColorMapName, 0.0);
+  m_colorMap = m_colorMaps.GetColorMapPtr(colorMapName);
+  m_prevColorMap = m_colorMaps.GetColorMapPtr(prevColorMapName);
 }
 
 } // namespace GOOM

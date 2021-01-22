@@ -56,18 +56,21 @@ inline auto RotatedColorMap::GetColor(const float t) const -> Pixel
 class TintedColorMap : public ColorMapWrapper
 {
 public:
-  TintedColorMap(const std::shared_ptr<const IColorMap>& cm, float lightness);
+  TintedColorMap(const std::shared_ptr<const IColorMap>& cm, float saturation, float lightness);
 
   [[nodiscard]] auto GetColor(float t) const -> Pixel override;
 
 private:
   static constexpr float MIN_LIGHTNESS = 0.1F;
   static constexpr float MAX_LIGHTNESS = 1.0F;
+  const float m_saturation;
   const float m_lightness;
 };
 
-TintedColorMap::TintedColorMap(const std::shared_ptr<const IColorMap>& cm, const float lightness)
-  : ColorMapWrapper{cm}, m_lightness{lightness}
+TintedColorMap::TintedColorMap(const std::shared_ptr<const IColorMap>& cm,
+                               const float saturation,
+                               const float lightness)
+  : ColorMapWrapper{cm}, m_saturation{saturation}, m_lightness{lightness}
 {
   if (lightness < MIN_LIGHTNESS)
   {
@@ -84,6 +87,7 @@ auto TintedColorMap::GetColor(const float t) const -> Pixel
   const Pixel color = GetColorMap()->GetColor(t);
 
   vivid::hsv_t hsv{vivid::rgb::fromRgb32(color.Rgba())};
+  hsv[1] = m_saturation;
   hsv[2] = m_lightness;
 
   return Pixel{vivid::Color{hsv}.rgb32()};
@@ -141,9 +145,20 @@ public:
 
   [[nodiscard]] static auto GetColorMap(COLOR_DATA::ColorMapName mapName) -> const IColorMap&;
 
-  [[nodiscard]] auto GetColorMapPtr(COLOR_DATA::ColorMapName mapName, float tRotatePoint) const
+  [[nodiscard]] auto GetColorMapPtr(COLOR_DATA::ColorMapName mapName) const
+      -> std::shared_ptr<const IColorMap>;
+  [[nodiscard]] auto GetRotatedColorMapPtr(COLOR_DATA::ColorMapName mapName,
+                                           float tRotatePoint) const
+      -> std::shared_ptr<const IColorMap>;
+  [[nodiscard]] auto GetRotatedColorMapPtr(const std::shared_ptr<const IColorMap>& cm,
+                                           float tRotatePoint) const
+      -> std::shared_ptr<const IColorMap>;
+  [[nodiscard]] auto GetTintedColorMapPtr(COLOR_DATA::ColorMapName mapName,
+                                          float saturation,
+                                          float lightness) const
       -> std::shared_ptr<const IColorMap>;
   [[nodiscard]] auto GetTintedColorMapPtr(const std::shared_ptr<const IColorMap>& cm,
+                                          float saturation,
                                           float lightness) const
       -> std::shared_ptr<const IColorMap>;
 
@@ -161,7 +176,7 @@ private:
   static void InitPrebuiltColorMaps();
 };
 
-auto IColorMap::GetColorMix(const Pixel& col1, const Pixel& col2, float t) -> Pixel
+auto IColorMap::GetColorMix(const Pixel& col1, const Pixel& col2, const float t) -> Pixel
 {
   return PrebuiltColorMap::GetColorMix(col1, col2, t);
 }
@@ -177,27 +192,50 @@ auto ColorMaps::GetNumColorMapNames() const -> size_t
   return m_colorMapsImpl->GetNumColorMapNames();
 }
 
-auto ColorMaps::GetColorMapNames(ColorMapGroup cmg) const -> const ColorMaps::ColorMapNames&
+auto ColorMaps::GetColorMapNames(const ColorMapGroup cmg) const -> const ColorMaps::ColorMapNames&
 {
   return m_colorMapsImpl->GetColorMapNames(cmg);
 }
 
-auto ColorMaps::GetColorMap(COLOR_DATA::ColorMapName mapName) const -> const IColorMap&
+auto ColorMaps::GetColorMap(const COLOR_DATA::ColorMapName mapName) const -> const IColorMap&
 {
   return m_colorMapsImpl->GetColorMap(mapName);
 }
 
-auto ColorMaps::GetTintedColorMapPtr(const std::shared_ptr<const IColorMap>& cm,
-                                     const float tintValue) const
+auto ColorMaps::GetColorMapPtr(const COLOR_DATA::ColorMapName mapName) const
     -> std::shared_ptr<const IColorMap>
 {
-  return m_colorMapsImpl->GetTintedColorMapPtr(cm, tintValue);
+  return m_colorMapsImpl->GetColorMapPtr(mapName);
 }
 
-auto ColorMaps::GetColorMapPtr(COLOR_DATA::ColorMapName mapName, const float tRotatePoint) const
+auto ColorMaps::GetRotatedColorMapPtr(const COLOR_DATA::ColorMapName mapName,
+                                      const float tRotatePoint) const
     -> std::shared_ptr<const IColorMap>
 {
-  return m_colorMapsImpl->GetColorMapPtr(mapName, tRotatePoint);
+  return m_colorMapsImpl->GetRotatedColorMapPtr(mapName, tRotatePoint);
+}
+
+auto ColorMaps::GetRotatedColorMapPtr(const std::shared_ptr<const IColorMap>& cm,
+                                      const float tRotatePoint) const
+    -> std::shared_ptr<const IColorMap>
+{
+  return m_colorMapsImpl->GetRotatedColorMapPtr(cm, tRotatePoint);
+}
+
+auto ColorMaps::GetTintedColorMapPtr(const COLOR_DATA::ColorMapName mapName,
+                                     const float saturation,
+                                     const float lightness) const
+    -> std::shared_ptr<const IColorMap>
+{
+  return m_colorMapsImpl->GetTintedColorMapPtr(mapName, saturation, lightness);
+}
+
+auto ColorMaps::GetTintedColorMapPtr(const std::shared_ptr<const IColorMap>& cm,
+                                     const float saturation,
+                                     const float lightness) const
+    -> std::shared_ptr<const IColorMap>
+{
+  return std::make_shared<TintedColorMap>(cm, saturation, lightness);
 }
 
 auto ColorMaps::GetNumGroups() const -> size_t
@@ -217,26 +255,45 @@ auto ColorMaps::ColorMapsImpl::GetColorMap(const ColorMapName name) -> const ICo
   return s_preBuiltColorMaps[static_cast<size_t>(name)];
 }
 
-auto ColorMaps::ColorMapsImpl::GetColorMapPtr(COLOR_DATA::ColorMapName mapName,
-                                              const float tRotatePoint) const
+static const auto MAKE_SHARED_ADDR = [](const IColorMap* cm) {
+  return std::shared_ptr<const IColorMap>{cm, []([[maybe_unused]] const IColorMap* cm) {}};
+};
+
+auto ColorMaps::ColorMapsImpl::GetColorMapPtr(const COLOR_DATA::ColorMapName mapName) const
     -> std::shared_ptr<const IColorMap>
 {
-  const auto makeSharedOfAddr = [&](const IColorMap* cm) {
-    return std::shared_ptr<const IColorMap>{cm, []([[maybe_unused]] const IColorMap* cm) {}};
-  };
-
-  if (tRotatePoint > 0.0F)
-  {
-    return makeSharedOfAddr(&GetColorMap(mapName));
-  }
-  return std::make_shared<RotatedColorMap>(makeSharedOfAddr(&GetColorMap(mapName)), tRotatePoint);
+  return MAKE_SHARED_ADDR(&GetColorMap(mapName));
 }
 
-auto ColorMaps::ColorMapsImpl::GetTintedColorMapPtr(const std::shared_ptr<const IColorMap>& cm,
+auto ColorMaps::ColorMapsImpl::GetRotatedColorMapPtr(const COLOR_DATA::ColorMapName mapName,
+                                                     const float tRotatePoint) const
+    -> std::shared_ptr<const IColorMap>
+{
+  return std::make_shared<RotatedColorMap>(MAKE_SHARED_ADDR(&GetColorMap(mapName)), tRotatePoint);
+}
+
+auto ColorMaps::ColorMapsImpl::GetRotatedColorMapPtr(const std::shared_ptr<const IColorMap>& cm,
+                                                     const float tRotatePoint) const
+    -> std::shared_ptr<const IColorMap>
+{
+  return std::make_shared<RotatedColorMap>(cm, tRotatePoint);
+}
+
+auto ColorMaps::ColorMapsImpl::GetTintedColorMapPtr(const COLOR_DATA::ColorMapName mapName,
+                                                    const float saturation,
                                                     const float lightness) const
     -> std::shared_ptr<const IColorMap>
 {
-  return std::make_shared<TintedColorMap>(cm, lightness);
+  return std::make_shared<TintedColorMap>(MAKE_SHARED_ADDR(&GetColorMap(mapName)), saturation,
+                                          lightness);
+}
+
+auto ColorMaps::ColorMapsImpl::GetTintedColorMapPtr(const std::shared_ptr<const IColorMap>& cm,
+                                                    const float saturation,
+                                                    const float lightness) const
+    -> std::shared_ptr<const IColorMap>
+{
+  return std::make_shared<TintedColorMap>(cm, saturation, lightness);
 }
 
 auto ColorMaps::ColorMapsImpl::GetNumColorMapNames() const -> size_t
@@ -289,8 +346,8 @@ void ColorMaps::ColorMapsImpl::InitGroups()
   at(s_groups, ColorMapGroup::MISC) = &COLOR_DATA::miscMaps;
 }
 
-PrebuiltColorMap::PrebuiltColorMap(const ColorMapName mapNm, vivid::ColorMap cm)
-  : m_mapName{mapNm}, m_cmap{std::move(cm)}
+PrebuiltColorMap::PrebuiltColorMap(const ColorMapName mapName, vivid::ColorMap cm)
+  : m_mapName{mapName}, m_cmap{std::move(cm)}
 {
 }
 
@@ -304,7 +361,7 @@ auto PrebuiltColorMap::GetColor(const float t) const -> Pixel
   return Pixel{vivid::Color{m_cmap.at(t)}.rgb32()};
 }
 
-auto PrebuiltColorMap::GetColorMix(const Pixel& col1, const Pixel& col2, float t) -> Pixel
+auto PrebuiltColorMap::GetColorMix(const Pixel& col1, const Pixel& col2, const float t) -> Pixel
 {
   const vivid::rgb_t c1 = vivid::rgb::fromRgb32(col1.Rgba());
   const vivid::rgb_t c2 = vivid::rgb::fromRgb32(col2.Rgba());

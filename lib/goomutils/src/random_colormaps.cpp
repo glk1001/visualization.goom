@@ -5,10 +5,21 @@
 #include "goom/goom_graphic.h"
 #include "goomrand.h"
 
+#include <format>
+#include <memory>
+#include <set>
+#include <stdexcept>
+
 namespace GOOM::UTILS
 {
 
 using COLOR_DATA::ColorMapName;
+
+const std::set<RandomColorMaps::ColorMapTypes> RandomColorMaps::EMPTY{};
+const std::set<RandomColorMaps::ColorMapTypes> RandomColorMaps::ALL{
+    ColorMapTypes::ROTATED_T,
+    ColorMapTypes::SHADES,
+};
 
 RandomColorMaps::RandomColorMaps() noexcept = default;
 
@@ -36,51 +47,101 @@ auto RandomColorMaps::GetRandomColorMap(const ColorMapGroup cmg) const -> const 
   return GetColorMap(GetRandomColorMapName(cmg));
 }
 
-auto RandomColorMaps::GetRandomColorMapPtr(const bool includeRotatePoints) const
+auto RandomColorMaps::GetRandomColorMapPtr(const std::set<ColorMapTypes>& types) const
     -> std::shared_ptr<const IColorMap>
 {
-  if (!includeRotatePoints)
-  {
-    return GetColorMapPtr(GetRandomColorMapName());
-  }
-  return GetColorMapPtr(GetRandomColorMapName(), GetRandInRange(0.1F, 0.9F));
+  return GetRandomColorMapPtr(GetColorMapPtr(GetRandomColorMapName()), types);
+}
+
+auto RandomColorMaps::GetRandomColorMapPtr(const COLOR_DATA::ColorMapName cmName,
+                                           const std::set<ColorMapTypes>& types) const
+    -> std::shared_ptr<const IColorMap>
+{
+  return GetRandomColorMapPtr(GetColorMapPtr(cmName), types);
 }
 
 auto RandomColorMaps::GetRandomColorMapPtr(const ColorMapGroup cmg,
-                                           const bool includeRotatePoints) const
+                                           const std::set<ColorMapTypes>& types) const
     -> std::shared_ptr<const IColorMap>
 {
-  if (!includeRotatePoints)
+  return GetRandomColorMapPtr(GetColorMapPtr(GetRandomColorMapName(cmg)), types);
+}
+
+auto RandomColorMaps::GetRandomColorMapPtr(const std::shared_ptr<const IColorMap>& cm,
+                                           const std::set<ColorMapTypes>& types) const
+    -> std::shared_ptr<const IColorMap>
+{
+  if (types.empty())
   {
-    return GetColorMapPtr(GetRandomColorMapName(cmg));
+    return cm;
   }
-  return GetColorMapPtr(GetRandomColorMapName(cmg), GetRandInRange(0.1F, 0.9F));
+
+  std::shared_ptr<const IColorMap> colorMap = cm;
+
+  if (types.contains(ColorMapTypes::ROTATED_T))
+  {
+    colorMap = GetRandomRotatedColorMapPtr(colorMap);
+  }
+  if (types.contains(ColorMapTypes::SHADES))
+  {
+    colorMap = GetRandomTintedColorMapPtr(colorMap);
+  }
+
+  return colorMap;
 }
 
-auto RandomColorMaps::GetRandomTintedColorMapPtr(const float minLightness,
-                                                 const float maxLightness) const
-    -> std::shared_ptr<const IColorMap>
+auto RandomColorMaps::GetRandomRotatedColorMapPtr() const -> std::shared_ptr<const IColorMap>
 {
-  return GetTintedColorMapPtr(GetColorMapPtr(GetRandomColorMapName()),
-                              GetRandInRange(minLightness, maxLightness));
+  return GetRotatedColorMapPtr(GetRandomColorMapName(),
+                               GetRandInRange(m_minRotationPoint, m_maxRotationPoint));
 }
 
-auto RandomColorMaps::GetRandomTintedColorMapPtr(const ColorMapGroup cmg,
-                                                 const float minLightness,
-                                                 const float maxLightness) const
+auto RandomColorMaps::GetRandomRotatedColorMapPtr(const COLOR_DATA::ColorMapName cmName) const
     -> std::shared_ptr<const IColorMap>
 {
-  return GetTintedColorMapPtr(GetColorMapPtr(GetRandomColorMapName(cmg), 0.0),
-                              GetRandInRange(minLightness, maxLightness));
+  return GetRotatedColorMapPtr(cmName, GetRandInRange(m_minRotationPoint, m_maxRotationPoint));
 }
 
-auto RandomColorMaps::GetRandomTintedColorMapPtr(const ColorMapName cmName,
-                                                 const float minLightness,
-                                                 const float maxLightness) const
+auto RandomColorMaps::GetRandomRotatedColorMapPtr(const ColorMapGroup cmg) const
     -> std::shared_ptr<const IColorMap>
 {
-  return GetTintedColorMapPtr(GetColorMapPtr(cmName, 0.0),
-                              GetRandInRange(minLightness, maxLightness));
+  return GetRotatedColorMapPtr(GetRandomColorMapName(cmg),
+                               GetRandInRange(m_minRotationPoint, m_maxRotationPoint));
+}
+
+auto RandomColorMaps::GetRandomRotatedColorMapPtr(const std::shared_ptr<const IColorMap>& cm) const
+    -> std::shared_ptr<const IColorMap>
+{
+  return GetRotatedColorMapPtr(cm, GetRandInRange(m_minRotationPoint, m_maxRotationPoint));
+}
+
+auto RandomColorMaps::GetRandomTintedColorMapPtr() const -> std::shared_ptr<const IColorMap>
+{
+  return GetTintedColorMapPtr(GetRandomColorMapName(),
+                              GetRandInRange(m_minSaturation, m_maxSaturation),
+                              GetRandInRange(m_minLightness, m_maxLightness));
+}
+
+auto RandomColorMaps::GetRandomTintedColorMapPtr(const ColorMapName cmName) const
+    -> std::shared_ptr<const IColorMap>
+{
+  return GetTintedColorMapPtr(cmName, GetRandInRange(m_minSaturation, m_maxSaturation),
+                              GetRandInRange(m_minLightness, m_maxLightness));
+}
+
+auto RandomColorMaps::GetRandomTintedColorMapPtr(const ColorMapGroup cmg) const
+    -> std::shared_ptr<const IColorMap>
+{
+  return GetTintedColorMapPtr(GetRandomColorMapName(cmg),
+                              GetRandInRange(m_minSaturation, m_maxSaturation),
+                              GetRandInRange(m_minLightness, m_maxLightness));
+}
+
+auto RandomColorMaps::GetRandomTintedColorMapPtr(const std::shared_ptr<const IColorMap>& cm) const
+    -> std::shared_ptr<const IColorMap>
+{
+  return GetTintedColorMapPtr(cm, GetRandInRange(m_minSaturation, m_maxSaturation),
+                              GetRandInRange(m_minLightness, m_maxLightness));
 }
 
 auto RandomColorMaps::GetRandomGroup() const -> ColorMapGroup
@@ -91,6 +152,98 @@ auto RandomColorMaps::GetRandomGroup() const -> ColorMapGroup
 auto RandomColorMaps::GetRandomColor(const IColorMap& colorMap, float t0, float t1) -> Pixel
 {
   return colorMap.GetColor(GetRandInRange(t0, t1));
+}
+
+auto RandomColorMaps::GetMinRotationPoint() const -> float
+{
+  return m_minRotationPoint;
+}
+
+auto RandomColorMaps::GetMaxRotationPoint() const -> float
+{
+  return m_maxRotationPoint;
+}
+
+void RandomColorMaps::SetRotationPointLimits(float minRotationPoint, float maxRotationPoint)
+{
+  if (minRotationPoint < MIN_ROTATION_POINT)
+  {
+    throw std::logic_error(
+        std20::format("minRotationPoint {} < {}", minRotationPoint, MIN_ROTATION_POINT));
+  }
+  if (maxRotationPoint > MAX_ROTATION_POINT)
+  {
+    throw std::logic_error(
+        std20::format("maxRotationPoint {} < {}", maxRotationPoint, MAX_ROTATION_POINT));
+  }
+  if (minRotationPoint > maxRotationPoint)
+  {
+    throw std::logic_error(std20::format("minRotationPoint {} > maxRotationPoint {}",
+                                         minRotationPoint, maxRotationPoint));
+  }
+
+  m_minRotationPoint = minRotationPoint;
+  m_maxRotationPoint = maxRotationPoint;
+}
+
+auto RandomColorMaps::GetMinSaturation() const -> float
+{
+  return m_minSaturation;
+}
+
+auto RandomColorMaps::GetMaxSaturation() const -> float
+{
+  return m_maxSaturation;
+}
+
+void RandomColorMaps::SetSaturationLimts(float minSaturation, float maxSaturation)
+{
+  if (minSaturation < MIN_SATURATION)
+  {
+    throw std::logic_error(std20::format("minSaturation {} < {}", minSaturation, MIN_SATURATION));
+  }
+  if (maxSaturation > MAX_SATURATION)
+  {
+    throw std::logic_error(std20::format("maxSaturation {} < {}", maxSaturation, MAX_SATURATION));
+  }
+  if (minSaturation > maxSaturation)
+  {
+    throw std::logic_error(
+        std20::format("minSaturation {} > maxSaturation {}", minSaturation, maxSaturation));
+  }
+
+  m_minSaturation = minSaturation;
+  m_maxSaturation = maxSaturation;
+}
+
+auto RandomColorMaps::GetMinLightness() const -> float
+{
+  return m_minLightness;
+}
+
+auto RandomColorMaps::GetMaxLightness() const -> float
+{
+  return m_maxLightness;
+}
+
+void RandomColorMaps::SetLightnessLimits(float minLightness, float maxLightness)
+{
+  if (minLightness < MIN_LIGHTNESS)
+  {
+    throw std::logic_error(std20::format("minLightness {} < {}", minLightness, MIN_LIGHTNESS));
+  }
+  if (maxLightness > MAX_LIGHTNESS)
+  {
+    throw std::logic_error(std20::format("maxLightness {} < {}", maxLightness, MAX_LIGHTNESS));
+  }
+  if (minLightness > maxLightness)
+  {
+    throw std::logic_error(
+        std20::format("minLightness {} > maxLightness {}", minLightness, maxLightness));
+  }
+
+  m_minLightness = minLightness;
+  m_maxLightness = maxLightness;
 }
 
 WeightedColorMaps::WeightedColorMaps() : RandomColorMaps{}, m_weights{}, m_weightsActive{true}

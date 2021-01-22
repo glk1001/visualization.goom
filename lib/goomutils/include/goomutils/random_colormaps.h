@@ -8,6 +8,7 @@
 
 #include <array>
 #include <memory>
+#include <set>
 #include <utility>
 #include <vector>
 
@@ -30,28 +31,70 @@ public:
   [[nodiscard]] auto GetRandomColorMap() const -> const IColorMap&;
   [[nodiscard]] auto GetRandomColorMap(ColorMapGroup cmg) const -> const IColorMap&;
 
-  [[nodiscard]] auto GetRandomColorMapPtr(bool includeRotatePoints = false) const
+  enum class ColorMapTypes
+  {
+    ROTATED_T,
+    SHADES,
+  };
+  static const std::set<ColorMapTypes> EMPTY;
+  static const std::set<ColorMapTypes> ALL;
+  [[nodiscard]] auto GetRandomColorMapPtr(const std::set<ColorMapTypes>& types = EMPTY) const
       -> std::shared_ptr<const IColorMap>;
-  [[nodiscard]] auto GetRandomColorMapPtr(ColorMapGroup cmg, bool includeRotatePoints = false) const
+  [[nodiscard]] auto GetRandomColorMapPtr(COLOR_DATA::ColorMapName cmName,
+                                          const std::set<ColorMapTypes>& types = EMPTY) const
+      -> std::shared_ptr<const IColorMap>;
+  [[nodiscard]] auto GetRandomColorMapPtr(ColorMapGroup cmg,
+                                          const std::set<ColorMapTypes>& types = EMPTY) const
+      -> std::shared_ptr<const IColorMap>;
+  [[nodiscard]] auto GetRandomColorMapPtr(const std::shared_ptr<const IColorMap>& cm,
+                                          const std::set<ColorMapTypes>& types) const
       -> std::shared_ptr<const IColorMap>;
 
-  static constexpr float MIN_LIGHTNESS = 0.1F;
-  static constexpr float MAX_LIGHTNESS = 1.0F;
-  [[nodiscard]] auto GetRandomTintedColorMapPtr(float minLightness = MIN_LIGHTNESS,
-                                                float maxLightness = MAX_LIGHTNESS) const
+  [[nodiscard]] auto GetMinRotationPoint() const -> float;
+  [[nodiscard]] auto GetMaxRotationPoint() const -> float;
+  void SetRotationPointLimits(float minRotationPoint, float maxRotationPoint);
+
+  [[nodiscard]] auto GetRandomRotatedColorMapPtr() const -> std::shared_ptr<const IColorMap>;
+  [[nodiscard]] auto GetRandomRotatedColorMapPtr(COLOR_DATA::ColorMapName cmName) const
       -> std::shared_ptr<const IColorMap>;
-  [[nodiscard]] auto GetRandomTintedColorMapPtr(ColorMapGroup cmg,
-                                                float minLightness = MIN_LIGHTNESS,
-                                                float maxLightness = MAX_LIGHTNESS) const
+  [[nodiscard]] auto GetRandomRotatedColorMapPtr(ColorMapGroup cmg) const
       -> std::shared_ptr<const IColorMap>;
-  [[nodiscard]] auto GetRandomTintedColorMapPtr(COLOR_DATA::ColorMapName cmName,
-                                                float minLightness = MIN_LIGHTNESS,
-                                                float maxLightness = MAX_LIGHTNESS) const
+  [[nodiscard]] auto GetRandomRotatedColorMapPtr(const std::shared_ptr<const IColorMap>& cm) const
+      -> std::shared_ptr<const IColorMap>;
+
+  [[nodiscard]] auto GetMinSaturation() const -> float;
+  [[nodiscard]] auto GetMaxSaturation() const -> float;
+  void SetSaturationLimts(float minSaturation, float maxSaturation);
+  [[nodiscard]] auto GetMaxLightness() const -> float;
+  [[nodiscard]] auto GetMinLightness() const -> float;
+  void SetLightnessLimits(float minLightness, float maxLightness);
+
+  [[nodiscard]] auto GetRandomTintedColorMapPtr() const -> std::shared_ptr<const IColorMap>;
+  [[nodiscard]] auto GetRandomTintedColorMapPtr(COLOR_DATA::ColorMapName cmName) const
+      -> std::shared_ptr<const IColorMap>;
+  [[nodiscard]] auto GetRandomTintedColorMapPtr(ColorMapGroup cmg) const
+      -> std::shared_ptr<const IColorMap>;
+  [[nodiscard]] auto GetRandomTintedColorMapPtr(const std::shared_ptr<const IColorMap>& cm) const
       -> std::shared_ptr<const IColorMap>;
 
   [[nodiscard]] virtual auto GetRandomGroup() const -> ColorMapGroup;
 
   [[nodiscard]] static auto GetRandomColor(const IColorMap& colorMap, float t0, float t1) -> Pixel;
+
+private:
+  static constexpr float MIN_ROTATION_POINT = 0.1F;
+  static constexpr float MAX_ROTATION_POINT = 0.9F;
+  float m_minRotationPoint = MIN_ROTATION_POINT;
+  float m_maxRotationPoint = MAX_ROTATION_POINT;
+
+  static constexpr float MIN_SATURATION = 0.1F;
+  static constexpr float MAX_SATURATION = 1.0F;
+  static constexpr float MIN_LIGHTNESS = 0.1F;
+  static constexpr float MAX_LIGHTNESS = 1.0F;
+  float m_minSaturation = MIN_SATURATION;
+  float m_maxSaturation = MAX_SATURATION;
+  float m_minLightness = MIN_LIGHTNESS;
+  float m_maxLightness = MAX_LIGHTNESS;
 };
 
 class WeightedColorMaps : public RandomColorMaps

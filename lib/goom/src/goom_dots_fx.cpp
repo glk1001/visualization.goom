@@ -65,7 +65,6 @@ private:
   FXBuffSettings m_buffSettings{};
 
   UTILS::WeightedColorMaps m_colorMaps{};
-  static constexpr bool USE_ALL_MAPS = true;
   std::shared_ptr<const IColorMap> m_colorMap1{};
   std::shared_ptr<const IColorMap> m_colorMap2{};
   std::shared_ptr<const IColorMap> m_colorMap3{};
@@ -240,13 +239,13 @@ void GoomDotsFx::GoomDotsImpl::SetBuffSettings(const FXBuffSettings& settings)
 
 void GoomDotsFx::GoomDotsImpl::ChangeColors()
 {
-  m_colorMap1 = m_colorMaps.GetRandomColorMapPtr(USE_ALL_MAPS);
-  m_colorMap2 = m_colorMaps.GetRandomColorMapPtr(USE_ALL_MAPS);
-  m_colorMap3 = m_colorMaps.GetRandomColorMapPtr(USE_ALL_MAPS);
-  m_colorMap4 = m_colorMaps.GetRandomColorMapPtr(USE_ALL_MAPS);
-  m_colorMap5 = m_colorMaps.GetRandomColorMapPtr(USE_ALL_MAPS);
+  m_colorMap1 = m_colorMaps.GetRandomColorMapPtr(RandomColorMaps::ALL);
+  m_colorMap2 = m_colorMaps.GetRandomColorMapPtr(RandomColorMaps::ALL);
+  m_colorMap3 = m_colorMaps.GetRandomColorMapPtr(RandomColorMaps::ALL);
+  m_colorMap4 = m_colorMaps.GetRandomColorMapPtr(RandomColorMaps::ALL);
+  m_colorMap5 = m_colorMaps.GetRandomColorMapPtr(RandomColorMaps::ALL);
   m_middleColor = RandomColorMaps::GetRandomColor(
-      *m_colorMaps.GetRandomColorMapPtr(ColorMapGroup::MISC, USE_ALL_MAPS), 0.1, 1.0);
+      *m_colorMaps.GetRandomColorMapPtr(ColorMapGroup::MISC, RandomColorMaps::ALL), 0.1, 1.0);
 
   m_useSingleBufferOnly = ProbabilityOfMInN(0, 2);
   m_useGrayScale = ProbabilityOfMInN(0, 10);

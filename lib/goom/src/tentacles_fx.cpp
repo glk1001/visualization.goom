@@ -454,7 +454,6 @@ private:
       {ColorMapGroup::QUALITATIVE, 10},
       {ColorMapGroup::MISC, 20},
   }}};
-  static constexpr bool USE_ALL_MAPS = true;
   std::shared_ptr<const IColorMap> m_dominantColorMap{};
   Pixel m_dominantColor{};
   void ChangeDominantColor();
@@ -709,7 +708,7 @@ TentaclesFx::TentaclesImpl::TentaclesImpl() noexcept = default;
 
 TentaclesFx::TentaclesImpl::TentaclesImpl(const std::shared_ptr<const PluginInfo>& info)
   : m_goomInfo{info},
-    m_dominantColorMap{m_colorMaps.GetRandomColorMapPtr(USE_ALL_MAPS)},
+    m_dominantColorMap{m_colorMaps.GetRandomColorMapPtr(RandomColorMaps::ALL)},
     m_dominantColor{RandomColorMaps::GetRandomColor(*m_dominantColorMap, 0.0F, 1.0F)},
     m_rot{GetStableRotationOffset(0)}
 {
@@ -912,7 +911,7 @@ void TentaclesFx::TentaclesImpl::Update(PixelBuffer& currentBuff, PixelBuffer& n
     {
       // IMPORTANT. Very delicate here - seems the right time to change maps.
       m_stats.ChangeDominantColorMap();
-      m_dominantColorMap = m_colorMaps.GetRandomColorMapPtr(USE_ALL_MAPS);
+      m_dominantColorMap = m_colorMaps.GetRandomColorMapPtr(RandomColorMaps::ALL);
     }
 
     if ((m_isPrettyMoveHappening || (m_lig < 6.3F)) && ChangeDominantColorEvent())

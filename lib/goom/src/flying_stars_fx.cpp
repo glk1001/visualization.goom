@@ -238,7 +238,7 @@ public:
 private:
   std::shared_ptr<const PluginInfo> m_goomInfo{};
 
-  const WeightedColorMaps m_colorMaps{Weights<ColorMapGroup>{{
+  WeightedColorMaps m_colorMaps{Weights<ColorMapGroup>{{
       {ColorMapGroup::PERCEPTUALLY_UNIFORM_SEQUENTIAL, 10},
       {ColorMapGroup::SEQUENTIAL, 10},
       {ColorMapGroup::SEQUENTIAL2, 10},
@@ -248,7 +248,7 @@ private:
       {ColorMapGroup::QUALITATIVE, 10},
       {ColorMapGroup::MISC, 10},
   }}};
-  const WeightedColorMaps m_lowColorMaps{Weights<ColorMapGroup>{{
+  WeightedColorMaps m_lowColorMaps{Weights<ColorMapGroup>{{
       {ColorMapGroup::PERCEPTUALLY_UNIFORM_SEQUENTIAL, 10},
       {ColorMapGroup::SEQUENTIAL, 0},
       {ColorMapGroup::SEQUENTIAL2, 10},
@@ -713,12 +713,24 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
     maxStarsInBomb *= 2;
   }
 
+  constexpr float MIN_SATURATION = 0.5F;
+  constexpr float MAX_SATURATION = 1.0F;
+  m_colorMaps.SetSaturationLimts(MIN_SATURATION, MAX_SATURATION);
+  m_lowColorMaps.SetSaturationLimts(MIN_SATURATION, MAX_SATURATION);
+
   constexpr float MIN_LIGHTNESS = 0.5F;
   constexpr float MAX_LIGHTNESS = 1.0F;
+  m_colorMaps.SetLightnessLimits(MIN_LIGHTNESS, MAX_LIGHTNESS);
+  m_lowColorMaps.SetLightnessLimits(MIN_LIGHTNESS, MAX_LIGHTNESS);
+
+  //const auto GetRandomColorMap = [&]() {
+  //    return m_colorMaps.GetRandomTintedColorMapPtr(
+  //      MIN_SATURATION, MAX_SATURATION, MIN_LIGHTNESS, MAX_LIGHTNESS);
+  //  };
   const std::shared_ptr<const IColorMap> dominantColorMap =
-      m_colorMaps.GetRandomTintedColorMapPtr(MIN_LIGHTNESS, MAX_LIGHTNESS);
+      m_colorMaps.GetRandomColorMapPtr(RandomColorMaps::ALL);
   const std::shared_ptr<const IColorMap> dominantLowColorMap =
-      m_lowColorMaps.GetRandomTintedColorMapPtr(MIN_LIGHTNESS, MAX_LIGHTNESS);
+      m_lowColorMaps.GetRandomColorMapPtr(RandomColorMaps::ALL);
 
   const bool megaColorMode = ProbabilityOfMInN(1, 10);
   const ColorMapName colorMapName = m_colorMaps.GetRandomColorMapName();
@@ -729,16 +741,16 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
     if (megaColorMode)
     {
       AddABomb(dominantColorMap, dominantLowColorMap,
-               m_colorMaps.GetRandomTintedColorMapPtr(MIN_LIGHTNESS, MAX_LIGHTNESS),
-               m_lowColorMaps.GetRandomTintedColorMapPtr(MIN_LIGHTNESS, MAX_LIGHTNESS), mx, my,
-               radius, vage, gravity);
+               m_colorMaps.GetRandomColorMapPtr(RandomColorMaps::ALL),
+               m_lowColorMaps.GetRandomColorMapPtr(RandomColorMaps::ALL), mx, my, radius, vage,
+               gravity);
     }
     else
     {
       std::shared_ptr<const IColorMap> colorMap =
-          m_colorMaps.GetRandomTintedColorMapPtr(colorMapName, MIN_LIGHTNESS, MAX_LIGHTNESS);
+          m_colorMaps.GetRandomColorMapPtr(colorMapName, RandomColorMaps::ALL);
       std::shared_ptr<const IColorMap> lowColorMap =
-          m_lowColorMaps.GetRandomTintedColorMapPtr(lowColorMapName, MIN_LIGHTNESS, MAX_LIGHTNESS);
+          m_lowColorMaps.GetRandomColorMapPtr(lowColorMapName, RandomColorMaps::ALL);
       AddABomb(dominantColorMap, dominantLowColorMap, colorMap, lowColorMap, mx, my, radius, vage,
                gravity);
     }

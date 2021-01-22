@@ -669,7 +669,7 @@ TentacleColorMapColorizer::TentacleColorMapColorizer(const ColorMapGroup cmg,
                                                      const size_t nNodes) noexcept
   : m_numNodes{nNodes},
     m_currentColorMapGroup{cmg},
-    m_colorMap{m_colorMaps.GetRandomColorMapPtr(m_currentColorMapGroup, USE_ALL_MAPS)},
+    m_colorMap{m_colorMaps.GetRandomColorMapPtr(m_currentColorMapGroup, RandomColorMaps::ALL)},
     m_prevColorMap{m_colorMap}
 {
 }
@@ -709,7 +709,7 @@ void TentacleColorMapColorizer::ChangeColorMap()
   // Save the current color map to do smooth transitions to next color map.
   m_prevColorMap = m_colorMap;
   m_tTransition = 1.0;
-  m_colorMap = m_colorMaps.GetRandomColorMapPtr(m_currentColorMapGroup, USE_ALL_MAPS);
+  m_colorMap = m_colorMaps.GetRandomColorMapPtr(m_currentColorMapGroup, RandomColorMaps::ALL);
 }
 
 auto TentacleColorMapColorizer::GetColor(size_t nodeNum) const -> Pixel

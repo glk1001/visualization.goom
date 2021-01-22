@@ -91,9 +91,22 @@ public:
 
   [[nodiscard]] auto GetColorMap(COLOR_DATA::ColorMapName mapName) const -> const IColorMap&;
 
-  [[nodiscard]] auto GetColorMapPtr(COLOR_DATA::ColorMapName mapName, float tRotatePoint = 0) const
+  [[nodiscard]] auto GetColorMapPtr(COLOR_DATA::ColorMapName mapName) const
+      -> std::shared_ptr<const IColorMap>;
+
+  [[nodiscard]] auto GetRotatedColorMapPtr(COLOR_DATA::ColorMapName mapName,
+                                           float tRotatePoint) const
+      -> std::shared_ptr<const IColorMap>;
+  [[nodiscard]] auto GetRotatedColorMapPtr(const std::shared_ptr<const IColorMap>& cm,
+                                           float tRotatePoint) const
+      -> std::shared_ptr<const IColorMap>;
+
+  [[nodiscard]] auto GetTintedColorMapPtr(COLOR_DATA::ColorMapName mapName,
+                                          float saturation,
+                                          float lightness) const
       -> std::shared_ptr<const IColorMap>;
   [[nodiscard]] auto GetTintedColorMapPtr(const std::shared_ptr<const IColorMap>& cm,
+                                          float saturation,
                                           float lightness) const
       -> std::shared_ptr<const IColorMap>;
 

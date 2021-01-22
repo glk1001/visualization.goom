@@ -796,7 +796,6 @@ private:
       {ColorMapGroup::QUALITATIVE, 10},
       {ColorMapGroup::MISC, 20},
   }}};
-  static constexpr bool USE_ALL_MAPS = true;
   std::shared_ptr<const IColorMap> m_mixerMap1;
   std::shared_ptr<const IColorMap> m_prevMixerMap1;
   std::shared_ptr<const IColorMap> m_mixerMap2;
@@ -816,9 +815,9 @@ private:
 };
 
 Colorizer::Colorizer() noexcept
-  : m_mixerMap1{m_colorMaps.GetRandomColorMapPtr(USE_ALL_MAPS)},
+  : m_mixerMap1{m_colorMaps.GetRandomColorMapPtr(RandomColorMaps::ALL)},
     m_prevMixerMap1{m_mixerMap1},
-    m_mixerMap2{m_colorMaps.GetRandomColorMapPtr(USE_ALL_MAPS)},
+    m_mixerMap2{m_colorMaps.GetRandomColorMapPtr(RandomColorMaps::ALL)},
     m_prevMixerMap2{m_mixerMap2}
 {
 }
@@ -905,9 +904,9 @@ auto Colorizer::GetNextColorMode() -> IfsDancersFx::ColorMode
 void Colorizer::ChangeColorMaps()
 {
   m_prevMixerMap1 = m_mixerMap1;
-  m_mixerMap1 = m_colorMaps.GetRandomColorMapPtr(USE_ALL_MAPS);
+  m_mixerMap1 = m_colorMaps.GetRandomColorMapPtr(RandomColorMaps::ALL);
   m_prevMixerMap2 = m_mixerMap2;
-  m_mixerMap2 = m_colorMaps.GetRandomColorMapPtr(USE_ALL_MAPS);
+  m_mixerMap2 = m_colorMaps.GetRandomColorMapPtr(RandomColorMaps::ALL);
   //  logInfo("prevMixerMap = {}", enumToString(prevMixerMap->GetMapName()));
   //  logInfo("mixerMap = {}", enumToString(mixerMap->GetMapName()));
   m_colorMapChangeCompleted =
