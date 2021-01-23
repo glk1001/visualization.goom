@@ -280,6 +280,10 @@ private:
   size_t m_maxStars = MAX_STARS_LIMIT;
   std::vector<Star> m_stars{};
   uint32_t m_maxStarAge = 15;
+  float m_minSideWind = -01;
+  float m_maxSideWind = +01;
+  float m_minGravity = +0.01;
+  float m_maxGravity = +0.09;
 
   // Fireworks Largest Bombs
   float m_minAge = 1.0F - (99.0F / 100.0F);
@@ -294,7 +298,7 @@ private:
   void SoundEventOccurred();
   static void UpdateStar(Star* s);
   [[nodiscard]] auto IsStarDead(const Star& s) const -> bool;
-  void AddABomb(int32_t mx, int32_t my, float radius, float vage, float gravity);
+  void AddABomb(int32_t mx, int32_t my, float radius, float vage, float gravity, float sideWind);
   [[nodiscard]] auto GetBombAngle(float x, float y) const -> uint32_t;
 
   friend class cereal::access;
@@ -657,6 +661,14 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
 {
   m_stats.SoundEventOccurred();
 
+  if (ProbabilityOfMInN(1, 10))
+  {
+    m_minSideWind = GetRandInRange(-0.20F, -0.01F);
+    m_maxSideWind = GetRandInRange(+0.01F, +0.20F);
+    m_minGravity = GetRandInRange(+0.005F, +0.010F);
+    m_maxGravity = GetRandInRange(+0.050F, +0.090F);
+  }
+
   const auto halfWidth = static_cast<int32_t>(m_goomInfo->GetScreenInfo().width / 2);
   const auto halfHeight = static_cast<int32_t>(m_goomInfo->GetScreenInfo().height / 2);
 
@@ -665,8 +677,9 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
 
   float radius = (1.0F + m_goomInfo->GetSoundInfo().GetGoomPower()) *
                  static_cast<float>(GetNRand(150) + 50) / 300.0F;
-  float gravity = 0.02F;
 
+  float gravityFactor = 1.0F;
+  float windFactor = 1.0F;
   int32_t mx;
   int32_t my;
   float vage;
@@ -692,6 +705,8 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
         }
       }
       vage = m_maxAge * (1.0F - m_goomInfo->GetSoundInfo().GetGoomPower());
+      windFactor = 0.1F;
+      gravityFactor = 0.4F;
     }
     break;
     case StarModes::RAIN:
@@ -703,6 +718,7 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
       my = -GetRandInRange(3, 64);
       radius *= 1.5;
       vage = 0.002F;
+      gravityFactor = 0.4F;
     }
     break;
     case StarModes::FOUNTAIN:
@@ -714,7 +730,6 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
       my = static_cast<int32_t>(m_goomInfo->GetScreenInfo().height + GetRandInRange(3U, 64U));
       vage = 0.001F;
       radius += 1.0F;
-      gravity = 0.05F;
     }
     break;
     default:
@@ -750,17 +765,23 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
 
   for (size_t i = 0; i < maxStarsInBomb; i++)
   {
+    const float sideWind = windFactor * GetRandInRange(m_minSideWind, m_maxSideWind);
+    const float gravity = gravityFactor * GetRandInRange(m_minGravity, m_maxGravity);
     m_colorMapsManager.ChangeColorMapNow(m_colorMapID);
     m_colorMapsManager.ChangeColorMapNow(m_lowColorMapID);
-    AddABomb(mx, my, radius, vage, gravity);
+    AddABomb(mx, my, radius, vage, gravity, sideWind);
   }
 }
 
 /**
  * Cree une nouvelle 'bombe', c'est a dire une particule appartenant a une fusee d'artifice.
  */
-void FlyingStarsFx::FlyingStarsImpl::AddABomb(
-    const int32_t mx, const int32_t my, const float radius, float vage, const float gravity)
+void FlyingStarsFx::FlyingStarsImpl::AddABomb(const int32_t mx,
+                                              const int32_t my,
+                                              const float radius,
+                                              float vage,
+                                              const float gravity,
+                                              const float sideWind)
 {
   if (m_stars.size() >= m_maxStars)
   {
@@ -787,7 +808,7 @@ void FlyingStarsFx::FlyingStarsImpl::AddABomb(
   m_stars[i].xVelocity = ro * cos256[theta];
   m_stars[i].yVelocity = -0.2F + ro * sin256[theta];
 
-  m_stars[i].xAcceleration = GetRandInRange(-0.01F, 0.01F);
+  m_stars[i].xAcceleration = sideWind;
   m_stars[i].yAcceleration = gravity;
 
   m_stars[i].age = GetRandInRange(m_minAge, 0.5F * m_maxAge);
