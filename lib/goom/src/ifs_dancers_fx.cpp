@@ -48,6 +48,7 @@
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
 #include "goomutils/random_colormaps.h"
+#include "goomutils/random_colormaps_manager.h"
 #include "goomutils/strutils.h"
 
 #include <array>
@@ -75,6 +76,7 @@ namespace GOOM
 {
 
 using namespace GOOM::UTILS;
+using COLOR_DATA::ColorMapName;
 
 class IfsStats
 {
@@ -786,20 +788,22 @@ public:
   void serialize(Archive& ar);
 
 private:
-  WeightedColorMaps m_colorMaps{Weights<ColorMapGroup>{{
-      {ColorMapGroup::PERCEPTUALLY_UNIFORM_SEQUENTIAL, 10},
-      {ColorMapGroup::SEQUENTIAL, 10},
-      {ColorMapGroup::SEQUENTIAL2, 10},
-      {ColorMapGroup::CYCLIC, 10},
-      {ColorMapGroup::DIVERGING, 20},
-      {ColorMapGroup::DIVERGING_BLACK, 1},
-      {ColorMapGroup::QUALITATIVE, 10},
-      {ColorMapGroup::MISC, 20},
-  }}};
-  std::shared_ptr<const IColorMap> m_mixerMap1;
-  std::shared_ptr<const IColorMap> m_prevMixerMap1;
-  std::shared_ptr<const IColorMap> m_mixerMap2;
-  std::shared_ptr<const IColorMap> m_prevMixerMap2;
+  std::shared_ptr<WeightedColorMaps> m_colorMaps{
+      std::make_shared<WeightedColorMaps>(Weights<ColorMapGroup>{{
+          {ColorMapGroup::PERCEPTUALLY_UNIFORM_SEQUENTIAL, 10},
+          {ColorMapGroup::SEQUENTIAL, 10},
+          {ColorMapGroup::SEQUENTIAL2, 10},
+          {ColorMapGroup::CYCLIC, 10},
+          {ColorMapGroup::DIVERGING, 20},
+          {ColorMapGroup::DIVERGING_BLACK, 1},
+          {ColorMapGroup::QUALITATIVE, 10},
+          {ColorMapGroup::MISC, 20},
+      }})};
+  RandomColorMapsManager m_colorMapsManager{};
+  uint32_t m_mixerMap1Id{};
+  std::shared_ptr<const IColorMap> m_prevMixerMap1{};
+  uint32_t m_mixerMap2Id{};
+  std::shared_ptr<const IColorMap> m_prevMixerMap2{};
   mutable uint32_t m_countSinceColorMapChange = 0;
   static constexpr uint32_t MIN_COLOR_MAP_CHANGE_COMPLETED = 5;
   static constexpr uint32_t MAX_COLOR_MAP_CHANGE_COMPLETED = 50;
@@ -815,10 +819,12 @@ private:
 };
 
 Colorizer::Colorizer() noexcept
-  : m_mixerMap1{m_colorMaps.GetRandomColorMapPtr(RandomColorMaps::ALL)},
-    m_prevMixerMap1{m_mixerMap1},
-    m_mixerMap2{m_colorMaps.GetRandomColorMapPtr(RandomColorMaps::ALL)},
-    m_prevMixerMap2{m_mixerMap2}
+  : m_mixerMap1Id{m_colorMapsManager.AddColorMapInfo(
+        {m_colorMaps, ColorMapName::_NULL, RandomColorMaps::EMPTY})},
+    m_prevMixerMap1{m_colorMapsManager.GetColorMapPtr(m_mixerMap1Id)},
+    m_mixerMap2Id{m_colorMapsManager.AddColorMapInfo(
+        {m_colorMaps, ColorMapName::_NULL, RandomColorMaps::EMPTY})},
+    m_prevMixerMap2{m_colorMapsManager.GetColorMapPtr(m_mixerMap2Id)}
 {
 }
 
@@ -834,16 +840,16 @@ void Colorizer::serialize(Archive& ar)
 {
   ar(m_countSinceColorMapChange, m_colorMapChangeCompleted, m_colorMode, m_tBetweenColors);
 
-  auto mixerMapName1 = m_mixerMap1->GetMapName();
-  ar(cereal::make_nvp("mixerMap1", mixerMapName1));
+  //  auto mixerMapName1 = m_mixerMap1->GetMapName();
+  //  ar(cereal::make_nvp("mixerMap1", mixerMapName1));
   auto prevMixerMapName1 = m_prevMixerMap1->GetMapName();
   ar(cereal::make_nvp("prevMixerMap1", prevMixerMapName1));
   // TODO FIX THIS WRAPPER PROBLEM
   // m_mixerMap1 = m_colorMaps.GetColorMap(mixerMapName1);
   // m_prevMixerMap1 = m_colorMaps.GetColorMap(prevMixerMapName1);
 
-  auto mixerMapName2 = m_mixerMap2->GetMapName();
-  ar(cereal::make_nvp("mixerMap2", mixerMapName2));
+  //  auto mixerMapName2 = m_mixerMap2->GetMapName();
+  //  ar(cereal::make_nvp("mixerMap2", mixerMapName2));
   auto prevMixerMapName2 = m_prevMixerMap2->GetMapName();
   ar(cereal::make_nvp("prevMixerMap2", prevMixerMapName2));
   // m_mixerMap2 = &m_colorMaps.GetColorMap(mixerMapName2);
@@ -858,7 +864,7 @@ inline void Colorizer::SetMaxHitCount(uint32_t val)
 
 inline auto Colorizer::GetColorMaps() const -> const RandomColorMaps&
 {
-  return m_colorMaps;
+  return *m_colorMaps;
 }
 
 inline auto Colorizer::GetColorMode() const -> IfsDancersFx::ColorMode
@@ -903,10 +909,10 @@ auto Colorizer::GetNextColorMode() -> IfsDancersFx::ColorMode
 
 void Colorizer::ChangeColorMaps()
 {
-  m_prevMixerMap1 = m_mixerMap1;
-  m_mixerMap1 = m_colorMaps.GetRandomColorMapPtr(RandomColorMaps::ALL);
-  m_prevMixerMap2 = m_mixerMap2;
-  m_mixerMap2 = m_colorMaps.GetRandomColorMapPtr(RandomColorMaps::ALL);
+  m_prevMixerMap1 = m_colorMapsManager.GetColorMapPtr(m_mixerMap1Id);
+  m_prevMixerMap2 = m_colorMapsManager.GetColorMapPtr(m_mixerMap2Id);
+  m_colorMapsManager.ChangeAllColorMapsNow();
+
   //  logInfo("prevMixerMap = {}", enumToString(prevMixerMap->GetMapName()));
   //  logInfo("mixerMap = {}", enumToString(mixerMap->GetMapName()));
   m_colorMapChangeCompleted =
@@ -921,7 +927,8 @@ inline auto Colorizer::GetNextMixerMapColor(const float t, const float x, const 
   //  const float angle = y == 0.0F ? m_half_pi : std::atan2(y, x);
   //  const Pixel nextColor = mixerMap1->GetColor((m_pi + angle) / m_two_pi);
   const Pixel nextColor =
-      IColorMap::GetColorMix(m_mixerMap1->GetColor(x), m_mixerMap2->GetColor(y), t);
+      IColorMap::GetColorMix(m_colorMapsManager.GetColorMap(m_mixerMap1Id).GetColor(x),
+                             m_colorMapsManager.GetColorMap(m_mixerMap2Id).GetColor(x), t);
   if (m_countSinceColorMapChange == 0)
   {
     return nextColor;
