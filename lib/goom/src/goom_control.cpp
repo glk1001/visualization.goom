@@ -50,7 +50,7 @@
 CEREAL_REGISTER_TYPE(GOOM::WritablePluginInfo)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::PluginInfo, GOOM::WritablePluginInfo)
 
-// #define SHOW_STATE_TEXT_ON_SCREEN
+#define SHOW_STATE_TEXT_ON_SCREEN
 
 namespace GOOM
 {
@@ -151,7 +151,7 @@ private:
   };
   // clang-format off
   static constexpr std::array<WeightedEvent, NUM_GOOM_EVENTS> WEIGHTED_EVENTS{{
-    {  .event = GoomEvent::CHANGE_FILTER_MODE,                         .m = 1, .outOf =  16 },
+    {  .event = GoomEvent::CHANGE_FILTER_MODE,                         .m = 8, .outOf =  16 },
     {  .event = GoomEvent::CHANGE_FILTER_FROM_AMULET_MODE,             .m = 1, .outOf =   5 },
     {  .event = GoomEvent::CHANGE_STATE,                               .m = 1, .outOf =   2 },
     {  .event = GoomEvent::TURN_OFF_NOISE,                             .m = 5, .outOf =   5 },
@@ -1133,6 +1133,7 @@ private:
   TextDraw m_text{};
   const IColorMap* m_textColorMap{};
   Pixel m_textOutlineColor{};
+  std::unique_ptr<TextDraw> m_updateMessageText{};
 
   // Line Fx
   LinesFx m_gmline1{};
@@ -1163,7 +1164,7 @@ private:
   void DisplayText(const char* songTitle, const char* message, float fps);
 
 #ifdef SHOW_STATE_TEXT_ON_SCREEN
-  void displayStateText();
+  void DisplayStateText();
 #endif
 
   void ApplyDotsIfRequired();
@@ -1548,7 +1549,7 @@ void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,
 
   /**
 #ifdef SHOW_STATE_TEXT_ON_SCREEN
-  displayStateText();
+  DisplayStateText();
 #endif
   displayText(songTitle, message, fps);
 **/
@@ -2258,29 +2259,42 @@ void GoomControl::GoomControlImpl::DisplayStateText()
 {
   std::string message = "";
 
-  message += std20::format("State: {}\n", states.getCurrentStateIndex());
-  message += std20::format("Filter: {}\n", enumToString(goomData.zoomFilterData.mode));
-  message += std20::format("switchIncr: {}\n", goomData.switchIncr);
-  message += std20::format("switchIncrAmount: {}\n", goomData.switchIncrAmount);
-  message += std20::format("switchMult: {}\n", goomData.switchMult);
-  message += std20::format("switchMultAmount: {}\n", goomData.switchMultAmount);
-  message += std20::format("previousZoomSpeed: {}\n", goomData.previousZoomSpeed);
-  message += std20::format("vitesse: {}\n", goomData.zoomFilterData.vitesse);
-  message += std20::format("pertedec: {}\n", goomData.zoomFilterData.pertedec);
-  message += std20::format("reverse: {}\n", goomData.zoomFilterData.reverse);
-  message += std20::format("hPlaneEffect: {}\n", goomData.zoomFilterData.hPlaneEffect);
-  message += std20::format("vPlaneEffect: {}\n", goomData.zoomFilterData.vPlaneEffect);
-  message += std20::format("hypercosEffect: {}\n", goomData.zoomFilterData.hypercosEffect);
-  message += std20::format("middleX: {}\n", goomData.zoomFilterData.middleX);
-  message += std20::format("middleY: {}\n", goomData.zoomFilterData.middleY);
-  message += std20::format("noisify: {}\n", goomData.zoomFilterData.noisify);
-  message += std20::format("noiseFactor: {}\n", goomData.zoomFilterData.noiseFactor);
-  message += std20::format("cyclesSinceLastChange: {}\n", goomData.cyclesSinceLastChange);
-  message += std20::format("lineMode: {}\n", goomData.lineMode);
-  message += std20::format("lockVar: {}\n", goomData.lockVar);
-  message += std20::format("stopLines: {}\n", goomData.stopLines);
+  message += std20::format("State: {}\n", m_states.GetCurrentStateIndex());
+  message += std20::format("Filter: {}\n", EnumToString(m_visualFx.zoomFilter_fx->GetFilterData().mode));
+  message += std20::format("switchIncr: {}\n", m_goomData.switchIncr);
+  message += std20::format("switchIncrAmount: {}\n", m_goomData.switchIncrAmount);
+  message += std20::format("switchMult: {}\n", m_goomData.switchMult);
+  message += std20::format("switchMultAmount: {}\n", m_goomData.switchMultAmount);
+  message += std20::format("previousZoomSpeed: {}\n", m_goomData.previousZoomSpeed);
+  message += std20::format("vitesse: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().vitesse);
+  message += std20::format("middleX: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().middleX);
+  message += std20::format("middleY: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().middleY);
+//  message += std20::format("pertedec: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().pertedec);
+  message += std20::format("reverse: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().reverse);
+  message += std20::format("hPlaneEffect: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().hPlaneEffect);
+  message += std20::format("vPlaneEffect: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().vPlaneEffect);
+  message += std20::format("waveEffect: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().waveEffect);
+  message += std20::format("hypercosEffect: {}\n", EnumToString(m_visualFx.zoomFilter_fx->GetFilterData().hypercosEffect));
+//  message += std20::format("noisify: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().noisify);
+//  message += std20::format("noiseFactor: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().noiseFactor);
+  message += std20::format("blockyWavy: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().blockyWavy);
+  message += std20::format("waveFreqFactor: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().waveFreqFactor);
+  message += std20::format("waveAmplitude: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().waveAmplitude);
+  message += std20::format("waveEffectType: {}\n", EnumToString(m_visualFx.zoomFilter_fx->GetFilterData().waveEffectType));
+  message += std20::format("scrunchAmplitude: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().scrunchAmplitude);
+  message += std20::format("speedwayAmplitude: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().speedwayAmplitude);
+  message += std20::format("amuletteAmplitude: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().amuletteAmplitude);
+  message += std20::format("crystalBallAmplitude: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().crystalBallAmplitude);
+  message += std20::format("hypercosFreq: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().hypercosFreq);
+  message += std20::format("hypercosAmplitude: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().hypercosAmplitude);
+  message += std20::format("hPlaneEffectAmplitude: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().hPlaneEffectAmplitude);
+  message += std20::format("vPlaneEffectAmplitude: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().vPlaneEffectAmplitude);
+  message += std20::format("cyclesSinceLastChange: {}\n", m_goomData.cyclesSinceLastChange);
+//  message += std20::format("lineMode: {}\n", m_goomData.lineMode);
+//  message += std20::format("lockVar: {}\n", m_goomData.lockVar);
+//  message += std20::format("stopLines: {}\n", m_goomData.stopLines);
 
-  updateMessage(message.c_str());
+  UpdateMessage(message.c_str());
 }
 
 #endif
@@ -2390,31 +2404,36 @@ void GoomControl::GoomControlImpl::DrawText(const std::string& str,
  */
 void GoomControl::GoomControlImpl::UpdateMessage(const char* message)
 {
-  // TODO FIX THIS!!!!
-  return;
   if (message != nullptr)
   {
     m_messageData.message = message;
     const std::vector<std::string> msgLines = SplitString(m_messageData.message, "\n");
     m_messageData.numberOfLinesInMessage = msgLines.size();
-    m_messageData.affiche = 100 + 25 * m_messageData.numberOfLinesInMessage;
+    m_messageData.affiche = 20 + 25 * m_messageData.numberOfLinesInMessage;
   }
   if (m_messageData.affiche)
   {
-    TextDraw updateMessageText{m_goomInfo->GetScreenInfo().width,
-                               m_goomInfo->GetScreenInfo().height};
-    updateMessageText.SetFontFile(m_text.GetFontFile());
-    updateMessageText.SetFontSize(15);
-    updateMessageText.SetOutlineWidth(1);
-    updateMessageText.SetAlignment(TextDraw::TextAlignment::left);
+    if (m_updateMessageText == nullptr)
+    {
+      const auto getFontColor = [](const size_t textIndexOfChar, float x, float y, float width,
+                                   float height) { return Pixel{0xffffffffU}; };
+      m_updateMessageText = std::make_unique<TextDraw>(m_goomInfo->GetScreenInfo().width,
+                                                       m_goomInfo->GetScreenInfo().height);
+      m_updateMessageText->SetFontFile(m_text.GetFontFile());
+      m_updateMessageText->SetFontSize(10);
+      m_updateMessageText->SetOutlineWidth(1);
+      m_updateMessageText->SetAlignment(TextDraw::TextAlignment::left);
+      m_updateMessageText->SetFontColorFunc(getFontColor);
+      m_updateMessageText->SetOutlineFontColorFunc(getFontColor);
+    }
     const std::vector<std::string> msgLines = SplitString(m_messageData.message, "\n");
     for (size_t i = 0; i < msgLines.size(); i++)
     {
-      const auto yPos = static_cast<int>(10 + m_messageData.affiche -
+      const auto yPos = static_cast<int>(5 + m_messageData.affiche -
                                          (m_messageData.numberOfLinesInMessage - i) * 25);
-      updateMessageText.SetText(msgLines[i]);
-      updateMessageText.Prepare();
-      updateMessageText.Draw(50, yPos, m_imageBuffers.GetOutputBuff());
+      m_updateMessageText->SetText(msgLines[i]);
+      m_updateMessageText->Prepare();
+      m_updateMessageText->Draw(50, yPos, m_imageBuffers.GetOutputBuff());
     }
     m_messageData.affiche--;
   }

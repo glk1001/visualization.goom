@@ -172,6 +172,10 @@ public:
   void Apply(PixelBuffer& currentBuff) override;
   void Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff) override;
 
+  const ZoomFilterData& GetFilterData() const;
+  float GetGeneralSpeed() const;
+  int32_t GetInterlaceStart() const;
+
   void Log(const StatsLogValueFunc& l) const override;
   void Finish() override;
 

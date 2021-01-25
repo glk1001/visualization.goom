@@ -440,6 +440,10 @@ public:
                          int32_t switchIncr,
                          float switchMult);
 
+  const ZoomFilterData& GetFilterData() const;
+  float GetGeneralSpeed() const;
+  int32_t GetInterlaceStart() const;
+
   void Log(const StatsLogValueFunc& l) const;
 
   auto operator==(const ZoomFilterImpl& f) const -> bool;
@@ -791,6 +795,21 @@ void ZoomFilterFx::ZoomFilterFastRgb(const PixelBuffer& pix1,
   }
 
   m_fxImpl->ZoomFilterFastRgb(pix1, pix2, zf, switchIncr, switchMult);
+}
+
+const ZoomFilterData& ZoomFilterFx::GetFilterData() const
+{
+  return m_fxImpl->GetFilterData();
+}
+
+float ZoomFilterFx::GetGeneralSpeed() const
+{
+        return m_fxImpl->GetGeneralSpeed();
+}
+
+int32_t ZoomFilterFx::GetInterlaceStart() const
+{
+  return m_fxImpl->GetInterlaceStart();
 }
 
 /**
@@ -1362,6 +1381,21 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetBlockyMixedColor(const CoeffArray& 
   // The order col4, col3, col2, col1 gave a black tear - no so good.
   const PixelArray reorderedColors{colors[0], colors[2], colors[1], colors[3]};
   return GetMixedColor(coeffs, reorderedColors);
+}
+
+const ZoomFilterData& ZoomFilterFx::ZoomFilterImpl::GetFilterData() const
+{
+  return m_filterData;
+}
+
+float ZoomFilterFx::ZoomFilterImpl::GetGeneralSpeed() const
+{
+  return m_generalSpeed;
+}
+
+int32_t ZoomFilterFx::ZoomFilterImpl::GetInterlaceStart() const
+{
+  return m_interlaceStart;
 }
 
 } // namespace GOOM
