@@ -1276,22 +1276,22 @@ auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float normX, const float 
     case ZoomFilterData::HypercosEffect::sinRectangular:
       m_stats.DoZoomVectorHypercosEffect();
       vx += m_filterData.hypercosAmplitude * std::sin(m_filterData.hypercosFreq * normX);
-      vy += m_filterData.hypercosAmplitude * std::sin(m_filterData.hypercosFreq * normY);
+      vy += m_filterData.hypercosAmplitude * std::cos(m_filterData.hypercosFreq * normY);
       break;
     case ZoomFilterData::HypercosEffect::cosRectangular:
       m_stats.DoZoomVectorHypercosEffect();
       vx += m_filterData.hypercosAmplitude * std::cos(m_filterData.hypercosFreq * normX);
-      vy += m_filterData.hypercosAmplitude * std::cos(m_filterData.hypercosFreq * normY);
+      vy += m_filterData.hypercosAmplitude * std::sin(m_filterData.hypercosFreq * normY);
       break;
     case ZoomFilterData::HypercosEffect::sinCurlSwirl:
       m_stats.DoZoomVectorHypercosEffect();
       vx += m_filterData.hypercosAmplitude * std::sin(m_filterData.hypercosFreq * normY);
-      vy += m_filterData.hypercosAmplitude * std::sin(m_filterData.hypercosFreq * normX);
+      vy += m_filterData.hypercosAmplitude * std::cos(m_filterData.hypercosFreq * normX);
       break;
     case ZoomFilterData::HypercosEffect::cosCurlSwirl:
       m_stats.DoZoomVectorHypercosEffect();
       vx += m_filterData.hypercosAmplitude * std::cos(m_filterData.hypercosFreq * normY);
-      vy += m_filterData.hypercosAmplitude * std::cos(m_filterData.hypercosFreq * normX);
+      vy += m_filterData.hypercosAmplitude * std::sin(m_filterData.hypercosFreq * normX);
       break;
     default:
       throw std::logic_error("Unknown filterData.hypercosEffect value");
@@ -1302,14 +1302,14 @@ auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float normX, const float 
     m_stats.DoZoomVectorHPlaneEffect();
 
     vx +=
-        normY * m_filterData.hPlaneEffectAmplitude * static_cast<float>(m_filterData.hPlaneEffect);
+        normX * m_filterData.hPlaneEffectAmplitude * static_cast<float>(m_filterData.hPlaneEffect);
   }
 
   if (m_filterData.vPlaneEffect)
   {
     m_stats.DoZoomVectorVPlaneEffect();
     vy +=
-        normX * m_filterData.vPlaneEffectAmplitude * static_cast<float>(m_filterData.vPlaneEffect);
+        normY * m_filterData.vPlaneEffectAmplitude * static_cast<float>(m_filterData.vPlaneEffect);
   }
 
   /* TODO : Water Mode */

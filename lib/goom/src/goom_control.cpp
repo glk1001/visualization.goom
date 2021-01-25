@@ -846,7 +846,7 @@ inline void GoomStats::DoZoomFilterAllowOverexposed()
 
 constexpr int32_t STOP_SPEED = 128;
 // TODO: put that as variable in PluginInfo
-constexpr int32_t TIME_BETWEEN_CHANGE = 300;
+constexpr int32_t TIME_BETWEEN_CHANGE = 200;
 
 struct LogStatsVisitor
 {
