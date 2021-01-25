@@ -52,6 +52,8 @@ struct ZoomFilterData
     none,
     sinCurlSwirl,
     cosCurlSwirl,
+    sinCosCurlSwirl,
+    cosSinCurlSwirl,
     sinRectangular,
     cosRectangular,
     _size
@@ -101,7 +103,7 @@ struct ZoomFilterData
   static constexpr float DEFAULT_AMULET_AMPLITUDE = 3.5;
   static constexpr float MIN_AMULET_AMPLITUDE = 2;
   static constexpr float MAX_AMULET_AMPLITUDE = 5;
-  float amuletteAmplitude = DEFAULT_AMULET_AMPLITUDE;
+  float amuletAmplitude = DEFAULT_AMULET_AMPLITUDE;
 
   static constexpr float DEFAULT_CRYSTAL_BALL_AMPLITUDE = 1.0 / 15.0;
   static constexpr float MIN_CRYSTAL_BALL_AMPLITUDE = 0.05;
@@ -111,12 +113,14 @@ struct ZoomFilterData
   static constexpr float DEFAULT_HYPERCOS_FREQ = 10;
   static constexpr float MIN_HYPERCOS_FREQ = 5;
   static constexpr float MAX_HYPERCOS_FREQ = 15;
-  float hypercosFreq = DEFAULT_HYPERCOS_FREQ;
+  float hypercosFreqX = DEFAULT_HYPERCOS_FREQ;
+  float hypercosFreqY = DEFAULT_HYPERCOS_FREQ;
 
   static constexpr float DEFAULT_HYPERCOS_AMPLITUDE = 1.0 / 120.0;
   static constexpr float MIN_HYPERCOS_AMPLITUDE = 1.0f / 140.0;
   static constexpr float MAX_HYPERCOS_AMPLITUDE = 1.0f / 100.0;
-  float hypercosAmplitude = DEFAULT_HYPERCOS_AMPLITUDE;
+  float hypercosAmplitudeX = DEFAULT_HYPERCOS_AMPLITUDE;
+  float hypercosAmplitudeY = DEFAULT_HYPERCOS_AMPLITUDE;
 
   static constexpr float DEFAULT_H_PLANE_EFFECT_AMPLITUDE = 0.0025;
   static constexpr float MIN_H_PLANE_EFFECT_AMPLITUDE = 0.0015;

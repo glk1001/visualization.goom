@@ -533,8 +533,9 @@ void ZoomFilterData::serialize(Archive& ar)
      CEREAL_NVP(waveEffect), CEREAL_NVP(hypercosEffect), CEREAL_NVP(noisify),
      CEREAL_NVP(noiseFactor), CEREAL_NVP(blockyWavy), CEREAL_NVP(waveFreqFactor),
      CEREAL_NVP(waveAmplitude), CEREAL_NVP(waveEffectType), CEREAL_NVP(scrunchAmplitude),
-     CEREAL_NVP(speedwayAmplitude), CEREAL_NVP(amuletteAmplitude), CEREAL_NVP(crystalBallAmplitude),
-     CEREAL_NVP(hypercosFreq), CEREAL_NVP(hypercosAmplitude), CEREAL_NVP(hPlaneEffectAmplitude),
+     CEREAL_NVP(speedwayAmplitude), CEREAL_NVP(amuletAmplitude), CEREAL_NVP(crystalBallAmplitude),
+     CEREAL_NVP(hypercosFreqX), CEREAL_NVP(hypercosFreqY), CEREAL_NVP(hypercosAmplitudeX),
+     CEREAL_NVP(hypercosAmplitudeY), CEREAL_NVP(hPlaneEffectAmplitude),
      CEREAL_NVP(vPlaneEffectAmplitude));
 }
 
@@ -1183,7 +1184,7 @@ auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float normX, const float 
     case ZoomFilterMode::amuletMode:
     {
       m_stats.DoZoomVectorAmuletMode();
-      coefVitesse += m_filterData.amuletteAmplitude * SqDistance(normX, normY);
+      coefVitesse += m_filterData.amuletAmplitude * SqDistance(normX, normY);
       break;
     }
     case ZoomFilterMode::waveMode:
@@ -1269,47 +1270,60 @@ auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float normX, const float 
     }
   }
 
-  switch (m_filterData.hypercosEffect)
+  if (m_filterData.hypercosEffect != ZoomFilterData::HypercosEffect::none)
   {
-    case ZoomFilterData::HypercosEffect::none:
-      break;
-    case ZoomFilterData::HypercosEffect::sinRectangular:
-      m_stats.DoZoomVectorHypercosEffect();
-      vx += m_filterData.hypercosAmplitude * std::sin(m_filterData.hypercosFreq * normX);
-      vy += m_filterData.hypercosAmplitude * std::cos(m_filterData.hypercosFreq * normY);
-      break;
-    case ZoomFilterData::HypercosEffect::cosRectangular:
-      m_stats.DoZoomVectorHypercosEffect();
-      vx += m_filterData.hypercosAmplitude * std::cos(m_filterData.hypercosFreq * normX);
-      vy += m_filterData.hypercosAmplitude * std::sin(m_filterData.hypercosFreq * normY);
-      break;
-    case ZoomFilterData::HypercosEffect::sinCurlSwirl:
-      m_stats.DoZoomVectorHypercosEffect();
-      vx += m_filterData.hypercosAmplitude * std::sin(m_filterData.hypercosFreq * normY);
-      vy += m_filterData.hypercosAmplitude * std::cos(m_filterData.hypercosFreq * normX);
-      break;
-    case ZoomFilterData::HypercosEffect::cosCurlSwirl:
-      m_stats.DoZoomVectorHypercosEffect();
-      vx += m_filterData.hypercosAmplitude * std::cos(m_filterData.hypercosFreq * normY);
-      vy += m_filterData.hypercosAmplitude * std::sin(m_filterData.hypercosFreq * normX);
-      break;
-    default:
-      throw std::logic_error("Unknown filterData.hypercosEffect value");
+    m_stats.DoZoomVectorHypercosEffect();
+    float xVal{};
+    float yVal{};
+    switch (m_filterData.hypercosEffect)
+    {
+      case ZoomFilterData::HypercosEffect::none:
+        break;
+      case ZoomFilterData::HypercosEffect::sinRectangular:
+        xVal = std::sin(m_filterData.hypercosFreqX * normX);
+        yVal = std::sin(m_filterData.hypercosFreqY * normY);
+        break;
+      case ZoomFilterData::HypercosEffect::cosRectangular:
+        xVal = std::cos(m_filterData.hypercosFreqX * normX);
+        yVal = std::cos(m_filterData.hypercosFreqY * normY);
+        break;
+      case ZoomFilterData::HypercosEffect::sinCurlSwirl:
+        xVal = std::sin(m_filterData.hypercosFreqY * normY);
+        yVal = std::sin(m_filterData.hypercosFreqX * normX);
+        break;
+      case ZoomFilterData::HypercosEffect::cosCurlSwirl:
+        xVal = std::cos(m_filterData.hypercosFreqY * normY);
+        yVal = std::cos(m_filterData.hypercosFreqX * normX);
+        break;
+      case ZoomFilterData::HypercosEffect::sinCosCurlSwirl:
+        xVal = std::sin(m_filterData.hypercosFreqX * normY);
+        yVal = std::cos(m_filterData.hypercosFreqY * normX);
+        break;
+      case ZoomFilterData::HypercosEffect::cosSinCurlSwirl:
+        xVal = std::cos(m_filterData.hypercosFreqY * normY);
+        yVal = std::sin(m_filterData.hypercosFreqX * normX);
+        break;
+      default:
+        throw std::logic_error("Unknown filterData.hypercosEffect value");
+    }
+    vx += m_filterData.hypercosAmplitudeX * xVal;
+    vy += m_filterData.hypercosAmplitudeY * yVal;
   }
 
   if (m_filterData.hPlaneEffect)
   {
     m_stats.DoZoomVectorHPlaneEffect();
 
+    // TODO - try normX
     vx +=
-        normX * m_filterData.hPlaneEffectAmplitude * static_cast<float>(m_filterData.hPlaneEffect);
+        normY * m_filterData.hPlaneEffectAmplitude * static_cast<float>(m_filterData.hPlaneEffect);
   }
 
   if (m_filterData.vPlaneEffect)
   {
     m_stats.DoZoomVectorVPlaneEffect();
     vy +=
-        normY * m_filterData.vPlaneEffectAmplitude * static_cast<float>(m_filterData.vPlaneEffect);
+        normX * m_filterData.vPlaneEffectAmplitude * static_cast<float>(m_filterData.vPlaneEffect);
   }
 
   /* TODO : Water Mode */

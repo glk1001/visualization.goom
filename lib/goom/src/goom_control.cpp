@@ -50,7 +50,7 @@
 CEREAL_REGISTER_TYPE(GOOM::WritablePluginInfo)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::PluginInfo, GOOM::WritablePluginInfo)
 
-#define SHOW_STATE_TEXT_ON_SCREEN
+//#define SHOW_STATE_TEXT_ON_SCREEN
 
 namespace GOOM
 {
@@ -588,13 +588,15 @@ void GoomStats::Log(const StatsLogValueFunc& logVal) const
     logVal(MODULE, "lastZoomFilterData->scrunchAmplitude", m_lastZoomFilterData->scrunchAmplitude);
     logVal(MODULE, "lastZoomFilterData->speedwayAmplitude",
            m_lastZoomFilterData->speedwayAmplitude);
-    logVal(MODULE, "lastZoomFilterData->amuletteAmplitude",
-           m_lastZoomFilterData->amuletteAmplitude);
+    logVal(MODULE, "lastZoomFilterData->amuletteAmplitude", m_lastZoomFilterData->amuletAmplitude);
     logVal(MODULE, "lastZoomFilterData->crystalBallAmplitude",
            m_lastZoomFilterData->crystalBallAmplitude);
-    logVal(MODULE, "lastZoomFilterData->hypercosFreq", m_lastZoomFilterData->hypercosFreq);
-    logVal(MODULE, "lastZoomFilterData->hypercosAmplitude",
-           m_lastZoomFilterData->hypercosAmplitude);
+    logVal(MODULE, "lastZoomFilterData->hypercosFreqX", m_lastZoomFilterData->hypercosFreqX);
+    logVal(MODULE, "lastZoomFilterData->hypercosFreqY", m_lastZoomFilterData->hypercosFreqY);
+    logVal(MODULE, "lastZoomFilterData->hypercosAmplitudeX",
+           m_lastZoomFilterData->hypercosAmplitudeX);
+    logVal(MODULE, "lastZoomFilterData->hypercosAmplitudeY",
+           m_lastZoomFilterData->hypercosAmplitudeY);
     logVal(MODULE, "lastZoomFilterData->hPlaneEffectAmplitude",
            m_lastZoomFilterData->hPlaneEffectAmplitude);
     logVal(MODULE, "lastZoomFilterData->vPlaneEffectAmplitude",
@@ -1693,10 +1695,12 @@ void GoomControl::GoomControlImpl::SetNextFilterMode()
   m_goomData.zoomFilterData.waveEffectType = ZoomFilterData::DEFAULT_WAVE_EFFECT_TYPE;
   m_goomData.zoomFilterData.scrunchAmplitude = ZoomFilterData::DEFAULT_SCRUNCH_AMPLITUDE;
   m_goomData.zoomFilterData.speedwayAmplitude = ZoomFilterData::DEFAULT_SPEEDWAY_AMPLITUDE;
-  m_goomData.zoomFilterData.amuletteAmplitude = ZoomFilterData::DEFAULT_AMULET_AMPLITUDE;
+  m_goomData.zoomFilterData.amuletAmplitude = ZoomFilterData::DEFAULT_AMULET_AMPLITUDE;
   m_goomData.zoomFilterData.crystalBallAmplitude = ZoomFilterData::DEFAULT_CRYSTAL_BALL_AMPLITUDE;
-  m_goomData.zoomFilterData.hypercosFreq = ZoomFilterData::DEFAULT_HYPERCOS_FREQ;
-  m_goomData.zoomFilterData.hypercosAmplitude = ZoomFilterData::DEFAULT_HYPERCOS_AMPLITUDE;
+  m_goomData.zoomFilterData.hypercosFreqX = ZoomFilterData::DEFAULT_HYPERCOS_FREQ;
+  m_goomData.zoomFilterData.hypercosFreqY = ZoomFilterData::DEFAULT_HYPERCOS_FREQ;
+  m_goomData.zoomFilterData.hypercosAmplitudeX = ZoomFilterData::DEFAULT_HYPERCOS_AMPLITUDE;
+  m_goomData.zoomFilterData.hypercosAmplitudeY = ZoomFilterData::DEFAULT_HYPERCOS_AMPLITUDE;
   m_goomData.zoomFilterData.hPlaneEffectAmplitude =
       ZoomFilterData::DEFAULT_H_PLANE_EFFECT_AMPLITUDE;
   m_goomData.zoomFilterData.vPlaneEffectAmplitude =
@@ -1762,7 +1766,7 @@ void GoomControl::GoomControlImpl::SetNextFilterMode()
       break;
     case GoomFilterEvent::AMULET_MODE:
       m_goomData.zoomFilterData.mode = ZoomFilterMode::amuletMode;
-      m_goomData.zoomFilterData.amuletteAmplitude = GetRandInRange(
+      m_goomData.zoomFilterData.amuletAmplitude = GetRandInRange(
           ZoomFilterData::MIN_AMULET_AMPLITUDE, ZoomFilterData::MAX_AMULET_AMPLITUDE);
       break;
     case GoomFilterEvent::WATER_MODE:
@@ -1796,10 +1800,29 @@ void GoomControl::GoomControlImpl::SetNextFilterMode()
 
   if (m_goomData.zoomFilterData.hypercosEffect != ZoomFilterData::HypercosEffect::none)
   {
-    m_goomData.zoomFilterData.hypercosFreq =
+    m_goomData.zoomFilterData.hypercosFreqX =
         GetRandInRange(ZoomFilterData::MIN_HYPERCOS_FREQ, ZoomFilterData::MAX_HYPERCOS_FREQ);
-    m_goomData.zoomFilterData.hypercosAmplitude = GetRandInRange(
+    if (ProbabilityOfMInN(1, 4))
+    {
+      m_goomData.zoomFilterData.hypercosFreqY = m_goomData.zoomFilterData.hypercosFreqX;
+    }
+    else
+    {
+      m_goomData.zoomFilterData.hypercosFreqY =
+          GetRandInRange(ZoomFilterData::MIN_HYPERCOS_FREQ, ZoomFilterData::MAX_HYPERCOS_FREQ);
+    }
+
+    m_goomData.zoomFilterData.hypercosAmplitudeX = GetRandInRange(
         ZoomFilterData::MIN_HYPERCOS_AMPLITUDE, ZoomFilterData::MAX_HYPERCOS_AMPLITUDE);
+    if (ProbabilityOfMInN(1, 4))
+    {
+      m_goomData.zoomFilterData.hypercosAmplitudeY = m_goomData.zoomFilterData.hypercosAmplitudeX;
+    }
+    else
+    {
+      m_goomData.zoomFilterData.hypercosAmplitudeY = GetRandInRange(
+          ZoomFilterData::MIN_HYPERCOS_AMPLITUDE, ZoomFilterData::MAX_HYPERCOS_AMPLITUDE);
+    }
   }
 
   if (m_goomData.zoomFilterData.mode == ZoomFilterMode::amuletMode)
@@ -2285,8 +2308,14 @@ void GoomControl::GoomControlImpl::DisplayStateText()
   message += std20::format("speedwayAmplitude: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().speedwayAmplitude);
   message += std20::format("amuletteAmplitude: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().amuletteAmplitude);
   message += std20::format("crystalBallAmplitude: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().crystalBallAmplitude);
-  message += std20::format("hypercosFreq: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().hypercosFreq);
-  message += std20::format("hypercosAmplitude: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().hypercosAmplitude);
+  message +=
+      std20::format("hypercosFreqX: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().hypercosFreqX);
+  message +=
+      std20::format("hypercosFreqY: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().hypercosFreqY);
+  message += std20::format("hypercosAmplitudeX: {}\n",
+                           m_visualFx.zoomFilter_fx->GetFilterData().hypercosAmplitudeX);
+  message += std20::format("hypercosAmplitudeY: {}\n",
+                           m_visualFx.zoomFilter_fx->GetFilterData().hypercosAmplitudeY);
   message += std20::format("hPlaneEffectAmplitude: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().hPlaneEffectAmplitude);
   message += std20::format("vPlaneEffectAmplitude: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().vPlaneEffectAmplitude);
   message += std20::format("GetGeneralSpeed: {}\n", m_visualFx.zoomFilter_fx->GetGeneralSpeed());
@@ -2324,7 +2353,7 @@ void GoomControl::GoomControlImpl::DisplayText(const char* songTitle,
   {
     if (m_goomData.timeOfTitleDisplay == GoomData::maxTitleDisplayTime)
     {
-      m_textColorMap = &(RandomColorMaps{}.GetRandomColorMap());
+      m_textColorMap = &(RandomColorMaps{}.GetRandomColorMap(ColorMapGroup::DIVERGING_BLACK));
       m_textOutlineColor = Pixel{0xffffffffU};
     }
     const auto xPos = static_cast<int>(0.085F * static_cast<float>(GetScreenWidth()));
@@ -2406,12 +2435,17 @@ void GoomControl::GoomControlImpl::DrawText(const std::string& str,
  */
 void GoomControl::GoomControlImpl::UpdateMessage(const char* message)
 {
+  constexpr int FONT_SIZE = 10;
+  constexpr int VERTICAL_SPACING = 10;
+  constexpr int LINE_HEIGHT = FONT_SIZE + VERTICAL_SPACING;
+  constexpr int Y_START = 50;
+
   if (message != nullptr)
   {
     m_messageData.message = message;
     const std::vector<std::string> msgLines = SplitString(m_messageData.message, "\n");
     m_messageData.numberOfLinesInMessage = msgLines.size();
-    m_messageData.affiche = 20 + 20 * m_messageData.numberOfLinesInMessage;
+    m_messageData.affiche = 20 + LINE_HEIGHT * m_messageData.numberOfLinesInMessage;
   }
   if (m_messageData.affiche)
   {
@@ -2422,7 +2456,7 @@ void GoomControl::GoomControlImpl::UpdateMessage(const char* message)
       m_updateMessageText = std::make_unique<TextDraw>(m_goomInfo->GetScreenInfo().width,
                                                        m_goomInfo->GetScreenInfo().height);
       m_updateMessageText->SetFontFile(m_text.GetFontFile());
-      m_updateMessageText->SetFontSize(10);
+      m_updateMessageText->SetFontSize(FONT_SIZE);
       m_updateMessageText->SetOutlineWidth(1);
       m_updateMessageText->SetAlignment(TextDraw::TextAlignment::left);
       m_updateMessageText->SetFontColorFunc(getFontColor);
@@ -2431,8 +2465,8 @@ void GoomControl::GoomControlImpl::UpdateMessage(const char* message)
     const std::vector<std::string> msgLines = SplitString(m_messageData.message, "\n");
     for (size_t i = 0; i < msgLines.size(); i++)
     {
-      const auto yPos = static_cast<int>(100 + m_messageData.affiche -
-                                         (m_messageData.numberOfLinesInMessage - i) * 20);
+      const auto yPos = static_cast<int>(Y_START + m_messageData.affiche -
+                                         (m_messageData.numberOfLinesInMessage - i) * LINE_HEIGHT);
       m_updateMessageText->SetText(msgLines[i]);
       m_updateMessageText->Prepare();
       m_updateMessageText->Draw(50, yPos, m_imageBuffers.GetOutputBuff());
