@@ -186,16 +186,16 @@ private:
   static constexpr std::array<std::pair<GoomFilterEvent, size_t>, NUM_GOOM_FILTER_EVENTS> WEIGHTED_FILTER_EVENTS{{
     {  GoomFilterEvent::WAVE_MODE_WITH_HYPER_COS_EFFECT, 3 },
     {  GoomFilterEvent::WAVE_MODE,                       3 },
-    {  GoomFilterEvent::CRYSTAL_BALL_MODE,               1 },
+    {  GoomFilterEvent::CRYSTAL_BALL_MODE,               2 },
     {  GoomFilterEvent::CRYSTAL_BALL_MODE_WITH_EFFECTS,  2 },
     {  GoomFilterEvent::AMULET_MODE,                     2 },
-    {  GoomFilterEvent::WATER_MODE,                      2 },
+    {  GoomFilterEvent::WATER_MODE,                      0 },
     {  GoomFilterEvent::SCRUNCH_MODE,                    2 },
     {  GoomFilterEvent::SCRUNCH_MODE_WITH_EFFECTS,       2 },
     {  GoomFilterEvent::HYPER_COS1_MODE,                 3 },
     {  GoomFilterEvent::HYPER_COS2_MODE,                 2 },
     { GoomFilterEvent::Y_ONLY_MODE,                     3 },
-    { GoomFilterEvent::SPEEDWAY_MODE,                   3 },
+    { GoomFilterEvent::SPEEDWAY_MODE,                   1 },
     { GoomFilterEvent::NORMAL_MODE,                     2 },
   } };
 
@@ -2289,6 +2289,8 @@ void GoomControl::GoomControlImpl::DisplayStateText()
   message += std20::format("hypercosAmplitude: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().hypercosAmplitude);
   message += std20::format("hPlaneEffectAmplitude: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().hPlaneEffectAmplitude);
   message += std20::format("vPlaneEffectAmplitude: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().vPlaneEffectAmplitude);
+  message += std20::format("GetGeneralSpeed: {}\n", m_visualFx.zoomFilter_fx->GetGeneralSpeed());
+  message += std20::format("GetInterlaceStart: {}\n", m_visualFx.zoomFilter_fx->GetInterlaceStart());
   message += std20::format("cyclesSinceLastChange: {}\n", m_goomData.cyclesSinceLastChange);
 //  message += std20::format("lineMode: {}\n", m_goomData.lineMode);
 //  message += std20::format("lockVar: {}\n", m_goomData.lockVar);
@@ -2409,7 +2411,7 @@ void GoomControl::GoomControlImpl::UpdateMessage(const char* message)
     m_messageData.message = message;
     const std::vector<std::string> msgLines = SplitString(m_messageData.message, "\n");
     m_messageData.numberOfLinesInMessage = msgLines.size();
-    m_messageData.affiche = 20 + 25 * m_messageData.numberOfLinesInMessage;
+    m_messageData.affiche = 20 + 20 * m_messageData.numberOfLinesInMessage;
   }
   if (m_messageData.affiche)
   {
@@ -2429,8 +2431,8 @@ void GoomControl::GoomControlImpl::UpdateMessage(const char* message)
     const std::vector<std::string> msgLines = SplitString(m_messageData.message, "\n");
     for (size_t i = 0; i < msgLines.size(); i++)
     {
-      const auto yPos = static_cast<int>(5 + m_messageData.affiche -
-                                         (m_messageData.numberOfLinesInMessage - i) * 25);
+      const auto yPos = static_cast<int>(100 + m_messageData.affiche -
+                                         (m_messageData.numberOfLinesInMessage - i) * 20);
       m_updateMessageText->SetText(msgLines[i]);
       m_updateMessageText->Prepare();
       m_updateMessageText->Draw(50, yPos, m_imageBuffers.GetOutputBuff());
