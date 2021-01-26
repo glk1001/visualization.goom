@@ -50,7 +50,7 @@
 CEREAL_REGISTER_TYPE(GOOM::WritablePluginInfo)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::PluginInfo, GOOM::WritablePluginInfo)
 
-//#define SHOW_STATE_TEXT_ON_SCREEN
+#define SHOW_STATE_TEXT_ON_SCREEN
 
 namespace GOOM
 {
@@ -201,7 +201,7 @@ private:
 
   static constexpr
   std::array<std::pair<LinesFx::LineType, size_t>, LinesFx::NUM_LINE_TYPES> WEIGHTED_LINE_EVENTS{{
-    { LinesFx::LineType::circle, 8 },
+    { LinesFx::LineType::circle, 10 },
     { LinesFx::LineType::hline,  2 },
     { LinesFx::LineType::vline,  2 },
   }};
@@ -253,6 +253,12 @@ const GoomStates::WeightedStatesArray GoomStates::STATES{{
     .weight = 1,
     .drawables {{
       { .fx = GoomDrawable::IFS,       .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
+    }},
+  },
+  {
+    .weight = 1,
+    .drawables {{
+      { .fx = GoomDrawable::LINES,     .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
     }},
   },
   {
@@ -1049,8 +1055,9 @@ struct GoomData
   int lockVar = 0; // pour empecher de nouveaux changements
   int stopLines = 0;
   int cyclesSinceLastChange = 0; // nombre de Cycle Depuis Dernier Changement
-  int drawLinesDuration = 80; // duree de la transition entre afficher les lignes ou pas
-  int lineMode = 80; // l'effet lineaire a dessiner
+  // duree de la transition entre afficher les lignes ou pas
+  int drawLinesDuration = LinesFx::MIN_LINE_DURATION;
+  int lineMode = LinesFx::MIN_LINE_DURATION; // l'effet lineaire a dessiner
 
   static constexpr float switchMultAmount = 29.0 / 30.0;
   float switchMult = switchMultAmount;
@@ -1409,7 +1416,7 @@ void GoomControl::GoomControlImpl::SetFontFile(const std::string& filename)
 
   m_text.SetFontFile(filename);
   m_text.SetFontSize(30);
-  m_text.SetOutlineWidth(3);
+  m_text.SetOutlineWidth(2);
   m_text.SetAlignment(TextDraw::TextAlignment::left);
 }
 
@@ -2283,7 +2290,8 @@ void GoomControl::GoomControlImpl::DisplayStateText()
   std::string message = "";
 
   message += std20::format("State: {}\n", m_states.GetCurrentStateIndex());
-  message += std20::format("Filter: {}\n", EnumToString(m_visualFx.zoomFilter_fx->GetFilterData().mode));
+  message +=
+      std20::format("Filter: {}\n", EnumToString(m_visualFx.zoomFilter_fx->GetFilterData().mode));
   message += std20::format("switchIncr: {}\n", m_goomData.switchIncr);
   message += std20::format("switchIncrAmount: {}\n", m_goomData.switchIncrAmount);
   message += std20::format("switchMult: {}\n", m_goomData.switchMult);
@@ -2292,22 +2300,34 @@ void GoomControl::GoomControlImpl::DisplayStateText()
   message += std20::format("vitesse: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().vitesse);
   message += std20::format("middleX: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().middleX);
   message += std20::format("middleY: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().middleY);
-//  message += std20::format("pertedec: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().pertedec);
+  //  message += std20::format("pertedec: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().pertedec);
   message += std20::format("reverse: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().reverse);
-  message += std20::format("hPlaneEffect: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().hPlaneEffect);
-  message += std20::format("vPlaneEffect: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().vPlaneEffect);
-  message += std20::format("waveEffect: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().waveEffect);
-  message += std20::format("hypercosEffect: {}\n", EnumToString(m_visualFx.zoomFilter_fx->GetFilterData().hypercosEffect));
-//  message += std20::format("noisify: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().noisify);
-//  message += std20::format("noiseFactor: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().noiseFactor);
-  message += std20::format("blockyWavy: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().blockyWavy);
-  message += std20::format("waveFreqFactor: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().waveFreqFactor);
-  message += std20::format("waveAmplitude: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().waveAmplitude);
-  message += std20::format("waveEffectType: {}\n", EnumToString(m_visualFx.zoomFilter_fx->GetFilterData().waveEffectType));
-  message += std20::format("scrunchAmplitude: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().scrunchAmplitude);
-  message += std20::format("speedwayAmplitude: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().speedwayAmplitude);
-  message += std20::format("amuletteAmplitude: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().amuletteAmplitude);
-  message += std20::format("crystalBallAmplitude: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().crystalBallAmplitude);
+  message +=
+      std20::format("hPlaneEffect: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().hPlaneEffect);
+  message +=
+      std20::format("vPlaneEffect: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().vPlaneEffect);
+  message +=
+      std20::format("waveEffect: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().waveEffect);
+  message += std20::format("hypercosEffect: {}\n",
+                           EnumToString(m_visualFx.zoomFilter_fx->GetFilterData().hypercosEffect));
+  //  message += std20::format("noisify: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().noisify);
+  //  message += std20::format("noiseFactor: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().noiseFactor);
+  message +=
+      std20::format("blockyWavy: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().blockyWavy);
+  message += std20::format("waveFreqFactor: {}\n",
+                           m_visualFx.zoomFilter_fx->GetFilterData().waveFreqFactor);
+  message +=
+      std20::format("waveAmplitude: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().waveAmplitude);
+  message += std20::format("waveEffectType: {}\n",
+                           EnumToString(m_visualFx.zoomFilter_fx->GetFilterData().waveEffectType));
+  message += std20::format("scrunchAmplitude: {}\n",
+                           m_visualFx.zoomFilter_fx->GetFilterData().scrunchAmplitude);
+  message += std20::format("speedwayAmplitude: {}\n",
+                           m_visualFx.zoomFilter_fx->GetFilterData().speedwayAmplitude);
+  message += std20::format("amuletAmplitude: {}\n",
+                           m_visualFx.zoomFilter_fx->GetFilterData().amuletAmplitude);
+  message += std20::format("crystalBallAmplitude: {}\n",
+                           m_visualFx.zoomFilter_fx->GetFilterData().crystalBallAmplitude);
   message +=
       std20::format("hypercosFreqX: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().hypercosFreqX);
   message +=
@@ -2316,14 +2336,17 @@ void GoomControl::GoomControlImpl::DisplayStateText()
                            m_visualFx.zoomFilter_fx->GetFilterData().hypercosAmplitudeX);
   message += std20::format("hypercosAmplitudeY: {}\n",
                            m_visualFx.zoomFilter_fx->GetFilterData().hypercosAmplitudeY);
-  message += std20::format("hPlaneEffectAmplitude: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().hPlaneEffectAmplitude);
-  message += std20::format("vPlaneEffectAmplitude: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().vPlaneEffectAmplitude);
+  message += std20::format("hPlaneEffectAmplitude: {}\n",
+                           m_visualFx.zoomFilter_fx->GetFilterData().hPlaneEffectAmplitude);
+  message += std20::format("vPlaneEffectAmplitude: {}\n",
+                           m_visualFx.zoomFilter_fx->GetFilterData().vPlaneEffectAmplitude);
   message += std20::format("GetGeneralSpeed: {}\n", m_visualFx.zoomFilter_fx->GetGeneralSpeed());
-  message += std20::format("GetInterlaceStart: {}\n", m_visualFx.zoomFilter_fx->GetInterlaceStart());
+  message +=
+      std20::format("GetInterlaceStart: {}\n", m_visualFx.zoomFilter_fx->GetInterlaceStart());
   message += std20::format("cyclesSinceLastChange: {}\n", m_goomData.cyclesSinceLastChange);
-//  message += std20::format("lineMode: {}\n", m_goomData.lineMode);
-//  message += std20::format("lockVar: {}\n", m_goomData.lockVar);
-//  message += std20::format("stopLines: {}\n", m_goomData.stopLines);
+  //  message += std20::format("lineMode: {}\n", m_goomData.lineMode);
+  //  message += std20::format("lockVar: {}\n", m_goomData.lockVar);
+  //  message += std20::format("stopLines: {}\n", m_goomData.stopLines);
 
   UpdateMessage(message.c_str());
 }
@@ -2362,7 +2385,7 @@ void GoomControl::GoomControlImpl::DisplayText(const char* songTitle,
         static_cast<float>(GoomData::timeToSpaceTitleDisplay - m_goomData.timeOfTitleDisplay);
     const float spacing = std::max(0.0F, 0.056F * timeGone);
     const int xExtra = static_cast<int>(
-        std::max(0.0F, 2.0F * timeGone / static_cast<float>(m_goomData.timeOfTitleDisplay)));
+        std::max(0.0F, 3.0F * timeGone / static_cast<float>(m_goomData.timeOfTitleDisplay)));
 
     DrawText(m_goomData.title, xPos + xExtra, yPos, spacing, m_imageBuffers.GetOutputBuff());
 
@@ -2400,7 +2423,7 @@ void GoomControl::GoomControlImpl::DrawText(const std::string& str,
 
   const IColorMap& charColorMap =
       m_goomData.timeOfTitleDisplay > GoomData::timeToSpaceTitleDisplay
-          ? RandomColorMaps{}.GetColorMap(COLOR_DATA::ColorMapName::autumn)
+          ? RandomColorMaps{}.GetRandomColorMap(ColorMapGroup::DIVERGING)
           : RandomColorMaps{}.GetRandomColorMap(/*ColorMapGroup::diverging*/);
   const auto lastTextIndex = static_cast<float>(str.size() - 1);
   //  const ColorMap& colorMap2 = colorMaps.getColorMap(colordata::ColorMapName::Blues);
@@ -2451,8 +2474,14 @@ void GoomControl::GoomControlImpl::UpdateMessage(const char* message)
   {
     if (m_updateMessageText == nullptr)
     {
-      const auto getFontColor = [](const size_t textIndexOfChar, float x, float y, float width,
-                                   float height) { return Pixel{0xffffffffU}; };
+      const auto getFontColor = []([[maybe_unused]] const size_t textIndexOfChar,
+                                   [[maybe_unused]] float x, [[maybe_unused]] float y,
+                                   [[maybe_unused]] float width,
+                                   [[maybe_unused]] float height) { return Pixel{0xffffffffU}; };
+      const auto getOutlineFontColor =
+          []([[maybe_unused]] const size_t textIndexOfChar, [[maybe_unused]] float x,
+             [[maybe_unused]] float y, [[maybe_unused]] float width,
+             [[maybe_unused]] float height) { return Pixel{0xfafafafaU}; };
       m_updateMessageText = std::make_unique<TextDraw>(m_goomInfo->GetScreenInfo().width,
                                                        m_goomInfo->GetScreenInfo().height);
       m_updateMessageText->SetFontFile(m_text.GetFontFile());
@@ -2460,7 +2489,7 @@ void GoomControl::GoomControlImpl::UpdateMessage(const char* message)
       m_updateMessageText->SetOutlineWidth(1);
       m_updateMessageText->SetAlignment(TextDraw::TextAlignment::left);
       m_updateMessageText->SetFontColorFunc(getFontColor);
-      m_updateMessageText->SetOutlineFontColorFunc(getFontColor);
+      m_updateMessageText->SetOutlineFontColorFunc(getOutlineFontColor);
     }
     const std::vector<std::string> msgLines = SplitString(m_messageData.message, "\n");
     for (size_t i = 0; i < msgLines.size(); i++)
@@ -2481,6 +2510,11 @@ void GoomControl::GoomControlImpl::StopRequest()
            " curGDrawables.contains(GoomDrawable::scope) = {}",
            m_goomData.stopLines, m_curGDrawables.contains(GoomDrawable::SCOPE));
 
+  if (!m_gmline1.CanResetDestLine() || !m_gmline2.CanResetDestLine())
+  {
+    return;
+  }
+
   float param1 = 0.0;
   float param2 = 0.0;
   float amplitude = 0.0;
@@ -2489,8 +2523,8 @@ void GoomControl::GoomControlImpl::StopRequest()
   ChooseGoomLine(&param1, &param2, &couleur, &mode, &amplitude, 1);
   couleur = GetBlackLineColor();
 
-  m_gmline1.SwitchLines(mode, param1, amplitude, couleur);
-  m_gmline2.SwitchLines(mode, param2, amplitude, couleur);
+  m_gmline1.ResetDestLine(mode, param1, amplitude, couleur);
+  m_gmline2.ResetDestLine(mode, param2, amplitude, couleur);
   m_stats.SwitchLines();
   m_goomData.stopLines &= 0x0fff;
 }
@@ -2520,7 +2554,8 @@ void GoomControl::GoomControlImpl::StopRandomLineChangeMode()
     {
       m_goomData.lineMode = m_goomData.drawLinesDuration;
     }
-    else if (m_goomData.lineMode == m_goomData.drawLinesDuration)
+    else if (m_goomData.lineMode == m_goomData.drawLinesDuration && m_gmline1.CanResetDestLine() &&
+             m_gmline2.CanResetDestLine())
     {
       m_goomData.lineMode--;
 
@@ -2543,8 +2578,8 @@ void GoomControl::GoomControlImpl::StopRandomLineChangeMode()
 
       logDebug("goomData.lineMode = {} == {} = goomData.drawLinesDuration", m_goomData.lineMode,
                m_goomData.drawLinesDuration);
-      m_gmline1.SwitchLines(mode, param1, amplitude, color1);
-      m_gmline2.SwitchLines(mode, param2, amplitude, color2);
+      m_gmline1.ResetDestLine(mode, param1, amplitude, color1);
+      m_gmline2.ResetDestLine(mode, param2, amplitude, color2);
       m_stats.SwitchLines();
     }
   }
@@ -2569,7 +2604,8 @@ void GoomControl::GoomControlImpl::DisplayLines(const AudioSamples& soundData)
   //  gmline2.drawLines(soundData.GetSample(1), imageBuffers.getP1(), imageBuffers.getP2());
 
   if (((m_cycle % 121) == 9) && GoomEvents::Happens(GoomEvent::CHANGE_GOOM_LINE) &&
-      ((m_goomData.lineMode == 0) || (m_goomData.lineMode == m_goomData.drawLinesDuration)))
+      ((m_goomData.lineMode == 0) || (m_goomData.lineMode == m_goomData.drawLinesDuration)) &&
+      m_gmline1.CanResetDestLine() && m_gmline2.CanResetDestLine())
   {
     logDebug("cycle % 121 etc.: goomInfo->cycle = {}, rand1_3 = ?", m_cycle);
     float param1 = 0.0;
@@ -2588,8 +2624,8 @@ void GoomControl::GoomControlImpl::DisplayLines(const AudioSamples& soundData)
         color2 = color1 = GetBlackLineColor();
       }
     }
-    m_gmline1.SwitchLines(mode, param1, amplitude, color1);
-    m_gmline2.SwitchLines(mode, param2, amplitude, color2);
+    m_gmline1.ResetDestLine(mode, param1, amplitude, color1);
+    m_gmline2.ResetDestLine(mode, param2, amplitude, color2);
   }
 }
 

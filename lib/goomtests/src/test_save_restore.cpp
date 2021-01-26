@@ -255,7 +255,7 @@ TEST_CASE("save/restore lines", "[saveRestoreLines]")
   LinesFx linesFx{GetGoomInfo(), LinesFx::LineType::hline,  100,
                   s_lBlack,      LinesFx::LineType::circle, 0.4F * static_cast<float>(100),
                   s_lGreen};
-  linesFx.SwitchLines(LinesFx::LineType::circle, 1, 2, s_lRed);
+  linesFx.ResetDestLine(LinesFx::LineType::circle, 1, 2, s_lRed);
   std::stringstream ss;
   {
     cereal::JSONOutputArchive archive(ss);

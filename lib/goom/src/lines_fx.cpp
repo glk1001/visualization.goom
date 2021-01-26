@@ -50,7 +50,12 @@ public:
   [[nodiscard]] auto GetPower() const -> float;
   void SetPower(float val);
 
-  void SwitchLines(LineType newLineType, float newParam, float newAmplitude, const Pixel& newColor);
+  [[nodiscard]] auto CanResetDestLine() const -> bool;
+
+  void ResetDestLine(LineType newLineType,
+                     float newParam,
+                     float newAmplitude,
+                     const Pixel& newColor);
 
   void DrawLines(const std::vector<int16_t>& soundData,
                  PixelBuffer& prevBuff,
@@ -69,23 +74,28 @@ private:
     float y;
     float angle;
   };
-  std::vector<LinePoint> m_points1{};
-  std::vector<LinePoint> m_points2{};
-  void GenerateLine(LineType lineType, float lineParam, std::vector<LinePoint>& line);
+  std::vector<LinePoint> m_srcePoints{};
+  std::vector<LinePoint> m_srcePointsCopy{};
+  std::vector<LinePoint> m_destPoints{};
+  static constexpr float LINE_LERP_FINISHED_VAL = 1.1F;
+  static constexpr float LINE_LERP_INC = 1.0F / static_cast<float>(MIN_LINE_DURATION - 1);
+  static constexpr float DEFAULT_LINE_LERP_FACTOR = LINE_LERP_INC;
+  float m_lineLerpFactor = DEFAULT_LINE_LERP_FACTOR;
+  void GenerateLinePoints(LineType lineType, float lineParam, std::vector<LinePoint>& line);
 
   float m_power = 0;
   float m_powinc = 0;
 
   LineType m_destLineType = LineType::circle;
   float m_param = 0;
-  float m_amplitudeF = 1;
+  float m_newAmplitude = 1;
   float m_amplitude = 1;
 
   // pour l'instant je stocke la couleur a terme, on stockera le mode couleur et l'on animera
   Pixel m_color1{};
   Pixel m_color2{};
 
-  void GoomLinesMove();
+  void MoveSrceLineCloserToDest();
 
   friend class cereal::access;
   template<class Archive>
@@ -132,12 +142,17 @@ void LinesFx::SetPower(const float val)
   m_fxImpl->SetPower(val);
 }
 
-void LinesFx::SwitchLines(LineType newLineType,
-                          const float newParam,
-                          const float newAmplitude,
-                          const Pixel& newColor)
+auto LinesFx::CanResetDestLine() const -> bool
 {
-  m_fxImpl->SwitchLines(newLineType, newParam, newAmplitude, newColor);
+  return m_fxImpl->CanResetDestLine();
+}
+
+void LinesFx::ResetDestLine(const LineType newLineType,
+                            const float newParam,
+                            const float newAmplitude,
+                            const Pixel& newColor)
+{
+  m_fxImpl->ResetDestLine(newLineType, newParam, newAmplitude, newColor);
 }
 
 void LinesFx::DrawLines(const std::vector<int16_t>& soundData,
@@ -164,7 +179,7 @@ template<class Archive>
 void LinesFx::LinesImpl::save(Archive& ar) const
 {
   ar(CEREAL_NVP(m_goomInfo), CEREAL_NVP(m_draw), CEREAL_NVP(m_power), CEREAL_NVP(m_powinc),
-     CEREAL_NVP(m_destLineType), CEREAL_NVP(m_param), CEREAL_NVP(m_amplitudeF),
+     CEREAL_NVP(m_destLineType), CEREAL_NVP(m_param), CEREAL_NVP(m_newAmplitude),
      CEREAL_NVP(m_amplitude), CEREAL_NVP(m_color1), CEREAL_NVP(m_color2));
 }
 
@@ -172,7 +187,7 @@ template<class Archive>
 void LinesFx::LinesImpl::load(Archive& ar)
 {
   ar(CEREAL_NVP(m_goomInfo), CEREAL_NVP(m_draw), CEREAL_NVP(m_power), CEREAL_NVP(m_powinc),
-     CEREAL_NVP(m_destLineType), CEREAL_NVP(m_param), CEREAL_NVP(m_amplitudeF),
+     CEREAL_NVP(m_destLineType), CEREAL_NVP(m_param), CEREAL_NVP(m_newAmplitude),
      CEREAL_NVP(m_amplitude), CEREAL_NVP(m_color1), CEREAL_NVP(m_color2));
 }
 
@@ -190,8 +205,8 @@ auto LinesFx::LinesImpl::operator==(const LinesImpl& l) const -> bool
   return ((m_goomInfo == nullptr && l.m_goomInfo == nullptr) || (*m_goomInfo == *l.m_goomInfo)) &&
          m_draw == l.m_draw && m_power == l.m_power && m_powinc == l.m_powinc &&
          m_destLineType == l.m_destLineType && m_param == l.m_param &&
-         m_amplitudeF == l.m_amplitudeF && m_amplitude == l.m_amplitude && m_color1 == l.m_color1 &&
-         m_color2 == l.m_color2;
+         m_newAmplitude == l.m_newAmplitude && m_amplitude == l.m_amplitude &&
+         m_color1 == l.m_color1 && m_color2 == l.m_color2;
 }
 
 LinesFx::LinesImpl::LinesImpl() noexcept = default;
@@ -200,27 +215,27 @@ LinesFx::LinesImpl::LinesImpl(std::shared_ptr<const PluginInfo> info,
                               const LineType srceLineType,
                               const float srceParam,
                               const Pixel& srceColor,
-                              const LineType destLineTyp,
+                              const LineType destLineType,
                               const float destParam,
                               const Pixel& destColor)
   : m_goomInfo{std::move(info)},
     m_draw{m_goomInfo->GetScreenInfo().width, m_goomInfo->GetScreenInfo().height},
-    m_points1(AUDIO_SAMPLE_LEN),
-    m_points2(AUDIO_SAMPLE_LEN),
-    m_destLineType{destLineTyp},
+    m_srcePoints(AUDIO_SAMPLE_LEN),
+    m_srcePointsCopy(AUDIO_SAMPLE_LEN),
+    m_destPoints(AUDIO_SAMPLE_LEN),
+    m_destLineType{destLineType},
     m_param{destParam},
     m_color1{srceColor},
     m_color2{destColor}
 {
-  GenerateLine(srceLineType, srceParam, m_points1);
-  GenerateLine(m_destLineType, destParam, m_points2);
-
-  SwitchLines(m_destLineType, destParam, 1.0, destColor);
+  GenerateLinePoints(srceLineType, srceParam, m_srcePoints);
+  m_srcePointsCopy = m_srcePoints;
+  ResetDestLine(m_destLineType, destParam, 1.0, destColor);
 }
 
-void LinesFx::LinesImpl::GenerateLine(const LineType lineType,
-                                      const float lineParam,
-                                      std::vector<LinePoint>& line)
+void LinesFx::LinesImpl::GenerateLinePoints(const LineType lineType,
+                                            const float lineParam,
+                                            std::vector<LinePoint>& line)
 {
   switch (lineType)
   {
@@ -276,6 +291,53 @@ void LinesFx::LinesImpl::GenerateLine(const LineType lineType,
   }
 }
 
+void LinesFx::LinesImpl::MoveSrceLineCloserToDest()
+{
+  const float t = std::min(1.0F, m_lineLerpFactor);
+  for (uint32_t i = 0; i < AUDIO_SAMPLE_LEN; i++)
+  {
+    m_srcePoints[i].x = std::lerp(m_srcePointsCopy[i].x, m_destPoints[i].x, t);
+    m_srcePoints[i].y = std::lerp(m_srcePointsCopy[i].y, m_destPoints[i].y, t);
+    m_srcePoints[i].angle = std::lerp(m_srcePointsCopy[i].angle, m_destPoints[i].angle, t);
+  }
+  m_lineLerpFactor += LINE_LERP_INC;
+
+  m_color1 = IColorMap::GetColorMix(m_color1, m_color2, 1.0F / 64.0F);
+
+  m_power += m_powinc;
+  if (m_power < 1.1F)
+  {
+    m_power = 1.1F;
+    m_powinc = GetRandInRange(0.03F, 0.10F);
+  }
+  if (m_power > 17.5F)
+  {
+    m_power = 17.5F;
+    m_powinc = -GetRandInRange(0.03F, 0.10F);
+  }
+
+  m_amplitude = std::lerp(m_amplitude, m_newAmplitude, 0.01F);
+}
+
+auto LinesFx::LinesImpl::CanResetDestLine() const -> bool
+{
+  return m_lineLerpFactor > LINE_LERP_FINISHED_VAL;
+}
+
+void LinesFx::LinesImpl::ResetDestLine(LineType newLineType,
+                                       float newParam,
+                                       float newAmplitude,
+                                       const Pixel& newColor)
+{
+  GenerateLinePoints(newLineType, m_param, m_destPoints);
+  m_destLineType = newLineType;
+  m_param = newParam;
+  m_newAmplitude = newAmplitude;
+  m_color2 = newColor;
+  m_lineLerpFactor = DEFAULT_LINE_LERP_FACTOR;
+  m_srcePointsCopy = m_srcePoints;
+}
+
 inline auto LinesFx::LinesImpl::GetPower() const -> float
 {
   return m_power;
@@ -284,53 +346,6 @@ inline auto LinesFx::LinesImpl::GetPower() const -> float
 inline void LinesFx::LinesImpl::SetPower(const float val)
 {
   m_power = val;
-}
-
-void LinesFx::LinesImpl::GoomLinesMove()
-{
-  for (uint32_t i = 0; i < AUDIO_SAMPLE_LEN; i++)
-  {
-    m_points1[i].x = (m_points2[i].x + 39.0F * m_points1[i].x) / 40.0F;
-    m_points1[i].y = (m_points2[i].y + 39.0F * m_points1[i].y) / 40.0F;
-    m_points1[i].angle = (m_points2[i].angle + 39.0F * m_points1[i].angle) / 40.0F;
-  }
-
-  auto* c1 = reinterpret_cast<unsigned char*>(&m_color1);
-  auto* c2 = reinterpret_cast<unsigned char*>(&m_color2);
-  for (int i = 0; i < 4; i++)
-  {
-    int cc1 = *c1;
-    int cc2 = *c2;
-    *c1 = static_cast<unsigned char>((cc1 * 63 + cc2) >> 6);
-    ++c1;
-    ++c2;
-  }
-
-  m_power += m_powinc;
-  if (m_power < 1.1F)
-  {
-    m_power = 1.1F;
-    m_powinc = static_cast<float>(GetNRand(20) + 10) / 300.0F;
-  }
-  if (m_power > 17.5F)
-  {
-    m_power = 17.5F;
-    m_powinc = -static_cast<float>(GetNRand(20) + 10) / 300.0F;
-  }
-
-  m_amplitude = (99.0F * m_amplitude + m_amplitudeF) / 100.0F;
-}
-
-void LinesFx::LinesImpl::SwitchLines(LineType newLineType,
-                                     float newParam,
-                                     float newAmplitude,
-                                     const Pixel& newColor)
-{
-  GenerateLine(newLineType, m_param, m_points2);
-  m_destLineType = newLineType;
-  m_param = newParam;
-  m_amplitudeF = newAmplitude;
-  m_color2 = newColor;
 }
 
 // les modes couleur possible (si tu mets un autre c'est noir)
@@ -382,7 +397,7 @@ auto GetRedLineColor() -> Pixel
 
 auto LinesFx::LinesImpl::GetRandomLineColor() -> Pixel
 {
-  if (GetNRand(10) == 0)
+  if (ProbabilityOfMInN(1, 10))
   {
     return GetColor(static_cast<int>(GetNRand(6)));
   }
@@ -425,7 +440,7 @@ void LinesFx::LinesImpl::DrawLines(const std::vector<int16_t>& soundData,
                                    PixelBuffer& currentBuff)
 {
   std::vector<PixelBuffer*> buffs{&currentBuff, &prevBuff};
-  const LinePoint* pt0 = &(m_points1[0]);
+  const LinePoint* pt0 = &(m_srcePoints[0]);
   const Pixel lineColor = GetLightenedColor(m_color1, m_power);
 
   const auto audioRange = static_cast<float>(m_goomInfo->GetSoundInfo().GetAllTimesMaxVolume() -
@@ -437,7 +452,7 @@ void LinesFx::LinesImpl::DrawLines(const std::vector<int16_t>& soundData,
     // No range - flatline audio
     const std::vector<Pixel> colors = {lineColor, lineColor};
     m_draw.Line(buffs, pt0->x, pt0->y, pt0->x + AUDIO_SAMPLE_LEN, pt0->y, colors, 1);
-    GoomLinesMove();
+    MoveSrceLineCloserToDest();
     return;
   }
 
@@ -474,7 +489,7 @@ void LinesFx::LinesImpl::DrawLines(const std::vector<int16_t>& soundData,
 
   for (size_t i = 1; i < AUDIO_SAMPLE_LEN; i++)
   {
-    const LinePoint* const pt = &(m_points1[i]);
+    const LinePoint* const pt = &(m_srcePoints[i]);
     const auto [x2, y2, modColor] = getNextPoint(pt, data[i]);
 
     const std::vector<Pixel> colors = {modColor, lineColor};
@@ -484,7 +499,7 @@ void LinesFx::LinesImpl::DrawLines(const std::vector<int16_t>& soundData,
     y1 = y2;
   }
 
-  GoomLinesMove();
+  MoveSrceLineCloserToDest();
 }
 
 } // namespace GOOM

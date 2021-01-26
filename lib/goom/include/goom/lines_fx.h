@@ -60,7 +60,12 @@ public:
   [[nodiscard]] auto GetPower() const -> float;
   void SetPower(float val);
 
-  void SwitchLines(LineType newLineType, float newParam, float newAmplitude, const Pixel& newColor);
+  static constexpr uint32_t MIN_LINE_DURATION = 80;
+  [[nodiscard]] auto CanResetDestLine() const -> bool;
+  void ResetDestLine(LineType newLineType,
+                     float newParam,
+                     float newAmplitude,
+                     const Pixel& newColor);
 
   void DrawLines(const std::vector<int16_t>& soundData,
                  PixelBuffer& prevBuff,
