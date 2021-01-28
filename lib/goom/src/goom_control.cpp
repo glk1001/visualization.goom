@@ -39,6 +39,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <filesystem>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -50,7 +51,7 @@
 CEREAL_REGISTER_TYPE(GOOM::WritablePluginInfo)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::PluginInfo, GOOM::WritablePluginInfo)
 
-#define SHOW_STATE_TEXT_ON_SCREEN
+// #define SHOW_STATE_TEXT_ON_SCREEN
 
 namespace GOOM
 {
@@ -262,9 +263,9 @@ const GoomStates::WeightedStatesArray GoomStates::STATES{{
     }},
   },
   {
-    .weight = 1,
+    .weight = 10000000,
     .drawables {{
-      { .fx = GoomDrawable::DOTS,      .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
+      { .fx = GoomDrawable::DOTS,      .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = false  } },
     }},
   },
   {
@@ -1108,6 +1109,9 @@ public:
 
   void Swap(GoomControl::GoomControlImpl& other) noexcept = delete;
 
+  auto GetResourcesDirectory() const -> const std::string&;
+  void SetResourcesDirectory(const std::string& dirName);
+
   auto GetScreenBuffer() const -> PixelBuffer&;
   void SetScreenBuffer(PixelBuffer& buff);
   void SetFontFile(const std::string& f);
@@ -1143,6 +1147,8 @@ private:
   const IColorMap* m_textColorMap{};
   Pixel m_textOutlineColor{};
   std::unique_ptr<TextDraw> m_updateMessageText{};
+
+  std::string m_resourcesDirectory{};
 
   // Line Fx
   LinesFx m_gmline1{};
@@ -1263,14 +1269,19 @@ void GoomControl::RestoreState(std::istream& f)
   m_controller->SetScreenBuffer(outputBuffer);
 }
 
+auto GoomControl::GetResourcesDirectory() const -> const std::string&
+{
+  return m_controller->GetResourcesDirectory();
+}
+
+void GoomControl::SetResourcesDirectory(const std::string& dirName)
+{
+  m_controller->SetResourcesDirectory(dirName);
+}
+
 void GoomControl::SetScreenBuffer(PixelBuffer& buffer)
 {
   m_controller->SetScreenBuffer(buffer);
-}
-
-void GoomControl::SetFontFile(const std::string& filename)
-{
-  m_controller->SetFontFile(filename);
 }
 
 void GoomControl::Start()
@@ -1400,6 +1411,21 @@ GoomControl::GoomControlImpl::GoomControlImpl(const uint32_t screenWidth,
 
 GoomControl::GoomControlImpl::~GoomControlImpl() noexcept = default;
 
+auto GoomControl::GoomControlImpl::GetResourcesDirectory() const -> const std::string&
+{
+  return m_resourcesDirectory;
+}
+
+void GoomControl::GoomControlImpl::SetResourcesDirectory(const std::string& dirName)
+{
+  if (!std::filesystem::exists(dirName))
+  {
+    throw std::runtime_error(std20::format("Could not find directory \"{}\".", dirName));
+  }
+
+  m_resourcesDirectory = dirName;
+}
+
 auto GoomControl::GoomControlImpl::GetScreenBuffer() const -> PixelBuffer&
 {
   return m_imageBuffers.GetOutputBuff();
@@ -1446,6 +1472,14 @@ inline auto GoomControl::GoomControlImpl::ChangeFilterModeEventHappens() -> bool
 
 void GoomControl::GoomControlImpl::Start()
 {
+  if (m_resourcesDirectory.empty())
+  {
+    throw std::logic_error("Cannot start Goom - resource directory not set.");
+  }
+
+  // TODO Handle Windows paths.
+  SetFontFile(m_resourcesDirectory + "/" + "verdana.ttf");
+
   m_timeInState = 0;
   ChangeState();
   ChangeFilterMode();

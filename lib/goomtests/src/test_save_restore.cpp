@@ -322,7 +322,7 @@ TEST_CASE("save/restore goom control", "[saveRestoreGoomControl]")
   GoomControl::SetRandSeed(SEED);
   GoomControl goomControl{SCREEN_WIDTH, SCREEN_HEIGHT};
   goomControl.SetScreenBuffer(*outputBuff);
-  goomControl.SetFontFile("/tmp/Rubik-Regular.ttf");
+  goomControl.SetResourcesDirectory("/tmp");
   std::vector<float> soundData(NUM_AUDIO_SAMPLES * AUDIO_SAMPLE_LEN);
   std::fill(soundData.begin(), soundData.end(), 0.5);
   const AudioSamples audioSamples{2, soundData.data()};
