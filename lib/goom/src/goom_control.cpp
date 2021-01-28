@@ -263,7 +263,7 @@ const GoomStates::WeightedStatesArray GoomStates::STATES{{
     }},
   },
   {
-    .weight = 10000000,
+    .weight = 1,
     .drawables {{
       { .fx = GoomDrawable::DOTS,      .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = false  } },
     }},
@@ -1109,15 +1109,15 @@ public:
 
   void Swap(GoomControl::GoomControlImpl& other) noexcept = delete;
 
-  auto GetResourcesDirectory() const -> const std::string&;
+  [[nodiscard]] auto GetResourcesDirectory() const -> const std::string&;
   void SetResourcesDirectory(const std::string& dirName);
 
-  auto GetScreenBuffer() const -> PixelBuffer&;
+  [[nodiscard]] auto GetScreenBuffer() const -> PixelBuffer&;
   void SetScreenBuffer(PixelBuffer& buff);
   void SetFontFile(const std::string& f);
 
-  auto GetScreenWidth() const -> uint32_t;
-  auto GetScreenHeight() const -> uint32_t;
+  [[nodiscard]] auto GetScreenWidth() const -> uint32_t;
+  [[nodiscard]] auto GetScreenHeight() const -> uint32_t;
 
   void Start();
   void Finish();
@@ -1154,7 +1154,7 @@ private:
   LinesFx m_gmline1{};
   LinesFx m_gmline2{};
 
-  auto ChangeFilterModeEventHappens() -> bool;
+  [[nodiscard]] auto ChangeFilterModeEventHappens() -> bool;
   void SetNextFilterMode();
   void ChangeState();
   void ChangeFilterMode();
@@ -1493,6 +1493,8 @@ void GoomControl::GoomControlImpl::Start()
   m_stats.SetStateStartValue(m_states.GetCurrentStateIndex());
   m_stats.SetZoomFilterStartValue(m_goomData.zoomFilterData.mode);
   m_stats.SetSeedStartValue(GetRandSeed());
+
+  m_visualFx.goomDots_fx->SetResourcesDirectory(m_resourcesDirectory);
 
   for (auto& v : m_visualFx.list)
   {

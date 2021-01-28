@@ -15,7 +15,8 @@ auto GetIntColor(uint8_t r, uint8_t g, uint8_t b) -> Pixel;
 
 auto GetColorAverage(const std::vector<Pixel>& colors) -> Pixel;
 auto GetColorAverage(const Pixel& color1, const Pixel& color2) -> Pixel;
-auto GetColorBlend(const Pixel& srceColor) -> Pixel;
+auto GetColorBlend(const Pixel& srce, const Pixel& dest) -> Pixel;
+auto GetColorMultiply(const Pixel& srce, const Pixel& dest, bool allowOverexposed) -> Pixel;
 auto GetColorAdd(const Pixel& color1, const Pixel& color2, bool allowOverexposed) -> Pixel;
 auto GetColorSubtract(const Pixel& color1, const Pixel& color2) -> Pixel;
 auto GetBrighterColorInt(uint32_t brightness, const Pixel& color, bool allowOverexposed) -> Pixel;
@@ -43,6 +44,11 @@ private:
   const float m_threshold;
 };
 
+
+inline auto ColorChannelMultiply(const uint8_t c1, const uint8_t c2) -> uint32_t
+{
+  return (static_cast<uint32_t>(c1) * static_cast<uint32_t>(c2)) >> 8;
+}
 
 inline auto ColorChannelAdd(const uint8_t c1, const uint8_t c2) -> uint32_t
 {
@@ -120,6 +126,34 @@ inline auto GetColorBlend(const Pixel& srce, const Pixel& dest) -> Pixel
       .g = static_cast<u_int8_t>(newG),
       .b = static_cast<u_int8_t>(newB),
       .a = static_cast<u_int8_t>(newA),
+  }};
+}
+
+inline auto GetColorMultiply(const Pixel& color1, const Pixel& color2, bool allowOverexposed)
+    -> Pixel
+{
+  uint32_t newR = ColorChannelMultiply(color1.R(), color2.R());
+  uint32_t newG = ColorChannelMultiply(color1.G(), color2.G());
+  uint32_t newB = ColorChannelMultiply(color1.B(), color2.B());
+  const uint32_t newA = ColorChannelMultiply(color1.A(), color2.A());
+
+  if (!allowOverexposed)
+  {
+    const uint32_t maxVal = std::max({newR, newG, newB});
+    if (maxVal > channel_limits<uint32_t>::max())
+    {
+      // scale all channels back
+      newR = (newR << 8) / maxVal;
+      newG = (newG << 8) / maxVal;
+      newB = (newB << 8) / maxVal;
+    }
+  }
+
+  return Pixel{{
+      .r = static_cast<uint8_t>((newR & 0xffffff00) ? 0xff : newR),
+      .g = static_cast<uint8_t>((newG & 0xffffff00) ? 0xff : newG),
+      .b = static_cast<uint8_t>((newB & 0xffffff00) ? 0xff : newB),
+      .a = static_cast<uint8_t>((newA & 0xffffff00) ? 0xff : newA),
   }};
 }
 

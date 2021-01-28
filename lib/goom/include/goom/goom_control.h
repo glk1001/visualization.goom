@@ -33,7 +33,7 @@ public:
   void SaveState(std::ostream& s) const;
   void RestoreState(std::istream& s);
 
-  auto GetResourcesDirectory() const -> const std::string&;
+  [[nodiscard]] auto GetResourcesDirectory() const -> const std::string&;
   void SetResourcesDirectory(const std::string& dirName);
 
   void SetScreenBuffer(PixelBuffer& buff);

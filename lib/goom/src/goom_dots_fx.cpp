@@ -4,6 +4,7 @@
 #include "goom_graphic.h"
 #include "goom_plugin_info.h"
 #include "goom_visual_fx.h"
+#include "goomutils/bitmaps.h"
 #include "goomutils/colormaps.h"
 #include "goomutils/colorutils.h"
 #include "goomutils/logging_control.h"
@@ -13,12 +14,17 @@
 #include "goomutils/random_colormaps.h"
 #include "goomutils/random_colormaps_manager.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "goomutils/stb_image.h"
+
 #include <cereal/archives/json.hpp>
 #include <cereal/types/memory.hpp>
 #include <cmath>
 #include <cstdint>
+#include <map>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 CEREAL_REGISTER_TYPE(GOOM::GoomDotsFx)
@@ -29,6 +35,77 @@ namespace GOOM
 
 using namespace GOOM::UTILS;
 using COLOR_DATA::ColorMapName;
+
+class ImageBitmap : public IBitmap
+{
+public:
+  ImageBitmap() noexcept = default;
+  explicit ImageBitmap(std::string imageFilename);
+
+  void SetFilename(std::string imageFilename);
+  void Load() override;
+
+private:
+  std::string m_filename{};
+};
+
+inline ImageBitmap::ImageBitmap(std::string imageFilename)
+  : IBitmap{}, m_filename{std::move(imageFilename)}
+{
+}
+
+void ImageBitmap::SetFilename(std::string imageFilename)
+{
+  m_filename = std::move(imageFilename);
+}
+
+inline void ImageBitmap::Load()
+{
+  int width{};
+  int height{};
+  int bpp{};
+  const uint8_t* rgbImage{};
+  try
+  {
+    rgbImage = stbi_load(m_filename.c_str(), &width, &height, &bpp, 3);
+  }
+  catch (std::exception& e)
+  {
+    throw std::runtime_error(
+        std20::format(R"(Could not load image file "{}". Exception: "{}".)", m_filename, e.what()));
+  }
+
+  if (!rgbImage)
+  {
+    throw std::runtime_error(std20::format(R"(Could not load image file "{}".)", m_filename));
+  }
+
+  if (width == 0 || height == 0 || bpp == 0)
+  {
+    throw std::runtime_error(
+        std20::format("Error loading image \"{}\". width = {}, height = {}, bpp = {}.", m_filename,
+                      width, height, bpp));
+  }
+
+  const uint8_t* rgbPtr = rgbImage;
+  Resize(static_cast<size_t>(width), static_cast<size_t>(height));
+  for (size_t y = 0; y < GetHeight(); ++y)
+  {
+    for (size_t x = 0; x < GetWidth(); ++x)
+    {
+      const uint8_t r = *rgbPtr;
+      rgbPtr++;
+      const uint8_t g = *rgbPtr;
+      rgbPtr++;
+      const uint8_t b = *rgbPtr;
+      rgbPtr++;
+
+      (*this)(x, y) = Pixel{.channels{.r = r, .g = g, .b = b, .a = 0xFF}};
+    }
+  }
+
+  stbi_image_free((void*)(rgbImage));
+}
 
 inline auto ChangeDotColorsEvent() -> bool
 {
@@ -46,7 +123,12 @@ public:
   auto operator=(const GoomDotsImpl&) -> GoomDotsImpl& = delete;
   auto operator=(GoomDotsImpl&&) -> GoomDotsImpl& = delete;
 
+  [[nodiscard]] auto GetResourcesDirectory() const -> const std::string&;
+  void SetResourcesDirectory(const std::string& dirName);
+
   void SetBuffSettings(const FXBuffSettings& settings);
+
+  void Start();
 
   void Apply(PixelBuffer& currentBuff);
   void Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff);
@@ -62,6 +144,15 @@ private:
   float m_pointHeightDiv2 = 0;
   float m_pointWidthDiv3 = 0;
   float m_pointHeightDiv3 = 0;
+
+  std::string m_resourcesDirectory{};
+
+  static constexpr size_t MIN_DOT_SIZE = 3;
+  static constexpr size_t MAX_DOT_SIZE = 21;
+  std::vector<std::map<size_t, ImageBitmap>> m_bitmapDotsList{};
+  std::map<size_t, ImageBitmap>* m_currentBitmapDots{};
+  void InitBitmaps();
+  auto GetImageBitmap(const std::string& name, size_t sizeOfSquare) -> ImageBitmap;
 
   GoomDraw m_draw{};
   FXBuffSettings m_buffSettings{};
@@ -89,7 +180,7 @@ private:
 
   uint32_t m_loopVar = 0; // mouvement des points
 
-  GammaCorrection m_gammaCorrect{4.2, 0.1};
+  GammaCorrection m_gammaCorrect{5.0, 0.01};
 
   void ChangeColors();
 
@@ -129,6 +220,16 @@ auto GoomDotsFx::operator==(const GoomDotsFx& d) const -> bool
   return m_fxImpl->operator==(*d.m_fxImpl);
 }
 
+auto GoomDotsFx::GetResourcesDirectory() const -> const std::string&
+{
+  return m_fxImpl->GetResourcesDirectory();
+}
+
+void GoomDotsFx::SetResourcesDirectory(const std::string& dirName)
+{
+  m_fxImpl->SetResourcesDirectory(dirName);
+}
+
 void GoomDotsFx::SetBuffSettings(const FXBuffSettings& settings)
 {
   m_fxImpl->SetBuffSettings(settings);
@@ -136,6 +237,7 @@ void GoomDotsFx::SetBuffSettings(const FXBuffSettings& settings)
 
 void GoomDotsFx::Start()
 {
+  m_fxImpl->Start();
 }
 
 void GoomDotsFx::Finish()
@@ -241,8 +343,22 @@ GoomDotsFx::GoomDotsImpl::GoomDotsImpl(const std::shared_ptr<const PluginInfo>& 
       m_colorMapsManager.AddColorMapInfo({m_colorMaps, ColorMapName::_NULL, RandomColorMaps::ALL});
   m_colorMap5Id =
       m_colorMapsManager.AddColorMapInfo({m_colorMaps, ColorMapName::_NULL, RandomColorMaps::ALL});
+}
 
+void GoomDotsFx::GoomDotsImpl::Start()
+{
+  InitBitmaps();
   ChangeColors();
+}
+
+auto GoomDotsFx::GoomDotsImpl::GetResourcesDirectory() const -> const std::string&
+{
+  return m_resourcesDirectory;
+}
+
+void GoomDotsFx::GoomDotsImpl::SetResourcesDirectory(const std::string& dirName)
+{
+  m_resourcesDirectory = dirName;
 }
 
 void GoomDotsFx::GoomDotsImpl::ChangeColors()
@@ -265,11 +381,12 @@ void GoomDotsFx::GoomDotsImpl::SetBuffSettings(const FXBuffSettings& settings)
 
 void GoomDotsFx::GoomDotsImpl::Apply(PixelBuffer& currentBuff)
 {
-  uint32_t radius = 3;
+  uint32_t radius = MIN_DOT_SIZE / 2;
   if ((m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom() == 0) || ChangeDotColorsEvent())
   {
     ChangeColors();
-    radius = GetRandInRange(5U, 7U);
+    radius = GetRandInRange(radius, MAX_DOT_SIZE / 2 + 1);
+    m_currentBitmapDots = &m_bitmapDotsList[GetRandInRange(0U, m_bitmapDotsList.size())];
   }
 
   const float largeFactor = GetLargeSoundFactor(m_goomInfo->GetSoundInfo());
@@ -300,38 +417,43 @@ void GoomDotsFx::GoomDotsImpl::Apply(PixelBuffer& currentBuff)
 
     const uint32_t loopvarDivI = m_loopVar / i;
     const float iMult10 = 10.0F * i;
-    const float brightness = 1.5F + 1.0F - t;
+    const float brightness = 1.5F + 1.0F; // - t;
 
-    const Pixel colors1 = GetColor(
-        m_middleColor, m_colorMapsManager.GetColorMap(m_colorMap1Id).GetColor(t), brightness);
+    const Pixel colors1 = m_colorMapsManager.GetColorMap(m_colorMap1Id).GetColor(t);
+    //    const Pixel colors1 = GetColor(
+    //        m_middleColor, m_colorMapsManager.GetColorMap(m_colorMap1Id).GetColor(t), brightness);
     const float color1T3 = i * 152.0F;
     const float color1T4 = 128.0F;
     const uint32_t color1Cycle = m_loopVar + i * 2032;
 
-    const Pixel colors2 = GetColor(
-        m_middleColor, m_colorMapsManager.GetColorMap(m_colorMap2Id).GetColor(t), brightness);
+    const Pixel colors2 = m_colorMapsManager.GetColorMap(m_colorMap2Id).GetColor(t);
+    //    const Pixel colors2 = GetColor(
+    //        m_middleColor, m_colorMapsManager.GetColorMap(m_colorMap2Id).GetColor(t), brightness);
     const float color2T1 = pointWidthDiv2MultLarge / i + iMult10;
     const float color2T2 = pointHeightDiv2MultLarge / i + iMult10;
     const float color2T3 = 96.0F;
     const float color2T4 = i * 80.0F;
     const uint32_t color2Cycle = loopvarDivI;
 
-    const Pixel colors3 = GetColor(
-        m_middleColor, m_colorMapsManager.GetColorMap(m_colorMap3Id).GetColor(t), brightness);
+    const Pixel colors3 = m_colorMapsManager.GetColorMap(m_colorMap3Id).GetColor(t);
+    //    const Pixel colors3 = GetColor(
+    //        m_middleColor, m_colorMapsManager.GetColorMap(m_colorMap3Id).GetColor(t), brightness);
     const float color3T1 = pointWidthDiv3MultLarge / i + iMult10;
     const float color3T2 = pointHeightDiv3MultLarge / i + iMult10;
     const float color3T3 = i + 122.0F;
     const float color3T4 = 134.0F;
     const uint32_t color3Cycle = loopvarDivI;
 
-    const Pixel colors4 = GetColor(
-        m_middleColor, m_colorMapsManager.GetColorMap(m_colorMap4Id).GetColor(t), brightness);
+    const Pixel colors4 = m_colorMapsManager.GetColorMap(m_colorMap4Id).GetColor(t);
+    //    const Pixel colors4 = GetColor(
+    //        m_middleColor, m_colorMapsManager.GetColorMap(m_colorMap4Id).GetColor(t), brightness);
     const float color4T3 = 58.0F;
     const float color4T4 = i * 66.0F;
     const uint32_t color4Cycle = loopvarDivI;
 
-    const Pixel colors5 = GetColor(
-        m_middleColor, m_colorMapsManager.GetColorMap(m_colorMap5Id).GetColor(t), brightness);
+    const Pixel colors5 = m_colorMapsManager.GetColorMap(m_colorMap5Id).GetColor(t);
+    //    const Pixel colors5 = GetColor(
+    //        m_middleColor, m_colorMapsManager.GetColorMap(m_colorMap5Id).GetColor(t), brightness);
     const float color5T1 = (pointWidthMultLarge + iMult10) / i;
     const float color5T2 = (pointHeightMultLarge + iMult10) / i;
     const float color5T3 = 66.0F;
@@ -358,7 +480,7 @@ auto GoomDotsFx::GoomDotsImpl::GetColor(const Pixel& color0,
                                         const Pixel& color1,
                                         const float brightness) -> Pixel
 {
-  constexpr float T_MIN = 0.5;
+  constexpr float T_MIN = 0.9999;
   constexpr float T_MAX = 1.0;
   const float tMix = GetRandInRange(T_MIN, T_MAX);
   Pixel color{};
@@ -394,14 +516,14 @@ void GoomDotsFx::GoomDotsImpl::DotFilter(PixelBuffer& currentBuff,
                                          const float t3,
                                          const float t4,
                                          const uint32_t cycle,
-                                         const uint32_t radius)
+                                         uint32_t radius)
 {
   const auto xOffset = static_cast<uint32_t>(t1 * std::cos(static_cast<float>(cycle) / t3));
   const auto yOffset = static_cast<uint32_t>(t2 * std::sin(static_cast<float>(cycle) / t4));
   const auto x0 = static_cast<int>(m_goomInfo->GetScreenInfo().width / 2 + xOffset);
   const auto y0 = static_cast<int>(m_goomInfo->GetScreenInfo().height / 2 + yOffset);
 
-  const uint32_t diameter = 2 * radius;
+  const uint32_t diameter = 2 * radius + 1; // must be odd
   const auto screenWidthLessDiameter =
       static_cast<int>(m_goomInfo->GetScreenInfo().width - diameter);
   const auto screenHeightLessDiameter =
@@ -415,7 +537,56 @@ void GoomDotsFx::GoomDotsImpl::DotFilter(PixelBuffer& currentBuff,
 
   const auto xMid = x0 + static_cast<int32_t>(radius);
   const auto yMid = y0 + static_cast<int32_t>(radius);
-  m_draw.FilledCircle(currentBuff, xMid, yMid, static_cast<int>(radius), color);
+  constexpr float BRIGHTNESS = 12.0F;
+  const auto getColor = [&]([[maybe_unused]] const int x, [[maybe_unused]] const int y,
+                            const Pixel& b) -> Pixel {
+    // const Pixel newColor = x == xMid && y == yMid ? m_middleColor : color;
+    return m_gammaCorrect.GetCorrection(
+        BRIGHTNESS, GetColorMultiply(b, color, m_buffSettings.allowOverexposed));
+  };
+  m_draw.Bitmap(currentBuff, xMid, yMid, (*m_currentBitmapDots)[diameter].GetBitmap(), getColor);
+  //  m_draw.FilledCircle(currentBuff, xMid, yMid, static_cast<int>(radius), color);
+}
+
+void GoomDotsFx::GoomDotsImpl::InitBitmaps()
+{
+  std::map<size_t, ImageBitmap> bitmapDots{};
+
+  bitmapDots.clear();
+  for (size_t res = MIN_DOT_SIZE; res <= MAX_DOT_SIZE; res += 2)
+  {
+    bitmapDots.emplace(res, GetImageBitmap("circle", res));
+  }
+  m_bitmapDotsList.emplace_back(bitmapDots);
+
+  bitmapDots.clear();
+  for (size_t res = MIN_DOT_SIZE; res <= MAX_DOT_SIZE; res += 2)
+  {
+    bitmapDots.emplace(res, GetImageBitmap("yellow-flower", res));
+  }
+  m_bitmapDotsList.emplace_back(bitmapDots);
+
+  bitmapDots.clear();
+  for (size_t res = MIN_DOT_SIZE; res <= MAX_DOT_SIZE; res += 2)
+  {
+    bitmapDots.emplace(res, GetImageBitmap("red-flower", res));
+  }
+  m_bitmapDotsList.emplace_back(bitmapDots);
+
+  m_currentBitmapDots = &m_bitmapDotsList[GetRandInRange(0U, m_bitmapDotsList.size())];
+}
+
+auto GoomDotsFx::GoomDotsImpl::GetImageBitmap(const std::string& name, const size_t sizeOfSquare)
+    -> ImageBitmap
+{
+  // TODO What about windows "\"
+  const std::string dotsDir = m_resourcesDirectory + "/" + "dots";
+  const std::string filename =
+      std20::format("{}/{}{:02}x{:02}.png", dotsDir, name, sizeOfSquare, sizeOfSquare);
+
+  ImageBitmap imageBitmap{filename};
+  imageBitmap.Load();
+  return imageBitmap;
 }
 
 } // namespace GOOM

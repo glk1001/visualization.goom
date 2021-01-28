@@ -2,12 +2,17 @@
 
 #include "draw_methods.h"
 #include "goom_graphic.h"
+#include "goomutils/colormaps.h"
+#include "goomutils/colorutils.h"
 
+#include <cassert>
 #include <cstdint>
 #include <vector>
 
 namespace GOOM
 {
+
+using namespace UTILS;
 
 GoomDraw::GoomDraw() : m_screenWidth{0}, m_screenHeight{0}
 {
@@ -58,6 +63,45 @@ void GoomDraw::FilledCircle(std::vector<PixelBuffer*>& buffs,
 {
   DrawFilledCircle(buffs, x0, y0, radius, colors, m_intBuffIntensity, m_allowOverexposed,
                    m_screenWidth, m_screenHeight);
+}
+
+void GoomDraw::Bitmap(PixelBuffer& buff,
+                      int xCentre,
+                      int yCentre,
+                      const BitmapType& bitmap,
+                      const GetColorFunc& getColor) const
+{
+  const size_t bitmapHeight = bitmap.size();
+  const size_t bitmapWidth = bitmap[0].size();
+  const int x0 = xCentre - static_cast<int>(bitmapWidth / 2);
+  const int y0 = yCentre - static_cast<int>(bitmapHeight / 2);
+  int y = y0;
+  for (const auto& row : bitmap)
+  {
+    assert(bitmapWidth == row.size());
+    int x = x0;
+    int pos = y * static_cast<int>(m_screenWidth) + x0;
+    for (const auto& color : row)
+    {
+      const Pixel finalColor = getColor(x, y, color);
+      DrawPixel(&buff, pos, finalColor, m_intBuffIntensity, m_allowOverexposed);
+      pos++;
+      x++;
+    }
+    y++;
+  }
+}
+
+void GoomDraw::Bitmap(std::vector<PixelBuffer*>& buffs,
+                      int xCentre,
+                      int yCentre,
+                      const std::vector<BitmapType>& bitmaps,
+                      const std::vector<GetColorFunc>& getColors) const
+{
+  for (size_t i = 0; i < buffs.size(); i++)
+  {
+    Bitmap(*(buffs[i]), xCentre, yCentre, bitmaps[i], getColors[i]);
+  }
 }
 
 void GoomDraw::Line(PixelBuffer& buff,
