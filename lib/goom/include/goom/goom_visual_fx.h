@@ -51,14 +51,10 @@ public:
   [[nodiscard]] virtual auto GetFxName() const -> std::string = 0;
   virtual void SetBuffSettings(const FXBuffSettings& settings) = 0;
 
-  virtual void Start(){};
+  virtual void Start() = 0;
 
-  virtual void ApplyNoDraw(){};
-  virtual void Apply(PixelBuffer& currentBuff) = 0;
-  virtual void Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff) = 0;
-
-  virtual void Log([[maybe_unused]] const StatsLogValueFunc& l) const {};
-  virtual void Finish(){};
+  virtual void Log([[maybe_unused]] const StatsLogValueFunc& l) const = 0;
+  virtual void Finish() = 0;
 };
 
 } // namespace GOOM

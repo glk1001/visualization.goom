@@ -348,11 +348,6 @@ auto FlyingStarsFx::GetFxName() const -> std::string
   return "Flying Stars FX";
 }
 
-void FlyingStarsFx::Apply([[maybe_unused]] PixelBuffer& buff)
-{
-  throw std::logic_error("FlyingStarsFx::Apply should never be called.");
-}
-
 void FlyingStarsFx::Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
 {
   if (!m_enabled)

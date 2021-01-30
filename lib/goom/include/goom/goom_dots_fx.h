@@ -32,17 +32,17 @@ public:
 
   void Start() override;
 
-  void Apply(PixelBuffer& currentBuff) override;
-  void Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff) override;
+  void Apply(PixelBuffer& currentBuff);
 
+  void Log(const StatsLogValueFunc& l) const override;
   void Finish() override;
 
   auto operator==(const GoomDotsFx& d) const -> bool;
 
 private:
   bool m_enabled = true;
-  class GoomDotsImpl;
-  std::unique_ptr<GoomDotsImpl> m_fxImpl;
+  class GoomDotsFxImpl;
+  std::unique_ptr<GoomDotsFxImpl> m_fxImpl;
 
   friend class cereal::access;
   template<class Archive>

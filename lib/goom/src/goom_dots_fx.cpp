@@ -38,16 +38,16 @@ inline auto ChangeDotColorsEvent() -> bool
   return ProbabilityOfMInN(1, 3);
 }
 
-class GoomDotsFx::GoomDotsImpl
+class GoomDotsFx::GoomDotsFxImpl
 {
 public:
-  GoomDotsImpl() noexcept;
-  explicit GoomDotsImpl(const std::shared_ptr<const PluginInfo>& info) noexcept;
-  ~GoomDotsImpl() noexcept = default;
-  GoomDotsImpl(const GoomDotsImpl&) noexcept = delete;
-  GoomDotsImpl(GoomDotsImpl&&) noexcept = delete;
-  auto operator=(const GoomDotsImpl&) -> GoomDotsImpl& = delete;
-  auto operator=(GoomDotsImpl&&) -> GoomDotsImpl& = delete;
+  GoomDotsFxImpl() noexcept;
+  explicit GoomDotsFxImpl(const std::shared_ptr<const PluginInfo>& info) noexcept;
+  ~GoomDotsFxImpl() noexcept = default;
+  GoomDotsFxImpl(const GoomDotsFxImpl&) noexcept = delete;
+  GoomDotsFxImpl(GoomDotsFxImpl&&) noexcept = delete;
+  auto operator=(const GoomDotsFxImpl&) -> GoomDotsFxImpl& = delete;
+  auto operator=(GoomDotsFxImpl&&) -> GoomDotsFxImpl& = delete;
 
   [[nodiscard]] auto GetResourcesDirectory() const -> const std::string&;
   void SetResourcesDirectory(const std::string& dirName);
@@ -59,7 +59,7 @@ public:
   void Apply(PixelBuffer& currentBuff);
   void Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff);
 
-  auto operator==(const GoomDotsImpl& d) const -> bool;
+  auto operator==(const GoomDotsFxImpl& d) const -> bool;
 
 private:
   std::shared_ptr<const PluginInfo> m_goomInfo{};
@@ -131,12 +131,12 @@ private:
   void load(Archive& ar);
 };
 
-GoomDotsFx::GoomDotsFx() noexcept : m_fxImpl{new GoomDotsImpl{}}
+GoomDotsFx::GoomDotsFx() noexcept : m_fxImpl{new GoomDotsFxImpl{}}
 {
 }
 
 GoomDotsFx::GoomDotsFx(const std::shared_ptr<const PluginInfo>& info) noexcept
-  : m_fxImpl{new GoomDotsImpl{info}}
+  : m_fxImpl{new GoomDotsFxImpl{info}}
 {
 }
 
@@ -167,6 +167,10 @@ void GoomDotsFx::Start()
   m_fxImpl->Start();
 }
 
+void GoomDotsFx::Log([[maybe_unused]] const StatsLogValueFunc& l) const
+{
+}
+
 void GoomDotsFx::Finish()
 {
 }
@@ -185,15 +189,6 @@ void GoomDotsFx::Apply(PixelBuffer& currentBuff)
   m_fxImpl->Apply(currentBuff);
 }
 
-void GoomDotsFx::Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
-{
-  if (!m_enabled)
-  {
-    return;
-  }
-  m_fxImpl->Apply(currentBuff, nextBuff);
-}
-
 template<class Archive>
 void GoomDotsFx::serialize(Archive& ar)
 {
@@ -204,12 +199,12 @@ void GoomDotsFx::serialize(Archive& ar)
 template void GoomDotsFx::serialize<cereal::JSONOutputArchive>(cereal::JSONOutputArchive&);
 template void GoomDotsFx::serialize<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
 
-template void GoomDotsFx::GoomDotsImpl::save<cereal::JSONOutputArchive>(
+template void GoomDotsFx::GoomDotsFxImpl::save<cereal::JSONOutputArchive>(
     cereal::JSONOutputArchive&) const;
-template void GoomDotsFx::GoomDotsImpl::load<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
+template void GoomDotsFx::GoomDotsFxImpl::load<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
 
 template<class Archive>
-void GoomDotsFx::GoomDotsImpl::save(Archive& ar) const
+void GoomDotsFx::GoomDotsFxImpl::save(Archive& ar) const
 {
   ar(CEREAL_NVP(m_goomInfo), CEREAL_NVP(m_pointWidth), CEREAL_NVP(m_pointHeight),
      CEREAL_NVP(m_pointWidthDiv2), CEREAL_NVP(m_pointHeightDiv2), CEREAL_NVP(m_pointWidthDiv3),
@@ -219,7 +214,7 @@ void GoomDotsFx::GoomDotsImpl::save(Archive& ar) const
 }
 
 template<class Archive>
-void GoomDotsFx::GoomDotsImpl::load(Archive& ar)
+void GoomDotsFx::GoomDotsFxImpl::load(Archive& ar)
 {
   ar(CEREAL_NVP(m_goomInfo), CEREAL_NVP(m_pointWidth), CEREAL_NVP(m_pointHeight),
      CEREAL_NVP(m_pointWidthDiv2), CEREAL_NVP(m_pointHeightDiv2), CEREAL_NVP(m_pointWidthDiv3),
@@ -228,7 +223,7 @@ void GoomDotsFx::GoomDotsImpl::load(Archive& ar)
      CEREAL_NVP(m_loopVar));
 }
 
-auto GoomDotsFx::GoomDotsImpl::operator==(const GoomDotsImpl& d) const -> bool
+auto GoomDotsFx::GoomDotsFxImpl::operator==(const GoomDotsFxImpl& d) const -> bool
 {
   if (m_goomInfo == nullptr && d.m_goomInfo != nullptr)
   {
@@ -248,9 +243,9 @@ auto GoomDotsFx::GoomDotsImpl::operator==(const GoomDotsImpl& d) const -> bool
          m_useGrayScale == d.m_useGrayScale && m_loopVar == d.m_loopVar;
 }
 
-GoomDotsFx::GoomDotsImpl::GoomDotsImpl() noexcept = default;
+GoomDotsFx::GoomDotsFxImpl::GoomDotsFxImpl() noexcept = default;
 
-GoomDotsFx::GoomDotsImpl::GoomDotsImpl(const std::shared_ptr<const PluginInfo>& info) noexcept
+GoomDotsFx::GoomDotsFxImpl::GoomDotsFxImpl(const std::shared_ptr<const PluginInfo>& info) noexcept
   : m_goomInfo(info),
     m_pointWidth{(m_goomInfo->GetScreenInfo().width * 2) / 5},
     m_pointHeight{(m_goomInfo->GetScreenInfo().height * 2) / 5},
@@ -272,23 +267,23 @@ GoomDotsFx::GoomDotsImpl::GoomDotsImpl(const std::shared_ptr<const PluginInfo>& 
       m_colorMapsManager.AddColorMapInfo({m_colorMaps, ColorMapName::_NULL, RandomColorMaps::ALL});
 }
 
-void GoomDotsFx::GoomDotsImpl::Start()
+void GoomDotsFx::GoomDotsFxImpl::Start()
 {
   InitBitmaps();
   ChangeColors();
 }
 
-auto GoomDotsFx::GoomDotsImpl::GetResourcesDirectory() const -> const std::string&
+auto GoomDotsFx::GoomDotsFxImpl::GetResourcesDirectory() const -> const std::string&
 {
   return m_resourcesDirectory;
 }
 
-void GoomDotsFx::GoomDotsImpl::SetResourcesDirectory(const std::string& dirName)
+void GoomDotsFx::GoomDotsFxImpl::SetResourcesDirectory(const std::string& dirName)
 {
   m_resourcesDirectory = dirName;
 }
 
-void GoomDotsFx::GoomDotsImpl::ChangeColors()
+void GoomDotsFx::GoomDotsFxImpl::ChangeColors()
 {
   m_colorMapsManager.ChangeAllColorMapsNow();
 
@@ -299,14 +294,14 @@ void GoomDotsFx::GoomDotsImpl::ChangeColors()
   m_useGrayScale = ProbabilityOfMInN(0, 10);
 }
 
-void GoomDotsFx::GoomDotsImpl::SetBuffSettings(const FXBuffSettings& settings)
+void GoomDotsFx::GoomDotsFxImpl::SetBuffSettings(const FXBuffSettings& settings)
 {
   m_buffSettings = settings;
   m_draw.SetBuffIntensity(m_buffSettings.buffIntensity);
   m_draw.SetAllowOverexposed(m_buffSettings.allowOverexposed);
 }
 
-void GoomDotsFx::GoomDotsImpl::Apply(PixelBuffer& currentBuff)
+void GoomDotsFx::GoomDotsFxImpl::Apply(PixelBuffer& currentBuff)
 {
   uint32_t radius = MIN_DOT_SIZE / 2;
   if ((m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom() == 0) || ChangeDotColorsEvent())
@@ -397,15 +392,9 @@ void GoomDotsFx::GoomDotsImpl::Apply(PixelBuffer& currentBuff)
   }
 }
 
-void GoomDotsFx::GoomDotsImpl::Apply([[maybe_unused]] PixelBuffer& currentBuff,
-                                     [[maybe_unused]] PixelBuffer& nextBuff)
-{
-  throw std::logic_error("GoomDotsFx::GoomDotsImpl::Apply should never be called.");
-}
-
-auto GoomDotsFx::GoomDotsImpl::GetColor(const Pixel& color0,
-                                        const Pixel& color1,
-                                        const float brightness) -> Pixel
+auto GoomDotsFx::GoomDotsFxImpl::GetColor(const Pixel& color0,
+                                          const Pixel& color1,
+                                          const float brightness) -> Pixel
 {
   constexpr float T_MIN = 0.9999;
   constexpr float T_MAX = 1.0;
@@ -426,7 +415,7 @@ auto GoomDotsFx::GoomDotsImpl::GetColor(const Pixel& color0,
   return m_gammaCorrect.GetCorrection(brightness, color);
 }
 
-auto GoomDotsFx::GoomDotsImpl::GetLargeSoundFactor(const SoundInfo& soundInfo) -> float
+auto GoomDotsFx::GoomDotsFxImpl::GetLargeSoundFactor(const SoundInfo& soundInfo) -> float
 {
   float largeFactor = soundInfo.GetSpeed() / 150.0F + soundInfo.GetVolume() / 1.5F;
   if (largeFactor > 1.5F)
@@ -436,14 +425,14 @@ auto GoomDotsFx::GoomDotsImpl::GetLargeSoundFactor(const SoundInfo& soundInfo) -
   return largeFactor;
 }
 
-void GoomDotsFx::GoomDotsImpl::DotFilter(PixelBuffer& currentBuff,
-                                         const Pixel& color,
-                                         const float t1,
-                                         const float t2,
-                                         const float t3,
-                                         const float t4,
-                                         const uint32_t cycle,
-                                         uint32_t radius)
+void GoomDotsFx::GoomDotsFxImpl::DotFilter(PixelBuffer& currentBuff,
+                                           const Pixel& color,
+                                           const float t1,
+                                           const float t2,
+                                           const float t3,
+                                           const float t4,
+                                           const uint32_t cycle,
+                                           uint32_t radius)
 {
   const auto xOffset = static_cast<uint32_t>(t1 * std::cos(static_cast<float>(cycle) / t3));
   const auto yOffset = static_cast<uint32_t>(t2 * std::sin(static_cast<float>(cycle) / t4));
@@ -475,7 +464,7 @@ void GoomDotsFx::GoomDotsImpl::DotFilter(PixelBuffer& currentBuff,
   m_draw.Bitmap(currentBuff, xMid, yMid, *(*m_currentBitmapDots)[diameter], getColor);
 }
 
-void GoomDotsFx::GoomDotsImpl::InitBitmaps()
+void GoomDotsFx::GoomDotsFxImpl::InitBitmaps()
 {
   std::map<size_t, std::shared_ptr<ImageBitmap>> bitmapDots{};
   // Add images with odd res - hence the += 2
@@ -504,7 +493,7 @@ void GoomDotsFx::GoomDotsImpl::InitBitmaps()
   m_currentBitmapDots = &m_bitmapDotsList[GetRandInRange(0U, m_bitmapDotsList.size())];
 }
 
-auto GoomDotsFx::GoomDotsImpl::GetImageBitmap(const std::string& name, const size_t sizeOfSquare)
+auto GoomDotsFx::GoomDotsFxImpl::GetImageBitmap(const std::string& name, const size_t sizeOfSquare)
     -> std::shared_ptr<ImageBitmap>
 {
   auto imageBitmap = std::make_shared<ImageBitmap>(GetImageFilename(name, sizeOfSquare));
@@ -512,7 +501,7 @@ auto GoomDotsFx::GoomDotsImpl::GetImageBitmap(const std::string& name, const siz
   return imageBitmap;
 }
 
-auto GoomDotsFx::GoomDotsImpl::GetImageFilename(const std::string& name, size_t sizeOfSquare)
+auto GoomDotsFx::GoomDotsFxImpl::GetImageFilename(const std::string& name, size_t sizeOfSquare)
     -> std::string
 {
   // TODO What about windows "\"

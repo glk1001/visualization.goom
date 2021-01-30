@@ -773,17 +773,6 @@ auto ZoomFilterFx::GetFxName() const -> std::string
   return "ZoomFilter FX";
 }
 
-void ZoomFilterFx::Apply([[maybe_unused]] PixelBuffer& currentBuff)
-{
-  throw std::logic_error("ZoomFilterFx::Apply should never be called.");
-}
-
-void ZoomFilterFx::Apply([[maybe_unused]] PixelBuffer& currentBuff,
-                         [[maybe_unused]] PixelBuffer& nextBuff)
-{
-  throw std::logic_error("ZoomFilterFx::Apply should never be called.");
-}
-
 void ZoomFilterFx::ZoomFilterFastRgb(const PixelBuffer& pix1,
                                      PixelBuffer& pix2,
                                      const ZoomFilterData* zf,

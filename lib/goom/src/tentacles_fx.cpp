@@ -570,11 +570,6 @@ void TentaclesFx::Log(const StatsLogValueFunc& logVal) const
   m_fxImpl->LogStats(logVal);
 }
 
-void TentaclesFx::Apply([[maybe_unused]] PixelBuffer& currentBuff)
-{
-  throw std::logic_error("TentaclesFx::Apply should never be called.");
-}
-
 void TentaclesFx::Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
 {
   if (!m_enabled)

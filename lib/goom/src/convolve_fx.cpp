@@ -95,17 +95,6 @@ auto ConvolveFx::GetFxName() const -> std::string
   return "Convolve FX";
 }
 
-void ConvolveFx::Apply([[maybe_unused]] PixelBuffer& currentBuff)
-{
-  throw std::logic_error("ConvolveFx::Apply should never be called.");
-}
-
-void ConvolveFx::Apply([[maybe_unused]] PixelBuffer& currentBuff,
-                       [[maybe_unused]] PixelBuffer& nextBuff)
-{
-  throw std::logic_error("ConvolveFx::Apply should never be called.");
-}
-
 void ConvolveFx::Convolve(const PixelBuffer& currentBuff, PixelBuffer& outputBuff)
 {
   if (!m_enabled)

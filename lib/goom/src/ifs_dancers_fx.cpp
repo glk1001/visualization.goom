@@ -1217,11 +1217,6 @@ void IfsDancersFx::ApplyNoDraw()
   m_fxImpl->ApplyNoDraw();
 }
 
-void IfsDancersFx::Apply([[maybe_unused]] PixelBuffer& currentBuff)
-{
-  throw std::logic_error("IfsDancersFx::Apply should never be called.");
-}
-
 void IfsDancersFx::Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
 {
   if (!m_enabled)
