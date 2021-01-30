@@ -48,23 +48,6 @@ void GoomDraw::Circle(std::vector<PixelBuffer*>& buffs,
              m_screenHeight);
 }
 
-void GoomDraw::FilledCircle(
-    PixelBuffer& buff, const int x0, const int y0, const int radius, const Pixel& color) const
-{
-  DrawFilledCircle(buff, x0, y0, radius, color, m_intBuffIntensity, m_allowOverexposed,
-                   m_screenWidth, m_screenHeight);
-}
-
-void GoomDraw::FilledCircle(std::vector<PixelBuffer*>& buffs,
-                            const int x0,
-                            const int y0,
-                            const int radius,
-                            const std::vector<Pixel>& colors) const
-{
-  DrawFilledCircle(buffs, x0, y0, radius, colors, m_intBuffIntensity, m_allowOverexposed,
-                   m_screenWidth, m_screenHeight);
-}
-
 void GoomDraw::Bitmap(PixelBuffer& buff,
                       int xCentre,
                       int yCentre,
@@ -80,7 +63,7 @@ void GoomDraw::Bitmap(PixelBuffer& buff,
   {
     assert(bitmapWidth == row.size());
     int x = x0;
-    int pos = y * static_cast<int>(m_screenWidth) + x0;
+    int pos = y * static_cast<int>(m_screenWidth) + x;
     for (const auto& color : row)
     {
       const Pixel finalColor = getColor(x, y, color);

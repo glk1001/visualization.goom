@@ -102,22 +102,6 @@ void DrawCircle(std::vector<PixelBuffer*>& buffs,
   DrawBresenhamCircle(x0, y0, radius, plotter);
 }
 
-void DrawFilledCircle(PixelBuffer& buff,
-                      const int x0,
-                      const int y0,
-                      const int radius,
-                      const Pixel& color,
-                      const uint32_t buffIntensity,
-                      const bool allowOverexposed,
-                      const uint32_t screenWidth,
-                      const uint32_t screenHeight)
-{
-  std::vector<PixelBuffer*> buffs{&buff};
-  const std::vector<Pixel> colors{color};
-  DrawFilledCircle(buffs, x0, y0, radius, colors, buffIntensity, allowOverexposed, screenWidth,
-                   screenHeight);
-}
-
 static void DrawHorizontalLine(std::vector<PixelBuffer*>& buffs,
                                const int x1,
                                const int y,

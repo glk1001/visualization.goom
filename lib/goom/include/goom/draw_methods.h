@@ -31,26 +31,6 @@ void DrawCircle(std::vector<PixelBuffer*>& buffs,
                 uint32_t screenWidth,
                 uint32_t screenHeight);
 
-void DrawFilledCircle(PixelBuffer& buff,
-                      int x0,
-                      int y0,
-                      int radius,
-                      const Pixel& color,
-                      uint32_t buffIntensity,
-                      bool allowOverexposed,
-                      uint32_t screenWidth,
-                      uint32_t screenHeight);
-
-void DrawFilledCircle(std::vector<PixelBuffer*>& buffs,
-                      int x0,
-                      int y0,
-                      int radius,
-                      const std::vector<Pixel>& colors,
-                      uint32_t buffIntensity,
-                      bool allowOverexposed,
-                      uint32_t screenWidth,
-                      uint32_t screenHeight);
-
 void DrawLine(std::vector<PixelBuffer*>& buffs,
               int x1,
               int y1,

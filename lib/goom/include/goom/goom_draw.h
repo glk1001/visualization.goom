@@ -45,14 +45,6 @@ public:
               int radius,
               const std::vector<Pixel>& colors) const;
 
-  void FilledCircle(PixelBuffer& buff, int x0, int y0, int radius, const Pixel& color) const;
-
-  void FilledCircle(std::vector<PixelBuffer*>& buffs,
-                    int x0,
-                    int y0,
-                    int radius,
-                    const std::vector<Pixel>& colors) const;
-
   using BitmapType = std::vector<std::vector<Pixel>>;
   using GetColorFunc = std::function<auto(int x, int y, const Pixel& b)->Pixel>;
 
