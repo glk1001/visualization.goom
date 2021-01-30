@@ -52,7 +52,7 @@ void Parallel::ForLoop(uint32_t numIters, const Callable loopFunc)
 {
   const uint32_t numThreads = m_threadPool.NumWorkers();
 
-  if (numIters < numThreads)
+  if (numIters < numThreads || numThreads == 1)
   {
     for (uint32_t i = 0; i < numIters; i++)
     {

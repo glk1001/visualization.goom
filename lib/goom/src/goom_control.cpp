@@ -911,8 +911,7 @@ auto GoomImageBuffers::GetPixelBuffs(const uint32_t resx, const uint32_t resy)
   std::vector<std::unique_ptr<PixelBuffer>> newBuffs(MAX_NUM_BUFFS);
   for (auto& b : newBuffs)
   {
-    // Allocate one extra row and column to help the filter process handle edges.
-    b = std::make_unique<PixelBuffer>(resx + 1, resy + 1);
+    b = std::make_unique<PixelBuffer>(resx, resy);
   }
   return newBuffs;
 }

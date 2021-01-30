@@ -805,7 +805,7 @@ const ZoomFilterData& ZoomFilterFx::GetFilterData() const
 
 float ZoomFilterFx::GetGeneralSpeed() const
 {
-        return m_fxImpl->GetGeneralSpeed();
+  return m_fxImpl->GetGeneralSpeed();
 }
 
 int32_t ZoomFilterFx::GetInterlaceStart() const
@@ -1009,12 +1009,21 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff, PixelBuffe
       };
 
       const auto [srcePos, coeffs] = getSrceInfo();
-      const PixelArray colors = {
-          srceBuff(srcePos),
-          srceBuff(srcePos + 1),
-          srceBuff(srcePos + m_screenWidth),
-          srceBuff(srcePos + m_screenWidth + 1),
-      };
+
+      PixelArray colors;
+      if (srcePos >= m_bufferSize - 1)
+      {
+        colors = PixelArray{srceBuff(srcePos), Pixel::BLACK, Pixel::BLACK, Pixel::BLACK};
+      }
+      else
+      {
+        colors = PixelArray{
+            srceBuff(srcePos),
+            srceBuff(srcePos + 1),
+            srceBuff(srcePos + m_screenWidth),
+            srceBuff(srcePos + m_screenWidth + 1),
+        };
+      }
 
       if (m_filterData.blockyWavy)
       {

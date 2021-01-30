@@ -101,6 +101,9 @@ public:
   [[nodiscard]] auto Rgba() const -> uint32_t;
   void SetRgba(uint32_t v);
 
+  static const Pixel BLACK;
+  static const Pixel WHITE;
+
   auto operator==(const Pixel& p) const -> bool;
 
   template<class Archive>
@@ -114,6 +117,14 @@ private:
   };
   Color m_color;
 };
+
+inline const Pixel Pixel::BLACK{
+    .channels{.r = 0, .g = 0, .b = 0, .a = channel_limits<uint8_t>::max()}};
+
+inline const Pixel Pixel::WHITE{.channels{.r = channel_limits<uint8_t>::max(),
+                                          .g = channel_limits<uint8_t>::max(),
+                                          .b = channel_limits<uint8_t>::max(),
+                                          .a = channel_limits<uint8_t>::max()}};
 
 class PixelBuffer
 {
@@ -301,12 +312,12 @@ inline auto PixelBuffer::operator()(const size_t pos) -> Pixel&
 
 inline auto PixelBuffer::operator()(const size_t x, const size_t y) const -> const Pixel&
 {
-  return (*this)(y * m_width + x);
+  return m_buff[y * m_width + x];
 }
 
 inline auto PixelBuffer::operator()(const size_t x, const size_t y) -> Pixel&
 {
-  return (*this)(y * m_width + x);
+  return m_buff[y * m_width + x];
 }
 
 } // namespace GOOM
