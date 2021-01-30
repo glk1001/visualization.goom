@@ -4,18 +4,15 @@
 #include "goom_graphic.h"
 #include "goom_plugin_info.h"
 #include "goom_visual_fx.h"
-#include "goomutils/bitmaps.h"
 #include "goomutils/colormaps.h"
 #include "goomutils/colorutils.h"
+#include "goomutils/image_bitmaps.h"
 #include "goomutils/logging_control.h"
 #undef NO_LOGGING
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
 #include "goomutils/random_colormaps.h"
 #include "goomutils/random_colormaps_manager.h"
-
-#define STB_IMAGE_IMPLEMENTATION
-#include "goomutils/stb_image.h"
 
 #include <cereal/archives/json.hpp>
 #include <cereal/types/memory.hpp>
@@ -35,77 +32,6 @@ namespace GOOM
 
 using namespace GOOM::UTILS;
 using COLOR_DATA::ColorMapName;
-
-class ImageBitmap : public IBitmap
-{
-public:
-  ImageBitmap() noexcept = default;
-  explicit ImageBitmap(std::string imageFilename);
-
-  void SetFilename(std::string imageFilename);
-  void Load() override;
-
-private:
-  std::string m_filename{};
-};
-
-inline ImageBitmap::ImageBitmap(std::string imageFilename)
-  : IBitmap{}, m_filename{std::move(imageFilename)}
-{
-}
-
-void ImageBitmap::SetFilename(std::string imageFilename)
-{
-  m_filename = std::move(imageFilename);
-}
-
-inline void ImageBitmap::Load()
-{
-  int width{};
-  int height{};
-  int bpp{};
-  const uint8_t* rgbImage{};
-  try
-  {
-    rgbImage = stbi_load(m_filename.c_str(), &width, &height, &bpp, 3);
-  }
-  catch (std::exception& e)
-  {
-    throw std::runtime_error(
-        std20::format(R"(Could not load image file "{}". Exception: "{}".)", m_filename, e.what()));
-  }
-
-  if (!rgbImage)
-  {
-    throw std::runtime_error(std20::format(R"(Could not load image file "{}".)", m_filename));
-  }
-
-  if (width == 0 || height == 0 || bpp == 0)
-  {
-    throw std::runtime_error(
-        std20::format("Error loading image \"{}\". width = {}, height = {}, bpp = {}.", m_filename,
-                      width, height, bpp));
-  }
-
-  const uint8_t* rgbPtr = rgbImage;
-  Resize(static_cast<size_t>(width), static_cast<size_t>(height));
-  for (size_t y = 0; y < GetHeight(); ++y)
-  {
-    for (size_t x = 0; x < GetWidth(); ++x)
-    {
-      const uint8_t r = *rgbPtr;
-      rgbPtr++;
-      const uint8_t g = *rgbPtr;
-      rgbPtr++;
-      const uint8_t b = *rgbPtr;
-      rgbPtr++;
-
-      (*this)(x, y) = Pixel{.channels{.r = r, .g = g, .b = b, .a = 0xFF}};
-    }
-  }
-
-  stbi_image_free((void*)(rgbImage));
-}
 
 inline auto ChangeDotColorsEvent() -> bool
 {
@@ -149,10 +75,11 @@ private:
 
   static constexpr size_t MIN_DOT_SIZE = 3;
   static constexpr size_t MAX_DOT_SIZE = 21;
-  std::vector<std::map<size_t, ImageBitmap>> m_bitmapDotsList{};
-  std::map<size_t, ImageBitmap>* m_currentBitmapDots{};
+  std::vector<std::map<size_t, std::shared_ptr<ImageBitmap>>> m_bitmapDotsList{};
+  std::map<size_t, std::shared_ptr<ImageBitmap>>* m_currentBitmapDots{};
   void InitBitmaps();
-  auto GetImageBitmap(const std::string& name, size_t sizeOfSquare) -> ImageBitmap;
+  auto GetImageBitmap(const std::string& name, size_t sizeOfSquare) -> std::shared_ptr<ImageBitmap>;
+  auto GetImageFilename(const std::string& name, size_t sizeOfSquare) -> std::string;
 
   GoomDraw m_draw{};
   FXBuffSettings m_buffSettings{};
@@ -544,13 +471,14 @@ void GoomDotsFx::GoomDotsImpl::DotFilter(PixelBuffer& currentBuff,
     return m_gammaCorrect.GetCorrection(
         BRIGHTNESS, GetColorMultiply(b, color, m_buffSettings.allowOverexposed));
   };
-  m_draw.Bitmap(currentBuff, xMid, yMid, (*m_currentBitmapDots)[diameter].GetBitmap(), getColor);
-  //  m_draw.FilledCircle(currentBuff, xMid, yMid, static_cast<int>(radius), color);
+
+  m_draw.Bitmap(currentBuff, xMid, yMid, *(*m_currentBitmapDots)[diameter], getColor);
 }
 
 void GoomDotsFx::GoomDotsImpl::InitBitmaps()
 {
-  std::map<size_t, ImageBitmap> bitmapDots{};
+  std::map<size_t, std::shared_ptr<ImageBitmap>> bitmapDots{};
+  // Add images with odd res - hence the += 2
 
   bitmapDots.clear();
   for (size_t res = MIN_DOT_SIZE; res <= MAX_DOT_SIZE; res += 2)
@@ -577,16 +505,21 @@ void GoomDotsFx::GoomDotsImpl::InitBitmaps()
 }
 
 auto GoomDotsFx::GoomDotsImpl::GetImageBitmap(const std::string& name, const size_t sizeOfSquare)
-    -> ImageBitmap
+    -> std::shared_ptr<ImageBitmap>
+{
+  auto imageBitmap = std::make_shared<ImageBitmap>(GetImageFilename(name, sizeOfSquare));
+  imageBitmap->Load();
+  return imageBitmap;
+}
+
+auto GoomDotsFx::GoomDotsImpl::GetImageFilename(const std::string& name, size_t sizeOfSquare)
+    -> std::string
 {
   // TODO What about windows "\"
   const std::string dotsDir = m_resourcesDirectory + "/" + "dots";
-  const std::string filename =
+  std::string filename =
       std20::format("{}/{}{:02}x{:02}.png", dotsDir, name, sizeOfSquare, sizeOfSquare);
-
-  ImageBitmap imageBitmap{filename};
-  imageBitmap.Load();
-  return imageBitmap;
+  return filename;
 }
 
 } // namespace GOOM

@@ -51,37 +51,40 @@ void GoomDraw::Circle(std::vector<PixelBuffer*>& buffs,
 void GoomDraw::Bitmap(PixelBuffer& buff,
                       int xCentre,
                       int yCentre,
-                      const BitmapType& bitmap,
-                      const GetColorFunc& getColor) const
+                      const PixelBuffer& bitmap,
+                      const GetBitmapColorFunc& getColor) const
 {
-  const size_t bitmapHeight = bitmap.size();
-  const size_t bitmapWidth = bitmap[0].size();
-  const int x0 = xCentre - static_cast<int>(bitmapWidth / 2);
-  const int y0 = yCentre - static_cast<int>(bitmapHeight / 2);
-  int y = y0;
-  for (const auto& row : bitmap)
+  const auto bitmapWidth = static_cast<int>(bitmap.GetWidth());
+  const auto bitmapHeight = static_cast<int>(bitmap.GetHeight());
+
+  const int x0 = std::max(0, xCentre - bitmapWidth / 2);
+  const int y0 = std::max(0, yCentre - bitmapHeight / 2);
+  const int x1 = std::min(static_cast<int>(m_screenWidth) - 1, x0 + bitmapWidth - 1);
+  const int y1 = std::min(static_cast<int>(m_screenHeight) - 1, y0 + bitmapHeight - 1);
+
+  size_t yBitmap = 0;
+  for (int y = y0; y <= y1; ++y)
   {
-    assert(bitmapWidth == row.size());
-    int x = x0;
-    for (const auto& color : row)
+    size_t xBitmap = 0;
+    for (int x = x0; x <= x1; ++x)
     {
-      const Pixel finalColor = getColor(x, y, color);
+      const Pixel finalColor = getColor(xBitmap, yBitmap, bitmap(xBitmap, yBitmap));
       DrawPixel(&buff, x, y, finalColor, m_intBuffIntensity, m_allowOverexposed);
-      x++;
+      xBitmap++;
     }
-    y++;
+    yBitmap++;
   }
 }
 
 void GoomDraw::Bitmap(std::vector<PixelBuffer*>& buffs,
                       int xCentre,
                       int yCentre,
-                      const std::vector<BitmapType>& bitmaps,
-                      const std::vector<GetColorFunc>& getColors) const
+                      const std::vector<PixelBuffer*>& bitmaps,
+                      const std::vector<GetBitmapColorFunc>& getColors) const
 {
   for (size_t i = 0; i < buffs.size(); i++)
   {
-    Bitmap(*(buffs[i]), xCentre, yCentre, bitmaps[i], getColors[i]);
+    Bitmap(*(buffs[i]), xCentre, yCentre, (*bitmaps[i]), getColors[i]);
   }
 }
 

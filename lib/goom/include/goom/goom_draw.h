@@ -45,20 +45,19 @@ public:
               int radius,
               const std::vector<Pixel>& colors) const;
 
-  using BitmapType = std::vector<std::vector<Pixel>>;
-  using GetColorFunc = std::function<auto(int x, int y, const Pixel& b)->Pixel>;
+  using GetBitmapColorFunc = std::function<auto(int x, int y, const Pixel& b)->Pixel>;
 
   void Bitmap(PixelBuffer& buff,
               int xCentre,
               int yCentre,
-              const BitmapType& bitmap,
-              const GetColorFunc& getColor) const;
+              const PixelBuffer& bitmap,
+              const GetBitmapColorFunc& getColor) const;
 
   void Bitmap(std::vector<PixelBuffer*>& buffs,
               int xCentre,
               int yCentre,
-              const std::vector<BitmapType>& bitmaps,
-              const std::vector<GetColorFunc>& getColors) const;
+              const std::vector<PixelBuffer*>& bitmaps,
+              const std::vector<GetBitmapColorFunc>& getColors) const;
 
   void Line(
       PixelBuffer&, int x1, int y1, int x2, int y2, const Pixel& color, uint8_t thickness) const;

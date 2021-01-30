@@ -9,10 +9,10 @@ endif()
 add_library( ${PROJECT_NAME} 
     STATIC
         src/all_maps.cpp
-        src/bitmaps.cpp
         src/colormaps.cpp
         src/colorutils.cpp
         src/goomrand.cpp
+        src/image_bitmaps.cpp
         src/logging.cpp
         src/mathutils.cpp
         src/random_colormaps.cpp

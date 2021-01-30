@@ -129,18 +129,18 @@ inline const Pixel Pixel::WHITE{.channels{.r = channel_limits<uint8_t>::max(),
 class PixelBuffer
 {
 public:
+  PixelBuffer() noexcept = default;
   PixelBuffer(uint32_t width, uint32_t height) noexcept;
-  ~PixelBuffer() noexcept = default;
-
+  virtual ~PixelBuffer() noexcept = default;
   PixelBuffer(const PixelBuffer&) noexcept = delete;
   PixelBuffer(PixelBuffer&&) noexcept = delete;
   auto operator=(const PixelBuffer&) -> PixelBuffer& = delete;
   auto operator=(PixelBuffer&&) -> PixelBuffer& = delete;
 
+  void Resize(size_t width, size_t height);
+
   [[nodiscard]] auto GetWidth() const -> uint32_t;
   [[nodiscard]] auto GetHeight() const -> uint32_t;
-  [[nodiscard]] auto GetBuffLen() const -> uint32_t;
-  [[nodiscard]] auto GetBuffSize() const -> size_t;
 
   void Fill(const Pixel& c);
   void CopyTo(PixelBuffer& buff, uint32_t length) const;
@@ -150,13 +150,11 @@ public:
   auto operator()(size_t x, size_t y) -> Pixel&;
 
 private:
-  const uint32_t m_width;
-  const uint32_t m_height;
-  const size_t m_buffSize;
-  std::vector<Pixel> m_buff;
+  uint32_t m_width{};
+  uint32_t m_height{};
+  std::vector<Pixel> m_buff{};
 
   [[nodiscard]] auto GetIntBuff() -> uint32_t*;
-
   void CopyTo(uint32_t* intBuff, uint32_t length) const;
 };
 
@@ -236,9 +234,15 @@ inline void Pixel::SetRgba(uint32_t v)
 inline PixelBuffer::PixelBuffer(const uint32_t w, const uint32_t h) noexcept
   : m_width{w},
     m_height{h},
-    m_buffSize{static_cast<size_t>(m_width) * static_cast<size_t>(m_height) * sizeof(Pixel)},
     m_buff(m_width * m_height)
 {
+}
+
+inline void PixelBuffer::Resize(const size_t width, const size_t height)
+{
+  m_width = width;
+  m_height = height;
+  m_buff.resize(m_width * m_height);
 }
 
 inline auto PixelBuffer::GetWidth() const -> uint32_t
@@ -249,16 +253,6 @@ inline auto PixelBuffer::GetWidth() const -> uint32_t
 inline auto PixelBuffer::GetHeight() const -> uint32_t
 {
   return m_height;
-}
-
-inline auto PixelBuffer::GetBuffLen() const -> uint32_t
-{
-  return m_width * m_height;
-}
-
-inline auto PixelBuffer::GetBuffSize() const -> size_t
-{
-  return m_buffSize;
 }
 
 inline void PixelBuffer::Fill(const Pixel& c)
