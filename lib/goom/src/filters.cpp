@@ -977,23 +977,26 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff, PixelBuffe
   const uint32_t tranAx = (m_screenWidth - 1) << PERTE_DEC;
   const uint32_t tranAy = (m_screenHeight - 1) << PERTE_DEC;
 
-  const auto setDestPixel = [&](const uint32_t destPos) {
-    const auto tranPx = static_cast<uint32_t>(
-        m_tranXSrce[destPos] +
-        (((m_tranXDest[destPos] - m_tranXSrce[destPos]) * m_tranDiffFactor) >> BUFF_POINT_NUM));
-    const auto tranPy = static_cast<uint32_t>(
-        m_tranYSrce[destPos] +
-        (((m_tranYDest[destPos] - m_tranYSrce[destPos]) * m_tranDiffFactor) >> BUFF_POINT_NUM));
+  const auto setDestPixelRow = [&](const uint32_t destY) {
+    uint32_t destPos = m_screenWidth * destY;
+    for (size_t destX = 0; destX < m_screenWidth; ++destX)
+    {
+      const auto tranPx = static_cast<uint32_t>(
+          m_tranXSrce[destPos] +
+          (((m_tranXDest[destPos] - m_tranXSrce[destPos]) * m_tranDiffFactor) >> BUFF_POINT_NUM));
+      const auto tranPy = static_cast<uint32_t>(
+          m_tranYSrce[destPos] +
+          (((m_tranYDest[destPos] - m_tranYSrce[destPos]) * m_tranDiffFactor) >> BUFF_POINT_NUM));
 
-    if ((tranPx >= tranAx) || (tranPy >= tranAy))
-    {
-      m_stats.DoCZoomOutOfRange();
-      destBuff(destPos) = Pixel{0U};
-    }
-    else
-    {
-      const auto getSrceInfo = [&]() {
-        /**
+      if ((tranPx >= tranAx) || (tranPy >= tranAy))
+      {
+        m_stats.DoCZoomOutOfRange();
+        destBuff(destX, destY) = Pixel{0U};
+      }
+      else
+      {
+        const auto getSrceInfo = [&]() {
+          /**
         if ((tranPx >= tranAx) || (tranPy >= tranAy))
         {
           m_stats.DoCZoomOutOfRange();
@@ -1002,67 +1005,80 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff, PixelBuffe
           return std::make_tuple(destPos, CoeffArray{.intVal = m_precalcCoeffs[xIndex][yIndex]});
         }
          **/
-        const uint32_t srcePos = (tranPx >> PERTE_DEC) + m_screenWidth * (tranPy >> PERTE_DEC);
-        const size_t xIndex = tranPx & PERTE_MASK;
-        const size_t yIndex = tranPy & PERTE_MASK;
-        return std::make_tuple(srcePos, CoeffArray{.intVal = m_precalcCoeffs[xIndex][yIndex]});
-      };
-
-      const auto [srcePos, coeffs] = getSrceInfo();
-
-      PixelArray colors;
-      if (srcePos >= m_bufferSize - 1)
-      {
-        colors = PixelArray{srceBuff(srcePos), Pixel::BLACK, Pixel::BLACK, Pixel::BLACK};
-      }
-      else
-      {
-        colors = PixelArray{
-            srceBuff(srcePos),
-            srceBuff(srcePos + 1),
-            srceBuff(srcePos + m_screenWidth),
-            srceBuff(srcePos + m_screenWidth + 1),
+          const uint32_t srceX = tranPx >> PERTE_DEC;
+          const uint32_t srceY = tranPy >> PERTE_DEC;
+          const size_t xIndex = tranPx & PERTE_MASK;
+          const size_t yIndex = tranPy & PERTE_MASK;
+          return std::make_tuple(srceX, srceY,
+                                 CoeffArray{.intVal = m_precalcCoeffs[xIndex][yIndex]});
         };
-      }
 
-      if (m_filterData.blockyWavy)
-      {
-        m_stats.DoGetBlockyMixedColor();
-        const Pixel newColor = GetBlockyMixedColor(coeffs, colors);
-        destBuff(destPos) = newColor;
-      }
-      else
-      {
-        m_stats.DoGetMixedColor();
-        const Pixel newColor = GetMixedColor(coeffs, colors);
-        destBuff(destPos) = newColor;
-      }
+        const auto [srceX, srceY, coeffs] = getSrceInfo();
+        PixelArray colors;
+        if (srceX >= m_screenWidth - 1 && srceY >= m_screenHeight - 1)
+        {
+          colors = PixelArray{srceBuff(srceX, srceY), Pixel::BLACK, Pixel::BLACK, Pixel::BLACK};
+        }
+        else if (srceX >= m_screenWidth - 1)
+        {
+          colors = PixelArray{srceBuff(srceX, srceY), Pixel::BLACK, srceBuff(srceX, srceY + 1),
+                              Pixel::BLACK};
+        }
+        else if (srceY >= m_screenHeight - 1)
+        {
+          colors = PixelArray{srceBuff(srceX, srceY), srceBuff(srceX + 1, srceY), Pixel::BLACK,
+                              Pixel::BLACK};
+        }
+        else
+        {
+          colors = PixelArray{
+              srceBuff(srceX, srceY),
+              srceBuff(srceX + 1, srceY),
+              srceBuff(srceX, srceY + 1),
+              srceBuff(srceX + 1, srceY + 1),
+          };
+        }
+
+        if (m_filterData.blockyWavy)
+        {
+          m_stats.DoGetBlockyMixedColor();
+          const Pixel newColor = GetBlockyMixedColor(coeffs, colors);
+          destBuff(destX, destY) = newColor;
+        }
+        else
+        {
+          m_stats.DoGetMixedColor();
+          const Pixel newColor = GetMixedColor(coeffs, colors);
+          destBuff(destX, destY) = newColor;
+        }
 #ifndef NO_LOGGING
-      if (colors[0].rgba() > 0xFF000000)
-      {
-        logInfo("srcePos == {}", srcePos);
-        logInfo("destPos == {}", destPos);
-        logInfo("tranPx >> perteDec == {}", tranPx >> perteDec);
-        logInfo("tranPy >> perteDec == {}", tranPy >> perteDec);
-        logInfo("tranPx == {}", tranPx);
-        logInfo("tranPy == {}", tranPy);
-        logInfo("tranPx & perteMask == {}", tranPx & perteMask);
-        logInfo("tranPy & perteMask == {}", tranPy & perteMask);
-        logInfo("coeffs[0] == {:x}", coeffs.c[0]);
-        logInfo("coeffs[1] == {:x}", coeffs.c[1]);
-        logInfo("coeffs[2] == {:x}", coeffs.c[2]);
-        logInfo("coeffs[3] == {:x}", coeffs.c[3]);
-        logInfo("colors[0] == {:x}", colors[0].rgba());
-        logInfo("colors[1] == {:x}", colors[1].rgba());
-        logInfo("colors[2] == {:x}", colors[2].rgba());
-        logInfo("colors[3] == {:x}", colors[3].rgba());
-        logInfo("newColor == {:x}", newColor.rgba());
-      }
+        if (colors[0].rgba() > 0xFF000000)
+        {
+          logInfo("srcePos == {}", srcePos);
+          logInfo("destPos == {}", destPos);
+          logInfo("tranPx >> perteDec == {}", tranPx >> perteDec);
+          logInfo("tranPy >> perteDec == {}", tranPy >> perteDec);
+          logInfo("tranPx == {}", tranPx);
+          logInfo("tranPy == {}", tranPy);
+          logInfo("tranPx & perteMask == {}", tranPx & perteMask);
+          logInfo("tranPy & perteMask == {}", tranPy & perteMask);
+          logInfo("coeffs[0] == {:x}", coeffs.c[0]);
+          logInfo("coeffs[1] == {:x}", coeffs.c[1]);
+          logInfo("coeffs[2] == {:x}", coeffs.c[2]);
+          logInfo("coeffs[3] == {:x}", coeffs.c[3]);
+          logInfo("colors[0] == {:x}", colors[0].rgba());
+          logInfo("colors[1] == {:x}", colors[1].rgba());
+          logInfo("colors[2] == {:x}", colors[2].rgba());
+          logInfo("colors[3] == {:x}", colors[3].rgba());
+          logInfo("newColor == {:x}", newColor.rgba());
+        }
 #endif
+      }
+      destPos++;
     }
   };
 
-  m_parallel->ForLoop(m_bufferSize, setDestPixel);
+  m_parallel->ForLoop(m_screenHeight, setDestPixelRow);
 }
 
 /*
