@@ -146,9 +146,6 @@ public:
   void CopyTo(PixelBuffer& buff, uint32_t length) const;
   [[nodiscard]] auto GetIntBuff() const -> const uint32_t*;
 
-  auto operator()(size_t pos) const -> const Pixel&;
-  auto operator()(size_t pos) -> Pixel&;
-
   auto operator()(size_t x, size_t y) const -> const Pixel&;
   auto operator()(size_t x, size_t y) -> Pixel&;
 
@@ -161,7 +158,6 @@ private:
   [[nodiscard]] auto GetIntBuff() -> uint32_t*;
 
   void CopyTo(uint32_t* intBuff, uint32_t length) const;
-  void CopyFrom(const uint32_t* intBuff, uint32_t length);
 };
 
 template<class Archive>
@@ -289,25 +285,6 @@ inline void PixelBuffer::CopyTo(uint32_t* intBuff, const uint32_t length) const
 {
   static_assert(sizeof(Pixel) == sizeof(uint32_t));
   std::memcpy(intBuff, GetIntBuff(), length * sizeof(Pixel));
-}
-
-inline void PixelBuffer::CopyFrom(const uint32_t* intBuff, const uint32_t length)
-{
-  static_assert(sizeof(Pixel) == sizeof(uint32_t));
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wclass-memaccess"
-  std::memcpy(m_buff.data(), intBuff, length * sizeof(Pixel));
-#pragma GCC diagnostic pop
-}
-
-inline auto PixelBuffer::operator()(const size_t pos) const -> const Pixel&
-{
-  return m_buff[pos];
-}
-
-inline auto PixelBuffer::operator()(const size_t pos) -> Pixel&
-{
-  return m_buff[pos];
 }
 
 inline auto PixelBuffer::operator()(const size_t x, const size_t y) const -> const Pixel&
