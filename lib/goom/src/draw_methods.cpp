@@ -89,14 +89,12 @@ void DrawCircle(std::vector<PixelBuffer*>& buffs,
     {
       return;
     }
-    int pos = y1 * static_cast<int>(screenWidth) + x1;
-    DrawPixels(buffs, pos, colors, buffIntensity, allowOverexposed);
+    DrawPixels(buffs, x1, y1, colors, buffIntensity, allowOverexposed);
     if (x1 == x2 && y1 == y2)
     {
       return;
     }
-    pos = y2 * static_cast<int>(screenWidth) + x2;
-    DrawPixels(buffs, pos, colors, buffIntensity, allowOverexposed);
+    DrawPixels(buffs, x2, y2, colors, buffIntensity, allowOverexposed);
   };
 
   DrawBresenhamCircle(x0, y0, radius, plotter);
@@ -108,14 +106,12 @@ static void DrawHorizontalLine(std::vector<PixelBuffer*>& buffs,
                                const int x2,
                                const std::vector<Pixel>& colors,
                                const uint32_t buffIntensity,
-                               const bool allowOverexposed,
-                               const uint32_t screenWidth)
+                               const bool allowOverexposed)
 {
   const int xEnd = x1 == x2 ? x1 : x2;
   for (int x = x1; x <= xEnd; x++)
   {
-    const int pos = y * static_cast<int>(screenWidth) + x;
-    DrawPixels(buffs, pos, colors, buffIntensity, allowOverexposed);
+    DrawPixels(buffs, x, y, colors, buffIntensity, allowOverexposed);
   }
 }
 
@@ -137,16 +133,13 @@ void DrawFilledCircle(std::vector<PixelBuffer*>& buffs,
                       const std::vector<Pixel>& colors,
                       const uint32_t buffIntensity,
                       const bool allowOverexposed,
-                      const uint32_t screenWidth,
                       [[maybe_unused]] const uint32_t screenHeight)
 {
   assert(buffs.size() == colors.size());
 
   auto plotter = [&](const int x1, const int y1, const int x2, const int y2) -> void {
     assert(y1 == y2);
-    DrawHorizontalLine(buffs, x1, y1, x2, colors, buffIntensity, allowOverexposed, screenWidth);
-    //drawWuLine(buffs, x1, y1, x2, y2, colors, buffIntensity, allowOverexposed, screenWidth,
-    //           screenHeight);
+    DrawHorizontalLine(buffs, x1, y1, x2, colors, buffIntensity, allowOverexposed);
   };
 
   DrawBresenhamCircle(x0, y0, radius, plotter);
@@ -244,10 +237,9 @@ static void DrawWuLine(std::vector<PixelBuffer*>& buffs,
     {
       return;
     }
-    const int pos = y * static_cast<int>(screenWidth) + x;
     if (brightness >= 0.999)
     {
-      DrawPixels(buffs, pos, colors, buffIntensity, allowOverexposed);
+      DrawPixels(buffs, x, y, colors, buffIntensity, allowOverexposed);
     }
     else
     {
@@ -255,7 +247,7 @@ static void DrawWuLine(std::vector<PixelBuffer*>& buffs,
       {
         tempColors[i] = UTILS::GetBrighterColor(brightness, colors[i], allowOverexposed);
       }
-      DrawPixels(buffs, pos, tempColors, buffIntensity, allowOverexposed);
+      DrawPixels(buffs, x, y, tempColors, buffIntensity, allowOverexposed);
     }
   };
 
@@ -396,10 +388,9 @@ static void DrawLineOverlap(std::vector<PixelBuffer*>& buffs,
     {
       return;
     }
-    const int pos = y * static_cast<int>(screenWidth) + x;
     if (brightness >= 0.999)
     {
-      DrawPixels(buffs, pos, colors, buffIntensity, allowOverexposed);
+      DrawPixels(buffs, x, y, colors, buffIntensity, allowOverexposed);
     }
     else
     {
@@ -407,7 +398,7 @@ static void DrawLineOverlap(std::vector<PixelBuffer*>& buffs,
       {
         tempColors[i] = UTILS::GetBrighterColor(brightness, colors[i], allowOverexposed);
       }
-      DrawPixels(buffs, pos, tempColors, buffIntensity, allowOverexposed);
+      DrawPixels(buffs, x, y, tempColors, buffIntensity, allowOverexposed);
     }
   };
 

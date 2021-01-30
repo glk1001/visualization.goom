@@ -63,12 +63,10 @@ void GoomDraw::Bitmap(PixelBuffer& buff,
   {
     assert(bitmapWidth == row.size());
     int x = x0;
-    int pos = y * static_cast<int>(m_screenWidth) + x;
     for (const auto& color : row)
     {
       const Pixel finalColor = getColor(x, y, color);
-      DrawPixel(&buff, pos, finalColor, m_intBuffIntensity, m_allowOverexposed);
-      pos++;
+      DrawPixel(&buff, x, y, finalColor, m_intBuffIntensity, m_allowOverexposed);
       x++;
     }
     y++;
@@ -118,8 +116,8 @@ void GoomDraw::SetPixelRgb(PixelBuffer& buff,
 {
   std::vector<PixelBuffer*> buffs{&buff};
   std::vector<Pixel> colors{color};
-  const auto pos = static_cast<int>(x + (y * m_screenWidth));
-  DrawPixels(buffs, pos, colors, m_intBuffIntensity, m_allowOverexposed);
+  DrawPixels(buffs, static_cast<int>(x), static_cast<int>(y), colors, m_intBuffIntensity,
+             m_allowOverexposed);
 }
 
 void GoomDraw::SetPixelRgb(std::vector<PixelBuffer*>& buffs,
@@ -127,8 +125,8 @@ void GoomDraw::SetPixelRgb(std::vector<PixelBuffer*>& buffs,
                            const uint32_t y,
                            const std::vector<Pixel>& colors) const
 {
-  const auto pos = static_cast<int>(x + (y * m_screenWidth));
-  DrawPixels(buffs, pos, colors, m_intBuffIntensity, m_allowOverexposed);
+  DrawPixels(buffs, static_cast<int>(x), static_cast<int>(y), colors, m_intBuffIntensity,
+             m_allowOverexposed);
 }
 
 } // namespace GOOM

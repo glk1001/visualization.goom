@@ -56,14 +56,15 @@ void DrawLine(PixelBuffer& buff,
               uint32_t screeny);
 
 inline void DrawPixel(PixelBuffer* buff,
-                      const int pos,
+                      const int x,
+                      const int y,
                       const Pixel& newColor,
                       const uint32_t buffIntensity,
                       const bool allowOverexposed)
 {
   const Pixel brighterPixColor =
       UTILS::GetBrighterColorInt(buffIntensity, newColor, allowOverexposed);
-  Pixel& p = (*buff)(static_cast<size_t>(pos));
+  Pixel& p = (*buff)(static_cast<size_t>(x), static_cast<size_t>(y));
   p = UTILS::GetColorAdd(p, brighterPixColor, allowOverexposed);
 
   /***
@@ -79,14 +80,15 @@ inline void DrawPixel(PixelBuffer* buff,
   }
 
   inline void DrawPixels(std::vector<PixelBuffer*>& buffs,
-                         const int pos,
+                         const int x,
+                         const int y,
                          const std::vector<Pixel>& newColors,
                          const uint32_t buffIntensity,
                          const bool allowOverexposed)
   {
     for (size_t i = 0; i < buffs.size(); i++)
     {
-      DrawPixel(buffs[i], pos, newColors[i], buffIntensity, allowOverexposed);
+      DrawPixel(buffs[i], x, y, newColors[i], buffIntensity, allowOverexposed);
     }
   }
 

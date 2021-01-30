@@ -109,11 +109,10 @@ inline auto GoomDraw::GetPixelRgb(const std::vector<PixelBuffer*>& buffs,
                                   const uint32_t x,
                                   const uint32_t y) const -> std::vector<Pixel>
 {
-  const uint32_t pos = x + (y * m_screenWidth);
   std::vector<Pixel> colors(buffs.size());
   for (size_t i = 0; i < buffs.size(); i++)
   {
-    colors[i] = (*buffs[i])(pos);
+    colors[i] = (*buffs[i])(x, y);
   }
   return colors;
 }
