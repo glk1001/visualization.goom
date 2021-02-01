@@ -197,7 +197,7 @@ inline auto Pixel::R() const -> uint8_t
   return m_color.channels.r;
 }
 
-inline void Pixel::SetR(uint8_t c)
+inline void Pixel::SetR(const uint8_t c)
 {
   m_color.channels.r = c;
 }
@@ -207,7 +207,7 @@ inline auto Pixel::G() const -> uint8_t
   return m_color.channels.g;
 }
 
-inline void Pixel::SetG(uint8_t c)
+inline void Pixel::SetG(const uint8_t c)
 {
   m_color.channels.g = c;
 }
@@ -217,7 +217,7 @@ inline auto Pixel::B() const -> uint8_t
   return m_color.channels.b;
 }
 
-inline void Pixel::SetB(uint8_t c)
+inline void Pixel::SetB(const uint8_t c)
 {
   m_color.channels.b = c;
 }
@@ -227,7 +227,7 @@ inline auto Pixel::A() const -> uint8_t
   return m_color.channels.a;
 }
 
-inline void Pixel::SetA(uint8_t c)
+inline void Pixel::SetA(const uint8_t c)
 {
   m_color.channels.a = c;
 }
@@ -237,7 +237,7 @@ inline auto Pixel::Rgba() const -> uint32_t
   return m_color.intVal;
 }
 
-inline void Pixel::SetRgba(uint32_t v)
+inline void Pixel::SetRgba(const uint32_t v)
 {
   m_color.intVal = v;
 }
@@ -279,7 +279,7 @@ inline auto PixelBuffer::GetIntBuff() -> uint32_t*
   return reinterpret_cast<uint32_t*>(m_buff.data());
 }
 
-inline void PixelBuffer::CopyTo(PixelBuffer& buff, uint32_t length) const
+inline void PixelBuffer::CopyTo(PixelBuffer& buff, const uint32_t length) const
 {
   CopyTo(buff.GetIntBuff(), length);
 }
@@ -314,7 +314,8 @@ inline auto PixelBuffer::GetRowIter(const size_t y) const
   return std::make_tuple(m_buff.begin() + rowPos, m_buff.begin() + rowPos + m_width);
 }
 
-inline auto PixelBuffer::Get4RHBNeighbours(size_t x, size_t y) const -> std::array<Pixel, 4>
+inline auto PixelBuffer::Get4RHBNeighbours(const size_t x, const size_t y) const
+    -> std::array<Pixel, 4>
 {
   assert(x < m_width && y < m_height);
   //if (x >= m_width || y >= m_height)

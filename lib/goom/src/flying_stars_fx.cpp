@@ -276,8 +276,9 @@ private:
   static constexpr uint32_t MAX_COUNT = 100;
 
   StarModes m_fxMode = StarModes::FIREWORKS;
-  static constexpr size_t MAX_STARS_LIMIT = 1024;
-  size_t m_maxStars = MAX_STARS_LIMIT;
+  static constexpr size_t MAX_NUM_STARS = 1024;
+  static constexpr size_t MIN_NUM_STARS = 100;
+  size_t m_maxStars = MAX_NUM_STARS;
   std::vector<Star> m_stars{};
   uint32_t m_maxStarAge = 15;
   float m_minSideWind = -01;
@@ -295,9 +296,16 @@ private:
   GoomDraw m_draw{};
   StarsStats m_stats{};
 
+  void CheckForStarEvents();
   void SoundEventOccurred();
-  static void UpdateStar(Star* s);
+  void DrawStars(PixelBuffer& currentBuff, PixelBuffer& nextBuff);
+  static void UpdateStar(Star& s);
   [[nodiscard]] auto IsStarDead(const Star& s) const -> bool;
+  void DrawStarParticle(PixelBuffer& currentBuff,
+                        PixelBuffer& nextBuff,
+                        const Star& star,
+                        float flipSpeed);
+  void RemoveDeadStars();
   void AddABomb(int32_t mx, int32_t my, float radius, float vage, float gravity, float sideWind);
   [[nodiscard]] auto GetBombAngle(float x, float y) const -> uint32_t;
 
@@ -413,7 +421,7 @@ FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl(std::shared_ptr<const PluginInfo
   : m_goomInfo{std::move(info)},
     m_draw{m_goomInfo->GetScreenInfo().width, m_goomInfo->GetScreenInfo().height}
 {
-  m_stars.reserve(MAX_STARS_LIMIT);
+  m_stars.reserve(MAX_NUM_STARS);
 
   m_dominantColorMapID =
       m_colorMapsManager.AddColorMapInfo({m_colorMaps, ColorMapName::_NULL, RandomColorMaps::ALL});
@@ -457,13 +465,19 @@ void FlyingStarsFx::FlyingStarsImpl::UpdateBuffers(PixelBuffer& currentBuff, Pix
 {
   m_counter++;
 
-  m_maxStars = GetRandInRange(100U, MAX_STARS_LIMIT);
+  m_maxStars = GetRandInRange(MIN_NUM_STARS, MAX_NUM_STARS);
 
-  // look for events
+  CheckForStarEvents();
+  DrawStars(currentBuff, nextBuff);
+  RemoveDeadStars();
+}
+
+void FlyingStarsFx::FlyingStarsImpl::CheckForStarEvents()
+{
   if (m_stars.empty() || m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom() < 1)
   {
     SoundEventOccurred();
-    if (GetNRand(20) == 1)
+    if (ProbabilityOfMInN(1, 20))
     {
       // Give a slight weight towards noFx mode by using numFX + 2.
       const uint32_t newVal = GetNRand(NUM_FX + 2);
@@ -477,63 +491,73 @@ void FlyingStarsFx::FlyingStarsImpl::UpdateBuffers(PixelBuffer& currentBuff, Pix
     }
   }
   // m_fxMode = StarModes::rain;
+}
 
-  // update particules
+void FlyingStarsFx::FlyingStarsImpl::DrawStars(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
+{
   m_stats.UpdateStars();
-
   const float flipSpeed = GetRandInRange(0.1F, 10.0F);
 
   for (auto& star : m_stars)
   {
-    UpdateStar(&star);
+    UpdateStar(star);
 
-    // dead particule
+    // Is it a dead particle?
     if (star.age >= static_cast<float>(m_maxStarAge))
     {
       m_stats.DeadStar();
       continue;
     }
 
-    // draws the particule
-    constexpr float OLD_AGE = 0.95;
-    const float tAge = star.age / static_cast<float>(m_maxStarAge);
-    const float ageBrightness = 0.2F + 0.8F * Sq(0.5F - tAge) / 0.25F;
-    const size_t numParts =
-        tAge > OLD_AGE ? 4 : 2 + static_cast<size_t>(std::lround((1.0F - tAge) * 2.0F));
-    const auto x0 = static_cast<int32_t>(star.x);
-    const auto y0 = static_cast<int32_t>(star.y);
-    int32_t x1 = x0;
-    int32_t y1 = y0;
-    for (size_t j = 1; j <= numParts; j++)
-    {
-      const int32_t x2 =
-          x0 - static_cast<int32_t>(0.5 * (1.0 + std::sin(flipSpeed * star.xVelocity * j)) *
-                                    star.xVelocity * j);
-      const int32_t y2 =
-          y0 - static_cast<int32_t>(0.5 * (1.0 + std::cos(flipSpeed * star.yVelocity * j)) *
-                                    star.yVelocity * j);
-      const uint8_t thickness = tAge < OLD_AGE ? 1 : GetRandInRange(2U, 5U);
-
-      const float brightness = ageBrightness * static_cast<float>(j) / static_cast<float>(numParts);
-      const auto [mixedColor, mixedLowColor] = GetMixedColors(star, tAge, brightness);
-
-      if (m_useSingleBufferOnly)
-      {
-        m_draw.Line(currentBuff, x1, y1, x2, y2, mixedColor, thickness);
-      }
-      else
-      {
-        const std::vector<Pixel> colors = {mixedColor, mixedLowColor};
-        std::vector<PixelBuffer*> buffs{&currentBuff, &nextBuff};
-        m_draw.Line(buffs, x1, y1, x2, y2, colors, thickness);
-      }
-
-      x1 = x2;
-      y1 = y2;
-    }
+    DrawStarParticle(currentBuff, nextBuff, star, flipSpeed);
   }
+}
 
-  // remove all dead particules
+void FlyingStarsFx::FlyingStarsImpl::DrawStarParticle(PixelBuffer& currentBuff,
+                                                      PixelBuffer& nextBuff,
+                                                      const Star& star,
+                                                      const float flipSpeed)
+{
+  constexpr float OLD_AGE = 0.95;
+  const float tAge = star.age / static_cast<float>(m_maxStarAge);
+  const float ageBrightness = 0.2F + 0.8F * Sq(0.5F - tAge) / 0.25F;
+  const size_t numParts =
+      tAge > OLD_AGE ? 4 : 2 + static_cast<size_t>(std::lround((1.0F - tAge) * 2.0F));
+  const auto x0 = static_cast<int32_t>(star.x);
+  const auto y0 = static_cast<int32_t>(star.y);
+  int32_t x1 = x0;
+  int32_t y1 = y0;
+  for (size_t j = 1; j <= numParts; j++)
+  {
+    const int32_t x2 =
+        x0 - static_cast<int32_t>(0.5 * (1.0 + std::sin(flipSpeed * star.xVelocity * j)) *
+                                  star.xVelocity * j);
+    const int32_t y2 =
+        y0 - static_cast<int32_t>(0.5 * (1.0 + std::cos(flipSpeed * star.yVelocity * j)) *
+                                  star.yVelocity * j);
+    const uint8_t thickness = tAge < OLD_AGE ? 1 : GetRandInRange(2U, 5U);
+
+    const float brightness = ageBrightness * static_cast<float>(j) / static_cast<float>(numParts);
+    const auto [mixedColor, mixedLowColor] = GetMixedColors(star, tAge, brightness);
+
+    if (m_useSingleBufferOnly)
+    {
+      m_draw.Line(currentBuff, x1, y1, x2, y2, mixedColor, thickness);
+    }
+    else
+    {
+      const std::vector<Pixel> colors = {mixedColor, mixedLowColor};
+      std::vector<PixelBuffer*> buffs{&currentBuff, &nextBuff};
+      m_draw.Line(buffs, x1, y1, x2, y2, colors, thickness);
+    }
+
+    x1 = x2;
+    y1 = y2;
+  }
+}
+
+void FlyingStarsFx::FlyingStarsImpl::RemoveDeadStars()
+{
   const auto isDead = [&](const Star& s) { return IsStarDead(s); };
   // stars.erase(std::remove_if(stars.begin(), stars.end(), isDead), stars.end());
   const size_t numRemoved = std::erase_if(m_stars, isDead);
@@ -640,13 +664,13 @@ inline auto FlyingStarsFx::FlyingStarsImpl::GetMixedColors(const Star& star,
 /**
  * Met a jour la position et vitesse d'une particule.
  */
-void FlyingStarsFx::FlyingStarsImpl::UpdateStar(Star* s)
+void FlyingStarsFx::FlyingStarsImpl::UpdateStar(Star& s)
 {
-  s->x += s->xVelocity;
-  s->y += s->yVelocity;
-  s->xVelocity += s->xAcceleration;
-  s->yVelocity += s->yAcceleration;
-  s->age += s->vage;
+  s.x += s.xVelocity;
+  s.y += s.yVelocity;
+  s.xVelocity += s.xAcceleration;
+  s.yVelocity += s.yAcceleration;
+  s.age += s.vage;
 }
 
 /**

@@ -55,7 +55,7 @@ void DrawLine(PixelBuffer& buff,
               uint32_t screenx,
               uint32_t screeny);
 
-inline void DrawPixel(PixelBuffer* buff,
+inline void DrawPixel(PixelBuffer* const buff,
                       const int x,
                       const int y,
                       const Pixel& newColor,
