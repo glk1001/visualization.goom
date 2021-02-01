@@ -48,7 +48,9 @@ private:
   float m_factor = 0.5;
   FXBuffSettings m_buffSettings{};
 
-  void CreateOutputWithBrightness(const PixelBuffer& src, PixelBuffer& dest, uint32_t flashInt);
+  void CreateOutputWithBrightness(const PixelBuffer& srceBuff,
+                                  PixelBuffer& destBuff,
+                                  uint32_t flashInt);
 
   friend class cereal::access;
   template<class Archive>
@@ -184,14 +186,18 @@ void ConvolveFx::ConvolveImpl::Convolve(const PixelBuffer& currentBuff, PixelBuf
   }
 }
 
-void ConvolveFx::ConvolveImpl::CreateOutputWithBrightness(const PixelBuffer& src,
-                                                          PixelBuffer& dest,
+void ConvolveFx::ConvolveImpl::CreateOutputWithBrightness(const PixelBuffer& srceBuff,
+                                                          PixelBuffer& destBuff,
                                                           const uint32_t flashInt)
 {
   const auto setDestPixelRow = [&](const uint32_t y) {
-    for (size_t x = 0; x < m_goomInfo->GetScreenInfo().width; ++x)
+    auto [srceRowBegin, srceRowEnd] = srceBuff.GetRowIter(y);
+    auto [destRowBegin, destRowEnd] = destBuff.GetRowIter(y);
+    auto& srceRowBuff = srceRowBegin;
+    for (auto& destRowBuff = destRowBegin; destRowBuff != destRowEnd; ++destRowBuff)
     {
-      dest(x, y) = GetBrighterColorInt(flashInt, src(x, y), m_buffSettings.allowOverexposed);
+      *destRowBuff = GetBrighterColorInt(flashInt, *srceRowBuff, m_buffSettings.allowOverexposed);
+      ++srceRowBuff;
     }
   };
 
