@@ -57,7 +57,6 @@ public:
   void Start();
 
   void Apply(PixelBuffer& currentBuff);
-  void Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff);
 
   auto operator==(const GoomDotsFxImpl& d) const -> bool;
 
@@ -453,7 +452,7 @@ void GoomDotsFx::GoomDotsFxImpl::DotFilter(PixelBuffer& currentBuff,
 
   const auto xMid = x0 + static_cast<int32_t>(radius);
   const auto yMid = y0 + static_cast<int32_t>(radius);
-  constexpr float BRIGHTNESS = 12.0F;
+  constexpr float BRIGHTNESS = 20.0F;
   const auto getColor = [&]([[maybe_unused]] const int x, [[maybe_unused]] const int y,
                             const Pixel& b) -> Pixel {
     // const Pixel newColor = x == xMid && y == yMid ? m_middleColor : color;

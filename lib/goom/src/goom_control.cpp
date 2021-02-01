@@ -27,6 +27,7 @@
 #include "goomutils/random_colormaps.h"
 #include "goomutils/strutils.h"
 #include "ifs_dancers_fx.h"
+#include "image_fx.h"
 #include "lines_fx.h"
 #include "tentacles_fx.h"
 #include "text_draw.h"
@@ -67,6 +68,7 @@ enum class GoomDrawable
   LINES,
   SCOPE,
   FAR_SCOPE,
+  IMAGE,
   _SIZE
 };
 
@@ -253,6 +255,12 @@ const GoomStates::WeightedStatesArray GoomStates::STATES{{
   {
     .weight = 1,
     .drawables {{
+      { .fx = GoomDrawable::IMAGE,     .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
+    }},
+  },
+  {
+    .weight = 1,
+    .drawables {{
       { .fx = GoomDrawable::IFS,       .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = true  } },
     }},
   },
@@ -293,6 +301,7 @@ const GoomStates::WeightedStatesArray GoomStates::STATES{{
     .drawables {{
       { .fx = GoomDrawable::TENTACLES, .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
       { .fx = GoomDrawable::DOTS,      .buffSettings = { .buffIntensity = 0.1, .allowOverexposed = false } },
+      { .fx = GoomDrawable::IMAGE,     .buffSettings = { .buffIntensity = 0.1, .allowOverexposed = false } },
     }},
   },
   {
@@ -371,6 +380,7 @@ const GoomStates::WeightedStatesArray GoomStates::STATES{{
       { .fx = GoomDrawable::DOTS,      .buffSettings = { .buffIntensity = 0.4, .allowOverexposed = true  } },
       { .fx = GoomDrawable::TENTACLES, .buffSettings = { .buffIntensity = 0.5, .allowOverexposed = true  } },
       { .fx = GoomDrawable::STARS,     .buffSettings = { .buffIntensity = 0.4, .allowOverexposed = false } },
+      { .fx = GoomDrawable::IMAGE,     .buffSettings = { .buffIntensity = 0.4, .allowOverexposed = true  } },
     }},
   },
   {
@@ -981,6 +991,7 @@ struct GoomVisualFx
   std::shared_ptr<GoomDotsFx> goomDots_fx{};
   std::shared_ptr<IfsDancersFx> ifs_fx{};
   std::shared_ptr<TentaclesFx> tentacles_fx{};
+  std::shared_ptr<ImageFx> image_fx{};
 
   std::vector<std::shared_ptr<IVisualFx>> list{};
 
@@ -990,7 +1001,8 @@ struct GoomVisualFx
   void serialize(Archive& ar)
   {
     ar(CEREAL_NVP(zoomFilter_fx), CEREAL_NVP(ifs_fx), CEREAL_NVP(star_fx), CEREAL_NVP(convolve_fx),
-       CEREAL_NVP(tentacles_fx), CEREAL_NVP(goomDots_fx), CEREAL_NVP(list));
+       CEREAL_NVP(tentacles_fx), CEREAL_NVP(goomDots_fx),
+       /*CEREAL_NVP(image_fx),*/ CEREAL_NVP(list));
   }
 };
 
@@ -1001,6 +1013,7 @@ GoomVisualFx::GoomVisualFx(Parallel& p, const std::shared_ptr<const PluginInfo>&
     goomDots_fx{new GoomDotsFx{goomInfo}},
     ifs_fx{new IfsDancersFx{goomInfo}},
     tentacles_fx{new TentaclesFx{goomInfo}},
+    image_fx{new ImageFx{goomInfo}},
     // clang-format off
     list{
       convolve_fx,
@@ -1009,6 +1022,7 @@ GoomVisualFx::GoomVisualFx(Parallel& p, const std::shared_ptr<const PluginInfo>&
       ifs_fx,
       goomDots_fx,
       tentacles_fx,
+      image_fx,
     }
 // clang-format on
 {
@@ -1018,7 +1032,7 @@ auto GoomVisualFx::operator==(const GoomVisualFx& f) const -> bool
 {
   bool result = *convolve_fx == *f.convolve_fx && *zoomFilter_fx == *f.zoomFilter_fx &&
                 *star_fx == *f.star_fx && *goomDots_fx == *f.goomDots_fx && *ifs_fx == *f.ifs_fx &&
-                *tentacles_fx == *f.tentacles_fx;
+                *tentacles_fx == *f.tentacles_fx && *image_fx == *f.image_fx;
 
   if (!result)
   {
@@ -1029,6 +1043,7 @@ auto GoomVisualFx::operator==(const GoomVisualFx& f) const -> bool
     logDebug("goomDots_fx == f.goomDots_fx = {}", *goomDots_fx == *f.goomDots_fx);
     logDebug("ifs_fx == f.ifs_fx = {}", *ifs_fx == *f.ifs_fx);
     logDebug("tentacles_fx == f.tentacles_fx = {}", *tentacles_fx == *f.tentacles_fx);
+    logDebug("image_fx == f.image_fx = {}", *image_fx == *f.image_fx);
     return result;
   }
 
@@ -1174,6 +1189,7 @@ private:
   void ApplyIfsIfRequired();
   void ApplyTentaclesIfRequired();
   void ApplyStarsIfRequired();
+  void ApplyImageIfRequired();
 
   void DisplayText(const char* songTitle, const char* message, float fps);
 
@@ -1493,7 +1509,9 @@ void GoomControl::GoomControlImpl::Start()
   m_stats.SetZoomFilterStartValue(m_goomData.zoomFilterData.mode);
   m_stats.SetSeedStartValue(GetRandSeed());
 
+  // TODO Make this virtual and part of start
   m_visualFx.goomDots_fx->SetResourcesDirectory(m_resourcesDirectory);
+  m_visualFx.image_fx->SetResourcesDirectory(m_resourcesDirectory);
 
   for (auto& v : m_visualFx.list)
   {
@@ -1590,6 +1608,7 @@ void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,
   ApplyIfsIfRequired();
   ApplyTentaclesIfRequired();
   ApplyStarsIfRequired();
+  ////////////////////  ApplyImageIfRequired();
 
   /**
 #ifdef SHOW_STATE_TEXT_ON_SCREEN
@@ -2316,6 +2335,19 @@ void GoomControl::GoomControlImpl::ApplyStarsIfRequired()
   m_visualFx.star_fx->SetBuffSettings(m_states.GetCurrentBuffSettings(GoomDrawable::STARS));
   //  visualFx.star_fx->apply(imageBuffers.getP2(), imageBuffers.getP1());
   m_visualFx.star_fx->Apply(m_imageBuffers.GetP2(), m_imageBuffers.GetP1());
+}
+
+void GoomControl::GoomControlImpl::ApplyImageIfRequired()
+{
+  if (!m_curGDrawables.contains(GoomDrawable::IMAGE))
+  {
+    return;
+  }
+
+  logDebug("curGDrawables image is set.");
+  //m_stats.DoImage();
+  m_visualFx.image_fx->SetBuffSettings(m_states.GetCurrentBuffSettings(GoomDrawable::IMAGE));
+  m_visualFx.image_fx->Apply(m_imageBuffers.GetP2());
 }
 
 #ifdef SHOW_STATE_TEXT_ON_SCREEN

@@ -3,6 +3,7 @@
 
 #include "goom_config.h"
 #include "goom_graphic.h"
+#include "goomutils/parallel_utils.h"
 
 #include <cereal/archives/json.hpp>
 #include <cstddef>
@@ -51,13 +52,13 @@ public:
               int xCentre,
               int yCentre,
               const PixelBuffer& bitmap,
-              const GetBitmapColorFunc& getColor) const;
+              const GetBitmapColorFunc& getColor);
 
   void Bitmap(std::vector<PixelBuffer*>& buffs,
               int xCentre,
               int yCentre,
               const std::vector<PixelBuffer*>& bitmaps,
-              const std::vector<GetBitmapColorFunc>& getColors) const;
+              const std::vector<GetBitmapColorFunc>& getColors);
 
   void Line(
       PixelBuffer&, int x1, int y1, int x2, int y2, const Pixel& color, uint8_t thickness) const;
@@ -81,7 +82,7 @@ private:
   bool m_allowOverexposed = false;
   float m_buffIntensity = 1.0;
   uint32_t m_intBuffIntensity = channel_limits<uint32_t>::max();
-  bool m_fontsLoaded = false;
+  GOOM::UTILS::Parallel m_parallel{};
 };
 
 template<class Archive>

@@ -4,6 +4,7 @@
 #include "goom_graphic.h"
 #include "goomutils/colormaps.h"
 #include "goomutils/colorutils.h"
+#include "goomutils/parallel_utils.h"
 
 #include <cassert>
 #include <cstdint>
@@ -19,7 +20,7 @@ GoomDraw::GoomDraw() : m_screenWidth{0}, m_screenHeight{0}
 }
 
 GoomDraw::GoomDraw(const uint32_t screenW, const uint32_t screenH)
-  : m_screenWidth{screenW}, m_screenHeight{screenH}
+  : m_screenWidth{screenW}, m_screenHeight{screenH}, m_parallel{-1} // max cores - 1
 {
   SetBuffIntensity(0.5);
   SetAllowOverexposed(true);
@@ -52,7 +53,7 @@ void GoomDraw::Bitmap(PixelBuffer& buff,
                       int xCentre,
                       int yCentre,
                       const PixelBuffer& bitmap,
-                      const GetBitmapColorFunc& getColor) const
+                      const GetBitmapColorFunc& getColor)
 {
   const auto bitmapWidth = static_cast<int>(bitmap.GetWidth());
   const auto bitmapHeight = static_cast<int>(bitmap.GetHeight());
@@ -62,17 +63,28 @@ void GoomDraw::Bitmap(PixelBuffer& buff,
   const int x1 = std::min(static_cast<int>(m_screenWidth) - 1, x0 + bitmapWidth - 1);
   const int y1 = std::min(static_cast<int>(m_screenHeight) - 1, y0 + bitmapHeight - 1);
 
-  size_t yBitmap = 0;
-  for (int y = y0; y <= y1; ++y)
-  {
+  const auto setDestPixelRow = [&](const uint32_t y) {
+    const auto yBitmap = static_cast<size_t>(y);
     size_t xBitmap = 0;
     for (int x = x0; x <= x1; ++x)
     {
       const Pixel finalColor = getColor(xBitmap, yBitmap, bitmap(xBitmap, yBitmap));
-      DrawPixel(&buff, x, y, finalColor, m_intBuffIntensity, m_allowOverexposed);
+      DrawPixel(&buff, x, static_cast<int>(y) + y0, finalColor, m_intBuffIntensity,
+                m_allowOverexposed);
       xBitmap++;
     }
-    yBitmap++;
+  };
+
+  if (bitmapWidth > 199)
+  {
+    m_parallel.ForLoop(static_cast<uint32_t>(y1 - y0 + 1), setDestPixelRow);
+  }
+  else
+  {
+    for (uint32_t y = 0; y <= static_cast<uint32_t>(y1 - y0); ++y)
+    {
+      setDestPixelRow(y);
+    }
   }
 }
 
@@ -80,7 +92,7 @@ void GoomDraw::Bitmap(std::vector<PixelBuffer*>& buffs,
                       int xCentre,
                       int yCentre,
                       const std::vector<PixelBuffer*>& bitmaps,
-                      const std::vector<GetBitmapColorFunc>& getColors) const
+                      const std::vector<GetBitmapColorFunc>& getColors)
 {
   for (size_t i = 0; i < buffs.size(); i++)
   {
