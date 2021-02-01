@@ -7,6 +7,7 @@
 #include "goomutils/colorutils.h"
 #include "goomutils/parallel_utils.h"
 
+#include <algorithm>
 #include <cereal/archives/json.hpp>
 #include <cereal/types/memory.hpp>
 #include <cmath>
@@ -193,12 +194,9 @@ void ConvolveFx::ConvolveImpl::CreateOutputWithBrightness(const PixelBuffer& src
   const auto setDestPixelRow = [&](const uint32_t y) {
     auto [srceRowBegin, srceRowEnd] = srceBuff.GetRowIter(y);
     auto [destRowBegin, destRowEnd] = destBuff.GetRowIter(y);
-    auto& srceRowBuff = srceRowBegin;
-    for (auto& destRowBuff = destRowBegin; destRowBuff != destRowEnd; ++destRowBuff)
-    {
-      *destRowBuff = GetBrighterColorInt(flashInt, *srceRowBuff, m_buffSettings.allowOverexposed);
-      ++srceRowBuff;
-    }
+    std::transform(srceRowBegin, srceRowEnd, destRowBegin, [&](const Pixel& srce) {
+      return GetBrighterColorInt(flashInt, srce, m_buffSettings.allowOverexposed);
+    });
   };
 
   m_parallel->ForLoop(m_goomInfo->GetScreenInfo().height, setDestPixelRow);
