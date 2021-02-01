@@ -38,6 +38,7 @@
 #include <numeric>
 #include <stdexcept>
 #include <string>
+#include <tuple>
 #include <vector>
 
 CEREAL_REGISTER_TYPE(GOOM::ZoomFilterFx)
@@ -482,6 +483,10 @@ private:
   std::vector<int32_t> m_freeTranYTemp{}; // temp (en cours de generation)
   int32_t* m_tranXTemp{};
   int32_t* m_tranYTemp{};
+  auto GetTransformedPoint(size_t buffPos) const -> std::tuple<uint32_t, uint32_t>;
+  auto GetSourceInfo(uint32_t tranPx, uint32_t tranPy) const
+      -> std::tuple<uint32_t, uint32_t, CoeffArray>;
+  auto GetNewColor(const CoeffArray& coeffs, const PixelArray& pixels) const -> Pixel;
 
   // modification by jeko : fixedpoint : tranDiffFactor = (16:16) (0 <= tranDiffFactor <= 2^16)
   int32_t m_tranDiffFactor = 0;
@@ -971,53 +976,28 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff, PixelBuffe
     auto [rowBegin, rowEnd] = destBuff.GetRowIter(destY);
     for (auto& rowBuff = rowBegin; rowBuff != rowEnd; ++rowBuff)
     {
-      const auto tranPx = static_cast<uint32_t>(
-          m_tranXSrce[destPos] +
-          (((m_tranXDest[destPos] - m_tranXSrce[destPos]) * m_tranDiffFactor) >> BUFF_POINT_NUM));
-      const auto tranPy = static_cast<uint32_t>(
-          m_tranYSrce[destPos] +
-          (((m_tranYDest[destPos] - m_tranYSrce[destPos]) * m_tranDiffFactor) >> BUFF_POINT_NUM));
+      const auto [tranPx, tranPy] = GetTransformedPoint(destPos);
+
+      /**
+      if ((tranPx >= tranAx) || (tranPy >= tranAy))
+      {
+        m_stats.DoCZoomOutOfRange();
+        const size_t xIndex = GetRandInRange(0U, 1U + (tranAx & PERTE_MASK));
+        const size_t yIndex = GetRandInRange(0U, 1U + (tranAy & PERTE_MASK));
+        return std::make_tuple(destPos, CoeffArray{.intVal = m_precalcCoeffs[xIndex][yIndex]});
+      }
+     **/
 
       if ((tranPx >= tranAx) || (tranPy >= tranAy))
       {
         m_stats.DoCZoomOutOfRange();
-        *rowBuff = Pixel{0U};
+        *rowBuff = Pixel::BLACK;
       }
       else
       {
-        const auto getSrceInfo = [&]() {
-          /**
-        if ((tranPx >= tranAx) || (tranPy >= tranAy))
-        {
-          m_stats.DoCZoomOutOfRange();
-          const size_t xIndex = GetRandInRange(0U, 1U + (tranAx & PERTE_MASK));
-          const size_t yIndex = GetRandInRange(0U, 1U + (tranAy & PERTE_MASK));
-          return std::make_tuple(destPos, CoeffArray{.intVal = m_precalcCoeffs[xIndex][yIndex]});
-        }
-         **/
-          const uint32_t srceX = tranPx >> PERTE_DEC;
-          const uint32_t srceY = tranPy >> PERTE_DEC;
-          const size_t xIndex = tranPx & PERTE_MASK;
-          const size_t yIndex = tranPy & PERTE_MASK;
-          return std::make_tuple(srceX, srceY,
-                                 CoeffArray{.intVal = m_precalcCoeffs[xIndex][yIndex]});
-        };
-
-        const auto [srceX, srceY, coeffs] = getSrceInfo();
-        const PixelArray neighbourColors = srceBuff.Get4RHBNeighbours(srceX, srceY);
-
-        if (m_filterData.blockyWavy)
-        {
-          m_stats.DoGetBlockyMixedColor();
-          const Pixel newColor = GetBlockyMixedColor(coeffs, neighbourColors);
-          *rowBuff = newColor;
-        }
-        else
-        {
-          m_stats.DoGetMixedColor();
-          const Pixel newColor = GetMixedColor(coeffs, neighbourColors);
-          *rowBuff = newColor;
-        }
+        const auto [srceX, srceY, coeffs] = GetSourceInfo(tranPx, tranPy);
+        const PixelArray pixelNeighbours = srceBuff.Get4RHBNeighbours(srceX, srceY);
+        *rowBuff = GetNewColor(coeffs, pixelNeighbours);
 #ifndef NO_LOGGING
         if (colors[0].rgba() > 0xFF000000)
         {
@@ -1046,6 +1026,42 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff, PixelBuffe
   };
 
   m_parallel->ForLoop(m_screenHeight, setDestPixelRow);
+}
+
+inline auto ZoomFilterFx::ZoomFilterImpl::GetTransformedPoint(const size_t buffPos) const
+    -> std::tuple<uint32_t, uint32_t>
+{
+  return std::make_tuple(
+      static_cast<uint32_t>(
+          m_tranXSrce[buffPos] +
+          (((m_tranXDest[buffPos] - m_tranXSrce[buffPos]) * m_tranDiffFactor) >> BUFF_POINT_NUM)),
+      static_cast<uint32_t>(
+          m_tranYSrce[buffPos] +
+          (((m_tranYDest[buffPos] - m_tranYSrce[buffPos]) * m_tranDiffFactor) >> BUFF_POINT_NUM)));
+}
+
+inline auto ZoomFilterFx::ZoomFilterImpl::GetSourceInfo(const uint32_t tranPx,
+                                                        const uint32_t tranPy) const
+    -> std::tuple<uint32_t, uint32_t, CoeffArray>
+{
+  const uint32_t srceX = tranPx >> PERTE_DEC;
+  const uint32_t srceY = tranPy >> PERTE_DEC;
+  const size_t xIndex = tranPx & PERTE_MASK;
+  const size_t yIndex = tranPy & PERTE_MASK;
+  return std::make_tuple(srceX, srceY, CoeffArray{.intVal = m_precalcCoeffs[xIndex][yIndex]});
+}
+
+inline auto ZoomFilterFx::ZoomFilterImpl::GetNewColor(const CoeffArray& coeffs,
+                                                      const PixelArray& pixels) const -> Pixel
+{
+  if (m_filterData.blockyWavy)
+  {
+    m_stats.DoGetBlockyMixedColor();
+    return GetBlockyMixedColor(coeffs, pixels);
+  }
+
+  m_stats.DoGetMixedColor();
+  return GetMixedColor(coeffs, pixels);
 }
 
 /*
@@ -1339,7 +1355,7 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetMixedColor(const CoeffArray& coeffs
 {
   if (coeffs.intVal == 0)
   {
-    return Pixel{0U};
+    return Pixel::BLACK;
   }
 
   uint32_t newR = 0;

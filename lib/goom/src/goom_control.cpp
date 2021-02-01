@@ -2444,7 +2444,7 @@ void GoomControl::GoomControlImpl::DisplayText(const char* songTitle,
     if (m_goomData.timeOfTitleDisplay == GoomData::maxTitleDisplayTime)
     {
       m_textColorMap = &(RandomColorMaps{}.GetRandomColorMap(ColorMapGroup::DIVERGING_BLACK));
-      m_textOutlineColor = Pixel{0xffffffffU};
+      m_textOutlineColor = Pixel::WHITE;
     }
     const auto xPos = static_cast<int>(0.085F * static_cast<float>(GetScreenWidth()));
     const auto yPos = static_cast<int>(0.300F * static_cast<float>(GetScreenHeight()));
@@ -2544,7 +2544,7 @@ void GoomControl::GoomControlImpl::UpdateMessage(const char* message)
       const auto getFontColor = []([[maybe_unused]] const size_t textIndexOfChar,
                                    [[maybe_unused]] float x, [[maybe_unused]] float y,
                                    [[maybe_unused]] float width,
-                                   [[maybe_unused]] float height) { return Pixel{0xffffffffU}; };
+                                   [[maybe_unused]] float height) { return Pixel::WHITE; };
       const auto getOutlineFontColor =
           []([[maybe_unused]] const size_t textIndexOfChar, [[maybe_unused]] float x,
              [[maybe_unused]] float y, [[maybe_unused]] float width,

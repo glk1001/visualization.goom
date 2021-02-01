@@ -586,7 +586,7 @@ void TentacleDriver::Plot3D(const Tentacle3D& tentacle,
 auto [color, colorLow] = GetMixedColors(nodeNum);
 if (-10 < tentacle.getHead().x && tentacle.GetHead().x < 0)
 {
-  color = Pixel{0xFFFFFFFF};
+  color = Pixel::WHITE;
   colorLow = color;
 }
 else if (0 <= tentacle.getHead().x && tentacle.GetHead().x < 10)

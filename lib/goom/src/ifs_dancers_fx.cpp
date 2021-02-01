@@ -356,7 +356,7 @@ void FractalHits::Reset()
   for (auto& xHit : m_hitInfo)
   {
     // Optimization makes sense here:
-    // std::fill(xHit.begin(), xHit.end(), HitInfo{0, Pixel{0U}});
+    // std::fill(xHit.begin(), xHit.end(), HitInfo{0, Pixel::BLACK});
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wclass-memaccess"
     (void)std::memset(xHit.data(), 0, xHit.size() * sizeof(HitInfo));

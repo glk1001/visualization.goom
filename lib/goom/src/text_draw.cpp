@@ -696,7 +696,7 @@ void TextDraw::TextDrawImpl::DrawBitmap(
           bitmap->buffer[static_cast<size_t>(q * static_cast<int>(bitmap->width) + p)];
       if (color == 0)
       {
-        buff(static_cast<size_t>(i), static_cast<size_t>(j)) = Pixel{0U};
+        buff(static_cast<size_t>(i), static_cast<size_t>(j)) = Pixel::BLACK;
       }
       else
       {

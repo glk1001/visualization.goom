@@ -21,6 +21,7 @@
 
 #include "Main.h"
 
+#include "goom/goom_graphic.h"
 #include "goom/sound_info.h"
 #include "goomutils/logging_control.h"
 
@@ -114,7 +115,7 @@ auto CVisualizationGoom::Start(int iChannels,
   // Make one init frame in black
   std::shared_ptr<PixelBuffer> sp{
       new PixelBuffer{static_cast<uint32_t>(m_texWidth), static_cast<uint32_t>(m_texHeight)}};
-  sp->Fill(Pixel{0U});
+  sp->Fill(Pixel::BLACK);
   m_activeQueue.push(sp);
 
   // Init GL parts
