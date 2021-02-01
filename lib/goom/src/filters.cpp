@@ -440,9 +440,9 @@ public:
                          int32_t switchIncr,
                          float switchMult);
 
-  const ZoomFilterData& GetFilterData() const;
-  float GetGeneralSpeed() const;
-  int32_t GetInterlaceStart() const;
+  auto GetFilterData() const -> const ZoomFilterData&;
+  auto GetGeneralSpeed() const -> float;
+  auto GetInterlaceStart() const -> int32_t;
 
   void Log(const StatsLogValueFunc& l) const;
 
@@ -968,7 +968,8 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff, PixelBuffe
 
   const auto setDestPixelRow = [&](const uint32_t destY) {
     uint32_t destPos = m_screenWidth * destY;
-    for (size_t destX = 0; destX < m_screenWidth; ++destX)
+    auto [rowBegin, rowEnd] = destBuff.GetRowIter(destY);
+    for (auto& rowBuff = rowBegin; rowBuff != rowEnd; ++rowBuff)
     {
       const auto tranPx = static_cast<uint32_t>(
           m_tranXSrce[destPos] +
@@ -980,7 +981,7 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff, PixelBuffe
       if ((tranPx >= tranAx) || (tranPy >= tranAy))
       {
         m_stats.DoCZoomOutOfRange();
-        destBuff(destX, destY) = Pixel{0U};
+        *rowBuff = Pixel{0U};
       }
       else
       {
@@ -1003,42 +1004,19 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff, PixelBuffe
         };
 
         const auto [srceX, srceY, coeffs] = getSrceInfo();
-        PixelArray colors;
-        if (srceX >= m_screenWidth - 1 && srceY >= m_screenHeight - 1)
-        {
-          colors = PixelArray{srceBuff(srceX, srceY), Pixel::BLACK, Pixel::BLACK, Pixel::BLACK};
-        }
-        else if (srceX >= m_screenWidth - 1)
-        {
-          colors = PixelArray{srceBuff(srceX, srceY), Pixel::BLACK, srceBuff(srceX, srceY + 1),
-                              Pixel::BLACK};
-        }
-        else if (srceY >= m_screenHeight - 1)
-        {
-          colors = PixelArray{srceBuff(srceX, srceY), srceBuff(srceX + 1, srceY), Pixel::BLACK,
-                              Pixel::BLACK};
-        }
-        else
-        {
-          colors = PixelArray{
-              srceBuff(srceX, srceY),
-              srceBuff(srceX + 1, srceY),
-              srceBuff(srceX, srceY + 1),
-              srceBuff(srceX + 1, srceY + 1),
-          };
-        }
+        const PixelArray neighbourColors = srceBuff.Get4RHBNeighbours(srceX, srceY);
 
         if (m_filterData.blockyWavy)
         {
           m_stats.DoGetBlockyMixedColor();
-          const Pixel newColor = GetBlockyMixedColor(coeffs, colors);
-          destBuff(destX, destY) = newColor;
+          const Pixel newColor = GetBlockyMixedColor(coeffs, neighbourColors);
+          *rowBuff = newColor;
         }
         else
         {
           m_stats.DoGetMixedColor();
-          const Pixel newColor = GetMixedColor(coeffs, colors);
-          destBuff(destX, destY) = newColor;
+          const Pixel newColor = GetMixedColor(coeffs, neighbourColors);
+          *rowBuff = newColor;
         }
 #ifndef NO_LOGGING
         if (colors[0].rgba() > 0xFF000000)
@@ -1411,17 +1389,17 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetBlockyMixedColor(const CoeffArray& 
   return GetMixedColor(coeffs, reorderedColors);
 }
 
-const ZoomFilterData& ZoomFilterFx::ZoomFilterImpl::GetFilterData() const
+auto ZoomFilterFx::ZoomFilterImpl::GetFilterData() const -> const ZoomFilterData&
 {
   return m_filterData;
 }
 
-float ZoomFilterFx::ZoomFilterImpl::GetGeneralSpeed() const
+auto ZoomFilterFx::ZoomFilterImpl::GetGeneralSpeed() const -> float
 {
   return m_generalSpeed;
 }
 
-int32_t ZoomFilterFx::ZoomFilterImpl::GetInterlaceStart() const
+auto ZoomFilterFx::ZoomFilterImpl::GetInterlaceStart() const -> int32_t
 {
   return m_interlaceStart;
 }

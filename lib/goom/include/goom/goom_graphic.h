@@ -4,9 +4,11 @@
 #include "goom_config.h"
 
 #include <algorithm>
+#include <cassert>
 #include <cereal/archives/json.hpp>
 #include <cstdint>
 #include <cstring>
+#include <tuple>
 #include <vector>
 
 namespace GOOM
@@ -128,6 +130,8 @@ inline const Pixel Pixel::WHITE{.channels{.r = channel_limits<uint8_t>::max(),
 
 class PixelBuffer
 {
+  using Buffer = std::vector<Pixel>;
+
 public:
   PixelBuffer() noexcept = default;
   PixelBuffer(uint32_t width, uint32_t height) noexcept;
@@ -149,10 +153,17 @@ public:
   auto operator()(size_t x, size_t y) const -> const Pixel&;
   auto operator()(size_t x, size_t y) -> Pixel&;
 
+  using iterator = Buffer::iterator;
+  using const_iterator = Buffer::const_iterator;
+  [[nodiscard]] auto GetRowIter(size_t y) -> std::tuple<iterator, iterator>;
+  [[nodiscard]] auto GetRowIter(size_t y) const -> std::tuple<const_iterator, const_iterator>;
+
+  [[nodiscard]] auto Get4RHBNeighbours(size_t x, size_t y) const -> std::array<Pixel, 4>;
+
 private:
   uint32_t m_width{};
   uint32_t m_height{};
-  std::vector<Pixel> m_buff{};
+  Buffer m_buff{};
 
   [[nodiscard]] auto GetIntBuff() -> uint32_t*;
   void CopyTo(uint32_t* intBuff, uint32_t length) const;
@@ -232,9 +243,7 @@ inline void Pixel::SetRgba(uint32_t v)
 }
 
 inline PixelBuffer::PixelBuffer(const uint32_t w, const uint32_t h) noexcept
-  : m_width{w},
-    m_height{h},
-    m_buff(m_width * m_height)
+  : m_width{w}, m_height{h}, m_buff(m_width * m_height)
 {
 }
 
@@ -289,6 +298,53 @@ inline auto PixelBuffer::operator()(const size_t x, const size_t y) const -> con
 inline auto PixelBuffer::operator()(const size_t x, const size_t y) -> Pixel&
 {
   return m_buff[y * m_width + x];
+}
+
+inline auto PixelBuffer::GetRowIter(const size_t y)
+    -> std::tuple<PixelBuffer::iterator, PixelBuffer::iterator>
+{
+  const int32_t rowPos = y * m_width;
+  return std::make_tuple(m_buff.begin() + rowPos, m_buff.begin() + rowPos + m_width);
+}
+
+inline auto PixelBuffer::GetRowIter(const size_t y) const
+    -> std::tuple<PixelBuffer::const_iterator, PixelBuffer::const_iterator>
+{
+  const int32_t rowPos = y * m_width;
+  return std::make_tuple(m_buff.begin() + rowPos, m_buff.begin() + rowPos + m_width);
+}
+
+inline auto PixelBuffer::Get4RHBNeighbours(size_t x, size_t y) const -> std::array<Pixel, 4>
+{
+  assert(x < m_width && y < m_height);
+  //if (x >= m_width || y >= m_height)
+  //{
+  //  return {Pixel::BLACK, Pixel::BLACK, Pixel::BLACK, Pixel::BLACK};
+  //}
+
+  const size_t xPos = y * m_width + x;
+
+  if (x >= m_width - 1 && y >= m_height - 1)
+  {
+    return {m_buff[xPos], Pixel::BLACK, Pixel::BLACK, Pixel::BLACK};
+  }
+
+  if (x >= m_width - 1)
+  {
+    return {m_buff[xPos], Pixel::BLACK, m_buff[xPos + m_width], Pixel::BLACK};
+  }
+
+  if (y >= m_height - 1)
+  {
+    return {m_buff[xPos], m_buff[xPos + 1], Pixel::BLACK, Pixel::BLACK};
+  }
+
+  return {
+      m_buff[xPos],
+      m_buff[xPos + 1],
+      m_buff[xPos + m_width],
+      m_buff[xPos + m_width + 1],
+  };
 }
 
 } // namespace GOOM
