@@ -58,10 +58,10 @@ void GoomDraw::Bitmap(PixelBuffer& buff,
   const auto bitmapWidth = static_cast<int>(bitmap.GetWidth());
   const auto bitmapHeight = static_cast<int>(bitmap.GetHeight());
 
-  const int x0 = std::max(0, xCentre - bitmapWidth / 2);
-  const int y0 = std::max(0, yCentre - bitmapHeight / 2);
-  const int x1 = std::min(static_cast<int>(m_screenWidth) - 1, x0 + bitmapWidth - 1);
-  const int y1 = std::min(static_cast<int>(m_screenHeight) - 1, y0 + bitmapHeight - 1);
+  const int x0 = std::clamp(xCentre - bitmapWidth / 2, 0, static_cast<int>(m_screenWidth) - 1);
+  const int y0 = std::clamp(yCentre - bitmapHeight / 2, 0, static_cast<int>(m_screenHeight) - 1);
+  const int x1 = std::min(x0 + bitmapWidth - 1, static_cast<int>(m_screenWidth) - 1);
+  const int y1 = std::min(y0 + bitmapHeight - 1, static_cast<int>(m_screenHeight) - 1);
 
   const auto setDestPixelRow = [&](const uint32_t y) {
     const auto yBitmap = static_cast<size_t>(y);

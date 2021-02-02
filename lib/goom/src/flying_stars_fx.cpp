@@ -1,11 +1,13 @@
 #include "flying_stars_fx.h"
 
+#include "goom_config.h"
 #include "goom_draw.h"
 #include "goom_plugin_info.h"
 #include "goom_visual_fx.h"
 #include "goomutils/colormaps.h"
 #include "goomutils/colorutils.h"
 #include "goomutils/goomrand.h"
+#include "goomutils/image_bitmaps.h"
 #include "goomutils/logging_control.h"
 //#undef NO_LOGGING
 #include "goomutils/logging.h"
@@ -227,7 +229,12 @@ public:
   auto operator=(const FlyingStarsImpl&) -> FlyingStarsImpl& = delete;
   auto operator=(FlyingStarsImpl&&) -> FlyingStarsImpl& = delete;
 
+  [[nodiscard]] auto GetResourcesDirectory() const -> const std::string&;
+  void SetResourcesDirectory(const std::string& dirName);
+
   void SetBuffSettings(const FXBuffSettings& settings);
+
+  void Start();
 
   void UpdateBuffers(PixelBuffer& currentBuff, PixelBuffer& nextBuff);
 
@@ -272,14 +279,17 @@ private:
   [[nodiscard]] auto GetMixedColors(const Star& s, float t, float brightness)
       -> std::tuple<Pixel, Pixel>;
 
+  std::string m_resourcesDirectory{};
+
   uint32_t m_counter = 0;
   static constexpr uint32_t MAX_COUNT = 100;
 
   StarModes m_fxMode = StarModes::FIREWORKS;
-  static constexpr size_t MAX_NUM_STARS = 1024;
-  static constexpr size_t MIN_NUM_STARS = 100;
-  size_t m_maxStars = MAX_NUM_STARS;
+  static constexpr uint32_t MAX_NUM_STARS = 1024;
+  static constexpr uint32_t MIN_NUM_STARS = 100;
+  uint32_t m_maxStars = MAX_NUM_STARS;
   std::vector<Star> m_stars{};
+  static constexpr float OLD_AGE = 0.95;
   uint32_t m_maxStarAge = 15;
   float m_minSideWind = -01;
   float m_maxSideWind = +01;
@@ -301,13 +311,61 @@ private:
   void DrawStars(PixelBuffer& currentBuff, PixelBuffer& nextBuff);
   static void UpdateStar(Star& s);
   [[nodiscard]] auto IsStarDead(const Star& s) const -> bool;
-  void DrawStarParticle(PixelBuffer& currentBuff,
-                        PixelBuffer& nextBuff,
-                        const Star& star,
-                        float flipSpeed);
+  enum class DrawMode
+  {
+    CIRCLES,
+    LINES,
+    DOTS,
+    CIRCLES_AND_LINES,
+  };
+  DrawMode m_drawMode = DrawMode::CIRCLES;
+  void ChangeDrawMode();
+  using DrawFunc = std::function<void(std::vector<PixelBuffer*>& buffs,
+                                      int32_t x1,
+                                      int32_t y1,
+                                      int32_t x2,
+                                      int32_t y2,
+                                      uint32_t size,
+                                      const std::vector<Pixel>& colors)>;
+  auto GetDrawFunc() -> DrawFunc;
+  void DrawParticle(PixelBuffer& currentBuff,
+                    PixelBuffer& nextBuff,
+                    const Star& star,
+                    float flipSpeed,
+                    const DrawFunc& drawFunc);
+  void DrawParticleCircle(std::vector<PixelBuffer*>& buffs,
+                          int32_t x1,
+                          int32_t y1,
+                          int32_t x2,
+                          int32_t y2,
+                          uint32_t size,
+                          const std::vector<Pixel>& colors);
+  void DrawParticleLine(std::vector<PixelBuffer*>& buffs,
+                        int32_t x1,
+                        int32_t y1,
+                        int32_t x2,
+                        int32_t y2,
+                        uint32_t size,
+                        const std::vector<Pixel>& colors);
+  void DrawParticleDot(std::vector<PixelBuffer*>& buffs,
+                       int32_t x1,
+                       int32_t y1,
+                       int32_t x2,
+                       int32_t y2,
+                       uint32_t size,
+                       const std::vector<Pixel>& colors);
   void RemoveDeadStars();
   void AddABomb(int32_t mx, int32_t my, float radius, float vage, float gravity, float sideWind);
   [[nodiscard]] auto GetBombAngle(float x, float y) const -> uint32_t;
+
+  static constexpr uint32_t MIN_DOT_SIZE = 3;
+  static constexpr uint32_t MAX_DOT_SIZE = 9;
+  std::vector<std::map<size_t, std::shared_ptr<ImageBitmap>>> m_bitmapDotsList{};
+  size_t m_currentBitmapDots{};
+  void InitBitmaps();
+  auto GetImageBitmap(const std::string& name, size_t sizeOfImageSquare)
+      -> std::shared_ptr<ImageBitmap>;
+  auto GetImageFilename(const std::string& name, size_t sizeOfImageSquare) -> std::string;
 
   friend class cereal::access;
   template<class Archive>
@@ -332,6 +390,16 @@ auto FlyingStarsFx::operator==(const FlyingStarsFx& f) const -> bool
   return m_fxImpl->operator==(*f.m_fxImpl);
 }
 
+auto FlyingStarsFx::GetResourcesDirectory() const -> const std::string&
+{
+  return m_fxImpl->GetResourcesDirectory();
+}
+
+void FlyingStarsFx::SetResourcesDirectory(const std::string& dirName)
+{
+  m_fxImpl->SetResourcesDirectory(dirName);
+}
+
 void FlyingStarsFx::SetBuffSettings(const FXBuffSettings& settings)
 {
   m_fxImpl->SetBuffSettings(settings);
@@ -339,6 +407,7 @@ void FlyingStarsFx::SetBuffSettings(const FXBuffSettings& settings)
 
 void FlyingStarsFx::Start()
 {
+  m_fxImpl->Start();
 }
 
 void FlyingStarsFx::Finish()
@@ -443,10 +512,25 @@ FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl(std::shared_ptr<const PluginInfo
   m_lowColorMaps->SetLightnessLimits(MIN_LIGHTNESS, MAX_LIGHTNESS);
 }
 
+auto FlyingStarsFx::FlyingStarsImpl::GetResourcesDirectory() const -> const std::string&
+{
+  return m_resourcesDirectory;
+}
+
+void FlyingStarsFx::FlyingStarsImpl::SetResourcesDirectory(const std::string& dirName)
+{
+  m_resourcesDirectory = dirName;
+}
+
 void FlyingStarsFx::FlyingStarsImpl::SetBuffSettings(const FXBuffSettings& settings)
 {
   m_draw.SetBuffIntensity(settings.buffIntensity);
   m_draw.SetAllowOverexposed(settings.allowOverexposed);
+}
+
+void FlyingStarsFx::FlyingStarsImpl::Start()
+{
+  InitBitmaps();
 }
 
 void FlyingStarsFx::FlyingStarsImpl::Finish()
@@ -483,11 +567,13 @@ void FlyingStarsFx::FlyingStarsImpl::CheckForStarEvents()
       const uint32_t newVal = GetNRand(NUM_FX + 2);
       m_fxMode = newVal >= NUM_FX ? StarModes::NO_FX : static_cast<StarModes>(newVal);
       ChangeColorMode();
+      ChangeDrawMode();
     }
     else if (m_counter > MAX_COUNT)
     {
       m_counter = 0;
       ChangeColorMode();
+      ChangeDrawMode();
     }
   }
   // m_fxMode = StarModes::rain;
@@ -509,22 +595,68 @@ void FlyingStarsFx::FlyingStarsImpl::DrawStars(PixelBuffer& currentBuff, PixelBu
       continue;
     }
 
-    DrawStarParticle(currentBuff, nextBuff, star, flipSpeed);
+    DrawParticle(currentBuff, nextBuff, star, flipSpeed, GetDrawFunc());
   }
 }
 
-void FlyingStarsFx::FlyingStarsImpl::DrawStarParticle(PixelBuffer& currentBuff,
-                                                      PixelBuffer& nextBuff,
-                                                      const Star& star,
-                                                      const float flipSpeed)
+void FlyingStarsFx::FlyingStarsImpl::ChangeDrawMode()
 {
-  constexpr float OLD_AGE = 0.95;
+  // clang-format off
+  static const Weights<DrawMode> s_drawModeWeights{{
+      { DrawMode::DOTS,              30 },
+      { DrawMode::CIRCLES,           20 },
+      { DrawMode::LINES,             10 },
+      { DrawMode::CIRCLES_AND_LINES, 15 },
+  }};
+  // clang-format on
+
+  m_drawMode = s_drawModeWeights.GetRandomWeighted();
+}
+
+
+inline auto FlyingStarsFx::FlyingStarsImpl::GetDrawFunc() -> DrawFunc
+{
+  static std::map<DrawMode, DrawFunc> s_drawFuncs{
+      {DrawMode::CIRCLES,
+       [&](std::vector<PixelBuffer*>& buffs, const int32_t x1, const int32_t y1, const int32_t x2,
+           const int32_t y2, const uint32_t size, const std::vector<Pixel>& colors) {
+         DrawParticleCircle(buffs, x1, y1, x2, y2, size, colors);
+       }},
+      {DrawMode::LINES,
+       [&](std::vector<PixelBuffer*>& buffs, const int32_t x1, const int32_t y1, const int32_t x2,
+           const int32_t y2, const uint32_t size, const std::vector<Pixel>& colors) {
+         DrawParticleLine(buffs, x1, y1, x2, y2, size, colors);
+       }},
+      {
+          DrawMode::DOTS,
+          [&](std::vector<PixelBuffer*>& buffs, const int32_t x1, const int32_t y1,
+              const int32_t x2, const int32_t y2, const uint32_t size,
+              const std::vector<Pixel>& colors) {
+            DrawParticleDot(buffs, x1, y1, x2, y2, size, colors);
+          },
+      }};
+
+  if (m_drawMode != DrawMode::CIRCLES_AND_LINES)
+  {
+    return s_drawFuncs[m_drawMode];
+  }
+  return ProbabilityOfMInN(1, 2) ? s_drawFuncs[DrawMode::CIRCLES] : s_drawFuncs[DrawMode::LINES];
+}
+
+void FlyingStarsFx::FlyingStarsImpl::DrawParticle(PixelBuffer& currentBuff,
+                                                  PixelBuffer& nextBuff,
+                                                  const Star& star,
+                                                  const float flipSpeed,
+                                                  const DrawFunc& drawFunc)
+{
   const float tAge = star.age / static_cast<float>(m_maxStarAge);
   const float ageBrightness = 0.2F + 0.8F * Sq(0.5F - tAge) / 0.25F;
   const size_t numParts =
       tAge > OLD_AGE ? 4 : 2 + static_cast<size_t>(std::lround((1.0F - tAge) * 2.0F));
+
   const auto x0 = static_cast<int32_t>(star.x);
   const auto y0 = static_cast<int32_t>(star.y);
+
   int32_t x1 = x0;
   int32_t y1 = y0;
   for (size_t j = 1; j <= numParts; j++)
@@ -535,24 +667,86 @@ void FlyingStarsFx::FlyingStarsImpl::DrawStarParticle(PixelBuffer& currentBuff,
     const int32_t y2 =
         y0 - static_cast<int32_t>(0.5 * (1.0 + std::cos(flipSpeed * star.yVelocity * j)) *
                                   star.yVelocity * j);
-    const uint8_t thickness = tAge < OLD_AGE ? 1 : GetRandInRange(2U, 5U);
 
     const float brightness = ageBrightness * static_cast<float>(j) / static_cast<float>(numParts);
     const auto [mixedColor, mixedLowColor] = GetMixedColors(star, tAge, brightness);
+    const std::vector<Pixel> colors = {mixedColor, mixedLowColor};
+    std::vector<PixelBuffer*> buffs{&currentBuff, &nextBuff};
+    const uint32_t size = tAge < OLD_AGE ? 1 : GetRandInRange(2U, MAX_DOT_SIZE + 1);
 
-    if (m_useSingleBufferOnly)
-    {
-      m_draw.Line(currentBuff, x1, y1, x2, y2, mixedColor, thickness);
-    }
-    else
-    {
-      const std::vector<Pixel> colors = {mixedColor, mixedLowColor};
-      std::vector<PixelBuffer*> buffs{&currentBuff, &nextBuff};
-      m_draw.Line(buffs, x1, y1, x2, y2, colors, thickness);
-    }
+    drawFunc(buffs, x1, y1, x2, y2, size, colors);
 
     x1 = x2;
     y1 = y2;
+  }
+}
+
+void FlyingStarsFx::FlyingStarsImpl::DrawParticleCircle(std::vector<PixelBuffer*>& buffs,
+                                                        const int32_t x1,
+                                                        const int32_t y1,
+                                                        [[maybe_unused]] const int32_t x2,
+                                                        [[maybe_unused]] const int32_t y2,
+                                                        const uint32_t size,
+                                                        const std::vector<Pixel>& colors)
+{
+  if (m_useSingleBufferOnly)
+  {
+    m_draw.Circle(*(buffs[0]), x1, y1, static_cast<int>(size), colors[0]);
+  }
+  else
+  {
+    m_draw.Circle(buffs, x1, y1, static_cast<int>(size), colors);
+  }
+}
+
+void FlyingStarsFx::FlyingStarsImpl::DrawParticleLine(std::vector<PixelBuffer*>& buffs,
+                                                      const int32_t x1,
+                                                      const int32_t y1,
+                                                      const int32_t x2,
+                                                      const int32_t y2,
+                                                      const uint32_t size,
+                                                      const std::vector<Pixel>& colors)
+{
+  if (m_useSingleBufferOnly)
+  {
+    m_draw.Line(*(buffs[0]), x1, y1, x2, y2, colors[0], static_cast<int>(size));
+  }
+  else
+  {
+    m_draw.Line(buffs, x1, y1, x2, y2, colors, static_cast<int>(size));
+  }
+}
+
+void FlyingStarsFx::FlyingStarsImpl::DrawParticleDot(std::vector<PixelBuffer*>& buffs,
+                                                     const int32_t x1,
+                                                     const int32_t y1,
+                                                     [[maybe_unused]] const int32_t x2,
+                                                     [[maybe_unused]] const int32_t y2,
+                                                     const uint32_t size,
+                                                     const std::vector<Pixel>& colors)
+{
+  const auto getColor = [&]([[maybe_unused]] const int x, [[maybe_unused]] const int y,
+                            const Pixel& b) -> Pixel {
+    return GetColorMultiply(b, colors[0], m_buffSettings.allowOverexposed);
+  };
+  const auto getLowColor = [&]([[maybe_unused]] const int x, [[maybe_unused]] const int y,
+                               const Pixel& b) -> Pixel {
+    return GetColorMultiply(b, colors[1], m_buffSettings.allowOverexposed);
+  };
+
+  const uint32_t imageKey = std::max(MIN_DOT_SIZE, size % 2 != 0 ? size : size + 1);
+  ImageBitmap* const bitmap1 = m_bitmapDotsList[m_currentBitmapDots][imageKey].get();
+  ImageBitmap* const bitmap2 = bitmap1;
+
+  if (m_useSingleBufferOnly)
+  {
+    m_draw.Bitmap(*(buffs[0]), x1, y1, *bitmap1, getColor);
+  }
+  else
+  {
+    const std::vector<GoomDraw::GetBitmapColorFunc> getColors{getColor, getLowColor};
+    const std::vector<PixelBuffer*> bitmaps{bitmap1, bitmap2};
+    m_draw.Bitmap(buffs, x1, y1, bitmaps, getColors);
   }
 }
 
@@ -873,6 +1067,40 @@ auto FlyingStarsFx::FlyingStarsImpl::GetBombAngle(const float x,
   const float randAngle = GetRandInRange(minAngle, maxAngle);
   return static_cast<uint32_t>(0.001 +
                                static_cast<float>(NUM_SIN_COS_ANGLES - 1) * randAngle / m_two_pi);
+}
+
+void FlyingStarsFx::FlyingStarsImpl::InitBitmaps()
+{
+  std::map<size_t, std::shared_ptr<ImageBitmap>> bitmapDots{};
+  // Add images with odd res - hence the += 2
+
+  bitmapDots.clear();
+  for (size_t res = MIN_DOT_SIZE; res <= MAX_DOT_SIZE; res += 2)
+  {
+    bitmapDots.emplace(res, GetImageBitmap("circle", res));
+  }
+  m_bitmapDotsList.emplace_back(bitmapDots);
+
+  m_currentBitmapDots = GetRandInRange(0U, m_bitmapDotsList.size());
+}
+
+auto FlyingStarsFx::FlyingStarsImpl::GetImageBitmap(const std::string& name,
+                                                    const size_t sizeOfImageSquare)
+    -> std::shared_ptr<ImageBitmap>
+{
+  auto imageBitmap = std::make_shared<ImageBitmap>(GetImageFilename(name, sizeOfImageSquare));
+  imageBitmap->Load();
+  return imageBitmap;
+}
+
+auto FlyingStarsFx::FlyingStarsImpl::GetImageFilename(const std::string& name,
+                                                      size_t sizeOfImageSquare) -> std::string
+{
+  // TODO What about windows "\"
+  const std::string imagesDir = m_resourcesDirectory + "/" + IMAGES_DIR;
+  std::string filename =
+      std20::format("{}/{}{:02}x{:02}.png", imagesDir, name, sizeOfImageSquare, sizeOfImageSquare);
+  return filename;
 }
 
 } // namespace GOOM

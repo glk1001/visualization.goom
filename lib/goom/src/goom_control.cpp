@@ -277,7 +277,7 @@ const GoomStates::WeightedStatesArray GoomStates::STATES{{
     }},
   },
   {
-    .weight = 1,
+    .weight = 10000000,
     .drawables {{
       { .fx = GoomDrawable::STARS,     .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = false } },
   }},
@@ -1511,6 +1511,7 @@ void GoomControl::GoomControlImpl::Start()
 
   // TODO Make this virtual and part of start
   m_visualFx.goomDots_fx->SetResourcesDirectory(m_resourcesDirectory);
+  m_visualFx.star_fx->SetResourcesDirectory(m_resourcesDirectory);
   m_visualFx.image_fx->SetResourcesDirectory(m_resourcesDirectory);
 
   for (auto& v : m_visualFx.list)

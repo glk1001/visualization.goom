@@ -13,6 +13,8 @@ using StatsLogValue = std::variant<std::string, uint32_t, int32_t, uint64_t, flo
 using StatsLogValueFunc =
     std::function<void(const std::string& module, const std::string& name, const StatsLogValue&)>;
 
+constexpr auto IMAGES_DIR = "images";
+
 #define NUM_AUDIO_SAMPLES 2
 #define AUDIO_SAMPLE_LEN 512
 

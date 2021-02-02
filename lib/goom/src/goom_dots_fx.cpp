@@ -1,5 +1,6 @@
 #include "goom_dots_fx.h"
 
+#include "goom_config.h"
 #include "goom_draw.h"
 #include "goom_graphic.h"
 #include "goom_plugin_info.h"
@@ -75,7 +76,7 @@ private:
   static constexpr size_t MIN_DOT_SIZE = 3;
   static constexpr size_t MAX_DOT_SIZE = 21;
   std::vector<std::map<size_t, std::shared_ptr<ImageBitmap>>> m_bitmapDotsList{};
-  std::map<size_t, std::shared_ptr<ImageBitmap>>* m_currentBitmapDots{};
+  size_t m_currentBitmapDots{};
   void InitBitmaps();
   auto GetImageBitmap(const std::string& name, size_t sizeOfSquare) -> std::shared_ptr<ImageBitmap>;
   auto GetImageFilename(const std::string& name, size_t sizeOfSquare) -> std::string;
@@ -307,7 +308,7 @@ void GoomDotsFx::GoomDotsFxImpl::Apply(PixelBuffer& currentBuff)
   {
     ChangeColors();
     radius = GetRandInRange(radius, MAX_DOT_SIZE / 2 + 1);
-    m_currentBitmapDots = &m_bitmapDotsList[GetRandInRange(0U, m_bitmapDotsList.size())];
+    m_currentBitmapDots = GetRandInRange(0U, m_bitmapDotsList.size());
   }
 
   const float largeFactor = GetLargeSoundFactor(m_goomInfo->GetSoundInfo());
@@ -460,7 +461,8 @@ void GoomDotsFx::GoomDotsFxImpl::DotFilter(PixelBuffer& currentBuff,
         BRIGHTNESS, GetColorMultiply(b, color, m_buffSettings.allowOverexposed));
   };
 
-  m_draw.Bitmap(currentBuff, xMid, yMid, *(*m_currentBitmapDots)[diameter], getColor);
+  m_draw.Bitmap(currentBuff, xMid, yMid, *m_bitmapDotsList[m_currentBitmapDots][diameter],
+                getColor);
 }
 
 void GoomDotsFx::GoomDotsFxImpl::InitBitmaps()
@@ -489,7 +491,7 @@ void GoomDotsFx::GoomDotsFxImpl::InitBitmaps()
   }
   m_bitmapDotsList.emplace_back(bitmapDots);
 
-  m_currentBitmapDots = &m_bitmapDotsList[GetRandInRange(0U, m_bitmapDotsList.size())];
+  m_currentBitmapDots = GetRandInRange(0U, m_bitmapDotsList.size());
 }
 
 auto GoomDotsFx::GoomDotsFxImpl::GetImageBitmap(const std::string& name, const size_t sizeOfSquare)
@@ -504,9 +506,9 @@ auto GoomDotsFx::GoomDotsFxImpl::GetImageFilename(const std::string& name, size_
     -> std::string
 {
   // TODO What about windows "\"
-  const std::string dotsDir = m_resourcesDirectory + "/" + "dots";
+  const std::string imagesDir = m_resourcesDirectory + "/" + IMAGES_DIR;
   std::string filename =
-      std20::format("{}/{}{:02}x{:02}.png", dotsDir, name, sizeOfSquare, sizeOfSquare);
+      std20::format("{}/{}{:02}x{:02}.png", imagesDir, name, sizeOfSquare, sizeOfSquare);
   return filename;
 }
 
