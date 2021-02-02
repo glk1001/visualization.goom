@@ -138,14 +138,14 @@ private:
   static auto CreateLinearDampingFunc(double xmin, double xmax) -> DampingFuncPtr;
 };
 
-struct V3d
+struct V3dFlt
 {
   float x = 0.0;
   float y = 0.0;
   float z = 0.0;
   bool ignore = false;
 
-  auto operator==(const V3d&) const -> bool = default;
+  auto operator==(const V3dFlt&) const -> bool = default;
 
   template<class Archive>
   void serialize(Archive& ar)
@@ -162,13 +162,13 @@ public:
   Tentacle3D(std::unique_ptr<Tentacle2D>,
              const Pixel& headColor,
              const Pixel& headColorLow,
-             const V3d& head,
+             const V3dFlt& head,
              size_t numHeadNodes) noexcept;
   Tentacle3D(std::unique_ptr<Tentacle2D>,
              std::shared_ptr<const ITentacleColorizer>,
              const Pixel& headColor,
              const Pixel& headColorLow,
-             const V3d& head,
+             const V3dFlt& head,
              size_t numHeadNodes) noexcept;
   Tentacle3D(const Tentacle3D&) noexcept = delete;
   Tentacle3D(Tentacle3D&&) noexcept;
@@ -194,13 +194,13 @@ public:
   [[nodiscard]] auto GetAllowOverexposed() const -> bool { return m_allowOverexposed; }
   void SetAllowOverexposed(const bool val) { m_allowOverexposed = val; }
 
-  [[nodiscard]] auto GetHead() const -> const V3d& { return m_head; }
-  void SetHead(const V3d& val) { m_head = val; }
+  [[nodiscard]] auto GetHead() const -> const V3dFlt& { return m_head; }
+  void SetHead(const V3dFlt& val) { m_head = val; }
 
   [[nodiscard]] auto GetNumHeadNodes() const -> size_t { return m_numHeadNodes; }
   void SetNumHeadNodes(const size_t val) { m_numHeadNodes = val; }
 
-  [[nodiscard]] auto GetVertices() const -> std::vector<V3d>;
+  [[nodiscard]] auto GetVertices() const -> std::vector<V3dFlt>;
 
   auto operator==(const Tentacle3D&) const -> bool;
 
@@ -212,7 +212,7 @@ private:
   std::shared_ptr<const ITentacleColorizer> m_colorizer{};
   Pixel m_headColor{};
   Pixel m_headColorLow{};
-  V3d m_head{};
+  V3dFlt m_head{};
   size_t m_numHeadNodes{};
   bool m_reverseColorMix = false;
   bool m_allowOverexposed = true;

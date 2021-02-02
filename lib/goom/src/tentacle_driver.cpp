@@ -10,7 +10,7 @@
 #include "goomutils/mathutils.h"
 #include "goomutils/random_colormaps.h"
 #include "tentacles.h"
-#include "v3d.h"
+#include "v2d.h"
 
 #include <cmath>
 #include <cstdint>
@@ -187,7 +187,7 @@ void TentacleDriver::Init(const ITentacleLayout& l)
 
   m_tentacleParams.resize(m_numTentacles);
 
-  constexpr V3d INITIAL_HEAD_POS = {0, 0, 0};
+  constexpr V3dFlt INITIAL_HEAD_POS = {0, 0, 0};
 
   const size_t numInParamGroup = m_numTentacles / m_iterParamsGroups.size();
   const float tStep = 1.0F / static_cast<float>(numInParamGroup - 1);
@@ -332,7 +332,7 @@ void TentacleDriver::UpdateTentaclesLayout(const ITentacleLayout& l)
   // To help with perspective, any tentacles near vertical centre will be shortened.
   for (auto& tentacle : m_tentacles)
   {
-    const V3d& head = tentacle.GetHead();
+    const V3dFlt& head = tentacle.GetHead();
     if (std::fabs(head.x) < 10.0F)
     {
       Tentacle2D& tentacle2D = tentacle.Get2DTentacle();
@@ -505,10 +505,10 @@ void TentacleDriver::Plot3D(const Tentacle3D& tentacle,
                             PixelBuffer& currentBuff,
                             PixelBuffer& nextBuff)
 {
-  const std::vector<V3d> vertices = tentacle.GetVertices();
+  const std::vector<V3dFlt> vertices = tentacle.GetVertices();
   const size_t n = vertices.size();
 
-  V3d cam = {0.0, 0.0, -3.0}; // TODO ????????????????????????????????
+  V3dFlt cam = {0.0, 0.0, -3.0}; // TODO ????????????????????????????????
   cam.z += distance2;
   cam.y += 2.0F * std::sin(-(angle - m_half_pi) / 4.3F);
   logDebug("cam = ({:.2f}, {:.2f}, {:.2f}).", cam.x, cam.y, cam.z);
@@ -529,7 +529,7 @@ void TentacleDriver::Plot3D(const Tentacle3D& tentacle,
            " distance = {:.2f}, distance2 = {:.2f}.",
            angle, angleAboutY, sina, cosa, distance, distance2);
 
-  std::vector<V3d> v3{vertices};
+  std::vector<V3dFlt> v3{vertices};
   for (size_t i = 0; i < n; i++)
   {
     logDebug("v3[{}]  = ({:.2f}, {:.2f}, {:.2f}).", i, v3[i].x, v3[i].y, v3[i].z);
@@ -538,7 +538,7 @@ void TentacleDriver::Plot3D(const Tentacle3D& tentacle,
     logDebug("v3[{}]+ = ({:.2f}, {:.2f}, {:.2f}).", i, v3[i].x, v3[i].y, v3[i].z);
   }
 
-  const std::vector<v2d> v2 = ProjectV3DOntoV2D(v3, distance);
+  const std::vector<V2dInt> v2 = ProjectV3DOntoV2D(v3, distance);
 
   const float brightnessCut = GetBrightnessCut(tentacle, distance2);
 
@@ -613,10 +613,10 @@ else if (0 <= tentacle.getHead().x && tentacle.GetHead().x < 10)
   }
 }
 
-auto TentacleDriver::ProjectV3DOntoV2D(const std::vector<V3d>& v3, float distance) const
-    -> std::vector<v2d>
+auto TentacleDriver::ProjectV3DOntoV2D(const std::vector<V3dFlt>& v3, float distance) const
+    -> std::vector<V2dInt>
 {
-  std::vector<v2d> v2(v3.size());
+  std::vector<V2dInt> v2(v3.size());
 
   const int Xp0 =
       v3[0].ignore || (v3[0].z <= 2) ? 1 : static_cast<int>(distance * v3[0].x / v3[0].z);
@@ -649,7 +649,10 @@ auto TentacleDriver::ProjectV3DOntoV2D(const std::vector<V3d>& v3, float distanc
   return v2;
 }
 
-inline void TentacleDriver::RotateV3DAboutYAxis(float sina, float cosa, const V3d& vsrc, V3d& vdest)
+inline void TentacleDriver::RotateV3DAboutYAxis(float sina,
+                                                float cosa,
+                                                const V3dFlt& vsrc,
+                                                V3dFlt& vdest)
 {
   const float vi_x = vsrc.x;
   const float vi_z = vsrc.z;
@@ -658,7 +661,7 @@ inline void TentacleDriver::RotateV3DAboutYAxis(float sina, float cosa, const V3
   vdest.y = vsrc.y;
 }
 
-inline void TentacleDriver::TranslateV3D(const V3d& vadd, V3d& vinOut)
+inline void TentacleDriver::TranslateV3D(const V3dFlt& vadd, V3dFlt& vinOut)
 {
   vinOut.x += vadd.x;
   vinOut.y += vadd.y;
@@ -745,7 +748,7 @@ auto TentacleColorMapColorizer::GetColor(size_t nodeNum) const -> Pixel
     float x = xmin;
     for (size_t j = 0; j < xNum; j++)
     {
-      (void)m_points.emplace_back(V3d{x, y, zConst});
+      (void)m_points.emplace_back(V3dFlt{x, y, zConst});
       x += xStep;
     }
     y += yStep;
@@ -757,7 +760,7 @@ auto GridTentacleLayout::GetNumPoints() const -> size_t
   return m_points.size();
 }
 
-auto GridTentacleLayout::GetPoints() const -> const std::vector<V3d>&
+auto GridTentacleLayout::GetPoints() const -> const std::vector<V3dFlt>&
 {
   return m_points;
 }
@@ -809,7 +812,7 @@ CirclesTentacleLayout::CirclesTentacleLayout(const float radiusMin,
     {
       const auto x = static_cast<float>(radius * std::cos(angle));
       const auto y = static_cast<float>(radius * std::sin(angle));
-      const V3d point = {x, y, zConst};
+      const V3dFlt point = {x, y, zConst};
       m_points.push_back(point);
 #ifndef NO_LOGGING
       logLastPoint(i, radius, angle);
@@ -856,7 +859,7 @@ auto CirclesTentacleLayout::GetNumPoints() const -> size_t
   return m_points.size();
 }
 
-auto CirclesTentacleLayout::GetPoints() const -> const std::vector<V3d>&
+auto CirclesTentacleLayout::GetPoints() const -> const std::vector<V3dFlt>&
 {
   return m_points;
 }

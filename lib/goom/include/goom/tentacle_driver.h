@@ -8,7 +8,7 @@
 #include "goomutils/mathutils.h"
 #include "goomutils/random_colormaps.h"
 #include "tentacles.h"
-#include "v3d.h"
+#include "v2d.h"
 
 #include <cereal/archives/json.hpp>
 #include <cereal/types/vector.hpp>
@@ -51,7 +51,7 @@ public:
   auto operator=(ITentacleLayout&&) -> ITentacleLayout& = delete;
 
   [[nodiscard]] virtual auto GetNumPoints() const -> size_t = 0;
-  [[nodiscard]] virtual auto GetPoints() const -> const std::vector<V3d>& = 0;
+  [[nodiscard]] virtual auto GetPoints() const -> const std::vector<V3dFlt>& = 0;
 };
 
 class TentacleDriver
@@ -156,10 +156,10 @@ private:
               float distance2,
               PixelBuffer& currentBuff,
               PixelBuffer& nextBuff);
-  [[nodiscard]] auto ProjectV3DOntoV2D(const std::vector<V3d>& v3, float distance) const
-      -> std::vector<v2d>;
-  static void RotateV3DAboutYAxis(float sinAngle, float cosAngle, const V3d& src, V3d& dest);
-  static void TranslateV3D(const V3d& add, V3d& inOut);
+  [[nodiscard]] auto ProjectV3DOntoV2D(const std::vector<V3dFlt>& v3, float distance) const
+      -> std::vector<V2dInt>;
+  static void RotateV3DAboutYAxis(float sinAngle, float cosAngle, const V3dFlt& src, V3dFlt& dest);
+  static void TranslateV3D(const V3dFlt& add, V3dFlt& inOut);
 };
 
 class TentacleColorMapColorizer : public ITentacleColorizer
@@ -203,10 +203,10 @@ public:
   [[maybe_unused]] GridTentacleLayout(
       float xmin, float xmax, size_t xNum, float ymin, float ymax, size_t yNum, float zConst);
   [[nodiscard]] auto GetNumPoints() const -> size_t override;
-  [[nodiscard]] auto GetPoints() const -> const std::vector<V3d>& override;
+  [[nodiscard]] auto GetPoints() const -> const std::vector<V3dFlt>& override;
 
 private:
-  std::vector<V3d> m_points{};
+  std::vector<V3dFlt> m_points{};
 };
 
 class CirclesTentacleLayout : public ITentacleLayout
@@ -218,11 +218,11 @@ public:
                         float zConst);
   // Order of points is outer circle to inner.
   [[nodiscard]] auto GetNumPoints() const -> size_t override;
-  [[nodiscard]] auto GetPoints() const -> const std::vector<V3d>& override;
+  [[nodiscard]] auto GetPoints() const -> const std::vector<V3dFlt>& override;
   static auto GetCircleSamples(size_t numCircles, size_t totalPoints) -> std::vector<size_t>;
 
 private:
-  std::vector<V3d> m_points{};
+  std::vector<V3dFlt> m_points{};
 };
 
 template<class Archive>

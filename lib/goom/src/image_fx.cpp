@@ -11,7 +11,7 @@
 #undef NO_LOGGING
 #include "goomutils/goomrand.h"
 #include "goomutils/logging.h"
-#include "v3d.h"
+#include "v2d.h"
 
 #include <cmath>
 #include <cstdint>
@@ -54,7 +54,7 @@ private:
   GoomDraw m_draw{};
   ImageBitmap m_image{};
   GammaCorrection m_gammaCorrect{2.0, 0.01};
-  auto GetNextImageCentre() -> v2d;
+  auto GetNextImageCentre() -> V2dInt;
 };
 
 ImageFx::ImageFx() noexcept : m_fxImpl{new ImageFxImpl{}}
@@ -158,18 +158,18 @@ void ImageFx::ImageFxImpl::Apply(PixelBuffer& currentBuff)
     return GetBrighterColor(BRIGHTNESS, b, m_buffSettings.allowOverexposed);
   };
 
-  const v2d imageLocation = GetNextImageCentre();
+  const V2dInt imageLocation = GetNextImageCentre();
   m_draw.Bitmap(currentBuff, imageLocation.x, imageLocation.y, m_image, getColor);
 }
 
-auto ImageFx::ImageFxImpl::GetNextImageCentre() -> v2d
+auto ImageFx::ImageFxImpl::GetNextImageCentre() -> V2dInt
 {
   const auto buffCentreX = static_cast<int>(m_goomInfo->GetScreenInfo().width / 2);
   const auto buffCentreY = static_cast<int>(m_goomInfo->GetScreenInfo().height / 2);
-  return v2d{buffCentreX, buffCentreY};
+  return V2dInt{buffCentreX, buffCentreY};
   const int x = GetRandInRange(buffCentreX - 10, buffCentreX + 10);
   const int y = GetRandInRange(buffCentreY - 10, buffCentreY + 10);
-  return v2d{x, y};
+  return V2dInt{x, y};
 }
 
 } // namespace GOOM

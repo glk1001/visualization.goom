@@ -25,7 +25,7 @@
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
 #include "goomutils/parallel_utils.h"
-#include "v3d.h"
+#include "v2d.h"
 
 #include <array>
 #undef NDEBUG
@@ -501,7 +501,7 @@ private:
   void MakeZoomBufferStripe(uint32_t interlaceIncrement);
   void CZoom(const PixelBuffer& srceBuff, PixelBuffer& destBuff);
   void GenerateWaterFxHorizontalBuffer();
-  auto GetZoomVector(float normX, float normY) -> v2g;
+  auto GetZoomVector(float normX, float normY) -> V2dFlt;
   static void GeneratePrecalCoef(uint32_t precalcCoeffs[16][16]);
   auto GetMixedColor(const CoeffArray& coeffs, const PixelArray& colors) const -> Pixel;
   auto GetBlockyMixedColor(const CoeffArray& coeffs, const PixelArray& colors) const -> Pixel;
@@ -1094,7 +1094,7 @@ void ZoomFilterFx::ZoomFilterImpl::MakeZoomBufferStripe(const uint32_t interlace
 
     for (uint32_t x = 0; x < m_screenWidth; x++)
     {
-      const v2g vector = GetZoomVector(normX, normY);
+      const V2dFlt vector = GetZoomVector(normX, normY);
       const uint32_t tranPos = yTimesScreenWidth + x;
 
       m_tranXTemp[tranPos] = ToPixmapCoord((normX - vector.x + normMiddleX) * BUFF_POINT_NUM_FLT);
@@ -1171,7 +1171,7 @@ void ZoomFilterFx::ZoomFilterImpl::GenerateWaterFxHorizontalBuffer()
   }
 }
 
-auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float normX, const float normY) -> v2g
+auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float normX, const float normY) -> V2dFlt
 {
   m_stats.DoZoomVector();
 
@@ -1347,7 +1347,7 @@ auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float normX, const float 
     vy = (vy < 0.0F) ? -m_minNormCoordVal : m_minNormCoordVal;
   }
 
-  return v2g{vx, vy};
+  return V2dFlt{vx, vy};
 }
 
 inline auto ZoomFilterFx::ZoomFilterImpl::GetMixedColor(const CoeffArray& coeffs,

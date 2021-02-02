@@ -334,7 +334,7 @@ auto Tentacle2D::CreateLinearDampingFunc(const double xmin, const double xmax)
 Tentacle3D::Tentacle3D(std::unique_ptr<Tentacle2D> t,
                        const Pixel& headCol,
                        const Pixel& headColLow,
-                       const V3d& h,
+                       const V3dFlt& h,
                        const size_t numHdNodes) noexcept
   : m_tentacle{std::move(t)},
     m_headColor{headCol},
@@ -348,7 +348,7 @@ Tentacle3D::Tentacle3D(std::unique_ptr<Tentacle2D> t,
                        std::shared_ptr<const ITentacleColorizer> col,
                        const Pixel& headCol,
                        const Pixel& headColLow,
-                       const V3d& h,
+                       const V3dFlt& h,
                        const size_t numHdNodes) noexcept
   : m_tentacle{std::move(t)},
     m_colorizer{std::move(col)},
@@ -486,14 +486,14 @@ auto Tentacle3D::GetMixedColors(size_t nodeNum,
       GetBrighterColor(brightnessWithGamma, mixedColorLowPixel, m_allowOverexposed));
 }
 
-auto Tentacle3D::GetVertices() const -> std::vector<V3d>
+auto Tentacle3D::GetVertices() const -> std::vector<V3dFlt>
 {
   const auto [xvec2D, yvec2D] = m_tentacle->GetDampedXAndYVectors();
   const size_t n = xvec2D.size();
 
   //  logInfo("Tentacle: {}, head.x = {}, head.y = {}, head.z = {}", "x", head.x, head.y, head.z);
 
-  std::vector<V3d> vec3d(n);
+  std::vector<V3dFlt> vec3d(n);
   const float x0 = m_head.x;
   const float y0 = m_head.y - yvec2D[0];
   const float z0 = m_head.z - xvec2D[0];
