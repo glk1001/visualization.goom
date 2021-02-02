@@ -57,7 +57,7 @@ public:
   void Bitmap(std::vector<PixelBuffer*>& buffs,
               int xCentre,
               int yCentre,
-              const std::vector<PixelBuffer*>& bitmaps,
+              const std::vector<const PixelBuffer*>& bitmaps,
               const std::vector<GetBitmapColorFunc>& getColors);
 
   void Line(

@@ -129,8 +129,7 @@ auto ImageFx::ImageFxImpl::operator==(const ImageFx::ImageFxImpl& i) const -> bo
 
 void ImageFx::ImageFxImpl::Start()
 {
-  m_image.SetFilename(m_resourcesDirectory + "/" + "mountain_sunset.png");
-  m_image.Load();
+  m_image.Load(m_resourcesDirectory + "/" + "mountain_sunset.png");
 }
 
 auto ImageFx::ImageFxImpl::GetResourcesDirectory() const -> const std::string&

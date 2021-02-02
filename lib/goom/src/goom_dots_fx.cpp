@@ -75,10 +75,11 @@ private:
 
   static constexpr size_t MIN_DOT_SIZE = 3;
   static constexpr size_t MAX_DOT_SIZE = 21;
-  std::vector<std::map<size_t, std::shared_ptr<ImageBitmap>>> m_bitmapDotsList{};
+  std::vector<std::map<size_t, std::shared_ptr<const ImageBitmap>>> m_bitmapDotsList{};
   size_t m_currentBitmapDots{};
   void InitBitmaps();
-  auto GetImageBitmap(const std::string& name, size_t sizeOfSquare) -> std::shared_ptr<ImageBitmap>;
+  auto GetImageBitmap(const std::string& name, size_t sizeOfSquare)
+      -> std::shared_ptr<const ImageBitmap>;
   auto GetImageFilename(const std::string& name, size_t sizeOfSquare) -> std::string;
 
   GoomDraw m_draw{};
@@ -467,7 +468,7 @@ void GoomDotsFx::GoomDotsFxImpl::DotFilter(PixelBuffer& currentBuff,
 
 void GoomDotsFx::GoomDotsFxImpl::InitBitmaps()
 {
-  std::map<size_t, std::shared_ptr<ImageBitmap>> bitmapDots{};
+  std::map<size_t, std::shared_ptr<const ImageBitmap>> bitmapDots{};
   // Add images with odd res - hence the += 2
 
   bitmapDots.clear();
@@ -495,15 +496,14 @@ void GoomDotsFx::GoomDotsFxImpl::InitBitmaps()
 }
 
 auto GoomDotsFx::GoomDotsFxImpl::GetImageBitmap(const std::string& name, const size_t sizeOfSquare)
-    -> std::shared_ptr<ImageBitmap>
+    -> std::shared_ptr<const ImageBitmap>
 {
-  auto imageBitmap = std::make_shared<ImageBitmap>(GetImageFilename(name, sizeOfSquare));
-  imageBitmap->Load();
+  auto imageBitmap = std::make_shared<const ImageBitmap>(GetImageFilename(name, sizeOfSquare));
   return imageBitmap;
 }
 
-auto GoomDotsFx::GoomDotsFxImpl::GetImageFilename(const std::string& name, size_t sizeOfSquare)
-    -> std::string
+auto GoomDotsFx::GoomDotsFxImpl::GetImageFilename(const std::string& name,
+                                                  const size_t sizeOfSquare) -> std::string
 {
   // TODO What about windows "\"
   const std::string imagesDir = m_resourcesDirectory + "/" + IMAGES_DIR;

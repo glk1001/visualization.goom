@@ -15,21 +15,15 @@ public:
   ImageBitmap() noexcept = default;
   explicit ImageBitmap(std::string imageFilename);
 
-  void SetFilename(std::string imageFilename);
-  void Load();
+  void Load(std::string imageFilename);
 
 private:
   std::string m_filename{};
 };
 
-inline ImageBitmap::ImageBitmap(std::string imageFilename)
-  : PixelBuffer{}, m_filename{std::move(imageFilename)}
+inline ImageBitmap::ImageBitmap(std::string imageFilename) : PixelBuffer{}
 {
-}
-
-inline void ImageBitmap::SetFilename(std::string imageFilename)
-{
-  m_filename = std::move(imageFilename);
+  Load(std::move(imageFilename));
 }
 
 

@@ -11,8 +11,10 @@
 namespace GOOM::UTILS
 {
 
-void ImageBitmap::Load()
+void ImageBitmap::Load(std::string imageFilename)
 {
+  m_filename = std::move(imageFilename);
+
   int width{};
   int height{};
   int bpp{};

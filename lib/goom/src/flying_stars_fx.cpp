@@ -9,7 +9,7 @@
 #include "goomutils/goomrand.h"
 #include "goomutils/image_bitmaps.h"
 #include "goomutils/logging_control.h"
-//#undef NO_LOGGING
+#undef NO_LOGGING
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
 #include "goomutils/random_colormaps.h"
@@ -360,11 +360,11 @@ private:
 
   static constexpr uint32_t MIN_DOT_SIZE = 3;
   static constexpr uint32_t MAX_DOT_SIZE = 9;
-  std::vector<std::map<size_t, std::shared_ptr<ImageBitmap>>> m_bitmapDotsList{};
+  std::vector<std::map<size_t, std::shared_ptr<const ImageBitmap>>> m_bitmapDotsList{};
   size_t m_currentBitmapDots{};
   void InitBitmaps();
   auto GetImageBitmap(const std::string& name, size_t sizeOfImageSquare)
-      -> std::shared_ptr<ImageBitmap>;
+      -> std::shared_ptr<const ImageBitmap>;
   auto GetImageFilename(const std::string& name, size_t sizeOfImageSquare) -> std::string;
 
   friend class cereal::access;
@@ -603,7 +603,7 @@ void FlyingStarsFx::FlyingStarsImpl::ChangeDrawMode()
 {
   // clang-format off
   static const Weights<DrawMode> s_drawModeWeights{{
-      { DrawMode::DOTS,              30 },
+      { DrawMode::DOTS,              3000000 },
       { DrawMode::CIRCLES,           20 },
       { DrawMode::LINES,             10 },
       { DrawMode::CIRCLES_AND_LINES, 15 },
@@ -734,9 +734,15 @@ void FlyingStarsFx::FlyingStarsImpl::DrawParticleDot(std::vector<PixelBuffer*>& 
     return GetColorMultiply(b, colors[1], m_buffSettings.allowOverexposed);
   };
 
-  const uint32_t imageKey = std::max(MIN_DOT_SIZE, size % 2 != 0 ? size : size + 1);
-  ImageBitmap* const bitmap1 = m_bitmapDotsList[m_currentBitmapDots][imageKey].get();
-  ImageBitmap* const bitmap2 = bitmap1;
+  const size_t imageKey = std::max(MIN_DOT_SIZE, size % 2 != 0 ? size : size + 1);
+  if (m_bitmapDotsList.at(m_currentBitmapDots).find(imageKey) ==
+      m_bitmapDotsList.at(m_currentBitmapDots).end())
+  {
+    logError("imagekey error: {}", imageKey);
+    throw std::runtime_error(std20::format("imagekey error: {}", imageKey));
+  }
+  const ImageBitmap* const bitmap1 = m_bitmapDotsList.at(m_currentBitmapDots).at(imageKey).get();
+  const ImageBitmap* const bitmap2 = bitmap1;
 
   if (m_useSingleBufferOnly)
   {
@@ -745,7 +751,7 @@ void FlyingStarsFx::FlyingStarsImpl::DrawParticleDot(std::vector<PixelBuffer*>& 
   else
   {
     const std::vector<GoomDraw::GetBitmapColorFunc> getColors{getColor, getLowColor};
-    const std::vector<PixelBuffer*> bitmaps{bitmap1, bitmap2};
+    const std::vector<const PixelBuffer*> bitmaps{bitmap1, bitmap2};
     m_draw.Bitmap(buffs, x1, y1, bitmaps, getColors);
   }
 }
@@ -1071,7 +1077,10 @@ auto FlyingStarsFx::FlyingStarsImpl::GetBombAngle(const float x,
 
 void FlyingStarsFx::FlyingStarsImpl::InitBitmaps()
 {
-  std::map<size_t, std::shared_ptr<ImageBitmap>> bitmapDots{};
+  m_bitmapDotsList.clear();
+  m_currentBitmapDots = 0;
+
+  std::map<size_t, std::shared_ptr<const ImageBitmap>> bitmapDots{};
   // Add images with odd res - hence the += 2
 
   bitmapDots.clear();
@@ -1086,15 +1095,14 @@ void FlyingStarsFx::FlyingStarsImpl::InitBitmaps()
 
 auto FlyingStarsFx::FlyingStarsImpl::GetImageBitmap(const std::string& name,
                                                     const size_t sizeOfImageSquare)
-    -> std::shared_ptr<ImageBitmap>
+    -> std::shared_ptr<const ImageBitmap>
 {
-  auto imageBitmap = std::make_shared<ImageBitmap>(GetImageFilename(name, sizeOfImageSquare));
-  imageBitmap->Load();
+  auto imageBitmap = std::make_shared<const ImageBitmap>(GetImageFilename(name, sizeOfImageSquare));
   return imageBitmap;
 }
 
 auto FlyingStarsFx::FlyingStarsImpl::GetImageFilename(const std::string& name,
-                                                      size_t sizeOfImageSquare) -> std::string
+                                                      const size_t sizeOfImageSquare) -> std::string
 {
   // TODO What about windows "\"
   const std::string imagesDir = m_resourcesDirectory + "/" + IMAGES_DIR;

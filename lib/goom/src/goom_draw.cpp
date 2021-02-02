@@ -91,7 +91,7 @@ void GoomDraw::Bitmap(PixelBuffer& buff,
 void GoomDraw::Bitmap(std::vector<PixelBuffer*>& buffs,
                       int xCentre,
                       int yCentre,
-                      const std::vector<PixelBuffer*>& bitmaps,
+                      const std::vector<const PixelBuffer*>& bitmaps,
                       const std::vector<GetBitmapColorFunc>& getColors)
 {
   for (size_t i = 0; i < buffs.size(); i++)
