@@ -277,7 +277,7 @@ const GoomStates::WeightedStatesArray GoomStates::STATES{{
     }},
   },
   {
-    .weight = 10000000,
+    .weight = 1,
     .drawables {{
       { .fx = GoomDrawable::STARS,     .buffSettings = { .buffIntensity = 0.7, .allowOverexposed = false } },
   }},
@@ -1074,16 +1074,16 @@ struct GoomData
   int drawLinesDuration = LinesFx::MIN_LINE_DURATION;
   int lineMode = LinesFx::MIN_LINE_DURATION; // l'effet lineaire a dessiner
 
-  static constexpr float switchMultAmount = 29.0 / 30.0;
-  float switchMult = switchMultAmount;
-  static constexpr int switchIncrAmount = 0x7f;
-  int switchIncr = switchIncrAmount;
+  static constexpr float SWITCH_MULT_AMOUNT = 29.0 / 30.0;
+  float switchMult = SWITCH_MULT_AMOUNT;
+  static constexpr int SWITCH_INCR_AMOUNT = 0x7f;
+  int switchIncr = SWITCH_INCR_AMOUNT;
   uint32_t stateSelectionBlocker = 0;
   int32_t previousZoomSpeed = 128;
 
-  static constexpr int maxTitleDisplayTime = 200;
-  static constexpr int timeToSpaceTitleDisplay = 100;
-  static constexpr int timeToFadeTitleDisplay = 70;
+  static constexpr int MAX_TITLE_DISPLAY_TIME = 200;
+  static constexpr int TIME_TO_SPACE_TITLE_DISPLAY = 100;
+  static constexpr int TIME_TO_FADE_TITLE_DISPLAY = 50;
   int timeOfTitleDisplay = 0;
   std::string title{};
 
@@ -2191,7 +2191,7 @@ void GoomControl::GoomControlImpl::BigNormalUpdate(ZoomFilterData** pzfd)
 
   if (m_goomData.lockVar > 150)
   {
-    m_goomData.switchIncr = GoomData::switchIncrAmount;
+    m_goomData.switchIncr = GoomData::SWITCH_INCR_AMOUNT;
     m_goomData.switchMult = 1.0F;
   }
 }
@@ -2203,7 +2203,7 @@ void GoomControl::GoomControlImpl::MegaLentUpdate(ZoomFilterData** pzfd)
   m_goomData.zoomFilterData.vitesse = STOP_SPEED - 1;
   m_goomData.lockVar += 50;
   m_stats.LockChange();
-  m_goomData.switchIncr = GoomData::switchIncrAmount;
+  m_goomData.switchIncr = GoomData::SWITCH_INCR_AMOUNT;
   m_goomData.switchMult = 1.0F;
 }
 
@@ -2258,7 +2258,7 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect(ZoomFilterData* pzfd, const 
     logDebug("pzfd != nullptr");
 
     m_goomData.cyclesSinceLastChange = 0;
-    m_goomData.switchIncr = GoomData::switchIncrAmount;
+    m_goomData.switchIncr = GoomData::SWITCH_INCR_AMOUNT;
 
     int diff = m_goomData.zoomFilterData.vitesse - m_goomData.previousZoomSpeed;
     if (diff < 0)
@@ -2278,7 +2278,7 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect(ZoomFilterData* pzfd, const 
         (forceMode > 0))
     {
       m_goomData.switchIncr = 0;
-      m_goomData.switchMult = GoomData::switchMultAmount;
+      m_goomData.switchMult = GoomData::SWITCH_MULT_AMOUNT;
 
       m_visualFx.ifs_fx->Renew();
       m_stats.IfsRenew();
@@ -2437,12 +2437,12 @@ void GoomControl::GoomControlImpl::DisplayText(const char* songTitle,
   {
     m_stats.SetSongTitle(songTitle);
     m_goomData.title = songTitle;
-    m_goomData.timeOfTitleDisplay = GoomData::maxTitleDisplayTime;
+    m_goomData.timeOfTitleDisplay = GoomData::MAX_TITLE_DISPLAY_TIME;
   }
 
   if (m_goomData.timeOfTitleDisplay > 0)
   {
-    if (m_goomData.timeOfTitleDisplay == GoomData::maxTitleDisplayTime)
+    if (m_goomData.timeOfTitleDisplay == GoomData::MAX_TITLE_DISPLAY_TIME)
     {
       m_textColorMap = &(RandomColorMaps{}.GetRandomColorMap(ColorMapGroup::DIVERGING_BLACK));
       m_textOutlineColor = Pixel::WHITE;
@@ -2450,7 +2450,7 @@ void GoomControl::GoomControlImpl::DisplayText(const char* songTitle,
     const auto xPos = static_cast<int>(0.085F * static_cast<float>(GetScreenWidth()));
     const auto yPos = static_cast<int>(0.300F * static_cast<float>(GetScreenHeight()));
     const auto timeGone =
-        static_cast<float>(GoomData::timeToSpaceTitleDisplay - m_goomData.timeOfTitleDisplay);
+        static_cast<float>(GoomData::TIME_TO_SPACE_TITLE_DISPLAY - m_goomData.timeOfTitleDisplay);
     const float spacing = std::max(0.0F, 0.056F * timeGone);
     const int xExtra = static_cast<int>(
         std::max(0.0F, 3.0F * timeGone / static_cast<float>(m_goomData.timeOfTitleDisplay)));
@@ -2459,7 +2459,7 @@ void GoomControl::GoomControlImpl::DisplayText(const char* songTitle,
 
     m_goomData.timeOfTitleDisplay--;
 
-    if (m_goomData.timeOfTitleDisplay < GoomData::timeToFadeTitleDisplay)
+    if (m_goomData.timeOfTitleDisplay < GoomData::TIME_TO_FADE_TITLE_DISPLAY)
     {
       DrawText(m_goomData.title, xPos, yPos, spacing, m_imageBuffers.GetP1());
     }
@@ -2484,13 +2484,11 @@ void GoomControl::GoomControlImpl::DrawText(const std::string& str,
   **/
 
   const float t = static_cast<float>(m_goomData.timeOfTitleDisplay) /
-                  static_cast<float>(GoomData::maxTitleDisplayTime);
+                  static_cast<float>(GoomData::MAX_TITLE_DISPLAY_TIME);
   const float brightness = t;
-  //      std::min(1.0F, static_cast<float>(m_goomData.timeOfTitleDisplay) /
-  //                         static_cast<float>(GoomData::timeToSpaceTitleDisplay));
 
   const IColorMap& charColorMap =
-      m_goomData.timeOfTitleDisplay > GoomData::timeToSpaceTitleDisplay
+      m_goomData.timeOfTitleDisplay > GoomData::TIME_TO_SPACE_TITLE_DISPLAY
           ? RandomColorMaps{}.GetRandomColorMap(ColorMapGroup::DIVERGING)
           : RandomColorMaps{}.GetRandomColorMap(/*ColorMapGroup::diverging*/);
   const auto lastTextIndex = static_cast<float>(str.size() - 1);
