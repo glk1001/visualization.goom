@@ -58,32 +58,51 @@ void GoomDraw::Bitmap(PixelBuffer& buff,
   const auto bitmapWidth = static_cast<int>(bitmap.GetWidth());
   const auto bitmapHeight = static_cast<int>(bitmap.GetHeight());
 
-  const int x0 = std::clamp(xCentre - bitmapWidth / 2, 0, static_cast<int>(m_screenWidth) - 1);
-  const int y0 = std::clamp(yCentre - bitmapHeight / 2, 0, static_cast<int>(m_screenHeight) - 1);
-  const int x1 = std::min(x0 + bitmapWidth - 1, static_cast<int>(m_screenWidth) - 1);
-  const int y1 = std::min(y0 + bitmapHeight - 1, static_cast<int>(m_screenHeight) - 1);
+  int x0 = xCentre - bitmapWidth / 2;
+  int y0 = yCentre - bitmapHeight / 2;
+  int x1 = x0 + bitmapWidth - 1;
+  int y1 = y0 + bitmapHeight - 1;
 
-  const auto setDestPixelRow = [&](const uint32_t y) {
-    const auto yBitmap = static_cast<size_t>(y);
-    size_t xBitmap = 0;
-    for (int x = x0; x <= x1; ++x)
+  if (x0 >= static_cast<int>(m_screenWidth) || y0 >= static_cast<int>(m_screenHeight) || x1 < 0 ||
+      y1 < 0)
+  {
+    return;
+  }
+  if (x0 < 0)
+  {
+    x0 = 0;
+  }
+  if (y0 < 0)
+  {
+    y0 = 0;
+  }
+  if (x1 >= static_cast<int>(m_screenWidth))
+  {
+    x1 = static_cast<int>(m_screenWidth - 1);
+  }
+  if (y1 >= static_cast<int>(m_screenHeight))
+  {
+    y1 = static_cast<int>(m_screenHeight - 1);
+  }
+
+  const auto setDestPixelRow = [&](const size_t yBitmap) {
+    for (size_t xBitmap = 0; xBitmap < static_cast<size_t>(x1 - x0) + 1; ++xBitmap)
     {
       const Pixel finalColor = getColor(xBitmap, yBitmap, bitmap(xBitmap, yBitmap));
-      DrawPixel(&buff, x, static_cast<int>(y) + y0, finalColor, m_intBuffIntensity,
-                m_allowOverexposed);
-      xBitmap++;
+      DrawPixel(&buff, x0 + static_cast<int>(xBitmap), y0 + static_cast<int>(yBitmap), finalColor,
+                m_intBuffIntensity, m_allowOverexposed);
     }
   };
 
   if (bitmapWidth > 199)
   {
-    m_parallel.ForLoop(static_cast<uint32_t>(y1 - y0 + 1), setDestPixelRow);
+    m_parallel.ForLoop(static_cast<uint32_t>(y1 - y0) + 1, setDestPixelRow);
   }
   else
   {
-    for (uint32_t y = 0; y <= static_cast<uint32_t>(y1 - y0); ++y)
+    for (size_t yBitmap = 0; yBitmap < static_cast<size_t>(y1 - y0) + 1; ++yBitmap)
     {
-      setDestPixelRow(y);
+      setDestPixelRow(yBitmap);
     }
   }
 }

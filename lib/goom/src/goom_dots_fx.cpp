@@ -75,11 +75,11 @@ private:
 
   static constexpr size_t MIN_DOT_SIZE = 3;
   static constexpr size_t MAX_DOT_SIZE = 21;
-  std::vector<std::map<size_t, std::shared_ptr<const ImageBitmap>>> m_bitmapDotsList{};
+  std::vector<std::map<size_t, std::unique_ptr<const ImageBitmap>>> m_bitmapDotsList{};
   size_t m_currentBitmapDots{};
   void InitBitmaps();
   auto GetImageBitmap(const std::string& name, size_t sizeOfSquare)
-      -> std::shared_ptr<const ImageBitmap>;
+      -> std::unique_ptr<const ImageBitmap>;
   auto GetImageFilename(const std::string& name, size_t sizeOfSquare) -> std::string;
 
   GoomDraw m_draw{};
@@ -468,7 +468,8 @@ void GoomDotsFx::GoomDotsFxImpl::DotFilter(PixelBuffer& currentBuff,
 
 void GoomDotsFx::GoomDotsFxImpl::InitBitmaps()
 {
-  std::map<size_t, std::shared_ptr<const ImageBitmap>> bitmapDots{};
+  std::map<size_t, std::unique_ptr<const ImageBitmap>> bitmapDots{};
+
   // Add images with odd res - hence the += 2
 
   bitmapDots.clear();
@@ -476,30 +477,29 @@ void GoomDotsFx::GoomDotsFxImpl::InitBitmaps()
   {
     bitmapDots.emplace(res, GetImageBitmap("circle", res));
   }
-  m_bitmapDotsList.emplace_back(bitmapDots);
+  m_bitmapDotsList.emplace_back(std::move(bitmapDots));
 
   bitmapDots.clear();
   for (size_t res = MIN_DOT_SIZE; res <= MAX_DOT_SIZE; res += 2)
   {
     bitmapDots.emplace(res, GetImageBitmap("yellow-flower", res));
   }
-  m_bitmapDotsList.emplace_back(bitmapDots);
+  m_bitmapDotsList.emplace_back(std::move(bitmapDots));
 
   bitmapDots.clear();
   for (size_t res = MIN_DOT_SIZE; res <= MAX_DOT_SIZE; res += 2)
   {
     bitmapDots.emplace(res, GetImageBitmap("red-flower", res));
   }
-  m_bitmapDotsList.emplace_back(bitmapDots);
+  m_bitmapDotsList.emplace_back(std::move(bitmapDots));
 
   m_currentBitmapDots = GetRandInRange(0U, m_bitmapDotsList.size());
 }
 
 auto GoomDotsFx::GoomDotsFxImpl::GetImageBitmap(const std::string& name, const size_t sizeOfSquare)
-    -> std::shared_ptr<const ImageBitmap>
+    -> std::unique_ptr<const ImageBitmap>
 {
-  auto imageBitmap = std::make_shared<const ImageBitmap>(GetImageFilename(name, sizeOfSquare));
-  return imageBitmap;
+  return std::make_unique<const ImageBitmap>(GetImageFilename(name, sizeOfSquare));
 }
 
 auto GoomDotsFx::GoomDotsFxImpl::GetImageFilename(const std::string& name,
