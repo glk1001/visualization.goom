@@ -89,7 +89,7 @@ void ConvolveFx::Finish()
 {
 }
 
-void ConvolveFx::Log(const StatsLogValueFunc&) const
+void ConvolveFx::Log([[maybe_unused]] const StatsLogValueFunc& l) const
 {
 }
 

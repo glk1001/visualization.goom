@@ -171,14 +171,14 @@ void DrawLine(PixelBuffer& buff,
               const uint32_t buffIntensity,
               const bool allowOverexposed,
               const uint8_t thickness,
-              const uint32_t screenx,
-              const uint32_t screeny)
+              const uint32_t screenWidth,
+              const uint32_t screenHeight)
 {
   std::vector<PixelBuffer*> buffs{&buff};
   std::vector<Pixel> colors{color};
 
-  DrawLine(buffs, x1, y1, x2, y2, colors, buffIntensity, allowOverexposed, thickness, screenx,
-           screeny);
+  DrawLine(buffs, x1, y1, x2, y2, colors, buffIntensity, allowOverexposed, thickness, screenWidth,
+           screenHeight);
 }
 
 void DrawLine(std::vector<PixelBuffer*>& buffs,
@@ -190,17 +190,18 @@ void DrawLine(std::vector<PixelBuffer*>& buffs,
               const uint32_t buffIntensity,
               const bool allowOverexposed,
               const uint8_t thickness,
-              const uint32_t screenx,
-              const uint32_t screeny)
+              const uint32_t screenWidth,
+              const uint32_t screenHeight)
 {
   if (thickness == 1)
   {
-    DrawWuLine(buffs, x1, y1, x2, y2, colors, buffIntensity, allowOverexposed, screenx, screeny);
+    DrawWuLine(buffs, x1, y1, x2, y2, colors, buffIntensity, allowOverexposed, screenWidth,
+               screenHeight);
   }
   else
   {
     DrawThickLine(buffs, x1, y1, x2, y2, colors, buffIntensity, allowOverexposed, thickness,
-                  LINE_THICKNESS_MIDDLE, screenx, screeny);
+                  LINE_THICKNESS_MIDDLE, screenWidth, screenHeight);
     // plotLineWidth(n, buffs, colors, x1, y1, x2, y2, 1.0, screenx, screeny);
   }
 }

@@ -40,8 +40,8 @@ void DrawLine(std::vector<PixelBuffer*>& buffs,
               uint32_t buffIntensity,
               bool allowOverexposed,
               uint8_t thickness,
-              uint32_t screenx,
-              uint32_t screeny);
+              uint32_t screenWidth,
+              uint32_t screenHeight);
 
 void DrawLine(PixelBuffer& buff,
               int x1,
@@ -52,8 +52,8 @@ void DrawLine(PixelBuffer& buff,
               uint32_t buffIntensity,
               bool allowOverexposed,
               uint8_t thickness,
-              uint32_t screenx,
-              uint32_t screeny);
+              uint32_t screenWidth,
+              uint32_t screenHeight);
 
 inline void DrawPixel(PixelBuffer* const buff,
                       const int x,
