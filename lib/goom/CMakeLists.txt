@@ -25,11 +25,17 @@ add_library(${PROJECT_NAME}
         src/image_fx.cpp
         src/lines_fx.cpp
         src/sound_info.cpp
+        src/stats/filter_stats.cpp
+        src/stats/goom_stats.cpp
+        src/stats/ifs_stats.cpp
+        src/stats/stars_stats.cpp
+        src/stats/tentacles_stats.cpp
+        src/tentacles_fx.cpp
         src/tentacle_driver.cpp
         src/tentacles.cpp
         src/tentacles_fx.cpp
         src/text_draw.cpp
-)
+        src/stats/stars_stats.h src/stats/stars_stats.cpp)
 
 # add_sanitizers(${PROJECT_NAME})
 

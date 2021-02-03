@@ -12,7 +12,6 @@
 #include "convolve_fx.h"
 #include "filters.h"
 #include "flying_stars_fx.h"
-#include "goom_config.h"
 #include "goom_dots_fx.h"
 #include "goom_graphic.h"
 #include "goom_plugin_info.h"
@@ -29,6 +28,7 @@
 #include "ifs_dancers_fx.h"
 #include "image_fx.h"
 #include "lines_fx.h"
+#include "stats/goom_stats.h"
 #include "tentacles_fx.h"
 #include "text_draw.h"
 
@@ -37,7 +37,6 @@
 #include <cereal/types/memory.hpp>
 #include <cereal/types/unordered_set.hpp>
 #include <cereal/types/vector.hpp>
-#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <filesystem>
@@ -58,6 +57,10 @@ namespace GOOM
 {
 
 using namespace GOOM::UTILS;
+
+constexpr int32_t STOP_SPEED = 128;
+// TODO: put that as variable in PluginInfo
+constexpr int32_t TIME_BETWEEN_CHANGE = 200;
 
 enum class GoomDrawable
 {
@@ -426,459 +429,6 @@ const GoomStates::WeightedStatesArray GoomStates::STATES{{
   },
 }};
 // clang-format on
-
-class GoomStats
-{
-public:
-  GoomStats() noexcept = default;
-  ~GoomStats() noexcept = default;
-  GoomStats(const GoomStats&) noexcept = delete;
-  GoomStats(GoomStats&&) noexcept = delete;
-  auto operator=(const GoomStats&) -> GoomStats& = delete;
-  auto operator=(GoomStats&&) -> GoomStats& = delete;
-
-  void SetSongTitle(const std::string& songTitle);
-  void SetStateStartValue(uint32_t stateIndex);
-  void SetZoomFilterStartValue(ZoomFilterMode filterMode);
-  void SetSeedStartValue(uint64_t seed);
-  void SetStateLastValue(uint32_t stateIndex);
-  void SetZoomFilterLastValue(const ZoomFilterData* filterData);
-  void SetSeedLastValue(uint64_t seed);
-  void SetNumThreadsUsedValue(size_t numThreads);
-  void Reset();
-  void Log(const StatsLogValueFunc& val) const;
-  void UpdateChange(size_t currentState, ZoomFilterMode currentFilterMode);
-  void StateChange(uint32_t timeInState);
-  void StateChange(size_t index, uint32_t timeInState);
-  void FilterModeChange();
-  void FilterModeChange(ZoomFilterMode mode);
-  void LockChange();
-  void DoIfs();
-  void DoDots();
-  void DoLines();
-  void SwitchLines();
-  void DoStars();
-  void DoTentacles();
-  void TentaclesDisabled();
-  void DoBigUpdate();
-  void LastTimeGoomChange();
-  void MegaLentChange();
-  void DoNoise();
-  void SetLastNoiseFactor(float val);
-  void IfsRenew();
-  void ChangeLineColor();
-  void DoBlockyWavy();
-  void DoZoomFilterAllowOverexposed();
-  void SetFontFileUsed(const std::string& f);
-
-private:
-  std::string m_songTitle{};
-  uint32_t m_startingState = 0;
-  ZoomFilterMode m_startingFilterMode = ZoomFilterMode::_size;
-  uint64_t m_startingSeed = 0;
-  uint32_t m_lastState = 0;
-  const ZoomFilterData* m_lastZoomFilterData = nullptr;
-  uint64_t m_lastSeed = 0;
-  size_t m_numThreadsUsed = 0;
-  std::string m_fontFileUsed{};
-
-  uint64_t m_totalTimeInUpdatesMs = 0;
-  uint32_t m_minTimeInUpdatesMs = std::numeric_limits<uint32_t>::max();
-  uint32_t m_maxTimeInUpdatesMs = 0;
-  std::chrono::high_resolution_clock::time_point m_timeNowHiRes{};
-  size_t m_stateAtMin = 0;
-  size_t m_stateAtMax = 0;
-  ZoomFilterMode m_filterModeAtMin = ZoomFilterMode::_null;
-  ZoomFilterMode m_filterModeAtMax = ZoomFilterMode::_null;
-
-  uint32_t m_numUpdates = 0;
-  uint32_t m_totalStateChanges = 0;
-  uint64_t m_totalStateDurations = 0;
-  uint32_t m_totalFilterModeChanges = 0;
-  uint32_t m_numLockChanges = 0;
-  uint32_t m_numDoIFS = 0;
-  uint32_t m_numDoDots = 0;
-  uint32_t m_numDoLines = 0;
-  uint32_t m_numDoStars = 0;
-  uint32_t m_numDoTentacles = 0;
-  uint32_t m_numDisabledTentacles = 0;
-  uint32_t m_numBigUpdates = 0;
-  uint32_t m_numLastTimeGoomChanges = 0;
-  uint32_t m_numMegaLentChanges = 0;
-  uint32_t m_numDoNoise = 0;
-  uint32_t m_numIfsRenew = 0;
-  uint32_t m_numChangeLineColor = 0;
-  uint32_t m_numSwitchLines = 0;
-  uint32_t m_numBlockyWavy = 0;
-  uint32_t m_numZoomFilterAllowOverexposed = 0;
-  std::array<uint32_t, static_cast<size_t>(ZoomFilterMode::_size)> m_numFilterModeChanges{0};
-  std::vector<uint32_t> m_numStateChanges{};
-  std::vector<uint64_t> m_stateDurations{};
-};
-
-void GoomStats::Reset()
-{
-  m_startingState = 0;
-  m_startingFilterMode = ZoomFilterMode::_size;
-  m_startingSeed = 0;
-  m_lastState = 0;
-  m_lastZoomFilterData = nullptr;
-  m_lastSeed = 0;
-  m_numThreadsUsed = 0;
-
-  m_stateAtMin = 0;
-  m_stateAtMax = 0;
-  m_filterModeAtMin = ZoomFilterMode::_null;
-  m_filterModeAtMax = ZoomFilterMode::_null;
-
-  m_numUpdates = 0;
-  m_totalTimeInUpdatesMs = 0;
-  m_minTimeInUpdatesMs = std::numeric_limits<uint32_t>::max();
-  m_maxTimeInUpdatesMs = 0;
-  m_timeNowHiRes = std::chrono::high_resolution_clock::now();
-  m_totalStateChanges = 0;
-  m_totalStateDurations = 0;
-  std::fill(m_numStateChanges.begin(), m_numStateChanges.end(), 0);
-  std::fill(m_stateDurations.begin(), m_stateDurations.end(), 0);
-  m_totalFilterModeChanges = 0;
-  m_numFilterModeChanges.fill(0);
-  m_numLockChanges = 0;
-  m_numDoIFS = 0;
-  m_numDoDots = 0;
-  m_numDoLines = 0;
-  m_numDoStars = 0;
-  m_numDoTentacles = 0;
-  m_numDisabledTentacles = 0;
-  m_numBigUpdates = 0;
-  m_numLastTimeGoomChanges = 0;
-  m_numMegaLentChanges = 0;
-  m_numDoNoise = 0;
-  m_numIfsRenew = 0;
-  m_numChangeLineColor = 0;
-  m_numSwitchLines = 0;
-  m_numBlockyWavy = 0;
-  m_numZoomFilterAllowOverexposed = 0;
-}
-
-void GoomStats::Log(const StatsLogValueFunc& logVal) const
-{
-  const constexpr char* MODULE = "goom_core";
-
-  logVal(MODULE, "songTitle", m_songTitle);
-  logVal(MODULE, "startingState", m_startingState);
-  logVal(MODULE, "startingFilterMode", EnumToString(m_startingFilterMode));
-  logVal(MODULE, "startingSeed", m_startingSeed);
-  logVal(MODULE, "lastState", m_lastState);
-  logVal(MODULE, "lastSeed", m_lastSeed);
-  logVal(MODULE, "numThreadsUsed", m_numThreadsUsed);
-  logVal(MODULE, "m_fontFileUsed", m_fontFileUsed);
-
-  if (m_lastZoomFilterData == nullptr)
-  {
-    logVal(MODULE, "lastZoomFilterData", 0U);
-  }
-  else
-  {
-    logVal(MODULE, "lastZoomFilterData->mode", EnumToString(m_lastZoomFilterData->mode));
-    logVal(MODULE, "lastZoomFilterData->vitesse", m_lastZoomFilterData->vitesse);
-    logVal(MODULE, "lastZoomFilterData->pertedec", static_cast<uint32_t>(ZoomFilterData::pertedec));
-    logVal(MODULE, "lastZoomFilterData->middleX", m_lastZoomFilterData->middleX);
-    logVal(MODULE, "lastZoomFilterData->middleY", m_lastZoomFilterData->middleY);
-    logVal(MODULE, "lastZoomFilterData->reverse",
-           static_cast<uint32_t>(m_lastZoomFilterData->reverse));
-    logVal(MODULE, "lastZoomFilterData->hPlaneEffect", m_lastZoomFilterData->hPlaneEffect);
-    logVal(MODULE, "lastZoomFilterData->vPlaneEffect", m_lastZoomFilterData->vPlaneEffect);
-    logVal(MODULE, "lastZoomFilterData->waveEffect",
-           static_cast<uint32_t>(m_lastZoomFilterData->waveEffect));
-    logVal(MODULE, "lastZoomFilterData->hypercosEffect",
-           EnumToString(m_lastZoomFilterData->hypercosEffect));
-    logVal(MODULE, "lastZoomFilterData->noisify",
-           static_cast<uint32_t>(m_lastZoomFilterData->noisify));
-    logVal(MODULE, "lastZoomFilterData->noiseFactor",
-           static_cast<float>(m_lastZoomFilterData->noiseFactor));
-    logVal(MODULE, "lastZoomFilterData->blockyWavy",
-           static_cast<uint32_t>(m_lastZoomFilterData->blockyWavy));
-    logVal(MODULE, "lastZoomFilterData->waveFreqFactor", m_lastZoomFilterData->waveFreqFactor);
-    logVal(MODULE, "lastZoomFilterData->waveAmplitude", m_lastZoomFilterData->waveAmplitude);
-    logVal(MODULE, "lastZoomFilterData->waveEffectType",
-           EnumToString(m_lastZoomFilterData->waveEffectType));
-    logVal(MODULE, "lastZoomFilterData->scrunchAmplitude", m_lastZoomFilterData->scrunchAmplitude);
-    logVal(MODULE, "lastZoomFilterData->speedwayAmplitude",
-           m_lastZoomFilterData->speedwayAmplitude);
-    logVal(MODULE, "lastZoomFilterData->amuletteAmplitude", m_lastZoomFilterData->amuletAmplitude);
-    logVal(MODULE, "lastZoomFilterData->crystalBallAmplitude",
-           m_lastZoomFilterData->crystalBallAmplitude);
-    logVal(MODULE, "lastZoomFilterData->hypercosFreqX", m_lastZoomFilterData->hypercosFreqX);
-    logVal(MODULE, "lastZoomFilterData->hypercosFreqY", m_lastZoomFilterData->hypercosFreqY);
-    logVal(MODULE, "lastZoomFilterData->hypercosAmplitudeX",
-           m_lastZoomFilterData->hypercosAmplitudeX);
-    logVal(MODULE, "lastZoomFilterData->hypercosAmplitudeY",
-           m_lastZoomFilterData->hypercosAmplitudeY);
-    logVal(MODULE, "lastZoomFilterData->hPlaneEffectAmplitude",
-           m_lastZoomFilterData->hPlaneEffectAmplitude);
-    logVal(MODULE, "lastZoomFilterData->vPlaneEffectAmplitude",
-           m_lastZoomFilterData->vPlaneEffectAmplitude);
-  }
-
-  logVal(MODULE, "numUpdates", m_numUpdates);
-  const int32_t avTimeInUpdateMs =
-      std::lround(m_numUpdates == 0 ? -1.0
-                                    : static_cast<float>(m_totalTimeInUpdatesMs) /
-                                          static_cast<float>(m_numUpdates));
-  logVal(MODULE, "avTimeInUpdateMs", avTimeInUpdateMs);
-  logVal(MODULE, "minTimeInUpdatesMs", m_minTimeInUpdatesMs);
-  logVal(MODULE, "stateAtMin", m_stateAtMin);
-  logVal(MODULE, "filterModeAtMin", EnumToString(m_filterModeAtMin));
-  logVal(MODULE, "maxTimeInUpdatesMs", m_maxTimeInUpdatesMs);
-  logVal(MODULE, "stateAtMax", m_stateAtMax);
-  logVal(MODULE, "filterModeAtMax", EnumToString(m_filterModeAtMax));
-  logVal(MODULE, "totalStateChanges", m_totalStateChanges);
-  const float avStateDuration =
-      m_totalStateChanges == 0
-          ? -1.0F
-          : static_cast<float>(m_totalStateDurations) / static_cast<float>(m_totalStateChanges);
-  logVal(MODULE, "averageStateDuration", avStateDuration);
-  for (size_t i = 0; i < m_numStateChanges.size(); i++)
-  {
-    logVal(MODULE, "numState_" + std::to_string(i) + "_Changes", m_numStateChanges[i]);
-  }
-  for (size_t i = 0; i < m_stateDurations.size(); i++)
-  {
-    const float avStateTime =
-        m_numStateChanges[i] == 0
-            ? -1.0F
-            : static_cast<float>(m_stateDurations[i]) / static_cast<float>(m_numStateChanges[i]);
-    logVal(MODULE, "averageState_" + std::to_string(i) + "_Duration", avStateTime);
-  }
-  logVal(MODULE, "totalFilterModeChanges", m_totalFilterModeChanges);
-  for (size_t i = 0; i < m_numFilterModeChanges.size(); i++)
-  {
-    logVal(MODULE, "numFilterMode_" + EnumToString(static_cast<ZoomFilterMode>(i)) + "_Changes",
-           m_numFilterModeChanges[i]);
-  }
-  logVal(MODULE, "numLockChanges", m_numLockChanges);
-  logVal(MODULE, "numDoIFS", m_numDoIFS);
-  logVal(MODULE, "numDoDots", m_numDoDots);
-  logVal(MODULE, "numDoLines", m_numDoLines);
-  logVal(MODULE, "numDoStars", m_numDoStars);
-  logVal(MODULE, "numDoTentacles", m_numDoTentacles);
-  logVal(MODULE, "numDisabledTentacles", m_numDisabledTentacles);
-  logVal(MODULE, "numLastTimeGoomChanges", m_numLastTimeGoomChanges);
-  logVal(MODULE, "numMegaLentChanges", m_numMegaLentChanges);
-  logVal(MODULE, "numDoNoise", m_numDoNoise);
-  logVal(MODULE, "numIfsRenew", m_numIfsRenew);
-  logVal(MODULE, "numChangeLineColor", m_numChangeLineColor);
-  logVal(MODULE, "numSwitchLines", m_numSwitchLines);
-  logVal(MODULE, "numBlockyWavy", m_numBlockyWavy);
-  logVal(MODULE, "numZoomFilterAllowOverexposed", m_numZoomFilterAllowOverexposed);
-}
-
-void GoomStats::SetSongTitle(const std::string& s)
-{
-  m_songTitle = s;
-}
-
-void GoomStats::SetStateStartValue(const uint32_t stateIndex)
-{
-  m_startingState = stateIndex;
-}
-
-void GoomStats::SetZoomFilterStartValue(const ZoomFilterMode filterMode)
-{
-  m_startingFilterMode = filterMode;
-}
-
-void GoomStats::SetSeedStartValue(const uint64_t seed)
-{
-  m_startingSeed = seed;
-}
-
-void GoomStats::SetStateLastValue(const uint32_t stateIndex)
-{
-  m_lastState = stateIndex;
-}
-
-void GoomStats::SetZoomFilterLastValue(const ZoomFilterData* filterData)
-{
-  m_lastZoomFilterData = filterData;
-}
-
-void GoomStats::SetSeedLastValue(const uint64_t seed)
-{
-  m_lastSeed = seed;
-}
-
-void GoomStats::SetNumThreadsUsedValue(const size_t n)
-{
-  m_numThreadsUsed = n;
-}
-
-void GoomStats::SetFontFileUsed(const std::string& f)
-{
-  m_fontFileUsed = f;
-}
-
-inline void GoomStats::UpdateChange(const size_t currentState,
-                                    const ZoomFilterMode currentFilterMode)
-{
-  const auto timeNow = std::chrono::high_resolution_clock::now();
-  if (m_numUpdates > 0)
-  {
-    using Ms = std::chrono::milliseconds;
-    const Ms diff = std::chrono::duration_cast<Ms>(timeNow - m_timeNowHiRes);
-    const auto timeInUpdateMs = static_cast<uint32_t>(diff.count());
-    if (timeInUpdateMs < m_minTimeInUpdatesMs)
-    {
-      m_minTimeInUpdatesMs = timeInUpdateMs;
-      m_stateAtMin = currentState;
-      m_filterModeAtMin = currentFilterMode;
-    }
-    else if (timeInUpdateMs > m_maxTimeInUpdatesMs)
-    {
-      m_maxTimeInUpdatesMs = timeInUpdateMs;
-      m_stateAtMax = currentState;
-      m_filterModeAtMax = currentFilterMode;
-    }
-    m_totalTimeInUpdatesMs += timeInUpdateMs;
-  }
-  m_timeNowHiRes = timeNow;
-
-  m_numUpdates++;
-}
-
-inline void GoomStats::StateChange(const uint32_t timeInState)
-{
-  m_totalStateChanges++;
-  m_totalStateDurations += timeInState;
-}
-
-inline void GoomStats::StateChange(const size_t index, const uint32_t timeInState)
-{
-  if (index >= m_numStateChanges.size())
-  {
-    for (size_t i = m_numStateChanges.size(); i <= index; i++)
-    {
-      m_numStateChanges.push_back(0);
-    }
-  }
-  m_numStateChanges[index]++;
-
-  if (index >= m_stateDurations.size())
-  {
-    for (size_t i = m_stateDurations.size(); i <= index; i++)
-    {
-      m_stateDurations.push_back(0);
-    }
-  }
-  m_stateDurations[index] += timeInState;
-}
-
-inline void GoomStats::FilterModeChange()
-{
-  m_totalFilterModeChanges++;
-}
-
-inline void GoomStats::FilterModeChange(const ZoomFilterMode mode)
-{
-  m_numFilterModeChanges.at(static_cast<size_t>(mode))++;
-}
-
-inline void GoomStats::LockChange()
-{
-  m_numLockChanges++;
-}
-
-inline void GoomStats::DoIfs()
-{
-  m_numDoIFS++;
-}
-
-inline void GoomStats::DoDots()
-{
-  m_numDoDots++;
-}
-
-inline void GoomStats::DoLines()
-{
-  m_numDoLines++;
-}
-
-inline void GoomStats::DoStars()
-{
-  m_numDoStars++;
-}
-
-inline void GoomStats::DoTentacles()
-{
-  m_numDoTentacles++;
-}
-
-inline void GoomStats::TentaclesDisabled()
-{
-  m_numDisabledTentacles++;
-}
-
-inline void GoomStats::DoBigUpdate()
-{
-  m_numBigUpdates++;
-}
-
-inline void GoomStats::LastTimeGoomChange()
-{
-  m_numLastTimeGoomChanges++;
-}
-
-inline void GoomStats::MegaLentChange()
-{
-  m_numMegaLentChanges++;
-}
-
-inline void GoomStats::DoNoise()
-{
-  m_numDoNoise++;
-}
-
-inline void GoomStats::IfsRenew()
-{
-  m_numIfsRenew++;
-}
-
-inline void GoomStats::ChangeLineColor()
-{
-  m_numChangeLineColor++;
-}
-
-inline void GoomStats::SwitchLines()
-{
-  m_numSwitchLines++;
-}
-
-inline void GoomStats::DoBlockyWavy()
-{
-  m_numBlockyWavy++;
-}
-
-inline void GoomStats::DoZoomFilterAllowOverexposed()
-{
-  m_numZoomFilterAllowOverexposed++;
-}
-
-constexpr int32_t STOP_SPEED = 128;
-// TODO: put that as variable in PluginInfo
-constexpr int32_t TIME_BETWEEN_CHANGE = 200;
-
-struct LogStatsVisitor
-{
-  LogStatsVisitor(const std::string& m, const std::string& n) : module{m}, name{n} {}
-  const std::string& module;
-  const std::string& name;
-  void operator()(const std::string& s) const { logInfo("{}.{} = '{}'", module, name, s); }
-  void operator()(const uint32_t i) const { logInfo("{}.{} = {}", module, name, i); }
-  void operator()(const int32_t i) const { logInfo("{}.{} = {}", module, name, i); }
-  void operator()(const uint64_t i) const { logInfo("{}.{} = {}", module, name, i); }
-  void operator()(const float f) const { logInfo("{}.{} = {:.3}", module, name, f); }
-};
-
 
 class GoomImageBuffers
 {
@@ -1520,13 +1070,6 @@ void GoomControl::GoomControlImpl::Start()
   }
 }
 
-static void LogStatsValue(const std::string& module,
-                          const std::string& name,
-                          const StatsLogValue& value)
-{
-  std::visit(LogStatsVisitor{module, name}, value);
-}
-
 void GoomControl::GoomControlImpl::Finish()
 {
   for (auto& v : m_visualFx.list)
@@ -1536,7 +1079,7 @@ void GoomControl::GoomControlImpl::Finish()
 
   for (auto& v : m_visualFx.list)
   {
-    v->Log(LogStatsValue);
+    v->Log(GoomStats::LogStatsValue);
   }
 
   m_stats.SetStateLastValue(m_states.GetCurrentStateIndex());
@@ -1544,7 +1087,7 @@ void GoomControl::GoomControlImpl::Finish()
   m_stats.SetSeedLastValue(GetRandSeed());
   m_stats.SetNumThreadsUsedValue(m_parallel.GetNumThreadsUsed());
 
-  m_stats.Log(LogStatsValue);
+  m_stats.Log(GoomStats::LogStatsValue);
 }
 
 void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,

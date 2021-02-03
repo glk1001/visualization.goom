@@ -9,7 +9,12 @@
 namespace GOOM
 {
 
+#if __cplusplus > 201402L
 using StatsLogValue = std::variant<std::string, uint32_t, int32_t, uint64_t, float>;
+#else
+using StatsLogValue = int; // disabled
+#endif
+
 using StatsLogValueFunc =
     std::function<void(const std::string& module, const std::string& name, const StatsLogValue&)>;
 
