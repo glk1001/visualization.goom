@@ -63,7 +63,7 @@ struct ZoomFilterData
   HypercosEffect hypercosEffect = HypercosEffect::none;
 
   bool noisify = false; // ajoute un bruit a la transformation
-  double noiseFactor = 1; // in range [0, 1]
+  float noiseFactor = 1; // in range [0, 1]
 
   bool blockyWavy = false;
 

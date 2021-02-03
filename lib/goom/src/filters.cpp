@@ -414,7 +414,7 @@ constexpr uint32_t PERTE_DEC = 4;
 static constexpr size_t NUM_COEFFS = 4;
 using CoeffArray = union
 {
-  uint8_t c[NUM_COEFFS];
+  std::array<uint8_t, NUM_COEFFS> c;
   uint32_t intVal = 0;
 };
 using PixelArray = std::array<Pixel, NUM_COEFFS>;
@@ -493,7 +493,8 @@ private:
   std::vector<int32_t> m_firedec{};
 
   // modif d'optim by Jeko : precalcul des 4 coefs resultant des 2 pos
-  uint32_t m_precalcCoeffs[BUFF_POINT_NUM][BUFF_POINT_NUM]{};
+  using Coeff2dArray = std::array<std::array<uint32_t, BUFF_POINT_NUM>, BUFF_POINT_NUM>;
+  Coeff2dArray m_precalcCoeffs{};
 
   void Init();
   void InitBuffers();
@@ -502,7 +503,7 @@ private:
   void CZoom(const PixelBuffer& srceBuff, PixelBuffer& destBuff);
   void GenerateWaterFxHorizontalBuffer();
   auto GetZoomVector(float normX, float normY) -> V2dFlt;
-  static void GeneratePrecalCoef(uint32_t precalcCoeffs[16][16]);
+  static void GeneratePrecalCoef(Coeff2dArray& precalcCoeffs);
   auto GetMixedColor(const CoeffArray& coeffs, const PixelArray& colors) const -> Pixel;
   auto GetBlockyMixedColor(const CoeffArray& coeffs, const PixelArray& colors) const -> Pixel;
 
@@ -883,7 +884,7 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
   if (m_interlaceStart >= 0)
   {
     // creation de la nouvelle destination
-    MakeZoomBufferStripe(m_screenHeight / 16);
+    MakeZoomBufferStripe(m_screenHeight / BUFF_POINT_NUM);
   }
 
   if (switchIncr != 0)
@@ -913,11 +914,11 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
   m_stats.UpdateEnd();
 }
 
-void ZoomFilterFx::ZoomFilterImpl::GeneratePrecalCoef(uint32_t precalcCoeffs[16][16])
+void ZoomFilterFx::ZoomFilterImpl::GeneratePrecalCoef(Coeff2dArray& precalcCoeffs)
 {
-  for (uint32_t coefh = 0; coefh < 16; coefh++)
+  for (uint32_t coefh = 0; coefh < BUFF_POINT_NUM; coefh++)
   {
-    for (uint32_t coefv = 0; coefv < 16; coefv++)
+    for (uint32_t coefv = 0; coefv < BUFF_POINT_NUM; coefv++)
     {
       const uint32_t diffcoeffh = SQRT_PERTE - coefh;
       const uint32_t diffcoeffv = SQRT_PERTE - coefv;
