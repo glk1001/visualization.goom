@@ -45,6 +45,7 @@ struct channel_limits<float>
   static constexpr float max() noexcept { return channel_limits<uint8_t>::max(); }
 };
 
+constexpr uint8_t MAX_COLOR_VAL = channel_limits<uint8_t>::max();
 
 #ifdef COLOR_BGRA
 #define A_CHANNEL 0x000000FFu
@@ -123,10 +124,8 @@ private:
 inline const Pixel Pixel::BLACK{
     .channels{.r = 0, .g = 0, .b = 0, .a = channel_limits<uint8_t>::max()}};
 
-inline const Pixel Pixel::WHITE{.channels{.r = channel_limits<uint8_t>::max(),
-                                          .g = channel_limits<uint8_t>::max(),
-                                          .b = channel_limits<uint8_t>::max(),
-                                          .a = channel_limits<uint8_t>::max()}};
+inline const Pixel Pixel::WHITE{
+    .channels{.r = MAX_COLOR_VAL, .g = MAX_COLOR_VAL, .b = MAX_COLOR_VAL, .a = MAX_COLOR_VAL}};
 
 class PixelBuffer
 {

@@ -2472,17 +2472,6 @@ void GoomControl::GoomControlImpl::DrawText(const std::string& str,
                                             const float spacing,
                                             PixelBuffer& buffer)
 {
-  /**
-  const auto getFontColor = [&](const size_t textIndexOfChar, float x, float y, float width,
-                                float height) {
-    return Pixel{{.r = 255, .g = 255, .b = 0, .a = 255}};
-  };
-  const auto getOutlineFontColor = [&](const size_t textIndexOfChar, float x, float y, float width,
-                                       float height) {
-    return Pixel{{.r = 100, .g = 200, .b = 255, .a = 255}};
-  };
-  **/
-
   const float t = static_cast<float>(m_goomData.timeOfTitleDisplay) /
                   static_cast<float>(GoomData::MAX_TITLE_DISPLAY_TIME);
   const float brightness = t;

@@ -924,7 +924,7 @@ void ZoomFilterFx::ZoomFilterImpl::GeneratePrecalCoef(uint32_t precalcCoeffs[16]
 
       if (!(coefh || coefv))
       {
-        precalcCoeffs[coefh][coefv] = 255;
+        precalcCoeffs[coefh][coefv] = MAX_COLOR_VAL;
       }
       else
       {
