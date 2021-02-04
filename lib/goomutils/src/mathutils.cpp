@@ -30,8 +30,15 @@ CEREAL_REGISTER_TYPE(GOOM::UTILS::PiecewiseDampingFunction)
 CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::UTILS::IDampingFunction,
                                      GOOM::UTILS::PiecewiseDampingFunction)
 
+#if __cplusplus <= 201402L
+namespace GOOM
+{
+namespace UTILS
+{
+#else
 namespace GOOM::UTILS
 {
+#endif
 
 ExpIncreasingFunction::ExpIncreasingFunction(const double x0,
                                              const double x1,
@@ -258,4 +265,9 @@ const std::array<float, NUM_SIN_COS_ANGLES> cos256 = {
 };
 // clang-format on
 
+#if __cplusplus <= 201402L
+} // namespace UTILS
+} // namespace GOOM
+#else
 } // namespace GOOM::UTILS
+#endif

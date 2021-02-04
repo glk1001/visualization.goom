@@ -3,6 +3,9 @@
 #include "goomutils/logging_control.h"
 //#undef NO_LOGGING
 #include "goomutils/logging.h"
+#if __cplusplus <= 201402L
+#include "goomutils/mathutils.h"
+#endif
 #include "goomutils/splitmix.hpp"
 #include "goomutils/xoshiro.hpp"
 
@@ -15,8 +18,15 @@
 #include <random>
 #include <stdexcept>
 
+#if __cplusplus <= 201402L
+namespace GOOM
+{
+namespace UTILS
+{
+#else
 namespace GOOM::UTILS
 {
+#endif
 
 const uint32_t g_randMax = (xoshiro256plus64::max() > std::numeric_limits<uint32_t>::max())
                                ? std::numeric_limits<uint32_t>::max()
@@ -110,9 +120,14 @@ auto GetRandInRange(const float x0, const float x1) -> float
 
   static const auto s_eng_max = static_cast<float>(g_randMax);
   const float t = static_cast<float>(RandXoshiroFunc(0, g_randMax)) / s_eng_max;
-  return std::lerp(x0, x1, t);
+  return stdnew::lerp(x0, x1, t);
   //  thread_local std::uniform_real_distribution<> dis(0, 1);
   //  return std::lerp(x0, x1, static_cast<float>(dis(eng)));
 }
 
+#if __cplusplus <= 201402L
+} // namespace UTILS
+} // namespace GOOM
+#else
 } // namespace GOOM::UTILS
+#endif

@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.13)
 
 project(visualization.goom)
 
+set(CPP_STANDARD 14)
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR})
 # set(CMAKE_MODULE_PATH "/home/greg/Prj/github/sanitizers-cmake/cmake" ${CMAKE_MODULE_PATH})
 
@@ -28,7 +30,7 @@ else()
   add_definitions(${OPENGLES_DEFINITIONS})
 endif()
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD ${CPP_STANDARD})
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_COMMON_C_WARNINGS -Wall -Wextra)
@@ -63,7 +65,7 @@ add_compile_options(${CMAKE_COMMON_C_WARNINGS})
 
 message(STATUS "C Compile features = \"${COMMON_C_COMPILE_FEATURES}\".")
 message(STATUS "C warnings = \"${CMAKE_COMMON_C_WARNINGS}\".")
-message(STATUS "C++ standard = \"${CMAKE_CXX_STANDARD}\".")
+message(STATUS "Main C++ standard = \"${CMAKE_CXX_STANDARD}\".")
 message(STATUS "C++ standard required = \"${CMAKE_CXX_STANDARD_REQUIRED}\".")
 message(STATUS "C++ extensions = \"${CMAKE_CXX_EXTENSIONS}\".")
 

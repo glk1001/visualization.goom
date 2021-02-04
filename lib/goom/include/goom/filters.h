@@ -132,7 +132,11 @@ struct ZoomFilterData
   static constexpr float MAX_V_PLANE_EFFECT_AMPLITUDE = 0.0035;
   float vPlaneEffectAmplitude = DEFAULT_V_PLANE_EFFECT_AMPLITUDE;
 
+#if __cplusplus <= 201402L
+  auto operator==(const ZoomFilterData&) const -> bool { return false; };
+#else
   auto operator==(const ZoomFilterData&) const -> bool = default;
+#endif
 
   template<class Archive>
   void serialize(Archive&);

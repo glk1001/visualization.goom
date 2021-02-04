@@ -7,8 +7,15 @@
 #include <stdexcept>
 
 
+#if __cplusplus <= 201402L
+namespace GOOM
+{
+namespace UTILS
+{
+#else
 namespace GOOM::UTILS
 {
+#endif
 
 RandomColorMapsManager::RandomColorMapsManager() noexcept = default;
 
@@ -158,5 +165,9 @@ inline void RandomColorMapsManager::DoChangeColorMap(uint32_t id)
   }
 }
 
-
+#if __cplusplus <= 201402L
+} // namespace UTILS
+} // namespace GOOM
+#else
 } // namespace GOOM::UTILS
+#endif

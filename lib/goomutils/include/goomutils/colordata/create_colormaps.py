@@ -36,6 +36,30 @@ def write_cpp_headers(maps):
     return used
 
 
+def write_namespace_begin(f):
+    f.write('#if __cplusplus <= 201402L\n')
+    f.write(f'namespace {GOOM_NAMESPACE}\n')
+    f.write('{\n')
+    f.write(f'namespace {GOOMUTILS_NAMESPACE}\n')
+    f.write('{\n')
+    f.write(f'namespace {COLORDATA_NAMESPACE}\n')
+    f.write('{\n')
+    f.write('#else\n')
+    f.write(f'namespace {GOOM_NAMESPACE}::{GOOMUTILS_NAMESPACE}::{COLORDATA_NAMESPACE}\n')
+    f.write('{\n')
+    f.write('#endif\n')
+
+
+def write_namespace_end(f):
+    f.write('#if __cplusplus <= 201402L\n')
+    f.write(f'}} // namespace {COLORDATA_NAMESPACE}\n')
+    f.write(f'}} // namespace {GOOMUTILS_NAMESPACE}\n')
+    f.write(f'}} // namespace {GOOM_NAMESPACE}\n')
+    f.write('#else\n')
+    f.write(f'}} // namespace {GOOM_NAMESPACE}::{GOOMUTILS_NAMESPACE}::{COLORDATA_NAMESPACE}\n')
+    f.write('#endif\n')
+
+
 def write_cpp_header(cm):
     with open(f'{INCLUDE_DIR}/{get_cpp_name(cm.name)}.h', 'w') as f:
         f.write('#pragma once\n')
@@ -43,8 +67,7 @@ def write_cpp_header(cm):
         f.write('#include "vivid/types.h"\n')
         f.write('#include <vector>\n')
         f.write('\n')
-        f.write(f'namespace {GOOM_NAMESPACE}::{GOOMUTILS_NAMESPACE}::{COLORDATA_NAMESPACE}\n')
-        f.write('{\n')
+        write_namespace_begin(f)
         f.write('\n')
         f.write('// clang-format off\n')
         f.write(f'static const std::vector<vivid::srgb_t> {get_cpp_name(cm.name)}\n')
@@ -55,15 +78,14 @@ def write_cpp_header(cm):
         f.write('};\n')
         f.write('// clang-format on\n')
         f.write('\n')
-        f.write(f'}} // namespace {GOOM_NAMESPACE}::{GOOMUTILS_NAMESPACE}::{COLORDATA_NAMESPACE}\n')
+        write_namespace_end(f)
 
 
 def write_colormaps_enums_header(maps):
     with open(f'{INCLUDE_DIR}/{COLOR_MAP_ENUM_H}', 'w') as f:
         f.write('#pragma once\n')
         f.write('\n')
-        f.write(f'namespace {GOOM_NAMESPACE}::{GOOMUTILS_NAMESPACE}::{COLORDATA_NAMESPACE}\n')
-        f.write('{\n')
+        write_namespace_begin(f)
         f.write('\n')
         f.write(f'enum class {MAPS_ENUM_NAME}\n')
         f.write('{\n')
@@ -71,7 +93,7 @@ def write_colormaps_enums_header(maps):
             f.write(f'  {get_cpp_name(m)},\n')
         f.write(f'}};\n')
         f.write('\n')
-        f.write(f'}} // namespace {GOOM_NAMESPACE}::{GOOMUTILS_NAMESPACE}::{COLORDATA_NAMESPACE}\n')
+        write_namespace_end(f)
 
 
 def write_all_maps_header(color_map_grps, num_maps):
@@ -86,8 +108,7 @@ def write_all_maps_header(color_map_grps, num_maps):
         f.write('#include <utility>\n')
         f.write('#include <vector>\n')
         f.write('\n')
-        f.write(f'namespace {GOOM_NAMESPACE}::{GOOMUTILS_NAMESPACE}::{COLORDATA_NAMESPACE}\n')
-        f.write('{\n')
+        write_namespace_begin(f)
         f.write('\n')
         f.write(f'// array of raw maps matching elements of enum \'{MAPS_ENUM_NAME}\'\n')
         f.write(
@@ -96,7 +117,7 @@ def write_all_maps_header(color_map_grps, num_maps):
         for grp in color_map_grps:
             f.write(f'extern const std::vector<{MAPS_ENUM_NAME}> {grp}Maps;\n')
         f.write('\n')
-        f.write(f'}} // namespace {GOOM_NAMESPACE}::{GOOMUTILS_NAMESPACE}::{COLORDATA_NAMESPACE}\n')
+        write_namespace_end(f)
 
 
 def write_all_maps_cpp(color_map_grps, used_maps):
@@ -115,8 +136,7 @@ def write_all_maps_cpp(color_map_grps, used_maps):
         f.write('#include <utility>\n')
         f.write('#include <vector>\n')
         f.write('\n')
-        f.write(f'namespace {GOOM_NAMESPACE}::{GOOMUTILS_NAMESPACE}::{COLORDATA_NAMESPACE}\n')
-        f.write('{\n')
+        write_namespace_begin(f)
         f.write('\n')
         f.write('// clang-format off\n')
         f.write(
@@ -143,7 +163,7 @@ def write_all_maps_cpp(color_map_grps, used_maps):
 
         f.write('// clang-format on\n')
         f.write('\n')
-        f.write(f'}} // namespace {GOOM_NAMESPACE}::{GOOMUTILS_NAMESPACE}::{COLORDATA_NAMESPACE}\n')
+        write_namespace_end(f)
 
 
 if __name__ == '__main__':

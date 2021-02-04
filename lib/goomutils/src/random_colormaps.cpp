@@ -10,8 +10,15 @@
 #include <set>
 #include <stdexcept>
 
+#if __cplusplus <= 201402L
+namespace GOOM
+{
+namespace UTILS
+{
+#else
 namespace GOOM::UTILS
 {
+#endif
 
 using COLOR_DATA::ColorMapName;
 
@@ -78,11 +85,19 @@ auto RandomColorMaps::GetRandomColorMapPtr(const std::shared_ptr<const IColorMap
 
   std::shared_ptr<const IColorMap> colorMap = cm;
 
+#if __cplusplus <= 201402L
+  if (types.find(ColorMapTypes::ROTATED_T) != types.end())
+#else
   if (types.contains(ColorMapTypes::ROTATED_T))
+#endif
   {
     colorMap = GetRandomRotatedColorMapPtr(colorMap);
   }
+#if __cplusplus <= 201402L
+  if (types.find(ColorMapTypes::SHADES) != types.end())
+#else
   if (types.contains(ColorMapTypes::SHADES))
+#endif
   {
     colorMap = GetRandomTintedColorMapPtr(colorMap);
   }
@@ -285,4 +300,9 @@ auto WeightedColorMaps::GetRandomGroup() const -> ColorMapGroup
   return m_weights.GetRandomWeighted();
 }
 
+#if __cplusplus <= 201402L
+} // namespace UTILS
+} // namespace GOOM
+#else
 } // namespace GOOM::UTILS
+#endif

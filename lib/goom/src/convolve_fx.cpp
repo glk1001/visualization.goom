@@ -192,8 +192,16 @@ void ConvolveFx::ConvolveImpl::CreateOutputWithBrightness(const PixelBuffer& src
                                                           const uint32_t flashInt)
 {
   const auto setDestPixelRow = [&](const uint32_t y) {
-    auto [srceRowBegin, srceRowEnd] = srceBuff.GetRowIter(y);
-    auto [destRowBegin, destRowEnd] = destBuff.GetRowIter(y);
+#if __cplusplus <= 201402L
+    const auto srceRowIter = srceBuff.GetRowIter(y);
+    const auto srceRowBegin = std::get<0>(srceRowIter);
+    const auto srceRowEnd = std::get<1>(srceRowIter);
+    const auto destRowIter = destBuff.GetRowIter(y);
+    const auto destRowBegin = std::get<0>(destRowIter);
+#else
+    const auto [srceRowBegin, srceRowEnd] = srceBuff.GetRowIter(y);
+    const auto [destRowBegin, destRowEnd] = destBuff.GetRowIter(y);
+#endif
     std::transform(srceRowBegin, srceRowEnd, destRowBegin, [&](const Pixel& srce) {
       return GetBrighterColorInt(flashInt, srce, m_buffSettings.allowOverexposed);
     });

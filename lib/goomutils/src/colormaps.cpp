@@ -9,8 +9,15 @@
 #include <vector>
 #include <vivid/vivid.h>
 
+#if __cplusplus <= 201402L
+namespace GOOM
+{
+namespace UTILS
+{
+#else
 namespace GOOM::UTILS
 {
+#endif
 
 using COLOR_DATA::ColorMapName;
 
@@ -369,4 +376,9 @@ auto PrebuiltColorMap::GetColorMix(const Pixel& col1, const Pixel& col2, const f
   return Pixel{vivid::lerpHsl(c1, c2, t).rgb32()};
 }
 
+#if __cplusplus <= 201402L
+} // namespace UTILS
+} // namespace GOOM
+#else
 } // namespace GOOM::UTILS
+#endif

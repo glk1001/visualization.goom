@@ -311,6 +311,7 @@ auto TentaclesFx::TentaclesImpl::operator==(const TentaclesImpl& t) const -> boo
 
   if (result)
   {
+#if __cplusplus > 201402L
     for (size_t i = 0; i < m_drivers.size(); i++)
     {
       if (*m_drivers[i] != *t.m_drivers[i])
@@ -319,6 +320,7 @@ auto TentaclesFx::TentaclesImpl::operator==(const TentaclesImpl& t) const -> boo
         return false;
       }
     }
+#endif
   }
 
   if (!result)
@@ -476,7 +478,7 @@ void TentaclesFx::TentaclesImpl::Init()
   }
   m_currentDriver->SetReverseColorMix(ProbabilityOfMInN(3, 10));
 
-  m_distt = std::lerp(DISTT_MIN, DISTT_MAX, 0.3);
+  m_distt = stdnew::lerp(DISTT_MIN, DISTT_MAX, 0.3);
   m_distt2 = DISTT2_MIN;
   m_distt2Offset = 0;
   m_rot = GetStableRotationOffset(0);
@@ -612,7 +614,7 @@ void TentaclesFx::TentaclesImpl::PrettyMovePreStart()
 {
   m_prePrettyMoveLock = GetRandInRange(MIN_PRE_PRETTY_MOVE_LOCK, MAX_PRE_PRETTY_MOVE_LOCK);
   m_distt2OffsetPreStep =
-      std::lerp(DISTT2_MIN, DISTT2_MAX, 0.2F) / static_cast<float>(m_prePrettyMoveLock);
+      stdnew::lerp(DISTT2_MIN, DISTT2_MAX, 0.2F) / static_cast<float>(m_prePrettyMoveLock);
   m_distt2Offset = 0;
 }
 
@@ -721,15 +723,16 @@ void TentaclesFx::TentaclesImpl::PrettyMove(const float acceleration)
     m_currentDriver = GetNextDriver();
   }
 
-  m_distt2 = std::lerp(m_distt2, m_distt2Offset, m_prettyMoveLerpMix);
+  m_distt2 = stdnew::lerp(m_distt2, m_distt2Offset, m_prettyMoveLerpMix);
 
   // Bigger offset here means tentacles start further back behind screen.
-  float disttOffset = std::lerp(DISTT_MIN, DISTT_MAX, 0.5F * (1.0F - sin(m_cycle * 19.0 / 20.0)));
+  float disttOffset =
+      stdnew::lerp(DISTT_MIN, DISTT_MAX, 0.5F * (1.0F - sin(m_cycle * 19.0 / 20.0)));
   if (m_isPrettyMoveHappening)
   {
     disttOffset *= 0.6F;
   }
-  m_distt = std::lerp(m_distt, disttOffset, 4.0F * m_prettyMoveLerpMix);
+  m_distt = stdnew::lerp(m_distt, disttOffset, 4.0F * m_prettyMoveLerpMix);
 
   float rotOffset = 0.0;
   if (!m_isPrettyMoveHappening)
@@ -774,7 +777,7 @@ void TentaclesFx::TentaclesImpl::PrettyMove(const float acceleration)
     }
   }
 
-  m_rot = std::clamp(std::lerp(m_rot, rotOffset, m_prettyMoveLerpMix), 0.0F, m_two_pi);
+  m_rot = stdnew::clamp(stdnew::lerp(m_rot, rotOffset, m_prettyMoveLerpMix), 0.0F, m_two_pi);
 
   logDebug("happening = {}, lock = {}, rot = {:.03f}, rotOffset = {:.03f}, "
            "lerpMix = {:.03f}, cycle = {:.03f}, doRotation = {}",

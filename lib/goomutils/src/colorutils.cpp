@@ -1,6 +1,9 @@
 #include "colorutils.h"
 
 #include "goom/goom_graphic.h"
+#if __cplusplus <= 201402L
+#include "goomutils//mathutils.h"
+#endif
 
 #include <algorithm>
 #include <cmath>
@@ -25,7 +28,7 @@ inline auto Lighten(const uint8_t value, const float power) -> uint8_t
   }
 
   // (32.0f * log (t));
-  return std::clamp(static_cast<int>(t), channel_limits<int>::min(), channel_limits<int>::max());
+  return stdnew::clamp(static_cast<int>(t), channel_limits<int>::min(), channel_limits<int>::max());
 }
 
 auto GetLightenedColor(const Pixel& oldColor, float power) -> Pixel

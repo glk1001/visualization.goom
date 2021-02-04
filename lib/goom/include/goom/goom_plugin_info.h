@@ -19,7 +19,11 @@ public:
     uint32_t width;
     uint32_t height;
     uint32_t size; // == screen.height * screen.width.
+#if __cplusplus <= 201402L
+    auto operator==(const Screen&) const -> bool { return false; };
+#else
     auto operator==(const Screen&) const -> bool = default;
+#endif
     template<class Archive>
     void serialize(Archive& ar)
     {

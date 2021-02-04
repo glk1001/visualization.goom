@@ -296,9 +296,9 @@ void LinesFx::LinesImpl::MoveSrceLineCloserToDest()
   const float t = std::min(1.0F, m_lineLerpFactor);
   for (uint32_t i = 0; i < AUDIO_SAMPLE_LEN; i++)
   {
-    m_srcePoints[i].x = std::lerp(m_srcePointsCopy[i].x, m_destPoints[i].x, t);
-    m_srcePoints[i].y = std::lerp(m_srcePointsCopy[i].y, m_destPoints[i].y, t);
-    m_srcePoints[i].angle = std::lerp(m_srcePointsCopy[i].angle, m_destPoints[i].angle, t);
+    m_srcePoints[i].x = stdnew::lerp(m_srcePointsCopy[i].x, m_destPoints[i].x, t);
+    m_srcePoints[i].y = stdnew::lerp(m_srcePointsCopy[i].y, m_destPoints[i].y, t);
+    m_srcePoints[i].angle = stdnew::lerp(m_srcePointsCopy[i].angle, m_destPoints[i].angle, t);
   }
   m_lineLerpFactor += LINE_LERP_INC;
 
@@ -316,7 +316,7 @@ void LinesFx::LinesImpl::MoveSrceLineCloserToDest()
     m_powinc = -GetRandInRange(0.03F, 0.10F);
   }
 
-  m_amplitude = std::lerp(m_amplitude, m_newAmplitude, 0.01F);
+  m_amplitude = stdnew::lerp(m_amplitude, m_newAmplitude, 0.01F);
 }
 
 auto LinesFx::LinesImpl::CanResetDestLine() const -> bool
@@ -484,13 +484,26 @@ void LinesFx::LinesImpl::DrawLines(const std::vector<int16_t>& soundData,
   };
 
   const std::vector<float> data = GetDataPoints(soundData);
+#if __cplusplus <= 201402L
+  const auto nextPoint = getNextPoint(pt0, data[0]);
+  auto x1 = std::get<0>(nextPoint);
+  auto y1 = std::get<1>(nextPoint);
+#else
   auto [x1, y1, modColor] = getNextPoint(pt0, data[0]);
+#endif
   constexpr uint8_t THICKNESS = 1;
 
   for (size_t i = 1; i < AUDIO_SAMPLE_LEN; i++)
   {
     const LinePoint* const pt = &(m_srcePoints[i]);
+#if __cplusplus <= 201402L
+    const auto nextPoint2 = getNextPoint(pt, data[i]);
+    const auto x2 = std::get<0>(nextPoint2);
+    const auto y2 = std::get<1>(nextPoint2);
+    const auto modColor = std::get<2>(nextPoint2);
+#else
     const auto [x2, y2, modColor] = getNextPoint(pt, data[i]);
+#endif
 
     const std::vector<Pixel> colors = {modColor, lineColor};
     m_draw.Line(buffs, x1, y1, x2, y2, colors, THICKNESS);

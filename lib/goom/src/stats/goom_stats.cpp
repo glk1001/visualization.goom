@@ -385,7 +385,9 @@ void GoomStats::LogStatsValue(const std::string& module,
                               const std::string& name,
                               const StatsLogValue& value)
 {
+#if __cplusplus > 201402L
   std::visit(LogStatsVisitor{module, name}, value);
+#endif
 }
 
 } // namespace GOOM

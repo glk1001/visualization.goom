@@ -39,13 +39,17 @@
 #include <cereal/types/vector.hpp>
 #include <cmath>
 #include <cstdint>
+#if __cplusplus > 201402L
 #include <filesystem>
+#endif
 #include <memory>
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
 #include <utility>
+#if __cplusplus > 201402L
 #include <variant>
+#endif
 #include <vector>
 
 CEREAL_REGISTER_TYPE(GOOM::WritablePluginInfo)
@@ -189,6 +193,9 @@ private:
     { .event = GoomEvent::ALLOW_STRANGE_WAVE_VALUES,                  .m = 5, .outOf =  10 },
   }};
 
+#if __cplusplus <= 201402L
+  static const std::array<std::pair<GoomFilterEvent, size_t>, NUM_GOOM_FILTER_EVENTS> WEIGHTED_FILTER_EVENTS;
+#else
   static constexpr std::array<std::pair<GoomFilterEvent, size_t>, NUM_GOOM_FILTER_EVENTS> WEIGHTED_FILTER_EVENTS{{
     {  GoomFilterEvent::WAVE_MODE_WITH_HYPER_COS_EFFECT, 3 },
     {  GoomFilterEvent::WAVE_MODE,                       3 },
@@ -204,17 +211,48 @@ private:
     { GoomFilterEvent::SPEEDWAY_MODE,                   1 },
     { GoomFilterEvent::NORMAL_MODE,                     2 },
   } };
+#endif
 
+#if __cplusplus <= 201402L
+  static const std::array<std::pair<LinesFx::LineType, size_t>, LinesFx::NUM_LINE_TYPES> WEIGHTED_LINE_EVENTS;
+#else
   static constexpr
   std::array<std::pair<LinesFx::LineType, size_t>, LinesFx::NUM_LINE_TYPES> WEIGHTED_LINE_EVENTS{{
     { LinesFx::LineType::circle, 10 },
     { LinesFx::LineType::hline,  2 },
     { LinesFx::LineType::vline,  2 },
   }};
+#endif
   // clang-format on
   const Weights<GoomFilterEvent> m_filterWeights;
   const Weights<LinesFx::LineType> m_lineTypeWeights;
 };
+
+#if __cplusplus <= 201402L
+const std::array<std::pair<LinesFx::LineType, size_t>, LinesFx::NUM_LINE_TYPES>
+    GoomEvents::WEIGHTED_LINE_EVENTS{{
+        {LinesFx::LineType::circle, 10},
+        {LinesFx::LineType::hline, 2},
+        {LinesFx::LineType::vline, 2},
+    }};
+
+const std::array<std::pair<GoomEvents::GoomFilterEvent, size_t>, GoomEvents::NUM_GOOM_FILTER_EVENTS>
+    GoomEvents::WEIGHTED_FILTER_EVENTS{{
+        {GoomFilterEvent::WAVE_MODE_WITH_HYPER_COS_EFFECT, 3},
+        {GoomFilterEvent::WAVE_MODE, 3},
+        {GoomFilterEvent::CRYSTAL_BALL_MODE, 2},
+        {GoomFilterEvent::CRYSTAL_BALL_MODE_WITH_EFFECTS, 2},
+        {GoomFilterEvent::AMULET_MODE, 2},
+        {GoomFilterEvent::WATER_MODE, 0},
+        {GoomFilterEvent::SCRUNCH_MODE, 2},
+        {GoomFilterEvent::SCRUNCH_MODE_WITH_EFFECTS, 2},
+        {GoomFilterEvent::HYPER_COS1_MODE, 3},
+        {GoomFilterEvent::HYPER_COS2_MODE, 2},
+        {GoomFilterEvent::Y_ONLY_MODE, 3},
+        {GoomFilterEvent::SPEEDWAY_MODE, 1},
+        {GoomFilterEvent::NORMAL_MODE, 2},
+    }};
+#endif
 
 using GoomEvent = GoomEvents::GoomEvent;
 using GoomFilterEvent = GoomEvents::GoomFilterEvent;
@@ -521,7 +559,11 @@ struct GoomMessage
   uint32_t numberOfLinesInMessage = 0;
   uint32_t affiche = 0;
 
+#if __cplusplus <= 201402L
+  auto operator==(const GoomMessage&) const -> bool { return false; };
+#else
   auto operator==(const GoomMessage&) const -> bool = default;
+#endif
 
   template<class Archive>
   void serialize(Archive& ar)
@@ -983,10 +1025,12 @@ auto GoomControl::GoomControlImpl::GetResourcesDirectory() const -> const std::s
 
 void GoomControl::GoomControlImpl::SetResourcesDirectory(const std::string& dirName)
 {
+#if __cplusplus > 201402L
   if (!std::filesystem::exists(dirName))
   {
     throw std::runtime_error(std20::format("Could not find directory \"{}\".", dirName));
   }
+#endif
 
   m_resourcesDirectory = dirName;
 }
@@ -1023,11 +1067,16 @@ auto GoomControl::GoomControlImpl::GetScreenHeight() const -> uint32_t
 
 inline auto GoomControl::GoomControlImpl::ChangeFilterModeEventHappens() -> bool
 {
-  // If we're in amulette mode and the state contains tentacles,
+  // If we're in amulet mode and the state contains tentacles,
   // then get out with a different probability.
   // (Rationale: get tentacles going earlier with another mode.)
   if ((m_goomData.zoomFilterData.mode == ZoomFilterMode::amuletMode) &&
+#if __cplusplus <= 201402L
+      m_states.GetCurrentDrawables().find(GoomDrawable::TENTACLES) !=
+          m_states.GetCurrentDrawables().end())
+#else
       m_states.GetCurrentDrawables().contains(GoomDrawable::TENTACLES))
+#endif
   {
     return GoomEvents::Happens(GoomEvent::CHANGE_FILTER_FROM_AMULET_MODE);
   }
@@ -1478,7 +1527,11 @@ void GoomControl::GoomControlImpl::ChangeState()
 
   if (m_states.IsCurrentlyDrawable(GoomDrawable::IFS))
   {
+#if __cplusplus <= 201402L
+    if (oldGDrawables.find(GoomDrawable::IFS) == oldGDrawables.end())
+#else
     if (!oldGDrawables.contains(GoomDrawable::IFS))
+#endif
     {
       m_visualFx.ifs_fx->Init();
     }
@@ -1854,7 +1907,11 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect(ZoomFilterData* pzfd, const 
 
 void GoomControl::GoomControlImpl::ApplyTentaclesIfRequired()
 {
+#if __cplusplus <= 201402L
+  if (m_curGDrawables.find(GoomDrawable::TENTACLES) == m_curGDrawables.end())
+#else
   if (!m_curGDrawables.contains(GoomDrawable::TENTACLES))
+#endif
   {
     m_visualFx.tentacles_fx->ApplyNoDraw();
     return;
@@ -1869,7 +1926,11 @@ void GoomControl::GoomControlImpl::ApplyTentaclesIfRequired()
 
 void GoomControl::GoomControlImpl::ApplyStarsIfRequired()
 {
+#if __cplusplus <= 201402L
+  if (m_curGDrawables.find(GoomDrawable::STARS) == m_curGDrawables.end())
+#else
   if (!m_curGDrawables.contains(GoomDrawable::STARS))
+#endif
   {
     return;
   }
@@ -1883,7 +1944,11 @@ void GoomControl::GoomControlImpl::ApplyStarsIfRequired()
 
 void GoomControl::GoomControlImpl::ApplyImageIfRequired()
 {
+#if __cplusplus <= 201402L
+  if (m_curGDrawables.find(GoomDrawable::IMAGE) == m_curGDrawables.end())
+#else
   if (!m_curGDrawables.contains(GoomDrawable::IMAGE))
+#endif
   {
     return;
   }
@@ -2104,10 +2169,6 @@ void GoomControl::GoomControlImpl::UpdateMessage(const char* message)
 
 void GoomControl::GoomControlImpl::StopRequest()
 {
-  logDebug("goomData.stopLines = {},"
-           " curGDrawables.contains(GoomDrawable::scope) = {}",
-           m_goomData.stopLines, m_curGDrawables.contains(GoomDrawable::SCOPE));
-
   if (!m_gmline1.CanResetDestLine() || !m_gmline2.CanResetDestLine())
   {
     return;
@@ -2146,7 +2207,11 @@ void GoomControl::GoomControlImpl::StopRandomLineChangeMode()
   }
 
   if ((m_cycle % 120 == 0) && GoomEvents::Happens(GoomEvent::UPDATE_LINE_MODE) &&
+#if __cplusplus <= 201402L
+      m_curGDrawables.find(GoomDrawable::SCOPE) != m_curGDrawables.end())
+#else
       m_curGDrawables.contains(GoomDrawable::SCOPE))
+#endif
   {
     if (m_goomData.lineMode == 0)
     {
@@ -2185,7 +2250,11 @@ void GoomControl::GoomControlImpl::StopRandomLineChangeMode()
 
 void GoomControl::GoomControlImpl::DisplayLines(const AudioSamples& soundData)
 {
+#if __cplusplus <= 201402L
+  if (m_curGDrawables.find(GoomDrawable::LINES) == m_curGDrawables.end())
+#else
   if (!m_curGDrawables.contains(GoomDrawable::LINES))
+#endif
   {
     return;
   }
@@ -2315,7 +2384,11 @@ void GoomControl::GoomControlImpl::DisplayLinesIfInAGoom(const AudioSamples& sou
 
 void GoomControl::GoomControlImpl::ApplyIfsIfRequired()
 {
+#if __cplusplus <= 201402L
+  if (m_curGDrawables.find(GoomDrawable::IFS) == m_curGDrawables.end())
+#else
   if (!m_curGDrawables.contains(GoomDrawable::IFS))
+#endif
   {
     m_visualFx.ifs_fx->ApplyNoDraw();
     return;
@@ -2353,7 +2426,11 @@ void GoomControl::GoomControlImpl::StopDecrementingAfterAWhile(ZoomFilterData** 
 
 void GoomControl::GoomControlImpl::ApplyDotsIfRequired()
 {
+#if __cplusplus <= 201402L
+  if (m_curGDrawables.find(GoomDrawable::DOTS) == m_curGDrawables.end())
+#else
   if (!m_curGDrawables.contains(GoomDrawable::DOTS))
+#endif
   {
     return;
   }
@@ -2407,7 +2484,11 @@ GoomStates::GoomStates() : m_weightedStates{GetWeightedStates(STATES)}
 
 inline auto GoomStates::IsCurrentlyDrawable(const GoomDrawable drawable) const -> bool
 {
+#if __cplusplus <= 201402L
+  return GetCurrentDrawables().find(drawable) != GetCurrentDrawables().end();
+#else
   return GetCurrentDrawables().contains(drawable);
+#endif
 }
 
 inline auto GoomStates::GetCurrentStateIndex() const -> size_t

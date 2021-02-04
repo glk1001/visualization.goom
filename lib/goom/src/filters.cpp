@@ -448,17 +448,17 @@ void ZoomFilterFx::ZoomFilterFastRgb(const PixelBuffer& pix1,
   m_fxImpl->ZoomFilterFastRgb(pix1, pix2, zf, switchIncr, switchMult);
 }
 
-const ZoomFilterData& ZoomFilterFx::GetFilterData() const
+auto ZoomFilterFx::GetFilterData() const -> const ZoomFilterData&
 {
   return m_fxImpl->GetFilterData();
 }
 
-float ZoomFilterFx::GetGeneralSpeed() const
+auto ZoomFilterFx::GetGeneralSpeed() const -> float
 {
   return m_fxImpl->GetGeneralSpeed();
 }
 
-int32_t ZoomFilterFx::GetInterlaceStart() const
+auto ZoomFilterFx::GetInterlaceStart() const -> int32_t
 {
   return m_fxImpl->GetInterlaceStart();
 }
@@ -608,7 +608,7 @@ void ZoomFilterFx::ZoomFilterImpl::GeneratePrecalCoef(Coeff2dArray& precalcCoeff
         }
 
         precalcCoeffs[coefh][coefv] = CoeffArray{
-            .c{
+            /*.c*/ {
                 static_cast<uint8_t>(i1),
                 static_cast<uint8_t>(i2),
                 static_cast<uint8_t>(i3),
@@ -629,10 +629,22 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff, PixelBuffe
 
   const auto setDestPixelRow = [&](const uint32_t destY) {
     uint32_t destPos = m_screenWidth * destY;
-    auto [rowBegin, rowEnd] = destBuff.GetRowIter(destY);
-    for (auto& rowBuff = rowBegin; rowBuff != rowEnd; ++rowBuff)
+#if __cplusplus <= 201402L
+    const auto rowIter = destBuff.GetRowIter(destY);
+    const auto rowBegin = std::get<0>(rowIter);
+    const auto rowEnd = std::get<1>(rowIter);
+#else
+    const auto [rowBegin, rowEnd] = destBuff.GetRowIter(destY);
+#endif
+    for (auto rowBuff = rowBegin; rowBuff != rowEnd; ++rowBuff)
     {
+#if __cplusplus <= 201402L
+      const auto tranP = GetTransformedPoint(destPos);
+      const auto tranPx = std::get<0>(tranP);
+      const auto tranPy = std::get<1>(tranP);
+#else
       const auto [tranPx, tranPy] = GetTransformedPoint(destPos);
+#endif
 
       /**
       if ((tranPx >= tranAx) || (tranPy >= tranAy))
@@ -651,7 +663,14 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff, PixelBuffe
       }
       else
       {
+#if __cplusplus <= 201402L
+        const auto srceInfo = GetSourceInfo(tranPx, tranPy);
+        const auto srceX = std::get<0>(srceInfo);
+        const auto srceY = std::get<1>(srceInfo);
+        const auto coeffs = std::get<2>(srceInfo);
+#else
         const auto [srceX, srceY, coeffs] = GetSourceInfo(tranPx, tranPy);
+#endif
         const PixelArray pixelNeighbours = srceBuff.Get4RHBNeighbours(srceX, srceY);
         *rowBuff = GetNewColor(coeffs, pixelNeighbours);
 #ifndef NO_LOGGING
@@ -704,7 +723,13 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetSourceInfo(const uint32_t tranPx,
   const uint32_t srceY = tranPy >> PERTE_DEC;
   const size_t xIndex = tranPx & PERTE_MASK;
   const size_t yIndex = tranPy & PERTE_MASK;
+#if __cplusplus <= 201402L
+  CoeffArray coeffs{};
+  coeffs.intVal = m_precalcCoeffs[xIndex][yIndex];
+  return std::make_tuple(srceX, srceY, coeffs);
+#else
   return std::make_tuple(srceX, srceY, CoeffArray{.intVal = m_precalcCoeffs[xIndex][yIndex]});
+#endif
 }
 
 inline auto ZoomFilterFx::ZoomFilterImpl::GetNewColor(const CoeffArray& coeffs,
@@ -1030,10 +1055,10 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetMixedColor(const CoeffArray& coeffs
 
   if (m_buffSettings.allowOverexposed)
   {
-    return Pixel{{.r = static_cast<uint8_t>((newR & 0xffffff00) ? 0xff : newR),
-                  .g = static_cast<uint8_t>((newG & 0xffffff00) ? 0xff : newG),
-                  .b = static_cast<uint8_t>((newB & 0xffffff00) ? 0xff : newB),
-                  .a = 0xff}};
+    return Pixel{{/*.r = */ static_cast<uint8_t>((newR & 0xffffff00) ? 0xff : newR),
+                  /*.g = */ static_cast<uint8_t>((newG & 0xffffff00) ? 0xff : newG),
+                  /*.b = */ static_cast<uint8_t>((newB & 0xffffff00) ? 0xff : newB),
+                  /*.a = */ 0xff}};
   }
 
   const uint32_t maxVal = std::max({newR, newG, newB});
@@ -1045,10 +1070,10 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetMixedColor(const CoeffArray& coeffs
     newB = (newB << 8) / maxVal;
   }
 
-  return Pixel{{.r = static_cast<uint8_t>(newR),
-                .g = static_cast<uint8_t>(newG),
-                .b = static_cast<uint8_t>(newB),
-                .a = 0xff}};
+  return Pixel{{/*.r = */ static_cast<uint8_t>(newR),
+                /*.g = */ static_cast<uint8_t>(newG),
+                /*.b = */ static_cast<uint8_t>(newB),
+                /*.a = */ 0xff}};
 }
 
 inline auto ZoomFilterFx::ZoomFilterImpl::GetBlockyMixedColor(const CoeffArray& coeffs,

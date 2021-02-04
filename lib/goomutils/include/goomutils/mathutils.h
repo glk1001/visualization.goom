@@ -14,12 +14,86 @@
 #include <tuple>
 #include <vector>
 
+
+namespace stdnew
+{
+#if __cplusplus <= 201402L
+template<typename _Fp>
+constexpr _Fp __lerp(_Fp __a, _Fp __b, _Fp __t) noexcept
+{
+  if ((__a <= 0 && __b >= 0) || (__a >= 0 && __b <= 0))
+  {
+    return __t * __b + (1 - __t) * __a;
+  }
+
+  if (__t == 1)
+  {
+    return __b; // exact
+  }
+
+  // Exact at __t=0, monotonic except near __t=1,
+  // bounded, determinate, and consistent:
+  const _Fp __x = __a + __t * (__b - __a);
+  return (__t > 1) == (__b > __a) ? (__b < __x ? __x : __b)
+                                  : (__b > __x ? __x : __b); // monotonic near __t=1
+}
+
+constexpr float lerp(float __a, float __b, float __t) noexcept
+{
+  return __lerp(__a, __b, __t);
+}
+constexpr double lerp(double __a, double __b, double __t) noexcept
+{
+  return __lerp(__a, __b, __t);
+}
+
+constexpr auto clamp(const float x, const float lo, const float hi) -> float
+{
+  if (x < lo)
+  {
+    return lo;
+  }
+  if (x > hi)
+  {
+    return hi;
+  }
+  return x;
+}
+#else
+constexpr float lerp(float __a, float __b, float __t) noexcept
+{
+  return std::lerp(__a, __b, __t);
+}
+constexpr double lerp(double __a, double __b, double __t) noexcept
+{
+  return std::lerp(__a, __b, __t);
+}
+
+constexpr auto clamp(const float x, const float lo, const float hi) -> float
+{
+  return std::clamp(x, lo, hi);
+}
+#endif
+} // namespace stdnew
+
+
+#if __cplusplus <= 201402L
+namespace GOOM
+{
+namespace UTILS
+{
+#else
 namespace GOOM::UTILS
 {
+#endif
 
+#if __cplusplus <= 201402L
+constexpr float m_pi = 3.14159265358979323846264;
+#else
 constexpr float m_pi = std::numbers::pi;
-constexpr float m_two_pi = 2.0 * std::numbers::pi;
-constexpr float m_half_pi = 0.5 * std::numbers::pi;
+#endif
+constexpr float m_two_pi = 2.0 * m_pi;
+constexpr float m_half_pi = 0.5 * m_pi;
 
 constexpr size_t NUM_SIN_COS_ANGLES = 256;
 extern const std::array<float, NUM_SIN_COS_ANGLES> sin256;
@@ -62,7 +136,11 @@ public:
   [[nodiscard]] auto GetXMin() const -> double { return m_xmin; }
   [[nodiscard]] auto GetXMax() const -> double { return m_xmax; }
 
+#if __cplusplus <= 201402L
+  auto operator==(const RangeMapper&) const -> bool { return false; };
+#else
   auto operator==(const RangeMapper&) const -> bool = default;
+#endif
 
   template<class Archive>
   void serialize(Archive& ar);
@@ -98,7 +176,11 @@ public:
   explicit LogDampingFunction(double amplitude, double xmin, double xStart = 2.0) noexcept;
   auto operator()(double x) -> double override;
 
+#if __cplusplus <= 201402L
+  auto operator==(const LogDampingFunction&) const -> bool { return false; };
+#else
   auto operator==(const LogDampingFunction&) const -> bool = default;
+#endif
 
 private:
   const double m_amplitude;
@@ -118,7 +200,11 @@ public:
   [[nodiscard]] auto KVal() const -> double { return m_k; }
   [[nodiscard]] auto BVal() const -> double { return m_b; }
 
+#if __cplusplus <= 201402L
+  auto operator==(const ExpDampingFunction&) const -> bool { return false; };
+#else
   auto operator==(const ExpDampingFunction&) const -> bool = default;
+#endif
 
   template<class Archive>
   void serialize(Archive& ar);
@@ -136,7 +222,11 @@ public:
   explicit FlatDampingFunction(double y) noexcept;
   auto operator()(double x) -> double override;
 
+#if __cplusplus <= 201402L
+  bool operator==(const FlatDampingFunction&) const { return false; };
+#else
   bool operator==(const FlatDampingFunction&) const = default;
+#endif
 
   template<class Archive>
   void serialize(Archive& ar);
@@ -152,7 +242,11 @@ public:
   explicit LinearDampingFunction(double x0, double y0, double x1, double y1) noexcept;
   auto operator()(double x) -> double override;
 
+#if __cplusplus <= 201402L
+  auto operator==(const LinearDampingFunction&) const -> bool { return false; };
+#else
   auto operator==(const LinearDampingFunction&) const -> bool = default;
+#endif
 
   template<class Archive>
   void serialize(Archive& ar);
@@ -171,7 +265,11 @@ public:
       std::vector<std::tuple<double, double, std::unique_ptr<IDampingFunction>>>& pieces) noexcept;
   auto operator()(double x) -> double override;
 
+#if __cplusplus <= 201402L
+  bool operator==(const PiecewiseDampingFunction&) const { return false; }
+#else
   bool operator==(const PiecewiseDampingFunction&) const = default;
+#endif
 
   template<class Archive>
   void serialize(Archive& ar);
@@ -291,7 +389,7 @@ void RangeMapper::serialize(Archive& ar)
 inline auto RangeMapper::operator()(const double r0, const double r1, const double x) const
     -> double
 {
-  return std::lerp(r0, r1, (x - m_xmin) / m_xwidth);
+  return stdnew::lerp(r0, r1, (x - m_xmin) / m_xwidth);
 }
 
 template<class Archive>
@@ -325,6 +423,11 @@ void PiecewiseDampingFunction::serialize(Archive& ar)
   ar(CEREAL_NVP(m_pieces));
 }
 
+#if __cplusplus <= 201402L
+} // namespace UTILS
+} // namespace GOOM
+#else
 } // namespace GOOM::UTILS
+#endif
 
 #endif

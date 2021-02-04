@@ -221,7 +221,7 @@ void Tentacle2D::UpdateDampedVals(const std::vector<double>& yvals)
   {
     const double t = tSmooth(tNext);
     m_dampedYVec[i] =
-        std::lerp(m_dampedYVec[i - 1], static_cast<double>(GetDampedVal(i, yvals[i])), t);
+        stdnew::lerp(m_dampedYVec[i - 1], static_cast<double>(GetDampedVal(i, yvals[i])), t);
     tNext += tStep;
   }
 
@@ -254,7 +254,7 @@ auto Tentacle2D::GetXAndYVectors() const -> const Tentacle2D::XAndYVectors&
 
 inline auto Tentacle2D::GetFirstY() -> float
 {
-  return std::lerp(m_yvec[0], m_iterZeroYVal, m_iterZeroLerpFactor);
+  return stdnew::lerp(m_yvec[0], m_iterZeroYVal, m_iterZeroLerpFactor);
 }
 
 inline auto Tentacle2D::GetNextY(size_t nodeNum) -> float

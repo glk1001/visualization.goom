@@ -16,12 +16,12 @@
 #include "goomutils/random_colormaps_manager.h"
 #include "stats/stars_stats.h"
 
-#include <array>
 #include <cereal/archives/json.hpp>
 #include <cereal/types/memory.hpp>
 #include <cereal/types/vector.hpp>
 #include <cmath>
 #include <cstddef>
+#include <format>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -534,7 +534,13 @@ void FlyingStarsFx::FlyingStarsImpl::DrawParticle(PixelBuffer& currentBuff,
                                   star.yVelocity * j);
 
     const float brightness = ageBrightness * static_cast<float>(j) / static_cast<float>(numParts);
+#if __cplusplus <= 201402L
+    const auto mixedColors = GetMixedColors(star, tAge, brightness);
+    const auto mixedColor = std::get<0>(mixedColors);
+    const auto mixedLowColor = std::get<1>(mixedColors);
+#else
     const auto [mixedColor, mixedLowColor] = GetMixedColors(star, tAge, brightness);
+#endif
     const std::vector<Pixel> colors = {mixedColor, mixedLowColor};
     std::vector<PixelBuffer*> buffs{&currentBuff, &nextBuff};
     const uint32_t size = tAge < OLD_AGE ? 1 : GetRandInRange(2U, MAX_DOT_SIZE + 1);
@@ -618,12 +624,15 @@ void FlyingStarsFx::FlyingStarsImpl::DrawParticleDot(std::vector<PixelBuffer*>& 
 void FlyingStarsFx::FlyingStarsImpl::RemoveDeadStars()
 {
   const auto isDead = [&](const Star& s) { return IsStarDead(s); };
-  // stars.erase(std::remove_if(stars.begin(), stars.end(), isDead), stars.end());
+#if __cplusplus <= 201402L
+  m_stars.erase(std::remove_if(m_stars.begin(), m_stars.end(), isDead), m_stars.end());
+#else
   const size_t numRemoved = std::erase_if(m_stars, isDead);
   if (numRemoved > 0)
   {
     m_stats.RemovedDeadStars(numRemoved);
   }
+#endif
 }
 
 inline auto FlyingStarsFx::FlyingStarsImpl::IsStarDead(const Star& s) const -> bool
@@ -706,7 +715,7 @@ inline auto FlyingStarsFx::FlyingStarsImpl::GetMixedColors(const Star& star,
 
   constexpr float MIN_MIX = 0.2;
   constexpr float MAX_MIX = 0.8;
-  const float tMix = std::lerp(MIN_MIX, MAX_MIX, t);
+  const float tMix = stdnew::lerp(MIN_MIX, MAX_MIX, t);
   const Pixel mixedColor =
       s_gammaCorrect.GetCorrection(brightness, IColorMap::GetColorMix(color, dominantColor, tMix));
   const Pixel mixedLowColor =
@@ -917,8 +926,8 @@ auto FlyingStarsFx::FlyingStarsImpl::GetBombAngle(const float x,
     {
       constexpr float MIN_RAIN_ANGLE = 0.1;
       constexpr float MAX_RAIN_ANGLE = m_pi - 0.1;
-      minAngle = std::lerp(MIN_RAIN_ANGLE, m_half_pi - 0.1F, 1.0F - xFactor);
-      maxAngle = std::lerp(m_half_pi + 0.1F, MAX_RAIN_ANGLE, xFactor);
+      minAngle = stdnew::lerp(MIN_RAIN_ANGLE, m_half_pi - 0.1F, 1.0F - xFactor);
+      maxAngle = stdnew::lerp(m_half_pi + 0.1F, MAX_RAIN_ANGLE, xFactor);
       break;
     }
     case StarModes::FOUNTAIN:
@@ -947,7 +956,7 @@ void FlyingStarsFx::FlyingStarsImpl::InitBitmaps()
 
 inline auto FlyingStarsFx::FlyingStarsImpl::GetImageKey(const size_t size) -> size_t
 {
-  return std::clamp(size % 2 != 0 ? size : size + 1, MIN_DOT_SIZE, MAX_DOT_SIZE);
+  return stdnew::clamp(size % 2 != 0 ? size : size + 1, MIN_DOT_SIZE, MAX_DOT_SIZE);
 }
 
 auto FlyingStarsFx::FlyingStarsImpl::GetImageBitmap(const std::string& name,

@@ -12,8 +12,15 @@
 #include <utility>
 #include <vector>
 
+#if __cplusplus <= 201402L
+namespace GOOM
+{
+namespace UTILS
+{
+#else
 namespace GOOM::UTILS
 {
+#endif
 
 class RandomColorMaps : public ColorMaps
 {
@@ -121,5 +128,10 @@ private:
   bool m_weightsActive;
 };
 
+#if __cplusplus <= 201402L
+} // namespace UTILS
+} // namespace GOOM
+#else
 } // namespace GOOM::UTILS
+#endif
 #endif

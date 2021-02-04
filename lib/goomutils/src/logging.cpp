@@ -7,8 +7,15 @@
 #include <stdexcept>
 #include <string>
 
+#if __cplusplus <= 201402L
+namespace GOOM
+{
+namespace UTILS
+{
+#else
 namespace GOOM::UTILS
 {
+#endif
 
 std::unique_ptr<Logging> Logging::logger(new Logging());
 
@@ -115,4 +122,9 @@ void Logging::doFlush()
   logEntries.clear();
 }
 
+#if __cplusplus <= 201402L
+} // namespace UTILS
+} // namespace GOOM
+#else
 } // namespace GOOM::UTILS
+#endif

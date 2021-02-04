@@ -165,7 +165,11 @@ struct Similitude
   Flt r2 = 0;
   Pixel color{0U};
 
+#if __cplusplus <= 201402L
+  auto operator==(const Similitude& s) const -> bool { return false; };
+#else
   auto operator==(const Similitude& s) const -> bool = default;
+#endif
   /**
   bool operator==(const Similitude& s) const
   {
@@ -556,11 +560,19 @@ auto Fractal::HalfGaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_e
 
 void Fractal::RandomSimis(const size_t start, const size_t num)
 {
+#if __cplusplus <= 201402L
+  static const Dbl c_factor = 0.8f * Get_1_minus_exp_neg_S(4.0);
+  static const Dbl r1_1_minus_exp_neg_S = Get_1_minus_exp_neg_S(3.0);
+  static const Dbl r2_1_minus_exp_neg_S = Get_1_minus_exp_neg_S(2.0);
+  static const Dbl A1_factor = 360.0F * Get_1_minus_exp_neg_S(4.0);
+  static const Dbl A2_factor = A1_factor;
+#else
   static const constinit Dbl c_factor = 0.8f * Get_1_minus_exp_neg_S(4.0);
   static const constinit Dbl r1_1_minus_exp_neg_S = Get_1_minus_exp_neg_S(3.0);
   static const constinit Dbl r2_1_minus_exp_neg_S = Get_1_minus_exp_neg_S(2.0);
   static const constinit Dbl A1_factor = 360.0F * Get_1_minus_exp_neg_S(4.0);
   static const constinit Dbl A2_factor = A1_factor;
+#endif
 
   const Dbl r1Factor = m_dr1Mean * r1_1_minus_exp_neg_S;
   const Dbl r2Factor = m_dr2Mean * r2_1_minus_exp_neg_S;

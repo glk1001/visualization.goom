@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.13)
 
 project(goomtests LANGUAGES CXX)
 
+set(CPP_STANDARD 20)
+
 if(WIN32)
     add_definitions(-D_WIN32PC)
 endif()
@@ -38,5 +40,8 @@ target_include_directories( ${PROJECT_NAME}
 
 set_target_properties( ${PROJECT_NAME} 
     PROPERTIES
+        CXX_STANDARD ${CPP_STANDARD}
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${PROJECT_NAME}/bin
 )
+
+message(STATUS "Goom Tests C++ standard = \"${CPP_STANDARD}\".")

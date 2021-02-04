@@ -19,6 +19,7 @@ add_library(${PROJECT_NAME}
         src/goom_control.cpp
         src/goom_dots_fx.cpp
         src/goom_draw.cpp
+        src/goom_graphic.cpp
         src/goom_testing.cpp
         src/goom_visual_fx.cpp
         src/ifs_dancers_fx.cpp
@@ -35,7 +36,7 @@ add_library(${PROJECT_NAME}
         src/tentacles.cpp
         src/tentacles_fx.cpp
         src/text_draw.cpp
-        src/stats/stars_stats.h src/stats/stars_stats.cpp)
+)
 
 # add_sanitizers(${PROJECT_NAME})
 
@@ -57,6 +58,10 @@ target_include_directories(${PROJECT_NAME}
 )
 
 set_target_properties( ${PROJECT_NAME} 
-    PROPERTIES 
+    PROPERTIES
+        CXX_STANDARD ${CPP_STANDARD}
         POSITION_INDEPENDENT_CODE ON
 )
+
+message(STATUS "Goom C++ standard = \"${CPP_STANDARD}\".")
+

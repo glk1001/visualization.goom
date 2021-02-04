@@ -13,8 +13,15 @@
 #include <utility>
 #include <vector>
 
+#if __cplusplus <= 201402L
+namespace GOOM
+{
+namespace UTILS
+{
+#else
 namespace GOOM::UTILS
 {
+#endif
 
 class ThreadPool
 {
@@ -186,6 +193,11 @@ auto ThreadPool::ScheduleAndGetFuture(FuncT&& func, ArgsT&&... args)
   return ret_future;
 }
 
+#if __cplusplus <= 201402L
+} // namespace UTILS
+} // namespace GOOM
+#else
 } // namespace GOOM::UTILS
+#endif
 
 #endif

@@ -6,8 +6,15 @@
 #include <string>
 #include <utility>
 
+#if __cplusplus <= 201402L
+namespace GOOM
+{
+namespace UTILS
+{
+#else
 namespace GOOM::UTILS
 {
+#endif
 
 class ImageBitmap : public PixelBuffer
 {
@@ -27,5 +34,10 @@ inline ImageBitmap::ImageBitmap(std::string imageFilename) : PixelBuffer{}
 }
 
 
+#if __cplusplus <= 201402L
+} // namespace UTILS
+} // namespace GOOM
+#else
 } // namespace GOOM::UTILS
+#endif
 #endif

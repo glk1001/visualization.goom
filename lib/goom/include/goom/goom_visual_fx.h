@@ -27,7 +27,11 @@ struct FXBuffSettings
 {
   float buffIntensity = 0.5;
   bool allowOverexposed = true;
+#if __cplusplus <= 201402L
+  auto operator==(const FXBuffSettings&) const -> bool { return false; };
+#else
   auto operator==(const FXBuffSettings&) const -> bool = default;
+#endif
   template<class Archive>
   void serialize(Archive&);
 };

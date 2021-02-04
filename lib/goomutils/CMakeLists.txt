@@ -39,6 +39,9 @@ target_include_directories( ${PROJECT_NAME}
 )
 
 set_target_properties( ${PROJECT_NAME} 
-    PROPERTIES 
+    PROPERTIES
+        CXX_STANDARD ${CPP_STANDARD}
         POSITION_INDEPENDENT_CODE ON
 )
+
+message(STATUS "Goom Utils C++ standard = \"${CPP_STANDARD}\".")

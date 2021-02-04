@@ -145,7 +145,11 @@ struct V3dFlt
   float z = 0.0;
   bool ignore = false;
 
+#if __cplusplus <= 201402L
+  auto operator==(const V3dFlt&) const -> bool { return false; };
+#else
   auto operator==(const V3dFlt&) const -> bool = default;
+#endif
 
   template<class Archive>
   void serialize(Archive& ar)

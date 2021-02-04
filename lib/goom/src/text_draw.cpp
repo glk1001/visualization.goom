@@ -74,7 +74,7 @@ private:
     ~RectImpl() noexcept = default;
     RectImpl(int left, int top, int right, int bottom) noexcept;
     RectImpl(const RectImpl&) noexcept = default;
-    RectImpl(RectImpl&&) noexcept = delete;
+    RectImpl(RectImpl&&) noexcept = default;
     auto operator=(const RectImpl&) noexcept -> RectImpl = delete;
     auto operator=(RectImpl&&) noexcept -> RectImpl = delete;
 

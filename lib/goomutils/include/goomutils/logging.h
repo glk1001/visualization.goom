@@ -8,12 +8,18 @@
 #include <mutex>
 #include <ostream>
 #include <string>
-#include <string_view>
 #include <utility>
 #include <vector>
 
+#if __cplusplus <= 201402L
+namespace GOOM
+{
+namespace UTILS
+{
+#else
 namespace GOOM::UTILS
 {
+#endif
 
 class Logging
 {
@@ -48,7 +54,7 @@ public:
   void log(LogLevel lvl,
            int line_num,
            const std::string& func_name,
-           std::string_view format_str,
+           const std::string& format_str,
            const Args&... args);
 
 private:
@@ -66,7 +72,7 @@ private:
   void vlog(LogLevel lvl,
             int line_num,
             const std::string& func_name,
-            std::string_view format_str,
+            const std::string& format_str,
             std20::format_args args);
 };
 
@@ -106,7 +112,7 @@ template<typename... Args>
 inline void Logging::log(const LogLevel lvl,
                          const int line_num,
                          const std::string& func_name,
-                         std::string_view format_str,
+                         const std::string& format_str,
                          const Args&... args)
 {
   vlog(lvl, line_num, func_name, format_str, std20::make_format_args(args...));
@@ -115,7 +121,7 @@ inline void Logging::log(const LogLevel lvl,
 inline void Logging::vlog(const LogLevel lvl,
                           const int line_num,
                           const std::string& func_name,
-                          std::string_view format_str,
+                          const std::string& format_str,
                           std20::format_args args)
 {
   std20::memory_buffer buffer;
@@ -164,5 +170,11 @@ inline void Logging::vlog(const LogLevel lvl,
   Logging::getLogger().log(Logging::LogLevel::error, __LINE__, __func__, __VA_ARGS__)
 #endif
 
+
+#if __cplusplus <= 201402L
+} // namespace UTILS
+} // namespace GOOM
+#else
 } // namespace GOOM::UTILS
+#endif
 #endif

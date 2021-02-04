@@ -10,8 +10,16 @@
 #include <utility>
 #include <vector>
 
+
+#if __cplusplus <= 201402L
+namespace GOOM
+{
+namespace UTILS
+{
+#else
 namespace GOOM::UTILS
 {
+#endif
 
 auto GetRandSeed() -> uint64_t;
 void SetRandSeed(uint64_t seed);
@@ -107,8 +115,14 @@ template<class E>
 auto Weights<E>::GetSumOfWeights(const std::vector<std::pair<E, size_t>>& weights) -> size_t
 {
   size_t sumOfWeights = 0;
-  for (const auto& [e, w] : weights)
+#if __cplusplus <= 201402L
+  for (const auto& wgt : weights)
   {
+    const auto& w = std::get<1>(wgt);
+#else
+    for (const auto& [e, w] : weights)
+  {
+#endif
     sumOfWeights += w;
   }
   return sumOfWeights;
@@ -123,8 +137,15 @@ auto Weights<E>::GetNumElements() const -> size_t
 template<class E>
 void Weights<E>::SetWeight(const E enumClass, size_t value)
 {
-  for (auto& [e, w] : m_weights)
+#if __cplusplus <= 201402L
+  for (const auto& wgt : m_weights)
   {
+    const auto& e = std::get<0>(wgt);
+    const auto& w = std::get<1>(wgt);
+#else
+    for (const auto& [e, w] : m_weights)
+  {
+#endif
     if (e == enumClass)
     {
       w = value;
@@ -139,8 +160,15 @@ void Weights<E>::SetWeight(const E enumClass, size_t value)
 template<class E>
 auto Weights<E>::GetWeight(const E enumClass) const -> size_t
 {
-  for (const auto& [e, w] : m_weights)
+#if __cplusplus <= 201402L
+  for (const auto& wgt : m_weights)
   {
+    const auto& e = std::get<0>(wgt);
+    const auto& w = std::get<1>(wgt);
+#else
+    for (const auto& [e, w] : m_weights)
+  {
+#endif
     if (e == enumClass)
     {
       return w;
@@ -152,8 +180,14 @@ auto Weights<E>::GetWeight(const E enumClass) const -> size_t
 template<class E>
 void Weights<E>::ClearWeights(size_t value)
 {
-  for (auto& [e, w] : m_weights)
+#if __cplusplus <= 201402L
+  for (const auto& wgt : m_weights)
   {
+    const auto& w = std::get<1>(wgt);
+#else
+    for (const auto& [e, w] : m_weights)
+  {
+#endif
     w = value;
   }
   m_sumOfWeights = GetSumOfWeights(m_weights);
@@ -168,8 +202,15 @@ auto Weights<E>::GetRandomWeighted() const -> E
   }
 
   uint32_t randVal = GetRandInRange(0U, m_sumOfWeights);
+#if __cplusplus <= 201402L
+  for (const auto& wgt : m_weights)
+  {
+    const auto& e = std::get<0>(wgt);
+    const auto& w = std::get<1>(wgt);
+#else
   for (const auto& [e, w] : m_weights)
   {
+#endif
     if (randVal < w)
     {
       return e;
@@ -179,5 +220,10 @@ auto Weights<E>::GetRandomWeighted() const -> E
   throw std::logic_error(std20::format("Should not get here. randVal = {}.", randVal));
 }
 
+#if __cplusplus <= 201402L
+} // namespace UTILS
+} // namespace GOOM
+#else
 } // namespace GOOM::UTILS
+#endif
 #endif

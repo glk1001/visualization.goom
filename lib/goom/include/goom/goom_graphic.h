@@ -115,17 +115,19 @@ public:
 private:
   union Color
   {
-    Channels channels;
+    Channels channels{};
     uint32_t intVal;
   };
-  Color m_color;
+  Color m_color{};
 };
 
-inline const Pixel Pixel::BLACK{
-    .channels{.r = 0, .g = 0, .b = 0, .a = channel_limits<uint8_t>::max()}};
+#if __cplusplus > 201402L
+inline const Pixel Pixel::BLACK{/*.channels*/ {/*.r = */ 0, /*.g = */ 0, /*.b = */ 0,
+                                               /*.a = */ MAX_COLOR_VAL}};
 
-inline const Pixel Pixel::WHITE{
-    .channels{.r = MAX_COLOR_VAL, .g = MAX_COLOR_VAL, .b = MAX_COLOR_VAL, .a = MAX_COLOR_VAL}};
+inline const Pixel Pixel::WHITE{/*.channels*/ {/*.r = */ MAX_COLOR_VAL, /*.g = */ MAX_COLOR_VAL,
+                                               /*.b = */ MAX_COLOR_VAL, /*.a = */ MAX_COLOR_VAL}};
+#endif
 
 class PixelBuffer
 {
@@ -174,16 +176,17 @@ void Pixel::serialize(Archive& ar)
   ar(m_color.intVal);
 }
 
-inline Pixel::Pixel() : m_color{.channels{}}
+inline Pixel::Pixel() : m_color{/*.channels*/ {}}
 {
 }
 
-inline Pixel::Pixel(const Channels& c) : m_color{.channels{c}}
+inline Pixel::Pixel(const Channels& c) : m_color{/*.channels*/ {c}}
 {
 }
 
-inline Pixel::Pixel(const uint32_t v) : m_color{.intVal{v}}
+inline Pixel::Pixel(const uint32_t v)
 {
+  m_color.intVal = v;
 }
 
 inline auto Pixel::operator==(const Pixel& p) const -> bool
@@ -285,7 +288,7 @@ inline void PixelBuffer::CopyTo(PixelBuffer& buff, const uint32_t length) const
 
 inline void PixelBuffer::CopyTo(uint32_t* intBuff, const uint32_t length) const
 {
-  static_assert(sizeof(Pixel) == sizeof(uint32_t));
+  static_assert(sizeof(Pixel) == sizeof(uint32_t), "Invalid Pixel size.");
   std::memcpy(intBuff, GetIntBuff(), length * sizeof(Pixel));
 }
 

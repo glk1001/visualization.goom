@@ -8,8 +8,15 @@
 #include <cmath>
 #include <cstdint>
 
+#if __cplusplus <= 201402L
+namespace GOOM
+{
+namespace UTILS
+{
+#else
 namespace GOOM::UTILS
 {
+#endif
 
 auto GetIntColor(uint8_t r, uint8_t g, uint8_t b) -> Pixel;
 
@@ -80,10 +87,10 @@ inline auto GetColorAverage(const std::vector<Pixel>& colors) -> Pixel
   }
 
   return Pixel{{
-      .r = static_cast<uint8_t>(newR / colors.size()),
-      .g = static_cast<uint8_t>(newG / colors.size()),
-      .b = static_cast<uint8_t>(newB / colors.size()),
-      .a = static_cast<uint8_t>(newA / colors.size()),
+      /*.r = */ static_cast<uint8_t>(newR / colors.size()),
+      /*.g = */ static_cast<uint8_t>(newG / colors.size()),
+      /*.b = */ static_cast<uint8_t>(newB / colors.size()),
+      /*.a = */ static_cast<uint8_t>(newA / colors.size()),
   }};
 }
 
@@ -95,10 +102,10 @@ inline auto GetColorAverage(const Pixel& color1, const Pixel& color2) -> Pixel
   const uint32_t newA = ColorChannelAdd(color1.A(), color2.A()) >> 1;
 
   return Pixel{{
-      .r = static_cast<uint8_t>(newR),
-      .g = static_cast<uint8_t>(newG),
-      .b = static_cast<uint8_t>(newB),
-      .a = static_cast<uint8_t>(newA),
+      /*.r = */ static_cast<uint8_t>(newR),
+      /*.g = */ static_cast<uint8_t>(newG),
+      /*.b = */ static_cast<uint8_t>(newB),
+      /*.a = */ static_cast<uint8_t>(newA),
   }};
 }
 
@@ -122,10 +129,10 @@ inline auto GetColorBlend(const Pixel& srce, const Pixel& dest) -> Pixel
   const auto newA = std::min(channel_limits<int32_t>::max(), srceA + destA);
 
   return Pixel{{
-      .r = static_cast<u_int8_t>(newR),
-      .g = static_cast<u_int8_t>(newG),
-      .b = static_cast<u_int8_t>(newB),
-      .a = static_cast<u_int8_t>(newA),
+      /*.r = */ static_cast<u_int8_t>(newR),
+      /*.g = */ static_cast<u_int8_t>(newG),
+      /*.b = */ static_cast<u_int8_t>(newB),
+      /*.a = */ static_cast<u_int8_t>(newA),
   }};
 }
 
@@ -150,10 +157,10 @@ inline auto GetColorMultiply(const Pixel& color1, const Pixel& color2, bool allo
   }
 
   return Pixel{{
-      .r = static_cast<uint8_t>((newR & 0xffffff00) ? 0xff : newR),
-      .g = static_cast<uint8_t>((newG & 0xffffff00) ? 0xff : newG),
-      .b = static_cast<uint8_t>((newB & 0xffffff00) ? 0xff : newB),
-      .a = static_cast<uint8_t>((newA & 0xffffff00) ? 0xff : newA),
+      /*.r = */ static_cast<uint8_t>((newR & 0xffffff00) ? 0xff : newR),
+      /*.g = */ static_cast<uint8_t>((newG & 0xffffff00) ? 0xff : newG),
+      /*.b = */ static_cast<uint8_t>((newB & 0xffffff00) ? 0xff : newB),
+      /*.a = */ static_cast<uint8_t>((newA & 0xffffff00) ? 0xff : newA),
   }};
 }
 
@@ -177,10 +184,10 @@ inline auto GetColorAdd(const Pixel& color1, const Pixel& color2, bool allowOver
   }
 
   return Pixel{{
-      .r = static_cast<uint8_t>((newR & 0xffffff00) ? 0xff : newR),
-      .g = static_cast<uint8_t>((newG & 0xffffff00) ? 0xff : newG),
-      .b = static_cast<uint8_t>((newB & 0xffffff00) ? 0xff : newB),
-      .a = static_cast<uint8_t>((newA & 0xffffff00) ? 0xff : newA),
+      /*.r = */ static_cast<uint8_t>((newR & 0xffffff00) ? 0xff : newR),
+      /*.g = */ static_cast<uint8_t>((newG & 0xffffff00) ? 0xff : newG),
+      /*.b = */ static_cast<uint8_t>((newB & 0xffffff00) ? 0xff : newB),
+      /*.a = */ static_cast<uint8_t>((newA & 0xffffff00) ? 0xff : newA),
   }};
 }
 
@@ -192,10 +199,10 @@ inline auto GetColorSubtract(const Pixel& color1, const Pixel& color2) -> Pixel
   const uint32_t newA = ColorChannelSubtract(color1.A(), color2.A());
 
   return Pixel{{
-      .r = static_cast<uint8_t>(newR),
-      .g = static_cast<uint8_t>(newG),
-      .b = static_cast<uint8_t>(newB),
-      .a = static_cast<uint8_t>(newA),
+      /*.r = */ static_cast<uint8_t>(newR),
+      /*.g = */ static_cast<uint8_t>(newG),
+      /*.b = */ static_cast<uint8_t>(newB),
+      /*.a = */ static_cast<uint8_t>(newA),
   }};
 }
 
@@ -226,10 +233,10 @@ inline auto GetBrighterColorInt(uint32_t brightness, const Pixel& color, bool al
   }
 
   return Pixel{{
-      .r = static_cast<uint8_t>((newR & 0xffffff00) ? 0xff : newR),
-      .g = static_cast<uint8_t>((newG & 0xffffff00) ? 0xff : newG),
-      .b = static_cast<uint8_t>((newB & 0xffffff00) ? 0xff : newB),
-      .a = static_cast<uint8_t>((newA & 0xffffff00) ? 0xff : newA),
+      /*.r = */ static_cast<uint8_t>((newR & 0xffffff00) ? 0xff : newR),
+      /*.g = */ static_cast<uint8_t>((newG & 0xffffff00) ? 0xff : newG),
+      /*.b = */ static_cast<uint8_t>((newB & 0xffffff00) ? 0xff : newB),
+      /*.a = */ static_cast<uint8_t>((newA & 0xffffff00) ? 0xff : newA),
   }};
 }
 
@@ -270,7 +277,8 @@ inline auto GetHalfIntensityColor(const Pixel& color) -> Pixel
 //
 //     Y = 0.299 R + 0.587 G + 0.114 B
 //
-// If you are willing to trade accuracy for perfomance, there are two approximation formulas for this one:
+// If you are willing to trade accuracy for perfomance, there are two approximation formulas
+// for this one:
 //
 //     Y = 0.33 R + 0.5 G + 0.16 B
 //
@@ -304,6 +312,11 @@ inline auto GammaCorrection::GetCorrection(float brightness, const Pixel& color)
   return GetBrighterColor(std::pow(brightness, m_gammaReciprocal), color, true);
 }
 
+#if __cplusplus <= 201402L
+} // namespace UTILS
+} // namespace GOOM
+#else
 } // namespace GOOM::UTILS
+#endif
 
 #endif

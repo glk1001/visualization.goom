@@ -79,9 +79,13 @@ TentacleDriver::TentacleDriver(const uint32_t screenW, const uint32_t screenH) n
 
 auto TentacleDriver::IterationParams::operator==(const IterationParams& p) const -> bool
 {
+#if __cplusplus <= 201402L
+  return false;
+#else
   return numNodes == p.numNodes && prevYWeight == p.prevYWeight &&
          iterZeroYValWaveFreq == p.iterZeroYValWave && iterZeroYValWave == p.iterZeroYValWave &&
          length == p.length;
+#endif
 }
 
 auto TentacleDriver::IterParamsGroup::operator==(const IterParamsGroup& p) const -> bool
@@ -117,11 +121,13 @@ auto TentacleDriver::operator==(const TentacleDriver& t) const -> bool
         logInfo("TentacleDriver colorizers not of same type at index {}", i);
         return false;
       }
+#if __cplusplus > 201402L
       if (*c1 != *c2)
       {
         logInfo("TentacleDriver colorizers not the same at index {}", i);
         return false;
       }
+#endif
     }
   }
   logInfo("colorizers == t.colorizers = true");
@@ -244,19 +250,19 @@ auto TentacleDriver::IterParamsGroup::GetNext(const float t) const
 {
   const float prevYWeight =
       GetRandInRange(0.9F, 1.1F) *
-      std::lerp(static_cast<float>(first.prevYWeight), static_cast<float>(last.prevYWeight), t);
+      stdnew::lerp(static_cast<float>(first.prevYWeight), static_cast<float>(last.prevYWeight), t);
   IterationParams params{};
   params.length =
       size_t(GetRandInRange(1.0F, 1.1F) *
-             std::lerp(static_cast<float>(first.length), static_cast<float>(last.length), t));
+             stdnew::lerp(static_cast<float>(first.length), static_cast<float>(last.length), t));
   params.numNodes =
-      size_t(GetRandInRange(0.9F, 1.1F) *
-             std::lerp(static_cast<float>(first.numNodes), static_cast<float>(last.numNodes), t));
+      size_t(GetRandInRange(0.9F, 1.1F) * stdnew::lerp(static_cast<float>(first.numNodes),
+                                                       static_cast<float>(last.numNodes), t));
   params.prevYWeight = prevYWeight;
   params.iterZeroYValWave = first.iterZeroYValWave;
   params.iterZeroYValWaveFreq =
-      GetRandInRange(0.9F, 1.1F) * std::lerp(static_cast<float>(first.iterZeroYValWaveFreq),
-                                             static_cast<float>(last.iterZeroYValWaveFreq), t);
+      GetRandInRange(0.9F, 1.1F) * stdnew::lerp(static_cast<float>(first.iterZeroYValWaveFreq),
+                                                static_cast<float>(last.iterZeroYValWaveFreq), t);
   return params;
 }
 
