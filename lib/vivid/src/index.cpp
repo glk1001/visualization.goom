@@ -56,7 +56,7 @@ uint8_t fromHex( const std::string& hexStr ) {
     return index::fromRgb8( rgb8::fromHex( hexStr ) );
 }
 
-
+#if __cplusplus > 201402L
 ////////////////////////////////////////////////////////////////////////////////
 std::optional<uint8_t> fromName( const std::string& name )
 {
@@ -72,6 +72,7 @@ std::optional<uint8_t> fromName( const std::string& name )
 
     return {};
 }
+#endif
 
 
 }   //  ::vivid::index

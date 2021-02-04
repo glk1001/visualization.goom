@@ -43,11 +43,12 @@ srgb_t fromIndex( const uint8_t index ) {
     );
 }
 
-
+#if __cplusplus > 201402L
 ////////////////////////////////////////////////////////////////////////////////
 srgb_t fromName( const std::string& name ) {
     return srgb::fromIndex( index::fromName( name ).value_or( 0 ) );
 }
+#endif
 
 
 

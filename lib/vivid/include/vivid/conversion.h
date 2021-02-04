@@ -88,7 +88,9 @@ namespace index {
     uint8_t fromRgb8( const col8_t& );
     uint8_t fromHsl( const hsl_t& );
     uint8_t fromHex( const std::string& );
+#if __cplusplus > 201402L
     std::optional<uint8_t> fromName( const std::string& );
+#endif
 }
 
 

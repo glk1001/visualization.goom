@@ -33,11 +33,12 @@ col8_t fromHex( const std::string& hexStr ) {
     return rgb8::fromRgb32( rgb32::fromHex( hexStr ) );
 }
 
-
+#if __cplusplus > 201402L
 ////////////////////////////////////////////////////////////////////////////////
 col8_t fromName( const std::string& name ) {
     return rgb8::fromIndex( index::fromName( name ).value_or( 0 ) );
 }
+#endif
 
 
 }   //  ::vivid::rgb8

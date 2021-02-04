@@ -1,4 +1,5 @@
 cmake_minimum_required( VERSION 3.13 )
+
 project(
     vivid
     VERSION 1.1.2
@@ -35,8 +36,8 @@ add_library( vivid STATIC
 add_library(libs::vivid ALIAS ${PROJECT_NAME})
 
 target_compile_features( vivid
-    PUBLIC
-        cxx_std_17  #  std::optional, nested namespaces
+#    PUBLIC
+#        cxx_std_17  #  std::optional, nested namespaces
     PRIVATE
         cxx_auto_type
         cxx_defaulted_functions
@@ -53,8 +54,11 @@ target_include_directories( vivid
         $<INSTALL_INTERFACE:include>
 )
 
-set_target_properties(vivid PROPERTIES POSITION_INDEPENDENT_CODE ON)
-set_property(TARGET goom PROPERTY CXX_STANDARD 20)
+set_target_properties( vivid
+    PROPERTIES
+        CXX_STANDARD ${CPP_STANDARD}
+        POSITION_INDEPENDENT_CODE ON
+)
 
 ################################################################################
 #  examples and tests
@@ -62,3 +66,5 @@ set_property(TARGET goom PROPERTY CXX_STANDARD 20)
 
 add_subdirectory(examples/cmake)
 add_subdirectory(tests)
+
+message(STATUS "Vivid C++ standard = \"${CPP_STANDARD}\".")
