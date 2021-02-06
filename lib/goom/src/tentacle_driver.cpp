@@ -77,7 +77,8 @@ TentacleDriver::TentacleDriver(const uint32_t screenW, const uint32_t screenH) n
   logDebug("Constructed TentacleDriver.");
 }
 
-auto TentacleDriver::IterationParams::operator==(const IterationParams& p) const -> bool
+auto TentacleDriver::IterationParams::operator==([[maybe_unused]] const IterationParams& p) const
+    -> bool
 {
 #if __cplusplus <= 201402L
   return false;
@@ -587,7 +588,13 @@ void TentacleDriver::Plot3D(const Tentacle3D& tentacle,
       logDebug("draw_line {}: ix0 = {}, iy0 = {}, ix1 = {}, iy1 = {}.", nodeNum, ix0, iy0, ix1,
                iy1);
 
+#if __cplusplus <= 201402L
+      const auto mixedColors = getMixedColors(nodeNum);
+      const auto color = std::get<0>(mixedColors);
+      const auto colorLow = std::get<1>(mixedColors);
+#else
       const auto [color, colorLow] = getMixedColors(nodeNum);
+#endif
       /**
 auto [color, colorLow] = GetMixedColors(nodeNum);
 if (-10 < tentacle.getHead().x && tentacle.GetHead().x < 0)

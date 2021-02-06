@@ -140,10 +140,10 @@ struct CentreType
 };
 // clang-format off
 static const std::vector<CentreType> CENTRE_LIST = {
-  { .depth = 10, .r1Mean = 0.7, .r2Mean = 0.0, .dr1Mean = 0.3, .dr2Mean = 0.4 },
-  { .depth =  6, .r1Mean = 0.6, .r2Mean = 0.0, .dr1Mean = 0.4, .dr2Mean = 0.3 },
-  { .depth =  4, .r1Mean = 0.5, .r2Mean = 0.0, .dr1Mean = 0.4, .dr2Mean = 0.3 },
-  { .depth =  2, .r1Mean = 0.4, .r2Mean = 0.0, .dr1Mean = 0.5, .dr2Mean = 0.3 },
+  { /*.depth = */10, /*.r1Mean = */0.7, /*.r2Mean = */0.0, /*.dr1Mean = */0.3, /*.dr2Mean = */0.4 },
+  { /*.depth = */ 6, /*.r1Mean = */0.6, /*.r2Mean = */0.0, /*.dr1Mean = */0.4, /*.dr2Mean = */0.3 },
+  { /*.depth = */ 4, /*.r1Mean = */0.5, /*.r2Mean = */0.0, /*.dr1Mean = */0.4, /*.dr2Mean = */0.3 },
+  { /*.depth = */ 2, /*.r1Mean = */0.4, /*.r2Mean = */0.0, /*.dr1Mean = */0.5, /*.dr2Mean = */0.3 },
 };
 // clang-format on
 
@@ -166,7 +166,7 @@ struct Similitude
   Pixel color{0U};
 
 #if __cplusplus <= 201402L
-  auto operator==(const Similitude& s) const -> bool { return false; };
+  auto operator==([[maybe_unused]] const Similitude& s) const -> bool { return false; };
 #else
   auto operator==(const Similitude& s) const -> bool = default;
 #endif

@@ -407,10 +407,11 @@ auto GoomDotsFx::GoomDotsFxImpl::GetColor(const Pixel& color0,
   }
   else
   {
-    color = Pixel{.channels{.r = static_cast<uint8_t>(tMix * channel_limits<uint32_t>::max()),
-                            .g = static_cast<uint8_t>(tMix * channel_limits<uint32_t>::max()),
-                            .b = static_cast<uint8_t>(tMix * channel_limits<uint32_t>::max()),
-                            .a = 0xff}};
+    color =
+        Pixel{/*.channels*/ {/*.r = */ static_cast<uint8_t>(tMix * channel_limits<uint32_t>::max()),
+                             /*.g = */ static_cast<uint8_t>(tMix * channel_limits<uint32_t>::max()),
+                             /*.b = */ static_cast<uint8_t>(tMix * channel_limits<uint32_t>::max()),
+                             /*.a = */ 0xff}};
   }
 
   return m_gammaCorrect.GetCorrection(brightness, color);

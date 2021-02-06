@@ -9,14 +9,21 @@
 #include <cmath>
 #include <cstdint>
 
+#if __cplusplus <= 201402L
+namespace GOOM
+{
+namespace UTILS
+{
+#else
 namespace GOOM::UTILS
 {
+#endif
 
-static_assert(sizeof(Pixel) == sizeof(uint32_t));
+static_assert(sizeof(Pixel) == sizeof(uint32_t), "Invalid Pixel size.");
 
 auto GetIntColor(uint8_t r, uint8_t g, uint8_t b) -> Pixel
 {
-  return Pixel{{.r = r, .g = g, .b = b, .a = 0xff}};
+  return Pixel{{/*.r = */ r, /*.g = */ g, /*.b = */ b, /*.a = */ 0xff}};
 }
 
 inline auto Lighten(const uint8_t value, const float power) -> uint8_t
@@ -77,4 +84,9 @@ auto GetEvolvedColor(const Pixel& baseColor) -> Pixel
   return newColor;
 }
 
+#if __cplusplus <= 201402L
+} // namespace UTILS
+} // namespace GOOM
+#else
 } // namespace GOOM::UTILS
+#endif

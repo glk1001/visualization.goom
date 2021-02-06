@@ -3,10 +3,18 @@
 #include "vivid/types.h"
 #include <vector>
 
+#if __cplusplus > 201402L
 namespace GOOM::UTILS::COLOR_DATA
+#else
+namespace GOOM
 {
+namespace UTILS
+{
+namespace COLOR_DATA
+{
+#endif
 
-// clang-format off
+    // clang-format off
 static const std::vector<vivid::srgb_t> tab20
 {
   {   0.12157f,   0.46667f,   0.70588f },
@@ -32,4 +40,10 @@ static const std::vector<vivid::srgb_t> tab20
 };
 // clang-format on
 
+#if __cplusplus > 201402L
 } // namespace GOOM::UTILS::COLOR_DATA
+#else
+} // namespace COLOR_DATA
+} // namespace UTILS
+} // namespace GOOM
+#endif

@@ -49,8 +49,14 @@ void Logging::log(const LogLevel lvl,
   }
   if (lvl >= cutoffHandlersLogLevel)
   {
+#if __cplusplus <= 201402L
+    for (const auto& handlerInfo : handlers)
+    {
+      const auto& handlr = std::get<1>(handlerInfo);
+#else
     for (const auto& [name, handlr] : handlers)
     {
+#endif
       handlr(lvl, logMsg);
     }
   }
@@ -82,8 +88,14 @@ void Logging::setHandlersLogLevel(const LogLevel lvl)
 
 void Logging::addHandler(const std::string& name, const HandlerFunc& f)
 {
+#if __cplusplus <= 201402L
+  for (const auto& handlerInfo : handlers)
+  {
+    const auto& hname = std::get<0>(handlerInfo);
+#else
   for (const auto& [hname, handlr] : handlers)
   {
+#endif
     if (hname == name)
     {
       return;

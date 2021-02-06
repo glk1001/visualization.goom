@@ -61,7 +61,8 @@ void ImageBitmap::Load(std::string imageFilename)
       const uint8_t b = *rgbPtr;
       rgbPtr++;
 
-      (*this)(x, y) = Pixel{.channels{.r = r, .g = g, .b = b, .a = MAX_COLOR_VAL}};
+      (*this)(x, y) =
+          Pixel{/*.channels*/ {/*.r = */ r, /*.g = */ g, /*.b = */ b, /*.a = */ MAX_COLOR_VAL}};
     }
   }
 

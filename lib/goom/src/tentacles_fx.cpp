@@ -558,7 +558,13 @@ void TentaclesFx::TentaclesImpl::Update(PixelBuffer& currentBuff, PixelBuffer& n
       m_countSinceColorChangeLastMarked = 0;
     }
 
+#if __cplusplus <= 201402L
+    const auto modColors = GetModColors();
+    const auto modColor = std::get<0>(modColors);
+    const auto modColorLow = std::get<1>(modColors);
+#else
     const auto [modColor, modColorLow] = GetModColors();
+#endif
 
     if (m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom() != 0)
     {

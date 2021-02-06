@@ -3,10 +3,18 @@
 #include "vivid/types.h"
 #include <vector>
 
+#if __cplusplus > 201402L
 namespace GOOM::UTILS::COLOR_DATA
+#else
+namespace GOOM
 {
+namespace UTILS
+{
+namespace COLOR_DATA
+{
+#endif
 
-// clang-format off
+    // clang-format off
 static const std::vector<vivid::srgb_t> inferno
 {
   {   0.00146f,   0.00047f,   0.01387f },
@@ -268,4 +276,10 @@ static const std::vector<vivid::srgb_t> inferno
 };
 // clang-format on
 
+#if __cplusplus > 201402L
 } // namespace GOOM::UTILS::COLOR_DATA
+#else
+} // namespace COLOR_DATA
+} // namespace UTILS
+} // namespace GOOM
+#endif

@@ -1,5 +1,6 @@
 from colormap import Colormap
 from numpy.core import ushort
+import os
 
 INCLUDE_RELDIR = 'colordata'
 CPP_LIBNAME = 'goomutils'
@@ -9,9 +10,9 @@ INCLUDE_DIR = '/tmp/' + INCLUDE_RELDIR
 COLOR_MAP_ENUM_H = 'colormap_enums.h'
 ALL_MAPS_H = 'all_maps.h'
 ALL_MAPS_CPP = 'all_maps.cpp'
-GOOM_NAMESPACE = 'goom'
-GOOMUTILS_NAMESPACE = 'utils'
-COLORDATA_NAMESPACE = 'colordata'
+GOOM_NAMESPACE = 'GOOM'
+GOOMUTILS_NAMESPACE = 'UTILS'
+COLORDATA_NAMESPACE = 'COLOR_DATA'
 MAPS_ENUM_NAME = 'ColorMapName'
 
 
@@ -37,26 +38,25 @@ def write_cpp_headers(maps):
 
 
 def write_namespace_begin(f):
-    f.write('#if __cplusplus <= 201402L\n')
+    f.write('#if __cplusplus > 201402L\n')
+    f.write(f'namespace {GOOM_NAMESPACE}::{GOOMUTILS_NAMESPACE}::{COLORDATA_NAMESPACE}\n')
+    f.write('#else\n')
     f.write(f'namespace {GOOM_NAMESPACE}\n')
     f.write('{\n')
     f.write(f'namespace {GOOMUTILS_NAMESPACE}\n')
     f.write('{\n')
     f.write(f'namespace {COLORDATA_NAMESPACE}\n')
     f.write('{\n')
-    f.write('#else\n')
-    f.write(f'namespace {GOOM_NAMESPACE}::{GOOMUTILS_NAMESPACE}::{COLORDATA_NAMESPACE}\n')
-    f.write('{\n')
     f.write('#endif\n')
 
 
 def write_namespace_end(f):
-    f.write('#if __cplusplus <= 201402L\n')
+    f.write('#if __cplusplus > 201402L\n')
+    f.write(f'}} // namespace {GOOM_NAMESPACE}::{GOOMUTILS_NAMESPACE}::{COLORDATA_NAMESPACE}\n')
+    f.write('#else\n')
     f.write(f'}} // namespace {COLORDATA_NAMESPACE}\n')
     f.write(f'}} // namespace {GOOMUTILS_NAMESPACE}\n')
     f.write(f'}} // namespace {GOOM_NAMESPACE}\n')
-    f.write('#else\n')
-    f.write(f'}} // namespace {GOOM_NAMESPACE}::{GOOMUTILS_NAMESPACE}::{COLORDATA_NAMESPACE}\n')
     f.write('#endif\n')
 
 
@@ -91,6 +91,7 @@ def write_colormaps_enums_header(maps):
         f.write('{\n')
         for m in maps:
             f.write(f'  {get_cpp_name(m)},\n')
+        f.write(f'  _NULL,\n')
         f.write(f'}};\n')
         f.write('\n')
         write_namespace_end(f)
@@ -179,6 +180,8 @@ if __name__ == '__main__':
             'misc': [c for c in colormap.misc],
             'cyclic': [],
     }
+
+    os.mkdir(INCLUDE_DIR)
 
     color_map_groups['perc_unif_sequential'].extend(['viridis', 'plasma', 'inferno', 'magma', 'cividis'])
     color_map_groups['sequential2'].extend(['binary', 'gist_gray', 'gist_yarg', 'Wistia'])

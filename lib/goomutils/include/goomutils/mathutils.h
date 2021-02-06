@@ -47,6 +47,30 @@ constexpr double lerp(double __a, double __b, double __t) noexcept
   return __lerp(__a, __b, __t);
 }
 
+constexpr auto clamp(const int x, const int lo, const int hi) -> int
+{
+  if (x < lo)
+  {
+    return lo;
+  }
+  if (x > hi)
+  {
+    return hi;
+  }
+  return x;
+}
+constexpr auto clamp(const size_t x, const size_t lo, const size_t hi) -> size_t
+{
+  if (x < lo)
+  {
+    return lo;
+  }
+  if (x > hi)
+  {
+    return hi;
+  }
+  return x;
+}
 constexpr auto clamp(const float x, const float lo, const float hi) -> float
 {
   if (x < lo)

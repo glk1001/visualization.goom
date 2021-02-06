@@ -294,27 +294,27 @@ inline void PixelBuffer::CopyTo(uint32_t* intBuff, const uint32_t length) const
 
 inline auto PixelBuffer::operator()(const size_t x, const size_t y) const -> const Pixel&
 {
-  //return m_buff.at(y * m_width + x);
-  return m_buff[y * m_width + x];
+  return m_buff.at(y * m_width + x);
+  //return m_buff[y * m_width + x];
 }
 
 inline auto PixelBuffer::operator()(const size_t x, const size_t y) -> Pixel&
 {
-  // return m_buff.at(y * m_width + x);
-  return m_buff[y * m_width + x];
+  return m_buff.at(y * m_width + x);
+  //return m_buff[y * m_width + x];
 }
 
 inline auto PixelBuffer::GetRowIter(const size_t y)
     -> std::tuple<PixelBuffer::iterator, PixelBuffer::iterator>
 {
-  const int32_t rowPos = y * m_width;
+  const auto rowPos = static_cast<int32_t>(y * m_width);
   return std::make_tuple(m_buff.begin() + rowPos, m_buff.begin() + rowPos + m_width);
 }
 
 inline auto PixelBuffer::GetRowIter(const size_t y) const
     -> std::tuple<PixelBuffer::const_iterator, PixelBuffer::const_iterator>
 {
-  const int32_t rowPos = y * m_width;
+  const auto rowPos = static_cast<int32_t>(y * m_width);
   return std::make_tuple(m_buff.begin() + rowPos, m_buff.begin() + rowPos + m_width);
 }
 

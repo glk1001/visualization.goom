@@ -477,7 +477,8 @@ void TextDraw::TextDrawImpl::WriteSpansToImage(const SpanArray& spans,
 
       const Pixel color = getColor(textIndexOfChar, xf0 + w, rect.Height() - (s.y - rect.ymin),
                                    rect.Width(), rect.Height());
-      const Pixel srceColor{{.r = color.R(), .g = color.G(), .b = color.B(), .a = coverage}};
+      const Pixel srceColor{
+          {/*.r = */ color.R(), /*.g = */ color.G(), /*.b = */ color.B(), /*.a = */ coverage}};
 
       Pixel& destColor = buff(static_cast<size_t>(xPos), static_cast<size_t>(yPos));
       destColor = UTILS::GetColorBlend(srceColor, destColor);
@@ -534,25 +535,25 @@ auto TextDraw::TextDrawImpl::GetSpans(const size_t textIndexOfChar) const -> Spa
   if (stdSpans.empty())
   {
     return Spans{
-        .stdSpans = stdSpans,
-        .outlineSpans = SpanArray{},
-        .textIndexOfChar = textIndexOfChar,
-        .rect = RectImpl{},
-        .advance = advance,
-        .bearingX = ToStdPixelCoord(metrics.horiBearingX),
-        .bearingY = ToStdPixelCoord(metrics.horiBearingY),
+        /*.stdSpans = */ stdSpans,
+        /*.outlineSpans = */ SpanArray{},
+        /*.textIndexOfChar = */ textIndexOfChar,
+        /*.rect = */ RectImpl{},
+        /*.advance = */ advance,
+        /*.bearingX = */ ToStdPixelCoord(metrics.horiBearingX),
+        /*.bearingY = */ ToStdPixelCoord(metrics.horiBearingY),
     };
   }
 
   const SpanArray outlineSpans = GetOutlineSpans();
   return Spans{
-      .stdSpans = stdSpans,
-      .outlineSpans = outlineSpans,
-      .textIndexOfChar = textIndexOfChar,
-      .rect = GetBoundingRect(stdSpans, outlineSpans),
-      .advance = advance,
-      .bearingX = ToStdPixelCoord(metrics.horiBearingX),
-      .bearingY = ToStdPixelCoord(metrics.horiBearingY),
+      /*.stdSpans = */ stdSpans,
+      /*.outlineSpans = */ outlineSpans,
+      /*.textIndexOfChar = */ textIndexOfChar,
+      /*.rect = */ GetBoundingRect(stdSpans, outlineSpans),
+      /*.advance = */ advance,
+      /*.bearingX = */ ToStdPixelCoord(metrics.horiBearingX),
+      /*.bearingY = */ ToStdPixelCoord(metrics.horiBearingY),
   };
 }
 

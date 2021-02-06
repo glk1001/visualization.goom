@@ -325,8 +325,15 @@ void ColorMaps::ColorMapsImpl::InitPrebuiltColorMaps()
     return;
   }
   s_preBuiltColorMaps.reserve(COLOR_DATA::allMaps.size());
+#if __cplusplus <= 201402L
+  for (const auto& maps : COLOR_DATA::allMaps)
+  {
+    const auto name = std::get<0>(maps);
+    const auto vividMap = std::get<1>(maps);
+#else
   for (const auto& [name, vividMap] : COLOR_DATA::allMaps)
   {
+#endif
     (void)s_preBuiltColorMaps.emplace_back(name, vividMap);
   }
 }

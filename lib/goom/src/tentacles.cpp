@@ -471,7 +471,13 @@ auto Tentacle3D::GetMixedColors(size_t nodeNum,
     return GetMixedColors(nodeNum, color, colorLow);
   }
 
+#if __cplusplus <= 201402L
+  const auto mixedColors = GetMixedColors(nodeNum, color, colorLow);
+  const auto mixedColor = std::get<0>(mixedColors);
+  const auto mixedColorLow = std::get<1>(mixedColors);
+#else
   const auto [mixedColor, mixedColorLow] = GetMixedColors(nodeNum, color, colorLow);
+#endif
   const Pixel mixedColorPixel = mixedColor;
   const Pixel mixedColorLowPixel = mixedColorLow;
   //constexpr float gamma = 4.2;
@@ -488,7 +494,13 @@ auto Tentacle3D::GetMixedColors(size_t nodeNum,
 
 auto Tentacle3D::GetVertices() const -> std::vector<V3dFlt>
 {
+#if __cplusplus <= 201402L
+  const auto xyvecs = m_tentacle->GetDampedXAndYVectors();
+  const auto xvec2D = std::get<0>(xyvecs);
+  const auto yvec2D = std::get<1>(xyvecs);
+#else
   const auto [xvec2D, yvec2D] = m_tentacle->GetDampedXAndYVectors();
+#endif
   const size_t n = xvec2D.size();
 
   //  logInfo("Tentacle: {}, head.x = {}, head.y = {}, head.z = {}", "x", head.x, head.y, head.z);
