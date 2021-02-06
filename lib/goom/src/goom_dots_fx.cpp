@@ -456,7 +456,7 @@ void GoomDotsFx::GoomDotsFxImpl::DotFilter(PixelBuffer& currentBuff,
   const auto xMid = x0 + static_cast<int32_t>(radius);
   const auto yMid = y0 + static_cast<int32_t>(radius);
   constexpr float BRIGHTNESS = 20.0F;
-  const auto getColor = [&]([[maybe_unused]] const int x, [[maybe_unused]] const int y,
+  const auto getColor = [&]([[maybe_unused]] const size_t x, [[maybe_unused]] const size_t y,
                             const Pixel& b) -> Pixel {
     // const Pixel newColor = x == xMid && y == yMid ? m_middleColor : color;
     return m_gammaCorrect.GetCorrection(

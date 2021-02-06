@@ -2,11 +2,7 @@
 
 #include "draw_methods.h"
 #include "goom_graphic.h"
-#include "goomutils/colormaps.h"
-#include "goomutils/colorutils.h"
-#include "goomutils/parallel_utils.h"
 
-#include <cassert>
 #include <cstdint>
 #include <vector>
 
@@ -39,7 +35,7 @@ void GoomDraw::Circle(
   DrawCircle(buff, x0, y0, radius, color, m_intBuffIntensity, m_allowOverexposed, m_screenWidth,
              m_screenHeight);
 }
-void GoomDraw::Circle(std::vector<PixelBuffer*>& buffs,
+void GoomDraw::Circle(const std::vector<PixelBuffer*>& buffs,
                       const int x0,
                       const int y0,
                       const int radius,
@@ -107,7 +103,7 @@ void GoomDraw::Bitmap(PixelBuffer& buff,
   }
 }
 
-void GoomDraw::Bitmap(std::vector<PixelBuffer*>& buffs,
+void GoomDraw::Bitmap(const std::vector<PixelBuffer*>& buffs,
                       int xCentre,
                       int yCentre,
                       const std::vector<const PixelBuffer*>& bitmaps,
@@ -131,7 +127,7 @@ void GoomDraw::Line(PixelBuffer& buff,
            m_screenWidth, m_screenHeight);
 }
 
-void GoomDraw::Line(std::vector<PixelBuffer*>& buffs,
+void GoomDraw::Line(const std::vector<PixelBuffer*>& buffs,
                     int x1,
                     int y1,
                     int x2,
@@ -148,13 +144,13 @@ void GoomDraw::SetPixelRgb(PixelBuffer& buff,
                            const uint32_t y,
                            const Pixel& color) const
 {
-  std::vector<PixelBuffer*> buffs{&buff};
+  const std::vector<PixelBuffer*> buffs{&buff};
   std::vector<Pixel> colors{color};
   DrawPixels(buffs, static_cast<int>(x), static_cast<int>(y), colors, m_intBuffIntensity,
              m_allowOverexposed);
 }
 
-void GoomDraw::SetPixelRgb(std::vector<PixelBuffer*>& buffs,
+void GoomDraw::SetPixelRgb(const std::vector<PixelBuffer*>& buffs,
                            const uint32_t x,
                            const uint32_t y,
                            const std::vector<Pixel>& colors) const

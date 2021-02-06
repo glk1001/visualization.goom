@@ -21,7 +21,7 @@ void DrawCircle(PixelBuffer& buff,
                 uint32_t screenWidth,
                 uint32_t screenHeight);
 
-void DrawCircle(std::vector<PixelBuffer*>& buffs,
+void DrawCircle(const std::vector<PixelBuffer*>& buffs,
                 int x0,
                 int y0,
                 int radius,
@@ -31,7 +31,7 @@ void DrawCircle(std::vector<PixelBuffer*>& buffs,
                 uint32_t screenWidth,
                 uint32_t screenHeight);
 
-void DrawLine(std::vector<PixelBuffer*>& buffs,
+void DrawLine(const std::vector<PixelBuffer*>& buffs,
               int x1,
               int y1,
               int x2,
@@ -79,7 +79,7 @@ inline void DrawPixel(PixelBuffer* const buff,
     ***/
   }
 
-  inline void DrawPixels(std::vector<PixelBuffer*>& buffs,
+  inline void DrawPixels(const std::vector<PixelBuffer*>& buffs,
                          const int x,
                          const int y,
                          const std::vector<Pixel>& newColors,

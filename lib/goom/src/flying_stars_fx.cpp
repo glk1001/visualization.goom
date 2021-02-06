@@ -185,7 +185,7 @@ private:
   };
   DrawMode m_drawMode = DrawMode::CIRCLES;
   void ChangeDrawMode();
-  using DrawFunc = std::function<void(std::vector<PixelBuffer*>& buffs,
+  using DrawFunc = std::function<void(const std::vector<PixelBuffer*>& buffs,
                                       int32_t x1,
                                       int32_t y1,
                                       int32_t x2,
@@ -198,21 +198,21 @@ private:
                     const Star& star,
                     float flipSpeed,
                     const DrawFunc& drawFunc);
-  void DrawParticleCircle(std::vector<PixelBuffer*>& buffs,
+  void DrawParticleCircle(const std::vector<PixelBuffer*>& buffs,
                           int32_t x1,
                           int32_t y1,
                           int32_t x2,
                           int32_t y2,
                           uint32_t size,
                           const std::vector<Pixel>& colors);
-  void DrawParticleLine(std::vector<PixelBuffer*>& buffs,
+  void DrawParticleLine(const std::vector<PixelBuffer*>& buffs,
                         int32_t x1,
                         int32_t y1,
                         int32_t x2,
                         int32_t y2,
                         uint32_t size,
                         const std::vector<Pixel>& colors);
-  void DrawParticleDot(std::vector<PixelBuffer*>& buffs,
+  void DrawParticleDot(const std::vector<PixelBuffer*>& buffs,
                        int32_t x1,
                        int32_t y1,
                        int32_t x2,
@@ -483,18 +483,20 @@ inline auto FlyingStarsFx::FlyingStarsImpl::GetDrawFunc() -> DrawFunc
 {
   static std::map<DrawMode, DrawFunc> s_drawFuncs{
       {DrawMode::CIRCLES,
-       [&](std::vector<PixelBuffer*>& buffs, const int32_t x1, const int32_t y1, const int32_t x2,
-           const int32_t y2, const uint32_t size, const std::vector<Pixel>& colors) {
+       [&](const std::vector<PixelBuffer*>& buffs, const int32_t x1, const int32_t y1,
+           const int32_t x2, const int32_t y2, const uint32_t size,
+           const std::vector<Pixel>& colors) {
          DrawParticleCircle(buffs, x1, y1, x2, y2, size, colors);
        }},
       {DrawMode::LINES,
-       [&](std::vector<PixelBuffer*>& buffs, const int32_t x1, const int32_t y1, const int32_t x2,
-           const int32_t y2, const uint32_t size, const std::vector<Pixel>& colors) {
+       [&](const std::vector<PixelBuffer*>& buffs, const int32_t x1, const int32_t y1,
+           const int32_t x2, const int32_t y2, const uint32_t size,
+           const std::vector<Pixel>& colors) {
          DrawParticleLine(buffs, x1, y1, x2, y2, size, colors);
        }},
       {
           DrawMode::DOTS,
-          [&](std::vector<PixelBuffer*>& buffs, const int32_t x1, const int32_t y1,
+          [&](const std::vector<PixelBuffer*>& buffs, const int32_t x1, const int32_t y1,
               const int32_t x2, const int32_t y2, const uint32_t size,
               const std::vector<Pixel>& colors) {
             DrawParticleDot(buffs, x1, y1, x2, y2, size, colors);
@@ -542,7 +544,7 @@ void FlyingStarsFx::FlyingStarsImpl::DrawParticle(PixelBuffer& currentBuff,
     const auto [mixedColor, mixedLowColor] = GetMixedColors(star, tAge, brightness);
 #endif
     const std::vector<Pixel> colors = {mixedColor, mixedLowColor};
-    std::vector<PixelBuffer*> buffs{&currentBuff, &nextBuff};
+    const std::vector<PixelBuffer*> buffs{&currentBuff, &nextBuff};
     const uint32_t size = tAge < OLD_AGE ? 1 : GetRandInRange(2U, MAX_DOT_SIZE + 1);
 
     drawFunc(buffs, x1, y1, x2, y2, size, colors);
@@ -552,7 +554,7 @@ void FlyingStarsFx::FlyingStarsImpl::DrawParticle(PixelBuffer& currentBuff,
   }
 }
 
-void FlyingStarsFx::FlyingStarsImpl::DrawParticleCircle(std::vector<PixelBuffer*>& buffs,
+void FlyingStarsFx::FlyingStarsImpl::DrawParticleCircle(const std::vector<PixelBuffer*>& buffs,
                                                         const int32_t x1,
                                                         const int32_t y1,
                                                         [[maybe_unused]] const int32_t x2,
@@ -570,7 +572,7 @@ void FlyingStarsFx::FlyingStarsImpl::DrawParticleCircle(std::vector<PixelBuffer*
   }
 }
 
-void FlyingStarsFx::FlyingStarsImpl::DrawParticleLine(std::vector<PixelBuffer*>& buffs,
+void FlyingStarsFx::FlyingStarsImpl::DrawParticleLine(const std::vector<PixelBuffer*>& buffs,
                                                       const int32_t x1,
                                                       const int32_t y1,
                                                       const int32_t x2,
@@ -588,7 +590,7 @@ void FlyingStarsFx::FlyingStarsImpl::DrawParticleLine(std::vector<PixelBuffer*>&
   }
 }
 
-void FlyingStarsFx::FlyingStarsImpl::DrawParticleDot(std::vector<PixelBuffer*>& buffs,
+void FlyingStarsFx::FlyingStarsImpl::DrawParticleDot(const std::vector<PixelBuffer*>& buffs,
                                                      const int32_t x1,
                                                      const int32_t y1,
                                                      [[maybe_unused]] const int32_t x2,
@@ -596,11 +598,11 @@ void FlyingStarsFx::FlyingStarsImpl::DrawParticleDot(std::vector<PixelBuffer*>& 
                                                      const uint32_t size,
                                                      const std::vector<Pixel>& colors)
 {
-  const auto getColor = [&]([[maybe_unused]] const int x, [[maybe_unused]] const int y,
+  const auto getColor = [&]([[maybe_unused]] const size_t x, [[maybe_unused]] const size_t y,
                             const Pixel& b) -> Pixel {
     return GetColorMultiply(b, colors[0], m_buffSettings.allowOverexposed);
   };
-  const auto getLowColor = [&]([[maybe_unused]] const int x, [[maybe_unused]] const int y,
+  const auto getLowColor = [&]([[maybe_unused]] const size_t x, [[maybe_unused]] const size_t y,
                                const Pixel& b) -> Pixel {
     return GetColorMultiply(b, colors[1], m_buffSettings.allowOverexposed);
   };

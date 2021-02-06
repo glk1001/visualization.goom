@@ -33,20 +33,20 @@ public:
   [[nodiscard]] auto GetPixelRgb(const std::vector<PixelBuffer*>& buffs,
                                  uint32_t x,
                                  uint32_t y) const -> std::vector<Pixel>;
-  void SetPixelRgb(std::vector<PixelBuffer*>& buff,
+  void SetPixelRgb(const std::vector<PixelBuffer*>& buff,
                    uint32_t x,
                    uint32_t y,
                    const std::vector<Pixel>& colors) const;
 
   void Circle(PixelBuffer&, int x0, int y0, int radius, const Pixel& color) const;
 
-  void Circle(std::vector<PixelBuffer*>& buffs,
+  void Circle(const std::vector<PixelBuffer*>& buffs,
               int x0,
               int y0,
               int radius,
               const std::vector<Pixel>& colors) const;
 
-  using GetBitmapColorFunc = std::function<auto(int x, int y, const Pixel& b)->Pixel>;
+  using GetBitmapColorFunc = std::function<auto(size_t x, size_t y, const Pixel& b)->Pixel>;
 
   void Bitmap(PixelBuffer& buff,
               int xCentre,
@@ -54,7 +54,7 @@ public:
               const PixelBuffer& bitmap,
               const GetBitmapColorFunc& getColor);
 
-  void Bitmap(std::vector<PixelBuffer*>& buffs,
+  void Bitmap(const std::vector<PixelBuffer*>& buffs,
               int xCentre,
               int yCentre,
               const std::vector<const PixelBuffer*>& bitmaps,
@@ -63,7 +63,7 @@ public:
   void Line(
       PixelBuffer&, int x1, int y1, int x2, int y2, const Pixel& color, uint8_t thickness) const;
 
-  void Line(std::vector<PixelBuffer*>& buffs,
+  void Line(const std::vector<PixelBuffer*>& buffs,
             int x1,
             int y1,
             int x2,

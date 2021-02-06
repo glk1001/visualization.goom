@@ -439,7 +439,7 @@ void LinesFx::LinesImpl::DrawLines(const std::vector<int16_t>& soundData,
                                    PixelBuffer& prevBuff,
                                    PixelBuffer& currentBuff)
 {
-  std::vector<PixelBuffer*> buffs{&currentBuff, &prevBuff};
+  const std::vector<PixelBuffer*> buffs{&currentBuff, &prevBuff};
   const LinePoint* pt0 = &(m_srcePoints[0]);
   const Pixel lineColor = GetLightenedColor(m_color1, m_power);
 

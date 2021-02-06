@@ -24,7 +24,7 @@ void DrawCircle(PixelBuffer& buff,
                 const uint32_t screenWidth,
                 const uint32_t screenHeight)
 {
-  std::vector<PixelBuffer*> buffs{&buff};
+  const std::vector<PixelBuffer*> buffs{&buff};
   const std::vector<Pixel> colors{color};
   DrawCircle(buffs, x0, y0, radius, colors, buffIntensity, allowOverexposed, screenWidth,
              screenHeight);
@@ -68,7 +68,7 @@ static void DrawBresenhamCircle(const int x0,
   }
 }
 
-void DrawCircle(std::vector<PixelBuffer*>& buffs,
+void DrawCircle(const std::vector<PixelBuffer*>& buffs,
                 const int x0,
                 const int y0,
                 const int radius,
@@ -100,7 +100,7 @@ void DrawCircle(std::vector<PixelBuffer*>& buffs,
   DrawBresenhamCircle(x0, y0, radius, plotter);
 }
 
-static void DrawHorizontalLine(std::vector<PixelBuffer*>& buffs,
+static void DrawHorizontalLine(const std::vector<PixelBuffer*>& buffs,
                                const int x1,
                                const int y,
                                const int x2,
@@ -115,7 +115,7 @@ static void DrawHorizontalLine(std::vector<PixelBuffer*>& buffs,
   }
 }
 
-static void DrawWuLine(std::vector<PixelBuffer*>& buffs,
+static void DrawWuLine(const std::vector<PixelBuffer*>& buffs,
                        int x1,
                        int y1,
                        int x2,
@@ -126,7 +126,7 @@ static void DrawWuLine(std::vector<PixelBuffer*>& buffs,
                        uint32_t screenWidth,
                        uint32_t screenHeight);
 
-void DrawFilledCircle(std::vector<PixelBuffer*>& buffs,
+void DrawFilledCircle(const std::vector<PixelBuffer*>& buffs,
                       const int x0,
                       const int y0,
                       const int radius,
@@ -149,7 +149,7 @@ constexpr int LINE_THICKNESS_MIDDLE = 0;
 constexpr int LINE_THICKNESS_DRAW_CLOCKWISE = 1;
 constexpr int LINE_THICKNESS_DRAW_COUNTERCLOCKWISE = 2;
 
-static void DrawThickLine(std::vector<PixelBuffer*>& buffs,
+static void DrawThickLine(const std::vector<PixelBuffer*>& buffs,
                           int x0,
                           int y0,
                           int x1,
@@ -174,14 +174,14 @@ void DrawLine(PixelBuffer& buff,
               const uint32_t screenWidth,
               const uint32_t screenHeight)
 {
-  std::vector<PixelBuffer*> buffs{&buff};
-  std::vector<Pixel> colors{color};
+  const std::vector<PixelBuffer*> buffs{&buff};
+  const std::vector<Pixel> colors{color};
 
   DrawLine(buffs, x1, y1, x2, y2, colors, buffIntensity, allowOverexposed, thickness, screenWidth,
            screenHeight);
 }
 
-void DrawLine(std::vector<PixelBuffer*>& buffs,
+void DrawLine(const std::vector<PixelBuffer*>& buffs,
               int x1,
               int y1,
               int x2,
@@ -209,7 +209,7 @@ void DrawLine(std::vector<PixelBuffer*>& buffs,
 using PlotFunc = const std::function<void(int x, int y, float brightess)>;
 static void WuLine(float x0, float y0, float x1, float y1, const PlotFunc& plot);
 
-static void DrawWuLine(std::vector<PixelBuffer*>& buffs,
+static void DrawWuLine(const std::vector<PixelBuffer*>& buffs,
                        const int x1,
                        const int y1,
                        const int x2,
@@ -362,7 +362,7 @@ constexpr int LINE_OVERLAP_NONE = 0;
 constexpr int LINE_OVERLAP_MAJOR = 1;
 constexpr int LINE_OVERLAP_MINOR = 2;
 
-static void DrawLineOverlap(std::vector<PixelBuffer*>& buffs,
+static void DrawLineOverlap(const std::vector<PixelBuffer*>& buffs,
                             int x0,
                             int y0,
                             int x1,
@@ -507,7 +507,7 @@ static void DrawLineOverlap(std::vector<PixelBuffer*>& buffs,
  *   LINE_THICKNESS_DRAW_COUNTERCLOCKWISE
  */
 
-static void DrawThickLine(std::vector<PixelBuffer*>& buffs,
+static void DrawThickLine(const std::vector<PixelBuffer*>& buffs,
                           int x0,
                           int y0,
                           int x1,
