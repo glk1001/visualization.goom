@@ -226,6 +226,7 @@ private:
   static constexpr size_t MIN_DOT_SIZE = 3;
   static constexpr size_t MAX_DOT_SIZE = 9;
   std::map<size_t, std::unique_ptr<const ImageBitmap>> m_bitmapDots{};
+  void VerifyBitmapDotsIntegrity();
   static auto GetImageKey(size_t size) -> size_t;
   void InitBitmaps();
   auto GetImageBitmap(const std::string& name, size_t sizeOfImageSquare)
@@ -412,6 +413,8 @@ void FlyingStarsFx::FlyingStarsImpl::Log(const StatsLogValueFunc& logVal) const
 
 void FlyingStarsFx::FlyingStarsImpl::UpdateBuffers(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
 {
+  VerifyBitmapDotsIntegrity();
+
   m_counter++;
 
   m_maxStars = GetRandInRange(MIN_NUM_STARS, MAX_NUM_STARS);
@@ -419,6 +422,8 @@ void FlyingStarsFx::FlyingStarsImpl::UpdateBuffers(PixelBuffer& currentBuff, Pix
   CheckForStarEvents();
   DrawStars(currentBuff, nextBuff);
   RemoveDeadStars();
+
+  VerifyBitmapDotsIntegrity();
 }
 
 void FlyingStarsFx::FlyingStarsImpl::CheckForStarEvents()
@@ -959,6 +964,19 @@ void FlyingStarsFx::FlyingStarsImpl::InitBitmaps()
 inline auto FlyingStarsFx::FlyingStarsImpl::GetImageKey(const size_t size) -> size_t
 {
   return stdnew::clamp(size % 2 != 0 ? size : size + 1, MIN_DOT_SIZE, MAX_DOT_SIZE);
+}
+
+void FlyingStarsFx::FlyingStarsImpl::VerifyBitmapDotsIntegrity()
+{
+  for (size_t i = MIN_DOT_SIZE; i <= MAX_DOT_SIZE; ++i)
+  {
+    const size_t imageKey = GetImageKey(i);
+    if (m_bitmapDots.find(imageKey) == m_bitmapDots.end())
+    {
+      throw std::logic_error(
+          std20::format("m_counter = {}, ImageKey error: {}", m_counter, imageKey));
+    }
+  }
 }
 
 auto FlyingStarsFx::FlyingStarsImpl::GetImageBitmap(const std::string& name,
