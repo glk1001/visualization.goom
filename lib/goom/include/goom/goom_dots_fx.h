@@ -24,8 +24,8 @@ public:
   auto operator=(const GoomDotsFx&) -> GoomDotsFx& = delete;
   auto operator=(GoomDotsFx&&) -> GoomDotsFx& = delete;
 
-  [[nodiscard]] auto GetResourcesDirectory() const -> const std::string&;
-  void SetResourcesDirectory(const std::string& dirName);
+  [[nodiscard]] auto GetResourcesDirectory() const -> const std::string& override;
+  void SetResourcesDirectory(const std::string& dirName) override;
 
   [[nodiscard]] auto GetFxName() const -> std::string override;
   void SetBuffSettings(const FXBuffSettings& settings) override;

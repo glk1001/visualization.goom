@@ -1112,13 +1112,9 @@ void GoomControl::GoomControlImpl::Start()
   m_stats.SetZoomFilterStartValue(m_goomData.zoomFilterData.mode);
   m_stats.SetSeedStartValue(GetRandSeed());
 
-  // TODO Make this virtual and part of start
-  m_visualFx.goomDots_fx->SetResourcesDirectory(m_resourcesDirectory);
-  m_visualFx.star_fx->SetResourcesDirectory(m_resourcesDirectory);
-  m_visualFx.image_fx->SetResourcesDirectory(m_resourcesDirectory);
-
   for (auto& v : m_visualFx.list)
   {
+    v->SetResourcesDirectory(m_resourcesDirectory);
     v->Start();
   }
 }

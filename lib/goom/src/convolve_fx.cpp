@@ -76,6 +76,15 @@ auto ConvolveFx::operator==(const ConvolveFx& c) const -> bool
   return m_fxImpl->operator==(*c.m_fxImpl);
 }
 
+auto ConvolveFx::GetResourcesDirectory() const -> const std::string&
+{
+  return "";
+}
+
+void ConvolveFx::SetResourcesDirectory([[maybe_unused]] const std::string& dirName)
+{
+}
+
 void ConvolveFx::SetBuffSettings(const FXBuffSettings& settings)
 {
   m_fxImpl->SetBuffSettings(settings);

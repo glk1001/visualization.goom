@@ -1064,6 +1064,15 @@ auto IfsDancersFx::operator==(const IfsDancersFx& i) const -> bool
   return m_fxImpl->operator==(*i.m_fxImpl);
 }
 
+auto IfsDancersFx::GetResourcesDirectory() const -> const std::string&
+{
+  return "";
+}
+
+void IfsDancersFx::SetResourcesDirectory([[maybe_unused]] const std::string& dirName)
+{
+}
+
 void IfsDancersFx::SetBuffSettings(const FXBuffSettings& settings)
 {
   m_fxImpl->SetBuffSettings(settings);

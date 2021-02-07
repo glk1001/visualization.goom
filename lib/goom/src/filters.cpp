@@ -411,6 +411,15 @@ auto ZoomFilterFx::operator==(const ZoomFilterFx& f) const -> bool
   return m_fxImpl->operator==(*f.m_fxImpl);
 }
 
+auto ZoomFilterFx::GetResourcesDirectory() const -> const std::string&
+{
+  return "";
+}
+
+void ZoomFilterFx::SetResourcesDirectory([[maybe_unused]] const std::string& dirName)
+{
+}
+
 void ZoomFilterFx::SetBuffSettings(const FXBuffSettings& settings)
 {
   m_fxImpl->SetBuffSettings(settings);

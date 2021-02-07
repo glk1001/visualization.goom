@@ -127,6 +127,15 @@ auto LinesFx::operator==(const LinesFx& l) const -> bool
   return m_fxImpl->operator==(*l.m_fxImpl);
 }
 
+auto LinesFx::GetResourcesDirectory() const -> const std::string&
+{
+  return "";
+}
+
+void LinesFx::SetResourcesDirectory([[maybe_unused]] const std::string& dirName)
+{
+}
+
 auto LinesFx::GetRandomLineColor() -> Pixel
 {
   return m_fxImpl->GetRandomLineColor();

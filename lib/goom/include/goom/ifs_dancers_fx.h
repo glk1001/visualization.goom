@@ -41,6 +41,9 @@ public:
   auto operator=(const IfsDancersFx&) -> IfsDancersFx& = delete;
   auto operator=(IfsDancersFx&&) -> IfsDancersFx& = delete;
 
+  [[nodiscard]] auto GetResourcesDirectory() const -> const std::string& override;
+  void SetResourcesDirectory(const std::string& dirName) override;
+
   void Init();
 
   // If not colorMode is not set, or set to '_null', returns

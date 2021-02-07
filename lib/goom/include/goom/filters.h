@@ -172,14 +172,17 @@ public:
                          int switchIncr,
                          float switchMult);
 
+  [[nodiscard]] auto GetResourcesDirectory() const -> const std::string& override;
+  void SetResourcesDirectory(const std::string& dirName) override;
+
   [[nodiscard]] auto GetFxName() const -> std::string override;
   void SetBuffSettings(const FXBuffSettings& settings) override;
 
   void Start() override;
 
-  const ZoomFilterData& GetFilterData() const;
-  float GetGeneralSpeed() const;
-  int32_t GetInterlaceStart() const;
+  auto GetFilterData() const -> const ZoomFilterData&;
+  auto GetGeneralSpeed() const -> float;
+  auto GetInterlaceStart() const -> int32_t;
 
   void Log(const StatsLogValueFunc& l) const override;
   void Finish() override;

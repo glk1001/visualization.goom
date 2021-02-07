@@ -55,6 +55,9 @@ public:
   auto operator=(const LinesFx&) -> LinesFx& = delete;
   auto operator=(LinesFx&&) -> LinesFx& = delete;
 
+  [[nodiscard]] auto GetResourcesDirectory() const -> const std::string&;
+  void SetResourcesDirectory(const std::string& dirName);
+
   auto GetRandomLineColor() -> Pixel;
 
   [[nodiscard]] auto GetPower() const -> float;

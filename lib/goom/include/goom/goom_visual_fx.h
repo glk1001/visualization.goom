@@ -52,6 +52,9 @@ public:
   auto operator=(const IVisualFx&) -> IVisualFx& = delete;
   auto operator=(IVisualFx&&) -> IVisualFx& = delete;
 
+  [[nodiscard]] virtual auto GetResourcesDirectory() const -> const std::string& = 0;
+  virtual void SetResourcesDirectory(const std::string& dirName) = 0;
+
   [[nodiscard]] virtual auto GetFxName() const -> std::string = 0;
   virtual void SetBuffSettings(const FXBuffSettings& settings) = 0;
 

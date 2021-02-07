@@ -24,6 +24,9 @@ public:
   auto operator=(const TentaclesFx&) -> TentaclesFx& = delete;
   auto operator=(TentaclesFx&&) -> TentaclesFx& = delete;
 
+  [[nodiscard]] auto GetResourcesDirectory() const -> const std::string& override;
+  void SetResourcesDirectory(const std::string& dirName) override;
+
   [[nodiscard]] auto GetFxName() const -> std::string override;
   void SetBuffSettings(const FXBuffSettings& settings) override;
 

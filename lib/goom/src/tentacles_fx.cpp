@@ -188,6 +188,15 @@ auto TentaclesFx::operator==(const TentaclesFx& t) const -> bool
   return m_fxImpl->operator==(*t.m_fxImpl);
 }
 
+auto TentaclesFx::GetResourcesDirectory() const -> const std::string&
+{
+  return "";
+}
+
+void TentaclesFx::SetResourcesDirectory([[maybe_unused]] const std::string& dirName)
+{
+}
+
 void TentaclesFx::SetBuffSettings(const FXBuffSettings& settings)
 {
   m_fxImpl->SetBuffSettings(settings);

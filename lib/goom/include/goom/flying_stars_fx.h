@@ -33,8 +33,8 @@ public:
   auto operator=(const FlyingStarsFx&) -> FlyingStarsFx& = delete;
   auto operator=(FlyingStarsFx&&) -> FlyingStarsFx& = delete;
 
-  [[nodiscard]] auto GetResourcesDirectory() const -> const std::string&;
-  void SetResourcesDirectory(const std::string& dirName);
+  [[nodiscard]] auto GetResourcesDirectory() const -> const std::string& override;
+  void SetResourcesDirectory(const std::string& dirName) override;
 
   [[nodiscard]] auto GetFxName() const -> std::string override;
   void SetBuffSettings(const FXBuffSettings& settings) override;
