@@ -46,7 +46,6 @@ public:
 
   [[nodiscard]] auto GetResourcesDirectory() const -> const std::string&;
   void SetResourcesDirectory(const std::string& dirName);
-
   void SetBuffSettings(const FXBuffSettings& settings);
 
   void Start();

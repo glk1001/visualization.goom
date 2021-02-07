@@ -896,11 +896,14 @@ public:
   auto operator=(const IfsDancersFxImpl&) -> IfsDancersFxImpl& = delete;
   auto operator=(const IfsDancersFxImpl&&) -> IfsDancersFxImpl& = delete;
 
+  [[nodiscard]] auto GetResourcesDirectory() const -> const std::string&;
+  void SetResourcesDirectory(const std::string& dirName);
+  void SetBuffSettings(const FXBuffSettings& settings);
+
   void Init();
 
   void ApplyNoDraw();
   void UpdateIfs(PixelBuffer& currentBuff, PixelBuffer& nextBuff);
-  void SetBuffSettings(const FXBuffSettings& settings);
   void UpdateLowDensityThreshold();
   auto GetColorMode() const -> IfsDancersFx::ColorMode;
   void SetColorMode(IfsDancersFx::ColorMode c);
@@ -914,11 +917,12 @@ private:
   static constexpr int MAX_COUNT_BEFORE_NEXT_UPDATE = 1000;
   static constexpr int CYCLE_LENGTH = 500;
 
-  std::shared_ptr<const PluginInfo> m_goomInfo{};
+  const std::shared_ptr<const PluginInfo> m_goomInfo;
 
   GoomDraw m_draw;
   Colorizer m_colorizer{};
   FXBuffSettings m_buffSettings{};
+  std::string m_resourcesDirectory{};
 
   bool m_allowOverexposed = true;
   uint32_t m_countSinceOverexposed = 0;
@@ -971,11 +975,12 @@ void IfsDancersFx::Init()
 
 auto IfsDancersFx::GetResourcesDirectory() const -> const std::string&
 {
-  return "";
+  return m_fxImpl->GetResourcesDirectory();
 }
 
-void IfsDancersFx::SetResourcesDirectory([[maybe_unused]] const std::string& dirName)
+void IfsDancersFx::SetResourcesDirectory(const std::string& dirName)
 {
+  m_fxImpl->SetResourcesDirectory(dirName);
 }
 
 void IfsDancersFx::SetBuffSettings(const FXBuffSettings& settings)
@@ -1068,27 +1073,37 @@ void IfsDancersFx::IfsDancersFxImpl::Init()
   UpdateLowDensityThreshold();
 }
 
-void IfsDancersFx::IfsDancersFxImpl::SetBuffSettings(const FXBuffSettings& settings)
+inline auto IfsDancersFx::IfsDancersFxImpl::GetResourcesDirectory() const -> const std::string&
+{
+  return m_resourcesDirectory;
+}
+
+inline void IfsDancersFx::IfsDancersFxImpl::SetResourcesDirectory(const std::string& dirName)
+{
+  m_resourcesDirectory = dirName;
+}
+
+inline void IfsDancersFx::IfsDancersFxImpl::SetBuffSettings(const FXBuffSettings& settings)
 {
   m_buffSettings = settings;
 }
 
-auto IfsDancersFx::IfsDancersFxImpl::GetColorMode() const -> IfsDancersFx::ColorMode
+inline auto IfsDancersFx::IfsDancersFxImpl::GetColorMode() const -> IfsDancersFx::ColorMode
 {
   return m_colorizer.GetColorMode();
 }
 
-void IfsDancersFx::IfsDancersFxImpl::SetColorMode(const IfsDancersFx::ColorMode c)
+inline void IfsDancersFx::IfsDancersFxImpl::SetColorMode(const IfsDancersFx::ColorMode c)
 {
   return m_colorizer.SetForcedColorMode(c);
 }
 
-void IfsDancersFx::IfsDancersFxImpl::Finish()
+inline void IfsDancersFx::IfsDancersFxImpl::Finish()
 {
   m_stats.SetlastIfsIncr(m_ifsIncr);
 }
 
-void IfsDancersFx::IfsDancersFxImpl::Log(const StatsLogValueFunc& l) const
+inline void IfsDancersFx::IfsDancersFxImpl::Log(const StatsLogValueFunc& l) const
 {
   m_stats.Log(l);
 }

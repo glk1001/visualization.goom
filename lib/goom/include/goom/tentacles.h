@@ -38,7 +38,6 @@ private:
 public:
   static constexpr size_t MIN_NUM_NODES = 10;
 
-  Tentacle2D() noexcept;
   ~Tentacle2D() noexcept = default;
   Tentacle2D(size_t id,
              size_t numNodes,

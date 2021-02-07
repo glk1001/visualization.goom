@@ -64,8 +64,11 @@ public:
   auto operator=(const TentaclesImpl&) -> TentaclesImpl& = delete;
   auto operator=(TentaclesImpl&&) -> TentaclesImpl& = delete;
 
+  [[nodiscard]] auto GetResourcesDirectory() const -> const std::string&;
+  void SetResourcesDirectory(const std::string& dirName);
   [[nodiscard]] auto GetBuffSettings() const -> const FXBuffSettings&;
   void SetBuffSettings(const FXBuffSettings& settings);
+
   void FreshStart();
 
   void Update(PixelBuffer& currentBuff, PixelBuffer& nextBuff);
@@ -89,6 +92,7 @@ private:
   Pixel m_dominantColor{};
   void ChangeDominantColor();
 
+  std::string m_resourcesDirectory{};
   bool m_updatingWithDraw = false;
   float m_cycle = 0.0;
   static constexpr float CYCLE_INC_MIN = 0.01;
@@ -165,11 +169,12 @@ TentaclesFx::~TentaclesFx() noexcept = default;
 
 auto TentaclesFx::GetResourcesDirectory() const -> const std::string&
 {
-  return "";
+  return m_fxImpl->GetResourcesDirectory();
 }
 
-void TentaclesFx::SetResourcesDirectory([[maybe_unused]] const std::string& dirName)
+void TentaclesFx::SetResourcesDirectory(const std::string& dirName)
 {
+  m_fxImpl->SetResourcesDirectory(dirName);
 }
 
 void TentaclesFx::SetBuffSettings(const FXBuffSettings& settings)
@@ -266,6 +271,16 @@ colorMaps.setWeights(colorGroupWeights);
   m_currentDriver = GetNextDriver();
   m_currentDriver->StartIterating();
   Init();
+}
+
+inline auto TentaclesFx::TentaclesImpl::GetResourcesDirectory() const -> const std::string&
+{
+  return m_resourcesDirectory;
+}
+
+inline void TentaclesFx::TentaclesImpl::SetResourcesDirectory(const std::string& dirName)
+{
+  m_resourcesDirectory = dirName;
 }
 
 inline auto TentaclesFx::TentaclesImpl::GetBuffSettings() const -> const FXBuffSettings&

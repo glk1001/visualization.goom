@@ -42,6 +42,9 @@ public:
   auto operator=(const LinesImpl&) -> LinesImpl& = delete;
   auto operator=(LinesImpl&&) -> LinesImpl& = delete;
 
+  [[nodiscard]] auto GetResourcesDirectory() const -> const std::string&;
+  void SetResourcesDirectory(const std::string& dirName);
+
   auto GetRandomLineColor() -> Pixel;
 
   [[nodiscard]] auto GetPower() const -> float;
@@ -62,6 +65,7 @@ private:
   const std::shared_ptr<const PluginInfo> m_goomInfo;
   GoomDraw m_draw;
   RandomColorMaps m_colorMaps{};
+  std::string m_resourcesDirectory{};
 
   struct LinePoint
   {
@@ -109,11 +113,12 @@ LinesFx::~LinesFx() noexcept = default;
 
 auto LinesFx::GetResourcesDirectory() const -> const std::string&
 {
-  return "";
+  return m_fxImpl->GetResourcesDirectory();
 }
 
-void LinesFx::SetResourcesDirectory([[maybe_unused]] const std::string& dirName)
+void LinesFx::SetResourcesDirectory(const std::string& dirName)
 {
+  m_fxImpl->SetResourcesDirectory(dirName);
 }
 
 auto LinesFx::GetRandomLineColor() -> Pixel
@@ -276,6 +281,16 @@ void LinesFx::LinesImpl::ResetDestLine(LineType newLineType,
   m_color2 = newColor;
   m_lineLerpFactor = DEFAULT_LINE_LERP_FACTOR;
   m_srcePointsCopy = m_srcePoints;
+}
+
+inline auto LinesFx::LinesImpl::GetResourcesDirectory() const -> const std::string&
+{
+  return m_resourcesDirectory;
+}
+
+inline void LinesFx::LinesImpl::SetResourcesDirectory(const std::string& dirName)
+{
+  m_resourcesDirectory = dirName;
 }
 
 inline auto LinesFx::LinesImpl::GetPower() const -> float

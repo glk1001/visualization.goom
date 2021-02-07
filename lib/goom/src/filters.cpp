@@ -79,6 +79,8 @@ public:
   auto operator=(const ZoomFilterImpl&) -> ZoomFilterImpl& = delete;
   auto operator=(ZoomFilterImpl&&) -> ZoomFilterImpl& = delete;
 
+  [[nodiscard]] auto GetResourcesDirectory() const -> const std::string&;
+  void SetResourcesDirectory(const std::string& dirName);
   void SetBuffSettings(const FXBuffSettings& settings);
 
   void ZoomFilterFastRgb(const PixelBuffer& pix1,
@@ -102,6 +104,7 @@ private:
   const float m_minNormCoordVal;
   ZoomFilterData m_filterData{};
   FXBuffSettings m_buffSettings{};
+  std::string m_resourcesDirectory{};
 
   Parallel* const m_parallel;
 
@@ -204,7 +207,17 @@ void ZoomFilterFx::ZoomFilterImpl::InitBuffers()
   m_tranYTemp = (int32_t*)((1 + (uintptr_t((m_freeTranYTemp.data()))) / 128) * 128);
 }
 
-void ZoomFilterFx::ZoomFilterImpl::SetBuffSettings(const FXBuffSettings& settings)
+inline auto ZoomFilterFx::ZoomFilterImpl::GetResourcesDirectory() const -> const std::string&
+{
+  return m_resourcesDirectory;
+}
+
+inline void ZoomFilterFx::ZoomFilterImpl::SetResourcesDirectory(const std::string& dirName)
+{
+  m_resourcesDirectory = dirName;
+}
+
+inline void ZoomFilterFx::ZoomFilterImpl::SetBuffSettings(const FXBuffSettings& settings)
 {
   m_buffSettings = settings;
 }
@@ -246,11 +259,12 @@ ZoomFilterFx::~ZoomFilterFx() noexcept = default;
 
 auto ZoomFilterFx::GetResourcesDirectory() const -> const std::string&
 {
-  return "";
+  return m_fxImpl->GetResourcesDirectory();
 }
 
-void ZoomFilterFx::SetResourcesDirectory([[maybe_unused]] const std::string& dirName)
+void ZoomFilterFx::SetResourcesDirectory(const std::string& dirName)
 {
+  m_fxImpl->SetResourcesDirectory(dirName);
 }
 
 void ZoomFilterFx::SetBuffSettings(const FXBuffSettings& settings)
