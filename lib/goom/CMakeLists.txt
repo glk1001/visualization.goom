@@ -5,6 +5,9 @@ project(goom LANGUAGES CXX)
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
 #set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -fsanitize=address")
+# To test Kodi, run:
+#
+#  LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libasan.so.6 kodi &
 
 if(WIN32)
     add_definitions(-D_WIN32PC)

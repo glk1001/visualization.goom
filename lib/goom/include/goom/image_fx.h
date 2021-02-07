@@ -36,12 +36,10 @@ public:
   void Log(const StatsLogValueFunc& l) const override;
   void Finish() override;
 
-  auto operator==(const ImageFx& i) const -> bool;
-
 private:
   bool m_enabled = true;
   class ImageFxImpl;
-  std::unique_ptr<ImageFxImpl> m_fxImpl;
+  const std::unique_ptr<ImageFxImpl> m_fxImpl;
 };
 
 } // namespace GOOM

@@ -3,7 +3,6 @@
 
 #include "goom_config.h"
 
-#include <cereal/access.hpp>
 #include <cstdint>
 #include <istream>
 #include <memory>
@@ -22,7 +21,7 @@ public:
   static auto GetRandSeed() -> uint64_t;
   static void SetRandSeed(uint64_t seed);
 
-  GoomControl() noexcept;
+  GoomControl() noexcept = delete;
   GoomControl(uint32_t resx, uint32_t resy) noexcept;
   ~GoomControl() noexcept;
   GoomControl(const GoomControl&) noexcept = delete;
@@ -55,15 +54,9 @@ public:
 
   void Finish();
 
-  auto operator==(const GoomControl&) const -> bool;
-
 private:
   class GoomControlImpl;
-  std::unique_ptr<GoomControlImpl> m_controller;
-
-  friend class cereal::access;
-  template<class Archive>
-  void serialize(Archive& ar);
+  const std::unique_ptr<GoomControlImpl> m_controller;
 };
 
 } // namespace GOOM

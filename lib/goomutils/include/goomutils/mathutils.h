@@ -4,9 +4,6 @@
 #include "goomrand.h"
 
 #include <array>
-#include <cereal/archives/json.hpp>
-#include <cereal/types/tuple.hpp>
-#include <cereal/types/vector.hpp>
 #include <cmath>
 #include <cstdlib>
 #include <memory>
@@ -160,15 +157,6 @@ public:
   [[nodiscard]] auto GetXMin() const -> double { return m_xmin; }
   [[nodiscard]] auto GetXMax() const -> double { return m_xmax; }
 
-#if __cplusplus <= 201402L
-  auto operator==(const RangeMapper&) const -> bool { return false; };
-#else
-  auto operator==(const RangeMapper&) const -> bool = default;
-#endif
-
-  template<class Archive>
-  void serialize(Archive& ar);
-
 private:
   double m_xmin = 0;
   double m_xmax = 0;
@@ -200,12 +188,6 @@ public:
   explicit LogDampingFunction(double amplitude, double xmin, double xStart = 2.0) noexcept;
   auto operator()(double x) -> double override;
 
-#if __cplusplus <= 201402L
-  auto operator==(const LogDampingFunction&) const -> bool { return false; };
-#else
-  auto operator==(const LogDampingFunction&) const -> bool = default;
-#endif
-
 private:
   const double m_amplitude;
   const double m_xmin;
@@ -224,17 +206,8 @@ public:
   [[nodiscard]] auto KVal() const -> double { return m_k; }
   [[nodiscard]] auto BVal() const -> double { return m_b; }
 
-#if __cplusplus <= 201402L
-  auto operator==(const ExpDampingFunction&) const -> bool { return false; };
-#else
-  auto operator==(const ExpDampingFunction&) const -> bool = default;
-#endif
-
-  template<class Archive>
-  void serialize(Archive& ar);
-
 private:
-  double m_amplitude = 1;
+  const double m_amplitude = 1;
   double m_k = 1;
   double m_b = 1;
 };
@@ -246,17 +219,8 @@ public:
   explicit FlatDampingFunction(double y) noexcept;
   auto operator()(double x) -> double override;
 
-#if __cplusplus <= 201402L
-  bool operator==(const FlatDampingFunction&) const { return false; };
-#else
-  bool operator==(const FlatDampingFunction&) const = default;
-#endif
-
-  template<class Archive>
-  void serialize(Archive& ar);
-
 private:
-  double m_y = 0;
+  const double m_y = 0;
 };
 
 class LinearDampingFunction : public IDampingFunction
@@ -266,19 +230,10 @@ public:
   explicit LinearDampingFunction(double x0, double y0, double x1, double y1) noexcept;
   auto operator()(double x) -> double override;
 
-#if __cplusplus <= 201402L
-  auto operator==(const LinearDampingFunction&) const -> bool { return false; };
-#else
-  auto operator==(const LinearDampingFunction&) const -> bool = default;
-#endif
-
-  template<class Archive>
-  void serialize(Archive& ar);
-
 private:
-  double m_m = 1;
-  double m_x1 = 0;
-  double m_y1 = 1;
+  const double m_m = 1;
+  const double m_x1 = 0;
+  const double m_y1 = 1;
 };
 
 class PiecewiseDampingFunction : public IDampingFunction
@@ -289,17 +244,8 @@ public:
       std::vector<std::tuple<double, double, std::unique_ptr<IDampingFunction>>>& pieces) noexcept;
   auto operator()(double x) -> double override;
 
-#if __cplusplus <= 201402L
-  bool operator==(const PiecewiseDampingFunction&) const { return false; }
-#else
-  bool operator==(const PiecewiseDampingFunction&) const = default;
-#endif
-
-  template<class Archive>
-  void serialize(Archive& ar);
-
 private:
-  std::vector<std::tuple<double, double, std::unique_ptr<IDampingFunction>>> m_pieces{};
+  const std::vector<std::tuple<double, double, std::unique_ptr<IDampingFunction>>> m_pieces{};
 };
 
 class ISequenceFunction
@@ -338,11 +284,6 @@ public:
   }
 
   void SetPiStepFrac(const float val) { m_piStepFrac = val; }
-
-  auto operator==(const SineWaveMultiplier&) const -> bool;
-
-  template<class Archive>
-  void serialize(Archive& ar);
 
 private:
   RangeMapper m_rangeMapper;
@@ -404,47 +345,10 @@ inline RangeMapper::RangeMapper(const double x0, const double x1) noexcept
 {
 }
 
-template<class Archive>
-void RangeMapper::serialize(Archive& ar)
-{
-  ar(CEREAL_NVP(m_xmin), CEREAL_NVP(m_xmax), CEREAL_NVP(m_xwidth));
-}
-
 inline auto RangeMapper::operator()(const double r0, const double r1, const double x) const
     -> double
 {
   return stdnew::lerp(r0, r1, (x - m_xmin) / m_xwidth);
-}
-
-template<class Archive>
-void SineWaveMultiplier::serialize(Archive& ar)
-{
-  ar(CEREAL_NVP(m_rangeMapper), CEREAL_NVP(m_frequency), CEREAL_NVP(m_lower), CEREAL_NVP(m_upper),
-     CEREAL_NVP(m_piStepFrac), CEREAL_NVP(m_x));
-}
-
-template<class Archive>
-void FlatDampingFunction::serialize(Archive& ar)
-{
-  ar(CEREAL_NVP(m_y));
-}
-
-template<class Archive>
-void ExpDampingFunction::serialize(Archive& ar)
-{
-  ar(CEREAL_NVP(m_amplitude), CEREAL_NVP(m_k), CEREAL_NVP(m_b));
-}
-
-template<class Archive>
-void LinearDampingFunction::serialize(Archive& ar)
-{
-  ar(CEREAL_NVP(m_m), CEREAL_NVP(m_x1), CEREAL_NVP(m_y1));
-}
-
-template<class Archive>
-void PiecewiseDampingFunction::serialize(Archive& ar)
-{
-  ar(CEREAL_NVP(m_pieces));
 }
 
 #if __cplusplus <= 201402L

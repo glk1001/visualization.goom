@@ -58,10 +58,6 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <cereal/archives/json.hpp>
-#include <cereal/types/array.hpp>
-#include <cereal/types/memory.hpp>
-#include <cereal/types/vector.hpp>
 #include <cmath>
 #include <cstdint>
 #include <memory>
@@ -69,9 +65,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-
-CEREAL_REGISTER_TYPE(GOOM::IfsDancersFx)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::IVisualFx, GOOM::IfsDancersFx)
 
 namespace GOOM
 {
@@ -164,28 +157,6 @@ struct Similitude
   Flt r1 = 0;
   Flt r2 = 0;
   Pixel color{0U};
-
-#if __cplusplus <= 201402L
-  auto operator==([[maybe_unused]] const Similitude& s) const -> bool { return false; };
-#else
-  auto operator==(const Similitude& s) const -> bool = default;
-#endif
-  /**
-  bool operator==(const Similitude& s) const
-  {
-    return dbl_cx == s.dbl_cx && dbl_cy == s.dbl_cy && r == s.r &&
-           dbl_r2 == s.dbl_r2 && A == s.A && A2 == s.A2 &&
-           Ct == s.Ct && St == s.St && cosA2 == s.cosA2 &&
-           sinA2 == s.sinA2 && cx == s.cx && cy == s.cy &&
-           R == s.R && r2 == s.r2;
-  }
-  **/
-
-  template<class Archive>
-  void serialize(Archive& ar)
-  {
-    ar(dbl_cx, dbl_cy, dbl_r1, dbl_r2, A1, A2, cosA1, sinA1, cosA2, sinA2, cx, cy, r1, r2, color);
-  }
 };
 
 class FractalHits
@@ -282,7 +253,7 @@ public:
   Fractal() noexcept = default;
   Fractal(const std::shared_ptr<const PluginInfo>& goomInfo,
           const RandomColorMaps& cm,
-          IfsStats* s) noexcept;
+          IfsStats* s);
   ~Fractal() noexcept = default;
   Fractal(const Fractal&) noexcept = delete;
   Fractal(const Fractal&&) noexcept = delete;
@@ -299,11 +270,6 @@ public:
 
   [[nodiscard]] auto DrawIfs() -> const std::vector<IfsPoint>&;
 
-  auto operator==(const Fractal& f) const -> bool;
-
-  template<class Archive>
-  void serialize(Archive& ar);
-
 private:
   static constexpr size_t MAX_SIMI = 6;
   static constexpr size_t MAX_COUNT_TIMES_SPEED = 1000;
@@ -311,8 +277,8 @@ private:
   const RandomColorMaps* m_colorMaps{};
   IfsStats* m_stats{};
 
-  uint32_t m_lx = 0;
-  uint32_t m_ly = 0;
+  const uint32_t m_lx;
+  const uint32_t m_ly;
   uint32_t m_numSimi = 0;
   uint32_t m_depth = 0;
   uint32_t m_count = 0;
@@ -346,7 +312,7 @@ private:
 
 Fractal::Fractal(const std::shared_ptr<const PluginInfo>& goomInfo,
                  const RandomColorMaps& cm,
-                 IfsStats* s) noexcept
+                 IfsStats* s)
   : m_colorMaps{&cm},
     m_stats{s},
     m_lx{(goomInfo->GetScreenInfo().width - 1) / 2},
@@ -420,21 +386,6 @@ void Fractal::ResetCurrentIfsFunc()
     };
     m_stats->UpdateStdIfsFunc();
   }
-}
-
-auto Fractal::operator==(const Fractal& f) const -> bool
-{
-  return m_numSimi == f.m_numSimi && m_components == f.m_components && m_depth == f.m_depth &&
-         m_count == f.m_count && m_speed == f.m_speed && m_lx == f.m_lx && m_ly == f.m_ly &&
-         m_r1Mean == f.m_r1Mean && m_r2Mean == f.m_r2Mean && m_dr1Mean == f.m_dr1Mean &&
-         m_dr2Mean == f.m_dr2Mean;
-}
-
-template<class Archive>
-void Fractal::serialize(Archive& ar)
-{
-  ar(m_numSimi, m_components, m_depth, m_count, m_speed, m_lx, m_ly, m_r1Mean, m_r2Mean, m_dr1Mean,
-     m_dr2Mean);
 }
 
 auto Fractal::DrawIfs() -> const std::vector<IfsPoint>&
@@ -709,34 +660,6 @@ Colorizer::Colorizer() noexcept
 {
 }
 
-auto Colorizer::operator==(const Colorizer& c) const -> bool
-{
-  return m_countSinceColorMapChange == c.m_countSinceColorMapChange &&
-         m_colorMapChangeCompleted == c.m_colorMapChangeCompleted && m_colorMode == c.m_colorMode &&
-         m_tBetweenColors == c.m_tBetweenColors;
-}
-
-template<class Archive>
-void Colorizer::serialize(Archive& ar)
-{
-  ar(m_countSinceColorMapChange, m_colorMapChangeCompleted, m_colorMode, m_tBetweenColors);
-
-  //  auto mixerMapName1 = m_mixerMap1->GetMapName();
-  //  ar(cereal::make_nvp("mixerMap1", mixerMapName1));
-  auto prevMixerMapName1 = m_prevMixerMap1->GetMapName();
-  ar(cereal::make_nvp("prevMixerMap1", prevMixerMapName1));
-  // TODO FIX THIS WRAPPER PROBLEM
-  // m_mixerMap1 = m_colorMaps.GetColorMap(mixerMapName1);
-  // m_prevMixerMap1 = m_colorMaps.GetColorMap(prevMixerMapName1);
-
-  //  auto mixerMapName2 = m_mixerMap2->GetMapName();
-  //  ar(cereal::make_nvp("mixerMap2", mixerMapName2));
-  auto prevMixerMapName2 = m_prevMixerMap2->GetMapName();
-  ar(cereal::make_nvp("prevMixerMap2", prevMixerMapName2));
-  // m_mixerMap2 = &m_colorMaps.GetColorMap(mixerMapName2);
-  // m_prevMixerMap2 = &m_colorMaps.GetColorMap(prevMixerMapName2);
-}
-
 inline void Colorizer::SetMaxHitCount(uint32_t val)
 {
   m_maxHitCount = val;
@@ -987,15 +910,13 @@ public:
   void Finish();
   void Log(const StatsLogValueFunc& l) const;
 
-  auto operator==(const IfsDancersFxImpl& i) const -> bool;
-
 private:
   static constexpr int MAX_COUNT_BEFORE_NEXT_UPDATE = 1000;
   static constexpr int CYCLE_LENGTH = 500;
 
   std::shared_ptr<const PluginInfo> m_goomInfo{};
 
-  GoomDraw m_draw{};
+  GoomDraw m_draw;
   Colorizer m_colorizer{};
   FXBuffSettings m_buffSettings{};
 
@@ -1034,18 +955,7 @@ private:
                            uint32_t maxLowDensityCount,
                            std::vector<PixelBuffer*>& buffs) const;
   [[nodiscard]] auto GetIfsIncr() const -> int;
-
-  friend class cereal::access;
-  template<class Archive>
-  void save(Archive& ar) const;
-  template<class Archive>
-  void load(Archive& ar);
 };
-
-
-IfsDancersFx::IfsDancersFx() noexcept : m_fxImpl{new IfsDancersFxImpl{}}
-{
-}
 
 IfsDancersFx::IfsDancersFx(const std::shared_ptr<const PluginInfo>& info) noexcept
   : m_fxImpl{new IfsDancersFxImpl{info}}
@@ -1057,11 +967,6 @@ IfsDancersFx::~IfsDancersFx() noexcept = default;
 void IfsDancersFx::Init()
 {
   m_fxImpl->Init();
-}
-
-auto IfsDancersFx::operator==(const IfsDancersFx& i) const -> bool
-{
-  return m_fxImpl->operator==(*i.m_fxImpl);
 }
 
 auto IfsDancersFx::GetResourcesDirectory() const -> const std::string&
@@ -1135,55 +1040,6 @@ void IfsDancersFx::UpdateIncr()
 void IfsDancersFx::Renew()
 {
   m_fxImpl->Renew();
-}
-
-template<class Archive>
-void IfsDancersFx::serialize(Archive& ar)
-{
-  ar(CEREAL_NVP(m_enabled), CEREAL_NVP(m_fxImpl));
-}
-
-// Need to explicitly instantiate template functions for serialization.
-template void IfsDancersFx::serialize<cereal::JSONOutputArchive>(cereal::JSONOutputArchive&);
-template void IfsDancersFx::serialize<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
-
-template void IfsDancersFx::IfsDancersFxImpl::save<cereal::JSONOutputArchive>(
-    cereal::JSONOutputArchive&) const;
-template void IfsDancersFx::IfsDancersFxImpl::load<cereal::JSONInputArchive>(
-    cereal::JSONInputArchive&);
-
-template<class Archive>
-void IfsDancersFx::IfsDancersFxImpl::save(Archive& ar) const
-{
-  ar(CEREAL_NVP(m_goomInfo), CEREAL_NVP(m_fractal), CEREAL_NVP(m_draw), CEREAL_NVP(m_colorizer),
-     CEREAL_NVP(m_allowOverexposed), CEREAL_NVP(m_countSinceOverexposed), CEREAL_NVP(m_ifsIncr),
-     CEREAL_NVP(m_decayIfs), CEREAL_NVP(m_recayIfs));
-}
-
-template<class Archive>
-void IfsDancersFx::IfsDancersFxImpl::load(Archive& ar)
-{
-  ar(CEREAL_NVP(m_goomInfo), CEREAL_NVP(m_fractal), CEREAL_NVP(m_draw), CEREAL_NVP(m_colorizer),
-     CEREAL_NVP(m_allowOverexposed), CEREAL_NVP(m_countSinceOverexposed), CEREAL_NVP(m_ifsIncr),
-     CEREAL_NVP(m_decayIfs), CEREAL_NVP(m_recayIfs));
-}
-
-auto IfsDancersFx::IfsDancersFxImpl::operator==(const IfsDancersFxImpl& i) const -> bool
-{
-  if (m_goomInfo == nullptr && i.m_goomInfo != nullptr)
-  {
-    return false;
-  }
-  if (m_goomInfo != nullptr && i.m_goomInfo == nullptr)
-  {
-    return false;
-  }
-
-  return ((m_goomInfo == nullptr && i.m_goomInfo == nullptr) || (*m_goomInfo == *i.m_goomInfo)) &&
-         *m_fractal == *i.m_fractal && m_draw == i.m_draw && m_colorizer == i.m_colorizer &&
-         m_allowOverexposed == i.m_allowOverexposed &&
-         m_countSinceOverexposed == i.m_countSinceOverexposed && m_ifsIncr == i.m_ifsIncr &&
-         m_decayIfs == i.m_decayIfs && m_recayIfs == i.m_recayIfs;
 }
 
 IfsDancersFx::IfsDancersFxImpl::IfsDancersFxImpl(std::shared_ptr<const PluginInfo> info) noexcept

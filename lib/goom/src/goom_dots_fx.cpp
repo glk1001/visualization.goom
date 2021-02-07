@@ -15,8 +15,6 @@
 #include "goomutils/random_colormaps.h"
 #include "goomutils/random_colormaps_manager.h"
 
-#include <cereal/archives/json.hpp>
-#include <cereal/types/memory.hpp>
 #include <cmath>
 #include <cstdint>
 #include <map>
@@ -24,9 +22,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-
-CEREAL_REGISTER_TYPE(GOOM::GoomDotsFx)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::IVisualFx, GOOM::GoomDotsFx)
 
 namespace GOOM
 {
@@ -42,7 +37,6 @@ inline auto ChangeDotColorsEvent() -> bool
 class GoomDotsFx::GoomDotsFxImpl
 {
 public:
-  GoomDotsFxImpl() noexcept;
   explicit GoomDotsFxImpl(const std::shared_ptr<const PluginInfo>& info) noexcept;
   ~GoomDotsFxImpl() noexcept = default;
   GoomDotsFxImpl(const GoomDotsFxImpl&) noexcept = delete;
@@ -59,17 +53,15 @@ public:
 
   void Apply(PixelBuffer& currentBuff);
 
-  auto operator==(const GoomDotsFxImpl& d) const -> bool;
-
 private:
-  std::shared_ptr<const PluginInfo> m_goomInfo{};
-  uint32_t m_pointWidth = 0;
-  uint32_t m_pointHeight = 0;
+  const std::shared_ptr<const PluginInfo> m_goomInfo;
+  const uint32_t m_pointWidth;
+  const uint32_t m_pointHeight;
 
-  float m_pointWidthDiv2 = 0;
-  float m_pointHeightDiv2 = 0;
-  float m_pointWidthDiv3 = 0;
-  float m_pointHeightDiv3 = 0;
+  const float m_pointWidthDiv2;
+  const float m_pointHeightDiv2;
+  const float m_pointWidthDiv3;
+  const float m_pointHeightDiv3;
 
   std::string m_resourcesDirectory{};
 
@@ -82,10 +74,10 @@ private:
       -> std::unique_ptr<const ImageBitmap>;
   auto GetImageFilename(const std::string& name, size_t sizeOfSquare) -> std::string;
 
-  GoomDraw m_draw{};
+  GoomDraw m_draw;
   FXBuffSettings m_buffSettings{};
 
-  std::shared_ptr<WeightedColorMaps> m_colorMaps{
+  const std::shared_ptr<WeightedColorMaps> m_colorMaps{
       std::make_shared<WeightedColorMaps>(Weights<ColorMapGroup>{{
           {ColorMapGroup::PERCEPTUALLY_UNIFORM_SEQUENTIAL, 10},
           {ColorMapGroup::SEQUENTIAL, 20},
@@ -124,17 +116,7 @@ private:
                  float t4,
                  uint32_t cycle,
                  uint32_t radius);
-
-  friend class cereal::access;
-  template<class Archive>
-  void save(Archive& ar) const;
-  template<class Archive>
-  void load(Archive& ar);
 };
-
-GoomDotsFx::GoomDotsFx() noexcept : m_fxImpl{new GoomDotsFxImpl{}}
-{
-}
 
 GoomDotsFx::GoomDotsFx(const std::shared_ptr<const PluginInfo>& info) noexcept
   : m_fxImpl{new GoomDotsFxImpl{info}}
@@ -142,11 +124,6 @@ GoomDotsFx::GoomDotsFx(const std::shared_ptr<const PluginInfo>& info) noexcept
 }
 
 GoomDotsFx::~GoomDotsFx() noexcept = default;
-
-auto GoomDotsFx::operator==(const GoomDotsFx& d) const -> bool
-{
-  return m_fxImpl->operator==(*d.m_fxImpl);
-}
 
 auto GoomDotsFx::GetResourcesDirectory() const -> const std::string&
 {
@@ -189,62 +166,6 @@ void GoomDotsFx::Apply(PixelBuffer& currentBuff)
   }
   m_fxImpl->Apply(currentBuff);
 }
-
-template<class Archive>
-void GoomDotsFx::serialize(Archive& ar)
-{
-  ar(CEREAL_NVP(m_enabled), CEREAL_NVP(m_fxImpl));
-}
-
-// Need to explicitly instantiate template functions for serialization.
-template void GoomDotsFx::serialize<cereal::JSONOutputArchive>(cereal::JSONOutputArchive&);
-template void GoomDotsFx::serialize<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
-
-template void GoomDotsFx::GoomDotsFxImpl::save<cereal::JSONOutputArchive>(
-    cereal::JSONOutputArchive&) const;
-template void GoomDotsFx::GoomDotsFxImpl::load<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
-
-template<class Archive>
-void GoomDotsFx::GoomDotsFxImpl::save(Archive& ar) const
-{
-  ar(CEREAL_NVP(m_goomInfo), CEREAL_NVP(m_pointWidth), CEREAL_NVP(m_pointHeight),
-     CEREAL_NVP(m_pointWidthDiv2), CEREAL_NVP(m_pointHeightDiv2), CEREAL_NVP(m_pointWidthDiv3),
-     CEREAL_NVP(m_pointHeightDiv3), CEREAL_NVP(m_draw), CEREAL_NVP(m_buffSettings),
-     CEREAL_NVP(m_middleColor), CEREAL_NVP(m_useSingleBufferOnly), CEREAL_NVP(m_useGrayScale),
-     CEREAL_NVP(m_loopVar));
-}
-
-template<class Archive>
-void GoomDotsFx::GoomDotsFxImpl::load(Archive& ar)
-{
-  ar(CEREAL_NVP(m_goomInfo), CEREAL_NVP(m_pointWidth), CEREAL_NVP(m_pointHeight),
-     CEREAL_NVP(m_pointWidthDiv2), CEREAL_NVP(m_pointHeightDiv2), CEREAL_NVP(m_pointWidthDiv3),
-     CEREAL_NVP(m_pointHeightDiv3), CEREAL_NVP(m_draw), CEREAL_NVP(m_buffSettings),
-     CEREAL_NVP(m_middleColor), CEREAL_NVP(m_useSingleBufferOnly), CEREAL_NVP(m_useGrayScale),
-     CEREAL_NVP(m_loopVar));
-}
-
-auto GoomDotsFx::GoomDotsFxImpl::operator==(const GoomDotsFxImpl& d) const -> bool
-{
-  if (m_goomInfo == nullptr && d.m_goomInfo != nullptr)
-  {
-    return false;
-  }
-  if (m_goomInfo != nullptr && d.m_goomInfo == nullptr)
-  {
-    return false;
-  }
-
-  return ((m_goomInfo == nullptr && d.m_goomInfo == nullptr) || (*m_goomInfo == *d.m_goomInfo)) &&
-         m_pointWidth == d.m_pointWidth && m_pointHeight == d.m_pointHeight &&
-         m_pointWidthDiv2 == d.m_pointWidthDiv2 && m_pointHeightDiv2 == d.m_pointHeightDiv2 &&
-         m_pointWidthDiv3 == d.m_pointWidthDiv3 && m_pointHeightDiv3 == d.m_pointHeightDiv3 &&
-         m_draw == d.m_draw && m_buffSettings == d.m_buffSettings &&
-         m_middleColor == d.m_middleColor && m_useSingleBufferOnly == d.m_useSingleBufferOnly &&
-         m_useGrayScale == d.m_useGrayScale && m_loopVar == d.m_loopVar;
-}
-
-GoomDotsFx::GoomDotsFxImpl::GoomDotsFxImpl() noexcept = default;
 
 GoomDotsFx::GoomDotsFxImpl::GoomDotsFxImpl(const std::shared_ptr<const PluginInfo>& info) noexcept
   : m_goomInfo(info),

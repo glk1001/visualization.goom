@@ -16,20 +16,15 @@
 #include "goomutils/random_colormaps_manager.h"
 #include "stats/stars_stats.h"
 
-#include <cereal/archives/json.hpp>
-#include <cereal/types/memory.hpp>
-#include <cereal/types/vector.hpp>
 #include <cmath>
 #include <cstddef>
 #include <format>
+#include <map>
 #include <memory>
 #include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
-
-CEREAL_REGISTER_TYPE(GOOM::FlyingStarsFx)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::IVisualFx, GOOM::FlyingStarsFx)
 
 namespace GOOM
 {
@@ -63,30 +58,15 @@ struct Star
   float yAcceleration = 0;
   float age = 0;
   float vage = 0;
-  // TODO: Cereal for these pointers????
   std::shared_ptr<const IColorMap> dominantColormap{};
   std::shared_ptr<const IColorMap> dominantLowColormap{};
   std::shared_ptr<const IColorMap> currentColorMap{};
   std::shared_ptr<const IColorMap> currentLowColorMap{};
-
-  auto operator==(const Star& s) const -> bool
-  {
-    return x == s.x && y == s.y && xVelocity == s.xVelocity && yVelocity == s.yVelocity &&
-           xAcceleration == s.xAcceleration && yAcceleration == s.yAcceleration && age == s.age &&
-           vage == s.vage;
-  }
-
-  template<class Archive>
-  void serialize(Archive& ar)
-  {
-    ar(x, y, xVelocity, yVelocity, xAcceleration, yAcceleration, age, vage);
-  }
 };
 
 class FlyingStarsFx::FlyingStarsImpl
 {
 public:
-  FlyingStarsImpl() noexcept;
   explicit FlyingStarsImpl(std::shared_ptr<const PluginInfo> goomInfo) noexcept;
   ~FlyingStarsImpl() noexcept = default;
   FlyingStarsImpl(const FlyingStarsImpl&) noexcept = delete;
@@ -106,12 +86,10 @@ public:
   void Finish();
   void Log(const StatsLogValueFunc& logVal) const;
 
-  auto operator==(const FlyingStarsImpl& f) const -> bool;
-
 private:
-  std::shared_ptr<const PluginInfo> m_goomInfo{};
+  const std::shared_ptr<const PluginInfo> m_goomInfo;
 
-  std::shared_ptr<WeightedColorMaps> m_colorMaps{
+  const std::shared_ptr<WeightedColorMaps> m_colorMaps{
       std::make_shared<WeightedColorMaps>(Weights<ColorMapGroup>{{
           {ColorMapGroup::PERCEPTUALLY_UNIFORM_SEQUENTIAL, 10},
           {ColorMapGroup::SEQUENTIAL, 10},
@@ -122,7 +100,7 @@ private:
           {ColorMapGroup::QUALITATIVE, 10},
           {ColorMapGroup::MISC, 10},
       }})};
-  std::shared_ptr<WeightedColorMaps> m_lowColorMaps{
+  const std::shared_ptr<WeightedColorMaps> m_lowColorMaps{
       std::make_shared<WeightedColorMaps>(Weights<ColorMapGroup>{{
           {ColorMapGroup::PERCEPTUALLY_UNIFORM_SEQUENTIAL, 10},
           {ColorMapGroup::SEQUENTIAL, 0},
@@ -168,7 +146,7 @@ private:
 
   FXBuffSettings m_buffSettings{};
   bool m_useSingleBufferOnly = true;
-  GoomDraw m_draw{};
+  GoomDraw m_draw;
   StarsStats m_stats{};
 
   void CheckForStarEvents();
@@ -233,17 +211,7 @@ private:
   auto GetImageBitmap(const std::string& name, size_t sizeOfImageSquare)
       -> std::unique_ptr<const ImageBitmap>;
   auto GetImageFilename(const std::string& name, size_t sizeOfImageSquare) -> std::string;
-
-  friend class cereal::access;
-  template<class Archive>
-  void save(Archive& ar) const;
-  template<class Archive>
-  void load(Archive& ar);
 };
-
-FlyingStarsFx::FlyingStarsFx() noexcept : m_fxImpl{new FlyingStarsImpl{}}
-{
-}
 
 FlyingStarsFx::FlyingStarsFx(const std::shared_ptr<const PluginInfo>& info) noexcept
   : m_fxImpl{new FlyingStarsImpl{info}}
@@ -251,11 +219,6 @@ FlyingStarsFx::FlyingStarsFx(const std::shared_ptr<const PluginInfo>& info) noex
 }
 
 FlyingStarsFx::~FlyingStarsFx() noexcept = default;
-
-auto FlyingStarsFx::operator==(const FlyingStarsFx& f) const -> bool
-{
-  return m_fxImpl->operator==(*f.m_fxImpl);
-}
 
 auto FlyingStarsFx::GetResourcesDirectory() const -> const std::string&
 {
@@ -301,57 +264,6 @@ void FlyingStarsFx::Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
 
   m_fxImpl->UpdateBuffers(currentBuff, nextBuff);
 }
-
-template<class Archive>
-void FlyingStarsFx::serialize(Archive& ar)
-{
-  ar(CEREAL_NVP(m_enabled), CEREAL_NVP(m_fxImpl));
-}
-
-// Need to explicitly instantiate template functions for serialization.
-template void FlyingStarsFx::serialize<cereal::JSONOutputArchive>(cereal::JSONOutputArchive&);
-template void FlyingStarsFx::serialize<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
-
-template void FlyingStarsFx::FlyingStarsImpl::save<cereal::JSONOutputArchive>(
-    cereal::JSONOutputArchive&) const;
-template void FlyingStarsFx::FlyingStarsImpl::load<cereal::JSONInputArchive>(
-    cereal::JSONInputArchive&);
-
-template<class Archive>
-void FlyingStarsFx::FlyingStarsImpl::save(Archive& ar) const
-{
-  ar(CEREAL_NVP(m_goomInfo), CEREAL_NVP(m_fxMode), CEREAL_NVP(m_maxStars), CEREAL_NVP(m_stars),
-     CEREAL_NVP(m_maxStarAge), CEREAL_NVP(m_minAge), CEREAL_NVP(m_maxAge),
-     CEREAL_NVP(m_buffSettings), CEREAL_NVP(m_useSingleBufferOnly), CEREAL_NVP(m_draw));
-}
-
-template<class Archive>
-void FlyingStarsFx::FlyingStarsImpl::load(Archive& ar)
-{
-  ar(CEREAL_NVP(m_goomInfo), CEREAL_NVP(m_fxMode), CEREAL_NVP(m_maxStars), CEREAL_NVP(m_stars),
-     CEREAL_NVP(m_maxStarAge), CEREAL_NVP(m_minAge), CEREAL_NVP(m_maxAge),
-     CEREAL_NVP(m_buffSettings), CEREAL_NVP(m_useSingleBufferOnly), CEREAL_NVP(m_draw));
-}
-
-auto FlyingStarsFx::FlyingStarsImpl::operator==(const FlyingStarsImpl& f) const -> bool
-{
-  if (m_goomInfo == nullptr && f.m_goomInfo != nullptr)
-  {
-    return false;
-  }
-  if (m_goomInfo != nullptr && f.m_goomInfo == nullptr)
-  {
-    return false;
-  }
-
-  return ((m_goomInfo == nullptr && f.m_goomInfo == nullptr) || (*m_goomInfo == *f.m_goomInfo)) &&
-         m_fxMode == f.m_fxMode && m_maxStars == f.m_maxStars && m_stars == f.m_stars &&
-         m_maxStarAge == f.m_maxStarAge && m_minAge == f.m_minAge && m_maxAge == f.m_maxAge &&
-         m_buffSettings == f.m_buffSettings && m_useSingleBufferOnly == f.m_useSingleBufferOnly &&
-         m_draw == f.m_draw;
-}
-
-FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl() noexcept = default;
 
 FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl(std::shared_ptr<const PluginInfo> info) noexcept
   : m_goomInfo{std::move(info)},

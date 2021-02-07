@@ -5,7 +5,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cereal/archives/json.hpp>
 #include <cstdint>
 #include <cstring>
 #include <tuple>
@@ -109,9 +108,6 @@ public:
 
   auto operator==(const Pixel& p) const -> bool;
 
-  template<class Archive>
-  void serialize(Archive&);
-
 private:
   union Color
   {
@@ -169,12 +165,6 @@ private:
   [[nodiscard]] auto GetIntBuff() -> uint32_t*;
   void CopyTo(uint32_t* intBuff, uint32_t length) const;
 };
-
-template<class Archive>
-void Pixel::serialize(Archive& ar)
-{
-  ar(m_color.intVal);
-}
 
 inline Pixel::Pixel() : m_color{/*.channels*/ {}}
 {

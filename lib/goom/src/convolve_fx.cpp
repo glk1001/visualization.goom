@@ -8,15 +8,10 @@
 #include "goomutils/parallel_utils.h"
 
 #include <algorithm>
-#include <cereal/archives/json.hpp>
-#include <cereal/types/memory.hpp>
 #include <cmath>
 #include <cstdint>
 #include <string>
 #include <utility>
-
-CEREAL_REGISTER_TYPE(GOOM::ConvolveFx)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::IVisualFx, GOOM::ConvolveFx)
 
 namespace GOOM
 {
@@ -26,7 +21,6 @@ using namespace GOOM::UTILS;
 class ConvolveFx::ConvolveImpl
 {
 public:
-  ConvolveImpl() noexcept;
   explicit ConvolveImpl(Parallel& p, std::shared_ptr<const PluginInfo> goomInfo) noexcept;
   ~ConvolveImpl() noexcept = default;
   ConvolveImpl(const ConvolveImpl&) noexcept = delete;
@@ -38,12 +32,10 @@ public:
 
   void Convolve(const PixelBuffer& currentBuff, PixelBuffer& outputBuff);
 
-  auto operator==(const ConvolveImpl& c) const -> bool;
-
 private:
-  Parallel* m_parallel = nullptr;
+  Parallel* const m_parallel;
 
-  std::shared_ptr<const PluginInfo> m_goomInfo{};
+  const std::shared_ptr<const PluginInfo> m_goomInfo;
   float m_screenBrightness = 100;
   float m_flashIntensity = 30;
   float m_factor = 0.5;
@@ -52,17 +44,7 @@ private:
   void CreateOutputWithBrightness(const PixelBuffer& srceBuff,
                                   PixelBuffer& destBuff,
                                   uint32_t flashInt);
-
-  friend class cereal::access;
-  template<class Archive>
-  void save(Archive& ar) const;
-  template<class Archive>
-  void load(Archive& ar);
 };
-
-ConvolveFx::ConvolveFx() noexcept : m_fxImpl{new ConvolveImpl{}}
-{
-}
 
 ConvolveFx::ConvolveFx(Parallel& p, const std::shared_ptr<const PluginInfo>& info) noexcept
   : m_fxImpl{new ConvolveImpl{p, info}}
@@ -70,11 +52,6 @@ ConvolveFx::ConvolveFx(Parallel& p, const std::shared_ptr<const PluginInfo>& inf
 }
 
 ConvolveFx::~ConvolveFx() noexcept = default;
-
-auto ConvolveFx::operator==(const ConvolveFx& c) const -> bool
-{
-  return m_fxImpl->operator==(*c.m_fxImpl);
-}
 
 auto ConvolveFx::GetResourcesDirectory() const -> const std::string&
 {
@@ -116,53 +93,6 @@ void ConvolveFx::Convolve(const PixelBuffer& currentBuff, PixelBuffer& outputBuf
 
   m_fxImpl->Convolve(currentBuff, outputBuff);
 }
-
-template<class Archive>
-void ConvolveFx::serialize(Archive& ar)
-{
-  ar(CEREAL_NVP(m_enabled), CEREAL_NVP(m_fxImpl));
-}
-
-// Need to explicitly instantiate template functions for serialization.
-template void ConvolveFx::serialize<cereal::JSONOutputArchive>(cereal::JSONOutputArchive&);
-template void ConvolveFx::serialize<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
-
-template void ConvolveFx::ConvolveImpl::save<cereal::JSONOutputArchive>(
-    cereal::JSONOutputArchive&) const;
-template void ConvolveFx::ConvolveImpl::load<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
-
-template<class Archive>
-void ConvolveFx::ConvolveImpl::save(Archive& ar) const
-{
-  ar(CEREAL_NVP(m_goomInfo), CEREAL_NVP(m_buffSettings), CEREAL_NVP(m_screenBrightness),
-     CEREAL_NVP(m_flashIntensity), CEREAL_NVP(m_factor));
-}
-
-template<class Archive>
-void ConvolveFx::ConvolveImpl::load(Archive& ar)
-{
-  ar(CEREAL_NVP(m_goomInfo), CEREAL_NVP(m_buffSettings), CEREAL_NVP(m_screenBrightness),
-     CEREAL_NVP(m_flashIntensity), CEREAL_NVP(m_factor));
-}
-
-auto ConvolveFx::ConvolveImpl::operator==(const ConvolveImpl& c) const -> bool
-{
-  if (m_goomInfo == nullptr && c.m_goomInfo != nullptr)
-  {
-    return false;
-  }
-  if (m_goomInfo != nullptr && c.m_goomInfo == nullptr)
-  {
-    return false;
-  }
-
-  return ((m_goomInfo == nullptr && c.m_goomInfo == nullptr) || (*m_goomInfo == *c.m_goomInfo)) &&
-         std::fabs(m_screenBrightness - c.m_screenBrightness) < 0.000001 &&
-         std::fabs(m_flashIntensity - c.m_flashIntensity) < 0.000001 &&
-         std::fabs(m_factor - c.m_factor) < 0.000001 && m_buffSettings == c.m_buffSettings;
-}
-
-ConvolveFx::ConvolveImpl::ConvolveImpl() noexcept = default;
 
 ConvolveFx::ConvolveImpl::ConvolveImpl(Parallel& p, std::shared_ptr<const PluginInfo> info) noexcept
   : m_parallel{&p}, m_goomInfo{std::move(info)}

@@ -5,10 +5,6 @@
 #include "goomutils/colormaps.h"
 #include "goomutils/mathutils.h"
 
-#include <cereal/archives/json.hpp>
-#include <cereal/types/memory.hpp>
-#include <cereal/types/tuple.hpp>
-#include <cereal/types/vector.hpp>
 #include <functional>
 #include <memory>
 #include <tuple>
@@ -92,14 +88,9 @@ public:
   [[nodiscard]] auto GetDoDamping() const -> bool;
   void SetDoDamping(bool val);
 
-  auto operator==(const Tentacle2D&) const -> bool;
-
-  template<class Archive>
-  void serialize(Archive&);
-
 private:
-  size_t m_id = 0;
-  size_t m_numNodes = 0;
+  const size_t m_id;
+  const size_t m_numNodes;
   double m_xmin = 0.0;
   double m_xmax = 0.0;
   double m_ymin = 0.0;
@@ -144,24 +135,12 @@ struct V3dFlt
   float y = 0.0;
   float z = 0.0;
   bool ignore = false;
-
-#if __cplusplus <= 201402L
-  auto operator==(const V3dFlt&) const -> bool { return false; };
-#else
-  auto operator==(const V3dFlt&) const -> bool = default;
-#endif
-
-  template<class Archive>
-  void serialize(Archive& ar)
-  {
-    ar(CEREAL_NVP(x), CEREAL_NVP(y), CEREAL_NVP(z), CEREAL_NVP(ignore));
-  }
 };
 
 class Tentacle3D
 {
 public:
-  Tentacle3D() noexcept = default;
+  Tentacle3D() noexcept = delete;
   ~Tentacle3D() noexcept = default;
   Tentacle3D(std::unique_ptr<Tentacle2D>,
              const Pixel& headColor,
@@ -206,11 +185,6 @@ public:
 
   [[nodiscard]] auto GetVertices() const -> std::vector<V3dFlt>;
 
-  auto operator==(const Tentacle3D&) const -> bool;
-
-  template<class Archive>
-  void serialize(Archive&);
-
 private:
   std::unique_ptr<Tentacle2D> m_tentacle{};
   std::shared_ptr<const ITentacleColorizer> m_colorizer{};
@@ -254,11 +228,6 @@ public:
   auto operator[](const size_t i) -> Tentacle3D& { return m_tentacles.at(i); }
 
   void SetAllowOverexposed(bool val);
-
-  auto operator==(const Tentacles3D&) const -> bool;
-
-  template<class Archive>
-  void serialize(Archive&);
 
 private:
   std::vector<Tentacle3D> m_tentacles{};
@@ -351,34 +320,9 @@ inline void Tentacle2D::FinishIterating()
   m_startedIterating = false;
 }
 
-template<class Archive>
-void Tentacle2D::serialize(Archive& ar)
-{
-  ar(CEREAL_NVP(m_id), CEREAL_NVP(m_numNodes), CEREAL_NVP(m_xmin), CEREAL_NVP(m_xmax),
-     CEREAL_NVP(m_ymin), CEREAL_NVP(m_ymax), CEREAL_NVP(m_basePrevYWeight),
-     CEREAL_NVP(m_baseCurrentYWeight), CEREAL_NVP(m_iterZeroYVal), CEREAL_NVP(m_iterZeroLerpFactor),
-     CEREAL_NVP(m_iterNum), CEREAL_NVP(m_startedIterating), CEREAL_NVP(m_xvec), CEREAL_NVP(m_yvec),
-     CEREAL_NVP(m_dampedYVec), CEREAL_NVP(m_dampingCache), CEREAL_NVP(m_dampingFunc),
-     CEREAL_NVP(m_doDamping));
-}
-
 inline auto Tentacles3D::Iter::operator*() const -> Tentacle3D&
 {
   return (*m_tentacles)[m_pos];
-}
-
-template<class Archive>
-void Tentacle3D::serialize(Archive& ar)
-{
-  ar(CEREAL_NVP(m_tentacle), CEREAL_NVP(m_colorizer), CEREAL_NVP(m_headColor),
-     CEREAL_NVP(m_headColorLow), CEREAL_NVP(m_head), CEREAL_NVP(m_numHeadNodes),
-     CEREAL_NVP(m_reverseColorMix), CEREAL_NVP(m_allowOverexposed));
-}
-
-template<class Archive>
-void Tentacles3D::serialize(Archive& ar)
-{
-  ar(CEREAL_NVP(m_tentacles));
 }
 
 } // namespace GOOM

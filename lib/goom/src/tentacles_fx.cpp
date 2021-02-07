@@ -15,20 +15,13 @@
 #include "stats/tentacles_stats.h"
 #include "tentacle_driver.h"
 
-#include <cereal/archives/json.hpp>
-#include <cereal/types/memory.hpp>
-#include <cereal/types/vector.hpp>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <memory>
 #include <stdexcept>
-#include <string>
 #include <tuple>
 #include <vector>
-
-CEREAL_REGISTER_TYPE(GOOM::TentaclesFx)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::IVisualFx, GOOM::TentaclesFx)
 
 namespace GOOM
 {
@@ -64,7 +57,6 @@ inline auto ChangeDominantColorEvent() -> bool
 class TentaclesFx::TentaclesImpl
 {
 public:
-  TentaclesImpl() noexcept;
   explicit TentaclesImpl(const std::shared_ptr<const PluginInfo>& goomInfo);
   ~TentaclesImpl() noexcept = default;
   TentaclesImpl(const TentaclesImpl&) noexcept = delete;
@@ -81,11 +73,9 @@ public:
 
   void LogStats(const StatsLogValueFunc& logVal);
 
-  auto operator==(const TentaclesImpl& t) const -> bool;
-
 private:
-  std::shared_ptr<const PluginInfo> m_goomInfo{};
-  WeightedColorMaps m_colorMaps{Weights<ColorMapGroup>{{
+  const std::shared_ptr<const PluginInfo> m_goomInfo;
+  const WeightedColorMaps m_colorMaps{Weights<ColorMapGroup>{{
       {ColorMapGroup::PERCEPTUALLY_UNIFORM_SEQUENTIAL, 10},
       {ColorMapGroup::SEQUENTIAL, 10},
       {ColorMapGroup::SEQUENTIAL2, 10},
@@ -164,17 +154,7 @@ private:
   void SetupDrivers();
   void Init();
   mutable TentacleStats m_stats{};
-
-  friend class cereal::access;
-  template<class Archive>
-  void save(Archive& ar) const;
-  template<class Archive>
-  void load(Archive& ar);
 };
-
-TentaclesFx::TentaclesFx() noexcept : m_fxImpl{new TentaclesImpl{}}
-{
-}
 
 TentaclesFx::TentaclesFx(const std::shared_ptr<const PluginInfo>& info) noexcept
   : m_fxImpl{new TentaclesImpl{info}}
@@ -182,11 +162,6 @@ TentaclesFx::TentaclesFx(const std::shared_ptr<const PluginInfo>& info) noexcept
 }
 
 TentaclesFx::~TentaclesFx() noexcept = default;
-
-auto TentaclesFx::operator==(const TentaclesFx& t) const -> bool
-{
-  return m_fxImpl->operator==(*t.m_fxImpl);
-}
 
 auto TentaclesFx::GetResourcesDirectory() const -> const std::string&
 {
@@ -244,114 +219,6 @@ auto TentaclesFx::GetFxName() const -> std::string
 {
   return "Tentacles FX";
 }
-
-template<class Archive>
-void TentaclesFx::serialize(Archive& ar)
-{
-  ar(CEREAL_NVP(m_enabled), CEREAL_NVP(m_fxImpl));
-}
-
-// Need to explicitly instantiate template functions for serialization.
-template void TentaclesFx::serialize<cereal::JSONOutputArchive>(cereal::JSONOutputArchive&);
-template void TentaclesFx::serialize<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
-
-template void TentaclesFx::TentaclesImpl::save<cereal::JSONOutputArchive>(
-    cereal::JSONOutputArchive&) const;
-template void TentaclesFx::TentaclesImpl::load<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
-
-template<class Archive>
-void TentaclesFx::TentaclesImpl::save(Archive& ar) const
-{
-  ar(CEREAL_NVP(m_goomInfo), CEREAL_NVP(m_dominantColor), CEREAL_NVP(m_updatingWithDraw),
-     CEREAL_NVP(m_cycle), CEREAL_NVP(m_cycleInc), CEREAL_NVP(m_lig), CEREAL_NVP(m_ligs),
-     CEREAL_NVP(m_distt), CEREAL_NVP(m_distt2), CEREAL_NVP(m_distt2Offset), CEREAL_NVP(m_rot),
-     CEREAL_NVP(m_rotAtStartOfPrettyMove), CEREAL_NVP(m_doRotation),
-     CEREAL_NVP(m_isPrettyMoveHappening), CEREAL_NVP(m_prettyMoveHappeningTimer),
-     CEREAL_NVP(m_prettyMoveCheckStopMark), CEREAL_NVP(m_distt2OffsetPreStep),
-     CEREAL_NVP(m_prettyMoveReadyToStart), CEREAL_NVP(m_prePrettyMoveLock),
-     CEREAL_NVP(m_postPrettyMoveLock), CEREAL_NVP(m_prettyMoveLerpMix),
-     CEREAL_NVP(m_countSinceHighAccelLastMarked), CEREAL_NVP(m_countSinceColorChangeLastMarked),
-     CEREAL_NVP(m_drivers));
-}
-
-template<class Archive>
-void TentaclesFx::TentaclesImpl::load(Archive& ar)
-{
-  ar(CEREAL_NVP(m_goomInfo), CEREAL_NVP(m_dominantColor), CEREAL_NVP(m_updatingWithDraw),
-     CEREAL_NVP(m_cycle), CEREAL_NVP(m_cycleInc), CEREAL_NVP(m_lig), CEREAL_NVP(m_ligs),
-     CEREAL_NVP(m_distt), CEREAL_NVP(m_distt2), CEREAL_NVP(m_distt2Offset), CEREAL_NVP(m_rot),
-     CEREAL_NVP(m_rotAtStartOfPrettyMove), CEREAL_NVP(m_doRotation),
-     CEREAL_NVP(m_isPrettyMoveHappening), CEREAL_NVP(m_prettyMoveHappeningTimer),
-     CEREAL_NVP(m_prettyMoveCheckStopMark), CEREAL_NVP(m_distt2OffsetPreStep),
-     CEREAL_NVP(m_prettyMoveReadyToStart), CEREAL_NVP(m_prePrettyMoveLock),
-     CEREAL_NVP(m_postPrettyMoveLock), CEREAL_NVP(m_prettyMoveLerpMix),
-     CEREAL_NVP(m_countSinceHighAccelLastMarked), CEREAL_NVP(m_countSinceColorChangeLastMarked),
-     CEREAL_NVP(m_drivers));
-}
-
-auto TentaclesFx::TentaclesImpl::operator==(const TentaclesImpl& t) const -> bool
-{
-  if (m_goomInfo == nullptr && t.m_goomInfo != nullptr)
-  {
-    return false;
-  }
-  if (m_goomInfo != nullptr && t.m_goomInfo == nullptr)
-  {
-    return false;
-  }
-
-  bool result =
-      ((m_goomInfo == nullptr && t.m_goomInfo == nullptr) || (*m_goomInfo == *t.m_goomInfo)) &&
-      m_dominantColor == t.m_dominantColor && m_updatingWithDraw == t.m_updatingWithDraw &&
-      m_cycle == t.m_cycle && m_cycleInc == t.m_cycleInc && m_lig == t.m_lig &&
-      m_ligs == t.m_ligs && m_distt == t.m_distt && m_distt2 == t.m_distt2 &&
-      m_distt2Offset == t.m_distt2Offset && m_rot == t.m_rot &&
-      m_rotAtStartOfPrettyMove == t.m_rotAtStartOfPrettyMove && m_doRotation == t.m_doRotation &&
-      m_isPrettyMoveHappening == t.m_isPrettyMoveHappening &&
-      m_prettyMoveHappeningTimer == t.m_prettyMoveHappeningTimer &&
-      m_prettyMoveCheckStopMark == t.m_prettyMoveCheckStopMark &&
-      m_distt2OffsetPreStep == t.m_distt2OffsetPreStep &&
-      m_prettyMoveReadyToStart == t.m_prettyMoveReadyToStart &&
-      m_prePrettyMoveLock == t.m_prePrettyMoveLock &&
-      m_postPrettyMoveLock == t.m_postPrettyMoveLock &&
-      m_prettyMoveLerpMix == t.m_prettyMoveLerpMix &&
-      m_countSinceHighAccelLastMarked == t.m_countSinceHighAccelLastMarked &&
-      m_countSinceColorChangeLastMarked == t.m_countSinceColorChangeLastMarked;
-
-  if (result)
-  {
-#if __cplusplus > 201402L
-    for (size_t i = 0; i < m_drivers.size(); i++)
-    {
-      if (*m_drivers[i] != *t.m_drivers[i])
-      {
-        logInfo("TentaclesFx driver differs at index {}", i);
-        return false;
-      }
-    }
-#endif
-  }
-
-  if (!result)
-  {
-    logInfo("TentaclesFx result == {}", result);
-    logInfo("dominantColor == t.dominantColor = {}", dominantColor == t.dominantColor);
-    logInfo("updatingWithDraw == t.updatingWithDraw = {}", updatingWithDraw == t.updatingWithDraw);
-    logInfo("cycle == t.cycle = {}", cycle == t.cycle);
-    logInfo("cycleInc == t.cycleInc = {}", cycleInc == t.cycleInc);
-    logInfo("lig == t.lig = {}", lig == t.lig);
-    logInfo("ligs == t.ligs = {}", ligs == t.ligs);
-    logInfo("distt == t.distt = {}", distt == t.distt);
-    logInfo("distt2 == t.distt2 = {}", distt2 == t.distt2);
-    logInfo("distt2Offset == t.distt2Offset = {}", distt2Offset == t.distt2Offset);
-    logInfo("rot == t.rot = {}", rot == t.rot);
-    logInfo("drivers == t.drivers = {}", drivers == t.drivers);
-  }
-
-  return result;
-}
-
-TentaclesFx::TentaclesImpl::TentaclesImpl() noexcept = default;
 
 TentaclesFx::TentaclesImpl::TentaclesImpl(const std::shared_ptr<const PluginInfo>& info)
   : m_goomInfo{info},

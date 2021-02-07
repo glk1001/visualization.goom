@@ -3,7 +3,6 @@
 
 #include "goom_visual_fx.h"
 
-#include <cereal/access.hpp>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -131,15 +130,6 @@ struct ZoomFilterData
   static constexpr float MIN_V_PLANE_EFFECT_AMPLITUDE = 0.0015;
   static constexpr float MAX_V_PLANE_EFFECT_AMPLITUDE = 0.0035;
   float vPlaneEffectAmplitude = DEFAULT_V_PLANE_EFFECT_AMPLITUDE;
-
-#if __cplusplus <= 201402L
-  auto operator==(const ZoomFilterData&) const -> bool { return false; };
-#else
-  auto operator==(const ZoomFilterData&) const -> bool = default;
-#endif
-
-  template<class Archive>
-  void serialize(Archive&);
 };
 
 /* filtre de zoom :
@@ -151,14 +141,14 @@ struct ZoomFilterData
 namespace UTILS
 {
 class Parallel;
-} // namespace utils
+} // namespace UTILS
 
 class PluginInfo;
 
 class ZoomFilterFx : public IVisualFx
 {
 public:
-  ZoomFilterFx() noexcept;
+  ZoomFilterFx() noexcept = delete;
   ZoomFilterFx(UTILS::Parallel&, const std::shared_ptr<const PluginInfo>&) noexcept;
   ~ZoomFilterFx() noexcept override;
   ZoomFilterFx(const ZoomFilterFx&) noexcept = delete;
@@ -192,11 +182,7 @@ public:
 private:
   bool m_enabled = true;
   class ZoomFilterImpl;
-  std::unique_ptr<ZoomFilterImpl> m_fxImpl;
-
-  friend class cereal::access;
-  template<class Archive>
-  void serialize(Archive&);
+  const std::unique_ptr<ZoomFilterImpl> m_fxImpl;
 };
 
 } // namespace GOOM

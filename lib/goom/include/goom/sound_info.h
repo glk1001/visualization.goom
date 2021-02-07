@@ -3,8 +3,6 @@
 
 #include "goom_config.h"
 
-#include <cereal/archives/json.hpp>
-#include <cereal/types/memory.hpp>
 #include <cstdint>
 #include <vector>
 
@@ -50,21 +48,25 @@ public:
   // Note: a Goom is just a sound event...
   [[nodiscard]] auto GetTimeSinceLastGoom() const -> uint32_t; // >= 0
   [[nodiscard]] auto GetTimeSinceLastBigGoom() const -> uint32_t; // >= 0
-  [[nodiscard]] auto GetTotalGoom() const
-      -> uint32_t; // number of goom since last reset (every 'cycleTime')
-  [[nodiscard]] auto GetGoomPower() const -> float; // power of the last Goom [0..1]
+
+  // number of goom since last reset (every 'cycleTime')
+  [[nodiscard]] auto GetTotalGoom() const -> uint32_t;
+
+  // power of the last Goom [0..1]
+  [[nodiscard]] auto GetGoomPower() const -> float;
 
   [[nodiscard]] auto GetVolume() const -> float; // [0..1]
-  [[nodiscard]] auto GetSpeed() const -> float; // speed of the sound [0..100]
-  [[nodiscard]] auto GetAcceleration() const -> float; // acceleration of the sound [0..1]
+
+  // speed of the sound [0..100]
+  [[nodiscard]] auto GetSpeed() const -> float;
+
+  // acceleration of the sound [0..1]
+  [[nodiscard]] auto GetAcceleration() const -> float;
 
   [[nodiscard]] auto GetAllTimesMaxVolume() const -> int16_t;
   [[nodiscard]] auto GetAllTimesMinVolume() const -> int16_t;
 
   auto operator==(const SoundInfo& s) const -> bool;
-
-  template<class Archive>
-  void serialize(Archive&);
 
 private:
   uint32_t m_timeSinceLastGoom = 0;
@@ -92,16 +94,6 @@ private:
   int16_t m_allTimesPositiveMaxVolume = 1;
   float m_maxAccelSinceLastReset = 0.0F;
 };
-
-template<class Archive>
-void SoundInfo::serialize(Archive& ar)
-{
-  ar(CEREAL_NVP(m_timeSinceLastGoom), CEREAL_NVP(m_timeSinceLastBigGoom), CEREAL_NVP(m_goomLimit),
-     CEREAL_NVP(m_bigGoomLimit), CEREAL_NVP(m_goomPower), CEREAL_NVP(m_totalGoom),
-     CEREAL_NVP(m_cycle), CEREAL_NVP(m_volume), CEREAL_NVP(m_acceleration),
-     CEREAL_NVP(m_allTimesMaxVolume), CEREAL_NVP(m_allTimesMinVolume),
-     CEREAL_NVP(m_allTimesPositiveMaxVolume), CEREAL_NVP(m_maxAccelSinceLastReset));
-}
 
 inline auto SoundInfo::GetTimeSinceLastGoom() const -> uint32_t
 {

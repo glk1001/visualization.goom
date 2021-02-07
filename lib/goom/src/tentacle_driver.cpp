@@ -36,10 +36,11 @@ inline auto ChangeCurrentColorMapEvent() -> bool
 const size_t TentacleDriver::CHANGE_CURRENT_COLOR_MAP_GROUP_EVERY_N_UPDATES = 400;
 const size_t TentacleDriver::CHANGE_TENTACLE_COLOR_MAP_EVERY_N_UPDATES = 100;
 
-TentacleDriver::TentacleDriver() noexcept = default;
-
-TentacleDriver::TentacleDriver(const uint32_t screenW, const uint32_t screenH) noexcept
-  : m_screenWidth{screenW}, m_screenHeight{screenH}, m_draw{m_screenWidth, m_screenHeight}
+TentacleDriver::TentacleDriver(const uint32_t screenWidth, const uint32_t screenHeight) noexcept
+  : m_screenWidth{screenWidth},
+    m_screenHeight{screenHeight},
+    m_draw{m_screenWidth, m_screenHeight},
+    m_colorMaps{}
 {
   const IterParamsGroup iter1 = {
       {100, 0.600, 1.0, {1.5, -10.0, +10.0, m_pi}, 100.0},
@@ -75,82 +76,6 @@ TentacleDriver::TentacleDriver(const uint32_t screenW, const uint32_t screenH) n
   };
 
   logDebug("Constructed TentacleDriver.");
-}
-
-auto TentacleDriver::IterationParams::operator==([[maybe_unused]] const IterationParams& p) const
-    -> bool
-{
-#if __cplusplus <= 201402L
-  return false;
-#else
-  return numNodes == p.numNodes && prevYWeight == p.prevYWeight &&
-         iterZeroYValWaveFreq == p.iterZeroYValWave && iterZeroYValWave == p.iterZeroYValWave &&
-         length == p.length;
-#endif
-}
-
-auto TentacleDriver::IterParamsGroup::operator==(const IterParamsGroup& p) const -> bool
-{
-  return first == p.first && last == p.last;
-}
-
-auto TentacleDriver::operator==(const TentacleDriver& t) const -> bool
-{
-  const bool result = m_colorMode == t.m_colorMode && m_iterParamsGroups == t.m_iterParamsGroups &&
-                      m_screenWidth == t.m_screenWidth && m_screenHeight == t.m_screenHeight &&
-                      m_draw == t.m_draw && m_buffSettings == t.m_buffSettings &&
-                      m_updateNum == t.m_updateNum && m_tentacles == t.m_tentacles &&
-                      m_numTentacles == t.m_numTentacles && m_tentacleParams == t.m_tentacleParams;
-
-  if (result)
-  {
-    for (size_t i = 0; i < m_colorizers.size(); i++)
-    {
-      if (typeid(*m_colorizers[i]) != typeid(*t.m_colorizers[i]))
-      {
-        logInfo("TentacleDriver colorizers not of same type at index {}", i);
-        return false;
-      }
-      const auto* c1 = dynamic_cast<const TentacleColorMapColorizer*>(m_colorizers[i].get());
-      if (c1 == nullptr)
-      {
-        continue;
-      }
-      const auto* c2 = dynamic_cast<const TentacleColorMapColorizer*>(t.m_colorizers[i].get());
-      if (c2 == nullptr)
-      {
-        logInfo("TentacleDriver colorizers not of same type at index {}", i);
-        return false;
-      }
-#if __cplusplus > 201402L
-      if (*c1 != *c2)
-      {
-        logInfo("TentacleDriver colorizers not the same at index {}", i);
-        return false;
-      }
-#endif
-    }
-  }
-  logInfo("colorizers == t.colorizers = true");
-
-  logInfo("TentacleDriver result == {}", result);
-  if (!result)
-  {
-    logInfo("TentacleDriver result == {}", result);
-    logInfo("colorMode = {}, t.colorMode = {}", m_colorMode, t.m_colorMode);
-    logInfo("iterParamsGroups == t.iterParamsGroups = {}",
-            m_iterParamsGroups == t.m_iterParamsGroups);
-    logInfo("screenWidth = {}, t.screenWidth = {}", m_screenWidth, t.m_screenWidth);
-    logInfo("screenHeight = {}, t.screenHeight = {}", m_screenHeight, t.m_screenHeight);
-    logInfo("draw == t.draw = {}", m_draw == t.m_draw);
-    logInfo("buffSettings == t.buffSettings = {}", m_buffSettings == t.m_buffSettings);
-    logInfo("updateNum = {}, t.updateNum = {}", m_updateNum, t.m_updateNum);
-    logInfo("tentacles == t.tentacles = {}", m_tentacles == t.m_tentacles);
-    logInfo("numTentacles = {}, t.numTentacles = {}", m_numTentacles, t.m_numTentacles);
-    logInfo("tentacleParams == t.tentacleParams = {}", m_tentacleParams == t.m_tentacleParams);
-  }
-
-  return result;
 }
 
 auto TentacleDriver::GetBuffSettings() const -> const FXBuffSettings&
@@ -688,26 +613,6 @@ TentacleColorMapColorizer::TentacleColorMapColorizer(const ColorMapGroup cmg,
     m_colorMap{m_colorMaps.GetRandomColorMapPtr(m_currentColorMapGroup, RandomColorMaps::ALL)},
     m_prevColorMap{m_colorMap}
 {
-}
-
-auto TentacleColorMapColorizer::operator==(const TentacleColorMapColorizer& t) const -> bool
-{
-  const bool result = m_numNodes == t.m_numNodes &&
-                      m_currentColorMapGroup == t.m_currentColorMapGroup &&
-                      m_colorMap == t.m_colorMap && m_prevColorMap == t.m_prevColorMap &&
-                      m_tTransition == t.m_tTransition;
-  if (!result)
-  {
-    logInfo("TentacleColorMapColorizer result == {}", result);
-    logInfo("numNodes = {}, t.numNodes = {}", m_numNodes, t.m_numNodes);
-    logInfo("currentColorMapGroup = {}, t.currentColorMapGroup = {}", m_currentColorMapGroup,
-            t.m_currentColorMapGroup);
-    logInfo("colorMap == t.colorMap = {}", m_colorMap == t.m_colorMap);
-    logInfo("prevColorMap == t.prevColorMap = {}", m_prevColorMap == t.m_prevColorMap);
-    logInfo("tTransition = {}, t.tTransition = {}", m_tTransition, t.m_tTransition);
-  }
-
-  return result;
 }
 
 auto TentacleColorMapColorizer::GetColorMapGroup() const -> ColorMapGroup

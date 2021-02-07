@@ -3,7 +3,6 @@
 
 #include "goom_visual_fx.h"
 
-#include <cereal/access.hpp>
 #include <memory>
 #include <string>
 
@@ -25,7 +24,7 @@ public:
     sineMixColors,
   };
 
-  FlyingStarsFx() noexcept;
+  FlyingStarsFx() noexcept = delete;
   explicit FlyingStarsFx(const std::shared_ptr<const PluginInfo>&) noexcept;
   ~FlyingStarsFx() noexcept override;
   FlyingStarsFx(const FlyingStarsFx&) noexcept = delete;
@@ -46,16 +45,10 @@ public:
   void Log(const StatsLogValueFunc& l) const override;
   void Finish() override;
 
-  auto operator==(const FlyingStarsFx& f) const -> bool;
-
 private:
   bool m_enabled = true;
   class FlyingStarsImpl;
-  std::unique_ptr<FlyingStarsImpl> m_fxImpl;
-
-  friend class cereal::access;
-  template<class Archive>
-  void serialize(Archive&);
+  const std::unique_ptr<FlyingStarsImpl> m_fxImpl;
 };
 
 } // namespace GOOM

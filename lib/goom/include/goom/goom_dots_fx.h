@@ -3,7 +3,6 @@
 
 #include "goom_visual_fx.h"
 
-#include <cereal/access.hpp>
 #include <memory>
 #include <string>
 
@@ -16,7 +15,7 @@ class PixelBuffer;
 class GoomDotsFx : public IVisualFx
 {
 public:
-  GoomDotsFx() noexcept;
+  GoomDotsFx() noexcept = delete;
   explicit GoomDotsFx(const std::shared_ptr<const PluginInfo>&) noexcept;
   ~GoomDotsFx() noexcept override;
   GoomDotsFx(const GoomDotsFx&) noexcept = delete;
@@ -37,16 +36,10 @@ public:
   void Log(const StatsLogValueFunc& l) const override;
   void Finish() override;
 
-  auto operator==(const GoomDotsFx& d) const -> bool;
-
 private:
   bool m_enabled = true;
   class GoomDotsFxImpl;
-  std::unique_ptr<GoomDotsFxImpl> m_fxImpl;
-
-  friend class cereal::access;
-  template<class Archive>
-  void serialize(Archive& ar);
+  const std::unique_ptr<GoomDotsFxImpl> m_fxImpl;
 };
 
 } // namespace GOOM

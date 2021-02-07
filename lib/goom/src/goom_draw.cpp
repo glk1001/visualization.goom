@@ -11,22 +11,11 @@ namespace GOOM
 
 using namespace UTILS;
 
-GoomDraw::GoomDraw() : m_screenWidth{0}, m_screenHeight{0}
-{
-}
-
 GoomDraw::GoomDraw(const uint32_t screenW, const uint32_t screenH)
   : m_screenWidth{screenW}, m_screenHeight{screenH}, m_parallel{-1} // max cores - 1
 {
   SetBuffIntensity(0.5);
   SetAllowOverexposed(true);
-}
-
-auto GoomDraw::operator==(const GoomDraw& d) const -> bool
-{
-  return m_screenWidth == d.m_screenWidth && m_screenHeight == d.m_screenHeight &&
-         m_allowOverexposed == d.m_allowOverexposed && m_buffIntensity == d.m_buffIntensity &&
-         m_intBuffIntensity == d.m_intBuffIntensity;
 }
 
 void GoomDraw::Circle(

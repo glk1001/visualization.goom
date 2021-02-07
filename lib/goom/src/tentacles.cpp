@@ -22,8 +22,6 @@ namespace GOOM
 
 using namespace GOOM::UTILS;
 
-Tentacle2D::Tentacle2D() noexcept = default;
-
 Tentacle2D::Tentacle2D(const size_t id,
                        const size_t numNodes,
                        const double xmin,
@@ -42,48 +40,6 @@ Tentacle2D::Tentacle2D(const size_t id,
     m_baseCurrentYWeight{baseCurrentYWeight},
     m_dampingFunc{CreateDampingFunc(m_basePrevYWeight, m_xmin, m_xmax)}
 {
-}
-
-auto Tentacle2D::operator==(const Tentacle2D& t) const -> bool
-{
-  const bool result =
-      m_id == t.m_id && m_numNodes == t.m_numNodes && m_xmin == t.m_xmin && m_xmax == t.m_xmax &&
-      m_ymin == t.m_ymin && m_ymax == t.m_ymax && m_basePrevYWeight == t.m_basePrevYWeight &&
-      m_baseCurrentYWeight == t.m_baseCurrentYWeight && m_iterZeroYVal == t.m_iterZeroYVal &&
-      m_iterZeroLerpFactor == t.m_iterZeroLerpFactor && m_iterNum == t.m_iterNum &&
-      m_startedIterating == t.m_startedIterating && m_xvec == t.m_xvec && m_yvec == t.m_yvec &&
-      // vecs{std::make_tuple(std::ref(xvec), std::ref(yvec))};
-      m_dampedYVec == t.m_dampedYVec && m_dampingCache == t.m_dampingCache &&
-      // dampedVecs{std::make_tuple(std::ref(xvec), std::ref(dampedYVec))};
-      //    *dampingFunc == *t.dampingFunc &&
-      m_doDamping == t.m_doDamping;
-
-  if (!result)
-  {
-    logInfo("Tentacle2D result == {}", result);
-    logInfo("ID = {}, t.ID = {}", m_id, t.m_id);
-    logInfo("numNodes = {}, t.numNodes = {}", m_numNodes, t.m_numNodes);
-    logInfo("xmin = {}, t.xmin = {}", m_xmin, t.m_xmin);
-    logInfo("xmax = {}, t.xmax = {}", m_xmax, t.m_xmax);
-    logInfo("ymin = {}, t.ymin = {}", m_ymin, t.m_ymin);
-    logInfo("ymax = {}, t.ymax = {}", m_ymax, t.m_ymax);
-    logInfo("basePrevYWeight = {}, t.basePrevYWeight = {}", m_basePrevYWeight, t.m_basePrevYWeight);
-    logInfo("baseCurrentYWeight = {}, t.baseCurrentYWeight = {}", m_baseCurrentYWeight,
-            t.m_baseCurrentYWeight);
-    logInfo("iterZeroYVal = {}, t.iterZeroYVal = {}", m_iterZeroYVal, t.m_iterZeroYVal);
-    logInfo("iterZeroLerpFactor = {}, t.iterZeroLerpFactor = {}", m_iterZeroLerpFactor,
-            t.m_iterZeroLerpFactor);
-    logInfo("iterNum = {}, t.iterNum = {}", m_iterNum, t.m_iterNum);
-    logInfo("startedIterating = {}, t.startedIterating = {}", m_startedIterating,
-            t.m_startedIterating);
-    logInfo("xvec == t.xvec = {}", m_xvec == t.m_xvec);
-    logInfo("yvec == t.yvec = {}", m_yvec == t.m_yvec);
-    logInfo("dampedYVec == t.dampedYVec = {}", m_dampedYVec == t.m_dampedYVec);
-    logInfo("dampingCache == t.dampingCache = {}", m_dampingCache == t.m_dampingCache);
-    logInfo("doDamping = {}, t.doDamping = {}", m_doDamping, t.m_doDamping);
-  }
-
-  return result;
 }
 
 void Tentacle2D::SetXDimensions(const double x0, const double x1)
@@ -361,66 +317,12 @@ Tentacle3D::Tentacle3D(std::unique_ptr<Tentacle2D> t,
 
 Tentacle3D::Tentacle3D(Tentacle3D&& o) noexcept
   : m_tentacle{std::move(o.m_tentacle)},
-    m_colorizer{o.m_colorizer},
+    m_colorizer{std::move(o.m_colorizer)},
     m_headColor{o.m_headColor},
     m_headColorLow{o.m_headColorLow},
     m_head{o.m_head},
     m_numHeadNodes{o.m_numHeadNodes}
 {
-}
-
-auto Tentacle3D::operator==(const Tentacle3D& t) const -> bool
-{
-  const bool result = *m_tentacle == *t.m_tentacle && m_headColor == t.m_headColor &&
-                      m_headColorLow == t.m_headColorLow && m_head == t.m_head &&
-                      m_numHeadNodes == t.m_numHeadNodes &&
-                      m_reverseColorMix == t.m_reverseColorMix &&
-                      m_allowOverexposed == t.m_allowOverexposed;
-
-  if (result)
-  {
-    if (typeid(*m_colorizer) != typeid(*t.m_colorizer))
-    {
-      logInfo("Tentacle3D colorizer not of same type");
-      return false;
-    }
-    /**
-    const TentacleColorMapColorizer* c1 =
-        dynamic_cast<const TentacleColorMapColorizer*>(colorizer.get());
-    if (c1 == nullptr)
-    {
-      continue;
-    }
-    const TentacleColorMapColorizer* c2 =
-        dynamic_cast<const TentacleColorMapColorizer*>(t.colorizer.get());
-    if (c2 == nullptr)
-    {
-      logInfo("Tentacle3D colorizer not of same type");
-      return false;
-    }
-    if (*c1 != *c2)
-    {
-      logInfo("Tentacle3D colorizer not the same");
-      return false;
-    }
-    **/
-  }
-
-  if (!result)
-  {
-    logInfo("Tentacle3D result == {}", result);
-    logInfo("*tentacle == *t.tentacle = {}", *m_tentacle == *t.m_tentacle);
-    //    logInfo("*colorizer == *t.colorizer = {}", *colorizer == *t.colorizer);
-    logInfo("headColor = {}, t.headColor = {}", m_headColor.Rgba(), t.m_headColor.Rgba());
-    logInfo("headColorLow = {}, t.headColorLow = {}", m_headColorLow.Rgba(),
-            t.m_headColorLow.Rgba());
-    logInfo("head == t.head = {}", m_head == t.m_head);
-    logInfo("reverseColorMix = {}, t.reverseColorMix = {}", m_reverseColorMix, t.m_reverseColorMix);
-    logInfo("allowOverexposed = {}, t.allowOverexposed = {}", m_allowOverexposed,
-            t.m_allowOverexposed);
-  }
-
-  return result;
 }
 
 auto Tentacle3D::GetColor(size_t nodeNum) const -> Pixel
@@ -526,19 +428,6 @@ auto Tentacle3D::GetVertices() const -> std::vector<V3dFlt>
   }
 
   return vec3d;
-}
-
-auto Tentacles3D::operator==(const Tentacles3D& t) const -> bool
-{
-  const bool result = m_tentacles == t.m_tentacles;
-
-  if (!result)
-  {
-    logInfo("Tentacles3D result == {}", result);
-    logInfo("tentacles == t.tentacles = {}", tentacles == t.tentacles);
-  }
-
-  return result;
 }
 
 void Tentacles3D::AddTentacle(Tentacle3D&& t)

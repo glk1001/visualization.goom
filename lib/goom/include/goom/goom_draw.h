@@ -5,7 +5,6 @@
 #include "goom_graphic.h"
 #include "goomutils/parallel_utils.h"
 
-#include <cereal/archives/json.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <vector>
@@ -16,7 +15,6 @@ namespace GOOM
 class GoomDraw
 {
 public:
-  GoomDraw();
   GoomDraw(uint32_t screenWidth, uint32_t screenHeight);
 
   [[nodiscard]] auto GetAllowOverexposed() const -> bool;
@@ -71,25 +69,14 @@ public:
             const std::vector<Pixel>& colors,
             uint8_t thickness) const;
 
-  auto operator==(const GoomDraw&) const -> bool;
-
-  template<class Archive>
-  void serialize(Archive&);
-
 private:
-  uint32_t m_screenWidth;
-  uint32_t m_screenHeight;
+  const uint32_t m_screenWidth;
+  const uint32_t m_screenHeight;
   bool m_allowOverexposed = false;
   float m_buffIntensity = 1.0;
   uint32_t m_intBuffIntensity = channel_limits<uint32_t>::max();
   GOOM::UTILS::Parallel m_parallel{};
 };
-
-template<class Archive>
-void GoomDraw::serialize(Archive& ar)
-{
-  ar(m_screenWidth, m_screenHeight, m_allowOverexposed, m_buffIntensity, m_intBuffIntensity);
-}
 
 inline void GoomDraw::SetPixelRgbNoBlend(PixelBuffer& buff,
                                          const uint32_t x,

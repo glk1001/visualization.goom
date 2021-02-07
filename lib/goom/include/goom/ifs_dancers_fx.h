@@ -7,7 +7,6 @@
 
 #include "goom_visual_fx.h"
 
-#include <cereal/access.hpp>
 #include <memory>
 #include <string>
 
@@ -33,7 +32,7 @@ public:
     sineMapColors,
   };
 
-  IfsDancersFx() noexcept;
+  IfsDancersFx() noexcept = delete;
   explicit IfsDancersFx(const std::shared_ptr<const PluginInfo>&) noexcept;
   ~IfsDancersFx() noexcept override;
   IfsDancersFx(const IfsDancersFx&) noexcept = delete;
@@ -65,16 +64,10 @@ public:
   void Log(const StatsLogValueFunc& l) const override;
   void Finish() override;
 
-  auto operator==(const IfsDancersFx& i) const -> bool;
-
 private:
   bool m_enabled = true;
   class IfsDancersFxImpl;
-  std::unique_ptr<IfsDancersFxImpl> m_fxImpl;
-
-  friend class cereal::access;
-  template<class Archive>
-  void serialize(Archive&);
+  const std::unique_ptr<IfsDancersFxImpl> m_fxImpl;
 };
 
 } // namespace GOOM

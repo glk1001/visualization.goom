@@ -1,34 +1,12 @@
 #include "goomutils/mathutils.h"
 
 #include <array>
-#include <cereal/types/memory.hpp>
 #include <cmath>
 #include <format>
 #include <memory>
 #include <stdexcept>
 #include <tuple>
 #include <vector>
-
-// NOTE: Cereal is not happy with these calls inside the 'goom' namespace.
-//   But they work OK here.
-CEREAL_REGISTER_TYPE(GOOM::UTILS::SineWaveMultiplier)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::UTILS::ISequenceFunction,
-                                     GOOM::UTILS::SineWaveMultiplier)
-
-CEREAL_REGISTER_TYPE(GOOM::UTILS::FlatDampingFunction)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::UTILS::IDampingFunction,
-                                     GOOM::UTILS::FlatDampingFunction)
-
-CEREAL_REGISTER_TYPE(GOOM::UTILS::ExpDampingFunction)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::UTILS::IDampingFunction, GOOM::UTILS::ExpDampingFunction)
-
-CEREAL_REGISTER_TYPE(GOOM::UTILS::LinearDampingFunction)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::UTILS::IDampingFunction,
-                                     GOOM::UTILS::LinearDampingFunction)
-
-CEREAL_REGISTER_TYPE(GOOM::UTILS::PiecewiseDampingFunction)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::UTILS::IDampingFunction,
-                                     GOOM::UTILS::PiecewiseDampingFunction)
 
 #if __cplusplus <= 201402L
 namespace GOOM
@@ -172,13 +150,6 @@ SineWaveMultiplier::SineWaveMultiplier(const float freq,
     m_piStepFrac{1.0 / 16.0},
     m_x{x0}
 {
-}
-
-auto SineWaveMultiplier::operator==(const SineWaveMultiplier& s) const -> bool
-{
-  return true;
-  return m_rangeMapper == s.m_rangeMapper && m_frequency == s.m_frequency && m_lower == s.m_lower &&
-         m_upper == s.m_upper && m_piStepFrac == s.m_piStepFrac && m_x == s.m_x;
 }
 
 auto SineWaveMultiplier::GetNext() -> float

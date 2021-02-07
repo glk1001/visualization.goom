@@ -12,8 +12,6 @@
 
 #undef NDEBUG
 #include <cassert>
-#include <cereal/archives/json.hpp>
-#include <cereal/types/memory.hpp>
 #include <cmath>
 #include <cstdint>
 #include <memory>
@@ -30,7 +28,6 @@ using namespace GOOM::UTILS;
 class LinesFx::LinesImpl
 {
 public:
-  LinesImpl() noexcept;
   ~LinesImpl() noexcept = default;
   // construit un effet de line (une ligne horitontale pour commencer)
   LinesImpl(std::shared_ptr<const PluginInfo> goomInfo,
@@ -61,11 +58,9 @@ public:
                  PixelBuffer& prevBuff,
                  PixelBuffer& currentBuff);
 
-  auto operator==(const LinesImpl& l) const -> bool;
-
 private:
-  std::shared_ptr<const PluginInfo> m_goomInfo{};
-  GoomDraw m_draw{};
+  const std::shared_ptr<const PluginInfo> m_goomInfo;
+  GoomDraw m_draw;
   RandomColorMaps m_colorMaps{};
 
   struct LinePoint
@@ -96,17 +91,7 @@ private:
   Pixel m_color2{};
 
   void MoveSrceLineCloserToDest();
-
-  friend class cereal::access;
-  template<class Archive>
-  void save(Archive& ar) const;
-  template<class Archive>
-  void load(Archive& ar);
 };
-
-LinesFx::LinesFx() noexcept : m_fxImpl{new LinesImpl{}}
-{
-}
 
 LinesFx::LinesFx(const std::shared_ptr<const PluginInfo>& info,
                  const LineType srceLineType,
@@ -121,11 +106,6 @@ LinesFx::LinesFx(const std::shared_ptr<const PluginInfo>& info,
 }
 
 LinesFx::~LinesFx() noexcept = default;
-
-auto LinesFx::operator==(const LinesFx& l) const -> bool
-{
-  return m_fxImpl->operator==(*l.m_fxImpl);
-}
 
 auto LinesFx::GetResourcesDirectory() const -> const std::string&
 {
@@ -170,55 +150,6 @@ void LinesFx::DrawLines(const std::vector<int16_t>& soundData,
 {
   m_fxImpl->DrawLines(soundData, prevBuff, currentBuff);
 }
-
-template<class Archive>
-void LinesFx::serialize(Archive& ar)
-{
-  ar(CEREAL_NVP(m_enabled), CEREAL_NVP(m_fxImpl));
-}
-
-// Need to explicitly instantiate template functions for serialization.
-template void LinesFx::serialize<cereal::JSONOutputArchive>(cereal::JSONOutputArchive&);
-template void LinesFx::serialize<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
-
-template void LinesFx::LinesImpl::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive&) const;
-template void LinesFx::LinesImpl::load<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
-
-template<class Archive>
-void LinesFx::LinesImpl::save(Archive& ar) const
-{
-  ar(CEREAL_NVP(m_goomInfo), CEREAL_NVP(m_draw), CEREAL_NVP(m_power), CEREAL_NVP(m_powinc),
-     CEREAL_NVP(m_destLineType), CEREAL_NVP(m_param), CEREAL_NVP(m_newAmplitude),
-     CEREAL_NVP(m_amplitude), CEREAL_NVP(m_color1), CEREAL_NVP(m_color2));
-}
-
-template<class Archive>
-void LinesFx::LinesImpl::load(Archive& ar)
-{
-  ar(CEREAL_NVP(m_goomInfo), CEREAL_NVP(m_draw), CEREAL_NVP(m_power), CEREAL_NVP(m_powinc),
-     CEREAL_NVP(m_destLineType), CEREAL_NVP(m_param), CEREAL_NVP(m_newAmplitude),
-     CEREAL_NVP(m_amplitude), CEREAL_NVP(m_color1), CEREAL_NVP(m_color2));
-}
-
-auto LinesFx::LinesImpl::operator==(const LinesImpl& l) const -> bool
-{
-  if (m_goomInfo == nullptr && l.m_goomInfo != nullptr)
-  {
-    return false;
-  }
-  if (m_goomInfo != nullptr && l.m_goomInfo == nullptr)
-  {
-    return false;
-  }
-
-  return ((m_goomInfo == nullptr && l.m_goomInfo == nullptr) || (*m_goomInfo == *l.m_goomInfo)) &&
-         m_draw == l.m_draw && m_power == l.m_power && m_powinc == l.m_powinc &&
-         m_destLineType == l.m_destLineType && m_param == l.m_param &&
-         m_newAmplitude == l.m_newAmplitude && m_amplitude == l.m_amplitude &&
-         m_color1 == l.m_color1 && m_color2 == l.m_color2;
-}
-
-LinesFx::LinesImpl::LinesImpl() noexcept = default;
 
 LinesFx::LinesImpl::LinesImpl(std::shared_ptr<const PluginInfo> info,
                               const LineType srceLineType,

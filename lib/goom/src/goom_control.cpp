@@ -33,10 +33,6 @@
 #include "text_draw.h"
 
 #include <array>
-#include <cereal/archives/json.hpp>
-#include <cereal/types/memory.hpp>
-#include <cereal/types/unordered_set.hpp>
-#include <cereal/types/vector.hpp>
 #include <cmath>
 #include <cstdint>
 #if __cplusplus > 201402L
@@ -51,9 +47,6 @@
 #include <variant>
 #endif
 #include <vector>
-
-CEREAL_REGISTER_TYPE(GOOM::WritablePluginInfo)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(GOOM::PluginInfo, GOOM::WritablePluginInfo)
 
 // #define SHOW_STATE_TEXT_ON_SCREEN
 
@@ -562,18 +555,6 @@ struct GoomMessage
   std::string message;
   uint32_t numberOfLinesInMessage = 0;
   uint32_t affiche = 0;
-
-#if __cplusplus <= 201402L
-  auto operator==(const GoomMessage&) const -> bool { return false; };
-#else
-  auto operator==(const GoomMessage&) const -> bool = default;
-#endif
-
-  template<class Archive>
-  void serialize(Archive& ar)
-  {
-    ar(CEREAL_NVP(message), CEREAL_NVP(numberOfLinesInMessage), CEREAL_NVP(affiche));
-  }
 };
 
 struct GoomVisualFx
@@ -590,16 +571,6 @@ struct GoomVisualFx
   std::shared_ptr<ImageFx> image_fx{};
 
   std::vector<std::shared_ptr<IVisualFx>> list{};
-
-  auto operator==(const GoomVisualFx& f) const -> bool;
-
-  template<class Archive>
-  void serialize(Archive& ar)
-  {
-    ar(CEREAL_NVP(zoomFilter_fx), CEREAL_NVP(ifs_fx), CEREAL_NVP(star_fx), CEREAL_NVP(convolve_fx),
-       CEREAL_NVP(tentacles_fx), CEREAL_NVP(goomDots_fx),
-       /*CEREAL_NVP(image_fx),*/ CEREAL_NVP(list));
-  }
 };
 
 GoomVisualFx::GoomVisualFx(Parallel& p, const std::shared_ptr<const PluginInfo>& goomInfo) noexcept
@@ -622,41 +593,6 @@ GoomVisualFx::GoomVisualFx(Parallel& p, const std::shared_ptr<const PluginInfo>&
     }
 // clang-format on
 {
-}
-
-auto GoomVisualFx::operator==(const GoomVisualFx& f) const -> bool
-{
-  bool result = *convolve_fx == *f.convolve_fx && *zoomFilter_fx == *f.zoomFilter_fx &&
-                *star_fx == *f.star_fx && *goomDots_fx == *f.goomDots_fx && *ifs_fx == *f.ifs_fx &&
-                *tentacles_fx == *f.tentacles_fx && *image_fx == *f.image_fx;
-
-  if (!result)
-  {
-    logDebug("result == {}", result);
-    logDebug("convolve_fx == f.convolve_fx = {}", *convolve_fx == *f.convolve_fx);
-    logDebug("zoomFilter_fx == f.zoomFilter_fx = {}", *zoomFilter_fx == *f.zoomFilter_fx);
-    logDebug("star_fx == f.star_fx = {}", *star_fx == *f.star_fx);
-    logDebug("goomDots_fx == f.goomDots_fx = {}", *goomDots_fx == *f.goomDots_fx);
-    logDebug("ifs_fx == f.ifs_fx = {}", *ifs_fx == *f.ifs_fx);
-    logDebug("tentacles_fx == f.tentacles_fx = {}", *tentacles_fx == *f.tentacles_fx);
-    logDebug("image_fx == f.image_fx = {}", *image_fx == *f.image_fx);
-    return result;
-  }
-
-  for (size_t i = 0; i < list.size(); i++)
-  {
-    if (typeid(*list[i]) != typeid(*f.list[i]))
-    {
-      logDebug("lists not same type at index {}.", i);
-      return false;
-    }
-    if (list[i]->GetFxName() != f.list[i]->GetFxName())
-    {
-      logDebug("list {} not same name as list {}.", list[i]->GetFxName(), f.list[i]->GetFxName());
-      return false;
-    }
-  }
-  return true;
 }
 
 struct GoomData
@@ -682,34 +618,11 @@ struct GoomData
   static constexpr int TIME_TO_FADE_TITLE_DISPLAY = 50;
   int timeOfTitleDisplay = 0;
   std::string title{};
-
-  auto operator==(const GoomData& d) const -> bool;
-
-  template<class Archive>
-  void serialize(Archive& ar)
-  {
-    ar(CEREAL_NVP(lockVar), CEREAL_NVP(stopLines), CEREAL_NVP(cyclesSinceLastChange),
-       CEREAL_NVP(drawLinesDuration), CEREAL_NVP(lineMode), CEREAL_NVP(switchMult),
-       CEREAL_NVP(switchIncr), CEREAL_NVP(stateSelectionBlocker), CEREAL_NVP(previousZoomSpeed),
-       CEREAL_NVP(timeOfTitleDisplay), CEREAL_NVP(title), CEREAL_NVP(zoomFilterData));
-  }
 };
-
-auto GoomData::operator==(const GoomData& d) const -> bool
-{
-  return lockVar == d.lockVar && stopLines == d.stopLines &&
-         cyclesSinceLastChange == d.cyclesSinceLastChange &&
-         drawLinesDuration == d.drawLinesDuration && lineMode == d.lineMode &&
-         switchMult == d.switchMult && switchIncr == d.switchIncr &&
-         stateSelectionBlocker == d.stateSelectionBlocker &&
-         previousZoomSpeed == d.previousZoomSpeed && timeOfTitleDisplay == d.timeOfTitleDisplay &&
-         title == d.title && zoomFilterData == d.zoomFilterData;
-}
 
 class GoomControl::GoomControlImpl
 {
 public:
-  GoomControlImpl() noexcept;
   GoomControlImpl(uint32_t screenWidth, uint32_t screenHeight) noexcept;
   ~GoomControlImpl() noexcept;
   GoomControlImpl(const GoomControlImpl&) noexcept = delete;
@@ -742,7 +655,7 @@ public:
 
 private:
   Parallel m_parallel;
-  std::shared_ptr<WritablePluginInfo> m_goomInfo{};
+  const std::shared_ptr<WritablePluginInfo> m_goomInfo;
   GoomImageBuffers m_imageBuffers{};
   GoomVisualFx m_visualFx{};
   GoomStats m_stats{};
@@ -761,8 +674,8 @@ private:
   std::string m_resourcesDirectory{};
 
   // Line Fx
-  LinesFx m_gmline1{};
-  LinesFx m_gmline2{};
+  LinesFx m_gmline1;
+  LinesFx m_gmline2;
 
   [[nodiscard]] auto ChangeFilterModeEventHappens() -> bool;
   void SetNextFilterMode();
@@ -831,12 +744,6 @@ private:
 
   void UpdateMessage(const char* message);
   void DrawText(const std::string&, int xPos, int yPos, float spacing, PixelBuffer&);
-
-  friend class cereal::access;
-  template<class Archive>
-  void save(Archive& ar) const;
-  template<class Archive>
-  void load(Archive& ar);
 };
 
 auto GoomControl::GetRandSeed() -> uint64_t
@@ -850,10 +757,6 @@ void GoomControl::SetRandSeed(const uint64_t seed)
   GOOM::UTILS::SetRandSeed(seed);
 }
 
-GoomControl::GoomControl() noexcept : m_controller{new GoomControlImpl{}}
-{
-}
-
 GoomControl::GoomControl(const uint32_t resx, const uint32_t resy) noexcept
   : m_controller{new GoomControlImpl{resx, resy}}
 {
@@ -861,23 +764,12 @@ GoomControl::GoomControl(const uint32_t resx, const uint32_t resy) noexcept
 
 GoomControl::~GoomControl() noexcept = default;
 
-auto GoomControl::operator==(const GoomControl& c) const -> bool
+void GoomControl::SaveState([[maybe_unused]] std::ostream& f) const
 {
-  return m_controller->operator==(*c.m_controller);
 }
 
-void GoomControl::SaveState(std::ostream& f) const
+void GoomControl::RestoreState([[maybe_unused]] std::istream& f)
 {
-  cereal::JSONOutputArchive archive(f);
-  archive(*this);
-}
-
-void GoomControl::RestoreState(std::istream& f)
-{
-  PixelBuffer& outputBuffer = m_controller->GetScreenBuffer();
-  cereal::JSONInputArchive archive(f);
-  archive(*this);
-  m_controller->SetScreenBuffer(outputBuffer);
 }
 
 auto GoomControl::GetResourcesDirectory() const -> const std::string&
@@ -914,83 +806,9 @@ void GoomControl::Update(const AudioSamples& soundData,
   m_controller->Update(soundData, forceMode, fps, songTitle, message);
 }
 
-template<class Archive>
-void GoomControl::serialize(Archive& ar)
-{
-  ar(CEREAL_NVP(m_controller));
-}
-
-// Need to explicitly instantiate template functions for serialization.
-template void GoomControl::serialize<cereal::JSONOutputArchive>(cereal::JSONOutputArchive&);
-template void GoomControl::serialize<cereal::JSONInputArchive>(cereal::JSONInputArchive&);
-
-template void GoomControl::GoomControlImpl::save<cereal::JSONOutputArchive>(
-    cereal::JSONOutputArchive&) const;
-template void GoomControl::GoomControlImpl::load<cereal::JSONInputArchive>(
-    cereal::JSONInputArchive&);
-
-template<class Archive>
-void GoomControl::GoomControlImpl::save(Archive& ar) const
-{
-  ar(CEREAL_NVP(m_goomInfo), CEREAL_NVP(m_timeInState), CEREAL_NVP(m_cycle), CEREAL_NVP(m_visualFx),
-     CEREAL_NVP(m_curGDrawables), CEREAL_NVP(m_messageData), CEREAL_NVP(m_goomData),
-     CEREAL_NVP(m_gmline1), CEREAL_NVP(m_gmline2));
-}
-
-template<class Archive>
-void GoomControl::GoomControlImpl::load(Archive& ar)
-{
-  ar(CEREAL_NVP(m_goomInfo), CEREAL_NVP(m_timeInState), CEREAL_NVP(m_cycle), CEREAL_NVP(m_visualFx),
-     CEREAL_NVP(m_curGDrawables), CEREAL_NVP(m_messageData), CEREAL_NVP(m_goomData),
-     CEREAL_NVP(m_gmline1), CEREAL_NVP(m_gmline2));
-
-  m_imageBuffers.SetResolution(m_goomInfo->GetScreenInfo().width,
-                               m_goomInfo->GetScreenInfo().height);
-}
-
-auto GoomControl::GoomControlImpl::operator==(const GoomControlImpl& c) const -> bool
-{
-  if (m_goomInfo == nullptr && c.m_goomInfo != nullptr)
-  {
-    return false;
-  }
-  if (m_goomInfo != nullptr && c.m_goomInfo == nullptr)
-  {
-    return false;
-  }
-
-  bool result =
-      ((m_goomInfo == nullptr && c.m_goomInfo == nullptr) || (*m_goomInfo == *c.m_goomInfo)) &&
-      m_timeInState == c.m_timeInState && m_cycle == c.m_cycle && m_visualFx == c.m_visualFx &&
-      m_curGDrawables == c.m_curGDrawables && m_messageData == c.m_messageData &&
-      m_goomData == c.m_goomData && m_gmline1 == c.m_gmline1 && m_gmline2 == c.m_gmline2;
-
-  if (!result)
-  {
-    logDebug("result == {}", result);
-    logDebug("goomInfo->getScreenInfo().width = {}", m_goomInfo->GetScreenInfo().width);
-    logDebug("c.goomInfo->getScreenInfo().width = {}", c.m_goomInfo->GetScreenInfo().width);
-    logDebug("goomInfo->getScreenInfo().height = {}", m_goomInfo->GetScreenInfo().height);
-    logDebug("c.goomInfo->getScreenInfo().height = {}", c.m_goomInfo->GetScreenInfo().height);
-    logDebug("timeInState = {}, c.timeInState = {}", m_timeInState, c.m_timeInState);
-    logDebug("cycle = {}, c.cycle = {}", m_cycle, c.m_cycle);
-    logDebug("visualFx == c.visualFx = {}", m_visualFx == c.m_visualFx);
-    logDebug("curGDrawables == c.curGDrawables = {}", m_curGDrawables == c.m_curGDrawables);
-    logDebug("messageData == c.messageData = {}", m_messageData == c.m_messageData);
-    logDebug("goomData == c.goomData = {}", m_goomData == c.m_goomData);
-    logDebug("gmline1 == c.gmline1 = {}", m_gmline1 == c.m_gmline1);
-    logDebug("gmline2 == c.gmline2 = {}", m_gmline2 == c.m_gmline2);
-  }
-  return result;
-}
-
 static const Pixel RED_LINE = GetRedLineColor();
 static const Pixel GREEN_LINE = GetGreenLineColor();
 static const Pixel BLACK_LINE = GetBlackLineColor();
-
-GoomControl::GoomControlImpl::GoomControlImpl() noexcept : m_parallel{}
-{
-}
 
 GoomControl::GoomControlImpl::GoomControlImpl(const uint32_t screenWidth,
                                               const uint32_t screenHeight) noexcept

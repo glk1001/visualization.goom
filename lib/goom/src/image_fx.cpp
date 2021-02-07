@@ -45,13 +45,11 @@ public:
 
   void Apply(PixelBuffer& currentBuff);
 
-  auto operator==(const ImageFxImpl& i) const -> bool;
-
 private:
   std::shared_ptr<const PluginInfo> m_goomInfo{};
   std::string m_resourcesDirectory{};
   FXBuffSettings m_buffSettings{};
-  GoomDraw m_draw{};
+  GoomDraw m_draw;
   ImageBitmap m_image{};
   GammaCorrection m_gammaCorrect{2.0, 0.01};
   auto GetNextImageCentre() -> V2dInt;
@@ -67,11 +65,6 @@ ImageFx::ImageFx(const std::shared_ptr<const PluginInfo>& info) noexcept
 }
 
 ImageFx::~ImageFx() noexcept = default;
-
-auto ImageFx::operator==(const ImageFx& i) const -> bool
-{
-  return m_fxImpl->operator==(*i.m_fxImpl);
-}
 
 auto ImageFx::GetResourcesDirectory() const -> const std::string&
 {
@@ -115,16 +108,9 @@ void ImageFx::Apply(PixelBuffer& currentBuff)
   m_fxImpl->Apply(currentBuff);
 }
 
-ImageFx::ImageFxImpl::ImageFxImpl() noexcept = default;
-
 ImageFx::ImageFxImpl::ImageFxImpl(const std::shared_ptr<const PluginInfo>& info) noexcept
   : m_goomInfo(info), m_draw{m_goomInfo->GetScreenInfo().width, m_goomInfo->GetScreenInfo().height}
 {
-}
-
-auto ImageFx::ImageFxImpl::operator==(const ImageFx::ImageFxImpl& i) const -> bool
-{
-  return true;
 }
 
 void ImageFx::ImageFxImpl::Start()

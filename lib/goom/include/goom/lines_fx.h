@@ -10,7 +10,6 @@
 #include "goom_config.h"
 #include "goom_graphic.h"
 
-#include <cereal/access.hpp>
 #include <cstddef>
 #include <istream>
 #include <memory>
@@ -39,7 +38,7 @@ public:
   };
   static constexpr size_t NUM_LINE_TYPES = static_cast<size_t>(LineType::_size);
 
-  LinesFx() noexcept;
+  LinesFx() noexcept = delete;
 
   // construit un effet de line (une ligne horitontale pour commencer)
   LinesFx(const std::shared_ptr<const PluginInfo>&,
@@ -76,16 +75,10 @@ public:
 
   [[nodiscard]] auto GetFxName() const -> std::string;
 
-  auto operator==(const LinesFx& l) const -> bool;
-
 private:
   bool m_enabled = true;
   class LinesImpl;
-  std::unique_ptr<LinesImpl> m_fxImpl;
-
-  friend class cereal::access;
-  template<class Archive>
-  void serialize(Archive&);
+  const std::unique_ptr<LinesImpl> m_fxImpl;
 };
 
 } // namespace GOOM
