@@ -192,7 +192,8 @@ private:
                                       int32_t y2,
                                       uint32_t size,
                                       const std::vector<Pixel>& colors)>;
-  auto GetDrawFunc() -> DrawFunc;
+  const std::map<DrawMode, const DrawFunc> m_drawFuncs{};
+  auto GetDrawFunc() const -> DrawFunc;
   void DrawParticle(PixelBuffer& currentBuff,
                     PixelBuffer& nextBuff,
                     const Star& star,
@@ -354,7 +355,39 @@ FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl() noexcept = default;
 
 FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl(std::shared_ptr<const PluginInfo> info) noexcept
   : m_goomInfo{std::move(info)},
-    m_draw{m_goomInfo->GetScreenInfo().width, m_goomInfo->GetScreenInfo().height}
+    m_draw{m_goomInfo->GetScreenInfo().width, m_goomInfo->GetScreenInfo().height},
+    m_drawFuncs{{DrawMode::CIRCLES,
+                 [&](const std::vector<PixelBuffer*>& buffs,
+                     const int32_t x1,
+                     const int32_t y1,
+                     const int32_t x2,
+                     const int32_t y2,
+                     const uint32_t size,
+                     const std::vector<Pixel>& colors) {
+                   DrawParticleCircle(buffs, x1, y1, x2, y2, size, colors);
+                 }},
+                {DrawMode::LINES,
+                 [&](const std::vector<PixelBuffer*>& buffs,
+                     const int32_t x1,
+                     const int32_t y1,
+                     const int32_t x2,
+                     const int32_t y2,
+                     const uint32_t size,
+                     const std::vector<Pixel>& colors) {
+                   DrawParticleLine(buffs, x1, y1, x2, y2, size, colors);
+                 }},
+                {
+                    DrawMode::DOTS,
+                    [&](const std::vector<PixelBuffer*>& buffs,
+                        const int32_t x1,
+                        const int32_t y1,
+                        const int32_t x2,
+                        const int32_t y2,
+                        const uint32_t size,
+                        const std::vector<Pixel>& colors) {
+                      DrawParticleDot(buffs, x1, y1, x2, y2, size, colors);
+                    },
+                }}
 {
   m_stars.reserve(MAX_NUM_STARS);
 
@@ -484,35 +517,14 @@ void FlyingStarsFx::FlyingStarsImpl::ChangeDrawMode()
 }
 
 
-inline auto FlyingStarsFx::FlyingStarsImpl::GetDrawFunc() -> DrawFunc
+inline auto FlyingStarsFx::FlyingStarsImpl::GetDrawFunc() const -> DrawFunc
 {
-  static std::map<DrawMode, DrawFunc> s_drawFuncs{
-      {DrawMode::CIRCLES,
-       [&](const std::vector<PixelBuffer*>& buffs, const int32_t x1, const int32_t y1,
-           const int32_t x2, const int32_t y2, const uint32_t size,
-           const std::vector<Pixel>& colors) {
-         DrawParticleCircle(buffs, x1, y1, x2, y2, size, colors);
-       }},
-      {DrawMode::LINES,
-       [&](const std::vector<PixelBuffer*>& buffs, const int32_t x1, const int32_t y1,
-           const int32_t x2, const int32_t y2, const uint32_t size,
-           const std::vector<Pixel>& colors) {
-         DrawParticleLine(buffs, x1, y1, x2, y2, size, colors);
-       }},
-      {
-          DrawMode::DOTS,
-          [&](const std::vector<PixelBuffer*>& buffs, const int32_t x1, const int32_t y1,
-              const int32_t x2, const int32_t y2, const uint32_t size,
-              const std::vector<Pixel>& colors) {
-            DrawParticleDot(buffs, x1, y1, x2, y2, size, colors);
-          },
-      }};
-
   if (m_drawMode != DrawMode::CIRCLES_AND_LINES)
   {
-    return s_drawFuncs[m_drawMode];
+    return m_drawFuncs.at(m_drawMode);
   }
-  return ProbabilityOfMInN(1, 2) ? s_drawFuncs[DrawMode::CIRCLES] : s_drawFuncs[DrawMode::LINES];
+  return ProbabilityOfMInN(1, 2) ? m_drawFuncs.at(DrawMode::CIRCLES)
+                                 : m_drawFuncs.at(DrawMode::LINES);
 }
 
 void FlyingStarsFx::FlyingStarsImpl::DrawParticle(PixelBuffer& currentBuff,

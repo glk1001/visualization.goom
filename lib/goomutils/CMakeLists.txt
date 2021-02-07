@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.13)
 
 project(goomutils LANGUAGES CXX)
 
+##set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+#set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
+#set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -fsanitize=address")
+
 if(WIN32)
     add_definitions(-D_WIN32PC)
 endif()
