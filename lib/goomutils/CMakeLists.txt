@@ -25,8 +25,6 @@ add_library( ${PROJECT_NAME}
         src/random_colormaps_manager.cpp
 )
 
-# add_sanitizers(${PROJECT_NAME})
-
 target_include_directories( ${PROJECT_NAME}
     PUBLIC
         ${LIBS_DIR}/goom/include

@@ -5,11 +5,9 @@ project(visualization.goom)
 set(CPP_STANDARD 14)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR})
-# set(CMAKE_MODULE_PATH "/home/greg/Prj/github/sanitizers-cmake/cmake" ${CMAKE_MODULE_PATH})
 
 find_package(Kodi REQUIRED)
 find_package(glm REQUIRED)
-# find_package(Sanitizers)
 
 #find_package(Freetype REQUIRED)
 set(FREETYPE2_DIR "/home/greg/Prj/github/freetype2")
@@ -33,7 +31,11 @@ endif()
 set(CMAKE_CXX_STANDARD ${CPP_STANDARD})
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_COMMON_C_WARNINGS -Wall -Wextra)
+set(CMAKE_COMMON_CXX_WARNINGS -Wall -Wextra -Weffc++ -Wsign-conversion -pedantic)
+add_compile_options(${CMAKE_COMMON_C_WARNINGS})
+add_compile_options(${CMAKE_COMMON_CXX_WARNINGS})
+
+message(STATUS "Main C++ standard = \"${CMAKE_CXX_STANDARD}\".")
 
 set(LIBS_DIR ${CMAKE_SOURCE_DIR}/lib)
 add_subdirectory(lib)
@@ -61,11 +63,10 @@ endif()
 
 list(APPEND DEPLIBS goom goomutils vivid)
 
-add_compile_options(${CMAKE_COMMON_C_WARNINGS})
-
 message(STATUS "C Compile features = \"${COMMON_C_COMPILE_FEATURES}\".")
+message(STATUS "C++ Compile features = \"${COMMON_CXX_COMPILE_FEATURES}\".")
 message(STATUS "C warnings = \"${CMAKE_COMMON_C_WARNINGS}\".")
-message(STATUS "Main C++ standard = \"${CMAKE_CXX_STANDARD}\".")
+message(STATUS "C++ warnings = \"${CMAKE_COMMON_CXX_WARNINGS}\".")
 message(STATUS "C++ standard required = \"${CMAKE_CXX_STANDARD_REQUIRED}\".")
 message(STATUS "C++ extensions = \"${CMAKE_CXX_EXTENSIONS}\".")
 

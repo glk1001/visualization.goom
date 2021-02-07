@@ -2,7 +2,7 @@
 #include <iostream>
 
 
-int main( int, char* argv[] )
+auto main( [[maybe_unused]]int argc, [[maybe_unused]]char* argv[] ) -> int
 {
     using namespace vivid;
 
