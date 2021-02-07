@@ -3,7 +3,12 @@
 #include <sstream>
 #include <iostream>
 
+#if __cplusplus <= 201402L
+namespace vivid {
+namespace rgb32 {
+#else
 namespace vivid::rgb32 {
+#endif
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -61,4 +66,9 @@ uint32_t fromHex( const std::string& hexStr )
 }
 
 
+#if __cplusplus <= 201402L
+} // namespace rgb32
+} // namespace vivid
+#else
 }   //  ::vivid::rgb32
+#endif

@@ -3,7 +3,12 @@
 #include "vivid/profiles.h"
 #include "vivid/data.h"
 
+#if __cplusplus <= 201402L
+namespace vivid {
+namespace srgb {
+#else
 namespace vivid::srgb {
+#endif
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -52,4 +57,9 @@ srgb_t fromName( const std::string& name ) {
 
 
 
+#if __cplusplus <= 201402L
+} // namespace srgb
+} // namespace vivid
+#else
 }   //  ::vivid::srgb
+#endif

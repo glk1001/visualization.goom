@@ -4,7 +4,12 @@
 #include <glm/gtc/epsilon.hpp>
 #include <glm/gtc/constants.hpp>
 
+#if __cplusplus <= 201402L
+namespace vivid {
+namespace hsv {
+#else
 namespace vivid::hsv {
+#endif
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -49,5 +54,9 @@ hsv_t fromHsl( const hsl_t& hsl ) {
 }
 
 
+#if __cplusplus <= 201402L
+} // namespace hsv
+} // namespace vivid
+#else
 }   //  ::vivid::hsv
-
+#endif

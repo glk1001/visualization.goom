@@ -3,7 +3,12 @@
 #include "vivid/types.h" 
 #include <vector> 
 
-namespace vivid::data { 
+#if __cplusplus <= 201402L
+namespace vivid {
+namespace data {
+#else
+namespace vivid::data {
+#endif
 
 
 static const std::vector<srgb_t> rainbow = 
@@ -109,7 +114,12 @@ static const std::vector<srgb_t> rainbow =
     { 1.f, 0.08f, 0.f },
     { 1.f, 0.04f, 0.f },
     { 1.f, 0.f, 0.f }
-}; 
+};
 
 
-}  //  ::vivid::data
+#if __cplusplus <= 201402L
+} // namespace data
+} // namespace vivid
+#else
+}   //  ::vivid::data
+#endif

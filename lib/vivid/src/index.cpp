@@ -3,7 +3,12 @@
 #include <glm/common.hpp>
 #include <algorithm>
 
+#if __cplusplus <= 201402L
+namespace vivid {
+namespace index {
+#else
 namespace vivid::index {
+#endif
 
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -75,4 +80,9 @@ std::optional<uint8_t> fromName( const std::string& name )
 #endif
 
 
+#if __cplusplus <= 201402L
+} // namespace index
+} // namespace vivid
+#else
 }   //  ::vivid::index
+#endif

@@ -5,7 +5,12 @@
 #include <array>
 #include <unordered_map>
 
+#if __cplusplus <= 201402L
+namespace vivid {
+namespace data {
+#else
 namespace vivid::data {
+#endif
 
 
 struct ColorEntry {
@@ -833,5 +838,9 @@ static const std::array<uint8_t, 256> xterm_grey =
     231, 231, 231, 231, 231, 231, 231, 231
 };
 
-
-}   //  ::vivid::res
+#if __cplusplus <= 201402L
+} // namespace data
+} // namespace vivid
+#else
+}   //  ::vivid::data
+#endif

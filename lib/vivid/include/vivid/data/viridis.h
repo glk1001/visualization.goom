@@ -3,7 +3,12 @@
 #include "vivid/types.h" 
 #include <vector> 
 
-namespace vivid::data { 
+#if __cplusplus <= 201402L
+namespace vivid {
+namespace data {
+#else
+namespace vivid::data {
+#endif
 
 
 static const std::vector<srgb_t> viridis = 
@@ -264,7 +269,12 @@ static const std::vector<srgb_t> viridis =
     { 0.974417f, 0.90359f, 0.130215f },
     { 0.983868f, 0.904867f, 0.136897f },
     { 0.993248f, 0.906157f, 0.143936f }
-}; 
+};
 
 
-}  //  ::vivid::data
+#if __cplusplus <= 201402L
+} // namespace data
+} // namespace vivid
+#else
+}   //  ::vivid::data
+#endif

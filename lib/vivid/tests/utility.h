@@ -11,7 +11,7 @@ inline float randf( const float from = 0.f, const float to = 1.f )
 
     std::uniform_real_distribution<> dist( from, to );
     return dist( mt );
-};
+}
 
 
 inline int randi( const int from = 0, const int to = 255 )
@@ -21,7 +21,7 @@ inline int randi( const int from = 0, const int to = 255 )
 
     std::uniform_int_distribution<> dist( from, to );
     return dist( mt );
-};
+}
 
 
 namespace vivid::rgb {

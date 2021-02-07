@@ -282,7 +282,7 @@ void printColorPresets()
 }
 
 
-}   //  ::vivid::ansi
+}   //  ansi
 
 
-}   //  ::vivid
+}   //  vivid

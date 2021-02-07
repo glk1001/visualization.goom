@@ -3,7 +3,12 @@
 #include <glm/gtc/constants.hpp>
 #include <cmath>
 
+#if __cplusplus <= 201402L
+namespace vivid {
+namespace lch {
+#else
 namespace vivid::lch {
+#endif
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -32,4 +37,9 @@ lch_t fromXyz( const xyz_t& xyz ) {
 }
 
 
-}   //  ::vivid::cielch
+#if __cplusplus <= 201402L
+} // namespace lch
+} // namespace vivid
+#else
+}   //  ::vivid::lch
+#endif

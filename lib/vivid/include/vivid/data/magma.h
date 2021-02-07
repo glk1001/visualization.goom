@@ -3,7 +3,12 @@
 #include "vivid/types.h" 
 #include <vector> 
 
-namespace vivid::data { 
+#if __cplusplus <= 201402L
+namespace vivid {
+namespace data {
+#else
+namespace vivid::data {
+#endif
 
 
 static const std::vector<srgb_t> magma = 
@@ -264,7 +269,12 @@ static const std::vector<srgb_t> magma =
     { 0.987691f, 0.977154f, 0.734536f },
     { 0.987387f, 0.984288f, 0.742002f },
     { 0.987053f, 0.991438f, 0.749504f }
-}; 
+};
 
 
-}  //  ::vivid::data
+#if __cplusplus <= 201402L
+} // namespace data
+} // namespace vivid
+#else
+}   //  ::vivid::data
+#endif

@@ -63,7 +63,7 @@ class ColorMap
 
     private:
 
-        std::vector<srgb_t> stops_;
+        std::vector<srgb_t> stops_{};
 };
 
 
