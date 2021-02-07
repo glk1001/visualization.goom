@@ -135,7 +135,7 @@ public:
     _SIZE // must be last - gives number of enums
   };
 
-  static auto Happens(GoomEvent event) -> bool;
+  auto Happens(GoomEvent event) -> bool;
   auto GetRandomFilterEvent() const -> GoomFilterEvent;
   auto GetRandomLineTypeEvent() const -> LinesFx::LineType;
 
@@ -152,9 +152,10 @@ private:
     uint32_t m;
     uint32_t outOf;
   };
+
   //@formatter:off
   // clang-format off
-  static constexpr std::array<WeightedEvent, NUM_GOOM_EVENTS> WEIGHTED_EVENTS{{
+  const std::array<WeightedEvent, NUM_GOOM_EVENTS> m_weightedEvents{{
     { /*.event = */GoomEvent::CHANGE_FILTER_MODE,                         /*.m = */8, /*.outOf = */ 16 },
     { /*.event = */GoomEvent::CHANGE_FILTER_FROM_AMULET_MODE,             /*.m = */1, /*.outOf = */  5 },
     { /*.event = */GoomEvent::CHANGE_STATE,                               /*.m = */1, /*.outOf = */  2 },
@@ -187,10 +188,7 @@ private:
     { /*.event = */GoomEvent::ALLOW_STRANGE_WAVE_VALUES,                  /*.m = */5, /*.outOf = */ 10 },
   }};
 
-#if __cplusplus <= 201402L
-  static const std::array<std::pair<GoomFilterEvent, size_t>, NUM_GOOM_FILTER_EVENTS> WEIGHTED_FILTER_EVENTS;
-#else
-  static constexpr std::array<std::pair<GoomFilterEvent, size_t>, NUM_GOOM_FILTER_EVENTS> WEIGHTED_FILTER_EVENTS{{
+  const std::array<std::pair<GoomFilterEvent, size_t>, NUM_GOOM_FILTER_EVENTS> m_weightedFilterEvents{{
     { GoomFilterEvent::WAVE_MODE_WITH_HYPER_COS_EFFECT, 3 },
     { GoomFilterEvent::WAVE_MODE,                       3 },
     { GoomFilterEvent::CRYSTAL_BALL_MODE,               2 },
@@ -205,49 +203,18 @@ private:
     { GoomFilterEvent::SPEEDWAY_MODE,                   1 },
     { GoomFilterEvent::NORMAL_MODE,                     2 },
   } };
-#endif
 
-#if __cplusplus <= 201402L
-  static const std::array<std::pair<LinesFx::LineType, size_t>, LinesFx::NUM_LINE_TYPES> WEIGHTED_LINE_EVENTS;
-#else
-  static constexpr
-  std::array<std::pair<LinesFx::LineType, size_t>, LinesFx::NUM_LINE_TYPES> WEIGHTED_LINE_EVENTS{{
+  const std::array<std::pair<LinesFx::LineType, size_t>, LinesFx::NUM_LINE_TYPES> m_weightedLineEvents{{
     { LinesFx::LineType::circle, 10 },
-    { LinesFx::LineType::hline,  2 },
-    { LinesFx::LineType::vline,  2 },
+    { LinesFx::LineType::hline,   2 },
+    { LinesFx::LineType::vline,   2 },
   }};
-#endif
   // clang-format on
   //@formatter:on
+
   const Weights<GoomFilterEvent> m_filterWeights;
   const Weights<LinesFx::LineType> m_lineTypeWeights;
 };
-
-#if __cplusplus <= 201402L
-const std::array<std::pair<LinesFx::LineType, size_t>, LinesFx::NUM_LINE_TYPES>
-    GoomEvents::WEIGHTED_LINE_EVENTS{{
-        {LinesFx::LineType::circle, 10},
-        {LinesFx::LineType::hline, 2},
-        {LinesFx::LineType::vline, 2},
-    }};
-
-const std::array<std::pair<GoomEvents::GoomFilterEvent, size_t>, GoomEvents::NUM_GOOM_FILTER_EVENTS>
-    GoomEvents::WEIGHTED_FILTER_EVENTS{{
-        {GoomFilterEvent::WAVE_MODE_WITH_HYPER_COS_EFFECT, 3},
-        {GoomFilterEvent::WAVE_MODE, 3},
-        {GoomFilterEvent::CRYSTAL_BALL_MODE, 2},
-        {GoomFilterEvent::CRYSTAL_BALL_MODE_WITH_EFFECTS, 2},
-        {GoomFilterEvent::AMULET_MODE, 2},
-        {GoomFilterEvent::WATER_MODE, 0},
-        {GoomFilterEvent::SCRUNCH_MODE, 2},
-        {GoomFilterEvent::SCRUNCH_MODE_WITH_EFFECTS, 2},
-        {GoomFilterEvent::HYPER_COS1_MODE, 3},
-        {GoomFilterEvent::HYPER_COS2_MODE, 2},
-        {GoomFilterEvent::Y_ONLY_MODE, 3},
-        {GoomFilterEvent::SPEEDWAY_MODE, 1},
-        {GoomFilterEvent::NORMAL_MODE, 2},
-    }};
-#endif
 
 using GoomEvent = GoomEvents::GoomEvent;
 using GoomFilterEvent = GoomEvents::GoomFilterEvent;
@@ -900,10 +867,10 @@ inline auto GoomControl::GoomControlImpl::ChangeFilterModeEventHappens() -> bool
       m_states.GetCurrentDrawables().contains(GoomDrawable::TENTACLES))
 #endif
   {
-    return GoomEvents::Happens(GoomEvent::CHANGE_FILTER_FROM_AMULET_MODE);
+    return m_goomEvent.Happens(GoomEvent::CHANGE_FILTER_FROM_AMULET_MODE);
   }
 
-  return GoomEvents::Happens(GoomEvent::CHANGE_FILTER_MODE);
+  return m_goomEvent.Happens(GoomEvent::CHANGE_FILTER_MODE);
 }
 
 void GoomControl::GoomControlImpl::Start()
@@ -1068,12 +1035,12 @@ void GoomControl::GoomControlImpl::ChooseGoomLine(float* param1,
         *amplitude = 0.8F;
         break;
       }
-      if (GoomEvents::Happens(GoomEvent::CHANGE_LINE_CIRCLE_AMPLITUDE))
+      if (m_goomEvent.Happens(GoomEvent::CHANGE_LINE_CIRCLE_AMPLITUDE))
       {
         *param1 = *param2 = 0;
         *amplitude = 3.0F;
       }
-      else if (GoomEvents::Happens(GoomEvent::CHANGE_LINE_CIRCLE_PARAMS))
+      else if (m_goomEvent.Happens(GoomEvent::CHANGE_LINE_CIRCLE_PARAMS))
       {
         *param1 = 0.40F * GetScreenHeight();
         *param2 = 0.22F * GetScreenHeight();
@@ -1084,7 +1051,7 @@ void GoomControl::GoomControlImpl::ChooseGoomLine(float* param1,
       }
       break;
     case LinesFx::LineType::hline:
-      if (GoomEvents::Happens(GoomEvent::CHANGE_H_LINE_PARAMS) || far)
+      if (m_goomEvent.Happens(GoomEvent::CHANGE_H_LINE_PARAMS) || far)
       {
         *param1 = GetScreenHeight() / 7.0F;
         *param2 = 6.0F * GetScreenHeight() / 7.0F;
@@ -1096,7 +1063,7 @@ void GoomControl::GoomControlImpl::ChooseGoomLine(float* param1,
       }
       break;
     case LinesFx::LineType::vline:
-      if (GoomEvents::Happens(GoomEvent::CHANGE_V_LINE_PARAMS) || far)
+      if (m_goomEvent.Happens(GoomEvent::CHANGE_V_LINE_PARAMS) || far)
       {
         *param1 = GetScreenWidth() / 7.0F;
         *param2 = 6.0F * GetScreenWidth() / 7.0F;
@@ -1193,20 +1160,20 @@ void GoomControl::GoomControlImpl::SetNextFilterMode()
       break;
     case GoomFilterEvent::WAVE_MODE_WITH_HYPER_COS_EFFECT:
       m_goomData.zoomFilterData.hypercosEffect =
-          GetHypercosEffect(GoomEvents::Happens(GoomEvent::HYPERCOS_EFFECT_ON_WITH_WAVE_MODE));
+          GetHypercosEffect(m_goomEvent.Happens(GoomEvent::HYPERCOS_EFFECT_ON_WITH_WAVE_MODE));
       [[fallthrough]];
     case GoomFilterEvent::WAVE_MODE:
       m_goomData.zoomFilterData.mode = ZoomFilterMode::waveMode;
       m_goomData.zoomFilterData.reverse = false;
       m_goomData.zoomFilterData.waveEffect =
-          GoomEvents::Happens(GoomEvent::WAVE_EFFECT_ON_WITH_WAVE_MODE);
-      if (GoomEvents::Happens(GoomEvent::CHANGE_VITESSE_WITH_WAVE_MODE))
+          m_goomEvent.Happens(GoomEvent::WAVE_EFFECT_ON_WITH_WAVE_MODE);
+      if (m_goomEvent.Happens(GoomEvent::CHANGE_VITESSE_WITH_WAVE_MODE))
       {
         m_goomData.zoomFilterData.vitesse = (m_goomData.zoomFilterData.vitesse + 127) >> 1;
       }
       m_goomData.zoomFilterData.waveEffectType =
           static_cast<ZoomFilterData::WaveEffect>(GetRandInRange(0, 2));
-      if (GoomEvents::Happens(GoomEvent::ALLOW_STRANGE_WAVE_VALUES))
+      if (m_goomEvent.Happens(GoomEvent::ALLOW_STRANGE_WAVE_VALUES))
       {
         // BUG HERE - wrong ranges - BUT GIVES GOOD AFFECT
         m_goomData.zoomFilterData.waveAmplitude = GetRandInRange(
@@ -1230,9 +1197,9 @@ void GoomControl::GoomControlImpl::SetNextFilterMode()
     case GoomFilterEvent::CRYSTAL_BALL_MODE_WITH_EFFECTS:
       m_goomData.zoomFilterData.mode = ZoomFilterMode::crystalBallMode;
       m_goomData.zoomFilterData.waveEffect =
-          GoomEvents::Happens(GoomEvent::WAVE_EFFECT_ON_WITH_CRYSTAL_BALL_MODE);
+          m_goomEvent.Happens(GoomEvent::WAVE_EFFECT_ON_WITH_CRYSTAL_BALL_MODE);
       m_goomData.zoomFilterData.hypercosEffect = GetHypercosEffect(
-          GoomEvents::Happens(GoomEvent::HYPERCOS_EFFECT_ON_WITH_CRYSTAL_BALL_MODE));
+          m_goomEvent.Happens(GoomEvent::HYPERCOS_EFFECT_ON_WITH_CRYSTAL_BALL_MODE));
       m_goomData.zoomFilterData.crystalBallAmplitude = GetRandInRange(
           ZoomFilterData::MIN_CRYSTAL_BALL_AMPLITUDE, ZoomFilterData::MAX_CRYSTAL_BALL_AMPLITUDE);
       break;
@@ -1259,12 +1226,12 @@ void GoomControl::GoomControlImpl::SetNextFilterMode()
     case GoomFilterEvent::HYPER_COS1_MODE:
       m_goomData.zoomFilterData.mode = ZoomFilterMode::hyperCos1Mode;
       m_goomData.zoomFilterData.hypercosEffect = GetHypercosEffect(
-          GoomEvents::Happens(GoomEvent::HYPERCOS_EFFECT_ON_WITH_HYPER_COS1_MODE));
+          m_goomEvent.Happens(GoomEvent::HYPERCOS_EFFECT_ON_WITH_HYPER_COS1_MODE));
       break;
     case GoomFilterEvent::HYPER_COS2_MODE:
       m_goomData.zoomFilterData.mode = ZoomFilterMode::hyperCos2Mode;
       m_goomData.zoomFilterData.hypercosEffect = GetHypercosEffect(
-          GoomEvents::Happens(GoomEvent::HYPERCOS_EFFECT_ON_WITH_HYPER_COS2_MODE));
+          m_goomEvent.Happens(GoomEvent::HYPERCOS_EFFECT_ON_WITH_HYPER_COS2_MODE));
       break;
     default:
       throw std::logic_error("GoomFilterEvent not implemented.");
@@ -1353,7 +1320,7 @@ void GoomControl::GoomControlImpl::ChangeState()
     {
       m_visualFx.ifs_fx->Init();
     }
-    else if (GoomEvents::Happens(GoomEvent::IFS_RENEW))
+    else if (m_goomEvent.Happens(GoomEvent::IFS_RENEW))
     {
       m_visualFx.ifs_fx->Renew();
       m_stats.IfsRenew();
@@ -1491,7 +1458,7 @@ void GoomControl::GoomControlImpl::BigNormalUpdate(ZoomFilterData** pzfd)
   {
     m_goomData.stateSelectionBlocker--;
   }
-  else if (GoomEvents::Happens(GoomEvent::CHANGE_STATE))
+  else if (m_goomEvent.Happens(GoomEvent::CHANGE_STATE))
   {
     m_goomData.stateSelectionBlocker = 3;
     ChangeState();
@@ -1504,32 +1471,32 @@ void GoomControl::GoomControlImpl::BigNormalUpdate(ZoomFilterData** pzfd)
       static_cast<int32_t>(3.5F * std::log10(m_goomInfo->GetSoundInfo().GetSpeed() * 60.0F + 1.0F));
   // retablir le zoom avant..
   if ((m_goomData.zoomFilterData.reverse) && (!(m_cycle % 13)) &&
-      GoomEvents::Happens(GoomEvent::FILTER_REVERSE_OFF_AND_STOP_SPEED))
+      m_goomEvent.Happens(GoomEvent::FILTER_REVERSE_OFF_AND_STOP_SPEED))
   {
     m_goomData.zoomFilterData.reverse = false;
     m_goomData.zoomFilterData.vitesse = STOP_SPEED - 2;
     m_goomData.lockVar = 75;
     m_stats.LockChange();
   }
-  if (GoomEvents::Happens(GoomEvent::FILTER_REVERSE_ON))
+  if (m_goomEvent.Happens(GoomEvent::FILTER_REVERSE_ON))
   {
     m_goomData.zoomFilterData.reverse = true;
     m_goomData.lockVar = 100;
     m_stats.LockChange();
   }
 
-  if (GoomEvents::Happens(GoomEvent::FILTER_VITESSE_STOP_SPEED_MINUS1))
+  if (m_goomEvent.Happens(GoomEvent::FILTER_VITESSE_STOP_SPEED_MINUS1))
   {
     m_goomData.zoomFilterData.vitesse = STOP_SPEED - 1;
   }
-  if (GoomEvents::Happens(GoomEvent::FILTER_VITESSE_STOP_SPEED_PLUS1))
+  if (m_goomEvent.Happens(GoomEvent::FILTER_VITESSE_STOP_SPEED_PLUS1))
   {
     m_goomData.zoomFilterData.vitesse = STOP_SPEED + 1;
   }
 
   ChangeMilieu();
 
-  if (GoomEvents::Happens(GoomEvent::TURN_OFF_NOISE))
+  if (m_goomEvent.Happens(GoomEvent::TURN_OFF_NOISE))
   {
     m_goomData.zoomFilterData.noisify = false;
   }
@@ -1542,7 +1509,7 @@ void GoomControl::GoomControlImpl::BigNormalUpdate(ZoomFilterData** pzfd)
     m_stats.DoNoise();
   }
 
-  if (!GoomEvents::Happens(GoomEvent::CHANGE_BLOCKY_WAVY_TO_ON))
+  if (!m_goomEvent.Happens(GoomEvent::CHANGE_BLOCKY_WAVY_TO_ON))
   {
     m_goomData.zoomFilterData.blockyWavy = false;
   }
@@ -1552,7 +1519,7 @@ void GoomControl::GoomControlImpl::BigNormalUpdate(ZoomFilterData** pzfd)
     m_goomData.zoomFilterData.blockyWavy = true;
   }
 
-  if (!GoomEvents::Happens(GoomEvent::CHANGE_ZOOM_FILTER_ALLOW_OVEREXPOSED_TO_ON))
+  if (!m_goomEvent.Happens(GoomEvent::CHANGE_ZOOM_FILTER_ALLOW_OVEREXPOSED_TO_ON))
   {
     m_visualFx.zoomFilter_fx->SetBuffSettings(
         {/*.buffIntensity = */ 0.5, /*.allowOverexposed = */ false});
@@ -1575,7 +1542,7 @@ void GoomControl::GoomControlImpl::BigNormalUpdate(ZoomFilterData** pzfd)
       (m_goomData.zoomFilterData.middleX == GetScreenWidth() - 1))
   {
     m_goomData.zoomFilterData.vPlaneEffect = 0;
-    if (GoomEvents::Happens(GoomEvent::FILTER_ZERO_H_PLANE_EFFECT))
+    if (m_goomEvent.Happens(GoomEvent::FILTER_ZERO_H_PLANE_EFFECT))
     {
       m_goomData.zoomFilterData.hPlaneEffect = 0;
     }
@@ -1591,7 +1558,7 @@ void GoomControl::GoomControlImpl::BigNormalUpdate(ZoomFilterData** pzfd)
     *pzfd = &m_goomData.zoomFilterData;
     if (((newvit < (STOP_SPEED - 7)) && (m_goomData.zoomFilterData.vitesse < STOP_SPEED - 6) &&
          (m_cycle % 3 == 0)) ||
-        GoomEvents::Happens(GoomEvent::FILTER_CHANGE_VITESSE_AND_TOGGLE_REVERSE))
+        m_goomEvent.Happens(GoomEvent::FILTER_CHANGE_VITESSE_AND_TOGGLE_REVERSE))
     {
       m_goomData.zoomFilterData.vitesse =
           STOP_SPEED - static_cast<int32_t>(GetNRand(2)) + static_cast<int32_t>(GetNRand(2));
@@ -1638,7 +1605,7 @@ void GoomControl::GoomControlImpl::BigUpdate(ZoomFilterData** pzfd)
   }
 
   // mode mega-lent
-  if (GoomEvents::Happens(GoomEvent::CHANGE_TO_MEGA_LENT_MODE))
+  if (m_goomEvent.Happens(GoomEvent::CHANGE_TO_MEGA_LENT_MODE))
   {
     m_stats.MegaLentChange();
     MegaLentUpdate(pzfd);
@@ -1649,7 +1616,7 @@ void GoomControl::GoomControlImpl::BigUpdate(ZoomFilterData** pzfd)
  */
 void GoomControl::GoomControlImpl::ChangeZoomEffect(ZoomFilterData* pzfd, const int forceMode)
 {
-  if (!GoomEvents::Happens(GoomEvent::CHANGE_BLOCKY_WAVY_TO_ON))
+  if (!m_goomEvent.Happens(GoomEvent::CHANGE_BLOCKY_WAVY_TO_ON))
   {
     m_goomData.zoomFilterData.blockyWavy = false;
   }
@@ -1659,7 +1626,7 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect(ZoomFilterData* pzfd, const 
     m_stats.DoBlockyWavy();
   }
 
-  if (!GoomEvents::Happens(GoomEvent::CHANGE_ZOOM_FILTER_ALLOW_OVEREXPOSED_TO_ON))
+  if (!m_goomEvent.Happens(GoomEvent::CHANGE_ZOOM_FILTER_ALLOW_OVEREXPOSED_TO_ON))
   {
     m_visualFx.zoomFilter_fx->SetBuffSettings(
         {/*.buffIntensity = */ 0.5, /*.allowOverexposed = */ false});
@@ -2022,13 +1989,13 @@ void GoomControl::GoomControlImpl::StopRandomLineChangeMode()
       m_goomData.lineMode = 0;
     }
   }
-  else if ((m_cycle % 80 == 0) && GoomEvents::Happens(GoomEvent::REDUCE_LINE_MODE) &&
+  else if ((m_cycle % 80 == 0) && m_goomEvent.Happens(GoomEvent::REDUCE_LINE_MODE) &&
            m_goomData.lineMode)
   {
     m_goomData.lineMode--;
   }
 
-  if ((m_cycle % 120 == 0) && GoomEvents::Happens(GoomEvent::UPDATE_LINE_MODE) &&
+  if ((m_cycle % 120 == 0) && m_goomEvent.Happens(GoomEvent::UPDATE_LINE_MODE) &&
 #if __cplusplus <= 201402L
       m_curGDrawables.find(GoomDrawable::SCOPE) != m_curGDrawables.end())
 #else
@@ -2055,7 +2022,7 @@ void GoomControl::GoomControlImpl::StopRandomLineChangeMode()
       if (m_goomData.stopLines)
       {
         m_goomData.stopLines--;
-        if (GoomEvents::Happens(GoomEvent::CHANGE_LINE_TO_BLACK))
+        if (m_goomEvent.Happens(GoomEvent::CHANGE_LINE_TO_BLACK))
         {
           color2 = color1 = GetBlackLineColor();
         }
@@ -2092,7 +2059,7 @@ void GoomControl::GoomControlImpl::DisplayLines(const AudioSamples& soundData)
   m_gmline2.DrawLines(audioSample, m_imageBuffers.GetP1(), m_imageBuffers.GetP2());
   //  gmline2.drawLines(soundData.GetSample(1), imageBuffers.getP1(), imageBuffers.getP2());
 
-  if (((m_cycle % 121) == 9) && GoomEvents::Happens(GoomEvent::CHANGE_GOOM_LINE) &&
+  if (((m_cycle % 121) == 9) && m_goomEvent.Happens(GoomEvent::CHANGE_GOOM_LINE) &&
       ((m_goomData.lineMode == 0) || (m_goomData.lineMode == m_goomData.drawLinesDuration)) &&
       m_gmline1.CanResetDestLine() && m_gmline2.CanResetDestLine())
   {
@@ -2108,7 +2075,7 @@ void GoomControl::GoomControlImpl::DisplayLines(const AudioSamples& soundData)
     if (m_goomData.stopLines)
     {
       m_goomData.stopLines--;
-      if (GoomEvents::Happens(GoomEvent::CHANGE_LINE_TO_BLACK))
+      if (m_goomEvent.Happens(GoomEvent::CHANGE_LINE_TO_BLACK))
       {
         color2 = color1 = GetBlackLineColor();
       }
@@ -2264,14 +2231,14 @@ void GoomControl::GoomControlImpl::ApplyDotsIfRequired()
 }
 
 GoomEvents::GoomEvents() noexcept
-  : m_filterWeights{{WEIGHTED_FILTER_EVENTS.begin(), WEIGHTED_FILTER_EVENTS.end()}},
-    m_lineTypeWeights{{WEIGHTED_LINE_EVENTS.begin(), WEIGHTED_LINE_EVENTS.end()}}
+  : m_filterWeights{{m_weightedFilterEvents.begin(), m_weightedFilterEvents.end()}},
+    m_lineTypeWeights{{m_weightedLineEvents.begin(), m_weightedLineEvents.end()}}
 {
 }
 
 inline auto GoomEvents::Happens(const GoomEvent event) -> bool
 {
-  const WeightedEvent& weightedEvent = WEIGHTED_EVENTS[static_cast<size_t>(event)];
+  const WeightedEvent& weightedEvent = m_weightedEvents[static_cast<size_t>(event)];
   return ProbabilityOfMInN(weightedEvent.m, weightedEvent.outOf);
 }
 
