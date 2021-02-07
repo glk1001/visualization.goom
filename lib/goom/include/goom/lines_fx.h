@@ -22,6 +22,11 @@ namespace GOOM
 
 class PluginInfo;
 
+namespace UTILS
+{
+class SmallImageBitmaps;
+} // namespace UTILS
+
 auto GetBlackLineColor() -> Pixel;
 auto GetGreenLineColor() -> Pixel;
 auto GetRedLineColor() -> Pixel;
@@ -54,9 +59,13 @@ public:
   auto operator=(const LinesFx&) -> LinesFx& = delete;
   auto operator=(LinesFx&&) -> LinesFx& = delete;
 
+  [[nodiscard]] auto GetFxName() const -> std::string;
   [[nodiscard]] auto GetResourcesDirectory() const -> const std::string&;
   void SetResourcesDirectory(const std::string& dirName);
 
+  void SetSmallImageBitmaps(const UTILS::SmallImageBitmaps& smallBitmaps);
+
+  void Start();
   auto GetRandomLineColor() -> Pixel;
 
   [[nodiscard]] auto GetPower() const -> float;
@@ -73,7 +82,7 @@ public:
                  PixelBuffer& prevBuff,
                  PixelBuffer& currentBuff);
 
-  [[nodiscard]] auto GetFxName() const -> std::string;
+  void Finish();
 
 private:
   bool m_enabled = true;

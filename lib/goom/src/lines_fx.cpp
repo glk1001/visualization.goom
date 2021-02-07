@@ -7,8 +7,10 @@
 #include "goomutils/colormaps.h"
 #include "goomutils/colorutils.h"
 #include "goomutils/goomrand.h"
+#include "goomutils/image_bitmaps.h"
 #include "goomutils/mathutils.h"
 #include "goomutils/random_colormaps.h"
+#include "goomutils/small_image_bitmaps.h"
 
 #undef NDEBUG
 #include <cassert>
@@ -45,6 +47,10 @@ public:
   [[nodiscard]] auto GetResourcesDirectory() const -> const std::string&;
   void SetResourcesDirectory(const std::string& dirName);
 
+  void SetSmallImageBitmaps(const SmallImageBitmaps& smallBitmaps);
+
+  void Start();
+
   auto GetRandomLineColor() -> Pixel;
 
   [[nodiscard]] auto GetPower() const -> float;
@@ -60,6 +66,8 @@ public:
   void DrawLines(const std::vector<int16_t>& soundData,
                  PixelBuffer& prevBuff,
                  PixelBuffer& currentBuff);
+
+  void Finish();
 
 private:
   const std::shared_ptr<const PluginInfo> m_goomInfo;
@@ -89,6 +97,13 @@ private:
   float m_param = 0;
   float m_newAmplitude = 1;
   float m_amplitude = 1;
+  static constexpr size_t MIN_DOT_SIZE = 3;
+  static constexpr size_t MAX_DOT_SIZE = 7;
+  static_assert(MAX_DOT_SIZE <= SmallImageBitmaps::MAX_IMAGE_SIZE, "Max dot size mismatch.");
+  size_t m_currentDotSize = MIN_DOT_SIZE;
+  static auto GetNextDotSize() -> size_t;
+  const SmallImageBitmaps* m_smallBitmaps{};
+  auto GetImageBitmap(size_t size) -> const ImageBitmap&;
 
   // pour l'instant je stocke la couleur a terme, on stockera le mode couleur et l'on animera
   Pixel m_color1{};
@@ -119,6 +134,21 @@ auto LinesFx::GetResourcesDirectory() const -> const std::string&
 void LinesFx::SetResourcesDirectory(const std::string& dirName)
 {
   m_fxImpl->SetResourcesDirectory(dirName);
+}
+
+void LinesFx::SetSmallImageBitmaps(const SmallImageBitmaps& smallBitmaps)
+{
+  m_fxImpl->SetSmallImageBitmaps(smallBitmaps);
+}
+
+void LinesFx::Start()
+{
+  m_fxImpl->Start();
+}
+
+void LinesFx::Finish()
+{
+  m_fxImpl->Finish();
 }
 
 auto LinesFx::GetRandomLineColor() -> Pixel
@@ -176,6 +206,14 @@ LinesFx::LinesImpl::LinesImpl(std::shared_ptr<const PluginInfo> info,
   GenerateLinePoints(srceLineType, srceParam, m_srcePoints);
   m_srcePointsCopy = m_srcePoints;
   ResetDestLine(m_destLineType, destParam, 1.0, destColor);
+}
+
+void LinesFx::LinesImpl::Start()
+{
+}
+
+void LinesFx::LinesImpl::Finish()
+{
 }
 
 void LinesFx::LinesImpl::GenerateLinePoints(const LineType lineType,
@@ -291,6 +329,18 @@ inline auto LinesFx::LinesImpl::GetResourcesDirectory() const -> const std::stri
 inline void LinesFx::LinesImpl::SetResourcesDirectory(const std::string& dirName)
 {
   m_resourcesDirectory = dirName;
+}
+
+inline void LinesFx::LinesImpl::SetSmallImageBitmaps(const SmallImageBitmaps& smallBitmaps)
+{
+  m_smallBitmaps = &smallBitmaps;
+}
+
+inline auto LinesFx::LinesImpl::GetImageBitmap(const size_t size) -> const ImageBitmap&
+{
+  return m_smallBitmaps->GetImageBitmap(
+      SmallImageBitmaps::ImageNames::CIRCLE,
+      stdnew::clamp(size % 2 != 0 ? size : size + 1, MIN_DOT_SIZE, MAX_DOT_SIZE));
 }
 
 inline auto LinesFx::LinesImpl::GetPower() const -> float
@@ -463,11 +513,41 @@ void LinesFx::LinesImpl::DrawLines(const std::vector<int16_t>& soundData,
     const std::vector<Pixel> colors = {modColor, lineColor};
     m_draw.Line(buffs, x1, y1, x2, y2, colors, THICKNESS);
 
+    if (m_currentDotSize > 1)
+    {
+      const auto getColor = [&]([[maybe_unused]] const size_t x, [[maybe_unused]] const size_t y,
+                                const Pixel& b) -> Pixel {
+        return GetColorMultiply(b, colors[0], true);
+      };
+      const auto getLowColor = [&]([[maybe_unused]] const size_t x, [[maybe_unused]] const size_t y,
+                                   const Pixel& b) -> Pixel {
+        return GetColorMultiply(b, colors[1], true);
+      };
+      const std::vector<GoomDraw::GetBitmapColorFunc> getColors{getColor, getLowColor};
+      const ImageBitmap& bitmap = GetImageBitmap(m_currentDotSize);
+      const std::vector<const PixelBuffer*> bitmaps{&bitmap, &bitmap};
+      m_draw.Bitmap(buffs, x2, y2, bitmaps, getColors);
+    }
+
     x1 = x2;
     y1 = y2;
   }
 
   MoveSrceLineCloserToDest();
+
+  m_currentDotSize = GetNextDotSize();
+}
+
+inline auto LinesFx::LinesImpl::GetNextDotSize() -> size_t
+{
+  static const Weights<size_t> s_dotSizes{{
+      {1, 100},
+      {3, 10},
+      {5, 5},
+      {7, 1},
+  }};
+
+  return s_dotSizes.GetRandomWeighted();
 }
 
 } // namespace GOOM

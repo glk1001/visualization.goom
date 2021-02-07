@@ -356,13 +356,13 @@ void CVisualizationGoom::Process()
   // goom::GoomControl::setRandSeed(1);
 
   m_goomControl = std::make_unique<GOOM::GoomControl>(static_cast<uint16_t>(m_texWidth),
-                                                      static_cast<uint16_t>(m_texHeight));
+                                                      static_cast<uint16_t>(m_texHeight),
+                                                      kodi::GetAddonPath("resources"));
   if (!m_goomControl)
   {
     kodi::Log(ADDON_LOG_FATAL, "CVisualizationGoom: Goom could not be initialized!");
     return;
   }
-  m_goomControl->SetResourcesDirectory(kodi::GetAddonPath("resources"));
   m_goomControl->Start();
 
   float floatAudioData[m_audioBufferLen];

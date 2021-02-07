@@ -14,11 +14,11 @@
 #include "goomutils/mathutils.h"
 #include "goomutils/random_colormaps.h"
 #include "goomutils/random_colormaps_manager.h"
+#include "goomutils/small_image_bitmaps.h"
 #include "stats/stars_stats.h"
 
 #include <cmath>
 #include <cstddef>
-#include <format>
 #include <map>
 #include <memory>
 #include <stdexcept>
@@ -76,7 +76,7 @@ public:
 
   [[nodiscard]] auto GetResourcesDirectory() const -> const std::string&;
   void SetResourcesDirectory(const std::string& dirName);
-
+  void SetSmallImageBitmaps(const SmallImageBitmaps& smallBitmaps);
   void SetBuffSettings(const FXBuffSettings& settings);
 
   void Start();
@@ -163,6 +163,8 @@ private:
   };
   DrawMode m_drawMode = DrawMode::CIRCLES;
   void ChangeDrawMode();
+  const SmallImageBitmaps* m_smallBitmaps{};
+  auto GetImageBitmap(size_t size) -> const ImageBitmap&;
   using DrawFunc = std::function<void(const std::vector<PixelBuffer*>& buffs,
                                       int32_t x1,
                                       int32_t y1,
@@ -204,13 +206,7 @@ private:
 
   static constexpr size_t MIN_DOT_SIZE = 3;
   static constexpr size_t MAX_DOT_SIZE = 9;
-  std::map<size_t, std::unique_ptr<const ImageBitmap>> m_bitmapDots{};
-  void VerifyBitmapDotsIntegrity();
-  static auto GetImageKey(size_t size) -> size_t;
-  void InitBitmaps();
-  auto GetImageBitmap(const std::string& name, size_t sizeOfImageSquare)
-      -> std::unique_ptr<const ImageBitmap>;
-  auto GetImageFilename(const std::string& name, size_t sizeOfImageSquare) -> std::string;
+  static_assert(MAX_DOT_SIZE <= SmallImageBitmaps::MAX_IMAGE_SIZE, "Max dot size mismatch.");
 };
 
 FlyingStarsFx::FlyingStarsFx(const std::shared_ptr<const PluginInfo>& info) noexcept
@@ -233,6 +229,11 @@ void FlyingStarsFx::SetResourcesDirectory(const std::string& dirName)
 void FlyingStarsFx::SetBuffSettings(const FXBuffSettings& settings)
 {
   m_fxImpl->SetBuffSettings(settings);
+}
+
+void FlyingStarsFx::SetSmallImageBitmaps(const SmallImageBitmaps& smallBitmaps)
+{
+  m_fxImpl->SetSmallImageBitmaps(smallBitmaps);
 }
 
 void FlyingStarsFx::Start()
@@ -323,12 +324,12 @@ FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl(std::shared_ptr<const PluginInfo
   m_lowColorMaps->SetLightnessLimits(MIN_LIGHTNESS, MAX_LIGHTNESS);
 }
 
-auto FlyingStarsFx::FlyingStarsImpl::GetResourcesDirectory() const -> const std::string&
+inline auto FlyingStarsFx::FlyingStarsImpl::GetResourcesDirectory() const -> const std::string&
 {
   return m_resourcesDirectory;
 }
 
-void FlyingStarsFx::FlyingStarsImpl::SetResourcesDirectory(const std::string& dirName)
+inline void FlyingStarsFx::FlyingStarsImpl::SetResourcesDirectory(const std::string& dirName)
 {
   m_resourcesDirectory = dirName;
 }
@@ -339,9 +340,21 @@ void FlyingStarsFx::FlyingStarsImpl::SetBuffSettings(const FXBuffSettings& setti
   m_draw.SetAllowOverexposed(settings.allowOverexposed);
 }
 
-void FlyingStarsFx::FlyingStarsImpl::Start()
+inline void FlyingStarsFx::FlyingStarsImpl::SetSmallImageBitmaps(
+    const SmallImageBitmaps& smallBitmaps)
 {
-  InitBitmaps();
+  m_smallBitmaps = &smallBitmaps;
+}
+
+inline auto FlyingStarsFx::FlyingStarsImpl::GetImageBitmap(const size_t size) -> const ImageBitmap&
+{
+  return m_smallBitmaps->GetImageBitmap(
+      SmallImageBitmaps::ImageNames::CIRCLE,
+      stdnew::clamp(size % 2 != 0 ? size : size + 1, MIN_DOT_SIZE, MAX_DOT_SIZE));
+}
+
+inline void FlyingStarsFx::FlyingStarsImpl::Start()
+{
 }
 
 void FlyingStarsFx::FlyingStarsImpl::Finish()
@@ -358,8 +371,6 @@ void FlyingStarsFx::FlyingStarsImpl::Log(const StatsLogValueFunc& logVal) const
 
 void FlyingStarsFx::FlyingStarsImpl::UpdateBuffers(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
 {
-  VerifyBitmapDotsIntegrity();
-
   m_counter++;
 
   m_maxStars = GetRandInRange(MIN_NUM_STARS, MAX_NUM_STARS);
@@ -367,8 +378,6 @@ void FlyingStarsFx::FlyingStarsImpl::UpdateBuffers(PixelBuffer& currentBuff, Pix
   CheckForStarEvents();
   DrawStars(currentBuff, nextBuff);
   RemoveDeadStars();
-
-  VerifyBitmapDotsIntegrity();
 }
 
 void FlyingStarsFx::FlyingStarsImpl::CheckForStarEvents()
@@ -536,18 +545,16 @@ void FlyingStarsFx::FlyingStarsImpl::DrawParticleDot(const std::vector<PixelBuff
     return GetColorMultiply(b, colors[1], m_buffSettings.allowOverexposed);
   };
 
-  const size_t imageKey = GetImageKey(size);
-  const ImageBitmap* const bitmap1 = m_bitmapDots.at(imageKey).get();
-  const ImageBitmap* const bitmap2 = bitmap1;
+  const ImageBitmap& bitmap1 = GetImageBitmap(size);
 
   if (m_useSingleBufferOnly)
   {
-    m_draw.Bitmap(*(buffs[0]), x1, y1, *bitmap1, getColor);
+    m_draw.Bitmap(*(buffs[0]), x1, y1, bitmap1, getColor);
   }
   else
   {
     const std::vector<GoomDraw::GetBitmapColorFunc> getColors{getColor, getLowColor};
-    const std::vector<const PixelBuffer*> bitmaps{bitmap1, bitmap2};
+    const std::vector<const PixelBuffer*> bitmaps{&bitmap1, &bitmap1};
     m_draw.Bitmap(buffs, x1, y1, bitmaps, getColors);
   }
 }
@@ -872,52 +879,6 @@ auto FlyingStarsFx::FlyingStarsImpl::GetBombAngle(const float x,
   const float randAngle = GetRandInRange(minAngle, maxAngle);
   return static_cast<uint32_t>(0.001 +
                                static_cast<float>(NUM_SIN_COS_ANGLES - 1) * randAngle / m_two_pi);
-}
-
-void FlyingStarsFx::FlyingStarsImpl::InitBitmaps()
-{
-  m_bitmapDots.clear();
-
-  // Add images with odd res - hence the += 2
-  for (size_t res = MIN_DOT_SIZE; res <= MAX_DOT_SIZE; res += 2)
-  {
-    m_bitmapDots.emplace(res, GetImageBitmap("circle", res));
-  }
-}
-
-inline auto FlyingStarsFx::FlyingStarsImpl::GetImageKey(const size_t size) -> size_t
-{
-  return stdnew::clamp(size % 2 != 0 ? size : size + 1, MIN_DOT_SIZE, MAX_DOT_SIZE);
-}
-
-void FlyingStarsFx::FlyingStarsImpl::VerifyBitmapDotsIntegrity()
-{
-  for (size_t i = MIN_DOT_SIZE; i <= MAX_DOT_SIZE; ++i)
-  {
-    const size_t imageKey = GetImageKey(i);
-    if (m_bitmapDots.find(imageKey) == m_bitmapDots.end())
-    {
-      throw std::logic_error(
-          std20::format("m_counter = {}, ImageKey error: {}", m_counter, imageKey));
-    }
-  }
-}
-
-auto FlyingStarsFx::FlyingStarsImpl::GetImageBitmap(const std::string& name,
-                                                    const size_t sizeOfImageSquare)
-    -> std::unique_ptr<const ImageBitmap>
-{
-  return std::make_unique<const ImageBitmap>(GetImageFilename(name, sizeOfImageSquare));
-}
-
-auto FlyingStarsFx::FlyingStarsImpl::GetImageFilename(const std::string& name,
-                                                      const size_t sizeOfImageSquare) -> std::string
-{
-  // TODO What about windows "\"
-  const std::string imagesDir = m_resourcesDirectory + "/" + IMAGES_DIR;
-  std::string filename =
-      std20::format("{}/{}{:02}x{:02}.png", imagesDir, name, sizeOfImageSquare, sizeOfImageSquare);
-  return filename;
 }
 
 } // namespace GOOM

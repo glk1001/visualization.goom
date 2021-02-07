@@ -24,6 +24,7 @@
 #include "goomutils/logging.h"
 #include "goomutils/parallel_utils.h"
 #include "goomutils/random_colormaps.h"
+#include "goomutils/small_image_bitmaps.h"
 #include "goomutils/strutils.h"
 #include "ifs_dancers_fx.h"
 #include "image_fx.h"
@@ -590,7 +591,7 @@ struct GoomData
 class GoomControl::GoomControlImpl
 {
 public:
-  GoomControlImpl(uint32_t screenWidth, uint32_t screenHeight) noexcept;
+  GoomControlImpl(uint32_t screenWidth, uint32_t screenHeight, std::string resourcesDirectory);
   ~GoomControlImpl() noexcept;
   GoomControlImpl(const GoomControlImpl&) noexcept = delete;
   GoomControlImpl(GoomControlImpl&&) noexcept = delete;
@@ -618,8 +619,6 @@ public:
               const char* songTitle,
               const char* message);
 
-  auto operator==(const GoomControlImpl& c) const -> bool;
-
 private:
   Parallel m_parallel;
   const std::shared_ptr<WritablePluginInfo> m_goomInfo;
@@ -639,6 +638,7 @@ private:
   std::unique_ptr<TextDraw> m_updateMessageText{};
 
   std::string m_resourcesDirectory{};
+  const SmallImageBitmaps m_smallBitmaps;
 
   // Line Fx
   LinesFx m_gmline1;
@@ -724,8 +724,8 @@ void GoomControl::SetRandSeed(const uint64_t seed)
   GOOM::UTILS::SetRandSeed(seed);
 }
 
-GoomControl::GoomControl(const uint32_t resx, const uint32_t resy) noexcept
-  : m_controller{new GoomControlImpl{resx, resy}}
+GoomControl::GoomControl(const uint32_t resx, const uint32_t resy, std::string resourcesDirectory)
+  : m_controller{new GoomControlImpl{resx, resy, resourcesDirectory}}
 {
 }
 
@@ -778,13 +778,16 @@ static const Pixel GREEN_LINE = GetGreenLineColor();
 static const Pixel BLACK_LINE = GetBlackLineColor();
 
 GoomControl::GoomControlImpl::GoomControlImpl(const uint32_t screenWidth,
-                                              const uint32_t screenHeight) noexcept
+                                              const uint32_t screenHeight,
+                                              std::string resourcesDirectory)
   : m_parallel{-1}, // max cores - 1
     m_goomInfo{new WritablePluginInfo{screenWidth, screenHeight}},
     m_imageBuffers{screenWidth, screenHeight},
     m_visualFx{m_parallel, std::const_pointer_cast<const PluginInfo>(
                                std::dynamic_pointer_cast<PluginInfo>(m_goomInfo))},
     m_text{screenWidth, screenHeight},
+    m_resourcesDirectory{std::move(resourcesDirectory)},
+    m_smallBitmaps{m_resourcesDirectory},
     m_gmline1{std::const_pointer_cast<const PluginInfo>(
                   std::dynamic_pointer_cast<PluginInfo>(m_goomInfo)),
               LinesFx::LineType::hline,
@@ -896,6 +899,17 @@ void GoomControl::GoomControlImpl::Start()
   m_stats.SetStateStartValue(m_states.GetCurrentStateIndex());
   m_stats.SetZoomFilterStartValue(m_goomData.zoomFilterData.mode);
   m_stats.SetSeedStartValue(GetRandSeed());
+
+  // TODO MAKE line a visual FX
+  m_gmline1.SetResourcesDirectory(m_resourcesDirectory);
+  m_gmline1.SetSmallImageBitmaps(m_smallBitmaps);
+  m_gmline1.Start();
+  m_gmline2.SetResourcesDirectory(m_resourcesDirectory);
+  m_gmline2.SetSmallImageBitmaps(m_smallBitmaps);
+  m_gmline2.Start();
+
+  m_visualFx.goomDots_fx->SetSmallImageBitmaps(m_smallBitmaps);
+  m_visualFx.star_fx->SetSmallImageBitmaps(m_smallBitmaps);
 
   for (auto& v : m_visualFx.list)
   {

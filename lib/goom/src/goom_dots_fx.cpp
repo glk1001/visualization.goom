@@ -14,13 +14,12 @@
 #include "goomutils/mathutils.h"
 #include "goomutils/random_colormaps.h"
 #include "goomutils/random_colormaps_manager.h"
+#include "goomutils/small_image_bitmaps.h"
 
 #include <cmath>
 #include <cstdint>
-#include <map>
 #include <memory>
 #include <string>
-#include <utility>
 #include <vector>
 
 namespace GOOM
@@ -46,6 +45,7 @@ public:
 
   [[nodiscard]] auto GetResourcesDirectory() const -> const std::string&;
   void SetResourcesDirectory(const std::string& dirName);
+  void SetSmallImageBitmaps(const SmallImageBitmaps& smallBitmaps);
   void SetBuffSettings(const FXBuffSettings& settings);
 
   void Start();
@@ -63,15 +63,13 @@ private:
   const float m_pointHeightDiv3;
 
   std::string m_resourcesDirectory{};
+  const SmallImageBitmaps* m_smallBitmaps{};
+  SmallImageBitmaps::ImageNames m_currentBitmapName{};
+  auto GetImageBitmap(size_t size) -> const ImageBitmap&;
 
   static constexpr size_t MIN_DOT_SIZE = 3;
   static constexpr size_t MAX_DOT_SIZE = 21;
-  std::vector<std::map<size_t, std::unique_ptr<const ImageBitmap>>> m_bitmapDotsList{};
-  size_t m_currentBitmapDots{};
-  void InitBitmaps();
-  auto GetImageBitmap(const std::string& name, size_t sizeOfSquare)
-      -> std::unique_ptr<const ImageBitmap>;
-  auto GetImageFilename(const std::string& name, size_t sizeOfSquare) -> std::string;
+  static_assert(MAX_DOT_SIZE <= SmallImageBitmaps::MAX_IMAGE_SIZE, "Max dot size mismatch.");
 
   GoomDraw m_draw;
   FXBuffSettings m_buffSettings{};
@@ -139,6 +137,11 @@ void GoomDotsFx::SetBuffSettings(const FXBuffSettings& settings)
   m_fxImpl->SetBuffSettings(settings);
 }
 
+void GoomDotsFx::SetSmallImageBitmaps(const SmallImageBitmaps& smallBitmaps)
+{
+  m_fxImpl->SetSmallImageBitmaps(smallBitmaps);
+}
+
 void GoomDotsFx::Start()
 {
   m_fxImpl->Start();
@@ -190,7 +193,6 @@ GoomDotsFx::GoomDotsFxImpl::GoomDotsFxImpl(const std::shared_ptr<const PluginInf
 
 void GoomDotsFx::GoomDotsFxImpl::Start()
 {
-  InitBitmaps();
   ChangeColors();
 }
 
@@ -202,6 +204,18 @@ auto GoomDotsFx::GoomDotsFxImpl::GetResourcesDirectory() const -> const std::str
 void GoomDotsFx::GoomDotsFxImpl::SetResourcesDirectory(const std::string& dirName)
 {
   m_resourcesDirectory = dirName;
+}
+
+inline void GoomDotsFx::GoomDotsFxImpl::SetSmallImageBitmaps(const SmallImageBitmaps& smallBitmaps)
+{
+  m_smallBitmaps = &smallBitmaps;
+}
+
+inline auto GoomDotsFx::GoomDotsFxImpl::GetImageBitmap(const size_t size) -> const ImageBitmap&
+{
+  return m_smallBitmaps->GetImageBitmap(
+      m_currentBitmapName,
+      stdnew::clamp(size % 2 != 0 ? size : size + 1, MIN_DOT_SIZE, MAX_DOT_SIZE));
 }
 
 void GoomDotsFx::GoomDotsFxImpl::ChangeColors()
@@ -229,7 +243,8 @@ void GoomDotsFx::GoomDotsFxImpl::Apply(PixelBuffer& currentBuff)
   {
     ChangeColors();
     radius = GetRandInRange(radius, MAX_DOT_SIZE / 2 + 1);
-    m_currentBitmapDots = GetRandInRange(0U, m_bitmapDotsList.size());
+    m_currentBitmapName = static_cast<SmallImageBitmaps::ImageNames>(
+        GetRandInRange(0U, static_cast<size_t>(SmallImageBitmaps::ImageNames::_SIZE)));
   }
 
   const float largeFactor = GetLargeSoundFactor(m_goomInfo->GetSoundInfo());
@@ -260,7 +275,6 @@ void GoomDotsFx::GoomDotsFxImpl::Apply(PixelBuffer& currentBuff)
 
     const uint32_t loopvarDivI = m_loopVar / i;
     const float iMult10 = 10.0F * i;
-    const float brightness = 1.5F + 1.0F; // - t;
 
     const Pixel colors1 = m_colorMapsManager.GetColorMap(m_colorMap1Id).GetColor(t);
     //    const Pixel colors1 = GetColor(
@@ -383,54 +397,7 @@ void GoomDotsFx::GoomDotsFxImpl::DotFilter(PixelBuffer& currentBuff,
         BRIGHTNESS, GetColorMultiply(b, color, m_buffSettings.allowOverexposed));
   };
 
-  m_draw.Bitmap(currentBuff, xMid, yMid, *m_bitmapDotsList[m_currentBitmapDots][diameter],
-                getColor);
-}
-
-void GoomDotsFx::GoomDotsFxImpl::InitBitmaps()
-{
-  std::map<size_t, std::unique_ptr<const ImageBitmap>> bitmapDots{};
-
-  // Add images with odd res - hence the += 2
-
-  bitmapDots.clear();
-  for (size_t res = MIN_DOT_SIZE; res <= MAX_DOT_SIZE; res += 2)
-  {
-    bitmapDots.emplace(res, GetImageBitmap("circle", res));
-  }
-  m_bitmapDotsList.emplace_back(std::move(bitmapDots));
-
-  bitmapDots.clear();
-  for (size_t res = MIN_DOT_SIZE; res <= MAX_DOT_SIZE; res += 2)
-  {
-    bitmapDots.emplace(res, GetImageBitmap("yellow-flower", res));
-  }
-  m_bitmapDotsList.emplace_back(std::move(bitmapDots));
-
-  bitmapDots.clear();
-  for (size_t res = MIN_DOT_SIZE; res <= MAX_DOT_SIZE; res += 2)
-  {
-    bitmapDots.emplace(res, GetImageBitmap("red-flower", res));
-  }
-  m_bitmapDotsList.emplace_back(std::move(bitmapDots));
-
-  m_currentBitmapDots = GetRandInRange(0U, m_bitmapDotsList.size());
-}
-
-auto GoomDotsFx::GoomDotsFxImpl::GetImageBitmap(const std::string& name, const size_t sizeOfSquare)
-    -> std::unique_ptr<const ImageBitmap>
-{
-  return std::make_unique<const ImageBitmap>(GetImageFilename(name, sizeOfSquare));
-}
-
-auto GoomDotsFx::GoomDotsFxImpl::GetImageFilename(const std::string& name,
-                                                  const size_t sizeOfSquare) -> std::string
-{
-  // TODO What about windows "\"
-  const std::string imagesDir = m_resourcesDirectory + "/" + IMAGES_DIR;
-  std::string filename =
-      std20::format("{}/{}{:02}x{:02}.png", imagesDir, name, sizeOfSquare, sizeOfSquare);
-  return filename;
+  m_draw.Bitmap(currentBuff, xMid, yMid, GetImageBitmap(diameter), getColor);
 }
 
 } // namespace GOOM

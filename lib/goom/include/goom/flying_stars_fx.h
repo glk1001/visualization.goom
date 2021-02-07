@@ -12,6 +12,11 @@ namespace GOOM
 class PluginInfo;
 class PixelBuffer;
 
+namespace UTILS
+{
+class SmallImageBitmaps;
+} // namespace UTILS
+
 class FlyingStarsFx : public IVisualFx
 {
 public:
@@ -37,6 +42,8 @@ public:
 
   [[nodiscard]] auto GetFxName() const -> std::string override;
   void SetBuffSettings(const FXBuffSettings& settings) override;
+
+  void SetSmallImageBitmaps(const UTILS::SmallImageBitmaps& smallBitmaps);
 
   void Start() override;
 

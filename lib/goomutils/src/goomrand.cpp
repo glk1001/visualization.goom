@@ -78,7 +78,7 @@ void RestoreRandState(std::istream& f)
   f >> xoshiroEng;
 }
 
-auto GetRandInRange(uint32_t n0, uint32_t n1) -> uint32_t
+auto GetRandInRange(const uint32_t n0, const uint32_t n1) -> uint32_t
 {
 #ifndef NDEBUG
   if (n0 >= n1)
@@ -95,7 +95,7 @@ auto GetRandInRange(uint32_t n0, uint32_t n1) -> uint32_t
   return RandXoshiroFunc(n0, n1);
 }
 
-auto GetRandInRange(int32_t n0, int32_t n1) -> int32_t
+auto GetRandInRange(const int32_t n0, const int32_t n1) -> int32_t
 {
   if (n0 >= n1)
   {
