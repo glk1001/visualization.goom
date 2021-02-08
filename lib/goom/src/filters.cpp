@@ -33,7 +33,6 @@
 #include <cassert>
 #include <cmath>
 #include <cstdint>
-#include <numeric>
 #include <stdexcept>
 #include <string>
 #include <tuple>
@@ -57,6 +56,21 @@ constexpr uint32_t SQRT_PERTE = 16;
 constexpr uint32_t PERTE_MASK = 0xf;
 // faire : a / SQRT_PERTE <=> a >> PERTE_DEC
 constexpr uint32_t PERTE_DEC = 4;
+
+inline auto ToScreenCoord(const uint32_t tranCoord) -> uint32_t
+{
+  return tranCoord >> PERTE_DEC;
+}
+
+inline auto ToTranCoord(const uint32_t screenCoord) -> uint32_t
+{
+  return screenCoord << PERTE_DEC;
+}
+
+inline auto ToIndexCoord(const uint32_t tranCoord)
+{
+  return tranCoord & PERTE_MASK;
+}
 
 static constexpr size_t NUM_COEFFS = 4;
 using CoeffArray = union
@@ -99,6 +113,8 @@ private:
   const uint32_t m_screenWidth;
   const uint32_t m_screenHeight;
   const uint32_t m_bufferSize;
+  const uint32_t m_maxTranX;
+  const uint32_t m_maxTranY;
   const float m_ratioPixmapToNormalizedCoord;
   const float m_ratioNormalizedCoordToPixmap;
   const float m_minNormCoordVal;
@@ -118,18 +134,12 @@ private:
   float m_generalSpeed = 0;
   int32_t m_interlaceStart = 0;
 
-  std::vector<int32_t> m_freeTranXSrce{}; // source
-  std::vector<int32_t> m_freeTranYSrce{}; // source
-  int32_t* m_tranXSrce{};
-  int32_t* m_tranYSrce{};
-  std::vector<int32_t> m_freeTranXDest{}; // dest
-  std::vector<int32_t> m_freeTranYDest{}; // dest
-  int32_t* m_tranXDest{};
-  int32_t* m_tranYDest{};
-  std::vector<int32_t> m_freeTranXTemp{}; // temp (en cours de generation)
-  std::vector<int32_t> m_freeTranYTemp{}; // temp (en cours de generation)
-  int32_t* m_tranXTemp{};
-  int32_t* m_tranYTemp{};
+  std::vector<int32_t> m_tranXSrce{};
+  std::vector<int32_t> m_tranYSrce{};
+  std::vector<int32_t> m_tranXDest{};
+  std::vector<int32_t> m_tranYDest{};
+  std::vector<int32_t> m_tranXTemp{};
+  std::vector<int32_t> m_tranYTemp{};
   auto GetTransformedPoint(size_t buffPos) const -> std::tuple<uint32_t, uint32_t>;
   auto GetSourceInfo(uint32_t tranPx, uint32_t tranPy) const
       -> std::tuple<uint32_t, uint32_t, CoeffArray>;
@@ -144,7 +154,6 @@ private:
   Coeff2dArray m_precalcCoeffs{};
 
   void Init();
-  void InitBuffers();
 
   void MakeZoomBufferStripe(uint32_t interlaceIncrement);
   void CZoom(const PixelBuffer& srceBuff, PixelBuffer& destBuff);
@@ -160,16 +169,18 @@ ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl(Parallel& p,
   : m_screenWidth{goomInfo->GetScreenInfo().width},
     m_screenHeight{goomInfo->GetScreenInfo().height},
     m_bufferSize{goomInfo->GetScreenInfo().size},
+    m_maxTranX{ToTranCoord(m_screenWidth - 1)},
+    m_maxTranY{ToTranCoord(m_screenHeight - 1)},
     m_ratioPixmapToNormalizedCoord{2.0F / static_cast<float>(m_screenWidth)},
     m_ratioNormalizedCoordToPixmap{1.0F / m_ratioPixmapToNormalizedCoord},
     m_minNormCoordVal{m_ratioPixmapToNormalizedCoord / BUFF_POINT_NUM_FLT},
     m_parallel{&p},
-    m_freeTranXSrce(m_bufferSize + 128),
-    m_freeTranYSrce(m_bufferSize + 128),
-    m_freeTranXDest(m_bufferSize + 128),
-    m_freeTranYDest(m_bufferSize + 128),
-    m_freeTranXTemp(m_bufferSize + 128),
-    m_freeTranYTemp(m_bufferSize + 128),
+    m_tranXSrce(m_bufferSize),
+    m_tranYSrce(m_bufferSize),
+    m_tranXDest(m_bufferSize),
+    m_tranYDest(m_bufferSize),
+    m_tranXTemp(m_bufferSize),
+    m_tranYTemp(m_bufferSize),
     m_firedec(m_screenHeight)
 {
   Init();
@@ -179,8 +190,6 @@ ZoomFilterFx::ZoomFilterImpl::~ZoomFilterImpl() noexcept = default;
 
 void ZoomFilterFx::ZoomFilterImpl::Init()
 {
-  InitBuffers();
-
   m_filterData.middleX = m_screenWidth / 2;
   m_filterData.middleY = m_screenHeight / 2;
 
@@ -189,22 +198,10 @@ void ZoomFilterFx::ZoomFilterImpl::Init()
   MakeZoomBufferStripe(m_screenHeight);
 
   // Copy the data from temp to dest and source
-  memcpy(m_tranXSrce, m_tranXTemp, m_bufferSize * sizeof(int32_t));
-  memcpy(m_tranYSrce, m_tranYTemp, m_bufferSize * sizeof(int32_t));
-  memcpy(m_tranXDest, m_tranXTemp, m_bufferSize * sizeof(int32_t));
-  memcpy(m_tranYDest, m_tranYTemp, m_bufferSize * sizeof(int32_t));
-}
-
-void ZoomFilterFx::ZoomFilterImpl::InitBuffers()
-{
-  m_tranXSrce = (int32_t*)((1 + (uintptr_t((m_freeTranXSrce.data()))) / 128) * 128);
-  m_tranYSrce = (int32_t*)((1 + (uintptr_t((m_freeTranYSrce.data()))) / 128) * 128);
-
-  m_tranXDest = (int32_t*)((1 + (uintptr_t((m_freeTranXDest.data()))) / 128) * 128);
-  m_tranYDest = (int32_t*)((1 + (uintptr_t((m_freeTranYDest.data()))) / 128) * 128);
-
-  m_tranXTemp = (int32_t*)((1 + (uintptr_t((m_freeTranXTemp.data()))) / 128) * 128);
-  m_tranYTemp = (int32_t*)((1 + (uintptr_t((m_freeTranYTemp.data()))) / 128) * 128);
+  std::copy(m_tranXTemp.begin(), m_tranXTemp.end(), m_tranXSrce.begin());
+  std::copy(m_tranYTemp.begin(), m_tranYTemp.end(), m_tranYSrce.begin());
+  std::copy(m_tranXTemp.begin(), m_tranXTemp.end(), m_tranXDest.begin());
+  std::copy(m_tranYTemp.begin(), m_tranYTemp.end(), m_tranYDest.begin());
 }
 
 inline auto ZoomFilterFx::ZoomFilterImpl::GetResourcesDirectory() const -> const std::string&
@@ -338,8 +335,6 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
                                                      const int32_t switchIncr,
                                                      const float switchMult)
 {
-  logDebug("switchIncr = {}, switchMult = {:.2}", switchIncr, switchMult);
-
   m_stats.UpdateStart();
   m_stats.DoZoomFilterFastRgb();
 
@@ -384,10 +379,7 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
     m_stats.DoZoomFilterFastRgbInterlaceStartEqualMinus12();
 
     std::swap(m_tranXDest, m_tranXTemp);
-    std::swap(m_freeTranXDest, m_freeTranXTemp);
-
     std::swap(m_tranYDest, m_tranYTemp);
-    std::swap(m_freeTranYDest, m_freeTranYTemp);
 
     m_interlaceStart = -2;
   }
@@ -480,9 +472,6 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff, PixelBuffe
 {
   m_stats.DoCZoom();
 
-  const uint32_t tranAx = (m_screenWidth - 1) << PERTE_DEC;
-  const uint32_t tranAy = (m_screenHeight - 1) << PERTE_DEC;
-
   const auto setDestPixelRow = [&](const uint32_t destY) {
     uint32_t destPos = m_screenWidth * destY;
 #if __cplusplus <= 201402L
@@ -503,7 +492,7 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff, PixelBuffe
 #endif
 
       /**
-      if ((tranPx >= tranAx) || (tranPy >= tranAy))
+      if ((tranPx >= m_maxTranX) || (tranPy >= m_maxTranY))
       {
         m_stats.DoCZoomOutOfRange();
         const size_t xIndex = GetRandInRange(0U, 1U + (tranAx & PERTE_MASK));
@@ -512,7 +501,7 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff, PixelBuffe
       }
      **/
 
-      if ((tranPx >= tranAx) || (tranPy >= tranAy))
+      if ((tranPx >= m_maxTranX) || (tranPy >= m_maxTranY))
       {
         m_stats.DoCZoomOutOfRange();
         *rowBuff = Pixel::BLACK;
@@ -575,10 +564,10 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetSourceInfo(const uint32_t tranPx,
                                                         const uint32_t tranPy) const
     -> std::tuple<uint32_t, uint32_t, CoeffArray>
 {
-  const uint32_t srceX = tranPx >> PERTE_DEC;
-  const uint32_t srceY = tranPy >> PERTE_DEC;
-  const size_t xIndex = tranPx & PERTE_MASK;
-  const size_t yIndex = tranPy & PERTE_MASK;
+  const uint32_t srceX = ToScreenCoord(tranPx);
+  const uint32_t srceY = ToScreenCoord(tranPy);
+  const size_t xIndex = ToIndexCoord(tranPx);
+  const size_t yIndex = ToIndexCoord(tranPy);
 #if __cplusplus <= 201402L
   CoeffArray coeffs{};
   coeffs.intVal = m_precalcCoeffs[xIndex][yIndex];
