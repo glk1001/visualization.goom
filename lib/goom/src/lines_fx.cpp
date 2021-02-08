@@ -445,7 +445,7 @@ void LinesFx::LinesImpl::DrawLines(const std::vector<int16_t>& soundData,
                                    PixelBuffer& currentBuff)
 {
   const std::vector<PixelBuffer*> buffs{&currentBuff, &prevBuff};
-  const LinePoint* pt0 = &(m_srcePoints[0]);
+  const LinePoint& pt0 = m_srcePoints[0];
   const Pixel lineColor = GetLightenedColor(m_color1, m_power);
 
   const auto audioRange = static_cast<float>(m_goomInfo->GetSoundInfo().GetAllTimesMaxVolume() -
@@ -456,7 +456,8 @@ void LinesFx::LinesImpl::DrawLines(const std::vector<int16_t>& soundData,
   {
     // No range - flatline audio
     const std::vector<Pixel> colors = {lineColor, lineColor};
-    m_draw.Line(buffs, pt0->x, pt0->y, pt0->x + AUDIO_SAMPLE_LEN, pt0->y, colors, 1);
+    m_draw.Line(buffs, static_cast<int>(pt0.x), static_cast<int>(pt0.y),
+                static_cast<int>(pt0.x) + AUDIO_SAMPLE_LEN, static_cast<int>(pt0.y), colors, 1);
     MoveSrceLineCloserToDest();
     return;
   }
@@ -471,14 +472,14 @@ void LinesFx::LinesImpl::DrawLines(const std::vector<int16_t>& soundData,
 
   const Pixel randColor = GetRandomLineColor();
 
-  const auto getNextPoint = [&](const LinePoint* pt, const float dataVal) {
+  const auto getNextPoint = [&](const LinePoint& pt, const float dataVal) {
     assert(m_goomInfo->GetSoundInfo().GetAllTimesMinVolume() <= dataVal);
-    const float cosAngle = std::cos(pt->angle);
-    const float sinAngle = std::sin(pt->angle);
+    const float cosAngle = std::cos(pt.angle);
+    const float sinAngle = std::sin(pt.angle);
     const float normalizedDataVal = getNormalizedData(dataVal);
     assert(normalizedDataVal >= 0.0);
-    const auto x = static_cast<int>(pt->x + m_amplitude * cosAngle * normalizedDataVal);
-    const auto y = static_cast<int>(pt->y + m_amplitude * sinAngle * normalizedDataVal);
+    const auto x = static_cast<int>(pt.x + m_amplitude * cosAngle * normalizedDataVal);
+    const auto y = static_cast<int>(pt.y + m_amplitude * sinAngle * normalizedDataVal);
     const float maxBrightness =
         GetRandInRange(1.0F, 3.0F) * normalizedDataVal / static_cast<float>(MAX_NORMALIZED_PEAK);
     const float t = std::min(1.0F, maxBrightness);
@@ -500,7 +501,7 @@ void LinesFx::LinesImpl::DrawLines(const std::vector<int16_t>& soundData,
 
   for (size_t i = 1; i < AUDIO_SAMPLE_LEN; i++)
   {
-    const LinePoint* const pt = &(m_srcePoints[i]);
+    const LinePoint& pt = m_srcePoints[i];
 #if __cplusplus <= 201402L
     const auto nextPoint2 = getNextPoint(pt, data[i]);
     const auto x2 = std::get<0>(nextPoint2);
@@ -515,15 +516,15 @@ void LinesFx::LinesImpl::DrawLines(const std::vector<int16_t>& soundData,
 
     if (m_currentDotSize > 1)
     {
-      const auto getColor = [&]([[maybe_unused]] const size_t x, [[maybe_unused]] const size_t y,
-                                const Pixel& b) -> Pixel {
+      const auto getModColor = [&]([[maybe_unused]] const size_t x, [[maybe_unused]] const size_t y,
+                                   const Pixel& b) -> Pixel {
         return GetColorMultiply(b, colors[0], true);
       };
-      const auto getLowColor = [&]([[maybe_unused]] const size_t x, [[maybe_unused]] const size_t y,
-                                   const Pixel& b) -> Pixel {
+      const auto getLineColor = [&]([[maybe_unused]] const size_t x,
+                                    [[maybe_unused]] const size_t y, const Pixel& b) -> Pixel {
         return GetColorMultiply(b, colors[1], true);
       };
-      const std::vector<GoomDraw::GetBitmapColorFunc> getColors{getColor, getLowColor};
+      const std::vector<GoomDraw::GetBitmapColorFunc> getColors{getModColor, getLineColor};
       const ImageBitmap& bitmap = GetImageBitmap(m_currentDotSize);
       const std::vector<const PixelBuffer*> bitmaps{&bitmap, &bitmap};
       m_draw.Bitmap(buffs, x2, y2, bitmaps, getColors);
