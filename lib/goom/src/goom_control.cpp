@@ -1132,17 +1132,17 @@ inline auto GetHypercosEffect(const bool active) -> ZoomFilterData::HypercosEffe
 
 void GoomControl::GoomControlImpl::SetNextFilterMode()
 {
-  //  goomData.zoomFilterData.vitesse = 127;
-  //  goomData.zoomFilterData.middleX = 16;
-  //  goomData.zoomFilterData.middleY = 1;
+  m_goomData.zoomFilterData.vitesse = 127;
+  m_goomData.zoomFilterData.middleX = 16;
+  m_goomData.zoomFilterData.middleY = 1;
   m_goomData.zoomFilterData.reverse = true;
-  //  goomData.zoomFilterData.hPlaneEffect = 0;
-  //  goomData.zoomFilterData.vPlaneEffect = 0;
+  m_goomData.zoomFilterData.hPlaneEffect = 0;
+  m_goomData.zoomFilterData.vPlaneEffect = 0;
   m_goomData.zoomFilterData.waveEffect = false;
   m_goomData.zoomFilterData.hypercosEffect = ZoomFilterData::HypercosEffect::none;
-  //  goomData.zoomFilterData.noisify = false;
-  //  goomData.zoomFilterData.noiseFactor = 1;
-  //  goomData.zoomFilterData.blockyWavy = false;
+  m_goomData.zoomFilterData.noisify = false;
+  m_goomData.zoomFilterData.noiseFactor = 1;
+  m_goomData.zoomFilterData.blockyWavy = false;
   m_goomData.zoomFilterData.waveFreqFactor = ZoomFilterData::DEFAULT_WAVE_FREQ_FACTOR;
   m_goomData.zoomFilterData.waveAmplitude = ZoomFilterData::DEFAULT_WAVE_AMPLITUDE;
   m_goomData.zoomFilterData.waveEffectType = ZoomFilterData::DEFAULT_WAVE_EFFECT_TYPE;
@@ -1278,15 +1278,9 @@ void GoomControl::GoomControlImpl::SetNextFilterMode()
     }
   }
 
-  if (m_goomData.zoomFilterData.mode == ZoomFilterMode::amuletMode)
-  {
-    m_curGDrawables.erase(GoomDrawable::TENTACLES);
-    m_stats.TentaclesDisabled();
-  }
-  else
-  {
-    m_curGDrawables = m_states.GetCurrentDrawables();
-  }
+  ChangeMilieu();
+
+  m_curGDrawables = m_states.GetCurrentDrawables();
 }
 
 void GoomControl::GoomControlImpl::ChangeFilterMode()
