@@ -45,19 +45,14 @@ void FilterStats::Reset()
   m_numCoeffVitesseAboveMax = 0;
 }
 
-#if __cplusplus <= 201402L
-void FilterStats::Log(const StatsLogValueFunc&) const
-{
-}
-#else
 void FilterStats::Log(const StatsLogValueFunc& logVal) const
 {
   const constexpr char* MODULE = "Filter";
 
-  const int32_t avTimeInUpdateMs =
-      std::lround(m_numUpdates == 0 ? -1.0
-                                    : static_cast<float>(m_totalTimeInUpdatesMs) /
-                                          static_cast<float>(m_numUpdates));
+  const auto avTimeInUpdateMs = static_cast<int32_t>(std::lround(
+      m_numUpdates == 0
+          ? -1.0
+          : static_cast<float>(m_totalTimeInUpdatesMs) / static_cast<float>(m_numUpdates)));
   logVal(MODULE, "avTimeInUpdateMs", avTimeInUpdateMs);
   logVal(MODULE, "minTimeInUpdatesMs", m_minTimeInUpdatesMs);
   logVal(MODULE, "maxTimeInUpdatesMs", m_maxTimeInUpdatesMs);
@@ -97,7 +92,6 @@ void FilterStats::Log(const StatsLogValueFunc& logVal) const
   logVal(MODULE, "numCoeffVitesseBelowMin", m_numCoeffVitesseBelowMin);
   logVal(MODULE, "numCoeffVitesseAboveMax", m_numCoeffVitesseAboveMax);
 }
-#endif
 
 void FilterStats::UpdateStart()
 {

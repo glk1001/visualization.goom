@@ -25,19 +25,14 @@ void IfsStats::Reset()
   m_numHighLowDensityBlurThreshold = 0;
 }
 
-#if __cplusplus <= 201402L
-void IfsStats::Log(const StatsLogValueFunc&) const
-{
-}
-#else
 void IfsStats::Log(const StatsLogValueFunc& l) const
 {
   const constexpr char* MODULE = "Ifs";
 
-  const int32_t avTimeInUpdateMs =
-      std::lround(m_numUpdates == 0 ? -1.0
-                                    : static_cast<float>(m_totalTimeInUpdatesMs) /
-                                          static_cast<float>(m_numUpdates));
+  const auto avTimeInUpdateMs = static_cast<int32_t>(std::lround(
+      m_numUpdates == 0
+          ? -1.0
+          : static_cast<float>(m_totalTimeInUpdatesMs) / static_cast<float>(m_numUpdates)));
   l(MODULE, "avTimeInUpdateMs", avTimeInUpdateMs);
   l(MODULE, "minTimeInUpdatesMs", m_minTimeInUpdatesMs);
   l(MODULE, "maxTimeInUpdatesMs", m_maxTimeInUpdatesMs);
@@ -49,7 +44,6 @@ void IfsStats::Log(const StatsLogValueFunc& l) const
   l(MODULE, "numLowLowDensityBlurThreshold", m_numLowLowDensityBlurThreshold);
   l(MODULE, "numHighLowDensityBlurThreshold", m_numHighLowDensityBlurThreshold);
 }
-#endif
 
 void IfsStats::UpdateStart()
 {

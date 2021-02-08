@@ -60,11 +60,6 @@ void GoomStats::Reset()
   m_numZoomFilterAllowOverexposed = 0;
 }
 
-#if __cplusplus <= 201402L
-void GoomStats::Log(const StatsLogValueFunc&) const
-{
-}
-#else
 void GoomStats::Log(const StatsLogValueFunc& logVal) const
 {
   const constexpr char* MODULE = "goom_core";
@@ -127,10 +122,10 @@ void GoomStats::Log(const StatsLogValueFunc& logVal) const
   }
 
   logVal(MODULE, "numUpdates", m_numUpdates);
-  const int32_t avTimeInUpdateMs =
-      std::lround(m_numUpdates == 0 ? -1.0
-                                    : static_cast<float>(m_totalTimeInUpdatesMs) /
-                                          static_cast<float>(m_numUpdates));
+  const auto avTimeInUpdateMs = static_cast<int32_t>(std::lround(
+      m_numUpdates == 0
+          ? -1.0
+          : static_cast<float>(m_totalTimeInUpdatesMs) / static_cast<float>(m_numUpdates)));
   logVal(MODULE, "avTimeInUpdateMs", avTimeInUpdateMs);
   logVal(MODULE, "minTimeInUpdatesMs", m_minTimeInUpdatesMs);
   logVal(MODULE, "stateAtMin", m_stateAtMin);
@@ -178,7 +173,6 @@ void GoomStats::Log(const StatsLogValueFunc& logVal) const
   logVal(MODULE, "numBlockyWavy", m_numBlockyWavy);
   logVal(MODULE, "numZoomFilterAllowOverexposed", m_numZoomFilterAllowOverexposed);
 }
-#endif
 
 void GoomStats::SetSongTitle(const std::string& s)
 {
@@ -369,23 +363,46 @@ void GoomStats::DoZoomFilterAllowOverexposed()
   m_numZoomFilterAllowOverexposed++;
 }
 
-struct LogStatsVisitor
+class LogStatsVisitor
 {
-  LogStatsVisitor(const std::string& m, const std::string& n) : module{m}, name{n} {}
-  const std::string& module;
-  const std::string& name;
-  void operator()(const std::string& s) const { logInfo("{}.{} = '{}'", module, name, s); }
-  void operator()(const uint32_t i) const { logInfo("{}.{} = {}", module, name, i); }
-  void operator()(const int32_t i) const { logInfo("{}.{} = {}", module, name, i); }
-  void operator()(const uint64_t i) const { logInfo("{}.{} = {}", module, name, i); }
-  void operator()(const float f) const { logInfo("{}.{} = {:.3}", module, name, f); }
+public:
+  LogStatsVisitor(const std::string& m, const std::string& n) : m_module{m}, m_name{n} {}
+  void operator()(const std::string& s) const { logInfo("{}.{} = '{}'", m_module, m_name, s); }
+  void operator()(const uint32_t i) const { logInfo("{}.{} = {}", m_module, m_name, i); }
+  void operator()(const int32_t i) const { logInfo("{}.{} = {}", m_module, m_name, i); }
+  void operator()(const uint64_t i) const { logInfo("{}.{} = {}", m_module, m_name, i); }
+  void operator()(const float f) const { logInfo("{}.{} = {:.3}", m_module, m_name, f); }
+
+private:
+  const std::string& m_module;
+  const std::string& m_name;
 };
 
 void GoomStats::LogStatsValue(const std::string& module,
                               const std::string& name,
-                              const StatsLogValue& value)
+                              const StatsLogValue& logValue)
 {
-#if __cplusplus > 201402L
+#if __cplusplus <= 201402L
+  const LogStatsVisitor s_visitor{module, name};
+  switch (logValue.type)
+  {
+    case StatsLogValue::Type::STRING:
+      s_visitor(logValue.str);
+      break;
+    case StatsLogValue::Type::UINT32:
+      s_visitor(logValue.ui32);
+      break;
+    case StatsLogValue::Type::INT32:
+      s_visitor(logValue.i32);
+      break;
+    case StatsLogValue::Type::UINT64:
+      s_visitor(logValue.ui64);
+      break;
+    case StatsLogValue::Type::FLOAT:
+      s_visitor(logValue.flt);
+      break;
+  }
+#else
   std::visit(LogStatsVisitor{module, name}, value);
 #endif
 }

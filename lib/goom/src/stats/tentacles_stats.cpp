@@ -32,20 +32,15 @@ void TentacleStats::Reset()
   std::fill(m_numDriverChanges.begin(), m_numDriverChanges.end(), 0);
 }
 
-#if __cplusplus <= 201402L
-void TentacleStats::Log(const StatsLogValueFunc&) const
-{
-}
-#else
 void TentacleStats::Log(const GOOM::StatsLogValueFunc& logVal) const
 {
   const constexpr char* MODULE = "Tentacles";
 
   const uint32_t numUpdates = m_numUpdatesWithDraw;
-  const int32_t avTimeInUpdateMs =
-      std::lround(numUpdates == 0 ? -1.0
-                                  : static_cast<float>(m_totalTimeInUpdatesMs) /
-                                        static_cast<float>(numUpdates));
+  const auto avTimeInUpdateMs = static_cast<int32_t>(std::lround(
+      numUpdates == 0
+          ? -1.0
+          : static_cast<float>(m_totalTimeInUpdatesMs) / static_cast<float>(numUpdates)));
   logVal(MODULE, "avTimeInUpdateMs", avTimeInUpdateMs);
   logVal(MODULE, "minTimeInUpdatesMs", m_minTimeInUpdatesMs);
   logVal(MODULE, "maxTimeInUpdatesMs", m_maxTimeInUpdatesMs);
@@ -99,7 +94,6 @@ void TentacleStats::Log(const GOOM::StatsLogValueFunc& logVal) const
   logVal(MODULE, "numDriverTentacles", numTentaclesStr);
   logVal(MODULE, "numDriverChangesStr", numDriverChangesStr);
 }
-#endif
 
 void TentacleStats::UpdateStart()
 {

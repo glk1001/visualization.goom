@@ -2,7 +2,7 @@
 
 #include "goom/goom_config.h"
 #include "goomutils/logging_control.h"
-#undef NO_LOGGING
+//#undef NO_LOGGING
 #include "goomutils/logging.h"
 
 #include <format>
@@ -42,7 +42,7 @@ SmallImageBitmaps::SmallImageBitmaps(std::string resourcesDirectory)
 auto SmallImageBitmaps::GetImageBitmap(const ImageNames name, size_t res) const
     -> const ImageBitmap&
 {
-  logInfo("Getting image bitmap: '{}'.", GetImageKey(name, res));
+  logDebug("Getting image bitmap: '{}'.", GetImageKey(name, res));
   return *m_bitmapImages.at(GetImageKey(name, res));
 }
 

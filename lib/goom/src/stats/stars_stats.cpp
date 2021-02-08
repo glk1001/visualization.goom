@@ -21,11 +21,6 @@ void StarsStats::Reset()
   m_numRemovedStars = 0;
 }
 
-#if __cplusplus <= 201402L
-void StarsStats::Log(const StatsLogValueFunc&) const
-{
-}
-#else
 void StarsStats::Log(const StatsLogValueFunc& logVal) const
 {
   const constexpr char* MODULE = "Stars";
@@ -44,7 +39,6 @@ void StarsStats::Log(const StatsLogValueFunc& logVal) const
   logVal(MODULE, "lastMaxStars", m_lastMaxStars);
   logVal(MODULE, "lastMaxStarAge", m_lastMaxStarAge);
 }
-#endif
 
 void StarsStats::UpdateStars()
 {

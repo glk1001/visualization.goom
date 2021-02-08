@@ -884,7 +884,7 @@ void GoomControl::GoomControlImpl::Start()
   }
 
   // TODO Handle Windows paths.
-  SetFontFile(m_resourcesDirectory + "/fonts/" + "verdana.ttf");
+  SetFontFile(m_resourcesDirectory + "/" + FONTS_DIR + "/" + "verdana.ttf");
 
   m_timeInState = 0;
   ChangeState();

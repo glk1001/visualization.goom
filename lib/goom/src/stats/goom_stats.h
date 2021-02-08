@@ -26,7 +26,7 @@ public:
 
   static void LogStatsValue(const std::string& module,
                             const std::string& name,
-                            const StatsLogValue& value);
+                            const StatsLogValue& logValue);
 
   void SetSongTitle(const std::string& songTitle);
   void SetStateStartValue(uint32_t stateIndex);
