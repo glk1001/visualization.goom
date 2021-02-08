@@ -9,10 +9,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR})
 find_package(Kodi REQUIRED)
 find_package(glm REQUIRED)
 
-#find_package(Freetype REQUIRED)
-set(FREETYPE2_DIR "/home/greg/Prj/github/freetype2")
-set(FREETYPE_INCLUDE_DIRS "${FREETYPE2_DIR}/include")
-set(FREETYPE_LIBRARIES ${FREETYPE2_DIR}/build/libfreetype.so)
+find_package(Freetype REQUIRED)
 message(STATUS "FREETYPE_INCLUDE_DIRS = \"${FREETYPE_INCLUDE_DIRS}\".")
 message(STATUS "FREETYPE_LIBRARIES = \"${FREETYPE_LIBRARIES}\".")
 
@@ -48,7 +45,6 @@ include_directories(${includes}
                     SYSTEM ${KODI_INCLUDE_DIR}/.. # Hack way with "/..", need bigger Kodi cmake rework to match right include ways (becomes done in future)
                     SYSTEM ${FREETYPE_INCLUDE_DIRS}
                     SYSTEM ${LIBS_DIR}/vivid/include
-                    SYSTEM ${LIBS_DIR}/cereal/include
                     SYSTEM ${LIBS_DIR}/fmt/include)
 
 set(GOOM_SOURCES src/Main.cpp)

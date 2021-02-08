@@ -56,7 +56,6 @@ target_include_directories(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME}
     SYSTEM PRIVATE
         ${LIBS_DIR}/vivid/include
-        ${LIBS_DIR}/cereal/include
         ${LIBS_DIR}/fmt/include
         ${LIBS_DIR}/magic_enum/include
         ${FREETYPE_INCLUDE_DIRS}
