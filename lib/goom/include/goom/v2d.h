@@ -12,8 +12,8 @@ struct V2dInt
 
 struct V2dFlt
 {
-  double x;
-  double y;
+  float x;
+  float y;
 };
 
 } // namespace GOOM
