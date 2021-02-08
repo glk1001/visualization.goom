@@ -42,9 +42,6 @@
 #include <string>
 #include <thread>
 
-#define GOOM_TEXTURE_WIDTH 1280
-#define GOOM_TEXTURE_HEIGHT 720
-
 class ATTRIBUTE_HIDDEN CVisualizationGoom : public kodi::addon::CAddonBase,
                                             public kodi::addon::CInstanceVisualization,
                                             private kodi::gui::gl::CShaderProgram
@@ -87,7 +84,7 @@ protected:
   virtual void SkippedAudioData() {}
   virtual void AudioDataIncorrectReadLength() {}
   virtual void UpdateGoomBuffer(const char* title,
-                                const float floatAudioData[],
+                                const std::vector<float>& floatAudioData,
                                 std::shared_ptr<GOOM::PixelBuffer>& pixels);
 
 private:
@@ -97,28 +94,28 @@ private:
   auto GetNextActivePixels() -> std::shared_ptr<GOOM::PixelBuffer>;
   void PushUsedPixels(const std::shared_ptr<GOOM::PixelBuffer>& pixels);
 
-  int m_texWidth = GOOM_TEXTURE_WIDTH;
-  int m_texHeight = GOOM_TEXTURE_HEIGHT;
-  size_t m_goomBufferSize;
-  size_t m_goomBufferLen;
-  size_t m_audioBufferLen;
+  const int m_texWidth;
+  const int m_texHeight;
+  const size_t m_goomBufferLen;
+  const size_t m_goomBufferSize;
+  size_t m_audioBufferLen{};
 
-  int m_windowWidth;
-  int m_windowHeight;
-  int m_windowXPos;
-  int m_windowYPos;
+  const int m_windowWidth;
+  const int m_windowHeight;
+  const int m_windowXPos;
+  const int m_windowYPos;
 
-  size_t m_channels;
-  std::string m_currentSongName;
-  std::string m_lastSongName;
+  size_t m_channels{};
+  std::string m_currentSongName{};
+  std::string m_lastSongName{};
   bool m_titleChange = false;
   bool m_showTitleAlways = false;
 
-  GLint m_componentsPerVertex;
-  GLint m_componentsPerTexel;
-  int m_numVertices;
-  int m_numElements;
-  GLfloat* m_quadData = nullptr;
+  GLint m_componentsPerVertex{};
+  GLint m_componentsPerTexel{};
+  int m_numVertices{};
+  int m_numElements{};
+  GLfloat* m_quadData{};
 
 #ifdef HAS_GL
   bool m_usePixelBufferObjects =
@@ -127,10 +124,10 @@ private:
 #endif
   GLuint m_textureId = 0;
   const static int g_numPbos = 3;
-  GLuint m_pboIds[g_numPbos];
-  unsigned char* m_pboGoomBuffer[g_numPbos];
-  int m_currentPboIndex;
-  glm::mat4 m_projModelMatrix;
+  GLuint m_pboIds[g_numPbos]{};
+  unsigned char* m_pboGoomBuffer[g_numPbos]{};
+  int m_currentPboIndex{};
+  glm::mat4 m_projModelMatrix{};
   GLuint m_vaoObject = 0;
   GLuint m_vertexVBO = 0;
   GLint m_uProjModelMatLoc = -1;
@@ -147,9 +144,9 @@ private:
 
   // Goom process thread handles
   bool m_threadExit = false;
-  std::thread m_workerThread;
-  std::mutex m_mutex;
-  std::condition_variable m_wait;
+  std::thread m_workerThread{};
+  std::mutex m_mutex{};
+  std::condition_variable m_wait{};
 
   // Screen frames storage, m_activeQueue for next view and m_storedQueue to
   // use on next goom round become active again.
@@ -157,8 +154,8 @@ protected:
   static constexpr size_t MAX_ACTIVE_QUEUE_LENGTH = 20;
 
 private:
-  std::queue<std::shared_ptr<GOOM::PixelBuffer>> m_activeQueue;
-  std::queue<std::shared_ptr<GOOM::PixelBuffer>> m_storedQueue;
+  std::queue<std::shared_ptr<GOOM::PixelBuffer>> m_activeQueue{};
+  std::queue<std::shared_ptr<GOOM::PixelBuffer>> m_storedQueue{};
 
   // Start flag to know init was OK
   bool m_started = false;

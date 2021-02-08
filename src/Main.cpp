@@ -33,39 +33,34 @@ using GOOM::Pixel;
 using GOOM::PixelBuffer;
 using GOOM::UTILS::Logging;
 
-CVisualizationGoom::CVisualizationGoom()
-{
-  switch (kodi::GetSettingInt("quality"))
-  {
-    case 0:
-      m_texWidth = 512;
-      m_texHeight = 256;
-      break;
-    case 1:
-      m_texWidth = 640;
-      m_texHeight = 360;
-      break;
-    case 2:
-      m_texWidth = 1280;
-      m_texHeight = 720;
-      break;
-    default:
-      m_texWidth = GOOM_TEXTURE_WIDTH;
-      m_texHeight = GOOM_TEXTURE_HEIGHT;
-      break;
-  }
+static constexpr int MAX_QUALITY = 2;
+static constexpr std::array<int, MAX_QUALITY + 1> WIDTHS_BY_QUALITY{
+    512,
+    640,
+    1280,
+};
+static constexpr std::array<int, 3> HEIGHTS_BY_QUALITY{
+    256,
+    360,
+    720,
+};
 
-  m_goomBufferLen = m_texWidth * m_texHeight;
-  m_goomBufferSize = m_goomBufferLen * sizeof(uint32_t);
+CVisualizationGoom::CVisualizationGoom()
+  : m_texWidth{WIDTHS_BY_QUALITY[static_cast<size_t>(
+        std::max(MAX_QUALITY, kodi::GetSettingInt("quality")))]},
+    m_texHeight{HEIGHTS_BY_QUALITY[static_cast<size_t>(
+        std::max(MAX_QUALITY, kodi::GetSettingInt("quality")))]},
+    m_goomBufferLen{static_cast<size_t>(m_texWidth * m_texHeight)},
+    m_goomBufferSize{m_goomBufferLen * sizeof(uint32_t)},
+    m_windowWidth{Width()},
+    m_windowHeight{Height()},
+    m_windowXPos{X()},
+    m_windowYPos{Y()}
+{
 
 #ifdef HAS_GL
   m_usePixelBufferObjects = kodi::GetSettingBoolean("use_pixel_buffer_objects");
 #endif
-
-  m_windowWidth = Width();
-  m_windowHeight = Height();
-  m_windowXPos = X();
-  m_windowYPos = Y();
 
   InitQuadData();
 }
@@ -107,7 +102,7 @@ auto CVisualizationGoom::Start(int iChannels,
   logStart();
   logInfo("Visualization start. SongName = \"{}\".", szSongName);
 
-  m_channels = iChannels;
+  m_channels = static_cast<size_t>(iChannels);
   m_audioBufferLen = m_channels * AUDIO_SAMPLE_LEN;
   m_currentSongName = szSongName;
   m_titleChange = true;
@@ -214,7 +209,7 @@ void CVisualizationGoom::AudioData(const float* pAudioData,
     return;
   }
 
-  (void)m_buffer.Write(pAudioData, iAudioDataLength);
+  (void)m_buffer.Write(pAudioData, static_cast<unsigned int>(iAudioDataLength));
   m_wait.notify_one();
 }
 
@@ -365,8 +360,8 @@ void CVisualizationGoom::Process()
   }
   m_goomControl->Start();
 
-  float floatAudioData[m_audioBufferLen];
-  const char* title = nullptr;
+  std::vector<float> floatAudioData(m_audioBufferLen);
+  const char* title;
   unsigned long buffNum = 0;
 
   while (true)
@@ -380,7 +375,7 @@ void CVisualizationGoom::Process()
     {
       m_wait.wait(lk);
     }
-    unsigned read = m_buffer.Read(floatAudioData, m_audioBufferLen);
+    unsigned read = m_buffer.Read(floatAudioData.data(), m_audioBufferLen);
     if (read != m_audioBufferLen)
     {
       kodi::Log(
@@ -443,10 +438,10 @@ void CVisualizationGoom::Process()
 }
 
 void CVisualizationGoom::UpdateGoomBuffer(const char* title,
-                                          const float floatAudioData[],
+                                          const std::vector<float>& floatAudioData,
                                           std::shared_ptr<PixelBuffer>& pixels)
 {
-  const GOOM::AudioSamples audioData{m_channels, floatAudioData};
+  const GOOM::AudioSamples audioData{m_channels, floatAudioData.data()};
   m_goomControl->SetScreenBuffer(*pixels);
   m_goomControl->Update(audioData, 0, 0.0F, title, "");
 }
@@ -502,12 +497,15 @@ auto CVisualizationGoom::InitGlObjects() -> bool
   glBindVertexArray(m_vaoObject);
   glGenBuffers(1, &m_vertexVBO);
   glBindBuffer(GL_ARRAY_BUFFER, m_vertexVBO);
-  glEnableVertexAttribArray(m_aPositionLoc);
-  glEnableVertexAttribArray(m_aCoordLoc);
-  glVertexAttribPointer(m_aPositionLoc, m_componentsPerVertex, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
-  glVertexAttribPointer(m_aCoordLoc, m_componentsPerTexel, GL_FLOAT, GL_FALSE, 0,
-                        (GLvoid*)(m_numVertices * m_componentsPerVertex * sizeof(GLfloat)));
-  glBufferData(GL_ARRAY_BUFFER, m_numElements * sizeof(GLfloat), m_quadData, GL_STATIC_DRAW);
+  glEnableVertexAttribArray(static_cast<GLuint>(m_aPositionLoc));
+  glEnableVertexAttribArray(static_cast<GLuint>(m_aCoordLoc));
+  glVertexAttribPointer(static_cast<GLuint>(m_aPositionLoc), m_componentsPerVertex, GL_FLOAT,
+                        GL_FALSE, 0, (GLvoid*)0);
+  glVertexAttribPointer(
+      static_cast<GLuint>(m_aCoordLoc), m_componentsPerTexel, GL_FLOAT, GL_FALSE, 0,
+      (GLvoid*)(static_cast<size_t>(m_numVertices * m_componentsPerVertex) * sizeof(GLfloat)));
+  glBufferData(GL_ARRAY_BUFFER, static_cast<size_t>(m_numElements) * sizeof(GLfloat), m_quadData,
+               GL_STATIC_DRAW);
   glBindVertexArray(0);
 #endif
 
@@ -546,9 +544,11 @@ auto CVisualizationGoom::InitGlObjects() -> bool
     for (int i = 0; i < g_numPbos; i++)
     {
       glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pboIds[i]);
-      glBufferData(GL_PIXEL_UNPACK_BUFFER, m_goomBufferSize, 0, GL_STREAM_DRAW);
+      glBufferData(GL_PIXEL_UNPACK_BUFFER, static_cast<GLsizeiptr>(m_goomBufferSize), 0,
+                   GL_STREAM_DRAW);
       glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pboIds[i]);
-      glBufferData(GL_PIXEL_UNPACK_BUFFER, m_goomBufferSize, 0, GL_STREAM_DRAW);
+      glBufferData(GL_PIXEL_UNPACK_BUFFER, static_cast<GLsizeiptr>(m_goomBufferSize), 0,
+                   GL_STREAM_DRAW);
       m_pboGoomBuffer[i] =
           static_cast<unsigned char*>(glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY));
       if (!m_pboGoomBuffer[i])
