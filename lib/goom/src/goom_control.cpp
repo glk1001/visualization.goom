@@ -1000,7 +1000,7 @@ void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,
   ApplyIfsIfRequired();
   ApplyTentaclesIfRequired();
   ApplyStarsIfRequired();
-  ////////////////////  ApplyImageIfRequired();
+  ApplyImageIfRequired();
 
   /**
 #ifdef SHOW_STATE_TEXT_ON_SCREEN
@@ -1753,7 +1753,8 @@ void GoomControl::GoomControlImpl::ApplyImageIfRequired()
   logDebug("curGDrawables image is set.");
   //m_stats.DoImage();
   m_visualFx.image_fx->SetBuffSettings(m_states.GetCurrentBuffSettings(GoomDrawable::IMAGE));
-  m_visualFx.image_fx->Apply(m_imageBuffers.GetP2());
+  //  m_visualFx.image_fx->Apply(m_imageBuffers.GetP2());
+  m_visualFx.image_fx->Apply(m_imageBuffers.GetP2(), m_imageBuffers.GetP1());
 }
 
 #ifdef SHOW_STATE_TEXT_ON_SCREEN

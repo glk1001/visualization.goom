@@ -11,6 +11,8 @@
 #undef NO_LOGGING
 #include "goomutils/goomrand.h"
 #include "goomutils/logging.h"
+#include "goomutils/mathutils.h"
+#include "goomutils/random_colormaps.h"
 #include "v2d.h"
 
 #include <cmath>
@@ -25,10 +27,33 @@ namespace GOOM
 
 using namespace GOOM::UTILS;
 
+struct Image
+{
+  Image(std::shared_ptr<ImageBitmap> i,
+        std::shared_ptr<const IColorMap> cm,
+        const V2dInt& c,
+        const int p,
+        const int step)
+    : image{std::move(i)},
+      colorMap{std::move(cm)},
+      startingCentre{c},
+      pathCounter{p},
+      counterStep{step}
+  {
+  }
+
+  const std::shared_ptr<ImageBitmap> image;
+  std::shared_ptr<const IColorMap> colorMap{};
+  const V2dInt startingCentre;
+  V2dInt centre{};
+  int pathCounter{};
+  int counterStep{};
+  bool backwards{false};
+};
+
 class ImageFx::ImageFxImpl
 {
 public:
-  ImageFxImpl() noexcept;
   explicit ImageFxImpl(const std::shared_ptr<const PluginInfo>& info) noexcept;
   ~ImageFxImpl() noexcept = default;
   ImageFxImpl(const ImageFxImpl&) noexcept = delete;
@@ -43,21 +68,29 @@ public:
 
   void Start();
 
-  void Apply(PixelBuffer& currentBuff);
+  // void Apply(PixelBuffer& currentBuff);
+  void Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff);
 
 private:
   std::shared_ptr<const PluginInfo> m_goomInfo{};
   std::string m_resourcesDirectory{};
   FXBuffSettings m_buffSettings{};
+  uint64_t m_updateNum{};
   GoomDraw m_draw;
-  ImageBitmap m_image{};
+  RandomColorMaps m_colorMaps{};
+  std::vector<Image> m_images{};
+  const V2dInt m_targetPos;
+  auto GetNextStartingCentre(Image& image) -> V2dInt;
+  static constexpr uint32_t MAX_PATH_COUNT = 500;
+  std::vector<V2dInt> m_path;
+  void InitPath();
+  float m_tVal{0};
+  bool m_tValBack = false;
+  static constexpr float T_STEP = 0.01;
+  void ResetCentres();
+  void UpdateCentres();
   GammaCorrection m_gammaCorrect{2.0, 0.01};
-  auto GetNextImageCentre() -> V2dInt;
 };
-
-ImageFx::ImageFx() noexcept : m_fxImpl{new ImageFxImpl{}}
-{
-}
 
 ImageFx::ImageFx(const std::shared_ptr<const PluginInfo>& info) noexcept
   : m_fxImpl{new ImageFxImpl{info}}
@@ -99,6 +132,7 @@ auto ImageFx::GetFxName() const -> std::string
   return "image";
 }
 
+/**
 void ImageFx::Apply(PixelBuffer& currentBuff)
 {
   if (!m_enabled)
@@ -107,15 +141,51 @@ void ImageFx::Apply(PixelBuffer& currentBuff)
   }
   m_fxImpl->Apply(currentBuff);
 }
+ **/
+
+void ImageFx::Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuffer)
+{
+  if (!m_enabled)
+  {
+    return;
+  }
+  m_fxImpl->Apply(currentBuff, nextBuffer);
+}
 
 ImageFx::ImageFxImpl::ImageFxImpl(const std::shared_ptr<const PluginInfo>& info) noexcept
-  : m_goomInfo(info), m_draw{m_goomInfo->GetScreenInfo().width, m_goomInfo->GetScreenInfo().height}
+  : m_goomInfo(info),
+    m_draw{m_goomInfo->GetScreenInfo().width, m_goomInfo->GetScreenInfo().height},
+    m_targetPos{static_cast<int>(m_goomInfo->GetScreenInfo().width / 2),
+                static_cast<int>(m_goomInfo->GetScreenInfo().height / 2)},
+    m_path(MAX_PATH_COUNT + 1)
 {
+  InitPath();
 }
 
 void ImageFx::ImageFxImpl::Start()
 {
-  m_image.Load(m_resourcesDirectory + "/" + "mountain_sunset.png");
+  m_updateNum = 0;
+
+  auto image = std::make_shared<ImageBitmap>(m_resourcesDirectory + "/" + IMAGES_DIR + "/" +
+                                             "mountain_sunset_100x65.png");
+  m_images.emplace_back(
+      Image{image, m_colorMaps.GetRandomColorMapPtr(), {200, 200}, MAX_PATH_COUNT / 4, 2});
+  m_images.emplace_back(Image{image,
+                              m_colorMaps.GetRandomColorMapPtr(),
+                              {200, static_cast<int>(m_goomInfo->GetScreenInfo().height) - 200},
+                              2 * MAX_PATH_COUNT / 4,
+                              1});
+  m_images.emplace_back(Image{image,
+                              m_colorMaps.GetRandomColorMapPtr(),
+                              {static_cast<int>(m_goomInfo->GetScreenInfo().width) - 200,
+                               static_cast<int>(m_goomInfo->GetScreenInfo().height) - 200},
+                              3 * MAX_PATH_COUNT / 4,
+                              2});
+  m_images.emplace_back(Image{image,
+                              m_colorMaps.GetRandomColorMapPtr(),
+                              {static_cast<int>(m_goomInfo->GetScreenInfo().width) - 200, 200},
+                              4 * MAX_PATH_COUNT / 4,
+                              3});
 }
 
 auto ImageFx::ImageFxImpl::GetResourcesDirectory() const -> const std::string&
@@ -135,26 +205,108 @@ void ImageFx::ImageFxImpl::SetBuffSettings(const FXBuffSettings& settings)
   m_draw.SetAllowOverexposed(m_buffSettings.allowOverexposed);
 }
 
-void ImageFx::ImageFxImpl::Apply(PixelBuffer& currentBuff)
+void ImageFx::ImageFxImpl::Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
 {
-  constexpr float BRIGHTNESS = 0.2F;
+  m_updateNum++;
+
+  if (m_updateNum % 100 == 0)
+  {
+    for (auto& image : m_images)
+    {
+      image.colorMap = m_colorMaps.GetRandomColorMapPtr();
+    }
+  }
+
+  constexpr float BRIGHTNESS = 0.20F;
+  size_t imageIndex = 0;
   const auto getColor = [&]([[maybe_unused]] const int x, [[maybe_unused]] const int y,
                             const Pixel& b) -> Pixel {
-    return GetBrighterColor(BRIGHTNESS, b, m_buffSettings.allowOverexposed);
+    return GetBrighterColor(
+        BRIGHTNESS, GetColorMultiply(b, m_images[imageIndex].colorMap->GetColor(m_tVal), false),
+        //        GetColorBlend(b, m_colorMap->GetColor(m_tVal)),
+        false);
+  };
+  const auto getLighterColor = [&]([[maybe_unused]] const int x, [[maybe_unused]] const int y,
+                                   const Pixel& b) -> Pixel {
+    return GetLightenedColor(getColor(x, y, b), 10);
   };
 
-  const V2dInt imageLocation = GetNextImageCentre();
-  m_draw.Bitmap(currentBuff, imageLocation.x, imageLocation.y, m_image, getColor);
+
+  const std::vector<PixelBuffer*> buffs{&currentBuff, &nextBuff};
+  const std::vector<GoomDraw::GetBitmapColorFunc> getColors{getColor, getLighterColor};
+  for (size_t i = 0; i < m_images.size(); ++i)
+  {
+    const std::vector<const PixelBuffer*> bitmaps{m_images[i].image.get(), m_images[i].image.get()};
+    imageIndex = i;
+    m_draw.Bitmap(buffs, m_images[i].centre.x, m_images[i].centre.y, bitmaps, getColors);
+  }
+
+  m_tVal += m_tValBack ? -T_STEP : +T_STEP;
+  if (m_tVal > 1.0)
+  {
+    m_tValBack = true;
+    //    ResetCentres();
+  }
+  else if (m_tVal < 0.0)
+  {
+    m_tValBack = false;
+    //    ResetCentres();
+  }
+  UpdateCentres();
 }
 
-auto ImageFx::ImageFxImpl::GetNextImageCentre() -> V2dInt
+void ImageFx::ImageFxImpl::ResetCentres()
 {
-  const auto buffCentreX = static_cast<int>(m_goomInfo->GetScreenInfo().width / 2);
-  const auto buffCentreY = static_cast<int>(m_goomInfo->GetScreenInfo().height / 2);
-  return V2dInt{buffCentreX, buffCentreY};
-  const int x = GetRandInRange(buffCentreX - 10, buffCentreX + 10);
-  const int y = GetRandInRange(buffCentreY - 10, buffCentreY + 10);
-  return V2dInt{x, y};
+  m_images[0].centre = {200, 200};
+  m_images[1].centre = {200, static_cast<int>(m_goomInfo->GetScreenInfo().height) - 200};
+  m_images[2].centre = {static_cast<int>(m_goomInfo->GetScreenInfo().width) - 200,
+                        static_cast<int>(m_goomInfo->GetScreenInfo().height) - 200};
+  m_images[3].centre = {static_cast<int>(m_goomInfo->GetScreenInfo().width) - 200, 200};
+}
+
+void ImageFx::ImageFxImpl::UpdateCentres()
+{
+  for (auto& image : m_images)
+  {
+    const V2dInt start = GetNextStartingCentre(image);
+    const auto x = static_cast<int>(
+        stdnew::lerp(static_cast<float>(start.x), static_cast<float>(m_targetPos.x), m_tVal));
+    const auto y = static_cast<int>(
+        stdnew::lerp(static_cast<float>(start.y), static_cast<float>(m_targetPos.y), m_tVal));
+    image.centre = {GetRandInRange(x - 20, x + 20), GetRandInRange(y - 20, y + 20)};
+  }
+}
+
+auto ImageFx::ImageFxImpl::GetNextStartingCentre(Image& image) -> V2dInt
+{
+  const V2dInt coord = m_path[static_cast<size_t>(image.pathCounter)];
+  image.pathCounter += image.backwards ? -image.counterStep : +image.counterStep;
+  if (image.pathCounter <= 0)
+  {
+    image.pathCounter = 0;
+    image.backwards = false;
+  }
+  if (static_cast<size_t>(image.pathCounter) >= m_path.size())
+  {
+    image.pathCounter = static_cast<int>(m_path.size() - 1);
+    image.backwards = true;
+  }
+  return coord;
+}
+
+void ImageFx::ImageFxImpl::InitPath()
+{
+  const float angleStep = m_two_pi / static_cast<float>(m_path.size() - 1);
+  const auto radius = static_cast<float>(m_goomInfo->GetScreenInfo().height / 2);
+  float angle = 0.0;
+  const auto x0 = static_cast<int32_t>(m_goomInfo->GetScreenInfo().width / 2);
+  const auto y0 = static_cast<int32_t>(m_goomInfo->GetScreenInfo().height / 2);
+  for (auto& coord : m_path)
+  {
+    coord = {x0 + static_cast<int>(radius * std::sin(angle)),
+             y0 + static_cast<int>(radius * std::cos(angle))};
+    angle += angleStep;
+  }
 }
 
 } // namespace GOOM
