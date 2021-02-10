@@ -5,6 +5,9 @@
  * Contains the core of goom's work.
  *
  * (c)2000-2003, by iOS-software.
+ *
+ *	- converted to C++14 2021-02-01 (glk)
+ *
  */
 
 #include "goom_control.h"
@@ -278,7 +281,7 @@ const GoomStates::WeightedStatesArray GoomStates::STATES{{
   {
     /*.weight = */1,
     /*.drawables */{{
-      { /*.fx = */GoomDrawable::DOTS,      /*.buffSettings = */{ /*.buffIntensity = */0.7, /*.allowOverexposed = */false  } },
+      { /*.fx = */GoomDrawable::DOTS,      /*.buffSettings = */{ /*.buffIntensity = */1.0, /*.allowOverexposed = */false  } },
     }},
   },
   {

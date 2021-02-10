@@ -23,6 +23,7 @@
  * When shown ifs, Diana Rose (4 years old) said, "It looks like dancing."
  *
  * Revision History:
+ * 01-Feb-2021: converted to C++14, lots of color changes (glk)
  * 13-Dec-2003: Added some goom specific stuffs (to make ifs a VisualFX).
  * 11-Apr-2002: jeko@ios-software.com: Make ifs.c system-indendant. (ifs.h added)
  * 01-Nov-2000: Allocation checks

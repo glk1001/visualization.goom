@@ -1,10 +1,6 @@
 #ifndef VISUALIZATION_GOOM_IFS_DANCERS_FX_H
 #define VISUALIZATION_GOOM_IFS_DANCERS_FX_H
 
-/*
- * File created 11 april 2002 by JeKo <jeko@free.fr>
- */
-
 #include "goom_visual_fx.h"
 
 #include <memory>

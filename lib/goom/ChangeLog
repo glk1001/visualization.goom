@@ -1,6 +1,7 @@
 ChangeLogs for GOOM
 -------------------
-
+.01/02/2021: version Goom++
+    Rewrite in C++14. Lot of cleaning and a lot more colors thanks to 'vivid'
 .10/03/2004: version 2k4-dev12
         - A Goom Scripting Language embedded in. It allows hi level of
         configuration and easy hacking of the effect's behaviour.

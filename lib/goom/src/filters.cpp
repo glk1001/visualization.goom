@@ -10,6 +10,8 @@
  *	-asm
  *	-optimisation de la procedure de generation du buffer de transformation
  *		la vitesse est maintenant comprise dans [0..128] au lieu de [0..100]
+ *
+ *	- converted to C++14 2021-02-01 (glk)
  */
 
 #include "filters.h"
@@ -582,11 +584,11 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetNewColor(const CoeffArray& coeffs,
 {
   if (m_filterData.blockyWavy)
   {
-    m_stats.DoGetBlockyMixedColor();
+    // m_stats.DoGetBlockyMixedColor();
     return GetBlockyMixedColor(coeffs, pixels);
   }
 
-  m_stats.DoGetMixedColor();
+  // m_stats.DoGetMixedColor();
   return GetMixedColor(coeffs, pixels);
 }
 

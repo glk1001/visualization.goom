@@ -1,12 +1,6 @@
 #ifndef VISUALIZATION_GOOM_LINES_FX_H
 #define VISUALIZATION_GOOM_LINES_FX_H
 
-/*
- *  lines.h
- *  Goom
- *  Copyright (c) 2000-2003 iOS-software. All rights reserved.
- */
-
 #include "goom_config.h"
 #include "goom_graphic.h"
 

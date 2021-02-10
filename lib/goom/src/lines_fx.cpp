@@ -1,3 +1,10 @@
+/*
+ *  Goom
+ *  Copyright (c) 2000-2003 iOS-software. All rights reserved.
+ *
+ *	- converted to C++14 2021-02-01 (glk)
+ */
+
 #include "lines_fx.h"
 
 #include "goom_config.h"
