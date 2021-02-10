@@ -138,12 +138,12 @@ template<class E>
 void Weights<E>::SetWeight(const E enumClass, size_t value)
 {
 #if __cplusplus <= 201402L
-  for (const auto& wgt : m_weights)
+  for (auto& wgt : m_weights)
   {
     const auto& e = std::get<0>(wgt);
-    const auto& w = std::get<1>(wgt);
+    auto& w = std::get<1>(wgt);
 #else
-    for (const auto& [e, w] : m_weights)
+  for (auto& [e, w] : m_weights)
   {
 #endif
     if (e == enumClass)
@@ -181,11 +181,11 @@ template<class E>
 void Weights<E>::ClearWeights(size_t value)
 {
 #if __cplusplus <= 201402L
-  for (const auto& wgt : m_weights)
+  for (auto& wgt : m_weights)
   {
-    const auto& w = std::get<1>(wgt);
+    auto& w = std::get<1>(wgt);
 #else
-    for (const auto& [e, w] : m_weights)
+  for (auto& [e, w] : m_weights)
   {
 #endif
     w = value;

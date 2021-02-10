@@ -2,6 +2,7 @@
 
 #if __cplusplus > 201402L
 namespace GOOM::UTILS::COLOR_DATA
+{
 #else
 namespace GOOM
 {

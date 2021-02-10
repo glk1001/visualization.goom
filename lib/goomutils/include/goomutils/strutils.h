@@ -30,6 +30,20 @@ auto EnumToString(const E e) -> std::string
 #endif
 }
 
+#if __cplusplus > 201402L
+template<class E>
+auto StringToEnum(const std::string& eStr) -> E
+{
+  const auto val = magic_enum::enum_cast<E>(eStr);
+  if (val)
+  {
+    return *val;
+  }
+
+  throw std::runtime_error("Unknown enum value \"" + eStr + "\".");
+}
+#endif
+
 #if __cplusplus <= 201402L
 } // namespace UTILS
 } // namespace GOOM
