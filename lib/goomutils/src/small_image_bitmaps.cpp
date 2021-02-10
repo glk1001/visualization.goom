@@ -5,6 +5,7 @@
 //#undef NO_LOGGING
 #include "goomutils/logging.h"
 
+#include <array>
 #include <format>
 #include <string>
 #include <utility>
@@ -19,11 +20,13 @@ namespace GOOM::UTILS
 {
 #endif
 
-const std::vector<std::string> SmallImageBitmaps::IMAGE_NAMES{
-    "circle",
-    "yellow-flower",
-    "red-flower",
-};
+const std::array<std::string, static_cast<size_t>(SmallImageBitmaps::ImageNames::_SIZE)>
+    SmallImageBitmaps::IMAGE_NAMES{
+        "circle",
+        "sphere",
+        "yellow-flower",
+        "red-flower",
+    };
 
 SmallImageBitmaps::SmallImageBitmaps(std::string resourcesDirectory)
   : m_resourcesDirectory{std::move(resourcesDirectory)}

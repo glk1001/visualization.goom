@@ -180,15 +180,15 @@ GoomDotsFx::GoomDotsFxImpl::GoomDotsFxImpl(const std::shared_ptr<const PluginInf
     m_draw{m_goomInfo->GetScreenInfo().width, m_goomInfo->GetScreenInfo().height}
 {
   m_colorMap1Id =
-      m_colorMapsManager.AddColorMapInfo({m_colorMaps, ColorMapName::_NULL, RandomColorMaps::ALL});
+      m_colorMapsManager.AddColorMapInfo({m_colorMaps, ColorMapName::Blues, RandomColorMaps::ALL});
   m_colorMap2Id =
-      m_colorMapsManager.AddColorMapInfo({m_colorMaps, ColorMapName::_NULL, RandomColorMaps::ALL});
-  m_colorMap3Id =
-      m_colorMapsManager.AddColorMapInfo({m_colorMaps, ColorMapName::_NULL, RandomColorMaps::ALL});
+      m_colorMapsManager.AddColorMapInfo({m_colorMaps, ColorMapName::Greens, RandomColorMaps::ALL});
+  m_colorMap3Id = m_colorMapsManager.AddColorMapInfo(
+      {m_colorMaps, ColorMapName::Oranges, RandomColorMaps::ALL});
   m_colorMap4Id =
-      m_colorMapsManager.AddColorMapInfo({m_colorMaps, ColorMapName::_NULL, RandomColorMaps::ALL});
-  m_colorMap5Id =
-      m_colorMapsManager.AddColorMapInfo({m_colorMaps, ColorMapName::_NULL, RandomColorMaps::ALL});
+      m_colorMapsManager.AddColorMapInfo({m_colorMaps, ColorMapName::Reds, RandomColorMaps::ALL});
+  m_colorMap5Id = m_colorMapsManager.AddColorMapInfo(
+      {m_colorMaps, ColorMapName::Spectral, RandomColorMaps::ALL});
 }
 
 void GoomDotsFx::GoomDotsFxImpl::Start()
@@ -243,8 +243,13 @@ void GoomDotsFx::GoomDotsFxImpl::Apply(PixelBuffer& currentBuff)
   {
     ChangeColors();
     radius = GetRandInRange(radius, MAX_DOT_SIZE / 2 + 1);
-    m_currentBitmapName = static_cast<SmallImageBitmaps::ImageNames>(
-        GetRandInRange(0U, static_cast<size_t>(SmallImageBitmaps::ImageNames::_SIZE)));
+    static const Weights<SmallImageBitmaps::ImageNames> s_dotTypes{{
+        {SmallImageBitmaps::ImageNames::SPHERE, 50},
+        {SmallImageBitmaps::ImageNames::CIRCLE, 20},
+        {SmallImageBitmaps::ImageNames::RED_FLOWER, 5},
+        {SmallImageBitmaps::ImageNames::YELLOW_FLOWER, 5},
+    }};
+    m_currentBitmapName = s_dotTypes.GetRandomWeighted();
   }
 
   const float largeFactor = GetLargeSoundFactor(m_goomInfo->GetSoundInfo());

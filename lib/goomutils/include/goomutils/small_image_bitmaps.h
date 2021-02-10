@@ -3,11 +3,11 @@
 
 #include "goomutils/image_bitmaps.h"
 
+#include <array>
 #include <cstdint>
 #include <map>
 #include <memory>
 #include <string>
-#include <vector>
 
 #if __cplusplus <= 201402L
 namespace GOOM
@@ -25,6 +25,7 @@ public:
   enum class ImageNames
   {
     CIRCLE,
+    SPHERE,
     YELLOW_FLOWER,
     RED_FLOWER,
     _SIZE
@@ -37,7 +38,7 @@ public:
   // void AddImageBitmap(const std::string& name, size_t res);
 
 private:
-  static const std::vector<std::string> IMAGE_NAMES;
+  static const std::array<std::string, static_cast<size_t>(ImageNames::_SIZE)> IMAGE_NAMES;
   std::string m_resourcesDirectory;
   std::map<std::string, std::unique_ptr<const ImageBitmap>> m_bitmapImages{};
   auto GetImageBitmapPtr(ImageNames name, size_t sizeOfImageSquare)
