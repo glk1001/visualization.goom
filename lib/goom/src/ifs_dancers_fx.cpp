@@ -75,7 +75,7 @@ using COLOR_DATA::ColorMapName;
 
 inline auto MegaChangeColorMapEvent() -> bool
 {
-  return ProbabilityOfMInN(9, 10);
+  return ProbabilityOfMInN(5, 10);
 }
 
 inline auto AllowOverexposedEvent() -> bool
