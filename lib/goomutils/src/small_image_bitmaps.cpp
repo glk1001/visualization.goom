@@ -64,8 +64,7 @@ inline auto SmallImageBitmaps::GetImageKey(const ImageNames name, const size_t s
 auto SmallImageBitmaps::GetImageFilename(const ImageNames name,
                                          const size_t sizeOfImageSquare) const -> std::string
 {
-  // TODO What about windows "\"
-  const std::string imagesDir = m_resourcesDirectory + "/" + IMAGES_DIR;
+  const std::string imagesDir = m_resourcesDirectory + PATH_SEP + IMAGES_DIR;
   std::string filename =
       std20::format("{}/{}{:02}x{:02}.png", imagesDir, IMAGE_NAMES.at(static_cast<size_t>(name)),
                     sizeOfImageSquare, sizeOfImageSquare);

@@ -889,8 +889,7 @@ void GoomControl::GoomControlImpl::Start()
     throw std::logic_error("Cannot start Goom - resource directory not set.");
   }
 
-  // TODO Handle Windows paths.
-  SetFontFile(m_resourcesDirectory + "/" + FONTS_DIR + "/" + "verdana.ttf");
+  SetFontFile(m_resourcesDirectory + PATH_SEP + FONTS_DIR + PATH_SEP + "verdana.ttf");
 
   m_timeInState = 0;
   ChangeState();

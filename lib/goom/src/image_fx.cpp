@@ -166,8 +166,8 @@ void ImageFx::ImageFxImpl::Start()
 {
   m_updateNum = 0;
 
-  auto image = std::make_shared<ImageBitmap>(m_resourcesDirectory + "/" + IMAGES_DIR + "/" +
-                                             "mountain_sunset100x65.png");
+  auto image = std::make_shared<ImageBitmap>(m_resourcesDirectory + PATH_SEP + IMAGES_DIR +
+                                             PATH_SEP + "mountain_sunset100x65.png");
   m_images.emplace_back(
       Image{image, m_colorMaps.GetRandomColorMapPtr(), {200, 200}, MAX_PATH_COUNT / 4, 2});
   m_images.emplace_back(Image{image,
