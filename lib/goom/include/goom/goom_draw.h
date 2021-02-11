@@ -50,13 +50,17 @@ public:
               int xCentre,
               int yCentre,
               const PixelBuffer& bitmap,
-              const GetBitmapColorFunc& getColor);
+              const GetBitmapColorFunc& getColor,
+              uint32_t xStride = 1,
+              uint32_t yStride = 1);
 
   void Bitmap(const std::vector<PixelBuffer*>& buffs,
               int xCentre,
               int yCentre,
               const std::vector<const PixelBuffer*>& bitmaps,
-              const std::vector<GetBitmapColorFunc>& getColors);
+              const std::vector<GetBitmapColorFunc>& getColors,
+              uint32_t xStride = 1,
+              uint32_t yStride = 1);
 
   void Line(
       PixelBuffer&, int x1, int y1, int x2, int y2, const Pixel& color, uint8_t thickness) const;

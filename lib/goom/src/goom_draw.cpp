@@ -35,10 +35,12 @@ void GoomDraw::Circle(const std::vector<PixelBuffer*>& buffs,
 }
 
 void GoomDraw::Bitmap(PixelBuffer& buff,
-                      int xCentre,
-                      int yCentre,
+                      const int xCentre,
+                      const int yCentre,
                       const PixelBuffer& bitmap,
-                      const GetBitmapColorFunc& getColor)
+                      const GetBitmapColorFunc& getColor,
+                      const uint32_t xStride,
+                      const uint32_t yStride)
 {
   const auto bitmapWidth = static_cast<int>(bitmap.GetWidth());
   const auto bitmapHeight = static_cast<int>(bitmap.GetHeight());
@@ -70,22 +72,26 @@ void GoomDraw::Bitmap(PixelBuffer& buff,
     y1 = static_cast<int>(m_screenHeight - 1);
   }
 
+  const size_t actualBitmapWidth = static_cast<size_t>(x1 - x0) + 1;
+  const size_t actualBitmapHeight = static_cast<size_t>(y1 - y0) + 1;
+
   const auto setDestPixelRow = [&](const size_t yBitmap) {
-    for (size_t xBitmap = 0; xBitmap < static_cast<size_t>(x1 - x0) + 1; ++xBitmap)
+    const int yBuff = y0 + static_cast<int>(yBitmap);
+    for (size_t xBitmap = 0; xBitmap < actualBitmapWidth; xBitmap += xStride)
     {
+      const int xBuff = x0 + static_cast<int>(xBitmap);
       const Pixel finalColor = getColor(xBitmap, yBitmap, bitmap(xBitmap, yBitmap));
-      DrawPixel(&buff, x0 + static_cast<int>(xBitmap), y0 + static_cast<int>(yBitmap), finalColor,
-                m_intBuffIntensity, m_allowOverexposed);
+      DrawPixel(&buff, xBuff, yBuff, finalColor, m_intBuffIntensity, m_allowOverexposed);
     }
   };
 
   if (bitmapWidth > 199)
   {
-    m_parallel.ForLoop(static_cast<uint32_t>(y1 - y0) + 1, setDestPixelRow);
+    m_parallel.ForLoop(actualBitmapHeight, setDestPixelRow);
   }
   else
   {
-    for (size_t yBitmap = 0; yBitmap < static_cast<size_t>(y1 - y0) + 1; ++yBitmap)
+    for (size_t yBitmap = 0; yBitmap < actualBitmapHeight; yBitmap += yStride)
     {
       setDestPixelRow(yBitmap);
     }
@@ -93,14 +99,16 @@ void GoomDraw::Bitmap(PixelBuffer& buff,
 }
 
 void GoomDraw::Bitmap(const std::vector<PixelBuffer*>& buffs,
-                      int xCentre,
-                      int yCentre,
+                      const int xCentre,
+                      const int yCentre,
                       const std::vector<const PixelBuffer*>& bitmaps,
-                      const std::vector<GetBitmapColorFunc>& getColors)
+                      const std::vector<GetBitmapColorFunc>& getColors,
+                      const uint32_t xStride,
+                      const uint32_t yStride)
 {
   for (size_t i = 0; i < buffs.size(); i++)
   {
-    Bitmap(*(buffs[i]), xCentre, yCentre, (*bitmaps[i]), getColors[i]);
+    Bitmap(*(buffs[i]), xCentre, yCentre, (*bitmaps[i]), getColors[i], xStride, yStride);
   }
 }
 
