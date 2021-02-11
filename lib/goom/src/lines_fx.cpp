@@ -529,7 +529,7 @@ void LinesFx::LinesImpl::DrawLines(const std::vector<int16_t>& soundData,
       };
       const auto getLineColor = [&]([[maybe_unused]] const size_t x,
                                     [[maybe_unused]] const size_t y, const Pixel& b) -> Pixel {
-        return GetColorMultiply(b, colors[1], true);
+        return GetColorMultiply(b, colors[0], false);
       };
       const std::vector<GoomDraw::GetBitmapColorFunc> getColors{getModColor, getLineColor};
       const ImageBitmap& bitmap = GetImageBitmap(m_currentDotSize);
