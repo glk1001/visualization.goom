@@ -849,7 +849,7 @@ void GoomControl::GoomControlImpl::SetFontFile(const std::string& filename)
   m_stats.SetFontFileUsed(filename);
 
   m_text.SetFontFile(filename);
-  m_text.SetFontSize(30);
+  m_text.SetFontSize(35);
   m_text.SetOutlineWidth(2);
   m_text.SetAlignment(TextDraw::TextAlignment::left);
 }
