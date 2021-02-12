@@ -32,8 +32,8 @@ namespace GOOM
 using namespace GOOM::UTILS;
 using UTILS::COLOR_DATA::ColorMapName;
 
-constexpr uint32_t MIN_STAR_AGE = 10;
-constexpr uint32_t MAX_STAR_EXTRA_AGE = 40;
+constexpr uint32_t MIN_STAR_AGE = 15;
+constexpr uint32_t MAX_STAR_EXTRA_AGE = 50;
 
 /* TODO:-- FAIRE PROPREMENT... BOAH... */
 
