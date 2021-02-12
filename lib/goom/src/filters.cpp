@@ -103,7 +103,8 @@ public:
                          PixelBuffer& pix2,
                          const ZoomFilterData* zf,
                          int32_t switchIncr,
-                         float switchMult);
+                         float switchMult,
+                         uint32_t& numClipped);
 
   auto GetFilterData() const -> const ZoomFilterData&;
   auto GetGeneralSpeed() const -> float;
@@ -158,7 +159,7 @@ private:
   void Init();
 
   void MakeZoomBufferStripe(uint32_t interlaceIncrement);
-  void CZoom(const PixelBuffer& srceBuff, PixelBuffer& destBuff);
+  void CZoom(const PixelBuffer& srceBuff, PixelBuffer& destBuff, uint32_t& numDestClipped);
   void GenerateWaterFxHorizontalBuffer();
   auto GetZoomVector(float normX, float normY) -> V2dFlt;
   static void GeneratePrecalCoef(Coeff2dArray& precalcCoeffs);
@@ -293,14 +294,15 @@ void ZoomFilterFx::ZoomFilterFastRgb(const PixelBuffer& pix1,
                                      PixelBuffer& pix2,
                                      const ZoomFilterData* zf,
                                      const int switchIncr,
-                                     const float switchMult)
+                                     const float switchMult,
+                                     uint32_t& numClipped)
 {
   if (!m_enabled)
   {
     return;
   }
 
-  m_fxImpl->ZoomFilterFastRgb(pix1, pix2, zf, switchIncr, switchMult);
+  m_fxImpl->ZoomFilterFastRgb(pix1, pix2, zf, switchIncr, switchMult, numClipped);
 }
 
 auto ZoomFilterFx::GetFilterData() const -> const ZoomFilterData&
@@ -335,7 +337,8 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
                                                      PixelBuffer& pix2,
                                                      const ZoomFilterData* zf,
                                                      const int32_t switchIncr,
-                                                     const float switchMult)
+                                                     const float switchMult,
+                                                     uint32_t& numClipped)
 {
   m_stats.UpdateStart();
   m_stats.DoZoomFilterFastRgb();
@@ -362,7 +365,7 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
   // generation du buffer de transform
   if (m_interlaceStart == -1)
   {
-    m_stats.DoZoomFilterFastRgbInterlaceStartEqualMinus11();
+    m_stats.DoZoomFilterFastRgbInterlaceStartEqualMinus1();
     // sauvegarde de l'etat actuel dans la nouvelle source
     // save the current state in the new source
     // TODO: write that in MMX (has been done in previous version, but did not follow
@@ -373,12 +376,6 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
       m_tranYSrce[i] += ((m_tranYDest[i] - m_tranYSrce[i]) * m_tranDiffFactor) >> BUFF_POINT_NUM;
     }
     m_tranDiffFactor = 0;
-  }
-
-  // TODO Why if repeated?
-  if (m_interlaceStart == -1)
-  {
-    m_stats.DoZoomFilterFastRgbInterlaceStartEqualMinus12();
 
     std::swap(m_tranXDest, m_tranXTemp);
     std::swap(m_tranYDest, m_tranYTemp);
@@ -403,18 +400,15 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
     }
   }
 
-  // Equal was interesting but not correct!?
-  //  if (std::fabs(1.0f - switchMult) < 0.0001)
   if (std::fabs(1.0F - switchMult) > 0.00001F)
   {
     m_stats.DoZoomFilterFastRgbSwitchIncrNotEqual1();
 
-    m_tranDiffFactor =
-        static_cast<int32_t>(static_cast<float>(BUFF_POINT_MASK) * (1.0F - switchMult) +
-                             static_cast<float>(m_tranDiffFactor) * switchMult);
+    m_tranDiffFactor = static_cast<int32_t>(stdnew::lerp(
+        static_cast<float>(BUFF_POINT_MASK), static_cast<float>(m_tranDiffFactor), switchMult));
   }
 
-  CZoom(pix1, pix2);
+  CZoom(pix1, pix2, numClipped);
 
   m_stats.UpdateEnd();
 }
@@ -470,20 +464,24 @@ void ZoomFilterFx::ZoomFilterImpl::GeneratePrecalCoef(Coeff2dArray& precalcCoeff
 }
 
 // pure c version of the zoom filter
-void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff, PixelBuffer& destBuff)
+void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff,
+                                         PixelBuffer& destBuff,
+                                         uint32_t& numDestClipped)
 {
   m_stats.DoCZoom();
+
+  numDestClipped = 0;
 
   const auto setDestPixelRow = [&](const uint32_t destY) {
     uint32_t destPos = m_screenWidth * destY;
 #if __cplusplus <= 201402L
-    const auto rowIter = destBuff.GetRowIter(destY);
-    const auto rowBegin = std::get<0>(rowIter);
-    const auto rowEnd = std::get<1>(rowIter);
+    const auto destRowIter = destBuff.GetRowIter(destY);
+    const auto destRowBegin = std::get<0>(destRowIter);
+    const auto destRowEnd = std::get<1>(destRowIter);
 #else
-    const auto [rowBegin, rowEnd] = destBuff.GetRowIter(destY);
+    const auto [destRowBegin, destRowEnd] = destBuff.GetRowIter(destY);
 #endif
-    for (auto rowBuff = rowBegin; rowBuff != rowEnd; ++rowBuff)
+    for (auto destRowBuff = destRowBegin; destRowBuff != destRowEnd; ++destRowBuff)
     {
 #if __cplusplus <= 201402L
       const auto tranP = GetTransformedPoint(destPos);
@@ -506,7 +504,8 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff, PixelBuffe
       if ((tranPx >= m_maxTranX) || (tranPy >= m_maxTranY))
       {
         m_stats.DoCZoomOutOfRange();
-        *rowBuff = Pixel::BLACK;
+        *destRowBuff = Pixel::BLACK;
+        numDestClipped++;
       }
       else
       {
@@ -519,7 +518,7 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff, PixelBuffe
         const auto [srceX, srceY, coeffs] = GetSourceInfo(tranPx, tranPy);
 #endif
         const PixelArray pixelNeighbours = srceBuff.Get4RHBNeighbours(srceX, srceY);
-        *rowBuff = GetNewColor(coeffs, pixelNeighbours);
+        *destRowBuff = GetNewColor(coeffs, pixelNeighbours);
 #ifndef NO_LOGGING
         if (colors[0].rgba() > 0xFF000000)
         {

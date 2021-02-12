@@ -160,7 +160,8 @@ public:
                          PixelBuffer& pix2,
                          const ZoomFilterData* zf,
                          int switchIncr,
-                         float switchMult);
+                         float switchMult,
+                         uint32_t& numClipped);
 
   [[nodiscard]] auto GetResourcesDirectory() const -> const std::string& override;
   void SetResourcesDirectory(const std::string& dirName) override;
@@ -176,8 +177,6 @@ public:
 
   void Log(const StatsLogValueFunc& l) const override;
   void Finish() override;
-
-  auto operator==(const ZoomFilterFx&) const -> bool;
 
 private:
   bool m_enabled = true;

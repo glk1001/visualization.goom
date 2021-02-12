@@ -38,8 +38,7 @@ public:
   void DoGenerateWaterFxHorizontalBuffer();
   void DoZoomFilterFastRgb();
   void DoZoomFilterFastRgbChangeConfig();
-  void DoZoomFilterFastRgbInterlaceStartEqualMinus11();
-  void DoZoomFilterFastRgbInterlaceStartEqualMinus12();
+  void DoZoomFilterFastRgbInterlaceStartEqualMinus1();
   void DoZoomFilterFastRgbSwitchIncrNotZero();
   void DoZoomFilterFastRgbSwitchIncrNotEqual1();
   void DoCZoomOutOfRange();
@@ -78,8 +77,7 @@ private:
   uint64_t m_numGenerateWaterFxHorizontalBuffer = 0;
   uint64_t m_numZoomFilterFastRgb = 0;
   uint64_t m_numZoomFilterFastRgbChangeConfig = 0;
-  uint64_t m_numZoomFilterFastRgbInterlaceStartEqualMinus11 = 0;
-  uint64_t m_numZoomFilterFastRgbInterlaceStartEqualMinus12 = 0;
+  uint64_t m_numZoomFilterFastRgbInterlaceStartEqualMinus1 = 0;
   uint64_t m_numZoomFilterFastRgbSwitchIncrNotZero = 0;
   uint64_t m_numZoomFilterFastRgbSwitchIncrNotEqual1 = 0;
   uint64_t m_numCZoomOutOfRange = 0;

@@ -668,6 +668,7 @@ private:
   // Changement d'effet de zoom !
   void ChangeZoomEffect(ZoomFilterData* pzfd, int forceMode);
 
+  void ApplyZoom(ZoomFilterData** pzfd);
   void ApplyIfsIfRequired();
   void ApplyTentaclesIfRequired();
   void ApplyStarsIfRequired();
@@ -997,9 +998,7 @@ void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,
 
   ChangeZoomEffect(pzfd, forceMode);
 
-  // Zoom here!
-  m_visualFx.zoomFilter_fx->ZoomFilterFastRgb(m_imageBuffers.GetP1(), m_imageBuffers.GetP2(), pzfd,
-                                              m_goomData.switchIncr, m_goomData.switchMult);
+  ApplyZoom(&pzfd);
 
   // applyDotsIfRequired();
   ApplyIfsIfRequired();
@@ -2182,6 +2181,19 @@ void GoomControl::GoomControlImpl::DisplayLinesIfInAGoom(const AudioSamples& sou
              m_goomData.lineMode, m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom());
 
     DisplayLines(soundData);
+  }
+}
+
+void GoomControl::GoomControlImpl::ApplyZoom(ZoomFilterData** pzfd)
+{
+  uint32_t numClipped = 0;
+  m_visualFx.zoomFilter_fx->ZoomFilterFastRgb(m_imageBuffers.GetP1(), m_imageBuffers.GetP2(), *pzfd,
+                                              m_goomData.switchIncr, m_goomData.switchMult,
+                                              numClipped);
+  if (numClipped > m_goomInfo->GetScreenInfo().size / 2)
+  {
+    // too many clipped
+    m_goomData.switchIncr = -m_goomData.switchIncr;
   }
 }
 

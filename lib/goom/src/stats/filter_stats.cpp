@@ -36,8 +36,7 @@ void FilterStats::Reset()
   m_numGenerateWaterFxHorizontalBuffer = 0;
   m_numZoomFilterFastRgb = 0;
   m_numZoomFilterFastRgbChangeConfig = 0;
-  m_numZoomFilterFastRgbInterlaceStartEqualMinus11 = 0;
-  m_numZoomFilterFastRgbInterlaceStartEqualMinus12 = 0;
+  m_numZoomFilterFastRgbInterlaceStartEqualMinus1 = 0;
   m_numZoomFilterFastRgbSwitchIncrNotZero = 0;
   m_numZoomFilterFastRgbSwitchIncrNotEqual1 = 0;
   m_numCZoomOutOfRange = 0;
@@ -81,10 +80,8 @@ void FilterStats::Log(const StatsLogValueFunc& logVal) const
   logVal(MODULE, "numCZoom", m_numCZoom);
   logVal(MODULE, "numGenerateWaterFXHorizontalBuffer", m_numGenerateWaterFxHorizontalBuffer);
   logVal(MODULE, "numZoomFilterFastRGBChangeConfig", m_numZoomFilterFastRgbChangeConfig);
-  logVal(MODULE, "numZoomFilterFastRGBInterlaceStartEqualMinus1_1",
-         m_numZoomFilterFastRgbInterlaceStartEqualMinus11);
-  logVal(MODULE, "numZoomFilterFastRGBInterlaceStartEqualMinus1_2",
-         m_numZoomFilterFastRgbInterlaceStartEqualMinus12);
+  logVal(MODULE, "numZoomFilterFastRGBInterlaceStartEqualMinus1",
+         m_numZoomFilterFastRgbInterlaceStartEqualMinus1);
   logVal(MODULE, "numZoomFilterFastRGBSwitchIncrNotZero", m_numZoomFilterFastRgbSwitchIncrNotZero);
   logVal(MODULE, "numZoomFilterFastRGBSwitchIncrNotEqual1",
          m_numZoomFilterFastRgbSwitchIncrNotEqual1);
@@ -212,14 +209,9 @@ void FilterStats::DoZoomFilterFastRgbChangeConfig()
   m_numZoomFilterFastRgbChangeConfig++;
 }
 
-void FilterStats::DoZoomFilterFastRgbInterlaceStartEqualMinus11()
+void FilterStats::DoZoomFilterFastRgbInterlaceStartEqualMinus1()
 {
-  m_numZoomFilterFastRgbInterlaceStartEqualMinus11++;
-}
-
-void FilterStats::DoZoomFilterFastRgbInterlaceStartEqualMinus12()
-{
-  m_numZoomFilterFastRgbInterlaceStartEqualMinus12++;
+  m_numZoomFilterFastRgbInterlaceStartEqualMinus1++;
 }
 
 void FilterStats::DoZoomFilterFastRgbSwitchIncrNotEqual1()
