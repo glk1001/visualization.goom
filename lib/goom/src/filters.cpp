@@ -45,26 +45,103 @@ namespace GOOM
 
 using namespace GOOM::UTILS;
 
-// For noise amplitude, take the reciprocal of these.
-constexpr float NOISE_MIN = 70;
-constexpr float NOISE_MAX = 120;
-
-static constexpr size_t NUM_NEIGHBOR_COEFFS = 4;
-using NeighborhoodCoeffArray = union
+class FilterCoefficients
 {
-  std::array<uint8_t, NUM_NEIGHBOR_COEFFS> c;
-  uint32_t intVal = 0;
-};
-using NeighborhoodPixelArray = std::array<Pixel, NUM_NEIGHBOR_COEFFS>;
+public:
+  static constexpr int32_t DIM_FILTER_COEFFS = 16;
+  static constexpr size_t NUM_NEIGHBOR_COEFFS = 4;
+  using NeighborhoodCoeffArray = union
+  {
+    std::array<uint8_t, NUM_NEIGHBOR_COEFFS> c;
+    uint32_t intVal = 0;
+  };
+  using FilterCoeff2dArray =
+      std::array<std::array<NeighborhoodCoeffArray, DIM_FILTER_COEFFS>, DIM_FILTER_COEFFS>;
+  using NeighborhoodPixelArray = std::array<Pixel, NUM_NEIGHBOR_COEFFS>;
 
-constexpr int32_t DIM_FILTER_COEFFS = 16;
+  FilterCoefficients() noexcept;
+  virtual ~FilterCoefficients() noexcept = default;
+  FilterCoefficients(const FilterCoefficients&) noexcept = delete;
+  FilterCoefficients(FilterCoefficients&&) noexcept = delete;
+  auto operator=(const FilterCoefficients&) -> FilterCoefficients& = delete;
+  auto operator=(FilterCoefficients&&) -> FilterCoefficients& = delete;
+
+  auto GetCoeffs() const -> const FilterCoeff2dArray&;
+
+private:
+  // modif d'optim by Jeko : precalcul des 4 coefs resultant des 2 pos
+  const FilterCoeff2dArray m_precalculatedCoeffs;
+  static auto GetPrecalculatedCoefficients() -> FilterCoeff2dArray;
+};
+
+FilterCoefficients::FilterCoefficients() noexcept
+  : m_precalculatedCoeffs{GetPrecalculatedCoefficients()}
+{
+}
+
+inline auto FilterCoefficients::GetCoeffs() const -> const FilterCoeff2dArray&
+{
+  return m_precalculatedCoeffs;
+}
+
+auto FilterCoefficients::GetPrecalculatedCoefficients() -> FilterCoeff2dArray
+{
+  FilterCoeff2dArray precalculatedCoeffs{};
+
+  for (uint32_t coeffH = 0; coeffH < DIM_FILTER_COEFFS; coeffH++)
+  {
+    for (uint32_t coeffV = 0; coeffV < DIM_FILTER_COEFFS; coeffV++)
+    {
+      const uint32_t diffCoeffH = DIM_FILTER_COEFFS - coeffH;
+      const uint32_t diffCoeffV = DIM_FILTER_COEFFS - coeffV;
+
+      if (coeffH == 0 && coeffV == 0)
+      {
+        precalculatedCoeffs[coeffH][coeffV].intVal = MAX_COLOR_VAL;
+      }
+      else
+      {
+        uint32_t i1 = diffCoeffH * diffCoeffV;
+        uint32_t i2 = coeffH * diffCoeffV;
+        uint32_t i3 = diffCoeffH * coeffV;
+        uint32_t i4 = coeffH * coeffV;
+
+        // TODO: faire mieux...
+        if (i1)
+        {
+          i1--;
+        }
+        if (i2)
+        {
+          i2--;
+        }
+        if (i3)
+        {
+          i3--;
+        }
+        if (i4)
+        {
+          i4--;
+        }
+
+        precalculatedCoeffs[coeffH][coeffV] = NeighborhoodCoeffArray{/*.c*/ {
+            static_cast<uint8_t>(i1),
+            static_cast<uint8_t>(i2),
+            static_cast<uint8_t>(i3),
+            static_cast<uint8_t>(i4),
+        }};
+      }
+    }
+  }
+
+  return precalculatedCoeffs;
+}
+
+static constexpr int32_t DIM_FILTER_COEFFS = FilterCoefficients::DIM_FILTER_COEFFS;
 // For optimising multiplication, division, and mod by DIM_FILTER_COEFFS.
 constexpr int32_t DIM_FILTER_COEFFS_DIV_SHIFT = 4;
 constexpr int32_t DIM_FILTER_COEFFS_MOD_MASK = 0xF;
-static const int32_t MAX_TRAN_DIFF_FACTOR =
-    static_cast<int32_t>(std::lround(std::pow(2, DIM_FILTER_COEFFS))) - 1;
-using FilterCoeff2dArray =
-    std::array<std::array<NeighborhoodCoeffArray, DIM_FILTER_COEFFS>, DIM_FILTER_COEFFS>;
+constexpr int32_t MAX_TRAN_DIFF_FACTOR = 0xFFFF;
 
 constexpr float MIN_SCREEN_COORD_VAL = 1.0F / static_cast<float>(DIM_FILTER_COEFFS);
 
@@ -95,6 +172,11 @@ inline auto GetTranBuffLerp(const int32_t srceBuffVal, const int32_t destBuffVal
   return static_cast<uint32_t>(srceBuffVal +
                                ((t * (destBuffVal - srceBuffVal)) >> DIM_FILTER_COEFFS));
 }
+
+
+// For noise amplitude, take the reciprocal of these.
+constexpr float NOISE_MIN = 70;
+constexpr float NOISE_MAX = 120;
 
 constexpr float MIN_COEF_VITESSE = -2.01;
 constexpr float MAX_COEF_VITESSE = +2.01;
@@ -167,14 +249,14 @@ private:
   int32_t m_tranDiffFactor; // in [0, BUFF_POINT_MASK]
   auto GetTranXBuffSrceDestLerp(size_t buffPos) -> uint32_t;
   auto GetTranYBuffSrceDestLerp(size_t buffPos) -> uint32_t;
+  using NeighborhoodCoeffArray = FilterCoefficients::NeighborhoodCoeffArray;
+  using NeighborhoodPixelArray = FilterCoefficients::NeighborhoodPixelArray;
   auto GetSourceInfo(uint32_t tranX, uint32_t tranY) const
       -> std::tuple<uint32_t, uint32_t, NeighborhoodCoeffArray>;
   auto GetNewColor(const NeighborhoodCoeffArray& coeffs, const NeighborhoodPixelArray& pixels) const
       -> Pixel;
 
-  // modif d'optim by Jeko : precalcul des 4 coefs resultant des 2 pos
-  const FilterCoeff2dArray m_precalculatedCoeffs;
-  static auto GetPrecalculatedCoeffs() -> FilterCoeff2dArray;
+  const FilterCoefficients m_precalculatedCoeffs;
 
   std::vector<int32_t> m_firedec{};
 
@@ -286,9 +368,14 @@ ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl(Parallel& p,
     m_tranBuffYLineStart{0},
     m_tranBuffState{TranBuffState::BUFF_READY},
     m_tranDiffFactor{0},
-    m_precalculatedCoeffs{GetPrecalculatedCoeffs()},
+    m_precalculatedCoeffs{},
     m_firedec(m_screenHeight)
 {
+  assert(DIM_FILTER_COEFFS ==
+         static_cast<int32_t>(std::lround(std::pow(2, DIM_FILTER_COEFFS_DIV_SHIFT))));
+  assert(MAX_TRAN_DIFF_FACTOR ==
+         static_cast<int32_t>(std::lround(std::pow(2, DIM_FILTER_COEFFS))) - 1);
+
   m_filterData.middleX = m_screenWidth / 2;
   m_filterData.middleY = m_screenHeight / 2;
 
@@ -388,7 +475,7 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetSourceInfo(const uint32_t tranX,
   const uint32_t srceY = TranToScreenCoord(tranY);
   const size_t xIndex = TranToCoeffIndexCoord(tranX);
   const size_t yIndex = TranToCoeffIndexCoord(tranY);
-  return std::make_tuple(srceX, srceY, m_precalculatedCoeffs[xIndex][yIndex]);
+  return std::make_tuple(srceX, srceY, m_precalculatedCoeffs.GetCoeffs()[xIndex][yIndex]);
 }
 
 inline auto ZoomFilterFx::ZoomFilterImpl::GetNewColor(const NeighborhoodCoeffArray& coeffs,
@@ -410,7 +497,7 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetBlockyMixedColor(
 {
   // Changing the color order gives a strange blocky, wavy look.
   // The order col4, col3, col2, col1 gave a black tear - no so good.
-  static_assert(NUM_NEIGHBOR_COEFFS == 4, "NUM_NEIGHBOR_COEFFS must be 4.");
+  static_assert(FilterCoefficients::NUM_NEIGHBOR_COEFFS == 4, "NUM_NEIGHBOR_COEFFS must be 4.");
   const NeighborhoodPixelArray reorderedColors{colors[0], colors[2], colors[1], colors[3]};
   return GetMixedColor(coeffs, reorderedColors);
 }
@@ -427,7 +514,7 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetMixedColor(const NeighborhoodCoeffA
   uint32_t newR = 0;
   uint32_t newG = 0;
   uint32_t newB = 0;
-  for (size_t i = 0; i < NUM_NEIGHBOR_COEFFS; i++)
+  for (size_t i = 0; i < FilterCoefficients::NUM_NEIGHBOR_COEFFS; i++)
   {
     const auto coeff = static_cast<uint32_t>(coeffs.c[i]);
     newR += static_cast<uint32_t>(colors[i].R()) * coeff;
@@ -459,59 +546,6 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetMixedColor(const NeighborhoodCoeffA
                 /*.g = */ static_cast<uint8_t>(newG),
                 /*.b = */ static_cast<uint8_t>(newB),
                 /*.a = */ 0xff}};
-}
-
-auto ZoomFilterFx::ZoomFilterImpl::GetPrecalculatedCoeffs() -> FilterCoeff2dArray
-{
-  FilterCoeff2dArray precalculatedCoeffs{};
-
-  for (uint32_t coeffH = 0; coeffH < DIM_FILTER_COEFFS; coeffH++)
-  {
-    for (uint32_t coeffV = 0; coeffV < DIM_FILTER_COEFFS; coeffV++)
-    {
-      const uint32_t diffCoeffH = DIM_FILTER_COEFFS - coeffH;
-      const uint32_t diffCoeffV = DIM_FILTER_COEFFS - coeffV;
-
-      if (!(coeffH || coeffV))
-      {
-        precalculatedCoeffs[coeffH][coeffV].intVal = MAX_COLOR_VAL;
-      }
-      else
-      {
-        uint32_t i1 = diffCoeffH * diffCoeffV;
-        uint32_t i2 = coeffH * diffCoeffV;
-        uint32_t i3 = diffCoeffH * coeffV;
-        uint32_t i4 = coeffH * coeffV;
-
-        // TODO: faire mieux...
-        if (i1)
-        {
-          i1--;
-        }
-        if (i2)
-        {
-          i2--;
-        }
-        if (i3)
-        {
-          i3--;
-        }
-        if (i4)
-        {
-          i4--;
-        }
-
-        precalculatedCoeffs[coeffH][coeffV] = NeighborhoodCoeffArray{/*.c*/ {
-            static_cast<uint8_t>(i1),
-            static_cast<uint8_t>(i2),
-            static_cast<uint8_t>(i3),
-            static_cast<uint8_t>(i4),
-        }};
-      }
-    }
-  }
-
-  return precalculatedCoeffs;
 }
 
 /**
