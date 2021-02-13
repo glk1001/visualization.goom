@@ -174,7 +174,10 @@ private:
   auto GetZoomVector(float xNormalized, float yNormalized) -> V2dFlt;
   auto GetStandardVelocity(float xNormalized, float yNormalized) -> V2dFlt;
   auto GetHypercosVelocity(float xNormalized, float yNormalized) const -> V2dFlt;
+  auto GetHPlaneEffectVelocity(float xNormalized, float yNormalized) const -> float;
+  auto GetVPlaneEffectVelocity(float xNormalized, float yNormalized) const -> float;
   auto GetNoiseVelocity() -> V2dFlt;
+  void AvoidNullDisplacement(V2dFlt& velocity) const;
   auto GetMixedColor(const NeighborhoodCoeffArray& coeffs,
                      const NeighborhoodPixelArray& colors) const -> Pixel;
   auto GetBlockyMixedColor(const NeighborhoodCoeffArray& coeffs,
@@ -735,10 +738,6 @@ auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float xNormalized, const 
 {
   m_stats.DoZoomVector();
 
-  /* sx = (x < 0.0f) ? -1.0f : 1.0f;
-     sy = (y < 0.0f) ? -1.0f : 1.0f;
-   */
-
   V2dFlt velocity = GetStandardVelocity(xNormalized, yNormalized);
 
   // The Effects add-ons...
@@ -762,23 +761,25 @@ auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float xNormalized, const 
   if (m_filterData.hPlaneEffect)
   {
     m_stats.DoZoomVectorHPlaneEffect();
-
-    // TODO - try xNormalized
-    velocity.x += yNormalized * m_filterData.hPlaneEffectAmplitude *
-                  static_cast<float>(m_filterData.hPlaneEffect);
+    velocity.x += GetHPlaneEffectVelocity(xNormalized, yNormalized);
   }
 
   if (m_filterData.vPlaneEffect)
   {
     m_stats.DoZoomVectorVPlaneEffect();
-    velocity.y += xNormalized * m_filterData.vPlaneEffectAmplitude *
-                  static_cast<float>(m_filterData.vPlaneEffect);
+    velocity.y += GetVPlaneEffectVelocity(xNormalized, yNormalized);
   }
 
   /* TODO : Water Mode */
   //    if (data->waveEffect)
 
-  // Avoid null displacement...
+  AvoidNullDisplacement(velocity);
+
+  return velocity;
+}
+
+inline void ZoomFilterFx::ZoomFilterImpl::AvoidNullDisplacement(V2dFlt& velocity) const
+{
   if (std::fabs(velocity.x) < m_minNormalizedCoordVal)
   {
     velocity.x = (velocity.x < 0.0F) ? -m_minNormalizedCoordVal : m_minNormalizedCoordVal;
@@ -787,8 +788,6 @@ auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float xNormalized, const 
   {
     velocity.y = (velocity.y < 0.0F) ? -m_minNormalizedCoordVal : m_minNormalizedCoordVal;
   }
-
-  return velocity;
 }
 
 inline auto ZoomFilterFx::ZoomFilterImpl::GetStandardVelocity(const float xNormalized,
@@ -918,6 +917,23 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetHypercosVelocity(const float xNorma
   }
 
   return {m_filterData.hypercosAmplitudeX * xVal, m_filterData.hypercosAmplitudeY * yVal};
+}
+
+inline auto ZoomFilterFx::ZoomFilterImpl::GetHPlaneEffectVelocity(
+    [[maybe_unused]] const float xNormalized, const float yNormalized) const -> float
+{
+  // TODO - try xNormalized
+  return yNormalized * m_filterData.hPlaneEffectAmplitude *
+         static_cast<float>(m_filterData.hPlaneEffect);
+}
+
+inline auto ZoomFilterFx::ZoomFilterImpl::GetVPlaneEffectVelocity(
+    [[maybe_unused]] const float xNormalized, [[maybe_unused]] const float yNormalized) const
+    -> float
+{
+  // TODO - try yNormalized
+  return xNormalized * m_filterData.vPlaneEffectAmplitude *
+         static_cast<float>(m_filterData.vPlaneEffect);
 }
 
 inline auto ZoomFilterFx::ZoomFilterImpl::GetNoiseVelocity() -> V2dFlt
