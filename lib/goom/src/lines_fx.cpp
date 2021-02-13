@@ -81,6 +81,7 @@ private:
   GoomDraw m_draw;
   RandomColorMaps m_colorMaps{};
   std::string m_resourcesDirectory{};
+  GammaCorrection m_gammaCorrect{4.2, 0.1};
 
   struct LinePoint
   {
@@ -487,12 +488,10 @@ void LinesFx::LinesImpl::DrawLines(const std::vector<int16_t>& soundData,
     assert(normalizedDataVal >= 0.0);
     const auto x = static_cast<int>(pt.x + m_amplitude * cosAngle * normalizedDataVal);
     const auto y = static_cast<int>(pt.y + m_amplitude * sinAngle * normalizedDataVal);
-    const float maxBrightness =
-        GetRandInRange(1.0F, 3.0F) * normalizedDataVal / static_cast<float>(MAX_NORMALIZED_PEAK);
-    const float t = std::min(1.0F, maxBrightness);
-    static GammaCorrection s_gammaCorrect{4.2, 0.1};
-    const Pixel modColor =
-        s_gammaCorrect.GetCorrection(t, IColorMap::GetColorMix(lineColor, randColor, t));
+    const float t = normalizedDataVal / static_cast<float>(MAX_NORMALIZED_PEAK);
+    const float maxBrightness = t * GetRandInRange(1.0F, 3.0F);
+    const Pixel modColor = m_gammaCorrect.GetCorrection(
+        maxBrightness, IColorMap::GetColorMix(lineColor, randColor, t));
     return std::make_tuple(x, y, modColor);
   };
 
