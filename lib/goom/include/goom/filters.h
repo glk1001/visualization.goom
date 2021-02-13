@@ -173,7 +173,7 @@ public:
 
   auto GetFilterData() const -> const ZoomFilterData&;
   auto GetGeneralSpeed() const -> float;
-  auto GetInterlaceStart() const -> int32_t;
+  auto GetTranBuffYLineStart() const -> int32_t;
 
   void Log(const StatsLogValueFunc& l) const override;
   void Finish() override;

@@ -37,10 +37,10 @@ public:
   void DoCZoom();
   void DoGenerateWaterFxHorizontalBuffer();
   void DoZoomFilterFastRgb();
-  void DoZoomFilterFastRgbChangeConfig();
-  void DoZoomFilterFastRgbInterlaceStartEqualMinus1();
-  void DoZoomFilterFastRgbSwitchIncrNotZero();
-  void DoZoomFilterFastRgbSwitchIncrNotEqual1();
+  void DoZoomFilterChangeConfig();
+  void DoZoomFilterRestartTranBuffYLine();
+  void DoZoomFilterSwitchIncrNotZero();
+  void DoZoomFilterSwitchMultNotEqual1();
   void DoCZoomOutOfRange();
   void CoeffVitesseBelowMin();
   void CoeffVitesseAboveMax();
@@ -48,7 +48,7 @@ public:
   void SetLastGeneralSpeed(float val);
   void SetLastPrevX(uint32_t val);
   void SetLastPrevY(uint32_t val);
-  void SetLastInterlaceStart(int val);
+  void SetLastTranBuffYLineStart(int val);
   void SetLastTranDiffFactor(int val);
 
 private:
@@ -76,10 +76,10 @@ private:
   uint64_t m_numCZoom = 0;
   uint64_t m_numGenerateWaterFxHorizontalBuffer = 0;
   uint64_t m_numZoomFilterFastRgb = 0;
-  uint64_t m_numZoomFilterFastRgbChangeConfig = 0;
-  uint64_t m_numZoomFilterFastRgbInterlaceStartEqualMinus1 = 0;
-  uint64_t m_numZoomFilterFastRgbSwitchIncrNotZero = 0;
-  uint64_t m_numZoomFilterFastRgbSwitchIncrNotEqual1 = 0;
+  uint64_t m_numZoomFilterChangeConfig = 0;
+  uint64_t m_numZoomFilterRestartTranBuffYLine = 0;
+  uint64_t m_numZoomFilterSwitchIncrNotZero = 0;
+  uint64_t m_numZoomFilterSwitchMultNotEqual1 = 0;
   uint64_t m_numCZoomOutOfRange = 0;
   uint64_t m_numCoeffVitesseBelowMin = 0;
   uint64_t m_numCoeffVitesseAboveMax = 0;
@@ -87,7 +87,7 @@ private:
   float m_lastGeneralSpeed = -1000.0;
   uint32_t m_lastPrevX = 0;
   uint32_t m_lastPrevY = 0;
-  int32_t m_lastInterlaceStart = -1000;
+  int32_t m_lastTranBuffYLineStart = -1000;
   int32_t m_lastTranDiffFactor = -1000;
 };
 
