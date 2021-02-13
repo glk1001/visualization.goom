@@ -149,7 +149,9 @@ private:
   TranBuffState m_tranBuffState;
   // modification by jeko : fixedpoint : tranDiffFactor = (16:16) (0 <= tranDiffFactor <= 2^16)
   int32_t m_tranDiffFactor;
-  auto GetTransformedPoint(size_t buffPos) const -> std::tuple<uint32_t, uint32_t>;
+  auto GetTranXBuffSrceDestLerp(size_t buffPos) -> uint32_t;
+  auto GetTranYBuffSrceDestLerp(size_t buffPos) -> uint32_t;
+  static auto GetTranBuffLerp(int32_t srceBuffVal, int32_t destBuffVal, int32_t t) -> uint32_t;
   auto GetSourceInfo(uint32_t tranPx, uint32_t tranPy) const
       -> std::tuple<uint32_t, uint32_t, CoeffArray>;
   auto GetNewColor(const CoeffArray& coeffs, const PixelArray& pixels) const -> Pixel;
@@ -364,12 +366,13 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
   {
     // generation du buffer de transform
     m_stats.DoZoomFilterRestartTranBuffYLine();
+
     // sauvegarde de l'etat actuel dans la nouvelle source
-    // Save the current state in the new source
+    // Save the current state in the source buff
     for (size_t i = 0; i < m_screenWidth * m_screenHeight; i++)
     {
-      m_tranXSrce[i] += ((m_tranXDest[i] - m_tranXSrce[i]) * m_tranDiffFactor) >> BUFF_POINT_NUM;
-      m_tranYSrce[i] += ((m_tranYDest[i] - m_tranYSrce[i]) * m_tranDiffFactor) >> BUFF_POINT_NUM;
+      m_tranXSrce[i] = static_cast<int32_t>(GetTranXBuffSrceDestLerp(i));
+      m_tranYSrce[i] = static_cast<int32_t>(GetTranYBuffSrceDestLerp(i));
     }
     m_tranDiffFactor = 0;
 
@@ -479,13 +482,8 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff,
 #endif
     for (auto destRowBuff = destRowBegin; destRowBuff != destRowEnd; ++destRowBuff)
     {
-#if __cplusplus <= 201402L
-      const auto tranP = GetTransformedPoint(destPos);
-      const auto tranPx = std::get<0>(tranP);
-      const auto tranPy = std::get<1>(tranP);
-#else
-      const auto [tranPx, tranPy] = GetTransformedPoint(destPos);
-#endif
+      const uint32_t tranPx = GetTranXBuffSrceDestLerp(destPos);
+      const uint32_t tranPy = GetTranYBuffSrceDestLerp(destPos);
 
       /**
       if ((tranPx >= m_maxTranX) || (tranPy >= m_maxTranY))
@@ -545,16 +543,21 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff,
   m_parallel->ForLoop(m_screenHeight, setDestPixelRow);
 }
 
-inline auto ZoomFilterFx::ZoomFilterImpl::GetTransformedPoint(const size_t buffPos) const
-    -> std::tuple<uint32_t, uint32_t>
+inline auto ZoomFilterFx::ZoomFilterImpl::GetTranXBuffSrceDestLerp(const size_t buffPos) -> uint32_t
 {
-  return std::make_tuple(
-      static_cast<uint32_t>(
-          m_tranXSrce[buffPos] +
-          (((m_tranXDest[buffPos] - m_tranXSrce[buffPos]) * m_tranDiffFactor) >> BUFF_POINT_NUM)),
-      static_cast<uint32_t>(
-          m_tranYSrce[buffPos] +
-          (((m_tranYDest[buffPos] - m_tranYSrce[buffPos]) * m_tranDiffFactor) >> BUFF_POINT_NUM)));
+  return GetTranBuffLerp(m_tranXSrce[buffPos], m_tranXDest[buffPos], m_tranDiffFactor);
+}
+
+inline auto ZoomFilterFx::ZoomFilterImpl::GetTranYBuffSrceDestLerp(const size_t buffPos) -> uint32_t
+{
+  return GetTranBuffLerp(m_tranYSrce[buffPos], m_tranYDest[buffPos], m_tranDiffFactor);
+}
+
+inline auto ZoomFilterFx::ZoomFilterImpl::GetTranBuffLerp(const int32_t srceBuffVal,
+                                                          const int32_t destBuffVal,
+                                                          const int32_t t) -> uint32_t
+{
+  return static_cast<uint32_t>(srceBuffVal + ((t * (destBuffVal - srceBuffVal)) >> BUFF_POINT_NUM));
 }
 
 inline auto ZoomFilterFx::ZoomFilterImpl::GetSourceInfo(const uint32_t tranPx,
@@ -613,8 +616,8 @@ void ZoomFilterFx::ZoomFilterImpl::MakeBufferStripeInTranTemp(const uint32_t tra
 
     for (uint32_t x = 0; x < m_screenWidth; x++)
     {
-      const V2dFlt zoomVector = GetZoomVector(xNormalized, yNormalized);
       const uint32_t tranPos = tranPosStart + x;
+      const V2dFlt zoomVector = GetZoomVector(xNormalized, yNormalized);
 
       m_tranXTemp[tranPos] =
           ToPixmapCoord((xMidNormalized + xNormalized - zoomVector.x) * BUFF_POINT_NUM_FLT);
