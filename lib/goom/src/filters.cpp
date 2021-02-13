@@ -57,23 +57,31 @@ using NeighborhoodCoeffArray = union
 };
 using NeighborhoodPixelArray = std::array<Pixel, NUM_NEIGHBOR_COEFFS>;
 
-constexpr int32_t BUFF_POINT_MASK = 0xffff;
 constexpr int32_t DIM_FILTER_COEFFS = 16;
-constexpr float DIM_FILTER_COEFFS_FLT = static_cast<float>(DIM_FILTER_COEFFS);
+static const int32_t MAX_TRAN_DIFF_FACTOR =
+    static_cast<int32_t>(std::lround(std::pow(2, DIM_FILTER_COEFFS))) - 1;
 using FilterCoeff2dArray =
     std::array<std::array<NeighborhoodCoeffArray, DIM_FILTER_COEFFS>, DIM_FILTER_COEFFS>;
 
-inline auto ToScreenCoord(const uint32_t tranCoord) -> uint32_t
+constexpr float MIN_SCREEN_COORD_VAL = 1.0F / static_cast<float>(DIM_FILTER_COEFFS);
+
+inline auto TranToScreenCoord(const uint32_t tranCoord) -> uint32_t
 {
   return tranCoord / DIM_FILTER_COEFFS;
 }
 
-inline auto ToTranCoord(const uint32_t screenCoord) -> uint32_t
+inline auto ScreenToTranCoord(const uint32_t screenCoord) -> uint32_t
 {
   return screenCoord * DIM_FILTER_COEFFS;
 }
 
-inline auto ToIndexCoord(const uint32_t tranCoord)
+inline auto ScreenToTranCoord(const float screenCoord) -> uint32_t
+{
+  // IMPORTANT: Without 'lround' a faint cross artifact appears in the centre of the screen.
+  return static_cast<uint32_t>(std::lround(screenCoord * static_cast<float>(DIM_FILTER_COEFFS)));
+}
+
+inline auto TranToCoeffIndexCoord(const uint32_t tranCoord)
 {
   return tranCoord % DIM_FILTER_COEFFS;
 }
@@ -114,8 +122,8 @@ private:
   const uint32_t m_bufferSize;
   const uint32_t m_maxTranX;
   const uint32_t m_maxTranY;
-  const float m_ratioPixmapToNormalizedCoord;
-  const float m_ratioNormalizedCoordToPixmap;
+  const float m_ratioScreenToNormalizedCoord;
+  const float m_ratioNormalizedToScreenCoord;
   const float m_minNormalizedCoordVal;
   ZoomFilterData m_filterData{};
   FXBuffSettings m_buffSettings{};
@@ -125,8 +133,9 @@ private:
 
   Parallel* const m_parallel;
 
-  auto ToPixmapCoord(float normalizedCoord) const -> int32_t;
-  auto ToNormalizedCoord(int32_t pixmapCoord) const -> float;
+  auto NormalizedToScreenCoordFlt(float normalizedCoord) const -> float;
+  auto NormalizedToTranCoord(float normalizedCoord) const -> int32_t;
+  auto ScreenToNormalizedCoord(const int32_t screenCoord) const -> float;
   void IncNormalizedCoord(float& normalizedCoord) const;
 
   std::vector<int32_t> m_tranXSrce{};
@@ -144,25 +153,25 @@ private:
   };
   TranBuffState m_tranBuffState;
   // modification by jeko : fixedpoint : tranDiffFactor = (16:16) (0 <= tranDiffFactor <= 2^16)
-  int32_t m_tranDiffFactor;
+  int32_t m_tranDiffFactor; // in [0, BUFF_POINT_MASK]
   auto GetTranXBuffSrceDestLerp(size_t buffPos) -> uint32_t;
   auto GetTranYBuffSrceDestLerp(size_t buffPos) -> uint32_t;
   static auto GetTranBuffLerp(int32_t srceBuffVal, int32_t destBuffVal, int32_t t) -> uint32_t;
-  auto GetSourceInfo(uint32_t tranPx, uint32_t tranPy) const
+  auto GetSourceInfo(uint32_t tranX, uint32_t tranY) const
       -> std::tuple<uint32_t, uint32_t, NeighborhoodCoeffArray>;
   auto GetNewColor(const NeighborhoodCoeffArray& coeffs, const NeighborhoodPixelArray& pixels) const
       -> Pixel;
 
+  // modif d'optim by Jeko : precalcul des 4 coefs resultant des 2 pos
+  const FilterCoeff2dArray m_precalculatedCoeffs;
+  static auto GetPrecalculatedCoeffs() -> FilterCoeff2dArray;
+
   std::vector<int32_t> m_firedec{};
 
-  // modif d'optim by Jeko : precalcul des 4 coefs resultant des 2 pos
-  FilterCoeff2dArray m_precalcCoeffs{};
-
-  void MakeBufferStripeInTranTemp(uint32_t tranBuffYLineIncrement);
   void CZoom(const PixelBuffer& srceBuff, PixelBuffer& destBuff, uint32_t& numDestClipped);
+  void MakeBufferStripeInTranTemp(uint32_t tranBuffYLineIncrement);
   void GenerateWaterFxHorizontalBuffer();
-  auto GetZoomVector(float normX, float normY) -> V2dFlt;
-  static void GeneratePrecalCoef(FilterCoeff2dArray& precalcCoeffs);
+  auto GetZoomVector(float xNormalized, float yNormalized) -> V2dFlt;
   auto GetMixedColor(const NeighborhoodCoeffArray& coeffs,
                      const NeighborhoodPixelArray& colors) const -> Pixel;
   auto GetBlockyMixedColor(const NeighborhoodCoeffArray& coeffs,
@@ -244,11 +253,11 @@ ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl(Parallel& p,
   : m_screenWidth{goomInfo->GetScreenInfo().width},
     m_screenHeight{goomInfo->GetScreenInfo().height},
     m_bufferSize{goomInfo->GetScreenInfo().size},
-    m_maxTranX{ToTranCoord(m_screenWidth - 1)},
-    m_maxTranY{ToTranCoord(m_screenHeight - 1)},
-    m_ratioPixmapToNormalizedCoord{2.0F / static_cast<float>(m_screenWidth)},
-    m_ratioNormalizedCoordToPixmap{1.0F / m_ratioPixmapToNormalizedCoord},
-    m_minNormalizedCoordVal{m_ratioPixmapToNormalizedCoord / DIM_FILTER_COEFFS_FLT},
+    m_maxTranX{ScreenToTranCoord(m_screenWidth - 1)},
+    m_maxTranY{ScreenToTranCoord(m_screenHeight - 1)},
+    m_ratioScreenToNormalizedCoord{2.0F / static_cast<float>(m_screenWidth)},
+    m_ratioNormalizedToScreenCoord{1.0F / m_ratioScreenToNormalizedCoord},
+    m_minNormalizedCoordVal{m_ratioScreenToNormalizedCoord * MIN_SCREEN_COORD_VAL},
     m_generalSpeed{0},
     m_parallel{&p},
     m_tranXSrce(m_bufferSize),
@@ -260,12 +269,12 @@ ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl(Parallel& p,
     m_tranBuffYLineStart{0},
     m_tranBuffState{TranBuffState::BUFF_READY},
     m_tranDiffFactor{0},
+    m_precalculatedCoeffs{GetPrecalculatedCoeffs()},
     m_firedec(m_screenHeight)
 {
   m_filterData.middleX = m_screenWidth / 2;
   m_filterData.middleY = m_screenHeight / 2;
 
-  GeneratePrecalCoef(m_precalcCoeffs);
   GenerateWaterFxHorizontalBuffer();
   MakeBufferStripeInTranTemp(m_screenHeight);
 
@@ -295,19 +304,27 @@ inline void ZoomFilterFx::ZoomFilterImpl::SetBuffSettings(const FXBuffSettings& 
 
 inline void ZoomFilterFx::ZoomFilterImpl::IncNormalizedCoord(float& normalizedCoord) const
 {
-  normalizedCoord += m_ratioPixmapToNormalizedCoord;
+  normalizedCoord += m_ratioScreenToNormalizedCoord;
 }
 
-inline auto ZoomFilterFx::ZoomFilterImpl::ToNormalizedCoord(const int32_t pixmapCoord) const
+inline auto ZoomFilterFx::ZoomFilterImpl::ScreenToNormalizedCoord(const int32_t screenCoord) const
     -> float
 {
-  return m_ratioPixmapToNormalizedCoord * static_cast<float>(pixmapCoord);
+  return m_ratioScreenToNormalizedCoord * static_cast<float>(screenCoord);
 }
 
-inline auto ZoomFilterFx::ZoomFilterImpl::ToPixmapCoord(const float normalizedCoord) const
+inline auto ZoomFilterFx::ZoomFilterImpl::NormalizedToScreenCoordFlt(
+    const float normalizedCoord) const -> float
+{
+  return m_ratioNormalizedToScreenCoord * normalizedCoord;
+}
+
+inline auto ZoomFilterFx::ZoomFilterImpl::NormalizedToTranCoord(const float normalizedCoord) const
     -> int32_t
 {
-  return static_cast<int32_t>(std::lround(m_ratioNormalizedCoordToPixmap * normalizedCoord));
+  // IMPORTANT: Without 'lround' a faint cross artifact appears in the centre of the screen.
+  return static_cast<int32_t>(
+      std::lround(ScreenToTranCoord(NormalizedToScreenCoordFlt(normalizedCoord))));
 }
 
 void ZoomFilterFx::ZoomFilterImpl::Log(const StatsLogValueFunc& l) const
@@ -392,9 +409,9 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
     m_stats.DoZoomFilterSwitchIncrNotZero();
 
     m_tranDiffFactor += switchIncr;
-    if (m_tranDiffFactor > BUFF_POINT_MASK)
+    if (m_tranDiffFactor > MAX_TRAN_DIFF_FACTOR)
     {
-      m_tranDiffFactor = BUFF_POINT_MASK;
+      m_tranDiffFactor = MAX_TRAN_DIFF_FACTOR;
     }
   }
 
@@ -402,8 +419,9 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
   {
     m_stats.DoZoomFilterSwitchMultNotEqual1();
 
-    m_tranDiffFactor = static_cast<int32_t>(stdnew::lerp(
-        static_cast<float>(BUFF_POINT_MASK), static_cast<float>(m_tranDiffFactor), switchMult));
+    m_tranDiffFactor =
+        static_cast<int32_t>(stdnew::lerp(static_cast<float>(MAX_TRAN_DIFF_FACTOR),
+                                          static_cast<float>(m_tranDiffFactor), switchMult));
   }
 
   CZoom(pix1, pix2, numClipped);
@@ -411,8 +429,10 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
   m_stats.UpdateEnd();
 }
 
-void ZoomFilterFx::ZoomFilterImpl::GeneratePrecalCoef(FilterCoeff2dArray& precalcCoeffs)
+auto ZoomFilterFx::ZoomFilterImpl::GetPrecalculatedCoeffs() -> FilterCoeff2dArray
 {
+  FilterCoeff2dArray precalculatedCoeffs{};
+
   for (uint32_t coeffH = 0; coeffH < DIM_FILTER_COEFFS; coeffH++)
   {
     for (uint32_t coeffV = 0; coeffV < DIM_FILTER_COEFFS; coeffV++)
@@ -422,7 +442,7 @@ void ZoomFilterFx::ZoomFilterImpl::GeneratePrecalCoef(FilterCoeff2dArray& precal
 
       if (!(coeffH || coeffV))
       {
-        precalcCoeffs[coeffH][coeffV].intVal = MAX_COLOR_VAL;
+        precalculatedCoeffs[coeffH][coeffV].intVal = MAX_COLOR_VAL;
       }
       else
       {
@@ -449,7 +469,7 @@ void ZoomFilterFx::ZoomFilterImpl::GeneratePrecalCoef(FilterCoeff2dArray& precal
           i4--;
         }
 
-        precalcCoeffs[coeffH][coeffV] = NeighborhoodCoeffArray{/*.c*/ {
+        precalculatedCoeffs[coeffH][coeffV] = NeighborhoodCoeffArray{/*.c*/ {
             static_cast<uint8_t>(i1),
             static_cast<uint8_t>(i2),
             static_cast<uint8_t>(i3),
@@ -458,6 +478,8 @@ void ZoomFilterFx::ZoomFilterImpl::GeneratePrecalCoef(FilterCoeff2dArray& precal
       }
     }
   }
+
+  return precalculatedCoeffs;
 }
 
 // pure c version of the zoom filter
@@ -480,8 +502,8 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff,
 #endif
     for (auto destRowBuff = destRowBegin; destRowBuff != destRowEnd; ++destRowBuff)
     {
-      const uint32_t tranPx = GetTranXBuffSrceDestLerp(destPos);
-      const uint32_t tranPy = GetTranYBuffSrceDestLerp(destPos);
+      const uint32_t tranX = GetTranXBuffSrceDestLerp(destPos);
+      const uint32_t tranY = GetTranYBuffSrceDestLerp(destPos);
 
       /**
       if ((tranPx >= m_maxTranX) || (tranPy >= m_maxTranY))
@@ -493,7 +515,7 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff,
       }
      **/
 
-      if ((tranPx >= m_maxTranX) || (tranPy >= m_maxTranY))
+      if ((tranX >= m_maxTranX) || (tranY >= m_maxTranY))
       {
         m_stats.DoCZoomOutOfRange();
         *destRowBuff = Pixel::BLACK;
@@ -502,7 +524,7 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff,
       else
       {
 #if __cplusplus <= 201402L
-        const auto srceInfo = GetSourceInfo(tranPx, tranPy);
+        const auto srceInfo = GetSourceInfo(tranX, tranY);
         const auto srceX = std::get<0>(srceInfo);
         const auto srceY = std::get<1>(srceInfo);
         const auto coeffs = std::get<2>(srceInfo);
@@ -559,15 +581,15 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetTranBuffLerp(const int32_t srceBuff
                                ((t * (destBuffVal - srceBuffVal)) >> DIM_FILTER_COEFFS));
 }
 
-inline auto ZoomFilterFx::ZoomFilterImpl::GetSourceInfo(const uint32_t tranPx,
-                                                        const uint32_t tranPy) const
+inline auto ZoomFilterFx::ZoomFilterImpl::GetSourceInfo(const uint32_t tranX,
+                                                        const uint32_t tranY) const
     -> std::tuple<uint32_t, uint32_t, NeighborhoodCoeffArray>
 {
-  const uint32_t srceX = ToScreenCoord(tranPx);
-  const uint32_t srceY = ToScreenCoord(tranPy);
-  const size_t xIndex = ToIndexCoord(tranPx);
-  const size_t yIndex = ToIndexCoord(tranPy);
-  return std::make_tuple(srceX, srceY, m_precalcCoeffs[xIndex][yIndex]);
+  const uint32_t srceX = TranToScreenCoord(tranX);
+  const uint32_t srceY = TranToScreenCoord(tranY);
+  const size_t xIndex = TranToCoeffIndexCoord(tranX);
+  const size_t yIndex = TranToCoeffIndexCoord(tranY);
+  return std::make_tuple(srceX, srceY, m_precalculatedCoeffs[xIndex][yIndex]);
 }
 
 inline auto ZoomFilterFx::ZoomFilterImpl::GetNewColor(const NeighborhoodCoeffArray& coeffs,
@@ -597,26 +619,24 @@ void ZoomFilterFx::ZoomFilterImpl::MakeBufferStripeInTranTemp(const uint32_t tra
 
   assert(m_tranBuffState == TranBuffState::BUFF_READY);
 
-  const float xMidNormalized = ToNormalizedCoord(static_cast<int32_t>(m_filterData.middleX));
-  const float yMidNormalized = ToNormalizedCoord(static_cast<int32_t>(m_filterData.middleY));
+  const float xMidNormalized = ScreenToNormalizedCoord(static_cast<int32_t>(m_filterData.middleX));
+  const float yMidNormalized = ScreenToNormalizedCoord(static_cast<int32_t>(m_filterData.middleY));
 
-  // Position of the pixel to compute in pixmap coordinates
   const auto doStripeLine = [&](const uint32_t y) {
+    // Position of the pixel to compute in screen coordinates
     const uint32_t yOffset = y + m_tranBuffYLineStart;
     const uint32_t tranPosStart = yOffset * m_screenWidth;
-    const float yNormalized = ToNormalizedCoord(static_cast<int32_t>(yOffset) -
-                                                static_cast<int32_t>(m_filterData.middleY));
-    float xNormalized = ToNormalizedCoord(-static_cast<int32_t>(m_filterData.middleX));
+    const float yNormalized = ScreenToNormalizedCoord(static_cast<int32_t>(yOffset) -
+                                                      static_cast<int32_t>(m_filterData.middleY));
+    float xNormalized = ScreenToNormalizedCoord(-static_cast<int32_t>(m_filterData.middleX));
 
     for (uint32_t x = 0; x < m_screenWidth; x++)
     {
       const uint32_t tranPos = tranPosStart + x;
       const V2dFlt zoomVector = GetZoomVector(xNormalized, yNormalized);
 
-      m_tranXTemp[tranPos] =
-          ToPixmapCoord((xMidNormalized + xNormalized - zoomVector.x) * DIM_FILTER_COEFFS_FLT);
-      m_tranYTemp[tranPos] =
-          ToPixmapCoord((yMidNormalized + yNormalized - zoomVector.y) * DIM_FILTER_COEFFS_FLT);
+      m_tranXTemp[tranPos] = NormalizedToTranCoord((xMidNormalized + xNormalized - zoomVector.x));
+      m_tranYTemp[tranPos] = NormalizedToTranCoord((yMidNormalized + yNormalized - zoomVector.y));
 
       IncNormalizedCoord(xNormalized);
     }
@@ -694,14 +714,15 @@ void ZoomFilterFx::ZoomFilterImpl::GenerateWaterFxHorizontalBuffer()
   }
 }
 
-auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float normX, const float normY) -> V2dFlt
+auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float xNormalized, const float yNormalized)
+    -> V2dFlt
 {
   m_stats.DoZoomVector();
 
   /* sx = (x < 0.0f) ? -1.0f : 1.0f;
      sy = (y < 0.0f) ? -1.0f : 1.0f;
    */
-  float coefVitesse = (1.0F + m_generalSpeed) / 50.0F;
+  float coeffVitesse = (1.0F + m_generalSpeed) / 50.0F;
 
   // The Effects
   switch (m_filterData.mode)
@@ -709,19 +730,20 @@ auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float normX, const float 
     case ZoomFilterMode::crystalBallMode:
     {
       m_stats.DoZoomVectorCrystalBallMode();
-      coefVitesse -= m_filterData.crystalBallAmplitude * (SqDistance(normX, normY) - 0.3F);
+      coeffVitesse -=
+          m_filterData.crystalBallAmplitude * (SqDistance(xNormalized, yNormalized) - 0.3F);
       break;
     }
     case ZoomFilterMode::amuletMode:
     {
       m_stats.DoZoomVectorAmuletMode();
-      coefVitesse += m_filterData.amuletAmplitude * SqDistance(normX, normY);
+      coeffVitesse += m_filterData.amuletAmplitude * SqDistance(xNormalized, yNormalized);
       break;
     }
     case ZoomFilterMode::waveMode:
     {
       m_stats.DoZoomVectorWaveMode();
-      const float angle = SqDistance(normX, normY) * m_filterData.waveFreqFactor;
+      const float angle = SqDistance(xNormalized, yNormalized) * m_filterData.waveFreqFactor;
       float periodicPart;
       switch (m_filterData.waveEffectType)
       {
@@ -737,25 +759,25 @@ auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float normX, const float 
         default:
           throw std::logic_error("Unknown WaveEffect enum");
       }
-      coefVitesse += m_filterData.waveAmplitude * periodicPart;
+      coeffVitesse += m_filterData.waveAmplitude * periodicPart;
       break;
     }
     case ZoomFilterMode::scrunchMode:
     {
       m_stats.DoZoomVectorScrunchMode();
-      coefVitesse += m_filterData.scrunchAmplitude * SqDistance(normX, normY);
+      coeffVitesse += m_filterData.scrunchAmplitude * SqDistance(xNormalized, yNormalized);
       break;
     }
-      //case ZoomFilterMode::HYPERCOS1_MODE:
-      //break;
-      //case ZoomFilterMode::HYPERCOS2_MODE:
-      //break;
-      //case ZoomFilterMode::YONLY_MODE:
-      //break;
+    //case ZoomFilterMode::HYPERCOS1_MODE:
+    //break;
+    //case ZoomFilterMode::HYPERCOS2_MODE:
+    //break;
+    //case ZoomFilterMode::YONLY_MODE:
+    //break;
     case ZoomFilterMode::speedwayMode:
     {
       m_stats.DoZoomVectorSpeedwayMode();
-      coefVitesse *= m_filterData.speedwayAmplitude * normY;
+      coeffVitesse *= m_filterData.speedwayAmplitude * yNormalized;
       break;
     }
     default:
@@ -763,19 +785,19 @@ auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float normX, const float 
       break;
   }
 
-  if (coefVitesse < MIN_COEF_VITESSE)
+  if (coeffVitesse < MIN_COEF_VITESSE)
   {
-    coefVitesse = MIN_COEF_VITESSE;
+    coeffVitesse = MIN_COEF_VITESSE;
     m_stats.CoeffVitesseBelowMin();
   }
-  else if (coefVitesse > MAX_COEF_VITESSE)
+  else if (coeffVitesse > MAX_COEF_VITESSE)
   {
-    coefVitesse = MAX_COEF_VITESSE;
+    coeffVitesse = MAX_COEF_VITESSE;
     m_stats.CoeffVitesseAboveMax();
   }
 
-  float vx = coefVitesse * normX;
-  float vy = coefVitesse * normY;
+  float vx = coeffVitesse * xNormalized;
+  float vy = coeffVitesse * yNormalized;
 
   /* Amulette 2 */
   // vx = X * tan(dist);
@@ -811,28 +833,28 @@ auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float normX, const float 
       case ZoomFilterData::HypercosEffect::none:
         break;
       case ZoomFilterData::HypercosEffect::sinRectangular:
-        xVal = std::sin(m_filterData.hypercosFreqX * normX);
-        yVal = std::sin(m_filterData.hypercosFreqY * normY);
+        xVal = std::sin(m_filterData.hypercosFreqX * xNormalized);
+        yVal = std::sin(m_filterData.hypercosFreqY * yNormalized);
         break;
       case ZoomFilterData::HypercosEffect::cosRectangular:
-        xVal = std::cos(m_filterData.hypercosFreqX * normX);
-        yVal = std::cos(m_filterData.hypercosFreqY * normY);
+        xVal = std::cos(m_filterData.hypercosFreqX * xNormalized);
+        yVal = std::cos(m_filterData.hypercosFreqY * yNormalized);
         break;
       case ZoomFilterData::HypercosEffect::sinCurlSwirl:
-        xVal = std::sin(m_filterData.hypercosFreqY * normY);
-        yVal = std::sin(m_filterData.hypercosFreqX * normX);
+        xVal = std::sin(m_filterData.hypercosFreqY * yNormalized);
+        yVal = std::sin(m_filterData.hypercosFreqX * xNormalized);
         break;
       case ZoomFilterData::HypercosEffect::cosCurlSwirl:
-        xVal = std::cos(m_filterData.hypercosFreqY * normY);
-        yVal = std::cos(m_filterData.hypercosFreqX * normX);
+        xVal = std::cos(m_filterData.hypercosFreqY * yNormalized);
+        yVal = std::cos(m_filterData.hypercosFreqX * xNormalized);
         break;
       case ZoomFilterData::HypercosEffect::sinCosCurlSwirl:
-        xVal = std::sin(m_filterData.hypercosFreqX * normY);
-        yVal = std::cos(m_filterData.hypercosFreqY * normX);
+        xVal = std::sin(m_filterData.hypercosFreqX * yNormalized);
+        yVal = std::cos(m_filterData.hypercosFreqY * xNormalized);
         break;
       case ZoomFilterData::HypercosEffect::cosSinCurlSwirl:
-        xVal = std::cos(m_filterData.hypercosFreqY * normY);
-        yVal = std::sin(m_filterData.hypercosFreqX * normX);
+        xVal = std::cos(m_filterData.hypercosFreqY * yNormalized);
+        yVal = std::sin(m_filterData.hypercosFreqX * xNormalized);
         break;
       default:
         throw std::logic_error("Unknown filterData.hypercosEffect value");
@@ -845,22 +867,22 @@ auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float normX, const float 
   {
     m_stats.DoZoomVectorHPlaneEffect();
 
-    // TODO - try normX
-    vx +=
-        normY * m_filterData.hPlaneEffectAmplitude * static_cast<float>(m_filterData.hPlaneEffect);
+    // TODO - try xNormalized
+    vx += yNormalized * m_filterData.hPlaneEffectAmplitude *
+          static_cast<float>(m_filterData.hPlaneEffect);
   }
 
   if (m_filterData.vPlaneEffect)
   {
     m_stats.DoZoomVectorVPlaneEffect();
-    vy +=
-        normX * m_filterData.vPlaneEffectAmplitude * static_cast<float>(m_filterData.vPlaneEffect);
+    vy += xNormalized * m_filterData.vPlaneEffectAmplitude *
+          static_cast<float>(m_filterData.vPlaneEffect);
   }
 
   /* TODO : Water Mode */
   //    if (data->waveEffect)
 
-  // avoid null displacement
+  // Avoid null displacement...
   if (std::fabs(vx) < m_minNormalizedCoordVal)
   {
     vx = (vx < 0.0F) ? -m_minNormalizedCoordVal : m_minNormalizedCoordVal;
