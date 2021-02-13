@@ -48,7 +48,7 @@ public:
   void SetLastGeneralSpeed(float val);
   void SetLastPrevX(uint32_t val);
   void SetLastPrevY(uint32_t val);
-  void SetLastTranBuffYLineStart(int val);
+  void SetLastTranBuffYLineStart(uint32_t val);
   void SetLastTranDiffFactor(int val);
 
 private:
@@ -87,7 +87,7 @@ private:
   float m_lastGeneralSpeed = -1000.0;
   uint32_t m_lastPrevX = 0;
   uint32_t m_lastPrevY = 0;
-  int32_t m_lastTranBuffYLineStart = -1000;
+  uint32_t m_lastTranBuffYLineStart = +1000000;
   int32_t m_lastTranDiffFactor = -1000;
 };
 

@@ -108,7 +108,7 @@ public:
 
   auto GetFilterData() const -> const ZoomFilterData&;
   auto GetGeneralSpeed() const -> float;
-  auto GetTranBuffYLineStart() const -> int32_t;
+  auto GetTranBuffYLineStart() const -> uint32_t;
 
   void Log(const StatsLogValueFunc& l) const;
 
@@ -139,9 +139,14 @@ private:
   std::vector<int32_t> m_tranYDest{};
   std::vector<int32_t> m_tranXTemp{};
   std::vector<int32_t> m_tranYTemp{};
-  int32_t m_tranBuffYLineStart;
-  static constexpr int32_t RESTART_BUFF_YLINE = -1;
-  static constexpr int32_t RESET_FILTER_CONFIG = -2;
+  uint32_t m_tranBuffYLineStart;
+  enum class TranBuffState
+  {
+    RESET_FILTER_CONFIG,
+    RESTART_BUFF_YLINE,
+    BUFF_READY,
+  };
+  TranBuffState m_tranBuffState;
   // modification by jeko : fixedpoint : tranDiffFactor = (16:16) (0 <= tranDiffFactor <= 2^16)
   int32_t m_tranDiffFactor;
   auto GetTransformedPoint(size_t buffPos) const -> std::tuple<uint32_t, uint32_t>;
@@ -229,7 +234,7 @@ auto ZoomFilterFx::GetGeneralSpeed() const -> float
   return m_fxImpl->GetGeneralSpeed();
 }
 
-auto ZoomFilterFx::GetTranBuffYLineStart() const -> int32_t
+auto ZoomFilterFx::GetTranBuffYLineStart() const -> uint32_t
 {
   return m_fxImpl->GetTranBuffYLineStart();
 }
@@ -253,6 +258,7 @@ ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl(Parallel& p,
     m_tranXTemp(m_bufferSize),
     m_tranYTemp(m_bufferSize),
     m_tranBuffYLineStart{0},
+    m_tranBuffState{TranBuffState::BUFF_READY},
     m_tranDiffFactor{0},
     m_firedec(m_screenHeight)
 {
@@ -330,7 +336,7 @@ void ZoomFilterFx::ZoomFilterImpl::Log(const StatsLogValueFunc& l) const
  */
 void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
                                                      PixelBuffer& pix2,
-                                                     const ZoomFilterData* zf,
+                                                     const ZoomFilterData* const zf,
                                                      const int32_t switchIncr,
                                                      const float switchMult,
                                                      uint32_t& numClipped)
@@ -339,27 +345,24 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
   m_stats.DoZoomFilterFastRgb();
 
   // changement de taille
-  if (m_tranBuffYLineStart != RESET_FILTER_CONFIG)
+  if (m_tranBuffState == TranBuffState::RESET_FILTER_CONFIG)
   {
-    zf = nullptr;
-  }
-
-  // changement de config
-  if (zf)
-  {
-    m_stats.DoZoomFilterChangeConfig();
-    m_filterData = *zf;
-    m_generalSpeed = static_cast<float>(zf->vitesse - 128) / 128.0F;
-    if (m_filterData.reverse)
+    if (zf)
     {
-      m_generalSpeed = -m_generalSpeed;
+      m_stats.DoZoomFilterChangeConfig();
+      m_filterData = *zf;
+      m_generalSpeed = static_cast<float>(zf->vitesse - 128) / 128.0F;
+      if (m_filterData.reverse)
+      {
+        m_generalSpeed = -m_generalSpeed;
+      }
+      m_tranBuffYLineStart = 0;
+      m_tranBuffState = TranBuffState::BUFF_READY;
     }
-    m_tranBuffYLineStart = 0;
   }
-
-  // generation du buffer de transform
-  if (m_tranBuffYLineStart == RESTART_BUFF_YLINE)
+  else if (m_tranBuffState == TranBuffState::RESTART_BUFF_YLINE)
   {
+    // generation du buffer de transform
     m_stats.DoZoomFilterRestartTranBuffYLine();
     // sauvegarde de l'etat actuel dans la nouvelle source
     // Save the current state in the new source
@@ -373,10 +376,10 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
     std::swap(m_tranXDest, m_tranXTemp);
     std::swap(m_tranYDest, m_tranYTemp);
 
-    m_tranBuffYLineStart = RESET_FILTER_CONFIG;
+    m_tranBuffYLineStart = 0;
+    m_tranBuffState = TranBuffState::RESET_FILTER_CONFIG;
   }
-
-  if (m_tranBuffYLineStart >= 0)
+  else
   {
     // creation de la nouvelle destination
     MakeBufferStripeInTranTemp(m_screenHeight / BUFF_POINT_NUM);
@@ -595,14 +598,14 @@ void ZoomFilterFx::ZoomFilterImpl::MakeBufferStripeInTranTemp(const uint32_t tra
 {
   m_stats.DoMakeZoomBufferStripe();
 
-  assert(m_tranBuffYLineStart >= 0);
+  assert(m_tranBuffState == TranBuffState::BUFF_READY);
 
   const float xMidNormalized = ToNormalizedCoord(static_cast<int32_t>(m_filterData.middleX));
   const float yMidNormalized = ToNormalizedCoord(static_cast<int32_t>(m_filterData.middleY));
 
   // Position of the pixel to compute in pixmap coordinates
   const auto doStripeLine = [&](const uint32_t y) {
-    const uint32_t yOffset = y + static_cast<uint32_t>(m_tranBuffYLineStart);
+    const uint32_t yOffset = y + m_tranBuffYLineStart;
     const uint32_t tranPosStart = yOffset * m_screenWidth;
     const float yNormalized = ToNormalizedCoord(static_cast<int32_t>(yOffset) -
                                                 static_cast<int32_t>(m_filterData.middleY));
@@ -623,15 +626,16 @@ void ZoomFilterFx::ZoomFilterImpl::MakeBufferStripeInTranTemp(const uint32_t tra
   };
 
   // Where (vertically) to stop generating the buffer stripe
-  const uint32_t tranBuffYLineEnd = std::min(
-      m_screenHeight, static_cast<uint32_t>(m_tranBuffYLineStart) + tranBuffYLineIncrement);
+  const uint32_t tranBuffYLineEnd =
+      std::min(m_screenHeight, m_tranBuffYLineStart + tranBuffYLineIncrement);
 
   m_parallel->ForLoop(tranBuffYLineEnd - static_cast<uint32_t>(m_tranBuffYLineStart), doStripeLine);
 
-  m_tranBuffYLineStart += static_cast<int32_t>(tranBuffYLineIncrement);
+  m_tranBuffYLineStart += tranBuffYLineIncrement;
   if (tranBuffYLineEnd == m_screenHeight)
   {
-    m_tranBuffYLineStart = RESTART_BUFF_YLINE;
+    m_tranBuffState = TranBuffState::RESTART_BUFF_YLINE;
+    m_tranBuffYLineStart = 0;
   }
 }
 
@@ -937,7 +941,7 @@ auto ZoomFilterFx::ZoomFilterImpl::GetGeneralSpeed() const -> float
   return m_generalSpeed;
 }
 
-auto ZoomFilterFx::ZoomFilterImpl::GetTranBuffYLineStart() const -> int32_t
+auto ZoomFilterFx::ZoomFilterImpl::GetTranBuffYLineStart() const -> uint32_t
 {
   return m_tranBuffYLineStart;
 }

@@ -252,7 +252,7 @@ void FilterStats::SetLastPrevY(const uint32_t val)
   m_lastPrevY = val;
 }
 
-void FilterStats::SetLastTranBuffYLineStart(const int32_t val)
+void FilterStats::SetLastTranBuffYLineStart(const uint32_t val)
 {
   m_lastTranBuffYLineStart = val;
 }
