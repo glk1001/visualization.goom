@@ -172,6 +172,9 @@ private:
   void AssignBufferStripeToTranTemp(uint32_t tranBuffYLineIncrement);
   void GenerateWaterFxHorizontalBuffer();
   auto GetZoomVector(float xNormalized, float yNormalized) -> V2dFlt;
+  auto GetStandardVelocity(float xNormalized, float yNormalized) -> V2dFlt;
+  auto GetHypercosVelocity(float xNormalized, float yNormalized) const -> V2dFlt;
+  auto GetNoiseVelocity() -> V2dFlt;
   auto GetMixedColor(const NeighborhoodCoeffArray& coeffs,
                      const NeighborhoodPixelArray& colors) const -> Pixel;
   auto GetBlockyMixedColor(const NeighborhoodCoeffArray& coeffs,
@@ -735,6 +738,62 @@ auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float xNormalized, const 
   /* sx = (x < 0.0f) ? -1.0f : 1.0f;
      sy = (y < 0.0f) ? -1.0f : 1.0f;
    */
+
+  V2dFlt velocity = GetStandardVelocity(xNormalized, yNormalized);
+
+  // The Effects add-ons...
+
+  if (m_filterData.noisify)
+  {
+    m_stats.DoZoomVectorNoisify();
+    const V2dFlt noiseVelocity = GetNoiseVelocity();
+    velocity.x += noiseVelocity.x;
+    velocity.y += noiseVelocity.y;
+  }
+
+  if (m_filterData.hypercosEffect != ZoomFilterData::HypercosEffect::none)
+  {
+    m_stats.DoZoomVectorHypercosEffect();
+    const V2dFlt hypercosVelocity = GetHypercosVelocity(xNormalized, yNormalized);
+    velocity.x += hypercosVelocity.x;
+    velocity.y += hypercosVelocity.y;
+  }
+
+  if (m_filterData.hPlaneEffect)
+  {
+    m_stats.DoZoomVectorHPlaneEffect();
+
+    // TODO - try xNormalized
+    velocity.x += yNormalized * m_filterData.hPlaneEffectAmplitude *
+                  static_cast<float>(m_filterData.hPlaneEffect);
+  }
+
+  if (m_filterData.vPlaneEffect)
+  {
+    m_stats.DoZoomVectorVPlaneEffect();
+    velocity.y += xNormalized * m_filterData.vPlaneEffectAmplitude *
+                  static_cast<float>(m_filterData.vPlaneEffect);
+  }
+
+  /* TODO : Water Mode */
+  //    if (data->waveEffect)
+
+  // Avoid null displacement...
+  if (std::fabs(velocity.x) < m_minNormalizedCoordVal)
+  {
+    velocity.x = (velocity.x < 0.0F) ? -m_minNormalizedCoordVal : m_minNormalizedCoordVal;
+  }
+  if (std::fabs(velocity.y) < m_minNormalizedCoordVal)
+  {
+    velocity.y = (velocity.y < 0.0F) ? -m_minNormalizedCoordVal : m_minNormalizedCoordVal;
+  }
+
+  return velocity;
+}
+
+inline auto ZoomFilterFx::ZoomFilterImpl::GetStandardVelocity(const float xNormalized,
+                                                              const float yNormalized) -> V2dFlt
+{
   float coeffVitesse = (1.0F + m_generalSpeed) / 50.0F;
 
   // The Effects
@@ -793,6 +852,13 @@ auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float xNormalized, const 
       coeffVitesse *= m_filterData.speedwayAmplitude * yNormalized;
       break;
     }
+    /* Amulette 2 */
+    // vx = X * tan(dist);
+    // vy = Y * tan(dist);
+
+    /* Rotate */
+    //vx = (X+Y)*0.1;
+    //vy = (Y-X)*0.1;
     default:
       m_stats.DoZoomVectorDefaultMode();
       break;
@@ -809,103 +875,64 @@ auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float xNormalized, const 
     m_stats.CoeffVitesseAboveMax();
   }
 
-  float vx = coeffVitesse * xNormalized;
-  float vy = coeffVitesse * yNormalized;
+  return {coeffVitesse * xNormalized, coeffVitesse * yNormalized};
+}
 
-  /* Amulette 2 */
-  // vx = X * tan(dist);
-  // vy = Y * tan(dist);
+inline auto ZoomFilterFx::ZoomFilterImpl::GetHypercosVelocity(const float xNormalized,
+                                                              const float yNormalized) const
+    -> V2dFlt
+{
+  float xVal = 0;
+  float yVal = 0;
 
-  /* Rotate */
-  //vx = (X+Y)*0.1;
-  //vy = (Y-X)*0.1;
-
-  // The Effects adds-on
-  if (m_filterData.noisify)
+  switch (m_filterData.hypercosEffect)
   {
-    m_stats.DoZoomVectorNoisify();
-    if (m_filterData.noiseFactor > 0.01)
-    {
-      m_stats.DoZoomVectorNoiseFactor();
-      //    const float xAmp = 1.0/getRandInRange(50.0f, 200.0f);
-      //    const float yAmp = 1.0/getRandInRange(50.0f, 200.0f);
-      const float amp = m_filterData.noiseFactor / GetRandInRange(NOISE_MIN, NOISE_MAX);
-      m_filterData.noiseFactor *= 0.999;
-      vx += amp * (GetRandInRange(0.0F, 1.0F) - 0.5F);
-      vy += amp * (GetRandInRange(0.0F, 1.0F) - 0.5F);
-    }
+    case ZoomFilterData::HypercosEffect::none:
+      break;
+    case ZoomFilterData::HypercosEffect::sinRectangular:
+      xVal = std::sin(m_filterData.hypercosFreqX * xNormalized);
+      yVal = std::sin(m_filterData.hypercosFreqY * yNormalized);
+      break;
+    case ZoomFilterData::HypercosEffect::cosRectangular:
+      xVal = std::cos(m_filterData.hypercosFreqX * xNormalized);
+      yVal = std::cos(m_filterData.hypercosFreqY * yNormalized);
+      break;
+    case ZoomFilterData::HypercosEffect::sinCurlSwirl:
+      xVal = std::sin(m_filterData.hypercosFreqY * yNormalized);
+      yVal = std::sin(m_filterData.hypercosFreqX * xNormalized);
+      break;
+    case ZoomFilterData::HypercosEffect::cosCurlSwirl:
+      xVal = std::cos(m_filterData.hypercosFreqY * yNormalized);
+      yVal = std::cos(m_filterData.hypercosFreqX * xNormalized);
+      break;
+    case ZoomFilterData::HypercosEffect::sinCosCurlSwirl:
+      xVal = std::sin(m_filterData.hypercosFreqX * yNormalized);
+      yVal = std::cos(m_filterData.hypercosFreqY * xNormalized);
+      break;
+    case ZoomFilterData::HypercosEffect::cosSinCurlSwirl:
+      xVal = std::cos(m_filterData.hypercosFreqY * yNormalized);
+      yVal = std::sin(m_filterData.hypercosFreqX * xNormalized);
+      break;
+    default:
+      throw std::logic_error("Unknown filterData.hypercosEffect value");
   }
 
-  if (m_filterData.hypercosEffect != ZoomFilterData::HypercosEffect::none)
+  return {m_filterData.hypercosAmplitudeX * xVal, m_filterData.hypercosAmplitudeY * yVal};
+}
+
+inline auto ZoomFilterFx::ZoomFilterImpl::GetNoiseVelocity() -> V2dFlt
+{
+  if (m_filterData.noiseFactor < 0.01)
   {
-    m_stats.DoZoomVectorHypercosEffect();
-    float xVal{};
-    float yVal{};
-    switch (m_filterData.hypercosEffect)
-    {
-      case ZoomFilterData::HypercosEffect::none:
-        break;
-      case ZoomFilterData::HypercosEffect::sinRectangular:
-        xVal = std::sin(m_filterData.hypercosFreqX * xNormalized);
-        yVal = std::sin(m_filterData.hypercosFreqY * yNormalized);
-        break;
-      case ZoomFilterData::HypercosEffect::cosRectangular:
-        xVal = std::cos(m_filterData.hypercosFreqX * xNormalized);
-        yVal = std::cos(m_filterData.hypercosFreqY * yNormalized);
-        break;
-      case ZoomFilterData::HypercosEffect::sinCurlSwirl:
-        xVal = std::sin(m_filterData.hypercosFreqY * yNormalized);
-        yVal = std::sin(m_filterData.hypercosFreqX * xNormalized);
-        break;
-      case ZoomFilterData::HypercosEffect::cosCurlSwirl:
-        xVal = std::cos(m_filterData.hypercosFreqY * yNormalized);
-        yVal = std::cos(m_filterData.hypercosFreqX * xNormalized);
-        break;
-      case ZoomFilterData::HypercosEffect::sinCosCurlSwirl:
-        xVal = std::sin(m_filterData.hypercosFreqX * yNormalized);
-        yVal = std::cos(m_filterData.hypercosFreqY * xNormalized);
-        break;
-      case ZoomFilterData::HypercosEffect::cosSinCurlSwirl:
-        xVal = std::cos(m_filterData.hypercosFreqY * yNormalized);
-        yVal = std::sin(m_filterData.hypercosFreqX * xNormalized);
-        break;
-      default:
-        throw std::logic_error("Unknown filterData.hypercosEffect value");
-    }
-    vx += m_filterData.hypercosAmplitudeX * xVal;
-    vy += m_filterData.hypercosAmplitudeY * yVal;
+    return {0, 0};
   }
 
-  if (m_filterData.hPlaneEffect)
-  {
-    m_stats.DoZoomVectorHPlaneEffect();
-
-    // TODO - try xNormalized
-    vx += yNormalized * m_filterData.hPlaneEffectAmplitude *
-          static_cast<float>(m_filterData.hPlaneEffect);
-  }
-
-  if (m_filterData.vPlaneEffect)
-  {
-    m_stats.DoZoomVectorVPlaneEffect();
-    vy += xNormalized * m_filterData.vPlaneEffectAmplitude *
-          static_cast<float>(m_filterData.vPlaneEffect);
-  }
-
-  /* TODO : Water Mode */
-  //    if (data->waveEffect)
-
-  // Avoid null displacement...
-  if (std::fabs(vx) < m_minNormalizedCoordVal)
-  {
-    vx = (vx < 0.0F) ? -m_minNormalizedCoordVal : m_minNormalizedCoordVal;
-  }
-  if (std::fabs(vy) < m_minNormalizedCoordVal)
-  {
-    vy = (vy < 0.0F) ? -m_minNormalizedCoordVal : m_minNormalizedCoordVal;
-  }
-
-  return V2dFlt{vx, vy};
+  m_stats.DoZoomVectorNoiseFactor();
+  //    const float xAmp = 1.0/getRandInRange(50.0f, 200.0f);
+  //    const float yAmp = 1.0/getRandInRange(50.0f, 200.0f);
+  const float amp = m_filterData.noiseFactor / GetRandInRange(NOISE_MIN, NOISE_MAX);
+  m_filterData.noiseFactor *= 0.999;
+  return {amp * (GetRandInRange(0.0F, 1.0F) - 0.5F), amp * (GetRandInRange(0.0F, 1.0F) - 0.5F)};
 }
 
 void ZoomFilterFx::ZoomFilterImpl::GenerateWaterFxHorizontalBuffer()
