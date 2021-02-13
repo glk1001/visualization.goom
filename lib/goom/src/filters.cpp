@@ -741,35 +741,26 @@ auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float xNormalized, const 
   V2dFlt velocity = GetStandardVelocity(xNormalized, yNormalized);
 
   // The Effects add-ons...
-
   if (m_filterData.noisify)
   {
     m_stats.DoZoomVectorNoisify();
-    const V2dFlt noiseVelocity = GetNoiseVelocity();
-    velocity.x += noiseVelocity.x;
-    velocity.y += noiseVelocity.y;
+    velocity += GetNoiseVelocity();
   }
-
   if (m_filterData.hypercosEffect != ZoomFilterData::HypercosEffect::none)
   {
     m_stats.DoZoomVectorHypercosEffect();
-    const V2dFlt hypercosVelocity = GetHypercosVelocity(xNormalized, yNormalized);
-    velocity.x += hypercosVelocity.x;
-    velocity.y += hypercosVelocity.y;
+    velocity += GetHypercosVelocity(xNormalized, yNormalized);
   }
-
   if (m_filterData.hPlaneEffect)
   {
     m_stats.DoZoomVectorHPlaneEffect();
     velocity.x += GetHPlaneEffectVelocity(xNormalized, yNormalized);
   }
-
   if (m_filterData.vPlaneEffect)
   {
     m_stats.DoZoomVectorVPlaneEffect();
     velocity.y += GetVPlaneEffectVelocity(xNormalized, yNormalized);
   }
-
   /* TODO : Water Mode */
   //    if (data->waveEffect)
 
