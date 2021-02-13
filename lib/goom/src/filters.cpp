@@ -58,6 +58,9 @@ using NeighborhoodCoeffArray = union
 using NeighborhoodPixelArray = std::array<Pixel, NUM_NEIGHBOR_COEFFS>;
 
 constexpr int32_t DIM_FILTER_COEFFS = 16;
+// For optimising multiplication, division, and mod by DIM_FILTER_COEFFS.
+constexpr int32_t DIM_FILTER_COEFFS_DIV_SHIFT = 4;
+constexpr int32_t DIM_FILTER_COEFFS_MOD_MASK = 0xF;
 static const int32_t MAX_TRAN_DIFF_FACTOR =
     static_cast<int32_t>(std::lround(std::pow(2, DIM_FILTER_COEFFS))) - 1;
 using FilterCoeff2dArray =
@@ -65,25 +68,25 @@ using FilterCoeff2dArray =
 
 constexpr float MIN_SCREEN_COORD_VAL = 1.0F / static_cast<float>(DIM_FILTER_COEFFS);
 
+inline auto TranToCoeffIndexCoord(const uint32_t tranCoord)
+{
+  return tranCoord & DIM_FILTER_COEFFS_MOD_MASK;
+}
+
 inline auto TranToScreenCoord(const uint32_t tranCoord) -> uint32_t
 {
-  return tranCoord / DIM_FILTER_COEFFS;
+  return tranCoord >> DIM_FILTER_COEFFS_DIV_SHIFT;
 }
 
 inline auto ScreenToTranCoord(const uint32_t screenCoord) -> uint32_t
 {
-  return screenCoord * DIM_FILTER_COEFFS;
+  return screenCoord << DIM_FILTER_COEFFS_DIV_SHIFT;
 }
 
 inline auto ScreenToTranCoord(const float screenCoord) -> uint32_t
 {
   // IMPORTANT: Without 'lround' a faint cross artifact appears in the centre of the screen.
   return static_cast<uint32_t>(std::lround(screenCoord * static_cast<float>(DIM_FILTER_COEFFS)));
-}
-
-inline auto TranToCoeffIndexCoord(const uint32_t tranCoord)
-{
-  return tranCoord % DIM_FILTER_COEFFS;
 }
 
 inline auto GetTranBuffLerp(const int32_t srceBuffVal, const int32_t destBuffVal, const int32_t t)
