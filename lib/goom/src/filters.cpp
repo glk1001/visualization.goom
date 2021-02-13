@@ -124,18 +124,14 @@ private:
   ZoomFilterData m_filterData{};
   FXBuffSettings m_buffSettings{};
   std::string m_resourcesDirectory{};
+  float m_generalSpeed;
+  mutable FilterStats m_stats{};
 
   Parallel* const m_parallel;
 
   auto ToNormalizedCoord(int32_t pixmapCoord) const -> float;
   auto ToPixmapCoord(float normalizedCoord) const -> int32_t;
-
   void IncNormalizedCoord(float& normalizedCoord) const;
-
-  mutable FilterStats m_stats{};
-
-  float m_generalSpeed = 0;
-  int32_t m_interlaceStart = 0;
 
   std::vector<int32_t> m_tranXSrce{};
   std::vector<int32_t> m_tranYSrce{};
@@ -143,22 +139,21 @@ private:
   std::vector<int32_t> m_tranYDest{};
   std::vector<int32_t> m_tranXTemp{};
   std::vector<int32_t> m_tranYTemp{};
+  int32_t m_tranBuffStart;
+  // modification by jeko : fixedpoint : tranDiffFactor = (16:16) (0 <= tranDiffFactor <= 2^16)
+  int32_t m_tranDiffFactor;
   auto GetTransformedPoint(size_t buffPos) const -> std::tuple<uint32_t, uint32_t>;
   auto GetSourceInfo(uint32_t tranPx, uint32_t tranPy) const
       -> std::tuple<uint32_t, uint32_t, CoeffArray>;
   auto GetNewColor(const CoeffArray& coeffs, const PixelArray& pixels) const -> Pixel;
 
-  // modification by jeko : fixedpoint : tranDiffFactor = (16:16) (0 <= tranDiffFactor <= 2^16)
-  int32_t m_tranDiffFactor = 0;
   std::vector<int32_t> m_firedec{};
 
   // modif d'optim by Jeko : precalcul des 4 coefs resultant des 2 pos
   using Coeff2dArray = std::array<std::array<uint32_t, BUFF_POINT_NUM>, BUFF_POINT_NUM>;
   Coeff2dArray m_precalcCoeffs{};
 
-  void Init();
-
-  void MakeZoomBufferStripe(uint32_t interlaceIncrement);
+  void MakeBufferStripeInTranTemp(const uint32_t interlaceIncrement);
   void CZoom(const PixelBuffer& srceBuff, PixelBuffer& destBuff, uint32_t& numDestClipped);
   void GenerateWaterFxHorizontalBuffer();
   auto GetZoomVector(float normX, float normY) -> V2dFlt;
@@ -166,89 +161,6 @@ private:
   auto GetMixedColor(const CoeffArray& coeffs, const PixelArray& colors) const -> Pixel;
   auto GetBlockyMixedColor(const CoeffArray& coeffs, const PixelArray& colors) const -> Pixel;
 };
-
-ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl(Parallel& p,
-                                             const std::shared_ptr<const PluginInfo>& goomInfo)
-  : m_screenWidth{goomInfo->GetScreenInfo().width},
-    m_screenHeight{goomInfo->GetScreenInfo().height},
-    m_bufferSize{goomInfo->GetScreenInfo().size},
-    m_maxTranX{ToTranCoord(m_screenWidth - 1)},
-    m_maxTranY{ToTranCoord(m_screenHeight - 1)},
-    m_ratioPixmapToNormalizedCoord{2.0F / static_cast<float>(m_screenWidth)},
-    m_ratioNormalizedCoordToPixmap{1.0F / m_ratioPixmapToNormalizedCoord},
-    m_minNormCoordVal{m_ratioPixmapToNormalizedCoord / BUFF_POINT_NUM_FLT},
-    m_parallel{&p},
-    m_tranXSrce(m_bufferSize),
-    m_tranYSrce(m_bufferSize),
-    m_tranXDest(m_bufferSize),
-    m_tranYDest(m_bufferSize),
-    m_tranXTemp(m_bufferSize),
-    m_tranYTemp(m_bufferSize),
-    m_firedec(m_screenHeight)
-{
-  Init();
-}
-
-ZoomFilterFx::ZoomFilterImpl::~ZoomFilterImpl() noexcept = default;
-
-void ZoomFilterFx::ZoomFilterImpl::Init()
-{
-  m_filterData.middleX = m_screenWidth / 2;
-  m_filterData.middleY = m_screenHeight / 2;
-
-  GeneratePrecalCoef(m_precalcCoeffs);
-  GenerateWaterFxHorizontalBuffer();
-  MakeZoomBufferStripe(m_screenHeight);
-
-  // Copy the data from temp to dest and source
-  std::copy(m_tranXTemp.begin(), m_tranXTemp.end(), m_tranXSrce.begin());
-  std::copy(m_tranYTemp.begin(), m_tranYTemp.end(), m_tranYSrce.begin());
-  std::copy(m_tranXTemp.begin(), m_tranXTemp.end(), m_tranXDest.begin());
-  std::copy(m_tranYTemp.begin(), m_tranYTemp.end(), m_tranYDest.begin());
-}
-
-inline auto ZoomFilterFx::ZoomFilterImpl::GetResourcesDirectory() const -> const std::string&
-{
-  return m_resourcesDirectory;
-}
-
-inline void ZoomFilterFx::ZoomFilterImpl::SetResourcesDirectory(const std::string& dirName)
-{
-  m_resourcesDirectory = dirName;
-}
-
-inline void ZoomFilterFx::ZoomFilterImpl::SetBuffSettings(const FXBuffSettings& settings)
-{
-  m_buffSettings = settings;
-}
-
-inline void ZoomFilterFx::ZoomFilterImpl::IncNormalizedCoord(float& normalizedCoord) const
-{
-  normalizedCoord += m_ratioPixmapToNormalizedCoord;
-}
-
-inline auto ZoomFilterFx::ZoomFilterImpl::ToNormalizedCoord(const int32_t pixmapCoord) const
-    -> float
-{
-  return m_ratioPixmapToNormalizedCoord * static_cast<float>(pixmapCoord);
-}
-
-inline auto ZoomFilterFx::ZoomFilterImpl::ToPixmapCoord(const float normalizedCoord) const
-    -> int32_t
-{
-  return static_cast<int32_t>(std::lround(m_ratioNormalizedCoordToPixmap * normalizedCoord));
-}
-
-void ZoomFilterFx::ZoomFilterImpl::Log(const StatsLogValueFunc& l) const
-{
-  m_stats.SetLastGeneralSpeed(m_generalSpeed);
-  m_stats.SetLastPrevX(m_screenWidth);
-  m_stats.SetLastPrevY(m_screenHeight);
-  m_stats.SetLastInterlaceStart(m_interlaceStart);
-  m_stats.SetLastTranDiffFactor(m_tranDiffFactor);
-
-  m_stats.Log(l);
-}
 
 ZoomFilterFx::ZoomFilterFx(Parallel& p, const std::shared_ptr<const PluginInfo>& info) noexcept
   : m_fxImpl{new ZoomFilterImpl{p, info}}
@@ -320,6 +232,87 @@ auto ZoomFilterFx::GetInterlaceStart() const -> int32_t
   return m_fxImpl->GetInterlaceStart();
 }
 
+ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl(Parallel& p,
+                                             const std::shared_ptr<const PluginInfo>& goomInfo)
+  : m_screenWidth{goomInfo->GetScreenInfo().width},
+    m_screenHeight{goomInfo->GetScreenInfo().height},
+    m_bufferSize{goomInfo->GetScreenInfo().size},
+    m_maxTranX{ToTranCoord(m_screenWidth - 1)},
+    m_maxTranY{ToTranCoord(m_screenHeight - 1)},
+    m_ratioPixmapToNormalizedCoord{2.0F / static_cast<float>(m_screenWidth)},
+    m_ratioNormalizedCoordToPixmap{1.0F / m_ratioPixmapToNormalizedCoord},
+    m_minNormCoordVal{m_ratioPixmapToNormalizedCoord / BUFF_POINT_NUM_FLT},
+    m_generalSpeed{0},
+    m_parallel{&p},
+    m_tranXSrce(m_bufferSize),
+    m_tranYSrce(m_bufferSize),
+    m_tranXDest(m_bufferSize),
+    m_tranYDest(m_bufferSize),
+    m_tranXTemp(m_bufferSize),
+    m_tranYTemp(m_bufferSize),
+    m_tranBuffStart{0},
+    m_tranDiffFactor{0},
+    m_firedec(m_screenHeight)
+{
+  m_filterData.middleX = m_screenWidth / 2;
+  m_filterData.middleY = m_screenHeight / 2;
+
+  GeneratePrecalCoef(m_precalcCoeffs);
+  GenerateWaterFxHorizontalBuffer();
+  MakeBufferStripeInTranTemp(m_screenHeight);
+
+  // Copy the data from temp to dest and source
+  std::copy(m_tranXTemp.begin(), m_tranXTemp.end(), m_tranXSrce.begin());
+  std::copy(m_tranYTemp.begin(), m_tranYTemp.end(), m_tranYSrce.begin());
+  std::copy(m_tranXTemp.begin(), m_tranXTemp.end(), m_tranXDest.begin());
+  std::copy(m_tranYTemp.begin(), m_tranYTemp.end(), m_tranYDest.begin());
+}
+
+ZoomFilterFx::ZoomFilterImpl::~ZoomFilterImpl() noexcept = default;
+
+inline auto ZoomFilterFx::ZoomFilterImpl::GetResourcesDirectory() const -> const std::string&
+{
+  return m_resourcesDirectory;
+}
+
+inline void ZoomFilterFx::ZoomFilterImpl::SetResourcesDirectory(const std::string& dirName)
+{
+  m_resourcesDirectory = dirName;
+}
+
+inline void ZoomFilterFx::ZoomFilterImpl::SetBuffSettings(const FXBuffSettings& settings)
+{
+  m_buffSettings = settings;
+}
+
+inline void ZoomFilterFx::ZoomFilterImpl::IncNormalizedCoord(float& normalizedCoord) const
+{
+  normalizedCoord += m_ratioPixmapToNormalizedCoord;
+}
+
+inline auto ZoomFilterFx::ZoomFilterImpl::ToNormalizedCoord(const int32_t pixmapCoord) const
+    -> float
+{
+  return m_ratioPixmapToNormalizedCoord * static_cast<float>(pixmapCoord);
+}
+
+inline auto ZoomFilterFx::ZoomFilterImpl::ToPixmapCoord(const float normalizedCoord) const
+    -> int32_t
+{
+  return static_cast<int32_t>(std::lround(m_ratioNormalizedCoordToPixmap * normalizedCoord));
+}
+
+void ZoomFilterFx::ZoomFilterImpl::Log(const StatsLogValueFunc& l) const
+{
+  m_stats.SetLastGeneralSpeed(m_generalSpeed);
+  m_stats.SetLastPrevX(m_screenWidth);
+  m_stats.SetLastPrevY(m_screenHeight);
+  m_stats.SetLastInterlaceStart(m_tranBuffStart);
+  m_stats.SetLastTranDiffFactor(m_tranDiffFactor);
+
+  m_stats.Log(l);
+}
+
 /**
  * Main work for the dynamic displacement map.
  *
@@ -344,7 +337,7 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
   m_stats.DoZoomFilterFastRgb();
 
   // changement de taille
-  if (m_interlaceStart != -2)
+  if (m_tranBuffStart != -2)
   {
     zf = nullptr;
   }
@@ -359,11 +352,11 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
     {
       m_generalSpeed = -m_generalSpeed;
     }
-    m_interlaceStart = 0;
+    m_tranBuffStart = 0;
   }
 
   // generation du buffer de transform
-  if (m_interlaceStart == -1)
+  if (m_tranBuffStart == -1)
   {
     m_stats.DoZoomFilterFastRgbInterlaceStartEqualMinus1();
     // sauvegarde de l'etat actuel dans la nouvelle source
@@ -380,13 +373,13 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
     std::swap(m_tranXDest, m_tranXTemp);
     std::swap(m_tranYDest, m_tranYTemp);
 
-    m_interlaceStart = -2;
+    m_tranBuffStart = -2;
   }
 
-  if (m_interlaceStart >= 0)
+  if (m_tranBuffStart >= 0)
   {
     // creation de la nouvelle destination
-    MakeZoomBufferStripe(m_screenHeight / BUFF_POINT_NUM);
+    MakeBufferStripeInTranTemp(m_screenHeight / BUFF_POINT_NUM);
   }
 
   if (switchIncr != 0)
@@ -598,22 +591,22 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetNewColor(const CoeffArray& coeffs,
  * Translation (-data->middleX, -data->middleY)
  * Homothetie (Center : 0,0   Coeff : 2/data->screenWidth)
  */
-void ZoomFilterFx::ZoomFilterImpl::MakeZoomBufferStripe(const uint32_t interlaceIncrement)
+void ZoomFilterFx::ZoomFilterImpl::MakeBufferStripeInTranTemp(const uint32_t interlaceIncrement)
 {
   m_stats.DoMakeZoomBufferStripe();
 
-  assert(m_interlaceStart >= 0);
+  assert(m_tranBuffStart >= 0);
 
   const float normMiddleX = ToNormalizedCoord(static_cast<int32_t>(m_filterData.middleX));
   const float normMiddleY = ToNormalizedCoord(static_cast<int32_t>(m_filterData.middleY));
 
   // Where (vertically) to stop generating the buffer stripe
   const int32_t maxEnd = std::min(static_cast<int32_t>(m_screenHeight),
-                                  m_interlaceStart + static_cast<int32_t>(interlaceIncrement));
+                                  m_tranBuffStart + static_cast<int32_t>(interlaceIncrement));
 
   // Position of the pixel to compute in pixmap coordinates
   const auto doStripeLine = [&](const uint32_t y) {
-    const uint32_t yOffset = y + static_cast<uint32_t>(m_interlaceStart);
+    const uint32_t yOffset = y + static_cast<uint32_t>(m_tranBuffStart);
     const uint32_t yTimesScreenWidth = yOffset * m_screenWidth;
     const float normY = ToNormalizedCoord(static_cast<int32_t>(yOffset) -
                                           static_cast<int32_t>(m_filterData.middleY));
@@ -631,12 +624,12 @@ void ZoomFilterFx::ZoomFilterImpl::MakeZoomBufferStripe(const uint32_t interlace
     }
   };
 
-  m_parallel->ForLoop(static_cast<uint32_t>(maxEnd - m_interlaceStart), doStripeLine);
+  m_parallel->ForLoop(static_cast<uint32_t>(maxEnd - m_tranBuffStart), doStripeLine);
 
-  m_interlaceStart += static_cast<int32_t>(interlaceIncrement);
+  m_tranBuffStart += static_cast<int32_t>(interlaceIncrement);
   if (maxEnd == static_cast<int32_t>(m_screenHeight))
   {
-    m_interlaceStart = -1;
+    m_tranBuffStart = -1;
   }
 }
 
@@ -944,7 +937,7 @@ auto ZoomFilterFx::ZoomFilterImpl::GetGeneralSpeed() const -> float
 
 auto ZoomFilterFx::ZoomFilterImpl::GetInterlaceStart() const -> int32_t
 {
-  return m_interlaceStart;
+  return m_tranBuffStart;
 }
 
 } // namespace GOOM
