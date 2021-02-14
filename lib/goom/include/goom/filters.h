@@ -14,26 +14,32 @@ class PixelBuffer;
 
 enum class ZoomFilterMode
 {
-  _null = -1,
-  normalMode = 0,
-  waveMode,
-  crystalBallMode,
-  scrunchMode,
-  amuletMode,
-  waterMode,
-  hyperCos1Mode,
-  hyperCos2Mode,
-  yOnlyMode,
-  speedwayMode,
-  _size // must be last - gives number of enums
+  _NULL = -1,
+  NORMAL_MODE = 0,
+  WAVE_MODE,
+  CRYSTAL_BALL_MODE,
+  SCRUNCH_MODE,
+  AMULET_MODE,
+  WATER_MODE,
+  HYPERCOS1_MODE,
+  HYPERCOS2_MODE,
+  Y_ONLY_MODE,
+  SPEEDWAY_MODE,
+  _SIZE // must be last - gives number of enums
 };
 
 struct ZoomFilterData
 {
-  ZoomFilterMode mode = ZoomFilterMode::normalMode; // type d'effet à appliquer
+  ZoomFilterMode mode = ZoomFilterMode::NORMAL_MODE; // type d'effet à appliquer
   // 128 = vitesse nule... * * 256 = en arriere
   //   hyper vite.. * * 0 = en avant hype vite.
-  int32_t vitesse = 127;
+  static constexpr int32_t MAX_VITESSE = 128;
+  static constexpr int32_t DEFAULT_VITESSE = 127;
+  int32_t vitesse = DEFAULT_VITESSE;
+  static constexpr float MIN_COEFF_VITESSE_DENOMINATOR = 30.0;
+  static constexpr float MAX_COEFF_VITESSE_DENOMINATOR = 50.0;
+  static constexpr float DEFAULT_COEFF_VITESSE_DENOMINATOR = 50.0;
+  float coeffVitesseDenominator = DEFAULT_COEFF_VITESSE_DENOMINATOR;
   static constexpr uint8_t pertedec = 8; // NEVER SEEMS TO CHANGE
   uint32_t middleX = 16;
   uint32_t middleY = 1; // milieu de l'effet
@@ -118,8 +124,8 @@ struct ZoomFilterData
   float hypercosFreqY = DEFAULT_HYPERCOS_FREQ;
 
   static constexpr float DEFAULT_HYPERCOS_AMPLITUDE = 1.0 / 120.0;
-  static constexpr float MIN_HYPERCOS_AMPLITUDE = 1.0f / 140.0;
-  static constexpr float MAX_HYPERCOS_AMPLITUDE = 1.0f / 100.0;
+  static constexpr float MIN_HYPERCOS_AMPLITUDE = 1.0F / 140.0;
+  static constexpr float MAX_HYPERCOS_AMPLITUDE = 1.0F / 100.0;
   float hypercosAmplitudeX = DEFAULT_HYPERCOS_AMPLITUDE;
   float hypercosAmplitudeY = DEFAULT_HYPERCOS_AMPLITUDE;
   bool hypercosReverse = false;

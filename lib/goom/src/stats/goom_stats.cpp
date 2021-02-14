@@ -19,7 +19,7 @@ using GOOM::UTILS::Logging;
 void GoomStats::Reset()
 {
   m_startingState = 0;
-  m_startingFilterMode = ZoomFilterMode::_size;
+  m_startingFilterMode = ZoomFilterMode::_SIZE;
   m_startingSeed = 0;
   m_lastState = 0;
   m_lastZoomFilterData = nullptr;
@@ -28,8 +28,8 @@ void GoomStats::Reset()
 
   m_stateAtMin = 0;
   m_stateAtMax = 0;
-  m_filterModeAtMin = ZoomFilterMode::_null;
-  m_filterModeAtMax = ZoomFilterMode::_null;
+  m_filterModeAtMin = ZoomFilterMode::_NULL;
+  m_filterModeAtMax = ZoomFilterMode::_NULL;
 
   m_numUpdates = 0;
   m_totalTimeInUpdatesMs = 0;
@@ -58,6 +58,7 @@ void GoomStats::Reset()
   m_numSwitchLines = 0;
   m_numBlockyWavy = 0;
   m_numZoomFilterAllowOverexposed = 0;
+  m_numTooManyClipped = 0;
 }
 
 void GoomStats::Log(const StatsLogValueFunc& logVal) const
@@ -172,6 +173,7 @@ void GoomStats::Log(const StatsLogValueFunc& logVal) const
   logVal(MODULE, "numSwitchLines", m_numSwitchLines);
   logVal(MODULE, "numBlockyWavy", m_numBlockyWavy);
   logVal(MODULE, "numZoomFilterAllowOverexposed", m_numZoomFilterAllowOverexposed);
+  logVal(MODULE, "numTooManyClipped", m_numTooManyClipped);
 }
 
 void GoomStats::SetSongTitle(const std::string& s)
@@ -361,6 +363,11 @@ void GoomStats::DoBlockyWavy()
 void GoomStats::DoZoomFilterAllowOverexposed()
 {
   m_numZoomFilterAllowOverexposed++;
+}
+
+void GoomStats::TooManyClipped()
+{
+  m_numTooManyClipped++;
 }
 
 class LogStatsVisitor

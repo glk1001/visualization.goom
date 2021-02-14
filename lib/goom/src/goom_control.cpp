@@ -869,7 +869,7 @@ inline auto GoomControl::GoomControlImpl::ChangeFilterModeEventHappens() -> bool
   // If we're in amulet mode and the state contains tentacles,
   // then get out with a different probability.
   // (Rationale: get tentacles going earlier with another mode.)
-  if ((m_goomData.zoomFilterData.mode == ZoomFilterMode::amuletMode) &&
+  if ((m_goomData.zoomFilterData.mode == ZoomFilterMode::AMULET_MODE) &&
 #if __cplusplus <= 201402L
       m_states.GetCurrentDrawables().find(GoomDrawable::TENTACLES) !=
           m_states.GetCurrentDrawables().end())
@@ -1137,6 +1137,8 @@ inline auto GetHypercosEffect(const bool active) -> ZoomFilterData::HypercosEffe
 void GoomControl::GoomControlImpl::SetNextFilterMode()
 {
   m_goomData.zoomFilterData.vitesse = 127;
+  m_goomData.zoomFilterData.coeffVitesseDenominator = GetRandInRange(
+      ZoomFilterData::MIN_COEFF_VITESSE_DENOMINATOR, ZoomFilterData::MAX_COEFF_VITESSE_DENOMINATOR);
   m_goomData.zoomFilterData.middleX = 16;
   m_goomData.zoomFilterData.middleY = 1;
   m_goomData.zoomFilterData.reverse = true;
@@ -1167,22 +1169,22 @@ void GoomControl::GoomControlImpl::SetNextFilterMode()
   switch (m_goomEvent.GetRandomFilterEvent())
   {
     case GoomFilterEvent::Y_ONLY_MODE:
-      m_goomData.zoomFilterData.mode = ZoomFilterMode::yOnlyMode;
+      m_goomData.zoomFilterData.mode = ZoomFilterMode::Y_ONLY_MODE;
       break;
     case GoomFilterEvent::SPEEDWAY_MODE:
-      m_goomData.zoomFilterData.mode = ZoomFilterMode::speedwayMode;
+      m_goomData.zoomFilterData.mode = ZoomFilterMode::SPEEDWAY_MODE;
       m_goomData.zoomFilterData.speedwayAmplitude = GetRandInRange(
           ZoomFilterData::MIN_SPEEDWAY_AMPLITUDE, ZoomFilterData::MAX_SPEEDWAY_AMPLITUDE);
       break;
     case GoomFilterEvent::NORMAL_MODE:
-      m_goomData.zoomFilterData.mode = ZoomFilterMode::normalMode;
+      m_goomData.zoomFilterData.mode = ZoomFilterMode::NORMAL_MODE;
       break;
     case GoomFilterEvent::WAVE_MODE_WITH_HYPER_COS_EFFECT:
       m_goomData.zoomFilterData.hypercosEffect =
           GetHypercosEffect(m_goomEvent.Happens(GoomEvent::HYPERCOS_EFFECT_ON_WITH_WAVE_MODE));
       [[fallthrough]];
     case GoomFilterEvent::WAVE_MODE:
-      m_goomData.zoomFilterData.mode = ZoomFilterMode::waveMode;
+      m_goomData.zoomFilterData.mode = ZoomFilterMode::WAVE_MODE;
       m_goomData.zoomFilterData.reverse = false;
       m_goomData.zoomFilterData.waveEffect =
           m_goomEvent.Happens(GoomEvent::WAVE_EFFECT_ON_WITH_WAVE_MODE);
@@ -1209,12 +1211,12 @@ void GoomControl::GoomControlImpl::SetNextFilterMode()
       }
       break;
     case GoomFilterEvent::CRYSTAL_BALL_MODE:
-      m_goomData.zoomFilterData.mode = ZoomFilterMode::crystalBallMode;
+      m_goomData.zoomFilterData.mode = ZoomFilterMode::CRYSTAL_BALL_MODE;
       m_goomData.zoomFilterData.crystalBallAmplitude = GetRandInRange(
           ZoomFilterData::MIN_CRYSTAL_BALL_AMPLITUDE, ZoomFilterData::MAX_CRYSTAL_BALL_AMPLITUDE);
       break;
     case GoomFilterEvent::CRYSTAL_BALL_MODE_WITH_EFFECTS:
-      m_goomData.zoomFilterData.mode = ZoomFilterMode::crystalBallMode;
+      m_goomData.zoomFilterData.mode = ZoomFilterMode::CRYSTAL_BALL_MODE;
       m_goomData.zoomFilterData.waveEffect =
           m_goomEvent.Happens(GoomEvent::WAVE_EFFECT_ON_WITH_CRYSTAL_BALL_MODE);
       m_goomData.zoomFilterData.hypercosEffect = GetHypercosEffect(
@@ -1223,32 +1225,32 @@ void GoomControl::GoomControlImpl::SetNextFilterMode()
           ZoomFilterData::MIN_CRYSTAL_BALL_AMPLITUDE, ZoomFilterData::MAX_CRYSTAL_BALL_AMPLITUDE);
       break;
     case GoomFilterEvent::AMULET_MODE:
-      m_goomData.zoomFilterData.mode = ZoomFilterMode::amuletMode;
+      m_goomData.zoomFilterData.mode = ZoomFilterMode::AMULET_MODE;
       m_goomData.zoomFilterData.amuletAmplitude = GetRandInRange(
           ZoomFilterData::MIN_AMULET_AMPLITUDE, ZoomFilterData::MAX_AMULET_AMPLITUDE);
       break;
     case GoomFilterEvent::WATER_MODE:
-      m_goomData.zoomFilterData.mode = ZoomFilterMode::waterMode;
+      m_goomData.zoomFilterData.mode = ZoomFilterMode::WATER_MODE;
       break;
     case GoomFilterEvent::SCRUNCH_MODE:
-      m_goomData.zoomFilterData.mode = ZoomFilterMode::scrunchMode;
+      m_goomData.zoomFilterData.mode = ZoomFilterMode::SCRUNCH_MODE;
       m_goomData.zoomFilterData.scrunchAmplitude = GetRandInRange(
           ZoomFilterData::MIN_SCRUNCH_AMPLITUDE, ZoomFilterData::MAX_SCRUNCH_AMPLITUDE);
       break;
     case GoomFilterEvent::SCRUNCH_MODE_WITH_EFFECTS:
-      m_goomData.zoomFilterData.mode = ZoomFilterMode::scrunchMode;
+      m_goomData.zoomFilterData.mode = ZoomFilterMode::SCRUNCH_MODE;
       m_goomData.zoomFilterData.waveEffect = true;
       m_goomData.zoomFilterData.hypercosEffect = GetHypercosEffect(true);
       m_goomData.zoomFilterData.scrunchAmplitude = GetRandInRange(
           ZoomFilterData::MIN_SCRUNCH_AMPLITUDE, ZoomFilterData::MAX_SCRUNCH_AMPLITUDE);
       break;
     case GoomFilterEvent::HYPER_COS1_MODE:
-      m_goomData.zoomFilterData.mode = ZoomFilterMode::hyperCos1Mode;
+      m_goomData.zoomFilterData.mode = ZoomFilterMode::HYPERCOS1_MODE;
       m_goomData.zoomFilterData.hypercosEffect = GetHypercosEffect(
           m_goomEvent.Happens(GoomEvent::HYPERCOS_EFFECT_ON_WITH_HYPER_COS1_MODE));
       break;
     case GoomFilterEvent::HYPER_COS2_MODE:
-      m_goomData.zoomFilterData.mode = ZoomFilterMode::hyperCos2Mode;
+      m_goomData.zoomFilterData.mode = ZoomFilterMode::HYPERCOS2_MODE;
       m_goomData.zoomFilterData.hypercosEffect = GetHypercosEffect(
           m_goomEvent.Happens(GoomEvent::HYPERCOS_EFFECT_ON_WITH_HYPER_COS2_MODE));
       break;
@@ -1354,7 +1356,7 @@ void GoomControl::GoomControlImpl::ChangeState()
 
   // Tentacles and amulette don't look so good together.
   if (m_states.IsCurrentlyDrawable(GoomDrawable::TENTACLES) &&
-      (m_goomData.zoomFilterData.mode == ZoomFilterMode::amuletMode))
+      (m_goomData.zoomFilterData.mode == ZoomFilterMode::AMULET_MODE))
   {
     ChangeFilterMode();
   }
@@ -1363,9 +1365,9 @@ void GoomControl::GoomControlImpl::ChangeState()
 void GoomControl::GoomControlImpl::ChangeMilieu()
 {
 
-  if ((m_goomData.zoomFilterData.mode == ZoomFilterMode::waterMode) ||
-      (m_goomData.zoomFilterData.mode == ZoomFilterMode::yOnlyMode) ||
-      (m_goomData.zoomFilterData.mode == ZoomFilterMode::amuletMode))
+  if ((m_goomData.zoomFilterData.mode == ZoomFilterMode::WATER_MODE) ||
+      (m_goomData.zoomFilterData.mode == ZoomFilterMode::Y_ONLY_MODE) ||
+      (m_goomData.zoomFilterData.mode == ZoomFilterMode::AMULET_MODE))
   {
     m_goomData.zoomFilterData.middleX = GetScreenWidth() / 2;
     m_goomData.zoomFilterData.middleY = GetScreenHeight() / 2;
@@ -1545,7 +1547,7 @@ void GoomControl::GoomControlImpl::BigNormalUpdate(ZoomFilterData** pzfd)
         {/*.buffIntensity = */ 0.5, /*.allowOverexposed = */ true});
   }
 
-  if (m_goomData.zoomFilterData.mode == ZoomFilterMode::amuletMode)
+  if (m_goomData.zoomFilterData.mode == ZoomFilterMode::AMULET_MODE)
   {
     m_goomData.zoomFilterData.vPlaneEffect = 0;
     m_goomData.zoomFilterData.hPlaneEffect = 0;
@@ -2128,6 +2130,7 @@ void GoomControl::GoomControlImpl::ForceFilterMode(const int forceMode, ZoomFilt
 void GoomControl::GoomControlImpl::LowerSpeed(ZoomFilterData** pzfd)
 {
   *pzfd = &m_goomData.zoomFilterData;
+  // TODO Why is this '++' not '--'??
   m_goomData.zoomFilterData.vitesse++;
 }
 
@@ -2149,7 +2152,7 @@ void GoomControl::GoomControlImpl::BigUpdateIfNotLocked(ZoomFilterData** pzfd)
 
 void GoomControl::GoomControlImpl::ForceFilterModeIfSet(ZoomFilterData** pzfd, const int forceMode)
 {
-  constexpr auto NUM_FILTER_FX = static_cast<size_t>(ZoomFilterMode::_size);
+  constexpr auto NUM_FILTER_FX = static_cast<size_t>(ZoomFilterMode::_SIZE);
 
   logDebug("forceMode = {}", forceMode);
   if ((forceMode > 0) && (size_t(forceMode) <= NUM_FILTER_FX))
@@ -2192,10 +2195,10 @@ void GoomControl::GoomControlImpl::ApplyZoom(ZoomFilterData** pzfd)
   m_visualFx.zoomFilter_fx->ZoomFilterFastRgb(m_imageBuffers.GetP1(), m_imageBuffers.GetP2(), *pzfd,
                                               m_goomData.switchIncr, m_goomData.switchMult,
                                               numClipped);
-  if (numClipped > m_goomInfo->GetScreenInfo().size / 2)
+  if (numClipped > m_goomInfo->GetScreenInfo().size / 100)
   {
-    // too many clipped
-    m_goomData.switchIncr = -m_goomData.switchIncr;
+    m_stats.TooManyClipped();
+    ChangeFilterMode();
   }
 }
 

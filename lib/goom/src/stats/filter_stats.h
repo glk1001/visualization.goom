@@ -41,7 +41,7 @@ public:
   void DoZoomFilterRestartTranBuffYLine();
   void DoZoomFilterSwitchIncrNotZero();
   void DoZoomFilterSwitchMultNotEqual1();
-  void DoCZoomOutOfRange();
+  void DoTranPointClipped();
   void CoeffVitesseBelowMin();
   void CoeffVitesseAboveMax();
 
@@ -80,7 +80,7 @@ private:
   uint64_t m_numZoomFilterRestartTranBuffYLine = 0;
   uint64_t m_numZoomFilterSwitchIncrNotZero = 0;
   uint64_t m_numZoomFilterSwitchMultNotEqual1 = 0;
-  uint64_t m_numCZoomOutOfRange = 0;
+  uint64_t m_numTranPointsClipped = 0;
   uint64_t m_numCoeffVitesseBelowMin = 0;
   uint64_t m_numCoeffVitesseAboveMax = 0;
 

@@ -61,11 +61,12 @@ public:
   void DoBlockyWavy();
   void DoZoomFilterAllowOverexposed();
   void SetFontFileUsed(const std::string& f);
+  void TooManyClipped();
 
 private:
   std::string m_songTitle{};
   uint32_t m_startingState = 0;
-  ZoomFilterMode m_startingFilterMode = ZoomFilterMode::_size;
+  ZoomFilterMode m_startingFilterMode = ZoomFilterMode::_SIZE;
   uint32_t m_lastState = 0;
   const ZoomFilterData* m_lastZoomFilterData = nullptr;
   uint64_t m_startingSeed = 0;
@@ -79,8 +80,8 @@ private:
   std::chrono::high_resolution_clock::time_point m_timeNowHiRes{};
   size_t m_stateAtMin = 0;
   size_t m_stateAtMax = 0;
-  ZoomFilterMode m_filterModeAtMin = ZoomFilterMode::_null;
-  ZoomFilterMode m_filterModeAtMax = ZoomFilterMode::_null;
+  ZoomFilterMode m_filterModeAtMin = ZoomFilterMode::_NULL;
+  ZoomFilterMode m_filterModeAtMax = ZoomFilterMode::_NULL;
 
   uint32_t m_numUpdates = 0;
   uint32_t m_totalStateChanges = 0;
@@ -102,7 +103,8 @@ private:
   uint32_t m_numSwitchLines = 0;
   uint32_t m_numBlockyWavy = 0;
   uint32_t m_numZoomFilterAllowOverexposed = 0;
-  std::array<uint32_t, static_cast<size_t>(ZoomFilterMode::_size)> m_numFilterModeChanges{0};
+  uint32_t m_numTooManyClipped = 0;
+  std::array<uint32_t, static_cast<size_t>(ZoomFilterMode::_SIZE)> m_numFilterModeChanges{0};
   std::vector<uint32_t> m_numStateChanges{};
   std::vector<uint64_t> m_stateDurations{};
 };

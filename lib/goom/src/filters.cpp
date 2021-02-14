@@ -201,8 +201,8 @@ inline auto GetTranBuffLerp(const int32_t srceBuffVal, const int32_t destBuffVal
 constexpr float NOISE_MIN = 70;
 constexpr float NOISE_MAX = 120;
 
-constexpr float MIN_COEF_VITESSE = -2.01;
-constexpr float MAX_COEF_VITESSE = +2.01;
+constexpr float MIN_COEF_VITESSE = -4.01;
+constexpr float MAX_COEF_VITESSE = +4.01;
 
 class ZoomFilterFx::ZoomFilterImpl
 {
@@ -238,6 +238,7 @@ private:
   const float m_ratioScreenToNormalizedCoord;
   const float m_ratioNormalizedToScreenCoord;
   const float m_minNormalizedCoordVal;
+  const float m_maxNormalizedCoordVal;
   ZoomFilterData m_filterData{};
   FXBuffSettings m_buffSettings{};
   std::string m_resourcesDirectory{};
@@ -278,6 +279,7 @@ private:
       -> std::tuple<uint32_t, uint32_t, NeighborhoodCoeffArray>;
   auto GetNewColor(const NeighborhoodCoeffArray& coeffs, const NeighborhoodPixelArray& pixels) const
       -> Pixel;
+  auto GetTranPoint(float xNormalised, float yNormalised) const -> std::tuple<int32_t, int32_t>;
 
   const FilterCoefficients m_precalculatedCoeffs;
 
@@ -377,6 +379,7 @@ ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl(Parallel& p,
     m_ratioScreenToNormalizedCoord{2.0F / static_cast<float>(m_screenWidth)},
     m_ratioNormalizedToScreenCoord{1.0F / m_ratioScreenToNormalizedCoord},
     m_minNormalizedCoordVal{m_ratioScreenToNormalizedCoord * MIN_SCREEN_COORD_VAL},
+    m_maxNormalizedCoordVal{m_ratioScreenToNormalizedCoord * static_cast<float>(m_screenWidth - 1)},
     m_generalSpeed{0},
     m_parallel{&p},
     m_tranXSrce(m_bufferSize),
@@ -601,7 +604,8 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
     {
       m_stats.DoZoomFilterChangeConfig();
       m_filterData = *zf;
-      m_generalSpeed = static_cast<float>(zf->vitesse - 128) / 128.0F;
+      m_generalSpeed = static_cast<float>(zf->vitesse - ZoomFilterData::MAX_VITESSE) /
+                       static_cast<float>(ZoomFilterData::MAX_VITESSE);
       if (m_filterData.reverse)
       {
         m_generalSpeed = -m_generalSpeed;
@@ -689,7 +693,7 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff,
       /**
       if ((tranPx >= m_maxTranX) || (tranPy >= m_maxTranY))
       {
-        m_stats.DoCZoomOutOfRange();
+        m_stats.DoTranPointClipped();
         const size_t xIndex = GetRandInRange(0U, 1U + (tranAx & PERTE_MASK));
         const size_t yIndex = GetRandInRange(0U, 1U + (tranAy & PERTE_MASK));
         return std::make_tuple(destPos, CoeffArray{.intVal = m_precalcCoeffs[xIndex][yIndex]});
@@ -698,7 +702,7 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff,
 
       if ((tranX >= m_maxTranX) || (tranY >= m_maxTranY))
       {
-        m_stats.DoCZoomOutOfRange();
+        m_stats.DoTranPointClipped();
         *destRowBuff = Pixel::BLACK;
         numDestClipped++;
       }
@@ -773,8 +777,17 @@ void ZoomFilterFx::ZoomFilterImpl::AssignBufferStripeToTranTemp(const uint32_t t
       const uint32_t tranPos = tranPosStart + x;
       const V2dFlt zoomVector = GetZoomVector(xNormalized, yNormalized);
 
-      m_tranXTemp[tranPos] = NormalizedToTranCoord((xMidNormalized + xNormalized - zoomVector.x));
-      m_tranYTemp[tranPos] = NormalizedToTranCoord((yMidNormalized + yNormalized - zoomVector.y));
+#if __cplusplus <= 201402L
+      const auto tranPoint = GetTranPoint(xMidNormalized + xNormalized - zoomVector.x,
+                                          yMidNormalized + yNormalized - zoomVector.y);
+      const auto tranX = std::get<0>(tranPoint);
+      const auto tranY = std::get<1>(tranPoint);
+#else
+      const auto [tranX, tranY] = GetTranPoint(xMidNormalized + xNormalized - zoomVector.x,
+                                               yMidNormalized + yNormalized - zoomVector.y);
+#endif
+      m_tranXTemp[tranPos] = tranX;
+      m_tranYTemp[tranPos] = tranY;
 
       IncNormalizedCoord(xNormalized);
     }
@@ -792,6 +805,37 @@ void ZoomFilterFx::ZoomFilterImpl::AssignBufferStripeToTranTemp(const uint32_t t
     m_tranBuffState = TranBuffState::RESTART_BUFF_YLINE;
     m_tranBuffYLineStart = 0;
   }
+}
+
+inline auto ZoomFilterFx::ZoomFilterImpl::GetTranPoint(const float xNormalised,
+                                                       const float yNormalised) const
+    -> std::tuple<int32_t, int32_t>
+{
+  int32_t tranX = NormalizedToTranCoord((xNormalised));
+  if (tranX < 0)
+  {
+    m_stats.DoTranPointClipped();
+    tranX = 0;
+  }
+  else if (tranX >= static_cast<int32_t>(m_maxTranX))
+  {
+    m_stats.DoTranPointClipped();
+    tranX = static_cast<int32_t>(m_maxTranX - 1);
+  }
+
+  int32_t tranY = NormalizedToTranCoord((yNormalised));
+  if (tranY < 0)
+  {
+    m_stats.DoTranPointClipped();
+    tranY = 0;
+  }
+  else if (tranY >= static_cast<int32_t>(m_maxTranY))
+  {
+    m_stats.DoTranPointClipped();
+    tranY = static_cast<int32_t>(m_maxTranY - 1);
+  }
+
+  return std::make_tuple(tranX, tranY);
 }
 
 auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float xNormalized, const float yNormalized)
@@ -845,25 +889,37 @@ inline void ZoomFilterFx::ZoomFilterImpl::AvoidNullDisplacement(V2dFlt& velocity
 inline auto ZoomFilterFx::ZoomFilterImpl::GetStandardVelocity(const float xNormalized,
                                                               const float yNormalized) -> V2dFlt
 {
-  float coeffVitesse = (1.0F + m_generalSpeed) / 50.0F;
+  float coeffVitesse = (1.0F + m_generalSpeed) / m_filterData.coeffVitesseDenominator;
 
   // The Effects
   switch (m_filterData.mode)
   {
-    case ZoomFilterMode::crystalBallMode:
+    case ZoomFilterMode::CRYSTAL_BALL_MODE:
     {
       m_stats.DoZoomVectorCrystalBallMode();
       coeffVitesse -=
           m_filterData.crystalBallAmplitude * (SqDistance(xNormalized, yNormalized) - 0.3F);
       break;
     }
-    case ZoomFilterMode::amuletMode:
+    case ZoomFilterMode::AMULET_MODE:
     {
       m_stats.DoZoomVectorAmuletMode();
       coeffVitesse += m_filterData.amuletAmplitude * SqDistance(xNormalized, yNormalized);
       break;
     }
-    case ZoomFilterMode::waveMode:
+    case ZoomFilterMode::SCRUNCH_MODE:
+    {
+      m_stats.DoZoomVectorScrunchMode();
+      coeffVitesse += m_filterData.scrunchAmplitude * SqDistance(xNormalized, yNormalized);
+      break;
+    }
+    case ZoomFilterMode::SPEEDWAY_MODE:
+    {
+      m_stats.DoZoomVectorSpeedwayMode();
+      coeffVitesse *= m_filterData.speedwayAmplitude * yNormalized;
+      break;
+    }
+    case ZoomFilterMode::WAVE_MODE:
     {
       m_stats.DoZoomVectorWaveMode();
       const float angle = SqDistance(xNormalized, yNormalized) * m_filterData.waveFreqFactor;
@@ -885,24 +941,12 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetStandardVelocity(const float xNorma
       coeffVitesse += m_filterData.waveAmplitude * periodicPart;
       break;
     }
-    case ZoomFilterMode::scrunchMode:
-    {
-      m_stats.DoZoomVectorScrunchMode();
-      coeffVitesse += m_filterData.scrunchAmplitude * SqDistance(xNormalized, yNormalized);
-      break;
-    }
-      //case ZoomFilterMode::HYPERCOS1_MODE:
-      //break;
-      //case ZoomFilterMode::HYPERCOS2_MODE:
-      //break;
-      //case ZoomFilterMode::YONLY_MODE:
-      //break;
-    case ZoomFilterMode::speedwayMode:
-    {
-      m_stats.DoZoomVectorSpeedwayMode();
-      coeffVitesse *= m_filterData.speedwayAmplitude * yNormalized;
-      break;
-    }
+    //case ZoomFilterMode::HYPERCOS1_MODE:
+    //break;
+    //case ZoomFilterMode::HYPERCOS2_MODE:
+    //break;
+    //case ZoomFilterMode::YONLY_MODE:
+    //break;
     /* Amulette 2 */
     // vx = X * tan(dist);
     // vy = Y * tan(dist);

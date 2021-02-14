@@ -39,7 +39,7 @@ void FilterStats::Reset()
   m_numZoomFilterRestartTranBuffYLine = 0;
   m_numZoomFilterSwitchIncrNotZero = 0;
   m_numZoomFilterSwitchMultNotEqual1 = 0;
-  m_numCZoomOutOfRange = 0;
+  m_numTranPointsClipped = 0;
   m_numCoeffVitesseBelowMin = 0;
   m_numCoeffVitesseAboveMax = 0;
 }
@@ -83,7 +83,7 @@ void FilterStats::Log(const StatsLogValueFunc& logVal) const
   logVal(MODULE, "numZoomFilterRestartTranBuffYLine", m_numZoomFilterRestartTranBuffYLine);
   logVal(MODULE, "numZoomFilterFastRGBSwitchIncrNotZero", m_numZoomFilterSwitchIncrNotZero);
   logVal(MODULE, "numZoomFilterFastRGBSwitchIncrNotEqual1", m_numZoomFilterSwitchMultNotEqual1);
-  logVal(MODULE, "numCZoomOutOfRange", m_numCZoomOutOfRange);
+  logVal(MODULE, "numTranPointsClipped", m_numTranPointsClipped);
   logVal(MODULE, "numCoeffVitesseBelowMin", m_numCoeffVitesseBelowMin);
   logVal(MODULE, "numCoeffVitesseAboveMax", m_numCoeffVitesseAboveMax);
 }
@@ -222,9 +222,9 @@ void FilterStats::DoZoomFilterSwitchIncrNotZero()
   m_numZoomFilterSwitchIncrNotZero++;
 }
 
-void FilterStats::DoCZoomOutOfRange()
+void FilterStats::DoTranPointClipped()
 {
-  m_numCZoomOutOfRange++;
+  m_numTranPointsClipped++;
 }
 
 void FilterStats::CoeffVitesseBelowMin()
