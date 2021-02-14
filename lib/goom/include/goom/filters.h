@@ -36,8 +36,8 @@ struct ZoomFilterData
   static constexpr int32_t MAX_VITESSE = 128;
   static constexpr int32_t DEFAULT_VITESSE = 127;
   int32_t vitesse = DEFAULT_VITESSE;
-  static constexpr float MIN_COEFF_VITESSE_DENOMINATOR = 30.0;
-  static constexpr float MAX_COEFF_VITESSE_DENOMINATOR = 50.0;
+  static constexpr float MIN_COEFF_VITESSE_DENOMINATOR = 50.0;
+  static constexpr float MAX_COEFF_VITESSE_DENOMINATOR = 50.01;
   static constexpr float DEFAULT_COEFF_VITESSE_DENOMINATOR = 50.0;
   float coeffVitesseDenominator = DEFAULT_COEFF_VITESSE_DENOMINATOR;
   static constexpr uint8_t pertedec = 8; // NEVER SEEMS TO CHANGE
@@ -46,8 +46,8 @@ struct ZoomFilterData
   bool reverse = true; // inverse la vitesse
   bool tanEffect = false;
   static constexpr float MAX_ROTATE_SPEED = 0.9;
-  static constexpr float MIN_ROTATE_SPEED = 0.3;
-  static constexpr float DEFAULT_ROTATE_SPEED = 0.1;
+  static constexpr float MIN_ROTATE_SPEED = 0.5;
+  static constexpr float DEFAULT_ROTATE_SPEED = 0.0;
   float rotateSpeed = DEFAULT_ROTATE_SPEED;
 
   // @since June 2001
