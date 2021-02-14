@@ -109,7 +109,8 @@ private:
   static constexpr size_t MAX_DOT_SIZE = 15;
   static_assert(MAX_DOT_SIZE <= SmallImageBitmaps::MAX_IMAGE_SIZE, "Max dot size mismatch.");
   size_t m_currentDotSize = MIN_DOT_SIZE;
-  static auto GetNextDotSize() -> size_t;
+  bool m_beadedLook = false;
+  static auto GetNextDotSize(size_t maxSize) -> size_t;
   const SmallImageBitmaps* m_smallBitmaps{};
   auto GetImageBitmap(size_t size) -> const ImageBitmap&;
 
@@ -327,6 +328,7 @@ void LinesFx::LinesImpl::ResetDestLine(LineType newLineType,
   m_color2 = newColor;
   m_lineLerpFactor = DEFAULT_LINE_LERP_FACTOR;
   m_srcePointsCopy = m_srcePoints;
+  m_beadedLook = ProbabilityOfMInN(1, 20);
 }
 
 inline auto LinesFx::LinesImpl::GetResourcesDirectory() const -> const std::string&
@@ -520,7 +522,13 @@ void LinesFx::LinesImpl::DrawLines(const std::vector<int16_t>& soundData,
     const std::vector<Pixel> colors = {modColor, lineColor};
     m_draw.Line(buffs, x1, y1, x2, y2, colors, THICKNESS);
 
-    if (m_currentDotSize > 1)
+    size_t dotSize = m_currentDotSize;
+    if (m_beadedLook)
+    {
+      dotSize = GetNextDotSize(MAX_DOT_SIZE);
+    }
+
+    if (dotSize > 1)
     {
       const auto getModColor = [&]([[maybe_unused]] const size_t x, [[maybe_unused]] const size_t y,
                                    const Pixel& b) -> Pixel {
@@ -542,11 +550,23 @@ void LinesFx::LinesImpl::DrawLines(const std::vector<int16_t>& soundData,
 
   MoveSrceLineCloserToDest();
 
-  m_currentDotSize = GetNextDotSize();
+  m_currentDotSize = GetNextDotSize(7);
 }
 
-inline auto LinesFx::LinesImpl::GetNextDotSize() -> size_t
+inline auto LinesFx::LinesImpl::GetNextDotSize(const size_t maxSize) -> size_t
 {
+  // TODO Fix this hack
+  static const Weights<size_t> s_dotSizesMin{{
+      {1, 200},
+      {3, 50},
+      {5, 5},
+      {7, 1},
+  }};
+  if (maxSize <= 7)
+  {
+    return s_dotSizesMin.GetRandomWeighted();
+  }
+
   static const Weights<size_t> s_dotSizes{{
       {1, 100},
       {3, 10},
@@ -557,7 +577,6 @@ inline auto LinesFx::LinesImpl::GetNextDotSize() -> size_t
       {13, 1},
       {15, 1},
   }};
-
   return s_dotSizes.GetRandomWeighted();
 }
 
