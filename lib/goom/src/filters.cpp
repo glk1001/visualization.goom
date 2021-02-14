@@ -124,6 +124,29 @@ auto FilterCoefficients::GetPrecalculatedCoefficients() -> FilterCoeff2dArray
           i4--;
         }
 
+        /**
+        if (ProbabilityOfMInN(1, 100))
+        {
+          i1 += GetRandInRange(0U, 10U);
+        }
+        if (ProbabilityOfMInN(1, 100))
+        {
+          i2 += GetRandInRange(0U, 10U);
+        }
+        if (ProbabilityOfMInN(1, 100))
+        {
+          i3 += GetRandInRange(0U, 10U);
+        }
+        if (ProbabilityOfMInN(1, 100))
+        {
+          i4 += GetRandInRange(0U, 10U);
+        }
+        i1 = 16;
+        i2 =  20;
+        i3 = 20;
+        i4 = 16;
+**/
+
         precalculatedCoeffs[coeffH][coeffV] = NeighborhoodCoeffArray{/*.c*/ {
             static_cast<uint8_t>(i1),
             static_cast<uint8_t>(i2),
@@ -741,9 +764,9 @@ void ZoomFilterFx::ZoomFilterImpl::AssignBufferStripeToTranTemp(const uint32_t t
     // Position of the pixel to compute in screen coordinates
     const uint32_t yOffset = y + m_tranBuffYLineStart;
     const uint32_t tranPosStart = yOffset * m_screenWidth;
-    const float yNormalized = ScreenToNormalizedCoord(static_cast<int32_t>(yOffset) -
-                                                      static_cast<int32_t>(m_filterData.middleY));
-    float xNormalized = ScreenToNormalizedCoord(-static_cast<int32_t>(m_filterData.middleX));
+    const float yNormalized =
+        ScreenToNormalizedCoord(static_cast<int32_t>(yOffset)) - yMidNormalized;
+    float xNormalized = -xMidNormalized;
 
     for (uint32_t x = 0; x < m_screenWidth; x++)
     {
@@ -784,7 +807,7 @@ auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float xNormalized, const 
     m_stats.DoZoomVectorNoisify();
     velocity += GetNoiseVelocity();
   }
-  if (m_filterData.hypercosEffect != ZoomFilterData::HypercosEffect::none)
+  if (m_filterData.hypercosEffect != ZoomFilterData::HypercosEffect::NONE)
   {
     m_stats.DoZoomVectorHypercosEffect();
     velocity += GetHypercosVelocity(xNormalized, yNormalized);
@@ -910,40 +933,52 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetHypercosVelocity(const float xNorma
                                                               const float yNormalized) const
     -> V2dFlt
 {
+  const float sign = m_filterData.hypercosReverse ? -1.0 : +1.0;
   float xVal = 0;
   float yVal = 0;
 
   switch (m_filterData.hypercosEffect)
   {
-    case ZoomFilterData::HypercosEffect::none:
+    case ZoomFilterData::HypercosEffect::NONE:
       break;
-    case ZoomFilterData::HypercosEffect::sinRectangular:
-      xVal = std::sin(m_filterData.hypercosFreqX * xNormalized);
-      yVal = std::sin(m_filterData.hypercosFreqY * yNormalized);
+    case ZoomFilterData::HypercosEffect::SIN_RECTANGULAR:
+      xVal = std::sin(sign * m_filterData.hypercosFreqX * xNormalized);
+      yVal = std::sin(sign * m_filterData.hypercosFreqY * yNormalized);
       break;
-    case ZoomFilterData::HypercosEffect::cosRectangular:
-      xVal = std::cos(m_filterData.hypercosFreqX * xNormalized);
-      yVal = std::cos(m_filterData.hypercosFreqY * yNormalized);
+    case ZoomFilterData::HypercosEffect::COS_RECTANGULAR:
+      xVal = std::cos(sign * m_filterData.hypercosFreqX * xNormalized);
+      yVal = std::cos(sign * m_filterData.hypercosFreqY * yNormalized);
       break;
-    case ZoomFilterData::HypercosEffect::sinCurlSwirl:
-      xVal = std::sin(m_filterData.hypercosFreqY * yNormalized);
-      yVal = std::sin(m_filterData.hypercosFreqX * xNormalized);
+    case ZoomFilterData::HypercosEffect::SIN_CURL_SWIRL:
+      xVal = std::sin(sign * m_filterData.hypercosFreqY * yNormalized);
+      yVal = std::sin(sign * m_filterData.hypercosFreqX * xNormalized);
       break;
-    case ZoomFilterData::HypercosEffect::cosCurlSwirl:
-      xVal = std::cos(m_filterData.hypercosFreqY * yNormalized);
-      yVal = std::cos(m_filterData.hypercosFreqX * xNormalized);
+    case ZoomFilterData::HypercosEffect::COS_CURL_SWIRL:
+      xVal = std::cos(sign * m_filterData.hypercosFreqY * yNormalized);
+      yVal = std::cos(sign * m_filterData.hypercosFreqX * xNormalized);
       break;
-    case ZoomFilterData::HypercosEffect::sinCosCurlSwirl:
-      xVal = std::sin(m_filterData.hypercosFreqX * yNormalized);
-      yVal = std::cos(m_filterData.hypercosFreqY * xNormalized);
+    case ZoomFilterData::HypercosEffect::SIN_COS_CURL_SWIRL:
+      xVal = std::sin(sign * m_filterData.hypercosFreqX * yNormalized);
+      yVal = std::cos(sign * m_filterData.hypercosFreqY * xNormalized);
       break;
-    case ZoomFilterData::HypercosEffect::cosSinCurlSwirl:
-      xVal = std::cos(m_filterData.hypercosFreqY * yNormalized);
-      yVal = std::sin(m_filterData.hypercosFreqX * xNormalized);
+    case ZoomFilterData::HypercosEffect::COS_SIN_CURL_SWIRL:
+      xVal = std::cos(sign * m_filterData.hypercosFreqY * yNormalized);
+      yVal = std::sin(sign * m_filterData.hypercosFreqX * xNormalized);
+      break;
+    case ZoomFilterData::HypercosEffect::SIN_TAN_CURL_SWIRL:
+      xVal = std::sin(std::tan(sign * m_filterData.hypercosFreqY * yNormalized));
+      yVal = std::cos(std::tan(sign * m_filterData.hypercosFreqX * xNormalized));
+      break;
+    case ZoomFilterData::HypercosEffect::COS_TAN_CURL_SWIRL:
+      xVal = std::cos(std::tan(sign * m_filterData.hypercosFreqY * yNormalized));
+      yVal = std::sin(std::tan(sign * m_filterData.hypercosFreqX * xNormalized));
       break;
     default:
       throw std::logic_error("Unknown filterData.hypercosEffect value");
   }
+
+  //  xVal = stdnew::clamp(std::tan(sign * m_filterData.hypercosFreqY * xVal), -1.0, 1.0);
+  //  yVal = stdnew::clamp(std::tan(sign * m_filterData.hypercosFreqX * yVal), -1.0, 1.0);
 
   return {m_filterData.hypercosAmplitudeX * xVal, m_filterData.hypercosAmplitudeY * yVal};
 }

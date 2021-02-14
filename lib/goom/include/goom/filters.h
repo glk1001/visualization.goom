@@ -48,18 +48,20 @@ struct ZoomFilterData
 
   enum class HypercosEffect
   {
-    none,
-    sinCurlSwirl,
-    cosCurlSwirl,
-    sinCosCurlSwirl,
-    cosSinCurlSwirl,
-    sinRectangular,
-    cosRectangular,
-    _size
+    NONE,
+    SIN_CURL_SWIRL,
+    COS_CURL_SWIRL,
+    SIN_COS_CURL_SWIRL,
+    COS_SIN_CURL_SWIRL,
+    SIN_TAN_CURL_SWIRL,
+    COS_TAN_CURL_SWIRL,
+    SIN_RECTANGULAR,
+    COS_RECTANGULAR,
+    _SIZE
   };
   // applique une surcouche de hypercos effect
   // applies an overlay of hypercos effect
-  HypercosEffect hypercosEffect = HypercosEffect::none;
+  HypercosEffect hypercosEffect = HypercosEffect::NONE;
 
   bool noisify = false; // ajoute un bruit a la transformation
   float noiseFactor = 1; // in range [0, 1]
@@ -120,6 +122,7 @@ struct ZoomFilterData
   static constexpr float MAX_HYPERCOS_AMPLITUDE = 1.0f / 100.0;
   float hypercosAmplitudeX = DEFAULT_HYPERCOS_AMPLITUDE;
   float hypercosAmplitudeY = DEFAULT_HYPERCOS_AMPLITUDE;
+  bool hypercosReverse = false;
 
   static constexpr float DEFAULT_H_PLANE_EFFECT_AMPLITUDE = 0.0025;
   static constexpr float MIN_H_PLANE_EFFECT_AMPLITUDE = 0.0015;

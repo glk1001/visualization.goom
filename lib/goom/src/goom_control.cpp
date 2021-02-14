@@ -1126,12 +1126,12 @@ inline auto GetHypercosEffect(const bool active) -> ZoomFilterData::HypercosEffe
 {
   if (!active)
   {
-    return ZoomFilterData::HypercosEffect::none;
+    return ZoomFilterData::HypercosEffect::NONE;
   }
 
   return static_cast<ZoomFilterData::HypercosEffect>(
-      GetRandInRange(static_cast<uint32_t>(ZoomFilterData::HypercosEffect::none) + 1,
-                     static_cast<uint32_t>(ZoomFilterData::HypercosEffect::_size)));
+      GetRandInRange(static_cast<uint32_t>(ZoomFilterData::HypercosEffect::NONE) + 1,
+                     static_cast<uint32_t>(ZoomFilterData::HypercosEffect::_SIZE)));
 }
 
 void GoomControl::GoomControlImpl::SetNextFilterMode()
@@ -1143,7 +1143,7 @@ void GoomControl::GoomControlImpl::SetNextFilterMode()
   m_goomData.zoomFilterData.hPlaneEffect = 0;
   m_goomData.zoomFilterData.vPlaneEffect = 0;
   m_goomData.zoomFilterData.waveEffect = false;
-  m_goomData.zoomFilterData.hypercosEffect = ZoomFilterData::HypercosEffect::none;
+  m_goomData.zoomFilterData.hypercosEffect = ZoomFilterData::HypercosEffect::NONE;
   m_goomData.zoomFilterData.noisify = false;
   m_goomData.zoomFilterData.noiseFactor = 1;
   m_goomData.zoomFilterData.blockyWavy = false;
@@ -1154,6 +1154,7 @@ void GoomControl::GoomControlImpl::SetNextFilterMode()
   m_goomData.zoomFilterData.speedwayAmplitude = ZoomFilterData::DEFAULT_SPEEDWAY_AMPLITUDE;
   m_goomData.zoomFilterData.amuletAmplitude = ZoomFilterData::DEFAULT_AMULET_AMPLITUDE;
   m_goomData.zoomFilterData.crystalBallAmplitude = ZoomFilterData::DEFAULT_CRYSTAL_BALL_AMPLITUDE;
+  m_goomData.zoomFilterData.hypercosReverse = false;
   m_goomData.zoomFilterData.hypercosFreqX = ZoomFilterData::DEFAULT_HYPERCOS_FREQ;
   m_goomData.zoomFilterData.hypercosFreqY = ZoomFilterData::DEFAULT_HYPERCOS_FREQ;
   m_goomData.zoomFilterData.hypercosAmplitudeX = ZoomFilterData::DEFAULT_HYPERCOS_AMPLITUDE;
@@ -1255,7 +1256,7 @@ void GoomControl::GoomControlImpl::SetNextFilterMode()
       throw std::logic_error("GoomFilterEvent not implemented.");
   }
 
-  if (m_goomData.zoomFilterData.hypercosEffect != ZoomFilterData::HypercosEffect::none)
+  if (m_goomData.zoomFilterData.hypercosEffect != ZoomFilterData::HypercosEffect::NONE)
   {
     m_goomData.zoomFilterData.hypercosFreqX =
         GetRandInRange(ZoomFilterData::MIN_HYPERCOS_FREQ, ZoomFilterData::MAX_HYPERCOS_FREQ);
@@ -1269,9 +1270,10 @@ void GoomControl::GoomControlImpl::SetNextFilterMode()
           GetRandInRange(ZoomFilterData::MIN_HYPERCOS_FREQ, ZoomFilterData::MAX_HYPERCOS_FREQ);
     }
 
+    m_goomData.zoomFilterData.hypercosReverse = ProbabilityOfMInN(1, 2);
     m_goomData.zoomFilterData.hypercosAmplitudeX = GetRandInRange(
         ZoomFilterData::MIN_HYPERCOS_AMPLITUDE, ZoomFilterData::MAX_HYPERCOS_AMPLITUDE);
-    if (ProbabilityOfMInN(1, 4))
+    if (ProbabilityOfMInN(1, 2))
     {
       m_goomData.zoomFilterData.hypercosAmplitudeY = m_goomData.zoomFilterData.hypercosAmplitudeX;
     }
