@@ -1142,6 +1142,8 @@ void GoomControl::GoomControlImpl::SetNextFilterMode()
   m_goomData.zoomFilterData.middleX = 16;
   m_goomData.zoomFilterData.middleY = 1;
   m_goomData.zoomFilterData.reverse = true;
+  m_goomData.zoomFilterData.tanEffect = ProbabilityOfMInN(1, 10);
+  m_goomData.zoomFilterData.rotateSpeed = 0.0;
   m_goomData.zoomFilterData.hPlaneEffect = 0;
   m_goomData.zoomFilterData.vPlaneEffect = 0;
   m_goomData.zoomFilterData.waveEffect = false;
@@ -1256,6 +1258,12 @@ void GoomControl::GoomControlImpl::SetNextFilterMode()
       break;
     default:
       throw std::logic_error("GoomFilterEvent not implemented.");
+  }
+
+  if (m_goomData.zoomFilterData.mode != ZoomFilterMode::NORMAL_MODE && ProbabilityOfMInN(1, 50))
+  {
+    m_goomData.zoomFilterData.rotateSpeed =
+        GetRandInRange(ZoomFilterData::MIN_ROTATE_SPEED, ZoomFilterData::MAX_ROTATE_SPEED);
   }
 
   if (m_goomData.zoomFilterData.hypercosEffect != ZoomFilterData::HypercosEffect::NONE)

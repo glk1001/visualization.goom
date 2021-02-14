@@ -44,6 +44,11 @@ struct ZoomFilterData
   uint32_t middleX = 16;
   uint32_t middleY = 1; // milieu de l'effet
   bool reverse = true; // inverse la vitesse
+  bool tanEffect = false;
+  static constexpr float MAX_ROTATE_SPEED = 0.9;
+  static constexpr float MIN_ROTATE_SPEED = 0.3;
+  static constexpr float DEFAULT_ROTATE_SPEED = 0.1;
+  float rotateSpeed = DEFAULT_ROTATE_SPEED;
 
   // @since June 2001
   int hPlaneEffect = 0; // deviation horitontale
