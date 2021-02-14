@@ -205,7 +205,7 @@ private:
   [[nodiscard]] auto GetBombAngle(float x, float y) const -> uint32_t;
 
   static constexpr size_t MIN_DOT_SIZE = 3;
-  static constexpr size_t MAX_DOT_SIZE = 9;
+  static constexpr size_t MAX_DOT_SIZE = 5;
   static_assert(MAX_DOT_SIZE <= SmallImageBitmaps::MAX_IMAGE_SIZE, "Max dot size mismatch.");
 };
 
@@ -467,11 +467,13 @@ void FlyingStarsFx::FlyingStarsImpl::DrawParticle(PixelBuffer& currentBuff,
   for (size_t j = 1; j <= numParts; j++)
   {
     const int32_t x2 =
-        x0 - static_cast<int32_t>(0.5 * (1.0 + std::sin(flipSpeed * star.xVelocity * j)) *
-                                  star.xVelocity * j);
+        x0 - static_cast<int32_t>(
+                 0.5 * (1.0 + std::sin(flipSpeed * star.xVelocity * static_cast<float>(j))) *
+                 star.xVelocity * static_cast<float>(j));
     const int32_t y2 =
-        y0 - static_cast<int32_t>(0.5 * (1.0 + std::cos(flipSpeed * star.yVelocity * j)) *
-                                  star.yVelocity * j);
+        y0 - static_cast<int32_t>(
+                 0.5 * (1.0 + std::cos(flipSpeed * star.yVelocity * static_cast<float>(j))) *
+                 star.yVelocity * static_cast<float>(j));
 
     const float brightness = ageBrightness * static_cast<float>(j) / static_cast<float>(numParts);
 #if __cplusplus <= 201402L
