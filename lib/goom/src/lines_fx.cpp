@@ -106,7 +106,7 @@ private:
   float m_newAmplitude = 1;
   float m_amplitude = 1;
   static constexpr size_t MIN_DOT_SIZE = 3;
-  static constexpr size_t MAX_DOT_SIZE = 7;
+  static constexpr size_t MAX_DOT_SIZE = 15;
   static_assert(MAX_DOT_SIZE <= SmallImageBitmaps::MAX_IMAGE_SIZE, "Max dot size mismatch.");
   size_t m_currentDotSize = MIN_DOT_SIZE;
   static auto GetNextDotSize() -> size_t;
@@ -552,6 +552,10 @@ inline auto LinesFx::LinesImpl::GetNextDotSize() -> size_t
       {3, 10},
       {5, 5},
       {7, 1},
+      {9, 1},
+      {11, 1},
+      {13, 1},
+      {15, 1},
   }};
 
   return s_dotSizes.GetRandomWeighted();
