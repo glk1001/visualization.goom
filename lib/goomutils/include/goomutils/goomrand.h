@@ -46,6 +46,7 @@ auto GetRandInRange(float x0, float x1) -> float;
 
 // Return prob(m/n)
 inline auto ProbabilityOfMInN(uint32_t m, uint32_t n) -> bool;
+inline auto ProbabilityOf(float p) -> bool;
 
 template<class E>
 class Weights
@@ -79,7 +80,7 @@ inline auto GetRandSignFlt() -> float
   return GetRandInRange(0U, 100U) < 50 ? -1.0F : +1.0F;
 }
 
-inline auto GetNRand(uint32_t nmax) -> uint32_t
+inline auto GetNRand(const uint32_t nmax) -> uint32_t
 {
   return GetRandInRange(0U, nmax);
 }
@@ -89,7 +90,7 @@ inline auto GetRand() -> uint32_t
   return GetRandInRange(0U, g_randMax);
 }
 
-inline auto ProbabilityOfMInN(uint32_t m, uint32_t n) -> bool
+inline auto ProbabilityOfMInN(const uint32_t m, const uint32_t n) -> bool
 {
   if (m == 1)
   {
@@ -100,6 +101,11 @@ inline auto ProbabilityOfMInN(uint32_t m, uint32_t n) -> bool
     return GetNRand(n) > 0;
   }
   return GetRandInRange(0.0F, 1.0F) <= static_cast<float>(m) / static_cast<float>(n);
+}
+
+inline auto ProbabilityOf(const float p) -> bool
+{
+  return GetRandInRange(0.0F, 1.0F) <= p;
 }
 
 template<class E>
@@ -135,7 +141,7 @@ auto Weights<E>::GetNumElements() const -> size_t
 }
 
 template<class E>
-void Weights<E>::SetWeight(const E enumClass, size_t value)
+void Weights<E>::SetWeight(const E enumClass, const size_t value)
 {
 #if __cplusplus <= 201402L
   for (auto& wgt : m_weights)
@@ -178,7 +184,7 @@ auto Weights<E>::GetWeight(const E enumClass) const -> size_t
 }
 
 template<class E>
-void Weights<E>::ClearWeights(size_t value)
+void Weights<E>::ClearWeights(const size_t value)
 {
 #if __cplusplus <= 201402L
   for (auto& wgt : m_weights)

@@ -10,8 +10,6 @@
 namespace GOOM
 {
 
-class PixelBuffer;
-
 enum class ZoomFilterMode
 {
   _NULL = -1,
@@ -45,8 +43,8 @@ struct ZoomFilterData
   uint32_t middleY = 1; // milieu de l'effet
   bool reverse = true; // inverse la vitesse
   bool tanEffect = false;
-  static constexpr float MAX_ROTATE_SPEED = 0.9;
-  static constexpr float MIN_ROTATE_SPEED = 0.5;
+  static constexpr float MAX_ROTATE_SPEED = +0.9;
+  static constexpr float MIN_ROTATE_SPEED = -0.9;
   static constexpr float DEFAULT_ROTATE_SPEED = 0.0;
   float rotateSpeed = DEFAULT_ROTATE_SPEED;
 
@@ -55,6 +53,7 @@ struct ZoomFilterData
   int vPlaneEffect = 0; // deviation verticale
 
   //* @since April 2002
+  // TODO - Not used yet
   bool waveEffect = false; // applique une "surcouche" de wave effect
 
   enum class HypercosEffect
@@ -123,8 +122,8 @@ struct ZoomFilterData
   float crystalBallAmplitude = DEFAULT_CRYSTAL_BALL_AMPLITUDE;
 
   static constexpr float DEFAULT_HYPERCOS_FREQ = 10;
-  static constexpr float MIN_HYPERCOS_FREQ = 5;
-  static constexpr float MAX_HYPERCOS_FREQ = 15;
+  static constexpr float MIN_HYPERCOS_FREQ = 1;
+  static constexpr float MAX_HYPERCOS_FREQ = 1000;
   float hypercosFreqX = DEFAULT_HYPERCOS_FREQ;
   float hypercosFreqY = DEFAULT_HYPERCOS_FREQ;
 
@@ -158,6 +157,7 @@ class Parallel;
 } // namespace UTILS
 
 class PluginInfo;
+class PixelBuffer;
 
 class ZoomFilterFx : public IVisualFx
 {

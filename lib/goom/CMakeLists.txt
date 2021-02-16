@@ -21,6 +21,7 @@ add_library(${PROJECT_NAME}
     STATIC
         src/convolve_fx.cpp
         src/draw_methods.cpp
+        src/filter_control.cpp
         src/filters.cpp
         src/flying_stars_fx.cpp
         src/goom_control.cpp

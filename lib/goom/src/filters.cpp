@@ -244,6 +244,7 @@ private:
   std::string m_resourcesDirectory{};
   float m_generalSpeed;
   mutable FilterStats m_stats{};
+  uint64_t m_filterNum{};
 
   Parallel* const m_parallel;
 
@@ -300,6 +301,8 @@ private:
                      const NeighborhoodPixelArray& colors) const -> Pixel;
   auto GetBlockyMixedColor(const NeighborhoodCoeffArray& coeffs,
                            const NeighborhoodPixelArray& colors) const -> Pixel;
+
+  void logState(const std::string& name);
 };
 
 ZoomFilterFx::ZoomFilterFx(Parallel& p, const std::shared_ptr<const PluginInfo>& info) noexcept
@@ -382,6 +385,7 @@ ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl(Parallel& p,
     m_minNormalizedCoordVal{m_ratioScreenToNormalizedCoord * MIN_SCREEN_COORD_VAL},
     m_maxNormalizedCoordVal{m_ratioScreenToNormalizedCoord * static_cast<float>(m_screenWidth - 1)},
     m_generalSpeed{0},
+    m_filterNum{0},
     m_parallel{&p},
     m_tranXSrce(m_bufferSize),
     m_tranYSrce(m_bufferSize),
@@ -595,6 +599,11 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
                                                      const float switchMult,
                                                      uint32_t& numClipped)
 {
+  m_filterNum++;
+
+  logInfo("Starting ZoomFilterFastRgb, update {}", m_filterNum);
+  logInfo("switchIncr = {}, switchMult = {}", switchIncr, switchMult);
+
   m_stats.UpdateStart();
   m_stats.DoZoomFilterFastRgb();
 
@@ -603,6 +612,8 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
   {
     if (zf)
     {
+      logState("Before RESET_FILTER_CONFIG");
+
       m_stats.DoZoomFilterChangeConfig();
       m_filterData = *zf;
       m_generalSpeed = static_cast<float>(zf->vitesse - ZoomFilterData::MAX_VITESSE) /
@@ -613,10 +624,12 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
       }
       m_tranBuffYLineStart = 0;
       m_tranBuffState = TranBuffState::BUFF_READY;
+      logState("After RESET_FILTER_CONFIG");
     }
   }
   else if (m_tranBuffState == TranBuffState::RESTART_BUFF_YLINE)
   {
+    logState("Before RESTART_BUFF_YLINE");
     // generation du buffer de transform
     m_stats.DoZoomFilterRestartTranBuffYLine();
 
@@ -635,14 +648,19 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
 
     m_tranBuffYLineStart = 0;
     m_tranBuffState = TranBuffState::RESET_FILTER_CONFIG;
+    logState("After RESTART_BUFF_YLINE");
   }
   else
   {
+    logInfo("m_tranBuffState = else");
     // Create a new destination stripe of 'm_tranBuffStripeHeight' height starting
     // at 'm_tranBuffYLineStart'.
+    logState("Before AssignBufferStripeToTranTemp");
     AssignBufferStripeToTranTemp(m_tranBuffStripeHeight);
+    logState("After AssignBufferStripeToTranTemp");
   }
 
+  logInfo("before switchIncr = {} m_tranDiffFactor = {}", switchIncr, m_tranDiffFactor);
   if (switchIncr != 0)
   {
     m_stats.DoZoomFilterSwitchIncrNotZero();
@@ -653,6 +671,7 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
       m_tranDiffFactor = MAX_TRAN_DIFF_FACTOR;
     }
   }
+  logInfo("after switchIncr = {} m_tranDiffFactor = {}", switchIncr, m_tranDiffFactor);
 
   if (!floats_equal(switchMult, 1.0F))
   {
@@ -662,8 +681,14 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
         static_cast<int32_t>(stdnew::lerp(static_cast<float>(MAX_TRAN_DIFF_FACTOR),
                                           static_cast<float>(m_tranDiffFactor), switchMult));
   }
+  logInfo("after switchMult = {} m_tranDiffFactor = {}", switchMult, m_tranDiffFactor);
+
+  logState("Before CZoom");
 
   CZoom(pix1, pix2, numClipped);
+
+  logInfo("numClipped = {}", numClipped);
+  logState("After CZoom");
 
   m_stats.UpdateEnd();
 }
@@ -720,25 +745,18 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff,
         const NeighborhoodPixelArray pixelNeighbours = srceBuff.Get4RHBNeighbours(srceX, srceY);
         *destRowBuff = GetNewColor(coeffs, pixelNeighbours);
 #ifndef NO_LOGGING
-        if (colors[0].rgba() > 0xFF000000)
+        if (43 < m_filterNum && m_filterNum < 51 && (*destRowBuff).Rgba() > 0xFF000000)
         {
-          logInfo("srcePos == {}", srcePos);
           logInfo("destPos == {}", destPos);
-          logInfo("tranPx >> perteDec == {}", tranPx >> perteDec);
-          logInfo("tranPy >> perteDec == {}", tranPy >> perteDec);
-          logInfo("tranPx == {}", tranPx);
-          logInfo("tranPy == {}", tranPy);
-          logInfo("tranPx & perteMask == {}", tranPx & perteMask);
-          logInfo("tranPy & perteMask == {}", tranPy & perteMask);
+          logInfo("srceX == {}", srceX);
+          logInfo("srceY == {}", srceY);
+          logInfo("tranX == {}", tranX);
+          logInfo("tranY == {}", tranY);
           logInfo("coeffs[0] == {:x}", coeffs.c[0]);
           logInfo("coeffs[1] == {:x}", coeffs.c[1]);
           logInfo("coeffs[2] == {:x}", coeffs.c[2]);
           logInfo("coeffs[3] == {:x}", coeffs.c[3]);
-          logInfo("colors[0] == {:x}", colors[0].rgba());
-          logInfo("colors[1] == {:x}", colors[1].rgba());
-          logInfo("colors[2] == {:x}", colors[2].rgba());
-          logInfo("colors[3] == {:x}", colors[3].rgba());
-          logInfo("newColor == {:x}", newColor.rgba());
+          logInfo("(*destRowBuff).Rgba == {:x}", (*destRowBuff).Rgba());
         }
 #endif
       }
@@ -817,24 +835,26 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetClippedTranPoint(const float xNorma
   if (tranX < 0)
   {
     m_stats.DoTranPointClipped();
-    tranX = 0;
+    tranX = -1;
   }
   else if (tranX >= static_cast<int32_t>(m_maxTranX))
   {
     m_stats.DoTranPointClipped();
-    tranX = static_cast<int32_t>(m_maxTranX - 1);
+    //    tranX = static_cast<int32_t>(m_maxTranX - 1);
+    tranX = static_cast<int32_t>(m_maxTranX);
   }
 
   int32_t tranY = NormalizedToTranCoord((yNormalised));
   if (tranY < 0)
   {
     m_stats.DoTranPointClipped();
-    tranY = 0;
+    tranY = -1;
   }
   else if (tranY >= static_cast<int32_t>(m_maxTranY))
   {
     m_stats.DoTranPointClipped();
-    tranY = static_cast<int32_t>(m_maxTranY - 1);
+    //    tranY = static_cast<int32_t>(m_maxTranY - 1);
+    tranY = static_cast<int32_t>(m_maxTranY);
   }
 
   return std::make_tuple(tranX, tranY);
@@ -944,15 +964,15 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetStandardVelocity(const float xNorma
       coeffVitesse += m_filterData.waveAmplitude * periodicPart;
       break;
     }
-    //case ZoomFilterMode::HYPERCOS1_MODE:
-    //break;
-    //case ZoomFilterMode::HYPERCOS2_MODE:
-    //break;
-    //case ZoomFilterMode::YONLY_MODE:
-    //break;
-    /* Amulette 2 */
-    // vx = X * tan(dist);
-    // vy = Y * tan(dist);
+      //case ZoomFilterMode::HYPERCOS1_MODE:
+      //break;
+      //case ZoomFilterMode::HYPERCOS2_MODE:
+      //break;
+      //case ZoomFilterMode::YONLY_MODE:
+      //break;
+      /* Amulette 2 */
+      // vx = X * tan(dist);
+      // vy = Y * tan(dist);
 
     default:
       m_stats.DoZoomVectorDefaultMode();
@@ -980,11 +1000,14 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetStandardVelocity(const float xNorma
     y *= tanSqDist;
   }
 
-  if (m_filterData.rotateSpeed < 0.01F)
+  if (std::fabs(m_filterData.rotateSpeed) < SMALL_FLOAT)
   {
     return {x, y};
   }
-
+  if (m_filterData.rotateSpeed < 0.0F)
+  {
+    return {-m_filterData.rotateSpeed * (x - y), -m_filterData.rotateSpeed * (x + y)};
+  }
   return {m_filterData.rotateSpeed * (y + x), m_filterData.rotateSpeed * (y - x)};
 }
 
@@ -1131,5 +1154,68 @@ void ZoomFilterFx::ZoomFilterImpl::GenerateWaterFxHorizontalBuffer()
     }
   }
 }
+
+#ifdef NO_LOGGING
+void ZoomFilterFx::ZoomFilterImpl::logState([[maybe_unused]] const std::string& name)
+{
+}
+#else
+void ZoomFilterFx::ZoomFilterImpl::logState(const std::string& name)
+{
+  logInfo("=================================");
+  logInfo("Name: {}", name);
+
+  logInfo("m_screenWidth = {}", m_screenWidth);
+  logInfo("m_screenHeight = {}", m_screenHeight);
+  logInfo("m_bufferSize = {}", m_bufferSize);
+  logInfo("m_ratioScreenToNormalizedCoord = {}", m_ratioScreenToNormalizedCoord);
+  logInfo("m_ratioNormalizedToScreenCoord = {}", m_ratioNormalizedToScreenCoord);
+  logInfo("m_minNormalizedCoordVal = {}", m_minNormalizedCoordVal);
+  logInfo("m_maxNormalizedCoordVal = {}", m_maxNormalizedCoordVal);
+  logInfo("m_buffSettings = {}", m_buffSettings.allowOverexposed);
+  logInfo("m_buffSettings.buffIntensity = {}", m_buffSettings.buffIntensity);
+  logInfo("m_resourcesDirectory = {}", m_resourcesDirectory);
+  logInfo("m_generalSpeed = {}", m_generalSpeed);
+  logInfo("m_parallel->GetNumThreadsUsed() = {}", m_parallel->GetNumThreadsUsed());
+
+  logInfo("m_filterData.vitesse = {}", m_filterData.vitesse);
+  logInfo("m_filterData.coeffVitesseDenominator = {}", m_filterData.coeffVitesseDenominator);
+  logInfo("m_filterData.middleX = {}", m_filterData.middleX);
+  logInfo("m_filterData.middleY = {}", m_filterData.middleY);
+  logInfo("m_filterData.reverse = {}", m_filterData.reverse);
+  logInfo("m_filterData.tanEffect = {}", m_filterData.tanEffect);
+  logInfo("m_filterData.rotateSpeed = {}", m_filterData.rotateSpeed);
+  logInfo("m_filterData.hPlaneEffect = {}", m_filterData.hPlaneEffect);
+  logInfo("m_filterData.vPlaneEffect = {}", m_filterData.vPlaneEffect);
+  logInfo("m_filterData.waveEffect = {}", m_filterData.waveEffect);
+  logInfo("m_filterData.hypercosEffect = {}", m_filterData.hypercosEffect);
+  logInfo("m_filterData.noisify = {}", m_filterData.noisify);
+  logInfo("m_filterData.noiseFactor = {}", m_filterData.noiseFactor);
+  logInfo("m_filterData.blockyWavy = {}", m_filterData.blockyWavy);
+  logInfo("m_filterData.waveFreqFactor = {}", m_filterData.waveFreqFactor);
+  logInfo("m_filterData.waveAmplitude = {}", m_filterData.waveAmplitude);
+  logInfo("m_filterData.waveEffectType = {}", m_filterData.waveEffectType);
+  logInfo("m_filterData.scrunchAmplitude = {}", m_filterData.scrunchAmplitude);
+  logInfo("m_filterData.speedwayAmplitude = {}", m_filterData.speedwayAmplitude);
+  logInfo("m_filterData.amuletAmplitude = {}", m_filterData.amuletAmplitude);
+  logInfo("m_filterData.crystalBallAmplitude = {}", m_filterData.crystalBallAmplitude);
+  logInfo("m_filterData.hypercosFreqX = {}", m_filterData.hypercosFreqX);
+  logInfo("m_filterData.hypercosFreqY = {}", m_filterData.hypercosFreqY);
+  logInfo("m_filterData.hypercosAmplitudeX = {}", m_filterData.hypercosAmplitudeX);
+  logInfo("m_filterData.hypercosAmplitudeY = {}", m_filterData.hypercosAmplitudeY);
+  logInfo("m_filterData.hypercosReverse = {}", m_filterData.hypercosReverse);
+  logInfo("m_filterData.hPlaneEffectAmplitude = {}", m_filterData.hPlaneEffectAmplitude);
+  logInfo("m_filterData.vPlaneEffectAmplitude = {}", m_filterData.vPlaneEffectAmplitude);
+
+  logInfo("m_maxTranX = {}", m_maxTranX);
+  logInfo("m_maxTranY = {}", m_maxTranY);
+  logInfo("m_tranBuffStripeHeight = {}", m_tranBuffStripeHeight);
+  logInfo("m_tranBuffYLineStart = {}", m_tranBuffYLineStart);
+  logInfo("m_tranBuffState = {}", m_tranBuffState);
+  logInfo("m_tranDiffFactor = {}", m_tranDiffFactor);
+
+  logInfo("=================================");
+}
+#endif
 
 } // namespace GOOM
