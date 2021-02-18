@@ -38,7 +38,11 @@ struct ZoomFilterData
   static constexpr float MAX_COEFF_VITESSE_DENOMINATOR = 50.01;
   static constexpr float DEFAULT_COEFF_VITESSE_DENOMINATOR = 50.0;
   float coeffVitesseDenominator = DEFAULT_COEFF_VITESSE_DENOMINATOR;
+#if __cplusplus <= 201402L
+  static const uint8_t pertedec; // NEVER SEEMS TO CHANGE
+#else
   static constexpr uint8_t pertedec = 8; // NEVER SEEMS TO CHANGE
+#endif
   uint32_t middleX = 16;
   uint32_t middleY = 1; // milieu de l'effet
   bool reverse = true; // inverse la vitesse

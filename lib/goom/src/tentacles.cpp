@@ -20,6 +20,10 @@
 namespace GOOM
 {
 
+#if __cplusplus <= 201402L
+const size_t Tentacle2D::MIN_NUM_NODES = 10;
+#endif
+
 using namespace GOOM::UTILS;
 
 Tentacle2D::Tentacle2D(const size_t id,

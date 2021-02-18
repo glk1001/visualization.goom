@@ -22,6 +22,15 @@ namespace GOOM::UTILS
 
 using COLOR_DATA::ColorMapName;
 
+#if __cplusplus <= 201402L
+const float RandomColorMaps::MIN_ROTATION_POINT = 0.1F;
+const float RandomColorMaps::MAX_ROTATION_POINT = 0.9F;
+const float RandomColorMaps::MIN_SATURATION = 0.1F;
+const float RandomColorMaps::MAX_SATURATION = 1.0F;
+const float RandomColorMaps::MIN_LIGHTNESS = 0.1F;
+const float RandomColorMaps::MAX_LIGHTNESS = 1.0F;
+#endif
+
 const std::set<RandomColorMaps::ColorMapTypes> RandomColorMaps::EMPTY{};
 const std::set<RandomColorMaps::ColorMapTypes> RandomColorMaps::ALL{
     ColorMapTypes::ROTATED_T,

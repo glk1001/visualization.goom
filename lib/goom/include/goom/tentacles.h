@@ -36,7 +36,11 @@ private:
   using XAndYVectors = std::tuple<std::vector<double>&, std::vector<double>&>;
 
 public:
+#if __cplusplus <= 201402L
+  static const size_t MIN_NUM_NODES;
+#else
   static constexpr size_t MIN_NUM_NODES = 10;
+#endif
 
   ~Tentacle2D() noexcept = default;
   Tentacle2D(size_t id,

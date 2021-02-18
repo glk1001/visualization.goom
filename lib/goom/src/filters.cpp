@@ -45,6 +45,10 @@ namespace GOOM
 
 using namespace GOOM::UTILS;
 
+#if __cplusplus <= 201402L
+const uint8_t ZoomFilterData::pertedec = 8; // NEVER SEEMS TO CHANGE
+#endif
+
 class FilterCoefficients
 {
 public:

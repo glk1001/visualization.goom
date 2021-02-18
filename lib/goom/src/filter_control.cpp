@@ -50,6 +50,9 @@ private:
 
   //@formatter:off
   // clang-format off
+#if __cplusplus <= 201402L
+  static const std::array<Event, NUM_FILTER_EVENT_TYPES> WEIGHTED_EVENTS;
+#else
   static constexpr std::array<Event, NUM_FILTER_EVENT_TYPES> WEIGHTED_EVENTS{{
      { /*.event = */FilterEventTypes::ROTATE,                     /*.m = */8, /*.outOf = */ 16 },
      { /*.event = */FilterEventTypes::HYPERCOS_EFFECT,            /*.m = */8, /*.outOf = */ 16 },
@@ -57,9 +60,27 @@ private:
      { /*.event = */FilterEventTypes::ALLOW_STRANGE_WAVE_VALUES,  /*.m = */8, /*.outOf = */ 16 },
      { /*.event = */FilterEventTypes::CHANGE_SPEED,               /*.m = */8, /*.outOf = */ 16 },
   }};
+#endif
   // clang-format on
   //@formatter:on
 };
+
+#if __cplusplus <= 201402L
+const std::array<FilterControl::FilterEvents::Event,
+                 FilterControl::FilterEvents::NUM_FILTER_EVENT_TYPES>
+    FilterControl::FilterEvents::WEIGHTED_EVENTS{{
+        {/*.event = */ FilterControl::FilterEvents::FilterEventTypes::ROTATE, /*.m = */ 8,
+         /*.outOf = */ 16},
+        {/*.event = */ FilterControl::FilterEvents::FilterEventTypes::HYPERCOS_EFFECT, /*.m = */ 8,
+         /*.outOf = */ 16},
+        {/*.event = */ FilterControl::FilterEvents::FilterEventTypes::WAVE_EFFECT, /*.m = */ 8,
+         /*.outOf = */ 16},
+        {/*.event = */ FilterControl::FilterEvents::FilterEventTypes::ALLOW_STRANGE_WAVE_VALUES,
+         /*.m = */ 8, /*.outOf = */ 16},
+        {/*.event = */ FilterControl::FilterEvents::FilterEventTypes::CHANGE_SPEED, /*.m = */ 8,
+         /*.outOf = */ 16},
+    }};
+#endif
 
 inline auto FilterControl::FilterEvents::Happens(const FilterEventTypes event) -> bool
 {
