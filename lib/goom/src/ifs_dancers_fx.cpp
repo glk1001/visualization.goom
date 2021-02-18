@@ -305,7 +305,7 @@ private:
   using IfsFunc =
       std::function<FltPoint(const Similitude& simi, float x1, float y1, float x2, float y2)>;
   IfsFunc m_curFunc{};
-  auto Transform(const Similitude& simi, const FltPoint& p0) -> FltPoint;
+  auto Transform(const Similitude& simi, const FltPoint& p0) const -> FltPoint;
   static auto GaussRand(Dbl c, Dbl S, Dbl A_mult_1_minus_exp_neg_S) -> Dbl;
   static auto HalfGaussRand(Dbl c, Dbl S, Dbl A_mult_1_minus_exp_neg_S) -> Dbl;
   static constexpr auto Get_1_minus_exp_neg_S(Dbl S) -> Dbl;
@@ -341,7 +341,7 @@ void Fractal::Init()
     {3,  1},
   }};
   // clang-format on
-  assert(centreWeights.GetNumElements() == centreList.size());
+  assert(s_centreWeights.GetNumElements() == CENTRE_LIST.size());
 
   const size_t numCentres = 2 + s_centreWeights.GetRandomWeighted();
 
@@ -393,11 +393,11 @@ auto Fractal::DrawIfs() -> const std::vector<IfsPoint>&
 {
   const Dbl u = static_cast<Dbl>(m_count * m_speed) / static_cast<Dbl>(MAX_COUNT_TIMES_SPEED);
   const Dbl uSq = u * u;
-  const Dbl v = 1.0 - u;
+  const Dbl v = 1.0F - u;
   const Dbl vSq = v * v;
   const Dbl u0 = vSq * v;
-  const Dbl u1 = 3.0 * vSq * u;
-  const Dbl u2 = 3.0 * v * uSq;
+  const Dbl u1 = 3.0F * vSq * u;
+  const Dbl u2 = 3.0F * v * uSq;
   const Dbl u3 = u * uSq;
 
   Similitude* s = m_components.data();
@@ -574,7 +574,7 @@ void Fractal::Trace(const uint32_t curDepth, const FltPoint& p0)
   }
 }
 
-inline auto Fractal::Transform(const Similitude& simi, const FltPoint& p0) -> FltPoint
+inline auto Fractal::Transform(const Similitude& simi, const FltPoint& p0) const -> FltPoint
 {
   const Flt x1 = DivByUnit((p0.x - simi.cx) * simi.r1);
   const Flt y1 = DivByUnit((p0.y - simi.cy) * simi.r1);
@@ -1171,18 +1171,6 @@ void IfsDancersFx::IfsDancersFxImpl::UpdateIfs(PixelBuffer& currentBuff, PixelBu
 
   UpdatePixelBuffers(currentBuff, nextBuff, points, maxHitCount);
 
-  logDebug("updateData.col[ALPHA] = {:x}", updateData.col[ALPHA]);
-  logDebug("updateData.col[BLEU] = {:x}", updateData.col[BLEU]);
-  logDebug("updateData.col[VERT] = {:x}", updateData.col[VERT]);
-  logDebug("updateData.col[ROUGE] = {:x}", updateData.col[ROUGE]);
-
-  logDebug("updateData.v[ALPHA] = {:x}", updateData.v[ALPHA]);
-  logDebug("updateData.v[BLEU] = {:x}", updateData.v[BLEU]);
-  logDebug("updateData.v[VERT] = {:x}", updateData.v[VERT]);
-  logDebug("updateData.v[ROUGE] = {:x}", updateData.v[ROUGE]);
-
-  logDebug("updateData.mode = {:x}", updateData.mode);
-
   m_stats.UpdateEnd();
 }
 
@@ -1243,10 +1231,10 @@ inline void IfsDancersFx::IfsDancersFxImpl::DrawPixel(PixelBuffer& currentBuff,
   const float fx = point.x / static_cast<float>(m_goomInfo->GetScreenInfo().width);
   const float fy = point.y / static_cast<float>(m_goomInfo->GetScreenInfo().height);
 
-  Pixel mixedColor = m_colorizer.GetMixedColor(point.color, point.count, tMix, fx, fy);
-  //  const std::vector<Pixel> colors{ColorMap::ColorMix(ifsColor, mixedColor, 0.1), mixedColor};
+  const Pixel mixedColor = m_colorizer.GetMixedColor(point.color, point.count, tMix, fx, fy);
   const std::vector<Pixel> colors{mixedColor, mixedColor};
   std::vector<PixelBuffer*> buffs{&currentBuff, &nextBuff};
+
   m_draw.SetPixelRgb(buffs, point.x, point.y, colors);
 }
 
