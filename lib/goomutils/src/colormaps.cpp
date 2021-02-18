@@ -2,6 +2,7 @@
 
 #include "colordata/all_maps.h"
 #include "colordata/colormap_enums.h"
+#include "colorutils.h"
 #include "goom/goom_graphic.h"
 
 #include <format>
@@ -29,10 +30,21 @@ public:
   [[nodiscard]] auto GetColor(float t) const -> Pixel override;
 
 private:
+#if __cplusplus <= 201402L
+  static const float MIN_ROTATE_POINT;
+  static const float MAX_ROTATE_POINT;
+#else
   static constexpr float MIN_ROTATE_POINT = 0.0F;
   static constexpr float MAX_ROTATE_POINT = 1.0F;
+#endif
   const float m_tRotatePoint;
 };
+
+#if __cplusplus <= 201402L
+const float RotatedColorMap::MIN_ROTATE_POINT = 0.0F;
+const float RotatedColorMap::MAX_ROTATE_POINT = 1.0F;
+#else
+#endif
 
 RotatedColorMap::RotatedColorMap(const std::shared_ptr<const IColorMap>& cm,
                                  const float tRotatePoint)
@@ -68,11 +80,21 @@ public:
   [[nodiscard]] auto GetColor(float t) const -> Pixel override;
 
 private:
+#if __cplusplus <= 201402L
+  static const float MIN_LIGHTNESS;
+  static const float MAX_LIGHTNESS;
+#else
   static constexpr float MIN_LIGHTNESS = 0.1F;
   static constexpr float MAX_LIGHTNESS = 1.0F;
+#endif
   const float m_saturation;
   const float m_lightness;
 };
+
+#if __cplusplus <= 201402L
+const float TintedColorMap::MIN_LIGHTNESS = 0.1F;
+const float TintedColorMap::MAX_LIGHTNESS = 1.0F;
+#endif
 
 TintedColorMap::TintedColorMap(const std::shared_ptr<const IColorMap>& cm,
                                const float saturation,
@@ -371,16 +393,41 @@ PrebuiltColorMap::PrebuiltColorMap(PrebuiltColorMap&& other) noexcept
 {
 }
 
-auto PrebuiltColorMap::GetColor(const float t) const -> Pixel
+auto PrebuiltColorMap::GetColor(float t) const -> Pixel
 {
   return Pixel{vivid::Color{m_cmap.at(t)}.rgb32()};
+
+  /**
+  // Optimise for RGB
+  if (m_cmap.empty()) {
+    return Pixel::BLACK;
+  }
+
+  const size_t numStops = m_cmap.numStops();
+  t = stdnew::clamp(t, 0.0F, 1.0F);
+  const float stopIndexFlt = t * static_cast<float>(numStops);
+  const auto stopIndex = static_cast<size_t>(stopIndexFlt);
+
+  if (stopIndex + 1 == numStops) {
+    return Pixel{vivid::Color{m_cmap.stops().back()}.rgb32()};
+  }
+
+  const float u = stopIndexFlt - static_cast<float>(stopIndex);
+  const Pixel color1 = Pixel{vivid::Color{m_cmap.stops()[stopIndex]}.rgb32()};
+  const Pixel color2 = Pixel{vivid::Color{m_cmap.stops()[stopIndex + 1]}.rgb32()};
+  return GetRgbColorLerp(color1, color2, u);
+**/
 }
 
 auto PrebuiltColorMap::GetColorMix(const Pixel& col1, const Pixel& col2, const float t) -> Pixel
 {
+  // Optimisation: faster to use this lesser quality RGB Lerp than vivid's Lerp.
+  return GetRgbColorLerp(col1, col2, t);
+  /**
   const vivid::rgb_t c1 = vivid::rgb::fromRgb32(col1.Rgba());
   const vivid::rgb_t c2 = vivid::rgb::fromRgb32(col2.Rgba());
   return Pixel{vivid::lerpHsl(c1, c2, t).rgb32()};
+   **/
 }
 
 #if __cplusplus <= 201402L

@@ -2,6 +2,7 @@
 #define VISUALIZATION_GOOM_LIB_GOOMUTILS_COLORUTILS_H_
 
 #include "goom/goom_graphic.h"
+#include "mathutils.h"
 
 #include <algorithm>
 #include <cassert>
@@ -37,6 +38,9 @@ auto GetHalfIntensityColor(const Pixel& color) -> Pixel;
 
 auto GetLightenedColor(const Pixel& oldColor, float power) -> Pixel;
 auto GetEvolvedColor(const Pixel& baseColor) -> Pixel;
+
+auto GetRgbColorChannelLerp(int32_t c1, int32_t c2, int32_t intT) -> uint32_t;
+auto GetRgbColorLerp(const Pixel& colA, const Pixel& colB, float t) -> Pixel;
 
 auto GetLuma(const Pixel& color) -> uint32_t;
 
@@ -136,13 +140,12 @@ inline auto GetColorBlend(const Pixel& srce, const Pixel& dest) -> Pixel
   }};
 }
 
-inline auto GetColorMultiply(const Pixel& color1, const Pixel& color2, bool allowOverexposed)
-    -> Pixel
+inline auto GetColorMultiply(const Pixel& srce, const Pixel& dest, bool allowOverexposed) -> Pixel
 {
-  uint32_t newR = ColorChannelMultiply(color1.R(), color2.R());
-  uint32_t newG = ColorChannelMultiply(color1.G(), color2.G());
-  uint32_t newB = ColorChannelMultiply(color1.B(), color2.B());
-  const uint32_t newA = ColorChannelMultiply(color1.A(), color2.A());
+  uint32_t newR = ColorChannelMultiply(srce.R(), dest.R());
+  uint32_t newG = ColorChannelMultiply(srce.G(), dest.G());
+  uint32_t newB = ColorChannelMultiply(srce.B(), dest.B());
+  const uint32_t newA = ColorChannelMultiply(srce.A(), dest.A());
 
   if (!allowOverexposed)
   {
@@ -258,6 +261,39 @@ inline auto GetRightShiftedChannels(const Pixel& color, int value) -> Pixel
   p.SetB(p.B() >> value);
 
   return p;
+}
+
+inline auto GetRgbColorChannelLerp(int32_t c1, int32_t c2, int32_t intT) -> uint32_t
+{
+  constexpr auto MAX_COL_VAL_32 = static_cast<int32_t>(MAX_COLOR_VAL);
+  return static_cast<uint32_t>((MAX_COL_VAL_32 * c1 + intT * (c2 - c1)) / MAX_COL_VAL_32);
+}
+
+inline auto GetRgbColorLerp(const Pixel& colA, const Pixel& colB, float t) -> Pixel
+{
+  t = stdnew::clamp(t, 0.0F, 1.0F);
+  const auto intT = static_cast<int32_t>(t * static_cast<float>(MAX_COLOR_VAL));
+
+  const auto colA_R = static_cast<int32_t>(colA.R());
+  const auto colA_G = static_cast<int32_t>(colA.G());
+  const auto colA_B = static_cast<int32_t>(colA.B());
+  const auto colA_A = static_cast<int32_t>(colA.A());
+  const auto colB_R = static_cast<int32_t>(colB.R());
+  const auto colB_G = static_cast<int32_t>(colB.G());
+  const auto colB_B = static_cast<int32_t>(colB.B());
+  const auto colB_A = static_cast<int32_t>(colB.A());
+
+  const uint32_t newR = GetRgbColorChannelLerp(colA_R, colB_R, intT);
+  const uint32_t newG = GetRgbColorChannelLerp(colA_G, colB_G, intT);
+  const uint32_t newB = GetRgbColorChannelLerp(colA_B, colB_B, intT);
+  const uint32_t newA = GetRgbColorChannelLerp(colA_A, colB_A, intT);
+
+  return Pixel{{
+      /*.r = */ static_cast<u_int8_t>(newR),
+      /*.g = */ static_cast<u_int8_t>(newG),
+      /*.b = */ static_cast<u_int8_t>(newB),
+      /*.a = */ static_cast<u_int8_t>(newA),
+  }};
 }
 
 
