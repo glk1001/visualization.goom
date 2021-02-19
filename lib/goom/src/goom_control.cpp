@@ -633,7 +633,7 @@ private:
   // Changement d'effet de zoom !
   void ChangeZoomEffect(const ZoomFilterData* pzfd, int forceMode);
 
-  void ApplyZoom(const ZoomFilterData** pzfd);
+  void ApplyZoom(const ZoomFilterData* pzfd);
   void ApplyIfsIfRequired();
   void ApplyTentaclesIfRequired();
   void ApplyStarsIfRequired();
@@ -963,7 +963,7 @@ void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,
 
   ChangeZoomEffect(pzfd, forceMode);
 
-  ApplyZoom(&pzfd);
+  ApplyZoom(pzfd);
 
   // applyDotsIfRequired();
   ApplyIfsIfRequired();
@@ -1816,7 +1816,7 @@ void GoomControl::GoomControlImpl::DisplayLines(const AudioSamples& soundData)
 
 void GoomControl::GoomControlImpl::BigBreakIfMusicIsCalm(const ZoomFilterData** pzfd)
 {
-  logDebug("sound GetSpeed() = {:.2}, m_filterControl.GetFilterData().vitesse = {}, "
+  logDebug("sound GetSpeed() = {:.2}, m_filterControl.GetFilterSettings().vitesse = {}, "
            "cycle = {}",
            m_goomInfo->GetSoundInfo().GetSpeed(), m_filterControl.GetFilterData().vitesse, m_cycle);
   if ((m_goomInfo->GetSoundInfo().GetSpeed() < 0.01F) &&
@@ -1902,10 +1902,15 @@ void GoomControl::GoomControlImpl::DisplayLinesIfInAGoom(const AudioSamples& sou
   }
 }
 
-void GoomControl::GoomControlImpl::ApplyZoom(const ZoomFilterData** pzfd)
+void GoomControl::GoomControlImpl::ApplyZoom(const ZoomFilterData* const pzfd)
 {
+  if (pzfd != nullptr)
+  {
+    m_visualFx.zoomFilter_fx->ChangeFilterSettings(*pzfd);
+  }
+
   uint32_t numClipped = 0;
-  m_visualFx.zoomFilter_fx->ZoomFilterFastRgb(m_imageBuffers.GetP1(), m_imageBuffers.GetP2(), *pzfd,
+  m_visualFx.zoomFilter_fx->ZoomFilterFastRgb(m_imageBuffers.GetP1(), m_imageBuffers.GetP2(),
                                               m_goomData.switchIncr, m_goomData.switchMult,
                                               numClipped);
   if (numClipped > m_goomInfo->GetScreenInfo().size / 100)

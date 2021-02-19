@@ -182,15 +182,14 @@ public:
 
   void Start() override;
 
-  auto GetFilterData() const -> const ZoomFilterData&;
+  auto GetFilterSettings() const -> const ZoomFilterData&;
   auto GetGeneralSpeed() const -> float;
   auto GetTranBuffYLineStart() const -> uint32_t;
 
-  void ChangeFilterData(const ZoomFilterData& filterData);
+  void ChangeFilterSettings(const ZoomFilterData& filterSettings);
 
   void ZoomFilterFastRgb(const PixelBuffer& pix1,
                          PixelBuffer& pix2,
-                         const ZoomFilterData* zf,
                          int switchIncr,
                          float switchMult,
                          uint32_t& numClipped);
