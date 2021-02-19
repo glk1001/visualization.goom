@@ -53,6 +53,7 @@ void GoomStats::Reset()
   m_numLastTimeGoomChanges = 0;
   m_numMegaLentChanges = 0;
   m_numDoNoise = 0;
+  m_numTurnOffNoise = 0;
   m_numIfsRenew = 0;
   m_numChangeLineColor = 0;
   m_numSwitchLines = 0;
@@ -120,6 +121,9 @@ void GoomStats::Log(const StatsLogValueFunc& logVal) const
            m_lastZoomFilterData->hPlaneEffectAmplitude);
     logVal(MODULE, "lastZoomFilterData->vPlaneEffectAmplitude",
            m_lastZoomFilterData->vPlaneEffectAmplitude);
+    logVal(MODULE, "lastZoomFilterData->rotateSpeed", m_lastZoomFilterData->rotateSpeed);
+    logVal(MODULE, "lastZoomFilterData->tanEffect",
+           static_cast<uint32_t>(m_lastZoomFilterData->tanEffect));
   }
 
   logVal(MODULE, "numUpdates", m_numUpdates);
@@ -168,6 +172,7 @@ void GoomStats::Log(const StatsLogValueFunc& logVal) const
   logVal(MODULE, "numLastTimeGoomChanges", m_numLastTimeGoomChanges);
   logVal(MODULE, "numMegaLentChanges", m_numMegaLentChanges);
   logVal(MODULE, "numDoNoise", m_numDoNoise);
+  logVal(MODULE, "numTurnOffNoise", m_numTurnOffNoise);
   logVal(MODULE, "numIfsRenew", m_numIfsRenew);
   logVal(MODULE, "numChangeLineColor", m_numChangeLineColor);
   logVal(MODULE, "numSwitchLines", m_numSwitchLines);
@@ -338,6 +343,11 @@ void GoomStats::MegaLentChange()
 void GoomStats::DoNoise()
 {
   m_numDoNoise++;
+}
+
+void GoomStats::DoTurnOffNoise()
+{
+  m_numTurnOffNoise++;
 }
 
 void GoomStats::IfsRenew()

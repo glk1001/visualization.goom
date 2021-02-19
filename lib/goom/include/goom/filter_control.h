@@ -22,6 +22,9 @@ public:
   void SetBlockyWavySetting(bool value);
   void SetHPlaneEffectSetting(int32_t value);
   void SetVPlaneEffectSetting(int32_t value);
+  void SetRotateSetting(float value);
+  void MultiplyRotateSetting(float factor);
+  void ToggleRotateSetting();
 
   auto GetFilterData() const -> const ZoomFilterData&;
 
@@ -35,6 +38,8 @@ private:
   ZoomFilterData m_filterData{};
   class FilterEvents;
   std::unique_ptr<FilterEvents> m_filterEvents;
+
+  auto GetNewRandomMode() const -> ZoomFilterMode;
 
   void SetDefaultSettings();
 
@@ -90,14 +95,29 @@ inline void FilterControl::SetBlockyWavySetting(const bool value)
   m_filterData.blockyWavy = value;
 }
 
-inline void FilterControl::SetHPlaneEffectSetting(int32_t value)
+inline void FilterControl::SetHPlaneEffectSetting(const int32_t value)
 {
   m_filterData.hPlaneEffect = value;
 }
 
-inline void FilterControl::SetVPlaneEffectSetting(int32_t value)
+inline void FilterControl::SetVPlaneEffectSetting(const int32_t value)
 {
   m_filterData.vPlaneEffect = value;
+}
+
+inline void FilterControl::SetRotateSetting(const float value)
+{
+  m_filterData.rotateSpeed = value;
+}
+
+inline void FilterControl::MultiplyRotateSetting(const float factor)
+{
+  m_filterData.rotateSpeed *= factor;
+}
+
+inline void FilterControl::ToggleRotateSetting()
+{
+  m_filterData.rotateSpeed = -m_filterData.rotateSpeed;
 }
 
 } // namespace GOOM

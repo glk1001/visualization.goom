@@ -55,7 +55,7 @@ public:
   void LastTimeGoomChange();
   void MegaLentChange();
   void DoNoise();
-  void SetLastNoiseFactor(float val);
+  void DoTurnOffNoise();
   void IfsRenew();
   void ChangeLineColor();
   void DoBlockyWavy();
@@ -98,6 +98,7 @@ private:
   uint32_t m_numLastTimeGoomChanges = 0;
   uint32_t m_numMegaLentChanges = 0;
   uint32_t m_numDoNoise = 0;
+  uint32_t m_numTurnOffNoise = 0;
   uint32_t m_numIfsRenew = 0;
   uint32_t m_numChangeLineColor = 0;
   uint32_t m_numSwitchLines = 0;

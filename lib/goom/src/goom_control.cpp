@@ -111,6 +111,9 @@ public:
     FILTER_VITESSE_STOP_SPEED_PLUS1,
     FILTER_ZERO_H_PLANE_EFFECT,
     FILTER_CHANGE_VITESSE_AND_TOGGLE_REVERSE,
+    FILTER_TOGGLE_ROTATION,
+    FILTER_INCREASE_ROTATION,
+    FILTER_DECREASE_ROTATION,
     REDUCE_LINE_MODE,
     UPDATE_LINE_MODE,
     CHANGE_LINE_TO_BLACK,
@@ -142,7 +145,7 @@ private:
     { /*.event = */GoomEvent::CHANGE_FILTER_MODE,                         /*.m = */8, /*.outOf = */ 16 },
     { /*.event = */GoomEvent::CHANGE_FILTER_FROM_AMULET_MODE,             /*.m = */1, /*.outOf = */  5 },
     { /*.event = */GoomEvent::CHANGE_STATE,                               /*.m = */1, /*.outOf = */  2 },
-    { /*.event = */GoomEvent::TURN_OFF_NOISE,                             /*.m = */5, /*.outOf = */  5 },
+    { /*.event = */GoomEvent::TURN_OFF_NOISE,                             /*.m = */3, /*.outOf = */  5 },
     { /*.event = */GoomEvent::CHANGE_TO_MEGA_LENT_MODE,                   /*.m = */1, /*.outOf = */700 },
     { /*.event = */GoomEvent::CHANGE_LINE_CIRCLE_AMPLITUDE,               /*.m = */1, /*.outOf = */  3 },
     { /*.event = */GoomEvent::CHANGE_LINE_CIRCLE_PARAMS,                  /*.m = */1, /*.outOf = */  2 },
@@ -161,6 +164,9 @@ private:
     { /*.event = */GoomEvent::FILTER_VITESSE_STOP_SPEED_PLUS1,            /*.m = */1, /*.outOf = */ 12 },
     { /*.event = */GoomEvent::FILTER_ZERO_H_PLANE_EFFECT,                 /*.m = */1, /*.outOf = */  2 },
     { /*.event = */GoomEvent::FILTER_CHANGE_VITESSE_AND_TOGGLE_REVERSE,   /*.m = */1, /*.outOf = */ 40 },
+    { /*.event = */GoomEvent::FILTER_TOGGLE_ROTATION,                     /*.m =*/15, /*.outOf = */ 40 },
+    { /*.event = */GoomEvent::FILTER_INCREASE_ROTATION,                   /*.m =*/10, /*.outOf = */ 40 },
+    { /*.event = */GoomEvent::FILTER_DECREASE_ROTATION,                   /*.m = */1, /*.outOf = */ 40 },
     { /*.event = */GoomEvent::REDUCE_LINE_MODE,                           /*.m = */1, /*.outOf = */  5 },
     { /*.event = */GoomEvent::UPDATE_LINE_MODE,                           /*.m = */1, /*.outOf = */  4 },
     { /*.event = */GoomEvent::CHANGE_LINE_TO_BLACK,                       /*.m = */1, /*.outOf = */  2 },
@@ -1206,6 +1212,19 @@ void GoomControl::GoomControlImpl::BigNormalUpdate(const ZoomFilterData** pzfd)
     m_stats.LockChange();
   }
 
+  if (m_goomEvent.Happens(GoomEvent::FILTER_TOGGLE_ROTATION))
+  {
+    m_filterControl.ToggleRotateSetting();
+  }
+  else if (m_goomEvent.Happens(GoomEvent::FILTER_INCREASE_ROTATION))
+  {
+    m_filterControl.MultiplyRotateSetting(1.1F);
+  }
+  else if (m_goomEvent.Happens(GoomEvent::FILTER_DECREASE_ROTATION))
+  {
+    m_filterControl.MultiplyRotateSetting(0.9F);
+  }
+
   if (m_goomEvent.Happens(GoomEvent::FILTER_VITESSE_STOP_SPEED_MINUS1))
   {
     m_filterControl.SetVitesseSetting(STOP_SPEED - 1);
@@ -1220,6 +1239,7 @@ void GoomControl::GoomControlImpl::BigNormalUpdate(const ZoomFilterData** pzfd)
   if (m_goomEvent.Happens(GoomEvent::TURN_OFF_NOISE))
   {
     m_filterControl.SetNoisifySetting(false);
+    m_stats.DoTurnOffNoise();
   }
   else
   {
@@ -1252,13 +1272,6 @@ void GoomControl::GoomControlImpl::BigNormalUpdate(const ZoomFilterData** pzfd)
         {/*.buffIntensity = */ 0.5, /*.allowOverexposed = */ true});
   }
 
-  if (m_filterControl.GetFilterData().mode == ZoomFilterMode::AMULET_MODE)
-  {
-    m_filterControl.SetHPlaneEffectSetting(0);
-    m_filterControl.SetVPlaneEffectSetting(0);
-    //    goomData.zoomFilterData.noisify = false;
-  }
-
   if ((m_filterControl.GetFilterData().middleX == 1) ||
       (m_filterControl.GetFilterData().middleX == GetScreenWidth() - 1))
   {
@@ -1269,13 +1282,9 @@ void GoomControl::GoomControlImpl::BigNormalUpdate(const ZoomFilterData** pzfd)
     }
   }
 
-  logDebug("newvit = {}, m_filterControl.GetFilterData().vitesse = {}", newvit,
-           m_filterControl.GetFilterData().vitesse);
   if (newvit < m_filterControl.GetFilterData().vitesse)
   {
     // on accelere
-    logDebug("newvit = {} < {} = m_filterControl.GetFilterData().vitesse", newvit,
-             m_filterControl.GetFilterData().vitesse);
     *pzfd = &m_filterControl.GetFilterData();
     if (((newvit < (STOP_SPEED - 7)) &&
          (m_filterControl.GetFilterData().vitesse < STOP_SPEED - 6) && (m_cycle % 3 == 0)) ||
@@ -1902,7 +1911,9 @@ void GoomControl::GoomControlImpl::ApplyZoom(const ZoomFilterData** pzfd)
   if (numClipped > m_goomInfo->GetScreenInfo().size / 100)
   {
     m_stats.TooManyClipped();
-    ChangeFilterMode();
+    m_goomData.switchIncr = -m_goomData.switchIncr;
+    m_goomData.switchMult = 1.0F;
+    // ChangeFilterMode();
   }
 }
 

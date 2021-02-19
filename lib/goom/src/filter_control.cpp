@@ -97,8 +97,7 @@ FilterControl::~FilterControl() noexcept = default;
 
 void FilterControl::SetRandomFilterData()
 {
-  SetRandomFilterData(static_cast<ZoomFilterMode>(
-      GetRandInRange(0U, static_cast<uint32_t>(ZoomFilterMode::_SIZE))));
+  SetRandomFilterData(GetNewRandomMode());
 }
 
 void FilterControl::SetRandomFilterData(const ZoomFilterMode mode)
@@ -142,6 +141,45 @@ void FilterControl::SetRandomFilterData(const ZoomFilterMode mode)
     default:
       throw std::logic_error("ZoomFilterMode not implemented.");
   }
+}
+
+auto FilterControl::GetNewRandomMode() const -> ZoomFilterMode
+{
+  //@formatter:off
+  // clang-format off
+  static const Weights<ZoomFilterMode> s_weightedFilterEvents{{
+    { ZoomFilterMode::AMULET_MODE,       2 },
+    { ZoomFilterMode::CRYSTAL_BALL_MODE, 3 },
+    { ZoomFilterMode::HYPERCOS1_MODE,    3 },
+    { ZoomFilterMode::HYPERCOS2_MODE,    3 },
+    { ZoomFilterMode::NORMAL_MODE,       2 },
+    { ZoomFilterMode::SCRUNCH_MODE,      3 },
+    { ZoomFilterMode::SPEEDWAY_MODE,     3 },
+    { ZoomFilterMode::WAVE_MODE,         5 },
+    { ZoomFilterMode::WATER_MODE,        0 },
+    { ZoomFilterMode::Y_ONLY_MODE,       1 },
+  }};
+  //@formatter:on
+  // clang-format on
+
+  uint32_t numTries = 0;
+  constexpr uint32_t MAX_TRIES = 20;
+
+  while (true)
+  {
+    const auto newMode = s_weightedFilterEvents.GetRandomWeighted();
+    if (newMode != m_filterData.mode)
+    {
+      return newMode;
+    }
+    numTries++;
+    if (numTries >= MAX_TRIES)
+    {
+      break;
+    }
+  }
+
+  return m_filterData.mode;
 }
 
 void FilterControl::SetDefaultSettings()
@@ -195,13 +233,13 @@ void FilterControl::SetCrystalBallModeSettings()
 
 void FilterControl::SetHypercos1ModeSettings()
 {
-  SetRotate(PROB_HIGH);
+  SetRotate(PROB_LOW);
   SetHypercosEffect();
 }
 
 void FilterControl::SetHypercos2ModeSettings()
 {
-  SetRotate(PROB_HIGH);
+  SetRotate(PROB_LOW);
   SetHypercosEffect();
 }
 
@@ -227,7 +265,7 @@ void FilterControl::SetSpeedwayModeSettings()
   m_filterData.speedwayAmplitude = GetRandInRange(ZoomFilterData::MIN_SPEEDWAY_AMPLITUDE,
                                                   ZoomFilterData::MAX_SPEEDWAY_AMPLITUDE);
 
-  SetRotate(PROB_HALF);
+  SetRotate(PROB_LOW);
   SetHypercosEffect();
 }
 
@@ -257,7 +295,7 @@ void FilterControl::SetWaveModeSettings()
         GetRandInRange(ZoomFilterData::MIN_WAVE_FREQ_FACTOR, ZoomFilterData::MAX_WAVE_FREQ_FACTOR);
   }
 
-  SetRotate(PROB_HALF);
+  SetRotate(PROB_LOW);
   SetHypercosEffect();
 }
 

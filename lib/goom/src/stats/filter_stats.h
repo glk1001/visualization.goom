@@ -1,6 +1,7 @@
 #ifndef VISUALIZATION_GOOM_STATS_FILTER_STATS_H
 #define VISUALIZATION_GOOM_STATS_FILTER_STATS_H
 
+#include "goom/filters.h"
 #include "goom/goom_config.h"
 
 #include <chrono>
@@ -37,14 +38,18 @@ public:
   void DoCZoom();
   void DoGenerateWaterFxHorizontalBuffer();
   void DoZoomFilterFastRgb();
-  void DoZoomFilterChangeConfig();
+  void ResetTranBuffer();
   void DoZoomFilterRestartTranBuffYLine();
   void DoZoomFilterSwitchIncrNotZero();
   void DoZoomFilterSwitchMultNotEqual1();
+  void DoZoomTanEffect();
+  void DoZoomVectorNegativeRotate();
+  void DoZoomVectorPositiveRotate();
   void DoTranPointClipped();
   void CoeffVitesseBelowMin();
   void CoeffVitesseAboveMax();
 
+  void SetLastMode(ZoomFilterMode mode);
   void SetLastGeneralSpeed(float val);
   void SetLastPrevX(uint32_t val);
   void SetLastPrevY(uint32_t val);
@@ -76,14 +81,18 @@ private:
   uint64_t m_numCZoom = 0;
   uint64_t m_numGenerateWaterFxHorizontalBuffer = 0;
   uint64_t m_numZoomFilterFastRgb = 0;
-  uint64_t m_numZoomFilterChangeConfig = 0;
+  uint64_t m_numZoomFilterResetTranBuffer = 0;
   uint64_t m_numZoomFilterRestartTranBuffYLine = 0;
   uint64_t m_numZoomFilterSwitchIncrNotZero = 0;
   uint64_t m_numZoomFilterSwitchMultNotEqual1 = 0;
+  uint64_t m_numZoomTanEffect = 0;
+  uint64_t m_numZoomVectorNegativeRotate = 0;
+  uint64_t m_numZoomVectorPositiveRotate = 0;
   uint64_t m_numTranPointsClipped = 0;
   uint64_t m_numCoeffVitesseBelowMin = 0;
   uint64_t m_numCoeffVitesseAboveMax = 0;
 
+  ZoomFilterMode m_lastMode{};
   float m_lastGeneralSpeed = -1000.0;
   uint32_t m_lastPrevX = 0;
   uint32_t m_lastPrevY = 0;

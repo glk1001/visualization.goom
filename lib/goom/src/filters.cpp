@@ -270,7 +270,7 @@ private:
   uint32_t m_tranBuffYLineStart;
   enum class TranBuffState
   {
-    RESET_FILTER_CONFIG,
+    RESET_TRAN_BUFFER,
     RESTART_BUFF_YLINE,
     BUFF_READY,
   };
@@ -427,6 +427,7 @@ ZoomFilterFx::ZoomFilterImpl::~ZoomFilterImpl() noexcept = default;
 
 void ZoomFilterFx::ZoomFilterImpl::Log(const StatsLogValueFunc& l) const
 {
+  m_stats.SetLastMode(m_filterData.mode);
   m_stats.SetLastGeneralSpeed(m_generalSpeed);
   m_stats.SetLastPrevX(m_screenWidth);
   m_stats.SetLastPrevY(m_screenHeight);
@@ -612,15 +613,19 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
   m_stats.UpdateStart();
   m_stats.DoZoomFilterFastRgb();
 
+  if (zf)
+  {
+    m_filterData = *zf;
+  }
+
   // changement de taille
-  if (m_tranBuffState == TranBuffState::RESET_FILTER_CONFIG)
+  if (m_tranBuffState == TranBuffState::RESET_TRAN_BUFFER)
   {
     if (zf)
     {
-      logState("Before RESET_FILTER_CONFIG");
+      logState("Before RESET_TRAN_BUFFER");
 
-      m_stats.DoZoomFilterChangeConfig();
-      m_filterData = *zf;
+      m_stats.ResetTranBuffer();
       m_generalSpeed = static_cast<float>(zf->vitesse - ZoomFilterData::MAX_VITESSE) /
                        static_cast<float>(ZoomFilterData::MAX_VITESSE);
       if (m_filterData.reverse)
@@ -629,7 +634,7 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
       }
       m_tranBuffYLineStart = 0;
       m_tranBuffState = TranBuffState::BUFF_READY;
-      logState("After RESET_FILTER_CONFIG");
+      logState("After RESET_TRAN_BUFFER");
     }
   }
   else if (m_tranBuffState == TranBuffState::RESTART_BUFF_YLINE)
@@ -652,7 +657,7 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
     std::swap(m_tranYDest, m_tranYTemp);
 
     m_tranBuffYLineStart = 0;
-    m_tranBuffState = TranBuffState::RESET_FILTER_CONFIG;
+    m_tranBuffState = TranBuffState::RESET_TRAN_BUFFER;
     logState("After RESTART_BUFF_YLINE");
   }
   else
@@ -1076,6 +1081,7 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetStandardVelocity(const float xNorma
 
   if (m_filterData.tanEffect)
   {
+    m_stats.DoZoomTanEffect();
     const float tanSqDist = std::tan(sqDist);
     x *= tanSqDist;
     y *= tanSqDist;
@@ -1087,8 +1093,10 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetStandardVelocity(const float xNorma
   }
   if (m_filterData.rotateSpeed < 0.0F)
   {
+    m_stats.DoZoomVectorNegativeRotate();
     return {-m_filterData.rotateSpeed * (x - y), -m_filterData.rotateSpeed * (x + y)};
   }
+  m_stats.DoZoomVectorPositiveRotate();
   return {m_filterData.rotateSpeed * (y + x), m_filterData.rotateSpeed * (y - x)};
 }
 
