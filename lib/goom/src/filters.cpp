@@ -196,10 +196,9 @@ inline auto ScreenToTranCoord(const float screenCoord) -> uint32_t
 }
 
 inline auto GetTranBuffLerp(const int32_t srceBuffVal, const int32_t destBuffVal, const int32_t t)
-    -> uint32_t
+    -> int32_t
 {
-  return static_cast<uint32_t>(srceBuffVal +
-                               ((t * (destBuffVal - srceBuffVal)) >> DIM_FILTER_COEFFS));
+  return srceBuffVal + ((t * (destBuffVal - srceBuffVal)) >> DIM_FILTER_COEFFS);
 }
 
 
@@ -250,7 +249,7 @@ private:
   std::string m_resourcesDirectory{};
   float m_generalSpeed;
   mutable FilterStats m_stats{};
-  uint64_t m_filterNum{};
+  uint64_t m_filterNum{0};
 
   Parallel* const m_parallel;
 
@@ -278,16 +277,15 @@ private:
   TranBuffState m_tranBuffState;
   // modification by jeko : fixedpoint : tranDiffFactor = (16:16) (0 <= tranDiffFactor <= 2^16)
   int32_t m_tranDiffFactor; // in [0, BUFF_POINT_MASK]
-  auto GetTranXBuffSrceDestLerp(size_t buffPos) -> uint32_t;
-  auto GetTranYBuffSrceDestLerp(size_t buffPos) -> uint32_t;
+  auto GetTranXBuffSrceDestLerp(size_t buffPos) const -> int32_t;
+  auto GetTranYBuffSrceDestLerp(size_t buffPos) const -> int32_t;
   using NeighborhoodCoeffArray = FilterCoefficients::NeighborhoodCoeffArray;
   using NeighborhoodPixelArray = FilterCoefficients::NeighborhoodPixelArray;
   auto GetSourceInfo(uint32_t tranX, uint32_t tranY) const
       -> std::tuple<uint32_t, uint32_t, NeighborhoodCoeffArray>;
   auto GetNewColor(const NeighborhoodCoeffArray& coeffs, const NeighborhoodPixelArray& pixels) const
       -> Pixel;
-  auto GetClippedTranPoint(float xNormalised, float yNormalised) const
-      -> std::tuple<int32_t, int32_t>;
+  auto GetTranPoint(float xNormalised, float yNormalised) const -> std::tuple<int32_t, int32_t>;
 
   const FilterCoefficients m_precalculatedCoeffs;
 
@@ -391,7 +389,6 @@ ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl(Parallel& p,
     m_minNormalizedCoordVal{m_ratioScreenToNormalizedCoord * MIN_SCREEN_COORD_VAL},
     m_maxNormalizedCoordVal{m_ratioScreenToNormalizedCoord * static_cast<float>(m_screenWidth - 1)},
     m_generalSpeed{0},
-    m_filterNum{0},
     m_parallel{&p},
     m_tranXSrce(m_bufferSize),
     m_tranYSrce(m_bufferSize),
@@ -494,12 +491,14 @@ inline auto ZoomFilterFx::ZoomFilterImpl::NormalizedToTranCoord(const float norm
       std::lround(ScreenToTranCoord(NormalizedToScreenCoordFlt(normalizedCoord))));
 }
 
-inline auto ZoomFilterFx::ZoomFilterImpl::GetTranXBuffSrceDestLerp(const size_t buffPos) -> uint32_t
+inline auto ZoomFilterFx::ZoomFilterImpl::GetTranXBuffSrceDestLerp(const size_t buffPos) const
+    -> int32_t
 {
   return GetTranBuffLerp(m_tranXSrce[buffPos], m_tranXDest[buffPos], m_tranDiffFactor);
 }
 
-inline auto ZoomFilterFx::ZoomFilterImpl::GetTranYBuffSrceDestLerp(const size_t buffPos) -> uint32_t
+inline auto ZoomFilterFx::ZoomFilterImpl::GetTranYBuffSrceDestLerp(const size_t buffPos) const
+    -> int32_t
 {
   return GetTranBuffLerp(m_tranYSrce[buffPos], m_tranYDest[buffPos], m_tranDiffFactor);
 }
@@ -788,8 +787,8 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff,
 #endif
     for (auto destRowBuff = destRowBegin; destRowBuff != destRowEnd; ++destRowBuff)
     {
-      const uint32_t tranX = GetTranXBuffSrceDestLerp(destPos);
-      const uint32_t tranY = GetTranYBuffSrceDestLerp(destPos);
+      const int32_t tranX = GetTranXBuffSrceDestLerp(destPos);
+      const int32_t tranY = GetTranYBuffSrceDestLerp(destPos);
 
       /**
       if ((tranPx >= m_maxTranX) || (tranPy >= m_maxTranY))
@@ -801,7 +800,8 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff,
       }
      **/
 
-      if ((tranX >= m_maxTranX) || (tranY >= m_maxTranY))
+      if ((tranX < 0 || tranY < 0 || static_cast<uint32_t>(tranX) >= m_maxTranX) ||
+          static_cast<uint32_t>(tranY) >= m_maxTranY)
       {
         m_stats.DoTranPointClipped();
         *destRowBuff = Pixel::BLACK;
@@ -810,12 +810,14 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff,
       else
       {
 #if __cplusplus <= 201402L
-        const auto srceInfo = GetSourceInfo(tranX, tranY);
+        const auto srceInfo =
+            GetSourceInfo(static_cast<uint32_t>(tranX), static_cast<uint32_t>(tranY));
         const auto srceX = std::get<0>(srceInfo);
         const auto srceY = std::get<1>(srceInfo);
         const auto coeffs = std::get<2>(srceInfo);
 #else
-        const auto [srceX, srceY, coeffs] = GetSourceInfo(tranPx, tranPy);
+        const auto [srceX, srceY, coeffs] =
+            GetSourceInfo(static_cast<uint32_t>(tranX), static_cast<uint32_t>(tranY));
 #endif
         const NeighborhoodPixelArray pixelNeighbours = srceBuff.Get4RHBNeighbours(srceX, srceY);
         *destRowBuff = GetNewColor(coeffs, pixelNeighbours);
@@ -872,8 +874,8 @@ void ZoomFilterFx::ZoomFilterImpl::AssignBufferStripeToTranTemp(const uint32_t t
       const V2dFlt zoomVector = GetZoomVector(xNormalized, yNormalized);
 
 #if __cplusplus <= 201402L
-      const auto tranPoint = GetClippedTranPoint(xMidNormalized + xNormalized - zoomVector.x,
-                                                 yMidNormalized + yNormalized - zoomVector.y);
+      const auto tranPoint = GetTranPoint(xMidNormalized + xNormalized - zoomVector.x,
+                                          yMidNormalized + yNormalized - zoomVector.y);
       const auto tranX = std::get<0>(tranPoint);
       const auto tranY = std::get<1>(tranPoint);
 #else
@@ -902,11 +904,14 @@ void ZoomFilterFx::ZoomFilterImpl::AssignBufferStripeToTranTemp(const uint32_t t
   }
 }
 
-inline auto ZoomFilterFx::ZoomFilterImpl::GetClippedTranPoint(const float xNormalised,
-                                                              const float yNormalised) const
+inline auto ZoomFilterFx::ZoomFilterImpl::GetTranPoint(const float xNormalised,
+                                                       const float yNormalised) const
     -> std::tuple<int32_t, int32_t>
 {
-  int32_t tranX = NormalizedToTranCoord((xNormalised));
+  return std::make_tuple(NormalizedToTranCoord(xNormalised), NormalizedToTranCoord(yNormalised));
+
+  /**
+  int32_t tranX = NormalizedToTranCoord(xNormalised);
   if (tranX < 0)
   {
     m_stats.DoTranPointClipped();
@@ -919,7 +924,7 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetClippedTranPoint(const float xNorma
     tranX = static_cast<int32_t>(m_maxTranX);
   }
 
-  int32_t tranY = NormalizedToTranCoord((yNormalised));
+  int32_t tranY = NormalizedToTranCoord(yNormalised);
   if (tranY < 0)
   {
     m_stats.DoTranPointClipped();
@@ -933,6 +938,7 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetClippedTranPoint(const float xNorma
   }
 
   return std::make_tuple(tranX, tranY);
+   **/
 }
 
 auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float xNormalized, const float yNormalized)
