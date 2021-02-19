@@ -29,6 +29,10 @@ auto SplitString(const std::string& str, const std::string& delim) -> std::vecto
     s.erase(0, pos + delim.length());
     vec.emplace_back(token);
   }
+  if (!s.empty())
+  {
+    vec.emplace_back(s);
+  }
   return vec;
 #else
   auto parts = str | std::views::split(delim);
