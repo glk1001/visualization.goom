@@ -223,6 +223,8 @@ public:
   void SetResourcesDirectory(const std::string& dirName);
   void SetBuffSettings(const FXBuffSettings& settings);
 
+  void ChangeFilterData(const ZoomFilterData& filterData);
+
   void ZoomFilterFastRgb(const PixelBuffer& pix1,
                          PixelBuffer& pix2,
                          const ZoomFilterData* zf,
@@ -347,6 +349,11 @@ void ZoomFilterFx::Log(const StatsLogValueFunc& logVal) const
 auto ZoomFilterFx::GetFxName() const -> std::string
 {
   return "ZoomFilter FX";
+}
+
+void ZoomFilterFx::ChangeFilterData(const ZoomFilterData& filterData)
+{
+  m_fxImpl->ChangeFilterData(filterData);
 }
 
 void ZoomFilterFx::ZoomFilterFastRgb(const PixelBuffer& pix1,
@@ -583,6 +590,11 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetMixedColor(const NeighborhoodCoeffA
                 /*.g = */ static_cast<uint8_t>(newG),
                 /*.b = */ static_cast<uint8_t>(newB),
                 /*.a = */ 0xff}};
+}
+
+void ZoomFilterFx::ZoomFilterImpl::ChangeFilterData(const ZoomFilterData& filterData)
+{
+  m_filterData = filterData;
 }
 
 /**

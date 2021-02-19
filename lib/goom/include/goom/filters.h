@@ -174,13 +174,6 @@ public:
   auto operator=(const ZoomFilterFx&) -> ZoomFilterFx& = delete;
   auto operator=(ZoomFilterFx&&) -> ZoomFilterFx& = delete;
 
-  void ZoomFilterFastRgb(const PixelBuffer& pix1,
-                         PixelBuffer& pix2,
-                         const ZoomFilterData* zf,
-                         int switchIncr,
-                         float switchMult,
-                         uint32_t& numClipped);
-
   [[nodiscard]] auto GetResourcesDirectory() const -> const std::string& override;
   void SetResourcesDirectory(const std::string& dirName) override;
 
@@ -192,6 +185,15 @@ public:
   auto GetFilterData() const -> const ZoomFilterData&;
   auto GetGeneralSpeed() const -> float;
   auto GetTranBuffYLineStart() const -> uint32_t;
+
+  void ChangeFilterData(const ZoomFilterData& filterData);
+
+  void ZoomFilterFastRgb(const PixelBuffer& pix1,
+                         PixelBuffer& pix2,
+                         const ZoomFilterData* zf,
+                         int switchIncr,
+                         float switchMult,
+                         uint32_t& numClipped);
 
   void Log(const StatsLogValueFunc& l) const override;
   void Finish() override;
