@@ -116,10 +116,6 @@ constexpr float m_pi = std::numbers::pi;
 constexpr float m_two_pi = 2.0 * m_pi;
 constexpr float m_half_pi = 0.5 * m_pi;
 
-constexpr size_t NUM_SIN_COS_ANGLES = 256;
-extern const std::array<float, NUM_SIN_COS_ANGLES> sin256;
-extern const std::array<float, NUM_SIN_COS_ANGLES> cos256;
-
 constexpr auto Sq(const float x) -> float
 {
   return x * x;

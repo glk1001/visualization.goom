@@ -202,7 +202,7 @@ private:
                        const std::vector<Pixel>& colors);
   void RemoveDeadStars();
   void AddABomb(int32_t mx, int32_t my, float radius, float vage, float gravity, float sideWind);
-  [[nodiscard]] auto GetBombAngle(float x, float y) const -> uint32_t;
+  [[nodiscard]] auto GetBombAngle(float x, float y) const -> float;
 
   static constexpr size_t MIN_DOT_SIZE = 3;
   static constexpr size_t MAX_DOT_SIZE = 5;
@@ -820,8 +820,8 @@ void FlyingStarsFx::FlyingStarsImpl::AddABomb(const int32_t mx,
   m_stars.push_back(Star{});
 
   const size_t i = m_stars.size() - 1;
-  m_stars[i].x = mx;
-  m_stars[i].y = my;
+  m_stars[i].x = static_cast<float>(mx);
+  m_stars[i].y = static_cast<float>(my);
 
   // TODO Get colormap based on current mode.
   m_stars[i].dominantColormap = m_colorMapsManager.GetColorMapPtr(m_dominantColorMapID);
@@ -830,10 +830,10 @@ void FlyingStarsFx::FlyingStarsImpl::AddABomb(const int32_t mx,
   m_stars[i].currentLowColorMap = m_colorMapsManager.GetColorMapPtr(m_lowColorMapID);
 
   const float ro = radius * GetRandInRange(0.01F, 2.0F);
-  const uint32_t theta = GetBombAngle(m_stars[i].x, m_stars[i].y);
+  const float angle = GetBombAngle(m_stars[i].x, m_stars[i].y);
 
-  m_stars[i].xVelocity = ro * cos256[theta];
-  m_stars[i].yVelocity = -0.2F + ro * sin256[theta];
+  m_stars[i].xVelocity = ro * std::cos(angle);
+  m_stars[i].yVelocity = -0.2F + ro * std::sin(angle);
 
   m_stars[i].xAcceleration = sideWind;
   m_stars[i].yAcceleration = gravity;
@@ -847,7 +847,7 @@ void FlyingStarsFx::FlyingStarsImpl::AddABomb(const int32_t mx,
 }
 
 auto FlyingStarsFx::FlyingStarsImpl::GetBombAngle(const float x,
-                                                  [[maybe_unused]] const float y) const -> uint32_t
+                                                  [[maybe_unused]] const float y) const -> float
 {
   float minAngle;
   float maxAngle;
@@ -878,9 +878,7 @@ auto FlyingStarsFx::FlyingStarsImpl::GetBombAngle(const float x,
       throw std::logic_error("Unknown StarModes enum.");
   }
 
-  const float randAngle = GetRandInRange(minAngle, maxAngle);
-  return static_cast<uint32_t>(0.001 +
-                               static_cast<float>(NUM_SIN_COS_ANGLES - 1) * randAngle / m_two_pi);
+  return GetRandInRange(minAngle, maxAngle);
 }
 
 } // namespace GOOM

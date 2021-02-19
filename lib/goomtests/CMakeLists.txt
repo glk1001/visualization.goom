@@ -16,6 +16,7 @@ add_executable( ${PROJECT_NAME}
     src/test_main.cpp
     src/test_colorutils.cpp
     src/test_goomrand.cpp
+    src/test_mathutils.cpp
     src/test_strutils.cpp
 )
 
