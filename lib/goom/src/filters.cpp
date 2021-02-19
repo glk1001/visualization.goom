@@ -30,6 +30,8 @@
 #include "stats/filter_stats.h"
 #include "v2d.h"
 
+//#include <valgrind/callgrind.h>
+
 #include <array>
 #undef NDEBUG
 #include <cassert>
@@ -697,7 +699,76 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
   m_stats.UpdateEnd();
 }
 
+#ifdef NO_PARALLEL
 // pure c version of the zoom filter
+void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff,
+                                         PixelBuffer& destBuff,
+                                         uint32_t& numDestClipped)
+{
+  //  CALLGRIND_START_INSTRUMENTATION;
+
+  m_stats.DoCZoom();
+
+  numDestClipped = 0;
+
+  for (uint32_t destY = 0; destY < m_screenHeight; destY++)
+  {
+    uint32_t destPos = m_screenWidth * destY;
+#if __cplusplus <= 201402L
+    const auto destRowIter = destBuff.GetRowIter(destY);
+    const auto destRowBegin = std::get<0>(destRowIter);
+    const auto destRowEnd = std::get<1>(destRowIter);
+#else
+    const auto [destRowBegin, destRowEnd] = destBuff.GetRowIter(destY);
+#endif
+    for (auto destRowBuff = destRowBegin; destRowBuff != destRowEnd; ++destRowBuff)
+    {
+      const uint32_t tranX = GetTranXBuffSrceDestLerp(destPos);
+      const uint32_t tranY = GetTranYBuffSrceDestLerp(destPos);
+
+      if ((tranX >= m_maxTranX) || (tranY >= m_maxTranY))
+      {
+        m_stats.DoTranPointClipped();
+        *destRowBuff = Pixel::BLACK;
+        numDestClipped++;
+      }
+      else
+      {
+#if __cplusplus <= 201402L
+        const auto srceInfo = GetSourceInfo(tranX, tranY);
+        const auto srceX = std::get<0>(srceInfo);
+        const auto srceY = std::get<1>(srceInfo);
+        const auto coeffs = std::get<2>(srceInfo);
+#else
+        const auto [srceX, srceY, coeffs] = GetSourceInfo(tranPx, tranPy);
+#endif
+        const NeighborhoodPixelArray pixelNeighbours = srceBuff.Get4RHBNeighbours(srceX, srceY);
+        *destRowBuff = GetNewColor(coeffs, pixelNeighbours);
+#ifndef NO_LOGGING
+        if (43 < m_filterNum && m_filterNum < 51 && (*destRowBuff).Rgba() > 0xFF000000)
+        {
+          logInfo("destPos == {}", destPos);
+          logInfo("srceX == {}", srceX);
+          logInfo("srceY == {}", srceY);
+          logInfo("tranX == {}", tranX);
+          logInfo("tranY == {}", tranY);
+          logInfo("coeffs[0] == {:x}", coeffs.c[0]);
+          logInfo("coeffs[1] == {:x}", coeffs.c[1]);
+          logInfo("coeffs[2] == {:x}", coeffs.c[2]);
+          logInfo("coeffs[3] == {:x}", coeffs.c[3]);
+          logInfo("(*destRowBuff).Rgba == {:x}", (*destRowBuff).Rgba());
+        }
+#endif
+      }
+      destPos++;
+    }
+  }
+
+  //  CALLGRIND_STOP_INSTRUMENTATION;
+  //  CALLGRIND_DUMP_STATS;
+}
+#endif
+
 void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff,
                                          PixelBuffer& destBuff,
                                          uint32_t& numDestClipped)
