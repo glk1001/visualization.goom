@@ -1061,7 +1061,7 @@ void GoomControl::GoomControlImpl::ChooseGoomLine(float* param1,
       throw std::logic_error("Unknown LineTypes enum.");
   }
 
-  m_stats.ChangeLineColor();
+  m_stats.DoChangeLineColor();
   *couleur = m_gmline1.GetRandomLineColor();
 }
 
@@ -1112,14 +1112,14 @@ void GoomControl::GoomControlImpl::ChangeFilterMode()
 {
   logDebug("Time to change the filter mode.");
 
-  m_stats.FilterModeChange();
+  m_stats.DoChangeFilterMode();
 
   SetNextFilterMode();
 
-  m_stats.FilterModeChange(m_filterControl.GetFilterData().mode);
+  m_stats.DoChangeFilterMode(m_filterControl.GetFilterData().mode);
 
   m_visualFx.ifs_fx->Renew();
-  m_stats.IfsRenew();
+  m_stats.DoIfsRenew();
 }
 
 void GoomControl::GoomControlImpl::ChangeState()
@@ -1139,8 +1139,8 @@ void GoomControl::GoomControlImpl::ChangeState()
 
   m_curGDrawables = m_states.GetCurrentDrawables();
   logDebug("Changed goom state to {}", m_states.GetCurrentStateIndex());
-  m_stats.StateChange(m_timeInState);
-  m_stats.StateChange(m_states.GetCurrentStateIndex(), m_timeInState);
+  m_stats.DoStateChange(m_timeInState);
+  m_stats.DoStateChange(m_states.GetCurrentStateIndex(), m_timeInState);
   m_timeInState = 0;
 
   if (m_states.IsCurrentlyDrawable(GoomDrawable::IFS))
@@ -1156,7 +1156,7 @@ void GoomControl::GoomControlImpl::ChangeState()
     else if (m_goomEvent.Happens(GoomEvent::IFS_RENEW))
     {
       m_visualFx.ifs_fx->Renew();
-      m_stats.IfsRenew();
+      m_stats.DoIfsRenew();
     }
     m_visualFx.ifs_fx->UpdateIncr();
   }
@@ -1337,7 +1337,7 @@ void GoomControl::GoomControlImpl::BigUpdate(const ZoomFilterData** pzfd)
   // mode mega-lent
   if (m_goomEvent.Happens(GoomEvent::CHANGE_TO_MEGA_LENT_MODE))
   {
-    m_stats.MegaLentChange();
+    m_stats.DoMegaLentChange();
     MegaLentUpdate(pzfd);
   }
 }
@@ -1396,7 +1396,7 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect(const ZoomFilterData* pzfd, 
       m_goomData.switchMult = GoomData::SWITCH_MULT_AMOUNT;
 
       m_visualFx.ifs_fx->Renew();
-      m_stats.IfsRenew();
+      m_stats.DoIfsRenew();
     }
   }
   else
@@ -1410,7 +1410,7 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect(const ZoomFilterData* pzfd, 
       pzfd = &m_filterControl.GetFilterData();
       m_goomData.cyclesSinceLastChange = 0;
       m_visualFx.ifs_fx->Renew();
-      m_stats.IfsRenew();
+      m_stats.DoIfsRenew();
     }
     else
     {
@@ -1702,7 +1702,7 @@ void GoomControl::GoomControlImpl::StopRequest()
 
   m_gmline1.ResetDestLine(mode, param1, amplitude, couleur);
   m_gmline2.ResetDestLine(mode, param2, amplitude, couleur);
-  m_stats.SwitchLines();
+  m_stats.DoSwitchLines();
   m_goomData.stopLines &= 0x0fff;
 }
 
@@ -1761,7 +1761,7 @@ void GoomControl::GoomControlImpl::StopRandomLineChangeMode()
                m_goomData.drawLinesDuration);
       m_gmline1.ResetDestLine(mode, param1, amplitude, color1);
       m_gmline2.ResetDestLine(mode, param2, amplitude, color2);
-      m_stats.SwitchLines();
+      m_stats.DoSwitchLines();
     }
   }
 }

@@ -40,7 +40,7 @@ void GoomStats::Reset()
   m_totalStateDurations = 0;
   std::fill(m_numStateChanges.begin(), m_numStateChanges.end(), 0);
   std::fill(m_stateDurations.begin(), m_stateDurations.end(), 0);
-  m_totalFilterModeChanges = 0;
+  m_numChangeFilterModes = 0;
   m_numFilterModeChanges.fill(0);
   m_numLockChanges = 0;
   m_numDoIFS = 0;
@@ -73,7 +73,7 @@ void GoomStats::Log(const StatsLogValueFunc& logVal) const
   logVal(MODULE, "lastState", m_lastState);
   logVal(MODULE, "lastSeed", m_lastSeed);
   logVal(MODULE, "numThreadsUsed", m_numThreadsUsed);
-  logVal(MODULE, "m_fontFileUsed", m_fontFileUsed);
+  logVal(MODULE, "fontFileUsed", m_fontFileUsed);
   logVal(MODULE, "Compiler std", static_cast<uint32_t>(__cplusplus));
 
   if (m_lastZoomFilterData == nullptr)
@@ -156,7 +156,7 @@ void GoomStats::Log(const StatsLogValueFunc& logVal) const
             : static_cast<float>(m_stateDurations[i]) / static_cast<float>(m_numStateChanges[i]);
     logVal(MODULE, "averageState_" + std::to_string(i) + "_Duration", avStateTime);
   }
-  logVal(MODULE, "totalFilterModeChanges", m_totalFilterModeChanges);
+  logVal(MODULE, "numChangeFilterModes", m_numChangeFilterModes);
   for (size_t i = 0; i < m_numFilterModeChanges.size(); i++)
   {
     logVal(MODULE, "numFilterMode_" + EnumToString(static_cast<ZoomFilterMode>(i)) + "_Changes",
@@ -253,13 +253,13 @@ void GoomStats::UpdateChange(const size_t currentState, const ZoomFilterMode cur
   m_numUpdates++;
 }
 
-void GoomStats::StateChange(const uint32_t timeInState)
+void GoomStats::DoStateChange(const uint32_t timeInState)
 {
   m_totalStateChanges++;
   m_totalStateDurations += timeInState;
 }
 
-void GoomStats::StateChange(const size_t index, const uint32_t timeInState)
+void GoomStats::DoStateChange(const size_t index, const uint32_t timeInState)
 {
   if (index >= m_numStateChanges.size())
   {
@@ -280,12 +280,12 @@ void GoomStats::StateChange(const size_t index, const uint32_t timeInState)
   m_stateDurations[index] += timeInState;
 }
 
-void GoomStats::FilterModeChange()
+void GoomStats::DoChangeFilterMode()
 {
-  m_totalFilterModeChanges++;
+  m_numChangeFilterModes++;
 }
 
-void GoomStats::FilterModeChange(const ZoomFilterMode mode)
+void GoomStats::DoChangeFilterMode(const ZoomFilterMode mode)
 {
   m_numFilterModeChanges.at(static_cast<size_t>(mode))++;
 }
@@ -335,7 +335,7 @@ void GoomStats::LastTimeGoomChange()
   m_numLastTimeGoomChanges++;
 }
 
-void GoomStats::MegaLentChange()
+void GoomStats::DoMegaLentChange()
 {
   m_numMegaLentChanges++;
 }
@@ -350,17 +350,17 @@ void GoomStats::DoTurnOffNoise()
   m_numTurnOffNoise++;
 }
 
-void GoomStats::IfsRenew()
+void GoomStats::DoIfsRenew()
 {
   m_numIfsRenew++;
 }
 
-void GoomStats::ChangeLineColor()
+void GoomStats::DoChangeLineColor()
 {
   m_numChangeLineColor++;
 }
 
-void GoomStats::SwitchLines()
+void GoomStats::DoSwitchLines()
 {
   m_numSwitchLines++;
 }

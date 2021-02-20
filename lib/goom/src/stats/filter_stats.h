@@ -20,6 +20,7 @@ public:
   void Log(const StatsLogValueFunc& l) const;
   void UpdateStart();
   void UpdateEnd();
+  void DoChangeFilterSettings();
   void DoZoomVector();
   void DoZoomVectorCrystalBallMode();
   void DoZoomVectorAmuletMode();
@@ -32,22 +33,22 @@ public:
   void DoZoomVectorHypercosEffect();
   void DoZoomVectorHPlaneEffect();
   void DoZoomVectorVPlaneEffect();
-  void DoMakeZoomBufferStripe();
+  void DoZoomVectorTanEffect();
+  void DoZoomVectorNegativeRotate();
+  void DoZoomVectorPositiveRotate();
+  void DoNextTranBufferStripe();
   void DoGetMixedColor();
   void DoGetBlockyMixedColor();
   void DoCZoom();
   void DoGenerateWaterFxHorizontalBuffer();
   void DoZoomFilterFastRgb();
-  void ResetTranBuffer();
-  void DoZoomFilterRestartTranBuffYLine();
-  void DoZoomFilterSwitchIncrNotZero();
-  void DoZoomFilterSwitchMultNotEqual1();
-  void DoZoomTanEffect();
-  void DoZoomVectorNegativeRotate();
-  void DoZoomVectorPositiveRotate();
+  void DoRestartTranBuffer();
+  void DoResetTranBuffer();
+  void DoSwitchIncrNotZero();
+  void DoSwitchMultNotOne();
   void DoTranPointClipped();
-  void CoeffVitesseBelowMin();
-  void CoeffVitesseAboveMax();
+  void DoZoomVectorCoeffVitesseBelowMin();
+  void DoZoomVectorCoeffVitesseAboveMax();
 
   void SetLastMode(ZoomFilterMode mode);
   void SetLastGeneralSpeed(float val);
@@ -63,6 +64,7 @@ private:
   uint32_t m_maxTimeInUpdatesMs = 0;
   std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> m_timeNowHiRes{};
 
+  uint32_t m_numChangeFilterSettings = 0;
   uint64_t m_numZoomVectors = 0;
   uint64_t m_numZoomVectorCrystalBallMode = 0;
   uint64_t m_numZoomVectorAmuletMode = 0;

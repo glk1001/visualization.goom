@@ -21,6 +21,7 @@ void FilterStats::Reset()
   m_maxTimeInUpdatesMs = 0;
   m_timeNowHiRes = std::chrono::high_resolution_clock::now();
 
+  m_numChangeFilterSettings = 0;
   m_numZoomVectors = 0;
   m_numZoomVectorCrystalBallMode = 0;
   m_numZoomVectorAmuletMode = 0;
@@ -70,6 +71,7 @@ void FilterStats::Log(const StatsLogValueFunc& logVal) const
   logVal(MODULE, "lastTranBuffYLineStart", m_lastTranBuffYLineStart);
   logVal(MODULE, "lastTranDiffFactor", m_lastTranDiffFactor);
 
+  logVal(MODULE, "numChangeFilterSettings", m_numChangeFilterSettings);
   logVal(MODULE, "numZoomVectors", m_numZoomVectors);
   logVal(MODULE, "numZoomVectorCrystalBallMode", m_numZoomVectorCrystalBallMode);
   logVal(MODULE, "numZoomVectorAmuletMode", m_numZoomVectorAmuletMode);
@@ -121,6 +123,11 @@ void FilterStats::UpdateEnd()
     m_maxTimeInUpdatesMs = timeInUpdateMs;
   }
   m_totalTimeInUpdatesMs += timeInUpdateMs;
+}
+
+void FilterStats::DoChangeFilterSettings()
+{
+  m_numChangeFilterSettings++;
 }
 
 void FilterStats::DoZoomVector()
@@ -183,7 +190,7 @@ void FilterStats::DoZoomVectorVPlaneEffect()
   m_numZoomVectorVPlaneEffect++;
 }
 
-void FilterStats::DoMakeZoomBufferStripe()
+void FilterStats::DoNextTranBufferStripe()
 {
   m_numMakeZoomBufferStripe++;
 }
@@ -213,27 +220,27 @@ void FilterStats::DoZoomFilterFastRgb()
   m_numZoomFilterFastRgb++;
 }
 
-void FilterStats::ResetTranBuffer()
+void FilterStats::DoRestartTranBuffer()
 {
   m_numZoomFilterResetTranBuffer++;
 }
 
-void FilterStats::DoZoomFilterRestartTranBuffYLine()
+void FilterStats::DoResetTranBuffer()
 {
   m_numZoomFilterRestartTranBuffYLine++;
 }
 
-void FilterStats::DoZoomFilterSwitchMultNotEqual1()
+void FilterStats::DoSwitchMultNotOne()
 {
   m_numZoomFilterSwitchMultNotEqual1++;
 }
 
-void FilterStats::DoZoomFilterSwitchIncrNotZero()
+void FilterStats::DoSwitchIncrNotZero()
 {
   m_numZoomFilterSwitchIncrNotZero++;
 }
 
-void FilterStats::DoZoomTanEffect()
+void FilterStats::DoZoomVectorTanEffect()
 {
   m_numZoomTanEffect++;
 }
@@ -253,12 +260,12 @@ void FilterStats::DoTranPointClipped()
   m_numTranPointsClipped++;
 }
 
-void FilterStats::CoeffVitesseBelowMin()
+void FilterStats::DoZoomVectorCoeffVitesseBelowMin()
 {
   m_numCoeffVitesseBelowMin++;
 }
 
-void FilterStats::CoeffVitesseAboveMax()
+void FilterStats::DoZoomVectorCoeffVitesseAboveMax()
 {
   m_numCoeffVitesseAboveMax++;
 }

@@ -225,15 +225,15 @@ public:
 
   void ChangeFilterSettings(const ZoomFilterData& filterSettings);
 
+  auto GetFilterSettings() const -> const ZoomFilterData&;
+  auto GetGeneralSpeed() const -> float;
+  auto GetTranBuffYLineStart() const -> uint32_t;
+
   void ZoomFilterFastRgb(const PixelBuffer& pix1,
                          PixelBuffer& pix2,
                          int32_t switchIncr,
                          float switchMult,
                          uint32_t& numClipped);
-
-  auto GetFilterSettings() const -> const ZoomFilterData&;
-  auto GetGeneralSpeed() const -> float;
-  auto GetTranBuffYLineStart() const -> uint32_t;
 
   void Log(const StatsLogValueFunc& l) const;
 
@@ -270,13 +270,13 @@ private:
   const uint32_t m_maxTranY;
   const uint32_t m_tranBuffStripeHeight;
   uint32_t m_tranBuffYLineStart;
-  enum class TranBuffState
+  enum class TranBufferState
   {
+    RESTART_TRAN_BUFFER,
     RESET_TRAN_BUFFER,
-    RESTART_BUFF_YLINE,
-    BUFF_READY,
+    TRAN_BUFFER_READY,
   };
-  TranBuffState m_tranBuffState;
+  TranBufferState m_tranBufferState;
   // modification by jeko : fixedpoint : tranDiffFactor = (16:16) (0 <= tranDiffFactor <= 2^16)
   int32_t m_tranDiffFactor; // in [0, BUFF_POINT_MASK]
   auto GetTranXBuffSrceDestLerp(size_t buffPos) const -> int32_t;
@@ -288,13 +288,21 @@ private:
   auto GetNewColor(const NeighborhoodCoeffArray& coeffs, const NeighborhoodPixelArray& pixels) const
       -> Pixel;
   auto GetTranPoint(float xNormalised, float yNormalised) const -> std::tuple<int32_t, int32_t>;
+  auto GetMixedColor(const NeighborhoodCoeffArray& coeffs,
+                     const NeighborhoodPixelArray& colors) const -> Pixel;
+  auto GetBlockyMixedColor(const NeighborhoodCoeffArray& coeffs,
+                           const NeighborhoodPixelArray& colors) const -> Pixel;
 
   const FilterCoefficients m_precalculatedCoeffs;
 
   std::vector<int32_t> m_firedec{};
 
   void CZoom(const PixelBuffer& srceBuff, PixelBuffer& destBuff, uint32_t& numDestClipped);
-  void AssignBufferStripeToTranTemp(uint32_t tranBuffStripeHeight);
+  void UpdateTranBuffer();
+  void UpdateTranDiffFactor(int32_t switchIncr, float switchMult);
+  void RestartTranBuffer();
+  void ResetTranBuffer();
+  void DoNextTranBufferStripe(uint32_t tranBuffStripeHeight);
   void GenerateWaterFxHorizontalBuffer();
   auto GetZoomVector(float xNormalized, float yNormalized) -> V2dFlt;
   auto GetStandardVelocity(float xNormalized, float yNormalized) -> V2dFlt;
@@ -303,12 +311,8 @@ private:
   auto GetVPlaneEffectVelocity(float xNormalized, float yNormalized) const -> float;
   auto GetNoiseVelocity() -> V2dFlt;
   void AvoidNullDisplacement(V2dFlt& velocity) const;
-  auto GetMixedColor(const NeighborhoodCoeffArray& coeffs,
-                     const NeighborhoodPixelArray& colors) const -> Pixel;
-  auto GetBlockyMixedColor(const NeighborhoodCoeffArray& coeffs,
-                           const NeighborhoodPixelArray& colors) const -> Pixel;
 
-  void logState(const std::string& name);
+  void LogState(const std::string& name);
 };
 
 ZoomFilterFx::ZoomFilterFx(Parallel& p, const std::shared_ptr<const PluginInfo>& info) noexcept
@@ -406,7 +410,7 @@ ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl(Parallel& p,
     m_maxTranY{ScreenToTranCoord(m_screenHeight - 1)},
     m_tranBuffStripeHeight{m_screenHeight / DIM_FILTER_COEFFS},
     m_tranBuffYLineStart{0},
-    m_tranBuffState{TranBuffState::BUFF_READY},
+    m_tranBufferState{TranBufferState::TRAN_BUFFER_READY},
     m_tranDiffFactor{0},
     m_precalculatedCoeffs{},
     m_firedec(m_screenHeight)
@@ -420,7 +424,7 @@ ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl(Parallel& p,
   m_filterSettings.middleY = m_screenHeight / 2;
 
   GenerateWaterFxHorizontalBuffer();
-  AssignBufferStripeToTranTemp(m_screenHeight);
+  DoNextTranBufferStripe(m_screenHeight);
 
   // Copy the data from temp to dest and source
   std::copy(m_tranXTemp.begin(), m_tranXTemp.end(), m_tranXSrce.begin());
@@ -593,6 +597,7 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetMixedColor(const NeighborhoodCoeffA
 
 void ZoomFilterFx::ZoomFilterImpl::ChangeFilterSettings(const ZoomFilterData& filterSettings)
 {
+  m_stats.DoChangeFilterSettings();
   m_filterSettings = filterSettings;
   m_justChangedFilterSettings = true;
 }
@@ -624,65 +629,25 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
   m_stats.UpdateStart();
   m_stats.DoZoomFilterFastRgb();
 
-  // changement de taille
-  if (m_tranBuffState == TranBuffState::RESET_TRAN_BUFFER)
-  {
-    if (m_justChangedFilterSettings)
-    {
-      logState("Before RESET_TRAN_BUFFER");
+  UpdateTranBuffer();
 
-      m_justChangedFilterSettings = false;
+  UpdateTranDiffFactor(switchIncr, switchMult);
 
-      m_stats.ResetTranBuffer();
-      m_generalSpeed = static_cast<float>(m_filterSettings.vitesse - ZoomFilterData::MAX_VITESSE) /
-                       static_cast<float>(ZoomFilterData::MAX_VITESSE);
-      if (m_filterSettings.reverse)
-      {
-        m_generalSpeed = -m_generalSpeed;
-      }
-      m_tranBuffYLineStart = 0;
-      m_tranBuffState = TranBuffState::BUFF_READY;
-      logState("After RESET_TRAN_BUFFER");
-    }
-  }
-  else if (m_tranBuffState == TranBuffState::RESTART_BUFF_YLINE)
-  {
-    logState("Before RESTART_BUFF_YLINE");
-    // generation du buffer de transform
-    m_stats.DoZoomFilterRestartTranBuffYLine();
+  LogState("Before CZoom");
+  CZoom(pix1, pix2, numClipped);
+  logInfo("numClipped = {}", numClipped);
+  LogState("After CZoom");
 
-    // sauvegarde de l'etat actuel dans la nouvelle source
-    // Save the current state in the source buffs.
-    // TODO - Skip lerp and do memcpy ???
-    for (size_t i = 0; i < m_screenWidth * m_screenHeight; i++)
-    {
-      m_tranXSrce[i] = static_cast<int32_t>(GetTranXBuffSrceDestLerp(i));
-      m_tranYSrce[i] = static_cast<int32_t>(GetTranYBuffSrceDestLerp(i));
-    }
-    m_tranDiffFactor = 0;
+  m_stats.UpdateEnd();
+}
 
-    // Set up the next dest buffs from the last buffer stripe.
-    std::swap(m_tranXDest, m_tranXTemp);
-    std::swap(m_tranYDest, m_tranYTemp);
-
-    m_tranBuffYLineStart = 0;
-    m_tranBuffState = TranBuffState::RESET_TRAN_BUFFER;
-    logState("After RESTART_BUFF_YLINE");
-  }
-  else
-  {
-    logInfo("m_tranBuffState = else");
-    // Create a new destination stripe of 'm_tranBuffStripeHeight' height starting
-    // at 'm_tranBuffYLineStart'.
-    logState("Before AssignBufferStripeToTranTemp");
-    AssignBufferStripeToTranTemp(m_tranBuffStripeHeight);
-    logState("After AssignBufferStripeToTranTemp");
-  }
-
+void ZoomFilterFx::ZoomFilterImpl::UpdateTranDiffFactor(const int32_t switchIncr,
+                                                        const float switchMult)
+{
   logInfo("before switchIncr = {} m_tranDiffFactor = {}", switchIncr, m_tranDiffFactor);
   if (switchIncr != 0)
   {
-    m_stats.DoZoomFilterSwitchIncrNotZero();
+    m_stats.DoSwitchIncrNotZero();
 
     m_tranDiffFactor += switchIncr;
     if (m_tranDiffFactor > MAX_TRAN_DIFF_FACTOR)
@@ -694,22 +659,83 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
 
   if (!floats_equal(switchMult, 1.0F))
   {
-    m_stats.DoZoomFilterSwitchMultNotEqual1();
+    m_stats.DoSwitchMultNotOne();
 
     m_tranDiffFactor =
         static_cast<int32_t>(stdnew::lerp(static_cast<float>(MAX_TRAN_DIFF_FACTOR),
                                           static_cast<float>(m_tranDiffFactor), switchMult));
   }
   logInfo("after switchMult = {} m_tranDiffFactor = {}", switchMult, m_tranDiffFactor);
+}
 
-  logState("Before CZoom");
+void ZoomFilterFx::ZoomFilterImpl::UpdateTranBuffer()
+{
+  if (m_tranBufferState == TranBufferState::RESET_TRAN_BUFFER)
+  {
+    LogState("Before RESET_TRAN_BUFFER");
+    ResetTranBuffer();
+    LogState("After RESET_TRAN_BUFFER");
+  }
+  else if (m_tranBufferState == TranBufferState::RESTART_TRAN_BUFFER)
+  {
+    LogState("Before RESTART_TRAN_BUFFER");
+    RestartTranBuffer();
+    LogState("After RESTART_TRAN_BUFFER");
+  }
+  else
+  {
+    logInfo("m_tranBufferState = else");
+    // Create a new destination stripe of 'm_tranBuffStripeHeight' height starting
+    // at 'm_tranBuffYLineStart'.
+    LogState("Before DoNextTranBufferStripe");
+    DoNextTranBufferStripe(m_tranBuffStripeHeight);
+    LogState("After DoNextTranBufferStripe");
+  }
+}
 
-  CZoom(pix1, pix2, numClipped);
+void ZoomFilterFx::ZoomFilterImpl::ResetTranBuffer()
+{
+  // generation du buffer de transform
+  m_stats.DoResetTranBuffer();
 
-  logInfo("numClipped = {}", numClipped);
-  logState("After CZoom");
+  // sauvegarde de l'etat actuel dans la nouvelle source
+  // Save the current state in the source buffs.
+  // TODO - Skip lerp and do memcpy ???
+  for (size_t i = 0; i < m_screenWidth * m_screenHeight; i++)
+  {
+    m_tranXSrce[i] = static_cast<int32_t>(GetTranXBuffSrceDestLerp(i));
+    m_tranYSrce[i] = static_cast<int32_t>(GetTranYBuffSrceDestLerp(i));
+  }
+  m_tranDiffFactor = 0;
 
-  m_stats.UpdateEnd();
+  // Set up the next dest buffs from the last buffer stripe.
+  std::swap(m_tranXDest, m_tranXTemp);
+  std::swap(m_tranYDest, m_tranYTemp);
+
+  m_tranBuffYLineStart = 0;
+  m_tranBufferState = TranBufferState::RESTART_TRAN_BUFFER;
+}
+
+void ZoomFilterFx::ZoomFilterImpl::RestartTranBuffer()
+{
+  // Don't start making new stripes until filter settings change.
+  if (!m_justChangedFilterSettings)
+  {
+    return;
+  }
+
+  m_stats.DoRestartTranBuffer();
+
+  m_justChangedFilterSettings = false;
+
+  m_generalSpeed = static_cast<float>(m_filterSettings.vitesse - ZoomFilterData::MAX_VITESSE) /
+                   static_cast<float>(ZoomFilterData::MAX_VITESSE);
+  if (m_filterSettings.reverse)
+  {
+    m_generalSpeed = -m_generalSpeed;
+  }
+  m_tranBuffYLineStart = 0;
+  m_tranBufferState = TranBufferState::TRAN_BUFFER_READY;
 }
 
 #ifdef NO_PARALLEL
@@ -790,7 +816,8 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff,
 
   numDestClipped = 0;
 
-  const auto setDestPixelRow = [&](const uint32_t destY) {
+  const auto setDestPixelRow = [&](const uint32_t destY)
+  {
     uint32_t destPos = m_screenWidth * destY;
 #if __cplusplus <= 201402L
     const auto destRowIter = destBuff.GetRowIter(destY);
@@ -865,18 +892,19 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff,
  * Translation (-data->middleX, -data->middleY)
  * Homothetie (Center : 0,0   Coeff : 2/data->screenWidth)
  */
-void ZoomFilterFx::ZoomFilterImpl::AssignBufferStripeToTranTemp(const uint32_t tranBuffStripeHeight)
+void ZoomFilterFx::ZoomFilterImpl::DoNextTranBufferStripe(const uint32_t tranBuffStripeHeight)
 {
-  m_stats.DoMakeZoomBufferStripe();
+  m_stats.DoNextTranBufferStripe();
 
-  assert(m_tranBuffState == TranBuffState::BUFF_READY);
+  assert(m_tranBufferState == TranBufferState::TRAN_BUFFER_READY);
 
   const float xMidNormalized =
       ScreenToNormalizedCoord(static_cast<int32_t>(m_filterSettings.middleX));
   const float yMidNormalized =
       ScreenToNormalizedCoord(static_cast<int32_t>(m_filterSettings.middleY));
 
-  const auto doStripeLine = [&](const uint32_t y) {
+  const auto doStripeLine = [&](const uint32_t y)
+  {
     // Position of the pixel to compute in screen coordinates
     const uint32_t yOffset = y + m_tranBuffYLineStart;
     const uint32_t tranPosStart = yOffset * m_screenWidth;
@@ -915,7 +943,7 @@ void ZoomFilterFx::ZoomFilterImpl::AssignBufferStripeToTranTemp(const uint32_t t
   m_tranBuffYLineStart += tranBuffStripeHeight;
   if (tranBuffYLineEnd == m_screenHeight)
   {
-    m_tranBuffState = TranBuffState::RESTART_BUFF_YLINE;
+    m_tranBufferState = TranBufferState::RESET_TRAN_BUFFER;
     m_tranBuffYLineStart = 0;
   }
 }
@@ -1079,12 +1107,12 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetStandardVelocity(const float xNorma
   if (coeffVitesse < MIN_COEF_VITESSE)
   {
     coeffVitesse = MIN_COEF_VITESSE;
-    m_stats.CoeffVitesseBelowMin();
+    m_stats.DoZoomVectorCoeffVitesseBelowMin();
   }
   else if (coeffVitesse > MAX_COEF_VITESSE)
   {
     coeffVitesse = MAX_COEF_VITESSE;
-    m_stats.CoeffVitesseAboveMax();
+    m_stats.DoZoomVectorCoeffVitesseAboveMax();
   }
 
   float x = coeffVitesse * xNormalized;
@@ -1092,7 +1120,7 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetStandardVelocity(const float xNorma
 
   if (m_filterSettings.tanEffect)
   {
-    m_stats.DoZoomTanEffect();
+    m_stats.DoZoomVectorTanEffect();
     const float tanSqDist = std::tan(sqDist);
     x *= tanSqDist;
     y *= tanSqDist;
@@ -1256,7 +1284,7 @@ void ZoomFilterFx::ZoomFilterImpl::GenerateWaterFxHorizontalBuffer()
 }
 
 #ifdef NO_LOGGING
-void ZoomFilterFx::ZoomFilterImpl::logState([[maybe_unused]] const std::string& name)
+void ZoomFilterFx::ZoomFilterImpl::LogState([[maybe_unused]] const std::string& name)
 {
 }
 #else
@@ -1311,7 +1339,7 @@ void ZoomFilterFx::ZoomFilterImpl::logState(const std::string& name)
   logInfo("m_maxTranY = {}", m_maxTranY);
   logInfo("m_tranBuffStripeHeight = {}", m_tranBuffStripeHeight);
   logInfo("m_tranBuffYLineStart = {}", m_tranBuffYLineStart);
-  logInfo("m_tranBuffState = {}", m_tranBuffState);
+  logInfo("m_tranBufferState = {}", m_tranBufferState);
   logInfo("m_tranDiffFactor = {}", m_tranDiffFactor);
 
   logInfo("=================================");
