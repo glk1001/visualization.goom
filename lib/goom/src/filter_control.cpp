@@ -233,13 +233,13 @@ void FilterControl::SetCrystalBallModeSettings()
 
 void FilterControl::SetHypercos1ModeSettings()
 {
-  SetRotate(PROB_LOW);
+  SetRotate(PROB_HIGH);
   SetHypercosEffect();
 }
 
 void FilterControl::SetHypercos2ModeSettings()
 {
-  SetRotate(PROB_LOW);
+  SetRotate(PROB_HIGH);
   SetHypercosEffect();
 }
 

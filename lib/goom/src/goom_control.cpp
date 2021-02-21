@@ -90,7 +90,6 @@ public:
   enum class GoomEvent
   {
     CHANGE_FILTER_MODE = 0,
-    CHANGE_FILTER_FROM_AMULET_MODE,
     CHANGE_STATE,
     TURN_OFF_NOISE,
     CHANGE_TO_MEGA_LENT_MODE,
@@ -142,8 +141,7 @@ private:
   //@formatter:off
   // clang-format off
   const std::array<WeightedEvent, NUM_GOOM_EVENTS> m_weightedEvents{{
-    { /*.event = */GoomEvent::CHANGE_FILTER_MODE,                         /*.m = */8, /*.outOf = */ 16 },
-    { /*.event = */GoomEvent::CHANGE_FILTER_FROM_AMULET_MODE,             /*.m = */1, /*.outOf = */  5 },
+    { /*.event = */GoomEvent::CHANGE_FILTER_MODE,                         /*.m = */1, /*.outOf = */ 16 },
     { /*.event = */GoomEvent::CHANGE_STATE,                               /*.m = */1, /*.outOf = */  2 },
     { /*.event = */GoomEvent::TURN_OFF_NOISE,                             /*.m = */3, /*.outOf = */  5 },
     { /*.event = */GoomEvent::CHANGE_TO_MEGA_LENT_MODE,                   /*.m = */1, /*.outOf = */700 },
@@ -585,7 +583,6 @@ public:
   void Finish();
 
   void Update(const AudioSamples& soundData,
-              int forceMode,
               float fps,
               const char* songTitle,
               const char* message);
@@ -599,8 +596,10 @@ private:
   GoomStates m_states{};
   GoomEvents m_goomEvent{};
   uint32_t m_timeInState = 0;
+  uint32_t m_timeWithFilter = 0;
   uint32_t m_cycle = 0;
   FilterControl m_filterControl;
+  bool m_changeFilterSettingsNow = false;
   std::unordered_set<GoomDrawable> m_curGDrawables{};
   GoomMessage m_messageData{};
   GoomData m_goomData;
@@ -620,20 +619,20 @@ private:
   void SetNextFilterMode();
   void ChangeState();
   void ChangeFilterMode();
-  void BigNormalUpdate(const ZoomFilterData** pzfd);
-  void MegaLentUpdate(const ZoomFilterData** pzfd);
+  void BigNormalUpdate();
+  void MegaLentUpdate();
 
   // baisser regulierement la vitesse
-  void RegularlyLowerTheSpeed(const ZoomFilterData** pzfd);
-  void LowerSpeed(const ZoomFilterData** pzfd);
+  void RegularlyLowerTheSpeed();
+  void LowerSpeed();
 
   // on verifie qu'il ne se pas un truc interressant avec le son.
-  void ChangeFilterModeIfMusicChanges(int forceMode);
+  void ChangeFilterModeIfMusicChanges();
 
   // Changement d'effet de zoom !
-  void ChangeZoomEffect(const ZoomFilterData* pzfd, int forceMode);
+  void ChangeZoomEffect();
 
-  void ApplyZoom(const ZoomFilterData* pzfd);
+  void ApplyZoom();
   void ApplyIfsIfRequired();
   void ApplyTentaclesIfRequired();
   void ApplyStarsIfRequired();
@@ -665,21 +664,17 @@ private:
   // arret aleatore.. changement de mode de ligne..
   void StopRandomLineChangeMode();
 
-  // Permet de forcer un effet.
-  void ForceFilterModeIfSet(const ZoomFilterData** pzfd, int forceMode);
-  void ForceFilterMode(int forceMode, const ZoomFilterData** pzfd);
-
   // arreter de decrémenter au bout d'un certain temps
-  void StopDecrementingAfterAWhile(const ZoomFilterData** pzfd);
-  void StopDecrementing(const ZoomFilterData** pzfd);
+  void StopDecrementingAfterAWhile();
+  void StopDecrementing();
 
   // tout ceci ne sera fait qu'en cas de non-blocage
-  void BigUpdateIfNotLocked(const ZoomFilterData** pzfd);
-  void BigUpdate(const ZoomFilterData** pzfd);
+  void BigUpdateIfNotLocked();
+  void BigUpdate();
 
   // gros frein si la musique est calme
-  void BigBreakIfMusicIsCalm(const ZoomFilterData** pzfd);
-  void BigBreak(const ZoomFilterData** pzfd);
+  void BigBreakIfMusicIsCalm();
+  void BigBreak();
 
   void UpdateMessage(const char* message);
   void DrawText(const std::string&, int xPos, int yPos, float spacing, PixelBuffer&);
@@ -737,12 +732,11 @@ void GoomControl::Finish()
 }
 
 void GoomControl::Update(const AudioSamples& soundData,
-                         const int forceMode,
                          const float fps,
                          const char* songTitle,
                          const char* message)
 {
-  m_controller->Update(soundData, forceMode, fps, songTitle, message);
+  m_controller->Update(soundData, fps, songTitle, message);
 }
 
 static const Pixel RED_LINE = GetRedLineColor();
@@ -833,20 +827,6 @@ auto GoomControl::GoomControlImpl::GetScreenHeight() const -> uint32_t
 
 inline auto GoomControl::GoomControlImpl::ChangeFilterModeEventHappens() -> bool
 {
-  // If we're in amulet mode and the state contains tentacles,
-  // then get out with a different probability.
-  // (Rationale: get tentacles going earlier with another mode.)
-  if ((m_filterControl.GetFilterData().mode == ZoomFilterMode::AMULET_MODE) &&
-#if __cplusplus <= 201402L
-      m_states.GetCurrentDrawables().find(GoomDrawable::TENTACLES) !=
-          m_states.GetCurrentDrawables().end())
-#else
-      m_states.GetCurrentDrawables().contains(GoomDrawable::TENTACLES))
-#endif
-  {
-    return m_goomEvent.Happens(GoomEvent::CHANGE_FILTER_FROM_AMULET_MODE);
-  }
-
   return m_goomEvent.Happens(GoomEvent::CHANGE_FILTER_MODE);
 }
 
@@ -860,6 +840,7 @@ void GoomControl::GoomControlImpl::Start()
   SetFontFile(m_resourcesDirectory + PATH_SEP + FONTS_DIR + PATH_SEP + "verdana.ttf");
 
   m_timeInState = 0;
+  m_timeWithFilter = 0;
   ChangeState();
   ChangeFilterMode();
 
@@ -910,7 +891,6 @@ void GoomControl::GoomControlImpl::Finish()
 }
 
 void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,
-                                          const int forceMode,
                                           const float fps,
                                           const char* songTitle,
                                           const char* message)
@@ -918,6 +898,7 @@ void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,
   m_stats.UpdateChange(m_states.GetCurrentStateIndex(), m_filterControl.GetFilterData().mode);
 
   m_timeInState++;
+  m_timeWithFilter++;
 
   // elargissement de l'intervalle d'évolution des points
   // ! calcul du deplacement des petits points ...
@@ -931,39 +912,30 @@ void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,
 
   ApplyDotsIfRequired();
 
-  /* par défaut pas de changement de zoom */
-  if (forceMode != 0)
-  {
-    logDebug("forceMode = {}\n", forceMode);
-  }
   m_goomData.lockVar--;
   if (m_goomData.lockVar < 0)
   {
     m_goomData.lockVar = 0;
   }
-  m_stats.LockChange();
+  m_stats.DoLockChange();
   /* note pour ceux qui n'ont pas suivis : le lockVar permet d'empecher un */
   /* changement d'etat du plugin juste apres un autre changement d'etat. oki */
   // -- Note for those who have not followed: the lockVar prevents a change
   // of state of the plugin just after another change of state.
 
-  ChangeFilterModeIfMusicChanges(forceMode);
+  ChangeFilterModeIfMusicChanges();
 
-  const ZoomFilterData* pzfd{};
+  BigUpdateIfNotLocked();
 
-  BigUpdateIfNotLocked(&pzfd);
+  BigBreakIfMusicIsCalm();
 
-  BigBreakIfMusicIsCalm(&pzfd);
+  RegularlyLowerTheSpeed();
 
-  RegularlyLowerTheSpeed(&pzfd);
+  StopDecrementingAfterAWhile();
 
-  StopDecrementingAfterAWhile(&pzfd);
+  ChangeZoomEffect();
 
-  ForceFilterModeIfSet(&pzfd, forceMode);
-
-  ChangeZoomEffect(pzfd, forceMode);
-
-  ApplyZoom(pzfd);
+  ApplyZoom();
 
   // applyDotsIfRequired();
   ApplyIfsIfRequired();
@@ -995,8 +967,6 @@ void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,
   DisplayText(songTitle, message, fps);
 
   m_cycle++;
-
-  logDebug("About to return.");
 }
 
 void GoomControl::GoomControlImpl::ChooseGoomLine(float* param1,
@@ -1020,40 +990,40 @@ void GoomControl::GoomControlImpl::ChooseGoomLine(float* param1,
       }
       if (m_goomEvent.Happens(GoomEvent::CHANGE_LINE_CIRCLE_AMPLITUDE))
       {
-        *param1 = *param2 = 0;
+        *param1 = *param2 = 0.0F;
         *amplitude = 3.0F;
       }
       else if (m_goomEvent.Happens(GoomEvent::CHANGE_LINE_CIRCLE_PARAMS))
       {
-        *param1 = 0.40F * GetScreenHeight();
-        *param2 = 0.22F * GetScreenHeight();
+        *param1 = 0.40F * static_cast<float>(GetScreenHeight());
+        *param2 = 0.22F * static_cast<float>(GetScreenHeight());
       }
       else
       {
-        *param1 = *param2 = GetScreenHeight() * 0.35F;
+        *param1 = *param2 = static_cast<float>(GetScreenHeight()) * 0.35F;
       }
       break;
     case LinesFx::LineType::hline:
       if (m_goomEvent.Happens(GoomEvent::CHANGE_H_LINE_PARAMS) || far)
       {
-        *param1 = GetScreenHeight() / 7.0F;
-        *param2 = 6.0F * GetScreenHeight() / 7.0F;
+        *param1 = static_cast<float>(GetScreenHeight()) / 7.0F;
+        *param2 = 6.0F * static_cast<float>(GetScreenHeight()) / 7.0F;
       }
       else
       {
-        *param1 = *param2 = GetScreenHeight() / 2.0F;
+        *param1 = *param2 = static_cast<float>(GetScreenHeight()) / 2.0F;
         *amplitude = 2.0F;
       }
       break;
     case LinesFx::LineType::vline:
       if (m_goomEvent.Happens(GoomEvent::CHANGE_V_LINE_PARAMS) || far)
       {
-        *param1 = GetScreenWidth() / 7.0F;
-        *param2 = 6.0F * GetScreenWidth() / 7.0F;
+        *param1 = static_cast<float>(GetScreenWidth()) / 7.0F;
+        *param2 = 6.0F * static_cast<float>(GetScreenWidth()) / 7.0F;
       }
       else
       {
-        *param1 = *param2 = GetScreenWidth() / 2.0F;
+        *param1 = *param2 = static_cast<float>(GetScreenWidth()) / 2.0F;
         *amplitude = 1.5F;
       }
       break;
@@ -1065,18 +1035,10 @@ void GoomControl::GoomControlImpl::ChooseGoomLine(float* param1,
   *couleur = m_gmline1.GetRandomLineColor();
 }
 
-void GoomControl::GoomControlImpl::ChangeFilterModeIfMusicChanges(const int forceMode)
+void GoomControl::GoomControlImpl::ChangeFilterModeIfMusicChanges()
 {
-  logDebug("forceMode = {}", forceMode);
-  if (forceMode == -1)
-  {
-    return;
-  }
-
-  logDebug("sound GetTimeSinceLastGoom() = {}, goomData.cyclesSinceLastChange = {}",
-           m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom(), m_goomData.cyclesSinceLastChange);
   if ((m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom() == 0) ||
-      (m_goomData.cyclesSinceLastChange > TIME_BETWEEN_CHANGE) || (forceMode > 0))
+      (m_goomData.cyclesSinceLastChange > TIME_BETWEEN_CHANGE))
   {
     logDebug("Try to change the filter mode.");
     if (ChangeFilterModeEventHappens())
@@ -1099,18 +1061,11 @@ inline auto GetHypercosEffect(const bool active) -> ZoomFilterData::HypercosEffe
                      static_cast<uint32_t>(ZoomFilterData::HypercosEffect::_SIZE)));
 }
 
-void GoomControl::GoomControlImpl::SetNextFilterMode()
-{
-  m_filterControl.SetRandomFilterData();
-
-  m_filterControl.ChangeMilieu();
-
-  m_curGDrawables = m_states.GetCurrentDrawables();
-}
-
 void GoomControl::GoomControlImpl::ChangeFilterMode()
 {
   logDebug("Time to change the filter mode.");
+
+  m_changeFilterSettingsNow = true;
 
   m_stats.DoChangeFilterMode();
 
@@ -1120,6 +1075,15 @@ void GoomControl::GoomControlImpl::ChangeFilterMode()
 
   m_visualFx.ifs_fx->Renew();
   m_stats.DoIfsRenew();
+}
+
+void GoomControl::GoomControlImpl::SetNextFilterMode()
+{
+  m_filterControl.SetRandomFilterData();
+
+  m_filterControl.ChangeMilieu();
+
+  m_curGDrawables = m_states.GetCurrentDrawables();
 }
 
 void GoomControl::GoomControlImpl::ChangeState()
@@ -1179,7 +1143,7 @@ void GoomControl::GoomControlImpl::ChangeState()
   }
 }
 
-void GoomControl::GoomControlImpl::BigNormalUpdate(const ZoomFilterData** pzfd)
+void GoomControl::GoomControlImpl::BigNormalUpdate()
 {
   if (m_goomData.stateSelectionBlocker)
   {
@@ -1192,7 +1156,7 @@ void GoomControl::GoomControlImpl::BigNormalUpdate(const ZoomFilterData** pzfd)
   }
 
   m_goomData.lockVar = 50;
-  m_stats.LockChange();
+  m_stats.DoLockChange();
   const int32_t newvit =
       STOP_SPEED + 1 -
       static_cast<int32_t>(3.5F * std::log10(m_goomInfo->GetSoundInfo().GetSpeed() * 60.0F + 1.0F));
@@ -1203,13 +1167,13 @@ void GoomControl::GoomControlImpl::BigNormalUpdate(const ZoomFilterData** pzfd)
     m_filterControl.SetReverseSetting(false);
     m_filterControl.SetVitesseSetting(STOP_SPEED - 2);
     m_goomData.lockVar = 75;
-    m_stats.LockChange();
+    m_stats.DoLockChange();
   }
   if (m_goomEvent.Happens(GoomEvent::FILTER_REVERSE_ON))
   {
     m_filterControl.SetReverseSetting(true);
     m_goomData.lockVar = 100;
-    m_stats.LockChange();
+    m_stats.DoLockChange();
   }
 
   if (m_goomEvent.Happens(GoomEvent::FILTER_TOGGLE_ROTATION))
@@ -1246,7 +1210,7 @@ void GoomControl::GoomControlImpl::BigNormalUpdate(const ZoomFilterData** pzfd)
     m_filterControl.SetNoisifySetting(true);
     m_filterControl.SetNoiseFactorSetting(1.0);
     m_goomData.lockVar *= 2;
-    m_stats.LockChange();
+    m_stats.DoLockChange();
     m_stats.DoNoise();
   }
 
@@ -1285,7 +1249,7 @@ void GoomControl::GoomControlImpl::BigNormalUpdate(const ZoomFilterData** pzfd)
   if (newvit < m_filterControl.GetFilterData().vitesse)
   {
     // on accelere
-    *pzfd = &m_filterControl.GetFilterData();
+    m_changeFilterSettingsNow = true;
     if (((newvit < (STOP_SPEED - 7)) &&
          (m_filterControl.GetFilterData().vitesse < STOP_SPEED - 6) && (m_cycle % 3 == 0)) ||
         m_goomEvent.Happens(GoomEvent::FILTER_CHANGE_VITESSE_AND_TOGGLE_REVERSE))
@@ -1299,7 +1263,7 @@ void GoomControl::GoomControlImpl::BigNormalUpdate(const ZoomFilterData** pzfd)
       m_filterControl.SetVitesseSetting((newvit + m_filterControl.GetFilterData().vitesse * 7) / 8);
     }
     m_goomData.lockVar += 50;
-    m_stats.LockChange();
+    m_stats.DoLockChange();
   }
 
   if (m_goomData.lockVar > 150)
@@ -1309,18 +1273,18 @@ void GoomControl::GoomControlImpl::BigNormalUpdate(const ZoomFilterData** pzfd)
   }
 }
 
-void GoomControl::GoomControlImpl::MegaLentUpdate(const ZoomFilterData** pzfd)
+void GoomControl::GoomControlImpl::MegaLentUpdate()
 {
   logDebug("mega lent change");
-  *pzfd = &m_filterControl.GetFilterData();
+  m_changeFilterSettingsNow = true;
   m_filterControl.SetVitesseSetting(STOP_SPEED - 1);
   m_goomData.lockVar += 50;
-  m_stats.LockChange();
+  m_stats.DoLockChange();
   m_goomData.switchIncr = GoomData::SWITCH_INCR_AMOUNT;
   m_goomData.switchMult = 1.0F;
 }
 
-void GoomControl::GoomControlImpl::BigUpdate(const ZoomFilterData** pzfd)
+void GoomControl::GoomControlImpl::BigUpdate()
 {
   m_stats.DoBigUpdate();
 
@@ -1331,20 +1295,20 @@ void GoomControl::GoomControlImpl::BigUpdate(const ZoomFilterData** pzfd)
   {
     logDebug("sound GetTimeSinceLastGoom() = 0.");
     m_stats.LastTimeGoomChange();
-    BigNormalUpdate(pzfd);
+    BigNormalUpdate();
   }
 
   // mode mega-lent
   if (m_goomEvent.Happens(GoomEvent::CHANGE_TO_MEGA_LENT_MODE))
   {
     m_stats.DoMegaLentChange();
-    MegaLentUpdate(pzfd);
+    MegaLentUpdate();
   }
 }
 
 /* Changement d'effet de zoom !
  */
-void GoomControl::GoomControlImpl::ChangeZoomEffect(const ZoomFilterData* pzfd, const int forceMode)
+void GoomControl::GoomControlImpl::ChangeZoomEffect()
 {
   if (!m_goomEvent.Happens(GoomEvent::CHANGE_BLOCKY_WAVY_TO_ON))
   {
@@ -1368,10 +1332,8 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect(const ZoomFilterData* pzfd, 
         {/*.buffIntensity = */ 0.5, /*.allowOverexposed = */ true});
   }
 
-  if (pzfd)
+  if (m_changeFilterSettingsNow)
   {
-    logDebug("pzfd != nullptr");
-
     m_goomData.cyclesSinceLastChange = 0;
     m_goomData.switchIncr = GoomData::SWITCH_INCR_AMOUNT;
 
@@ -1388,9 +1350,8 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect(const ZoomFilterData* pzfd, 
     m_goomData.previousZoomSpeed = m_filterControl.GetFilterData().vitesse;
     m_goomData.switchMult = 1.0F;
 
-    if (((m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom() == 0) &&
-         (m_goomInfo->GetSoundInfo().GetTotalGoom() < 2)) ||
-        (forceMode > 0))
+    if (m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom() == 0 &&
+        m_goomInfo->GetSoundInfo().GetTotalGoom() < 2)
     {
       m_goomData.switchIncr = 0;
       m_goomData.switchMult = GoomData::SWITCH_MULT_AMOUNT;
@@ -1401,13 +1362,12 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect(const ZoomFilterData* pzfd, 
   }
   else
   {
-    logDebug("pzfd = nullptr");
     logDebug("goomData.cyclesSinceLastChange = {}", m_goomData.cyclesSinceLastChange);
     if (m_goomData.cyclesSinceLastChange > TIME_BETWEEN_CHANGE)
     {
       logDebug("goomData.cyclesSinceLastChange = {} > {} = timeBetweenChange",
                m_goomData.cyclesSinceLastChange, TIME_BETWEEN_CHANGE);
-      pzfd = &m_filterControl.GetFilterData();
+      m_changeFilterSettingsNow = true;
       m_goomData.cyclesSinceLastChange = 0;
       m_visualFx.ifs_fx->Renew();
       m_stats.DoIfsRenew();
@@ -1416,11 +1376,6 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect(const ZoomFilterData* pzfd, 
     {
       m_goomData.cyclesSinceLastChange++;
     }
-  }
-
-  if (pzfd)
-  {
-    logDebug("pzfd->mode = {}", pzfd->mode);
   }
 }
 
@@ -1814,7 +1769,7 @@ void GoomControl::GoomControlImpl::DisplayLines(const AudioSamples& soundData)
   }
 }
 
-void GoomControl::GoomControlImpl::BigBreakIfMusicIsCalm(const ZoomFilterData** pzfd)
+void GoomControl::GoomControlImpl::BigBreakIfMusicIsCalm()
 {
   logDebug("sound GetSpeed() = {:.2}, m_filterControl.GetFilterSettings().vitesse = {}, "
            "cycle = {}",
@@ -1823,60 +1778,37 @@ void GoomControl::GoomControlImpl::BigBreakIfMusicIsCalm(const ZoomFilterData** 
       (m_filterControl.GetFilterData().vitesse < (STOP_SPEED - 4)) && (m_cycle % 16 == 0))
   {
     logDebug("sound GetSpeed() = {:.2}", m_goomInfo->GetSoundInfo().GetSpeed());
-    BigBreak(pzfd);
+    BigBreak();
   }
 }
 
-void GoomControl::GoomControlImpl::BigBreak(const ZoomFilterData** pzfd)
+void GoomControl::GoomControlImpl::BigBreak()
 {
-  *pzfd = &m_filterControl.GetFilterData();
+  m_changeFilterSettingsNow = true;
   m_filterControl.SetVitesseSetting(m_filterControl.GetFilterData().vitesse + 3);
 }
 
-void GoomControl::GoomControlImpl::ForceFilterMode(const int forceMode, const ZoomFilterData** pzfd)
+void GoomControl::GoomControlImpl::LowerSpeed()
 {
-  *pzfd = &m_filterControl.GetFilterData();
-  //TODO REMOVE THIS  (*pzfd)->mode = static_cast<ZoomFilterMode>(forceMode - 1);
-}
-
-void GoomControl::GoomControlImpl::LowerSpeed(const ZoomFilterData** pzfd)
-{
-  *pzfd = &m_filterControl.GetFilterData();
+  m_changeFilterSettingsNow = true;
   // TODO Why is this '++' not '--'??
   m_filterControl.SetVitesseSetting(m_filterControl.GetFilterData().vitesse + 1);
 }
 
-void GoomControl::GoomControlImpl::StopDecrementing(const ZoomFilterData** pzfd)
+void GoomControl::GoomControlImpl::StopDecrementing()
 {
-  *pzfd = &m_filterControl.GetFilterData();
+  m_changeFilterSettingsNow = true;
 }
 
-void GoomControl::GoomControlImpl::BigUpdateIfNotLocked(const ZoomFilterData** pzfd)
+void GoomControl::GoomControlImpl::BigUpdateIfNotLocked()
 {
   logDebug("goomData.lockVar = {}", m_goomData.lockVar);
   if (m_goomData.lockVar == 0)
   {
     logDebug("goomData.lockVar = 0");
-    BigUpdate(pzfd);
+    BigUpdate();
   }
   logDebug("sound GetTimeSinceLastGoom() = {}", m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom());
-}
-
-void GoomControl::GoomControlImpl::ForceFilterModeIfSet(const ZoomFilterData** pzfd,
-                                                        const int forceMode)
-{
-  constexpr auto NUM_FILTER_FX = static_cast<size_t>(ZoomFilterMode::_SIZE);
-
-  logDebug("forceMode = {}", forceMode);
-  if ((forceMode > 0) && (size_t(forceMode) <= NUM_FILTER_FX))
-  {
-    logDebug("forceMode = {} <= numFilterFx = {}.", forceMode, NUM_FILTER_FX);
-    ForceFilterMode(forceMode, pzfd);
-  }
-  if (forceMode == -1)
-  {
-    pzfd = nullptr;
-  }
 }
 
 void GoomControl::GoomControlImpl::StopIfRequested()
@@ -1902,17 +1834,22 @@ void GoomControl::GoomControlImpl::DisplayLinesIfInAGoom(const AudioSamples& sou
   }
 }
 
-void GoomControl::GoomControlImpl::ApplyZoom(const ZoomFilterData* const pzfd)
+void GoomControl::GoomControlImpl::ApplyZoom()
 {
-  if (pzfd != nullptr)
+  if (m_changeFilterSettingsNow)
   {
-    m_visualFx.zoomFilter_fx->ChangeFilterSettings(*pzfd);
+    m_stats.DoChangeFilterModeNow(m_timeWithFilter);
+    m_visualFx.zoomFilter_fx->ChangeFilterSettings(m_filterControl.GetFilterData());
+    m_changeFilterSettingsNow = false;
+    m_timeWithFilter = 0;
   }
 
   uint32_t numClipped = 0;
   m_visualFx.zoomFilter_fx->ZoomFilterFastRgb(m_imageBuffers.GetP1(), m_imageBuffers.GetP2(),
                                               m_goomData.switchIncr, m_goomData.switchMult,
                                               numClipped);
+
+  m_stats.SetLastNumClipped(numClipped);
   if (numClipped > m_goomInfo->GetScreenInfo().size / 100)
   {
     m_stats.TooManyClipped();
@@ -1940,24 +1877,24 @@ void GoomControl::GoomControlImpl::ApplyIfsIfRequired()
   m_visualFx.ifs_fx->Apply(m_imageBuffers.GetP2(), m_imageBuffers.GetP1());
 }
 
-void GoomControl::GoomControlImpl::RegularlyLowerTheSpeed(const ZoomFilterData** pzfd)
+void GoomControl::GoomControlImpl::RegularlyLowerTheSpeed()
 {
   logDebug("vitesse = {}, cycle = {}", m_filterControl.GetFilterData().vitesse, m_cycle);
   if ((m_cycle % 73 == 0) && (m_filterControl.GetFilterData().vitesse < (STOP_SPEED - 5)))
   {
     logDebug("cycle % 73 = 0 && vitesse = {} < {} - 5, ", m_cycle,
              m_filterControl.GetFilterData().vitesse, STOP_SPEED);
-    LowerSpeed(pzfd);
+    LowerSpeed();
   }
 }
 
-void GoomControl::GoomControlImpl::StopDecrementingAfterAWhile(const ZoomFilterData** pzfd)
+void GoomControl::GoomControlImpl::StopDecrementingAfterAWhile()
 {
   logDebug("cycle = {}, pertedec = {}", m_cycle, m_filterControl.GetFilterData().pertedec);
   if ((m_cycle % 101 == 0) && (ZoomFilterData::pertedec == 7))
   {
     logDebug("cycle % 101 = 0 && pertedec = 7, ", m_cycle, m_filterControl.GetFilterData().vitesse);
-    StopDecrementing(pzfd);
+    StopDecrementing();
   }
 }
 

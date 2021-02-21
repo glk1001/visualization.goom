@@ -82,6 +82,13 @@ struct ZoomFilterData
 
   bool blockyWavy = false;
 
+  // For noise amplitude, take the reciprocal of these.
+  static constexpr float NOISE_MIN = 70;
+  static constexpr float NOISE_MAX = 120;
+
+  static constexpr float MIN_COEF_VITESSE = -3.01;
+  static constexpr float MAX_COEF_VITESSE = +3.01;
+
   static constexpr float DEFAULT_WAVE_FREQ_FACTOR = 20;
   static constexpr float MIN_WAVE_FREQ_FACTOR = 1;
   static constexpr float MAX_WAVE_FREQ_FACTOR = 50;

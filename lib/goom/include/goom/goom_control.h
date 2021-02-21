@@ -49,8 +49,7 @@ public:
    *      - NULL if it is not the start of the song
    *      - only have a value at the start of the song
    */
-  void Update(
-      const AudioSamples& s, int forceMode, float fps, const char* songTitle, const char* message);
+  void Update(const AudioSamples& s, float fps, const char* songTitle, const char* message);
 
   void Finish();
 

@@ -443,7 +443,7 @@ void CVisualizationGoom::UpdateGoomBuffer(const char* title,
 {
   const GOOM::AudioSamples audioData{m_channels, floatAudioData.data()};
   m_goomControl->SetScreenBuffer(*pixels);
-  m_goomControl->Update(audioData, 0, 0.0F, title, "");
+  m_goomControl->Update(audioData, 0.0F, title, "");
 }
 
 void CVisualizationGoom::InitQuadData()

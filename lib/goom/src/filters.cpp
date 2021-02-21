@@ -201,14 +201,6 @@ inline auto GetTranBuffLerp(const int32_t srceBuffVal, const int32_t destBuffVal
   return srceBuffVal + ((t * (destBuffVal - srceBuffVal)) >> DIM_FILTER_COEFFS);
 }
 
-
-// For noise amplitude, take the reciprocal of these.
-constexpr float NOISE_MIN = 70;
-constexpr float NOISE_MAX = 120;
-
-constexpr float MIN_COEF_VITESSE = -4.01;
-constexpr float MAX_COEF_VITESSE = +4.01;
-
 class ZoomFilterFx::ZoomFilterImpl
 {
 public:
@@ -246,6 +238,7 @@ private:
   const float m_minNormalizedCoordVal;
   const float m_maxNormalizedCoordVal;
   ZoomFilterData m_filterSettings{};
+  ZoomFilterData m_pendingFilterSettings{};
   bool m_justChangedFilterSettings = false;
   FXBuffSettings m_buffSettings{};
   std::string m_resourcesDirectory{};
@@ -438,6 +431,7 @@ ZoomFilterFx::ZoomFilterImpl::~ZoomFilterImpl() noexcept = default;
 void ZoomFilterFx::ZoomFilterImpl::Log(const StatsLogValueFunc& l) const
 {
   m_stats.SetLastMode(m_filterSettings.mode);
+  m_stats.SetLastJustChangedFilterSettings(m_justChangedFilterSettings);
   m_stats.SetLastGeneralSpeed(m_generalSpeed);
   m_stats.SetLastPrevX(m_screenWidth);
   m_stats.SetLastPrevY(m_screenHeight);
@@ -598,7 +592,7 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetMixedColor(const NeighborhoodCoeffA
 void ZoomFilterFx::ZoomFilterImpl::ChangeFilterSettings(const ZoomFilterData& filterSettings)
 {
   m_stats.DoChangeFilterSettings();
-  m_filterSettings = filterSettings;
+  m_pendingFilterSettings = filterSettings;
   m_justChangedFilterSettings = true;
 }
 
@@ -650,7 +644,12 @@ void ZoomFilterFx::ZoomFilterImpl::UpdateTranDiffFactor(const int32_t switchIncr
     m_stats.DoSwitchIncrNotZero();
 
     m_tranDiffFactor += switchIncr;
-    if (m_tranDiffFactor > MAX_TRAN_DIFF_FACTOR)
+
+    if (m_tranDiffFactor < 0)
+    {
+      m_tranDiffFactor = 0;
+    }
+    else if (m_tranDiffFactor > MAX_TRAN_DIFF_FACTOR)
     {
       m_tranDiffFactor = MAX_TRAN_DIFF_FACTOR;
     }
@@ -700,11 +699,22 @@ void ZoomFilterFx::ZoomFilterImpl::ResetTranBuffer()
 
   // sauvegarde de l'etat actuel dans la nouvelle source
   // Save the current state in the source buffs.
-  // TODO - Skip lerp and do memcpy ???
-  for (size_t i = 0; i < m_screenWidth * m_screenHeight; i++)
+  if (m_tranDiffFactor == 0)
   {
-    m_tranXSrce[i] = static_cast<int32_t>(GetTranXBuffSrceDestLerp(i));
-    m_tranYSrce[i] = static_cast<int32_t>(GetTranYBuffSrceDestLerp(i));
+    // Nothing to do: tran srce == tran dest.
+  }
+  else if (m_tranDiffFactor == MAX_TRAN_DIFF_FACTOR)
+  {
+    std::copy(m_tranXDest.begin(), m_tranXDest.end(), m_tranXSrce.begin());
+    std::copy(m_tranYDest.begin(), m_tranYDest.end(), m_tranYSrce.begin());
+  }
+  else
+  {
+    for (size_t i = 0; i < m_bufferSize; i++)
+    {
+      m_tranXSrce[i] = static_cast<int32_t>(GetTranXBuffSrceDestLerp(i));
+      m_tranYSrce[i] = static_cast<int32_t>(GetTranYBuffSrceDestLerp(i));
+    }
   }
   m_tranDiffFactor = 0;
 
@@ -727,6 +737,7 @@ void ZoomFilterFx::ZoomFilterImpl::RestartTranBuffer()
   m_stats.DoRestartTranBuffer();
 
   m_justChangedFilterSettings = false;
+  m_filterSettings = m_pendingFilterSettings;
 
   m_generalSpeed = static_cast<float>(m_filterSettings.vitesse - ZoomFilterData::MAX_VITESSE) /
                    static_cast<float>(ZoomFilterData::MAX_VITESSE);
@@ -734,6 +745,7 @@ void ZoomFilterFx::ZoomFilterImpl::RestartTranBuffer()
   {
     m_generalSpeed = -m_generalSpeed;
   }
+
   m_tranBuffYLineStart = 0;
   m_tranBufferState = TranBufferState::TRAN_BUFFER_READY;
 }
@@ -1104,14 +1116,14 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetStandardVelocity(const float xNorma
       break;
   }
 
-  if (coeffVitesse < MIN_COEF_VITESSE)
+  if (coeffVitesse < ZoomFilterData::MIN_COEF_VITESSE)
   {
-    coeffVitesse = MIN_COEF_VITESSE;
+    coeffVitesse = ZoomFilterData::MIN_COEF_VITESSE;
     m_stats.DoZoomVectorCoeffVitesseBelowMin();
   }
-  else if (coeffVitesse > MAX_COEF_VITESSE)
+  else if (coeffVitesse > ZoomFilterData::MAX_COEF_VITESSE)
   {
-    coeffVitesse = MAX_COEF_VITESSE;
+    coeffVitesse = ZoomFilterData::MAX_COEF_VITESSE;
     m_stats.DoZoomVectorCoeffVitesseAboveMax();
   }
 
@@ -1220,7 +1232,8 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetNoiseVelocity() -> V2dFlt
   m_stats.DoZoomVectorNoiseFactor();
   //    const float xAmp = 1.0/getRandInRange(50.0f, 200.0f);
   //    const float yAmp = 1.0/getRandInRange(50.0f, 200.0f);
-  const float amp = m_filterSettings.noiseFactor / GetRandInRange(NOISE_MIN, NOISE_MAX);
+  const float amp = m_filterSettings.noiseFactor /
+                    GetRandInRange(ZoomFilterData::NOISE_MIN, ZoomFilterData::NOISE_MAX);
   m_filterSettings.noiseFactor *= 0.999;
   return {amp * (GetRandInRange(0.0F, 1.0F) - 0.5F), amp * (GetRandInRange(0.0F, 1.0F) - 0.5F)};
 }
