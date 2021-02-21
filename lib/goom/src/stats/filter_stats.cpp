@@ -30,7 +30,7 @@ void FilterStats::Reset()
   m_numZoomVectorSpeedwayMode = 0;
   m_numZoomVectorDefaultMode = 0;
   m_numZoomVectorNoisify = 0;
-  m_numChangeZoomVectorNoiseFactor = 0;
+  m_numZoomVectorChangeNoiseFactor = 0;
   m_numZoomVectorHypercosEffect = 0;
   m_numZoomVectorHPlaneEffect = 0;
   m_numZoomVectorVPlaneEffect = 0;
@@ -40,16 +40,16 @@ void FilterStats::Reset()
   m_numCZoom = 0;
   m_numGenerateWaterFxHorizontalBuffer = 0;
   m_numZoomFilterFastRgb = 0;
-  m_numZoomFilterResetTranBuffer = 0;
-  m_numZoomFilterRestartTranBuffYLine = 0;
-  m_numZoomFilterSwitchIncrNotZero = 0;
-  m_numZoomFilterSwitchMultNotEqual1 = 0;
-  m_numZoomTanEffect = 0;
+  m_numRestartTranBuffer = 0;
+  m_numResetTranBuffer = 0;
+  m_numSwitchIncrNotZero = 0;
+  m_numSwitchMultNotOne = 0;
+  m_numZoomVectorTanEffect = 0;
   m_numZoomVectorNegativeRotate = 0;
   m_numZoomVectorPositiveRotate = 0;
   m_numTranPointsClipped = 0;
-  m_numCoeffVitesseBelowMin = 0;
-  m_numCoeffVitesseAboveMax = 0;
+  m_numZoomVectorCoeffVitesseBelowMin = 0;
+  m_numZoomVectorCoeffVitesseAboveMax = 0;
 }
 
 void FilterStats::Log(const StatsLogValueFunc& logVal) const
@@ -65,6 +65,7 @@ void FilterStats::Log(const StatsLogValueFunc& logVal) const
   logVal(MODULE, "maxTimeInUpdatesMs", m_maxTimeInUpdatesMs);
 
   logVal(MODULE, "lastMode", EnumToString(m_lastMode));
+  logVal(MODULE, "lastJustChangedFilterSettings", static_cast<uint32_t>(m_lastJustChangedFilterSettings));
   logVal(MODULE, "lastGeneralSpeed", m_lastGeneralSpeed);
   logVal(MODULE, "lastPrevX", m_lastPrevX);
   logVal(MODULE, "lastPrevY", m_lastPrevY);
@@ -72,6 +73,11 @@ void FilterStats::Log(const StatsLogValueFunc& logVal) const
   logVal(MODULE, "lastTranDiffFactor", m_lastTranDiffFactor);
 
   logVal(MODULE, "numChangeFilterSettings", m_numChangeFilterSettings);
+  logVal(MODULE, "numMakeZoomBufferStripe", m_numMakeZoomBufferStripe);
+  logVal(MODULE, "numGetMixedColor", m_numGetMixedColor);
+  logVal(MODULE, "numGetBlockyMixedColor", m_numGetBlockyMixedColor);
+  logVal(MODULE, "numCZoom", m_numCZoom);
+  logVal(MODULE, "numGenerateWaterFXHorizontalBuffer", m_numGenerateWaterFxHorizontalBuffer);
   logVal(MODULE, "numZoomVectors", m_numZoomVectors);
   logVal(MODULE, "numZoomVectorCrystalBallMode", m_numZoomVectorCrystalBallMode);
   logVal(MODULE, "numZoomVectorAmuletMode", m_numZoomVectorAmuletMode);
@@ -80,25 +86,20 @@ void FilterStats::Log(const StatsLogValueFunc& logVal) const
   logVal(MODULE, "numZoomVectorSpeedwayMode", m_numZoomVectorSpeedwayMode);
   logVal(MODULE, "numZoomVectorDefaultMode", m_numZoomVectorDefaultMode);
   logVal(MODULE, "numZoomVectorNoisify", m_numZoomVectorNoisify);
-  logVal(MODULE, "numChangeZoomVectorNoiseFactor", m_numChangeZoomVectorNoiseFactor);
+  logVal(MODULE, "numZoomVectorChangeNoiseFactor", m_numZoomVectorChangeNoiseFactor);
   logVal(MODULE, "numZoomVectorHypercosEffect", m_numZoomVectorHypercosEffect);
   logVal(MODULE, "numZoomVectorHPlaneEffect", m_numZoomVectorHPlaneEffect);
   logVal(MODULE, "numZoomVectorVPlaneEffect", m_numZoomVectorVPlaneEffect);
-  logVal(MODULE, "numMakeZoomBufferStripe", m_numMakeZoomBufferStripe);
-  logVal(MODULE, "numGetMixedColor", m_numGetMixedColor);
-  logVal(MODULE, "numGetBlockyMixedColor", m_numGetBlockyMixedColor);
-  logVal(MODULE, "numCZoom", m_numCZoom);
-  logVal(MODULE, "numGenerateWaterFXHorizontalBuffer", m_numGenerateWaterFxHorizontalBuffer);
-  logVal(MODULE, "numZoomTanEffect", m_numZoomTanEffect);
   logVal(MODULE, "numZoomVectorNegativeRotate", m_numZoomVectorNegativeRotate);
   logVal(MODULE, "numZoomVectorPositiveRotate", m_numZoomVectorPositiveRotate);
+  logVal(MODULE, "numZoomVectorTanEffect", m_numZoomVectorTanEffect);
+  logVal(MODULE, "numZoomVectorCoeffVitesseBelowMin", m_numZoomVectorCoeffVitesseBelowMin);
+  logVal(MODULE, "numZoomVectorCoeffVitesseAboveMax", m_numZoomVectorCoeffVitesseAboveMax);
+  logVal(MODULE, "numResetTranBuffer", m_numResetTranBuffer);
+  logVal(MODULE, "numRestartTranBuffer", m_numRestartTranBuffer);
+  logVal(MODULE, "numSwitchIncrNotZero", m_numSwitchIncrNotZero);
+  logVal(MODULE, "numSwitchMultNotOne", m_numSwitchMultNotOne);
   logVal(MODULE, "numTranPointsClipped", m_numTranPointsClipped);
-  logVal(MODULE, "numCoeffVitesseBelowMin", m_numCoeffVitesseBelowMin);
-  logVal(MODULE, "numCoeffVitesseAboveMax", m_numCoeffVitesseAboveMax);
-  logVal(MODULE, "numZoomFilterResetTranBuffer", m_numZoomFilterResetTranBuffer);
-  logVal(MODULE, "numZoomFilterRestartTranBuffYLine", m_numZoomFilterRestartTranBuffYLine);
-  logVal(MODULE, "numZoomFilterFastRGBSwitchIncrNotZero", m_numZoomFilterSwitchIncrNotZero);
-  logVal(MODULE, "numZoomFilterFastRGBSwitchIncrNotEqual1", m_numZoomFilterSwitchMultNotEqual1);
 }
 
 void FilterStats::UpdateStart()
@@ -172,7 +173,7 @@ void FilterStats::DoZoomVectorNoisify()
 
 void FilterStats::DoZoomVectorNoiseFactor()
 {
-  m_numChangeZoomVectorNoiseFactor++;
+  m_numZoomVectorChangeNoiseFactor++;
 }
 
 void FilterStats::DoZoomVectorHypercosEffect()
@@ -222,27 +223,27 @@ void FilterStats::DoZoomFilterFastRgb()
 
 void FilterStats::DoRestartTranBuffer()
 {
-  m_numZoomFilterResetTranBuffer++;
+  m_numRestartTranBuffer++;
 }
 
 void FilterStats::DoResetTranBuffer()
 {
-  m_numZoomFilterRestartTranBuffYLine++;
+  m_numResetTranBuffer++;
 }
 
 void FilterStats::DoSwitchMultNotOne()
 {
-  m_numZoomFilterSwitchMultNotEqual1++;
+  m_numSwitchMultNotOne++;
 }
 
 void FilterStats::DoSwitchIncrNotZero()
 {
-  m_numZoomFilterSwitchIncrNotZero++;
+  m_numSwitchIncrNotZero++;
 }
 
 void FilterStats::DoZoomVectorTanEffect()
 {
-  m_numZoomTanEffect++;
+  m_numZoomVectorTanEffect++;
 }
 
 void FilterStats::DoZoomVectorNegativeRotate()
@@ -262,12 +263,22 @@ void FilterStats::DoTranPointClipped()
 
 void FilterStats::DoZoomVectorCoeffVitesseBelowMin()
 {
-  m_numCoeffVitesseBelowMin++;
+  m_numZoomVectorCoeffVitesseBelowMin++;
 }
 
 void FilterStats::DoZoomVectorCoeffVitesseAboveMax()
 {
-  m_numCoeffVitesseAboveMax++;
+  m_numZoomVectorCoeffVitesseAboveMax++;
+}
+
+void FilterStats::SetLastMode(ZoomFilterMode mode)
+{
+  m_lastMode = mode;
+}
+
+void FilterStats::SetLastJustChangedFilterSettings(bool val)
+{
+  m_lastJustChangedFilterSettings = val;
 }
 
 void FilterStats::SetLastGeneralSpeed(const float val)
@@ -293,11 +304,6 @@ void FilterStats::SetLastTranBuffYLineStart(const uint32_t val)
 void FilterStats::SetLastTranDiffFactor(const int32_t val)
 {
   m_lastTranDiffFactor = val;
-}
-
-void FilterStats::SetLastMode(ZoomFilterMode mode)
-{
-  m_lastMode = mode;
 }
 
 } // namespace GOOM

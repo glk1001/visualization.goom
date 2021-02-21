@@ -22,7 +22,7 @@ void GoomStats::Reset()
   m_startingFilterMode = ZoomFilterMode::_SIZE;
   m_startingSeed = 0;
   m_lastState = 0;
-  m_lastZoomFilterData = nullptr;
+  m_lastZoomFilterSettings = nullptr;
   m_lastSeed = 0;
   m_numThreadsUsed = 0;
 
@@ -41,6 +41,7 @@ void GoomStats::Reset()
   std::fill(m_numStateChanges.begin(), m_numStateChanges.end(), 0);
   std::fill(m_stateDurations.begin(), m_stateDurations.end(), 0);
   m_numChangeFilterModes = 0;
+  m_numChangeFilterModesNow = 0;
   m_numFilterModeChanges.fill(0);
   m_numLockChanges = 0;
   m_numDoIFS = 0;
@@ -67,63 +68,68 @@ void GoomStats::Log(const StatsLogValueFunc& logVal) const
   const constexpr char* MODULE = "goom_core";
 
   logVal(MODULE, "songTitle", m_songTitle);
+  logVal(MODULE, "numThreadsUsed", m_numThreadsUsed);
+  logVal(MODULE, "fontFileUsed", m_fontFileUsed);
+  logVal(MODULE, "Compiler std", static_cast<uint32_t>(__cplusplus));
+
   logVal(MODULE, "startingState", m_startingState);
   logVal(MODULE, "startingFilterMode", EnumToString(m_startingFilterMode));
   logVal(MODULE, "startingSeed", m_startingSeed);
   logVal(MODULE, "lastState", m_lastState);
   logVal(MODULE, "lastSeed", m_lastSeed);
-  logVal(MODULE, "numThreadsUsed", m_numThreadsUsed);
-  logVal(MODULE, "fontFileUsed", m_fontFileUsed);
-  logVal(MODULE, "Compiler std", static_cast<uint32_t>(__cplusplus));
+  logVal(MODULE, "lastNumClipped", m_lastNumClipped);
+  logVal(MODULE, "lastFilterDuration", m_lastFilterDuration);
 
-  if (m_lastZoomFilterData == nullptr)
+  if (m_lastZoomFilterSettings == nullptr)
   {
     logVal(MODULE, "lastZoomFilterData", 0U);
   }
   else
   {
-    logVal(MODULE, "lastZoomFilterData->mode", EnumToString(m_lastZoomFilterData->mode));
-    logVal(MODULE, "lastZoomFilterData->vitesse", m_lastZoomFilterData->vitesse);
+    logVal(MODULE, "lastZoomFilterData->mode", EnumToString(m_lastZoomFilterSettings->mode));
+    logVal(MODULE, "lastZoomFilterData->vitesse", m_lastZoomFilterSettings->vitesse);
     logVal(MODULE, "lastZoomFilterData->pertedec", static_cast<uint32_t>(ZoomFilterData::pertedec));
-    logVal(MODULE, "lastZoomFilterData->middleX", m_lastZoomFilterData->middleX);
-    logVal(MODULE, "lastZoomFilterData->middleY", m_lastZoomFilterData->middleY);
+    logVal(MODULE, "lastZoomFilterData->middleX", m_lastZoomFilterSettings->middleX);
+    logVal(MODULE, "lastZoomFilterData->middleY", m_lastZoomFilterSettings->middleY);
     logVal(MODULE, "lastZoomFilterData->reverse",
-           static_cast<uint32_t>(m_lastZoomFilterData->reverse));
-    logVal(MODULE, "lastZoomFilterData->hPlaneEffect", m_lastZoomFilterData->hPlaneEffect);
-    logVal(MODULE, "lastZoomFilterData->vPlaneEffect", m_lastZoomFilterData->vPlaneEffect);
+           static_cast<uint32_t>(m_lastZoomFilterSettings->reverse));
+    logVal(MODULE, "lastZoomFilterData->hPlaneEffect", m_lastZoomFilterSettings->hPlaneEffect);
+    logVal(MODULE, "lastZoomFilterData->vPlaneEffect", m_lastZoomFilterSettings->vPlaneEffect);
     logVal(MODULE, "lastZoomFilterData->waveEffect",
-           static_cast<uint32_t>(m_lastZoomFilterData->waveEffect));
+           static_cast<uint32_t>(m_lastZoomFilterSettings->waveEffect));
     logVal(MODULE, "lastZoomFilterData->hypercosEffect",
-           EnumToString(m_lastZoomFilterData->hypercosEffect));
+           EnumToString(m_lastZoomFilterSettings->hypercosEffect));
     logVal(MODULE, "lastZoomFilterData->noisify",
-           static_cast<uint32_t>(m_lastZoomFilterData->noisify));
+           static_cast<uint32_t>(m_lastZoomFilterSettings->noisify));
     logVal(MODULE, "lastZoomFilterData->noiseFactor",
-           static_cast<float>(m_lastZoomFilterData->noiseFactor));
+           static_cast<float>(m_lastZoomFilterSettings->noiseFactor));
     logVal(MODULE, "lastZoomFilterData->blockyWavy",
-           static_cast<uint32_t>(m_lastZoomFilterData->blockyWavy));
-    logVal(MODULE, "lastZoomFilterData->waveFreqFactor", m_lastZoomFilterData->waveFreqFactor);
-    logVal(MODULE, "lastZoomFilterData->waveAmplitude", m_lastZoomFilterData->waveAmplitude);
+           static_cast<uint32_t>(m_lastZoomFilterSettings->blockyWavy));
+    logVal(MODULE, "lastZoomFilterData->waveFreqFactor", m_lastZoomFilterSettings->waveFreqFactor);
+    logVal(MODULE, "lastZoomFilterData->waveAmplitude", m_lastZoomFilterSettings->waveAmplitude);
     logVal(MODULE, "lastZoomFilterData->waveEffectType",
-           EnumToString(m_lastZoomFilterData->waveEffectType));
-    logVal(MODULE, "lastZoomFilterData->scrunchAmplitude", m_lastZoomFilterData->scrunchAmplitude);
+           EnumToString(m_lastZoomFilterSettings->waveEffectType));
+    logVal(MODULE, "lastZoomFilterData->scrunchAmplitude",
+           m_lastZoomFilterSettings->scrunchAmplitude);
     logVal(MODULE, "lastZoomFilterData->speedwayAmplitude",
-           m_lastZoomFilterData->speedwayAmplitude);
-    logVal(MODULE, "lastZoomFilterData->amuletteAmplitude", m_lastZoomFilterData->amuletAmplitude);
+           m_lastZoomFilterSettings->speedwayAmplitude);
+    logVal(MODULE, "lastZoomFilterData->amuletteAmplitude",
+           m_lastZoomFilterSettings->amuletAmplitude);
     logVal(MODULE, "lastZoomFilterData->crystalBallAmplitude",
-           m_lastZoomFilterData->crystalBallAmplitude);
-    logVal(MODULE, "lastZoomFilterData->hypercosFreqX", m_lastZoomFilterData->hypercosFreqX);
-    logVal(MODULE, "lastZoomFilterData->hypercosFreqY", m_lastZoomFilterData->hypercosFreqY);
+           m_lastZoomFilterSettings->crystalBallAmplitude);
+    logVal(MODULE, "lastZoomFilterData->hypercosFreqX", m_lastZoomFilterSettings->hypercosFreqX);
+    logVal(MODULE, "lastZoomFilterData->hypercosFreqY", m_lastZoomFilterSettings->hypercosFreqY);
     logVal(MODULE, "lastZoomFilterData->hypercosAmplitudeX",
-           m_lastZoomFilterData->hypercosAmplitudeX);
+           m_lastZoomFilterSettings->hypercosAmplitudeX);
     logVal(MODULE, "lastZoomFilterData->hypercosAmplitudeY",
-           m_lastZoomFilterData->hypercosAmplitudeY);
+           m_lastZoomFilterSettings->hypercosAmplitudeY);
     logVal(MODULE, "lastZoomFilterData->hPlaneEffectAmplitude",
-           m_lastZoomFilterData->hPlaneEffectAmplitude);
+           m_lastZoomFilterSettings->hPlaneEffectAmplitude);
     logVal(MODULE, "lastZoomFilterData->vPlaneEffectAmplitude",
-           m_lastZoomFilterData->vPlaneEffectAmplitude);
-    logVal(MODULE, "lastZoomFilterData->rotateSpeed", m_lastZoomFilterData->rotateSpeed);
+           m_lastZoomFilterSettings->vPlaneEffectAmplitude);
+    logVal(MODULE, "lastZoomFilterData->rotateSpeed", m_lastZoomFilterSettings->rotateSpeed);
     logVal(MODULE, "lastZoomFilterData->tanEffect",
-           static_cast<uint32_t>(m_lastZoomFilterData->tanEffect));
+           static_cast<uint32_t>(m_lastZoomFilterSettings->tanEffect));
   }
 
   logVal(MODULE, "numUpdates", m_numUpdates);
@@ -157,6 +163,12 @@ void GoomStats::Log(const StatsLogValueFunc& logVal) const
     logVal(MODULE, "averageState_" + std::to_string(i) + "_Duration", avStateTime);
   }
   logVal(MODULE, "numChangeFilterModes", m_numChangeFilterModes);
+  logVal(MODULE, "numChangeFilterModesNow", m_numChangeFilterModesNow);
+  const float avFilterDuration =
+      m_numChangeFilterModesNow == 0
+      ? -1.0F
+      : static_cast<float>(m_totalFilterDurations) / static_cast<float>(m_numChangeFilterModesNow);
+  logVal(MODULE, "averageFilterDuration", avFilterDuration);
   for (size_t i = 0; i < m_numFilterModeChanges.size(); i++)
   {
     logVal(MODULE, "numFilterMode_" + EnumToString(static_cast<ZoomFilterMode>(i)) + "_Changes",
@@ -203,7 +215,7 @@ void GoomStats::SetStateLastValue(const uint32_t stateIndex)
 
 void GoomStats::SetZoomFilterLastValue(const ZoomFilterData* filterData)
 {
-  m_lastZoomFilterData = filterData;
+  m_lastZoomFilterSettings = filterData;
 }
 
 void GoomStats::SetSeedStartValue(const uint64_t seed)
@@ -285,12 +297,19 @@ void GoomStats::DoChangeFilterMode()
   m_numChangeFilterModes++;
 }
 
+void GoomStats::DoChangeFilterModeNow(const uint32_t timeWithFilter)
+{
+  m_numChangeFilterModesNow++;
+  m_totalFilterDurations += timeWithFilter;
+  m_lastFilterDuration = timeWithFilter;
+}
+
 void GoomStats::DoChangeFilterMode(const ZoomFilterMode mode)
 {
   m_numFilterModeChanges.at(static_cast<size_t>(mode))++;
 }
 
-void GoomStats::LockChange()
+void GoomStats::DoLockChange()
 {
   m_numLockChanges++;
 }
@@ -318,11 +337,6 @@ void GoomStats::DoStars()
 void GoomStats::DoTentacles()
 {
   m_numDoTentacles++;
-}
-
-void GoomStats::TentaclesDisabled()
-{
-  m_numDisabledTentacles++;
 }
 
 void GoomStats::DoBigUpdate()
@@ -378,6 +392,11 @@ void GoomStats::DoZoomFilterAllowOverexposed()
 void GoomStats::TooManyClipped()
 {
   m_numTooManyClipped++;
+}
+
+void GoomStats::SetLastNumClipped(const uint32_t val)
+{
+  m_lastNumClipped = val;
 }
 
 class LogStatsVisitor

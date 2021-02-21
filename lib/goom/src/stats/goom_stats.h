@@ -35,6 +35,7 @@ public:
   void SetZoomFilterLastValue(const ZoomFilterData* filterData);
   void SetSeedStartValue(uint64_t seed);
   void SetSeedLastValue(uint64_t seed);
+  void SetLastNumClipped(uint32_t val);
   void SetNumThreadsUsedValue(size_t numThreads);
   void Reset();
   void Log(const StatsLogValueFunc& val) const;
@@ -43,14 +44,14 @@ public:
   void DoStateChange(size_t index, uint32_t timeInState);
   void DoChangeFilterMode();
   void DoChangeFilterMode(ZoomFilterMode mode);
-  void LockChange();
+  void DoChangeFilterModeNow(uint32_t timeWithFilter);
+  void DoLockChange();
   void DoIfs();
   void DoDots();
   void DoLines();
   void DoSwitchLines();
   void DoStars();
   void DoTentacles();
-  void TentaclesDisabled();
   void DoBigUpdate();
   void LastTimeGoomChange();
   void DoMegaLentChange();
@@ -66,11 +67,12 @@ public:
 private:
   std::string m_songTitle{};
   uint32_t m_startingState = 0;
-  ZoomFilterMode m_startingFilterMode = ZoomFilterMode::_SIZE;
   uint32_t m_lastState = 0;
-  const ZoomFilterData* m_lastZoomFilterData = nullptr;
+  ZoomFilterMode m_startingFilterMode = ZoomFilterMode::_SIZE;
+  const ZoomFilterData* m_lastZoomFilterSettings{};
   uint64_t m_startingSeed = 0;
   uint64_t m_lastSeed = 0;
+  uint32_t m_lastNumClipped = 0;
   size_t m_numThreadsUsed = 0;
   std::string m_fontFileUsed{};
 
@@ -87,6 +89,9 @@ private:
   uint32_t m_totalStateChanges = 0;
   uint64_t m_totalStateDurations = 0;
   uint32_t m_numChangeFilterModes = 0;
+  uint32_t m_numChangeFilterModesNow = 0;
+  uint64_t m_totalFilterDurations = 0;
+  uint32_t m_lastFilterDuration = 0;
   uint32_t m_numLockChanges = 0;
   uint32_t m_numDoIFS = 0;
   uint32_t m_numDoDots = 0;
