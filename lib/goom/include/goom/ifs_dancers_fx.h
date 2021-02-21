@@ -12,6 +12,11 @@ namespace GOOM
 class PluginInfo;
 class PixelBuffer;
 
+namespace UTILS
+{
+class SmallImageBitmaps;
+} // namespace UTILS
+
 class IfsDancersFx : public IVisualFx
 {
 public:
@@ -39,9 +44,11 @@ public:
   [[nodiscard]] auto GetResourcesDirectory() const -> const std::string& override;
   void SetResourcesDirectory(const std::string& dirName) override;
 
+  void SetSmallImageBitmaps(const UTILS::SmallImageBitmaps& smallBitmaps);
+
   void Init();
 
-  // If not colorMode is not set, or set to '_null', returns
+  // If colorMode is not set or set to '_null', then returns
   // random weighted color mode.
   [[nodiscard]] auto GetColorMode() const -> ColorMode;
   void SetColorMode(ColorMode c);

@@ -44,12 +44,14 @@
 #include "goomutils/colormaps.h"
 #include "goomutils/colorutils.h"
 #include "goomutils/goomrand.h"
+#include "goomutils/image_bitmaps.h"
 #include "goomutils/logging_control.h"
 // #undef NO_LOGGING
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
 #include "goomutils/random_colormaps.h"
 #include "goomutils/random_colormaps_manager.h"
+#include "goomutils/small_image_bitmaps.h"
 #include "goomutils/strutils.h"
 #include "stats/ifs_stats.h"
 
@@ -73,6 +75,8 @@ namespace GOOM
 using namespace GOOM::UTILS;
 using COLOR_DATA::ColorMapName;
 
+struct Similitude;
+
 inline auto MegaChangeColorMapEvent() -> bool
 {
   return ProbabilityOfMInN(5, 10);
@@ -89,6 +93,7 @@ struct IfsPoint
   uint32_t y = 0;
   uint32_t count = 0;
   Pixel color{0U};
+  const Similitude* simi{};
 
   template<class Archive>
   void serialize(Archive& ar)
@@ -158,6 +163,7 @@ struct Similitude
   Flt r1 = 0;
   Flt r2 = 0;
   Pixel color{0U};
+  const ImageBitmap* currentPointBitmap{};
 };
 
 class FractalHits
@@ -166,7 +172,7 @@ public:
   FractalHits() noexcept = default;
   FractalHits(uint32_t width, uint32_t height) noexcept;
   void Reset();
-  void AddHit(uint32_t x, uint32_t y, const Pixel& p);
+  void AddHit(uint32_t x, uint32_t y, const Similitude& s);
   [[nodiscard]] auto GetBuffer() -> const std::vector<IfsPoint>&;
   [[nodiscard]] auto GetMaxHitCount() const -> uint32_t { return m_maxHitCount; }
 
@@ -177,6 +183,7 @@ private:
   {
     uint32_t count = 0;
     Pixel color{0U};
+    const Similitude* simi{};
   };
   std::vector<std::vector<HitInfo>> m_hitInfo{};
   uint32_t m_maxHitCount = 0;
@@ -209,7 +216,7 @@ void FractalHits::Reset()
   }
 }
 
-void FractalHits::AddHit(uint32_t x, uint32_t y, const Pixel& p)
+void FractalHits::AddHit(uint32_t x, uint32_t y, const Similitude& s)
 {
   const uint32_t ux = x & 0x7fffffff;
   const uint32_t uy = y & 0x7fffffff;
@@ -221,7 +228,8 @@ void FractalHits::AddHit(uint32_t x, uint32_t y, const Pixel& p)
 
   HitInfo& h = m_hitInfo[uy][ux];
 
-  h.color = GetColorAverage(h.color, p);
+  h.simi = &s;
+  h.color = GetColorAverage(h.color, s.color);
   h.count++;
 
   if (h.count > m_maxHitCount)
@@ -243,6 +251,7 @@ auto FractalHits::GetBuffer() -> const std::vector<IfsPoint>&
     IfsPoint pt = m_hits[i];
     pt.count = m_hitInfo[pt.y][pt.x].count;
     pt.color = m_hitInfo[pt.y][pt.x].color;
+    pt.simi = m_hitInfo[pt.y][pt.x].simi;
     m_buffer[i] = pt;
   }
   return m_buffer;
@@ -263,6 +272,7 @@ public:
 
   void Init();
   void ResetCurrentIfsFunc();
+  void SetSmallImageBitmaps(const SmallImageBitmaps& smallBitmaps);
 
   [[nodiscard]] auto GetSpeed() const -> uint32_t { return m_speed; }
   void SetSpeed(const uint32_t val) { m_speed = val; }
@@ -276,6 +286,7 @@ private:
   static constexpr size_t MAX_COUNT_TIMES_SPEED = 1000;
 
   const RandomColorMaps* m_colorMaps{};
+  const SmallImageBitmaps* m_smallBitmaps{};
   IfsStats* m_stats{};
 
   const uint32_t m_lx;
@@ -357,6 +368,11 @@ void Fractal::Init()
   {
     RandomSimis(i * MAX_SIMI, MAX_SIMI);
   }
+}
+
+inline void Fractal::SetSmallImageBitmaps(const SmallImageBitmaps& smallBitmaps)
+{
+  m_smallBitmaps = &smallBitmaps;
 }
 
 void Fractal::ResetCurrentIfsFunc()
@@ -550,6 +566,29 @@ void Fractal::RandomSimis(const size_t start, const size_t num)
 
     m_components[i].color =
         RandomColorMaps::GetRandomColor(m_colorMaps->GetRandomColorMap(colorMapGroup), 0.0F, 1.0F);
+
+    if (m_smallBitmaps == nullptr || ProbabilityOfMInN(7, 10))
+    {
+      m_components[i].currentPointBitmap = nullptr;
+    }
+    else
+    {
+      uint32_t res = GetRandInRange(3U, 5U);
+      if (res % 2 == 0)
+      {
+        res += 1;
+      }
+      if (ProbabilityOfMInN(1, 2))
+      {
+        m_components[i].currentPointBitmap =
+            &m_smallBitmaps->GetImageBitmap(SmallImageBitmaps::ImageNames::SPHERE, res);
+      }
+      else
+      {
+        m_components[i].currentPointBitmap =
+            &m_smallBitmaps->GetImageBitmap(SmallImageBitmaps::ImageNames::CIRCLE, res);
+      }
+    }
   }
 }
 
@@ -589,7 +628,7 @@ inline void Fractal::UpdateHits(const Similitude& simi, const FltPoint& p)
 {
   const auto x = static_cast<uint32_t>(GetLx() + DivBy2Units(p.x * GetLx()));
   const auto y = static_cast<uint32_t>(GetLy() - DivBy2Units(p.y * GetLy()));
-  m_curHits->AddHit(x, y, simi.color);
+  m_curHits->AddHit(x, y, simi);
 }
 
 class Colorizer
@@ -900,6 +939,7 @@ public:
   [[nodiscard]] auto GetResourcesDirectory() const -> const std::string&;
   void SetResourcesDirectory(const std::string& dirName);
   void SetBuffSettings(const FXBuffSettings& settings);
+  void SetSmallImageBitmaps(const SmallImageBitmaps& smallBitmaps);
 
   void Init();
 
@@ -987,6 +1027,11 @@ void IfsDancersFx::SetResourcesDirectory(const std::string& dirName)
 void IfsDancersFx::SetBuffSettings(const FXBuffSettings& settings)
 {
   m_fxImpl->SetBuffSettings(settings);
+}
+
+void IfsDancersFx::SetSmallImageBitmaps(const SmallImageBitmaps& smallBitmaps)
+{
+  m_fxImpl->SetSmallImageBitmaps(smallBitmaps);
 }
 
 void IfsDancersFx::Start()
@@ -1087,6 +1132,12 @@ inline void IfsDancersFx::IfsDancersFxImpl::SetResourcesDirectory(const std::str
 inline void IfsDancersFx::IfsDancersFxImpl::SetBuffSettings(const FXBuffSettings& settings)
 {
   m_buffSettings = settings;
+}
+
+inline void IfsDancersFx::IfsDancersFxImpl::SetSmallImageBitmaps(
+    const SmallImageBitmaps& smallBitmaps)
+{
+  m_fractal->SetSmallImageBitmaps(smallBitmaps);
 }
 
 inline auto IfsDancersFx::IfsDancersFxImpl::GetColorMode() const -> IfsDancersFx::ColorMode
@@ -1228,14 +1279,37 @@ inline void IfsDancersFx::IfsDancersFxImpl::DrawPixel(PixelBuffer& currentBuff,
                                                       const IfsPoint& point,
                                                       const float tMix)
 {
-  const float fx = point.x / static_cast<float>(m_goomInfo->GetScreenInfo().width);
-  const float fy = point.y / static_cast<float>(m_goomInfo->GetScreenInfo().height);
+  const float fx =
+      static_cast<float>(point.x) / static_cast<float>(m_goomInfo->GetScreenInfo().width);
+  const float fy =
+      static_cast<float>(point.y) / static_cast<float>(m_goomInfo->GetScreenInfo().height);
 
   const Pixel mixedColor = m_colorizer.GetMixedColor(point.color, point.count, tMix, fx, fy);
   const std::vector<Pixel> colors{mixedColor, mixedColor};
   std::vector<PixelBuffer*> buffs{&currentBuff, &nextBuff};
 
-  m_draw.SetPixelRgb(buffs, point.x, point.y, colors);
+  static uint64_t s_count = 0;
+  s_count++;
+
+  if (s_count % 50 != 0 || point.simi->currentPointBitmap == nullptr)
+  {
+    m_draw.SetPixelRgb(buffs, point.x, point.y, colors);
+  }
+  else
+  {
+    const auto getColor1 = [&]([[maybe_unused]] const size_t x, [[maybe_unused]] const size_t y,
+                               [[maybe_unused]] const Pixel& b) -> Pixel { return mixedColor; };
+    const auto getColor2 = [&]([[maybe_unused]] const size_t x, [[maybe_unused]] const size_t y,
+                               const Pixel& b) -> Pixel { return b; };
+    const std::vector<GoomDraw::GetBitmapColorFunc> getColors{getColor1, getColor2};
+    const std::vector<const PixelBuffer*> bitmaps{point.simi->currentPointBitmap,
+                                                  point.simi->currentPointBitmap};
+    const auto allowOverexposed = m_draw.GetAllowOverexposed();
+    m_draw.SetAllowOverexposed(false);
+    m_draw.Bitmap(buffs, static_cast<int32_t>(point.x), static_cast<int32_t>(point.y), bitmaps,
+                  getColors);
+    m_draw.SetAllowOverexposed(allowOverexposed);
+  }
 }
 
 void IfsDancersFx::IfsDancersFxImpl::UpdateAllowOverexposed()

@@ -143,7 +143,7 @@ private:
   const std::array<WeightedEvent, NUM_GOOM_EVENTS> m_weightedEvents{{
     { /*.event = */GoomEvent::CHANGE_FILTER_MODE,                         /*.m = */1, /*.outOf = */ 16 },
     { /*.event = */GoomEvent::CHANGE_STATE,                               /*.m = */1, /*.outOf = */  2 },
-    { /*.event = */GoomEvent::TURN_OFF_NOISE,                             /*.m = */3, /*.outOf = */  5 },
+    { /*.event = */GoomEvent::TURN_OFF_NOISE,                             /*.m = */5, /*.outOf = */  5 },
     { /*.event = */GoomEvent::CHANGE_TO_MEGA_LENT_MODE,                   /*.m = */1, /*.outOf = */700 },
     { /*.event = */GoomEvent::CHANGE_LINE_CIRCLE_AMPLITUDE,               /*.m = */1, /*.outOf = */  3 },
     { /*.event = */GoomEvent::CHANGE_LINE_CIRCLE_PARAMS,                  /*.m = */1, /*.outOf = */  2 },
@@ -841,11 +841,8 @@ void GoomControl::GoomControlImpl::Start()
 
   m_timeInState = 0;
   m_timeWithFilter = 0;
-  ChangeState();
-  ChangeFilterMode();
 
   m_curGDrawables = m_states.GetCurrentDrawables();
-  SetNextFilterMode();
 
   m_stats.Reset();
   m_stats.SetStateStartValue(m_states.GetCurrentStateIndex());
@@ -861,6 +858,7 @@ void GoomControl::GoomControlImpl::Start()
   m_gmline2.Start();
 
   m_visualFx.goomDots_fx->SetSmallImageBitmaps(m_smallBitmaps);
+  m_visualFx.ifs_fx->SetSmallImageBitmaps(m_smallBitmaps);
   m_visualFx.star_fx->SetSmallImageBitmaps(m_smallBitmaps);
 
   for (auto& v : m_visualFx.list)
@@ -868,6 +866,9 @@ void GoomControl::GoomControlImpl::Start()
     v->SetResourcesDirectory(m_resourcesDirectory);
     v->Start();
   }
+
+  ChangeState();
+  ChangeFilterMode();
 }
 
 void GoomControl::GoomControlImpl::Finish()
