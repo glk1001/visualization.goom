@@ -1858,6 +1858,11 @@ void GoomControl::GoomControlImpl::ApplyZoom()
     m_goomData.switchMult = 1.0F;
     // ChangeFilterMode();
   }
+
+  if (m_filterControl.GetFilterSettings().noisify)
+  {
+    m_filterControl.SetNoiseFactorSetting(m_filterControl.GetFilterSettings().noiseFactor * 0.999);
+  }
 }
 
 void GoomControl::GoomControlImpl::ApplyIfsIfRequired()

@@ -58,7 +58,7 @@ private:
   void SetYOnlyModeSettings();
 
   void SetRotate(float probability);
-  void SetHypercosEffect();
+  void SetHypercosEffect(bool allowBigFrequency);
   void SetWaveEffect();
   auto GetRandomHypercosEffect() const -> ZoomFilterData::HypercosEffect;
 };

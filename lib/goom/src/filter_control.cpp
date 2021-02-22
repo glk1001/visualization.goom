@@ -243,13 +243,13 @@ void FilterControl::SetCrystalBallModeSettings()
 void FilterControl::SetHypercos1ModeSettings()
 {
   SetRotate(PROB_HIGH);
-  SetHypercosEffect();
+  SetHypercosEffect(false);
 }
 
 void FilterControl::SetHypercos2ModeSettings()
 {
   SetRotate(PROB_HIGH);
-  SetHypercosEffect();
+  SetHypercosEffect(true);
 }
 
 void FilterControl::SetNormalModeSettings()
@@ -259,7 +259,6 @@ void FilterControl::SetNormalModeSettings()
 void FilterControl::SetScrunchModeSettings()
 {
   SetRotate(PROB_HALF);
-  SetHypercosEffect();
 
   m_filterData.scrunchAmplitude =
       GetRandInRange(ZoomFilterData::MIN_SCRUNCH_AMPLITUDE, ZoomFilterData::MAX_SCRUNCH_AMPLITUDE);
@@ -309,7 +308,6 @@ void FilterControl::SetWaveModeSettings()
 void FilterControl::SetYOnlyModeSettings()
 {
   SetRotate(PROB_HALF);
-  SetHypercosEffect();
 }
 
 void FilterControl::SetRotate(const float probability)
@@ -330,7 +328,7 @@ void FilterControl::SetWaveEffect()
   m_filterData.waveEffect = m_filterEvents->Happens(EventTypes::WAVE_EFFECT);
 }
 
-void FilterControl::SetHypercosEffect()
+void FilterControl::SetHypercosEffect(const bool allowBigFrequency)
 {
   m_filterData.hypercosEffect = GetRandomHypercosEffect();
   if (m_filterData.hypercosEffect == ZoomFilterData::HypercosEffect::NONE)
@@ -338,16 +336,16 @@ void FilterControl::SetHypercosEffect()
     return;
   }
 
-  m_filterData.hypercosFreqX =
-      GetRandInRange(ZoomFilterData::MIN_HYPERCOS_FREQ, ZoomFilterData::MAX_HYPERCOS_FREQ);
+  const float maxFreq =
+      allowBigFrequency ? ZoomFilterData::BIG_MAX_HYPERCOS_FREQ : ZoomFilterData::MAX_HYPERCOS_FREQ;
+  m_filterData.hypercosFreqX = GetRandInRange(ZoomFilterData::MIN_HYPERCOS_FREQ, maxFreq);
   if (ProbabilityOfMInN(1, 4))
   {
     m_filterData.hypercosFreqY = m_filterData.hypercosFreqX;
   }
   else
   {
-    m_filterData.hypercosFreqY =
-        GetRandInRange(ZoomFilterData::MIN_HYPERCOS_FREQ, ZoomFilterData::MAX_HYPERCOS_FREQ);
+    m_filterData.hypercosFreqY = GetRandInRange(ZoomFilterData::MIN_HYPERCOS_FREQ, maxFreq);
   }
 
   m_filterData.hypercosReverse = ProbabilityOfMInN(1, 2);

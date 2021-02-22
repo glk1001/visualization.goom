@@ -132,10 +132,12 @@ struct ZoomFilterData
   static constexpr float MAX_CRYSTAL_BALL_AMPLITUDE = 0.1;
   float crystalBallAmplitude = DEFAULT_CRYSTAL_BALL_AMPLITUDE;
 
+  bool hypercosReverse = false;
   static constexpr float DEFAULT_HYPERCOS_FREQ = 10;
   static constexpr float MIN_HYPERCOS_FREQ = 1;
+  static constexpr float MAX_HYPERCOS_FREQ = 100;
   // Tried 1000 for hypercos_freq but effect was too fine and annoying.
-  static constexpr float MAX_HYPERCOS_FREQ = 500;
+  static constexpr float BIG_MAX_HYPERCOS_FREQ = 500;
   float hypercosFreqX = DEFAULT_HYPERCOS_FREQ;
   float hypercosFreqY = DEFAULT_HYPERCOS_FREQ;
 
@@ -144,7 +146,6 @@ struct ZoomFilterData
   static constexpr float MAX_HYPERCOS_AMPLITUDE = 1.0F / 100.0;
   float hypercosAmplitudeX = DEFAULT_HYPERCOS_AMPLITUDE;
   float hypercosAmplitudeY = DEFAULT_HYPERCOS_AMPLITUDE;
-  bool hypercosReverse = false;
 
   static constexpr float DEFAULT_H_PLANE_EFFECT_AMPLITUDE = 0.0025;
   static constexpr float MIN_H_PLANE_EFFECT_AMPLITUDE = 0.0015;
