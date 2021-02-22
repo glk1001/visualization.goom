@@ -44,7 +44,7 @@ public:
   void DoStateChange(size_t index, uint32_t timeInState);
   void DoChangeFilterMode();
   void DoChangeFilterMode(ZoomFilterMode mode);
-  void DoChangeFilterModeNow(uint32_t timeWithFilter);
+  void DoApplyChangeFilterSettings(uint32_t timeWithFilter);
   void DoLockChange();
   void DoIfs();
   void DoDots();
@@ -89,7 +89,7 @@ private:
   uint32_t m_totalStateChanges = 0;
   uint64_t m_totalStateDurations = 0;
   uint32_t m_numChangeFilterModes = 0;
-  uint32_t m_numChangeFilterModesNow = 0;
+  uint32_t m_numApplyChangeFilterSettings = 0;
   uint64_t m_totalFilterDurations = 0;
   uint32_t m_lastFilterDuration = 0;
   uint32_t m_numLockChanges = 0;

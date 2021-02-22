@@ -27,6 +27,7 @@
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
 #include "goomutils/parallel_utils.h"
+#include "goomutils/strutils.h"
 #include "stats/filter_stats.h"
 #include "v2d.h"
 
@@ -218,6 +219,7 @@ public:
   void ChangeFilterSettings(const ZoomFilterData& filterSettings);
 
   auto GetFilterSettings() const -> const ZoomFilterData&;
+  auto GetFilterSettingsArePending() const -> bool;
   auto GetGeneralSpeed() const -> float;
   auto GetTranBuffYLineStart() const -> uint32_t;
 
@@ -238,8 +240,8 @@ private:
   const float m_minNormalizedCoordVal;
   const float m_maxNormalizedCoordVal;
   ZoomFilterData m_filterSettings{};
-  ZoomFilterData m_pendingFilterSettings{};
-  bool m_justChangedFilterSettings = false;
+  ZoomFilterData m_nextFilterSettings{};
+  bool m_pendingFilterSettings = false;
   FXBuffSettings m_buffSettings{};
   std::string m_resourcesDirectory{};
   float m_generalSpeed;
@@ -297,15 +299,22 @@ private:
   void ResetTranBuffer();
   void DoNextTranBufferStripe(uint32_t tranBuffStripeHeight);
   void GenerateWaterFxHorizontalBuffer();
+
   auto GetZoomVector(float xNormalized, float yNormalized) -> V2dFlt;
   auto GetStandardVelocity(float xNormalized, float yNormalized) -> V2dFlt;
   auto GetHypercosVelocity(float xNormalized, float yNormalized) const -> V2dFlt;
   auto GetHPlaneEffectVelocity(float xNormalized, float yNormalized) const -> float;
   auto GetVPlaneEffectVelocity(float xNormalized, float yNormalized) const -> float;
-  auto GetNoiseVelocity() -> V2dFlt;
+  auto GetNoiseVelocity() const -> V2dFlt;
+  auto GetTanEffectVelocity(float sqDist, const V2dFlt& velocity) const -> V2dFlt;
+  auto GetRotatedVelocity(const V2dFlt& velocity) const -> V2dFlt;
   void AvoidNullDisplacement(V2dFlt& velocity) const;
 
   void LogState(const std::string& name);
+
+  auto GetCoeffVitesse(float xNormalized, float yNormalized, float sqDist) -> float;
+  auto GetWaveEffectCoeffVitesse(float sqDist) const -> float;
+  auto GetClampedCoeffVitesse(float coeffVitesse) const -> float;
 };
 
 ZoomFilterFx::ZoomFilterFx(Parallel& p, const std::shared_ptr<const PluginInfo>& info) noexcept
@@ -372,6 +381,11 @@ auto ZoomFilterFx::GetFilterSettings() const -> const ZoomFilterData&
   return m_fxImpl->GetFilterSettings();
 }
 
+auto ZoomFilterFx::GetFilterSettingsArePending() const -> bool
+{
+  return m_fxImpl->GetFilterSettingsArePending();
+}
+
 auto ZoomFilterFx::GetGeneralSpeed() const -> float
 {
   return m_fxImpl->GetGeneralSpeed();
@@ -431,7 +445,7 @@ ZoomFilterFx::ZoomFilterImpl::~ZoomFilterImpl() noexcept = default;
 void ZoomFilterFx::ZoomFilterImpl::Log(const StatsLogValueFunc& l) const
 {
   m_stats.SetLastMode(m_filterSettings.mode);
-  m_stats.SetLastJustChangedFilterSettings(m_justChangedFilterSettings);
+  m_stats.SetLastJustChangedFilterSettings(m_pendingFilterSettings);
   m_stats.SetLastGeneralSpeed(m_generalSpeed);
   m_stats.SetLastPrevX(m_screenWidth);
   m_stats.SetLastPrevY(m_screenHeight);
@@ -459,6 +473,11 @@ inline void ZoomFilterFx::ZoomFilterImpl::SetBuffSettings(const FXBuffSettings& 
 auto ZoomFilterFx::ZoomFilterImpl::GetFilterSettings() const -> const ZoomFilterData&
 {
   return m_filterSettings;
+}
+
+auto ZoomFilterFx::ZoomFilterImpl::GetFilterSettingsArePending() const -> bool
+{
+  return m_pendingFilterSettings;
 }
 
 auto ZoomFilterFx::ZoomFilterImpl::GetGeneralSpeed() const -> float
@@ -592,8 +611,8 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetMixedColor(const NeighborhoodCoeffA
 void ZoomFilterFx::ZoomFilterImpl::ChangeFilterSettings(const ZoomFilterData& filterSettings)
 {
   m_stats.DoChangeFilterSettings();
-  m_pendingFilterSettings = filterSettings;
-  m_justChangedFilterSettings = true;
+  m_nextFilterSettings = filterSettings;
+  m_pendingFilterSettings = true;
 }
 
 /**
@@ -671,24 +690,23 @@ void ZoomFilterFx::ZoomFilterImpl::UpdateTranBuffer()
 {
   if (m_tranBufferState == TranBufferState::RESET_TRAN_BUFFER)
   {
-    LogState("Before RESET_TRAN_BUFFER");
+    //LogState("Before RESET_TRAN_BUFFER");
     ResetTranBuffer();
-    LogState("After RESET_TRAN_BUFFER");
+    //LogState("After RESET_TRAN_BUFFER");
   }
   else if (m_tranBufferState == TranBufferState::RESTART_TRAN_BUFFER)
   {
-    LogState("Before RESTART_TRAN_BUFFER");
+    //LogState("Before RESTART_TRAN_BUFFER");
     RestartTranBuffer();
-    LogState("After RESTART_TRAN_BUFFER");
+    //LogState("After RESTART_TRAN_BUFFER");
   }
   else
   {
-    logInfo("m_tranBufferState = else");
     // Create a new destination stripe of 'm_tranBuffStripeHeight' height starting
     // at 'm_tranBuffYLineStart'.
-    LogState("Before DoNextTranBufferStripe");
+    //LogState("Before DoNextTranBufferStripe");
     DoNextTranBufferStripe(m_tranBuffStripeHeight);
-    LogState("After DoNextTranBufferStripe");
+    //LogState("After DoNextTranBufferStripe");
   }
 }
 
@@ -729,15 +747,15 @@ void ZoomFilterFx::ZoomFilterImpl::ResetTranBuffer()
 void ZoomFilterFx::ZoomFilterImpl::RestartTranBuffer()
 {
   // Don't start making new stripes until filter settings change.
-  if (!m_justChangedFilterSettings)
+  if (!m_pendingFilterSettings)
   {
     return;
   }
 
   m_stats.DoRestartTranBuffer();
 
-  m_justChangedFilterSettings = false;
-  m_filterSettings = m_pendingFilterSettings;
+  m_pendingFilterSettings = false;
+  m_filterSettings = m_nextFilterSettings;
 
   m_generalSpeed = static_cast<float>(m_filterSettings.vitesse - ZoomFilterData::MAX_VITESSE) /
                    static_cast<float>(ZoomFilterData::MAX_VITESSE);
@@ -843,16 +861,6 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff,
       const int32_t tranX = GetTranXBuffSrceDestLerp(destPos);
       const int32_t tranY = GetTranYBuffSrceDestLerp(destPos);
 
-      /**
-      if ((tranPx >= m_maxTranX) || (tranPy >= m_maxTranY))
-      {
-        m_stats.DoTranPointClipped();
-        const size_t xIndex = GetRandInRange(0U, 1U + (tranAx & PERTE_MASK));
-        const size_t yIndex = GetRandInRange(0U, 1U + (tranAy & PERTE_MASK));
-        return std::make_tuple(destPos, CoeffArray{.intVal = m_precalcCoeffs[xIndex][yIndex]});
-      }
-     **/
-
       if ((tranX < 0 || tranY < 0 || static_cast<uint32_t>(tranX) >= m_maxTranX) ||
           static_cast<uint32_t>(tranY) >= m_maxTranY)
       {
@@ -953,7 +961,7 @@ void ZoomFilterFx::ZoomFilterImpl::DoNextTranBufferStripe(const uint32_t tranBuf
   m_parallel->ForLoop(tranBuffYLineEnd - static_cast<uint32_t>(m_tranBuffYLineStart), doStripeLine);
 
   m_tranBuffYLineStart += tranBuffStripeHeight;
-  if (tranBuffYLineEnd == m_screenHeight)
+  if (tranBuffYLineEnd >= m_screenHeight)
   {
     m_tranBufferState = TranBufferState::RESET_TRAN_BUFFER;
     m_tranBuffYLineStart = 0;
@@ -1009,18 +1017,19 @@ auto ZoomFilterFx::ZoomFilterImpl::GetZoomVector(const float xNormalized, const 
   {
     m_stats.DoZoomVectorNoisify();
     velocity += GetNoiseVelocity();
+    m_filterSettings.noiseFactor *= 0.999;
   }
   if (m_filterSettings.hypercosEffect != ZoomFilterData::HypercosEffect::NONE)
   {
     m_stats.DoZoomVectorHypercosEffect();
     velocity += GetHypercosVelocity(xNormalized, yNormalized);
   }
-  if (m_filterSettings.hPlaneEffect)
+  if (m_filterSettings.hPlaneEffect != 0)
   {
     m_stats.DoZoomVectorHPlaneEffect();
     velocity.x += GetHPlaneEffectVelocity(xNormalized, yNormalized);
   }
-  if (m_filterSettings.vPlaneEffect)
+  if (m_filterSettings.vPlaneEffect != 0)
   {
     m_stats.DoZoomVectorVPlaneEffect();
     velocity.y += GetVPlaneEffectVelocity(xNormalized, yNormalized);
@@ -1048,10 +1057,20 @@ inline void ZoomFilterFx::ZoomFilterImpl::AvoidNullDisplacement(V2dFlt& velocity
 inline auto ZoomFilterFx::ZoomFilterImpl::GetStandardVelocity(const float xNormalized,
                                                               const float yNormalized) -> V2dFlt
 {
-  float coeffVitesse = (1.0F + m_generalSpeed) / m_filterSettings.coeffVitesseDenominator;
-
-  // The Effects
   const float sqDist = SqDistance(xNormalized, yNormalized);
+
+  const float coeffVitesse = GetCoeffVitesse(xNormalized, yNormalized, sqDist);
+
+  V2dFlt velocity{coeffVitesse * xNormalized, coeffVitesse * yNormalized};
+  velocity = GetTanEffectVelocity(sqDist, velocity);
+  return GetRotatedVelocity(velocity);
+}
+
+auto ZoomFilterFx::ZoomFilterImpl::GetCoeffVitesse([[maybe_unused]] const float xNormalized,
+                                                   const float yNormalized,
+                                                   const float sqDist) -> float
+{
+  float coeffVitesse = (1.0F + m_generalSpeed) / m_filterSettings.coeffVitesseDenominator;
 
   switch (m_filterSettings.mode)
   {
@@ -1082,23 +1101,7 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetStandardVelocity(const float xNorma
     case ZoomFilterMode::WAVE_MODE:
     {
       m_stats.DoZoomVectorWaveMode();
-      const float angle = m_filterSettings.waveFreqFactor * sqDist;
-      float periodicPart;
-      switch (m_filterSettings.waveEffectType)
-      {
-        case ZoomFilterData::WaveEffect::WAVE_SIN_EFFECT:
-          periodicPart = std::sin(angle);
-          break;
-        case ZoomFilterData::WaveEffect::WAVE_COS_EFFECT:
-          periodicPart = std::cos(angle);
-          break;
-        case ZoomFilterData::WaveEffect::WAVE_SIN_COS_EFFECT:
-          periodicPart = std::sin(angle) + std::cos(angle);
-          break;
-        default:
-          throw std::logic_error("Unknown WaveEffect enum");
-      }
-      coeffVitesse += m_filterSettings.waveAmplitude * periodicPart;
+      coeffVitesse += GetWaveEffectCoeffVitesse(sqDist);
       break;
     }
       //case ZoomFilterMode::HYPERCOS1_MODE:
@@ -1116,39 +1119,43 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetStandardVelocity(const float xNorma
       break;
   }
 
+  return GetClampedCoeffVitesse(coeffVitesse);
+}
+
+auto ZoomFilterFx::ZoomFilterImpl::GetWaveEffectCoeffVitesse(const float sqDist) const -> float
+{
+  const float angle = m_filterSettings.waveFreqFactor * sqDist;
+  float periodicPart;
+  switch (m_filterSettings.waveEffectType)
+  {
+    case ZoomFilterData::WaveEffect::WAVE_SIN_EFFECT:
+      periodicPart = std::sin(angle);
+      break;
+    case ZoomFilterData::WaveEffect::WAVE_COS_EFFECT:
+      periodicPart = std::cos(angle);
+      break;
+    case ZoomFilterData::WaveEffect::WAVE_SIN_COS_EFFECT:
+      periodicPart = std::sin(angle) + std::cos(angle);
+      break;
+    default:
+      throw std::logic_error("Unknown WaveEffect enum");
+  }
+  return m_filterSettings.waveAmplitude * periodicPart;
+}
+
+auto ZoomFilterFx::ZoomFilterImpl::GetClampedCoeffVitesse(const float coeffVitesse) const -> float
+{
   if (coeffVitesse < ZoomFilterData::MIN_COEF_VITESSE)
   {
-    coeffVitesse = ZoomFilterData::MIN_COEF_VITESSE;
     m_stats.DoZoomVectorCoeffVitesseBelowMin();
+    return ZoomFilterData::MIN_COEF_VITESSE;
   }
-  else if (coeffVitesse > ZoomFilterData::MAX_COEF_VITESSE)
+  if (coeffVitesse > ZoomFilterData::MAX_COEF_VITESSE)
   {
-    coeffVitesse = ZoomFilterData::MAX_COEF_VITESSE;
     m_stats.DoZoomVectorCoeffVitesseAboveMax();
+    return ZoomFilterData::MAX_COEF_VITESSE;
   }
-
-  float x = coeffVitesse * xNormalized;
-  float y = coeffVitesse * yNormalized;
-
-  if (m_filterSettings.tanEffect)
-  {
-    m_stats.DoZoomVectorTanEffect();
-    const float tanSqDist = std::tan(sqDist);
-    x *= tanSqDist;
-    y *= tanSqDist;
-  }
-
-  if (std::fabs(m_filterSettings.rotateSpeed) < SMALL_FLOAT)
-  {
-    return {x, y};
-  }
-  if (m_filterSettings.rotateSpeed < 0.0F)
-  {
-    m_stats.DoZoomVectorNegativeRotate();
-    return {-m_filterSettings.rotateSpeed * (x - y), -m_filterSettings.rotateSpeed * (x + y)};
-  }
-  m_stats.DoZoomVectorPositiveRotate();
-  return {m_filterSettings.rotateSpeed * (y + x), m_filterSettings.rotateSpeed * (y - x)};
+  return coeffVitesse;
 }
 
 inline auto ZoomFilterFx::ZoomFilterImpl::GetHypercosVelocity(const float xNormalized,
@@ -1199,8 +1206,8 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetHypercosVelocity(const float xNorma
       throw std::logic_error("Unknown filterData.hypercosEffect value");
   }
 
-  //  xVal = stdnew::clamp(std::tan(sign * m_filterData.hypercosFreqY * xVal), -1.0, 1.0);
-  //  yVal = stdnew::clamp(std::tan(sign * m_filterData.hypercosFreqX * yVal), -1.0, 1.0);
+  //  xVal = stdnew::clamp(std::tan(sign * m_filterSettings.hypercosFreqY * xVal), -1.0, 1.0);
+  //  yVal = stdnew::clamp(std::tan(sign * m_filterSettings.hypercosFreqX * yVal), -1.0, 1.0);
 
   return {m_filterSettings.hypercosAmplitudeX * xVal, m_filterSettings.hypercosAmplitudeY * yVal};
 }
@@ -1222,7 +1229,7 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetVPlaneEffectVelocity(
          static_cast<float>(m_filterSettings.vPlaneEffect);
 }
 
-inline auto ZoomFilterFx::ZoomFilterImpl::GetNoiseVelocity() -> V2dFlt
+inline auto ZoomFilterFx::ZoomFilterImpl::GetNoiseVelocity() const -> V2dFlt
 {
   if (m_filterSettings.noiseFactor < 0.01)
   {
@@ -1234,8 +1241,40 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetNoiseVelocity() -> V2dFlt
   //    const float yAmp = 1.0/getRandInRange(50.0f, 200.0f);
   const float amp = m_filterSettings.noiseFactor /
                     GetRandInRange(ZoomFilterData::NOISE_MIN, ZoomFilterData::NOISE_MAX);
-  m_filterSettings.noiseFactor *= 0.999;
   return {amp * (GetRandInRange(0.0F, 1.0F) - 0.5F), amp * (GetRandInRange(0.0F, 1.0F) - 0.5F)};
+}
+
+inline auto ZoomFilterFx::ZoomFilterImpl::GetTanEffectVelocity(const float sqDist,
+                                                               const V2dFlt& velocity) const
+    -> V2dFlt
+{
+  if (!m_filterSettings.tanEffect)
+  {
+    return velocity;
+  }
+
+  m_stats.DoZoomVectorTanEffect();
+  const float tanSqDist = std::tan(sqDist);
+  return {tanSqDist * velocity.x, tanSqDist * velocity.y};
+}
+
+inline auto ZoomFilterFx::ZoomFilterImpl::GetRotatedVelocity(const V2dFlt& velocity) const -> V2dFlt
+{
+  if (std::fabs(m_filterSettings.rotateSpeed) < SMALL_FLOAT)
+  {
+    return velocity;
+  }
+
+  if (m_filterSettings.rotateSpeed < 0.0F)
+  {
+    m_stats.DoZoomVectorNegativeRotate();
+    return {-m_filterSettings.rotateSpeed * (velocity.x - velocity.y),
+            -m_filterSettings.rotateSpeed * (velocity.x + velocity.y)};
+  }
+
+  m_stats.DoZoomVectorPositiveRotate();
+  return {m_filterSettings.rotateSpeed * (velocity.y + velocity.x),
+          m_filterSettings.rotateSpeed * (velocity.y - velocity.x)};
 }
 
 void ZoomFilterFx::ZoomFilterImpl::GenerateWaterFxHorizontalBuffer()
@@ -1301,7 +1340,7 @@ void ZoomFilterFx::ZoomFilterImpl::LogState([[maybe_unused]] const std::string& 
 {
 }
 #else
-void ZoomFilterFx::ZoomFilterImpl::logState(const std::string& name)
+void ZoomFilterFx::ZoomFilterImpl::LogState(const std::string& name)
 {
   logInfo("=================================");
   logInfo("Name: {}", name);
@@ -1319,34 +1358,36 @@ void ZoomFilterFx::ZoomFilterImpl::logState(const std::string& name)
   logInfo("m_generalSpeed = {}", m_generalSpeed);
   logInfo("m_parallel->GetNumThreadsUsed() = {}", m_parallel->GetNumThreadsUsed());
 
-  logInfo("m_filterData.vitesse = {}", m_filterData.vitesse);
-  logInfo("m_filterData.coeffVitesseDenominator = {}", m_filterData.coeffVitesseDenominator);
-  logInfo("m_filterData.middleX = {}", m_filterData.middleX);
-  logInfo("m_filterData.middleY = {}", m_filterData.middleY);
-  logInfo("m_filterData.reverse = {}", m_filterData.reverse);
-  logInfo("m_filterData.tanEffect = {}", m_filterData.tanEffect);
-  logInfo("m_filterData.rotateSpeed = {}", m_filterData.rotateSpeed);
-  logInfo("m_filterData.hPlaneEffect = {}", m_filterData.hPlaneEffect);
-  logInfo("m_filterData.vPlaneEffect = {}", m_filterData.vPlaneEffect);
-  logInfo("m_filterData.waveEffect = {}", m_filterData.waveEffect);
-  logInfo("m_filterData.hypercosEffect = {}", m_filterData.hypercosEffect);
-  logInfo("m_filterData.noisify = {}", m_filterData.noisify);
-  logInfo("m_filterData.noiseFactor = {}", m_filterData.noiseFactor);
-  logInfo("m_filterData.blockyWavy = {}", m_filterData.blockyWavy);
-  logInfo("m_filterData.waveFreqFactor = {}", m_filterData.waveFreqFactor);
-  logInfo("m_filterData.waveAmplitude = {}", m_filterData.waveAmplitude);
-  logInfo("m_filterData.waveEffectType = {}", m_filterData.waveEffectType);
-  logInfo("m_filterData.scrunchAmplitude = {}", m_filterData.scrunchAmplitude);
-  logInfo("m_filterData.speedwayAmplitude = {}", m_filterData.speedwayAmplitude);
-  logInfo("m_filterData.amuletAmplitude = {}", m_filterData.amuletAmplitude);
-  logInfo("m_filterData.crystalBallAmplitude = {}", m_filterData.crystalBallAmplitude);
-  logInfo("m_filterData.hypercosFreqX = {}", m_filterData.hypercosFreqX);
-  logInfo("m_filterData.hypercosFreqY = {}", m_filterData.hypercosFreqY);
-  logInfo("m_filterData.hypercosAmplitudeX = {}", m_filterData.hypercosAmplitudeX);
-  logInfo("m_filterData.hypercosAmplitudeY = {}", m_filterData.hypercosAmplitudeY);
-  logInfo("m_filterData.hypercosReverse = {}", m_filterData.hypercosReverse);
-  logInfo("m_filterData.hPlaneEffectAmplitude = {}", m_filterData.hPlaneEffectAmplitude);
-  logInfo("m_filterData.vPlaneEffectAmplitude = {}", m_filterData.vPlaneEffectAmplitude);
+  logInfo("m_filterSettings.mode = {}", EnumToString(m_filterSettings.mode));
+  logInfo("m_filterSettings.middleX = {}", m_filterSettings.middleX);
+  logInfo("m_filterSettings.middleY = {}", m_filterSettings.middleY);
+  logInfo("m_filterSettings.vitesse = {}", m_filterSettings.vitesse);
+  logInfo("m_filterSettings.coeffVitesseDenominator = {}",
+          m_filterSettings.coeffVitesseDenominator);
+  logInfo("m_filterSettings.reverse = {}", m_filterSettings.reverse);
+  logInfo("m_filterSettings.hPlaneEffect = {}", m_filterSettings.hPlaneEffect);
+  logInfo("m_filterSettings.hPlaneEffectAmplitude = {}", m_filterSettings.hPlaneEffectAmplitude);
+  logInfo("m_filterSettings.vPlaneEffect = {}", m_filterSettings.vPlaneEffect);
+  logInfo("m_filterSettings.vPlaneEffectAmplitude = {}", m_filterSettings.vPlaneEffectAmplitude);
+  logInfo("m_filterSettings.noisify = {}", m_filterSettings.noisify);
+  logInfo("m_filterSettings.noiseFactor = {}", m_filterSettings.noiseFactor);
+  logInfo("m_filterSettings.tanEffect = {}", m_filterSettings.tanEffect);
+  logInfo("m_filterSettings.rotateSpeed = {}", m_filterSettings.rotateSpeed);
+  logInfo("m_filterSettings.blockyWavy = {}", m_filterSettings.blockyWavy);
+  logInfo("m_filterSettings.waveEffectType = {}", m_filterSettings.waveEffectType);
+  logInfo("m_filterSettings.waveFreqFactor = {}", m_filterSettings.waveFreqFactor);
+  logInfo("m_filterSettings.waveAmplitude = {}", m_filterSettings.waveAmplitude);
+  logInfo("m_filterSettings.amuletAmplitude = {}", m_filterSettings.amuletAmplitude);
+  logInfo("m_filterSettings.crystalBallAmplitude = {}", m_filterSettings.crystalBallAmplitude);
+  logInfo("m_filterSettings.scrunchAmplitude = {}", m_filterSettings.scrunchAmplitude);
+  logInfo("m_filterSettings.speedwayAmplitude = {}", m_filterSettings.speedwayAmplitude);
+  logInfo("m_filterSettings.hypercosEffect = {}", m_filterSettings.hypercosEffect);
+  logInfo("m_filterSettings.hypercosFreqX = {}", m_filterSettings.hypercosFreqX);
+  logInfo("m_filterSettings.hypercosFreqY = {}", m_filterSettings.hypercosFreqY);
+  logInfo("m_filterSettings.hypercosAmplitudeX = {}", m_filterSettings.hypercosAmplitudeX);
+  logInfo("m_filterSettings.hypercosAmplitudeY = {}", m_filterSettings.hypercosAmplitudeY);
+  logInfo("m_filterSettings.hypercosReverse = {}", m_filterSettings.hypercosReverse);
+  logInfo("m_filterSettings.waveEffect = {}", m_filterSettings.waveEffect);
 
   logInfo("m_maxTranX = {}", m_maxTranX);
   logInfo("m_maxTranY = {}", m_maxTranY);

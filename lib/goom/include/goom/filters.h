@@ -13,16 +13,16 @@ namespace GOOM
 enum class ZoomFilterMode
 {
   _NULL = -1,
-  NORMAL_MODE = 0,
-  WAVE_MODE,
+  AMULET_MODE = 0,
   CRYSTAL_BALL_MODE,
-  SCRUNCH_MODE,
-  AMULET_MODE,
-  WATER_MODE,
   HYPERCOS1_MODE,
   HYPERCOS2_MODE,
-  Y_ONLY_MODE,
+  NORMAL_MODE,
+  SCRUNCH_MODE,
   SPEEDWAY_MODE,
+  WATER_MODE,
+  WAVE_MODE,
+  Y_ONLY_MODE,
   _SIZE // must be last - gives number of enums
 };
 
@@ -134,7 +134,8 @@ struct ZoomFilterData
 
   static constexpr float DEFAULT_HYPERCOS_FREQ = 10;
   static constexpr float MIN_HYPERCOS_FREQ = 1;
-  static constexpr float MAX_HYPERCOS_FREQ = 1000;
+  // Tried 1000 for hypercos_freq but effect was too fine and annoying.
+  static constexpr float MAX_HYPERCOS_FREQ = 500;
   float hypercosFreqX = DEFAULT_HYPERCOS_FREQ;
   float hypercosFreqY = DEFAULT_HYPERCOS_FREQ;
 
@@ -190,6 +191,7 @@ public:
   void Start() override;
 
   auto GetFilterSettings() const -> const ZoomFilterData&;
+  auto GetFilterSettingsArePending() const -> bool;
   auto GetGeneralSpeed() const -> float;
   auto GetTranBuffYLineStart() const -> uint32_t;
 

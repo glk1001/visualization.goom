@@ -135,7 +135,7 @@ void SoundInfo::ProcessSample(const AudioSamples& samples)
   // Volume sonore - TODO: why only positive volumes?
   m_volume = static_cast<float>(maxPosVar) / static_cast<float>(m_allTimesPositiveMaxVolume);
 
-  float difaccel = m_acceleration;
+  const float prevAcceleration = m_acceleration;
   m_acceleration = m_volume; // accel entre 0 et 1
 
   // Transformations sur la vitesse du son
@@ -164,15 +164,15 @@ void SoundInfo::ProcessSample(const AudioSamples& samples)
   }
 
   // Mise a jour de la vitesse
-  difaccel = m_acceleration - difaccel;
-  if (difaccel < 0.0F)
+  float diffAcceleration = m_acceleration - prevAcceleration;
+  if (diffAcceleration < 0.0F)
   {
-    difaccel = -difaccel;
+    diffAcceleration = -diffAcceleration;
   }
-  const float prevspeed = m_speed;
-  m_speed = (m_speed + difaccel * 0.5F) / 2.0F;
+  const float prevSpeed = m_speed;
+  m_speed = (m_speed + 0.5F * diffAcceleration) / 2.0F;
   m_speed *= SPEED_MULTIPLIER;
-  m_speed = (m_speed + 3.0F * prevspeed) / 4.0F;
+  m_speed = (m_speed + 3.0F * prevSpeed) / 4.0F;
   if (m_speed < 0.0F)
   {
     m_speed = 0.0F;

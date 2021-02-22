@@ -91,36 +91,28 @@ public:
   {
     CHANGE_FILTER_MODE = 0,
     CHANGE_STATE,
-    TURN_OFF_NOISE,
     CHANGE_TO_MEGA_LENT_MODE,
     CHANGE_LINE_CIRCLE_AMPLITUDE,
     CHANGE_LINE_CIRCLE_PARAMS,
     CHANGE_H_LINE_PARAMS,
     CHANGE_V_LINE_PARAMS,
-    HYPERCOS_EFFECT_ON_WITH_WAVE_MODE,
-    WAVE_EFFECT_ON_WITH_WAVE_MODE,
-    CHANGE_VITESSE_WITH_WAVE_MODE,
-    WAVE_EFFECT_ON_WITH_CRYSTAL_BALL_MODE,
-    HYPERCOS_EFFECT_ON_WITH_CRYSTAL_BALL_MODE,
-    HYPERCOS_EFFECT_ON_WITH_HYPER_COS1_MODE,
-    HYPERCOS_EFFECT_ON_WITH_HYPER_COS2_MODE,
-    FILTER_REVERSE_OFF_AND_STOP_SPEED,
-    FILTER_REVERSE_ON,
-    FILTER_VITESSE_STOP_SPEED_MINUS1,
-    FILTER_VITESSE_STOP_SPEED_PLUS1,
-    FILTER_ZERO_H_PLANE_EFFECT,
-    FILTER_CHANGE_VITESSE_AND_TOGGLE_REVERSE,
-    FILTER_TOGGLE_ROTATION,
-    FILTER_INCREASE_ROTATION,
-    FILTER_DECREASE_ROTATION,
     REDUCE_LINE_MODE,
     UPDATE_LINE_MODE,
     CHANGE_LINE_TO_BLACK,
     CHANGE_GOOM_LINE,
+    FILTER_REVERSE_ON,
+    FILTER_REVERSE_OFF_AND_STOP_SPEED,
+    FILTER_VITESSE_STOP_SPEED_MINUS1,
+    FILTER_VITESSE_STOP_SPEED_PLUS1,
+    FILTER_CHANGE_VITESSE_AND_TOGGLE_REVERSE,
+    TURN_OFF_NOISE,
+    FILTER_ZERO_H_PLANE_EFFECT,
+    FILTER_TOGGLE_ROTATION,
+    FILTER_INCREASE_ROTATION,
+    FILTER_DECREASE_ROTATION,
     IFS_RENEW,
     CHANGE_BLOCKY_WAVY_TO_ON,
     CHANGE_ZOOM_FILTER_ALLOW_OVEREXPOSED_TO_ON,
-    ALLOW_STRANGE_WAVE_VALUES,
     _SIZE // must be last - gives number of enums
   };
 
@@ -143,36 +135,28 @@ private:
   const std::array<WeightedEvent, NUM_GOOM_EVENTS> m_weightedEvents{{
     { /*.event = */GoomEvent::CHANGE_FILTER_MODE,                         /*.m = */1, /*.outOf = */ 16 },
     { /*.event = */GoomEvent::CHANGE_STATE,                               /*.m = */1, /*.outOf = */  2 },
-    { /*.event = */GoomEvent::TURN_OFF_NOISE,                             /*.m = */5, /*.outOf = */  5 },
     { /*.event = */GoomEvent::CHANGE_TO_MEGA_LENT_MODE,                   /*.m = */1, /*.outOf = */700 },
     { /*.event = */GoomEvent::CHANGE_LINE_CIRCLE_AMPLITUDE,               /*.m = */1, /*.outOf = */  3 },
     { /*.event = */GoomEvent::CHANGE_LINE_CIRCLE_PARAMS,                  /*.m = */1, /*.outOf = */  2 },
     { /*.event = */GoomEvent::CHANGE_H_LINE_PARAMS,                       /*.m = */3, /*.outOf = */  4 },
     { /*.event = */GoomEvent::CHANGE_V_LINE_PARAMS,                       /*.m = */2, /*.outOf = */  3 },
-    { /*.event = */GoomEvent::HYPERCOS_EFFECT_ON_WITH_WAVE_MODE,          /*.m = */1, /*.outOf = */  2 },
-    { /*.event = */GoomEvent::WAVE_EFFECT_ON_WITH_WAVE_MODE,              /*.m = */1, /*.outOf = */  3 },
-    { /*.event = */GoomEvent::CHANGE_VITESSE_WITH_WAVE_MODE,              /*.m = */1, /*.outOf = */  2 },
-    { /*.event = */GoomEvent::WAVE_EFFECT_ON_WITH_CRYSTAL_BALL_MODE,      /*.m = */1, /*.outOf = */  4 },
-    { /*.event = */GoomEvent::HYPERCOS_EFFECT_ON_WITH_CRYSTAL_BALL_MODE,  /*.m = */1, /*.outOf = */  2 },
-    { /*.event = */GoomEvent::HYPERCOS_EFFECT_ON_WITH_HYPER_COS1_MODE,    /*.m = */1, /*.outOf = */  3 },
-    { /*.event = */GoomEvent::HYPERCOS_EFFECT_ON_WITH_HYPER_COS2_MODE,    /*.m = */1, /*.outOf = */  6 },
-    { /*.event = */GoomEvent::FILTER_REVERSE_OFF_AND_STOP_SPEED,          /*.m = */1, /*.outOf = */  5 },
-    { /*.event = */GoomEvent::FILTER_REVERSE_ON,                          /*.m = */1, /*.outOf = */ 10 },
-    { /*.event = */GoomEvent::FILTER_VITESSE_STOP_SPEED_MINUS1,           /*.m = */1, /*.outOf = */ 10 },
-    { /*.event = */GoomEvent::FILTER_VITESSE_STOP_SPEED_PLUS1,            /*.m = */1, /*.outOf = */ 12 },
-    { /*.event = */GoomEvent::FILTER_ZERO_H_PLANE_EFFECT,                 /*.m = */1, /*.outOf = */  2 },
-    { /*.event = */GoomEvent::FILTER_CHANGE_VITESSE_AND_TOGGLE_REVERSE,   /*.m = */1, /*.outOf = */ 40 },
-    { /*.event = */GoomEvent::FILTER_TOGGLE_ROTATION,                     /*.m =*/15, /*.outOf = */ 40 },
-    { /*.event = */GoomEvent::FILTER_INCREASE_ROTATION,                   /*.m =*/10, /*.outOf = */ 40 },
-    { /*.event = */GoomEvent::FILTER_DECREASE_ROTATION,                   /*.m = */1, /*.outOf = */ 40 },
     { /*.event = */GoomEvent::REDUCE_LINE_MODE,                           /*.m = */1, /*.outOf = */  5 },
     { /*.event = */GoomEvent::UPDATE_LINE_MODE,                           /*.m = */1, /*.outOf = */  4 },
     { /*.event = */GoomEvent::CHANGE_LINE_TO_BLACK,                       /*.m = */1, /*.outOf = */  2 },
     { /*.event = */GoomEvent::CHANGE_GOOM_LINE,                           /*.m = */1, /*.outOf = */  3 },
+    { /*.event = */GoomEvent::FILTER_REVERSE_ON,                          /*.m = */1, /*.outOf = */ 10 },
+    { /*.event = */GoomEvent::FILTER_REVERSE_OFF_AND_STOP_SPEED,          /*.m = */1, /*.outOf = */  5 },
+    { /*.event = */GoomEvent::FILTER_VITESSE_STOP_SPEED_MINUS1,           /*.m = */1, /*.outOf = */  5 },
+    { /*.event = */GoomEvent::FILTER_VITESSE_STOP_SPEED_PLUS1,            /*.m = */1, /*.outOf = */ 10 },
+    { /*.event = */GoomEvent::FILTER_CHANGE_VITESSE_AND_TOGGLE_REVERSE,   /*.m = */1, /*.outOf = */ 20 },
+    { /*.event = */GoomEvent::FILTER_ZERO_H_PLANE_EFFECT,                 /*.m = */1, /*.outOf = */  2 },
+    { /*.event = */GoomEvent::TURN_OFF_NOISE,                             /*.m = */5, /*.outOf = */  5 },
+    { /*.event = */GoomEvent::FILTER_TOGGLE_ROTATION,                     /*.m =*/15, /*.outOf = */ 40 },
+    { /*.event = */GoomEvent::FILTER_INCREASE_ROTATION,                   /*.m =*/10, /*.outOf = */ 40 },
+    { /*.event = */GoomEvent::FILTER_DECREASE_ROTATION,                   /*.m =*/10, /*.outOf = */ 40 },
     { /*.event = */GoomEvent::IFS_RENEW,                                  /*.m = */2, /*.outOf = */  3 },
-    { /*.event = */GoomEvent::CHANGE_BLOCKY_WAVY_TO_ON,                   /*.m = */1, /*.outOf = */ 10 },
+    { /*.event = */GoomEvent::CHANGE_BLOCKY_WAVY_TO_ON,                   /*.m = */1, /*.outOf = */ 20 },
     { /*.event = */GoomEvent::CHANGE_ZOOM_FILTER_ALLOW_OVEREXPOSED_TO_ON, /*.m = */8, /*.outOf = */ 10 },
-    { /*.event = */GoomEvent::ALLOW_STRANGE_WAVE_VALUES,                  /*.m = */5, /*.outOf = */ 10 },
   }};
 
   const std::array<std::pair<LinesFx::LineType, size_t>, LinesFx::NUM_LINE_TYPES> m_weightedLineEvents{{
@@ -297,7 +281,7 @@ const GoomStates::WeightedStatesArray GoomStates::STATES{{
   {
     /*.weight = */20,
     /*.drawables */{{
-      { /*.fx = */GoomDrawable::IFS,       /*.buffSettings = */{ /*.buffIntensity = */0.7, /*.allowOverexposed = */false } },
+      { /*.fx = */GoomDrawable::IFS,       /*.buffSettings = */{ /*.buffIntensity = */0.7, /*.allowOverexposed = */true } },
       { /*.fx = */GoomDrawable::TENTACLES, /*.buffSettings = */{ /*.buffIntensity = */0.2, /*.allowOverexposed = */true  } },
       { /*.fx = */GoomDrawable::STARS,     /*.buffSettings = */{ /*.buffIntensity = */0.2, /*.allowOverexposed = */false } },
     }},
@@ -582,10 +566,7 @@ public:
   void Start();
   void Finish();
 
-  void Update(const AudioSamples& soundData,
-              float fps,
-              const char* songTitle,
-              const char* message);
+  void Update(const AudioSamples& soundData, float fps, const char* songTitle, const char* message);
 
 private:
   Parallel m_parallel;
@@ -599,7 +580,6 @@ private:
   uint32_t m_timeWithFilter = 0;
   uint32_t m_cycle = 0;
   FilterControl m_filterControl;
-  bool m_changeFilterSettingsNow = false;
   std::unordered_set<GoomDrawable> m_curGDrawables{};
   GoomMessage m_messageData{};
   GoomData m_goomData;
@@ -846,7 +826,7 @@ void GoomControl::GoomControlImpl::Start()
 
   m_stats.Reset();
   m_stats.SetStateStartValue(m_states.GetCurrentStateIndex());
-  m_stats.SetZoomFilterStartValue(m_filterControl.GetFilterData().mode);
+  m_stats.SetZoomFilterStartValue(m_filterControl.GetFilterSettings().mode);
   m_stats.SetSeedStartValue(GetRandSeed());
 
   // TODO MAKE line a visual FX
@@ -884,7 +864,7 @@ void GoomControl::GoomControlImpl::Finish()
   }
 
   m_stats.SetStateLastValue(m_states.GetCurrentStateIndex());
-  m_stats.SetZoomFilterLastValue(&m_filterControl.GetFilterData());
+  m_stats.SetZoomFilterLastValue(&m_filterControl.GetFilterSettings());
   m_stats.SetSeedLastValue(GetRandSeed());
   m_stats.SetNumThreadsUsedValue(m_parallel.GetNumThreadsUsed());
 
@@ -896,7 +876,7 @@ void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,
                                           const char* songTitle,
                                           const char* message)
 {
-  m_stats.UpdateChange(m_states.GetCurrentStateIndex(), m_filterControl.GetFilterData().mode);
+  m_stats.UpdateChange(m_states.GetCurrentStateIndex(), m_filterControl.GetFilterSettings().mode);
 
   m_timeInState++;
   m_timeWithFilter++;
@@ -1066,13 +1046,11 @@ void GoomControl::GoomControlImpl::ChangeFilterMode()
 {
   logDebug("Time to change the filter mode.");
 
-  m_changeFilterSettingsNow = true;
-
   m_stats.DoChangeFilterMode();
 
   SetNextFilterMode();
 
-  m_stats.DoChangeFilterMode(m_filterControl.GetFilterData().mode);
+  m_stats.DoChangeFilterMode(m_filterControl.GetFilterSettings().mode);
 
   m_visualFx.ifs_fx->Renew();
   m_stats.DoIfsRenew();
@@ -1080,7 +1058,7 @@ void GoomControl::GoomControlImpl::ChangeFilterMode()
 
 void GoomControl::GoomControlImpl::SetNextFilterMode()
 {
-  m_filterControl.SetRandomFilterData();
+  m_filterControl.SetRandomFilterSettings();
 
   m_filterControl.ChangeMilieu();
 
@@ -1135,13 +1113,6 @@ void GoomControl::GoomControlImpl::ChangeState()
     m_goomData.stopLines = 0;
     m_goomData.lineMode = m_goomData.drawLinesDuration;
   }
-
-  // Tentacles and amulette don't look so good together.
-  if (m_states.IsCurrentlyDrawable(GoomDrawable::TENTACLES) &&
-      (m_filterControl.GetFilterData().mode == ZoomFilterMode::AMULET_MODE))
-  {
-    ChangeFilterMode();
-  }
 }
 
 void GoomControl::GoomControlImpl::BigNormalUpdate()
@@ -1158,15 +1129,13 @@ void GoomControl::GoomControlImpl::BigNormalUpdate()
 
   m_goomData.lockVar = 50;
   m_stats.DoLockChange();
-  const int32_t newvit =
-      STOP_SPEED + 1 -
-      static_cast<int32_t>(3.5F * std::log10(m_goomInfo->GetSoundInfo().GetSpeed() * 60.0F + 1.0F));
   // retablir le zoom avant..
-  if ((m_filterControl.GetFilterData().reverse) && (!(m_cycle % 13)) &&
+  if ((m_filterControl.GetFilterSettings().reverse) && (!(m_cycle % 13)) &&
       m_goomEvent.Happens(GoomEvent::FILTER_REVERSE_OFF_AND_STOP_SPEED))
   {
     m_filterControl.SetReverseSetting(false);
     m_filterControl.SetVitesseSetting(STOP_SPEED - 2);
+    logDebug("vitesse = {}", m_filterControl.GetFilterSettings().vitesse);
     m_goomData.lockVar = 75;
     m_stats.DoLockChange();
   }
@@ -1193,10 +1162,12 @@ void GoomControl::GoomControlImpl::BigNormalUpdate()
   if (m_goomEvent.Happens(GoomEvent::FILTER_VITESSE_STOP_SPEED_MINUS1))
   {
     m_filterControl.SetVitesseSetting(STOP_SPEED - 1);
+    logDebug("vitesse = {}", m_filterControl.GetFilterSettings().vitesse);
   }
   if (m_goomEvent.Happens(GoomEvent::FILTER_VITESSE_STOP_SPEED_PLUS1))
   {
     m_filterControl.SetVitesseSetting(STOP_SPEED + 1);
+    logDebug("vitesse = {}", m_filterControl.GetFilterSettings().vitesse);
   }
 
   m_filterControl.ChangeMilieu();
@@ -1237,8 +1208,8 @@ void GoomControl::GoomControlImpl::BigNormalUpdate()
         {/*.buffIntensity = */ 0.5, /*.allowOverexposed = */ true});
   }
 
-  if ((m_filterControl.GetFilterData().middleX == 1) ||
-      (m_filterControl.GetFilterData().middleX == GetScreenWidth() - 1))
+  if ((m_filterControl.GetFilterSettings().middleX == 1) ||
+      (m_filterControl.GetFilterSettings().middleX == GetScreenWidth() - 1))
   {
     m_filterControl.SetVPlaneEffectSetting(0);
     if (m_goomEvent.Happens(GoomEvent::FILTER_ZERO_H_PLANE_EFFECT))
@@ -1247,12 +1218,17 @@ void GoomControl::GoomControlImpl::BigNormalUpdate()
     }
   }
 
-  if (newvit < m_filterControl.GetFilterData().vitesse)
+  const int32_t newvit =
+      STOP_SPEED + 1 -
+      static_cast<int32_t>(
+          std::lround(3.5F * std::log10(m_goomInfo->GetSoundInfo().GetSpeed() * 500.0F + 1.0F)));
+  logDebug("vitesse = {}, newvit = {}, Speed = {}", m_filterControl.GetFilterSettings().vitesse,
+           newvit, m_goomInfo->GetSoundInfo().GetSpeed());
+  if (newvit < m_filterControl.GetFilterSettings().vitesse)
   {
     // on accelere
-    m_changeFilterSettingsNow = true;
     if (((newvit < (STOP_SPEED - 7)) &&
-         (m_filterControl.GetFilterData().vitesse < STOP_SPEED - 6) && (m_cycle % 3 == 0)) ||
+         (m_filterControl.GetFilterSettings().vitesse < STOP_SPEED - 6) && (m_cycle % 3 == 0)) ||
         m_goomEvent.Happens(GoomEvent::FILTER_CHANGE_VITESSE_AND_TOGGLE_REVERSE))
     {
       m_filterControl.SetVitesseSetting(STOP_SPEED - static_cast<int32_t>(GetNRand(2)) +
@@ -1261,8 +1237,10 @@ void GoomControl::GoomControlImpl::BigNormalUpdate()
     }
     else
     {
-      m_filterControl.SetVitesseSetting((newvit + m_filterControl.GetFilterData().vitesse * 7) / 8);
+      m_filterControl.SetVitesseSetting((newvit + m_filterControl.GetFilterSettings().vitesse * 7) /
+                                        8);
     }
+    logDebug("vitesse = {}", m_filterControl.GetFilterSettings().vitesse);
     m_goomData.lockVar += 50;
     m_stats.DoLockChange();
   }
@@ -1277,12 +1255,12 @@ void GoomControl::GoomControlImpl::BigNormalUpdate()
 void GoomControl::GoomControlImpl::MegaLentUpdate()
 {
   logDebug("mega lent change");
-  m_changeFilterSettingsNow = true;
   m_filterControl.SetVitesseSetting(STOP_SPEED - 1);
   m_goomData.lockVar += 50;
   m_stats.DoLockChange();
   m_goomData.switchIncr = GoomData::SWITCH_INCR_AMOUNT;
   m_goomData.switchMult = 1.0F;
+  logDebug("vitesse = {}", m_filterControl.GetFilterSettings().vitesse);
 }
 
 void GoomControl::GoomControlImpl::BigUpdate()
@@ -1333,12 +1311,13 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect()
         {/*.buffIntensity = */ 0.5, /*.allowOverexposed = */ true});
   }
 
-  if (m_changeFilterSettingsNow)
+  if (m_filterControl.GetHasChangedSinceMark())
   {
     m_goomData.cyclesSinceLastChange = 0;
     m_goomData.switchIncr = GoomData::SWITCH_INCR_AMOUNT;
 
-    int diff = m_filterControl.GetFilterData().vitesse - m_goomData.previousZoomSpeed;
+    logDebug("vitesse = {}", m_filterControl.GetFilterSettings().vitesse);
+    int diff = m_filterControl.GetFilterSettings().vitesse - m_goomData.previousZoomSpeed;
     if (diff < 0)
     {
       diff = -diff;
@@ -1348,7 +1327,7 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect()
     {
       m_goomData.switchIncr *= (diff + 2) / 2;
     }
-    m_goomData.previousZoomSpeed = m_filterControl.GetFilterData().vitesse;
+    m_goomData.previousZoomSpeed = m_filterControl.GetFilterSettings().vitesse;
     m_goomData.switchMult = 1.0F;
 
     if (m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom() == 0 &&
@@ -1364,11 +1343,11 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect()
   else
   {
     logDebug("goomData.cyclesSinceLastChange = {}", m_goomData.cyclesSinceLastChange);
+    logDebug("vitesse = {}", m_filterControl.GetFilterSettings().vitesse);
     if (m_goomData.cyclesSinceLastChange > TIME_BETWEEN_CHANGE)
     {
       logDebug("goomData.cyclesSinceLastChange = {} > {} = timeBetweenChange",
                m_goomData.cyclesSinceLastChange, TIME_BETWEEN_CHANGE);
-      m_changeFilterSettingsNow = true;
       m_goomData.cyclesSinceLastChange = 0;
       m_visualFx.ifs_fx->Renew();
       m_stats.DoIfsRenew();
@@ -1442,58 +1421,77 @@ void GoomControl::GoomControlImpl::DisplayStateText()
   std::string message = "";
 
   message += std20::format("State: {}\n", m_states.GetCurrentStateIndex());
-  message +=
-      std20::format("Filter: {}\n", EnumToString(m_visualFx.zoomFilter_fx->GetFilterData().mode));
+  message += std20::format("Filter: {}\n",
+                           EnumToString(m_visualFx.zoomFilter_fx->GetFilterSettings().mode));
+  message += std20::format("Filter Settings Pending: {}\n",
+                           m_visualFx.zoomFilter_fx->GetFilterSettingsArePending());
+
+  message += std20::format("middleX: {}\n", m_visualFx.zoomFilter_fx->GetFilterSettings().middleX);
+  message += std20::format("middleY: {}\n", m_visualFx.zoomFilter_fx->GetFilterSettings().middleY);
+
   message += std20::format("switchIncr: {}\n", m_goomData.switchIncr);
   message += std20::format("switchMult: {}\n", m_goomData.switchMult);
+
+  message += std20::format("vitesse: {}\n", m_visualFx.zoomFilter_fx->GetFilterSettings().vitesse);
   message += std20::format("previousZoomSpeed: {}\n", m_goomData.previousZoomSpeed);
-  message += std20::format("vitesse: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().vitesse);
-  message += std20::format("middleX: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().middleX);
-  message += std20::format("middleY: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().middleY);
-  //  message += std20::format("pertedec: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().pertedec);
-  message += std20::format("reverse: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().reverse);
-  message +=
-      std20::format("hPlaneEffect: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().hPlaneEffect);
-  message +=
-      std20::format("vPlaneEffect: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().vPlaneEffect);
-  message +=
-      std20::format("waveEffect: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().waveEffect);
-  message += std20::format("hypercosEffect: {}\n",
-                           EnumToString(m_visualFx.zoomFilter_fx->GetFilterData().hypercosEffect));
-  //  message += std20::format("noisify: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().noisify);
-  //  message += std20::format("noiseFactor: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().noiseFactor);
-  message +=
-      std20::format("blockyWavy: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().blockyWavy);
-  message += std20::format("waveFreqFactor: {}\n",
-                           m_visualFx.zoomFilter_fx->GetFilterData().waveFreqFactor);
-  message +=
-      std20::format("waveAmplitude: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().waveAmplitude);
-  message += std20::format("waveEffectType: {}\n",
-                           EnumToString(m_visualFx.zoomFilter_fx->GetFilterData().waveEffectType));
-  message += std20::format("scrunchAmplitude: {}\n",
-                           m_visualFx.zoomFilter_fx->GetFilterData().scrunchAmplitude);
-  message += std20::format("speedwayAmplitude: {}\n",
-                           m_visualFx.zoomFilter_fx->GetFilterData().speedwayAmplitude);
-  message += std20::format("amuletAmplitude: {}\n",
-                           m_visualFx.zoomFilter_fx->GetFilterData().amuletAmplitude);
-  message += std20::format("crystalBallAmplitude: {}\n",
-                           m_visualFx.zoomFilter_fx->GetFilterData().crystalBallAmplitude);
-  message +=
-      std20::format("hypercosFreqX: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().hypercosFreqX);
-  message +=
-      std20::format("hypercosFreqY: {}\n", m_visualFx.zoomFilter_fx->GetFilterData().hypercosFreqY);
-  message += std20::format("hypercosAmplitudeX: {}\n",
-                           m_visualFx.zoomFilter_fx->GetFilterData().hypercosAmplitudeX);
-  message += std20::format("hypercosAmplitudeY: {}\n",
-                           m_visualFx.zoomFilter_fx->GetFilterData().hypercosAmplitudeY);
+  message += std20::format("reverse: {}\n", m_visualFx.zoomFilter_fx->GetFilterSettings().reverse);
+
+  message += std20::format("hPlaneEffect: {}\n",
+                           m_visualFx.zoomFilter_fx->GetFilterSettings().hPlaneEffect);
   message += std20::format("hPlaneEffectAmplitude: {}\n",
-                           m_visualFx.zoomFilter_fx->GetFilterData().hPlaneEffectAmplitude);
+                           m_visualFx.zoomFilter_fx->GetFilterSettings().hPlaneEffectAmplitude);
+  message += std20::format("vPlaneEffect: {}\n",
+                           m_visualFx.zoomFilter_fx->GetFilterSettings().vPlaneEffect);
   message += std20::format("vPlaneEffectAmplitude: {}\n",
-                           m_visualFx.zoomFilter_fx->GetFilterData().vPlaneEffectAmplitude);
-  message += std20::format("GetGeneralSpeed: {}\n", m_visualFx.zoomFilter_fx->GetGeneralSpeed());
+                           m_visualFx.zoomFilter_fx->GetFilterSettings().vPlaneEffectAmplitude);
+  message +=
+      std20::format("rotateSpeed: {}\n", m_visualFx.zoomFilter_fx->GetFilterSettings().rotateSpeed);
+  message +=
+      std20::format("tanEffect: {}\n", m_visualFx.zoomFilter_fx->GetFilterSettings().tanEffect);
+
+  message += std20::format("noisify: {}\n", m_visualFx.zoomFilter_fx->GetFilterSettings().noisify);
+  message +=
+      std20::format("noiseFactor: {}\n", m_visualFx.zoomFilter_fx->GetFilterSettings().noiseFactor);
+
+  message +=
+      std20::format("blockyWavy: {}\n", m_visualFx.zoomFilter_fx->GetFilterSettings().blockyWavy);
+
+  message +=
+      std20::format("waveEffectType: {}\n",
+                    EnumToString(m_visualFx.zoomFilter_fx->GetFilterSettings().waveEffectType));
+  message += std20::format("waveFreqFactor: {}\n",
+                           m_visualFx.zoomFilter_fx->GetFilterSettings().waveFreqFactor);
+  message += std20::format("waveAmplitude: {}\n",
+                           m_visualFx.zoomFilter_fx->GetFilterSettings().waveAmplitude);
+
+  message += std20::format("amuletAmplitude: {}\n",
+                           m_visualFx.zoomFilter_fx->GetFilterSettings().amuletAmplitude);
+  message += std20::format("crystalBallAmplitude: {}\n",
+                           m_visualFx.zoomFilter_fx->GetFilterSettings().crystalBallAmplitude);
+  message += std20::format("scrunchAmplitude: {}\n",
+                           m_visualFx.zoomFilter_fx->GetFilterSettings().scrunchAmplitude);
+  message += std20::format("speedwayAmplitude: {}\n",
+                           m_visualFx.zoomFilter_fx->GetFilterSettings().speedwayAmplitude);
+
+  message +=
+      std20::format("hypercosEffect: {}\n",
+                    EnumToString(m_visualFx.zoomFilter_fx->GetFilterSettings().hypercosEffect));
+  message += std20::format("hypercosFreqX: {}\n",
+                           m_visualFx.zoomFilter_fx->GetFilterSettings().hypercosFreqX);
+  message += std20::format("hypercosFreqY: {}\n",
+                           m_visualFx.zoomFilter_fx->GetFilterSettings().hypercosFreqY);
+  message += std20::format("hypercosAmplitudeX: {}\n",
+                           m_visualFx.zoomFilter_fx->GetFilterSettings().hypercosAmplitudeX);
+  message += std20::format("hypercosAmplitudeY: {}\n",
+                           m_visualFx.zoomFilter_fx->GetFilterSettings().hypercosAmplitudeY);
+
   message += std20::format("GetTranBuffYLineStart: {}\n",
                            m_visualFx.zoomFilter_fx->GetTranBuffYLineStart());
   message += std20::format("cyclesSinceLastChange: {}\n", m_goomData.cyclesSinceLastChange);
+  //  message += std20::format("GetGeneralSpeed: {}\n", m_visualFx.zoomFilter_fx->GetGeneralSpeed());
+  //  message += std20::format("pertedec: {}\n", m_visualFx.zoomFilter_fx->GetFilterSettings().pertedec);
+  //  message +=
+  //    std20::format("waveEffect: {}\n", m_visualFx.zoomFilter_fx->GetFilterSettings().waveEffect);
   //  message += std20::format("lineMode: {}\n", m_goomData.lineMode);
   //  message += std20::format("lockVar: {}\n", m_goomData.lockVar);
   //  message += std20::format("stopLines: {}\n", m_goomData.stopLines);
@@ -1774,9 +1772,10 @@ void GoomControl::GoomControlImpl::BigBreakIfMusicIsCalm()
 {
   logDebug("sound GetSpeed() = {:.2}, m_filterControl.GetFilterSettings().vitesse = {}, "
            "cycle = {}",
-           m_goomInfo->GetSoundInfo().GetSpeed(), m_filterControl.GetFilterData().vitesse, m_cycle);
+           m_goomInfo->GetSoundInfo().GetSpeed(), m_filterControl.GetFilterSettings().vitesse,
+           m_cycle);
   if ((m_goomInfo->GetSoundInfo().GetSpeed() < 0.01F) &&
-      (m_filterControl.GetFilterData().vitesse < (STOP_SPEED - 4)) && (m_cycle % 16 == 0))
+      (m_filterControl.GetFilterSettings().vitesse < (STOP_SPEED - 4)) && (m_cycle % 16 == 0))
   {
     logDebug("sound GetSpeed() = {:.2}", m_goomInfo->GetSoundInfo().GetSpeed());
     BigBreak();
@@ -1785,20 +1784,17 @@ void GoomControl::GoomControlImpl::BigBreakIfMusicIsCalm()
 
 void GoomControl::GoomControlImpl::BigBreak()
 {
-  m_changeFilterSettingsNow = true;
-  m_filterControl.SetVitesseSetting(m_filterControl.GetFilterData().vitesse + 3);
+  m_filterControl.SetVitesseSetting(m_filterControl.GetFilterSettings().vitesse + 3);
 }
 
 void GoomControl::GoomControlImpl::LowerSpeed()
 {
-  m_changeFilterSettingsNow = true;
-  // TODO Why is this '++' not '--'??
-  m_filterControl.SetVitesseSetting(m_filterControl.GetFilterData().vitesse + 1);
+  m_filterControl.SetVitesseSetting(m_filterControl.GetFilterSettings().vitesse + 1);
 }
 
 void GoomControl::GoomControlImpl::StopDecrementing()
 {
-  m_changeFilterSettingsNow = true;
+  // TODO What used to be here???
 }
 
 void GoomControl::GoomControlImpl::BigUpdateIfNotLocked()
@@ -1837,12 +1833,16 @@ void GoomControl::GoomControlImpl::DisplayLinesIfInAGoom(const AudioSamples& sou
 
 void GoomControl::GoomControlImpl::ApplyZoom()
 {
-  if (m_changeFilterSettingsNow)
+  if (m_filterControl.GetHasChangedSinceMark())
   {
-    m_stats.DoChangeFilterModeNow(m_timeWithFilter);
-    m_visualFx.zoomFilter_fx->ChangeFilterSettings(m_filterControl.GetFilterData());
-    m_changeFilterSettingsNow = false;
-    m_timeWithFilter = 0;
+    if (m_filterControl.GetFilterSettings().mode !=
+        m_visualFx.zoomFilter_fx->GetFilterSettings().mode)
+    {
+      m_stats.DoApplyChangeFilterSettings(m_timeWithFilter);
+      m_timeWithFilter = 0;
+    }
+    m_visualFx.zoomFilter_fx->ChangeFilterSettings(m_filterControl.GetFilterSettings());
+    m_filterControl.ClearUnchangedMark();
   }
 
   uint32_t numClipped = 0;
@@ -1880,21 +1880,21 @@ void GoomControl::GoomControlImpl::ApplyIfsIfRequired()
 
 void GoomControl::GoomControlImpl::RegularlyLowerTheSpeed()
 {
-  logDebug("vitesse = {}, cycle = {}", m_filterControl.GetFilterData().vitesse, m_cycle);
-  if ((m_cycle % 73 == 0) && (m_filterControl.GetFilterData().vitesse < (STOP_SPEED - 5)))
+  logDebug("vitesse = {}, cycle = {}", m_filterControl.GetFilterSettings().vitesse, m_cycle);
+  if ((m_cycle % 73 == 0) && (m_filterControl.GetFilterSettings().vitesse < (STOP_SPEED - 5)))
   {
     logDebug("cycle % 73 = 0 && vitesse = {} < {} - 5, ", m_cycle,
-             m_filterControl.GetFilterData().vitesse, STOP_SPEED);
+             m_filterControl.GetFilterSettings().vitesse, STOP_SPEED);
     LowerSpeed();
   }
 }
 
 void GoomControl::GoomControlImpl::StopDecrementingAfterAWhile()
 {
-  logDebug("cycle = {}, pertedec = {}", m_cycle, m_filterControl.GetFilterData().pertedec);
-  if ((m_cycle % 101 == 0) && (ZoomFilterData::pertedec == 7))
+  logDebug("cycle = {}", m_cycle);
+  if (m_cycle % 101 == 0)
   {
-    logDebug("cycle % 101 = 0 && pertedec = 7, ", m_cycle, m_filterControl.GetFilterData().vitesse);
+    logDebug("cycle = {}, vitesse = {}", m_cycle, m_filterControl.GetFilterSettings().vitesse);
     StopDecrementing();
   }
 }

@@ -41,7 +41,7 @@ void GoomStats::Reset()
   std::fill(m_numStateChanges.begin(), m_numStateChanges.end(), 0);
   std::fill(m_stateDurations.begin(), m_stateDurations.end(), 0);
   m_numChangeFilterModes = 0;
-  m_numChangeFilterModesNow = 0;
+  m_numApplyChangeFilterSettings = 0;
   m_numFilterModeChanges.fill(0);
   m_numLockChanges = 0;
   m_numDoIFS = 0;
@@ -163,11 +163,11 @@ void GoomStats::Log(const StatsLogValueFunc& logVal) const
     logVal(MODULE, "averageState_" + std::to_string(i) + "_Duration", avStateTime);
   }
   logVal(MODULE, "numChangeFilterModes", m_numChangeFilterModes);
-  logVal(MODULE, "numChangeFilterModesNow", m_numChangeFilterModesNow);
-  const float avFilterDuration =
-      m_numChangeFilterModesNow == 0
-      ? -1.0F
-      : static_cast<float>(m_totalFilterDurations) / static_cast<float>(m_numChangeFilterModesNow);
+  logVal(MODULE, "numApplyChangeFilterSettings", m_numApplyChangeFilterSettings);
+  const float avFilterDuration = m_numApplyChangeFilterSettings == 0
+                                     ? -1.0F
+                                     : static_cast<float>(m_totalFilterDurations) /
+                                           static_cast<float>(m_numApplyChangeFilterSettings);
   logVal(MODULE, "averageFilterDuration", avFilterDuration);
   for (size_t i = 0; i < m_numFilterModeChanges.size(); i++)
   {
@@ -297,9 +297,9 @@ void GoomStats::DoChangeFilterMode()
   m_numChangeFilterModes++;
 }
 
-void GoomStats::DoChangeFilterModeNow(const uint32_t timeWithFilter)
+void GoomStats::DoApplyChangeFilterSettings(uint32_t timeWithFilter)
 {
-  m_numChangeFilterModesNow++;
+  m_numApplyChangeFilterSettings++;
   m_totalFilterDurations += timeWithFilter;
   m_lastFilterDuration = timeWithFilter;
 }

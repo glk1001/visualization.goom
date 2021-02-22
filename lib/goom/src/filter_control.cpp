@@ -95,13 +95,15 @@ FilterControl::FilterControl(const std::shared_ptr<const PluginInfo>& goomInfo) 
 
 FilterControl::~FilterControl() noexcept = default;
 
-void FilterControl::SetRandomFilterData()
+void FilterControl::SetRandomFilterSettings()
 {
-  SetRandomFilterData(GetNewRandomMode());
+  SetRandomFilterSettings(GetNewRandomMode());
 }
 
-void FilterControl::SetRandomFilterData(const ZoomFilterMode mode)
+void FilterControl::SetRandomFilterSettings(ZoomFilterMode mode)
 {
+  m_hasChanged = true;
+
   m_filterData.mode = mode;
 
   SetDefaultSettings();
@@ -184,39 +186,48 @@ auto FilterControl::GetNewRandomMode() const -> ZoomFilterMode
 
 void FilterControl::SetDefaultSettings()
 {
-  m_filterData.vitesse = ZoomFilterData::DEFAULT_VITESSE;
-  m_filterData.coeffVitesseDenominator = ZoomFilterData::DEFAULT_COEFF_VITESSE_DENOMINATOR;
   m_filterData.middleX = 16;
   m_filterData.middleY = 1;
+
+  m_filterData.vitesse = ZoomFilterData::DEFAULT_VITESSE;
+  m_filterData.coeffVitesseDenominator = ZoomFilterData::DEFAULT_COEFF_VITESSE_DENOMINATOR;
   m_filterData.reverse = true;
+
   m_filterData.tanEffect = ProbabilityOfMInN(1, 10);
   m_filterData.rotateSpeed = 0.0;
-  m_filterData.hPlaneEffect = 0;
-  m_filterData.vPlaneEffect = 0;
-  m_filterData.waveEffect = false;
-  m_filterData.hypercosEffect = ZoomFilterData::HypercosEffect::NONE;
   m_filterData.noisify = false;
   m_filterData.noiseFactor = 1;
   m_filterData.blockyWavy = false;
-  m_filterData.waveFreqFactor = ZoomFilterData::DEFAULT_WAVE_FREQ_FACTOR;
-  m_filterData.waveAmplitude = ZoomFilterData::DEFAULT_WAVE_AMPLITUDE;
-  m_filterData.waveEffectType = ZoomFilterData::DEFAULT_WAVE_EFFECT_TYPE;
-  m_filterData.scrunchAmplitude = ZoomFilterData::DEFAULT_SCRUNCH_AMPLITUDE;
-  m_filterData.speedwayAmplitude = ZoomFilterData::DEFAULT_SPEEDWAY_AMPLITUDE;
+
+  m_filterData.waveEffect = false; // TODO - not used?
+
+  m_filterData.hPlaneEffect = 0;
+  m_filterData.hPlaneEffectAmplitude = ZoomFilterData::DEFAULT_H_PLANE_EFFECT_AMPLITUDE;
+
+  m_filterData.vPlaneEffect = 0;
+  m_filterData.vPlaneEffectAmplitude = ZoomFilterData::DEFAULT_V_PLANE_EFFECT_AMPLITUDE;
+
   m_filterData.amuletAmplitude = ZoomFilterData::DEFAULT_AMULET_AMPLITUDE;
   m_filterData.crystalBallAmplitude = ZoomFilterData::DEFAULT_CRYSTAL_BALL_AMPLITUDE;
+  m_filterData.scrunchAmplitude = ZoomFilterData::DEFAULT_SCRUNCH_AMPLITUDE;
+  m_filterData.speedwayAmplitude = ZoomFilterData::DEFAULT_SPEEDWAY_AMPLITUDE;
+
+  m_filterData.waveEffectType = ZoomFilterData::DEFAULT_WAVE_EFFECT_TYPE;
+  m_filterData.waveFreqFactor = ZoomFilterData::DEFAULT_WAVE_FREQ_FACTOR;
+  m_filterData.waveAmplitude = ZoomFilterData::DEFAULT_WAVE_AMPLITUDE;
+
+  m_filterData.hypercosEffect = ZoomFilterData::HypercosEffect::NONE;
   m_filterData.hypercosReverse = false;
   m_filterData.hypercosFreqX = ZoomFilterData::DEFAULT_HYPERCOS_FREQ;
   m_filterData.hypercosFreqY = ZoomFilterData::DEFAULT_HYPERCOS_FREQ;
   m_filterData.hypercosAmplitudeX = ZoomFilterData::DEFAULT_HYPERCOS_AMPLITUDE;
   m_filterData.hypercosAmplitudeY = ZoomFilterData::DEFAULT_HYPERCOS_AMPLITUDE;
-  m_filterData.hPlaneEffectAmplitude = ZoomFilterData::DEFAULT_H_PLANE_EFFECT_AMPLITUDE;
-  m_filterData.vPlaneEffectAmplitude = ZoomFilterData::DEFAULT_V_PLANE_EFFECT_AMPLITUDE;
 }
 
 void FilterControl::SetAmuletModeSettings()
 {
   SetRotate(PROB_HIGH);
+
   m_filterData.amuletAmplitude =
       GetRandInRange(ZoomFilterData::MIN_AMULET_AMPLITUDE, ZoomFilterData::MAX_AMULET_AMPLITUDE);
 }
@@ -225,8 +236,6 @@ void FilterControl::SetCrystalBallModeSettings()
 {
   SetRotate(PROB_LOW);
 
-  m_filterData.crystalBallAmplitude = GetRandInRange(ZoomFilterData::MIN_CRYSTAL_BALL_AMPLITUDE,
-                                                     ZoomFilterData::MAX_CRYSTAL_BALL_AMPLITUDE);
   m_filterData.crystalBallAmplitude = GetRandInRange(ZoomFilterData::MIN_CRYSTAL_BALL_AMPLITUDE,
                                                      ZoomFilterData::MAX_CRYSTAL_BALL_AMPLITUDE);
 }
@@ -247,30 +256,31 @@ void FilterControl::SetNormalModeSettings()
 {
 }
 
-void FilterControl::SetWaterModeSettings()
-{
-}
-
 void FilterControl::SetScrunchModeSettings()
 {
-  m_filterData.scrunchAmplitude =
-      GetRandInRange(ZoomFilterData::MIN_SCRUNCH_AMPLITUDE, ZoomFilterData::MAX_SCRUNCH_AMPLITUDE);
-
   SetRotate(PROB_HALF);
   SetHypercosEffect();
+
+  m_filterData.scrunchAmplitude =
+      GetRandInRange(ZoomFilterData::MIN_SCRUNCH_AMPLITUDE, ZoomFilterData::MAX_SCRUNCH_AMPLITUDE);
 }
 
 void FilterControl::SetSpeedwayModeSettings()
 {
+  SetRotate(PROB_LOW);
+
   m_filterData.speedwayAmplitude = GetRandInRange(ZoomFilterData::MIN_SPEEDWAY_AMPLITUDE,
                                                   ZoomFilterData::MAX_SPEEDWAY_AMPLITUDE);
+}
 
-  SetRotate(PROB_LOW);
-  SetHypercosEffect();
+void FilterControl::SetWaterModeSettings()
+{
 }
 
 void FilterControl::SetWaveModeSettings()
 {
+  SetRotate(PROB_LOW);
+
   using EventTypes = FilterControl::FilterEvents::FilterEventTypes;
 
   m_filterData.reverse = ProbabilityOfMInN(1, 2);
@@ -294,9 +304,6 @@ void FilterControl::SetWaveModeSettings()
     m_filterData.waveFreqFactor =
         GetRandInRange(ZoomFilterData::MIN_WAVE_FREQ_FACTOR, ZoomFilterData::MAX_WAVE_FREQ_FACTOR);
   }
-
-  SetRotate(PROB_LOW);
-  SetHypercosEffect();
 }
 
 void FilterControl::SetYOnlyModeSettings()
@@ -307,11 +314,13 @@ void FilterControl::SetYOnlyModeSettings()
 
 void FilterControl::SetRotate(const float probability)
 {
-  if (ProbabilityOf(probability))
+  if (!ProbabilityOf(probability))
   {
-    m_filterData.rotateSpeed =
-        GetRandInRange(ZoomFilterData::MIN_ROTATE_SPEED, ZoomFilterData::MAX_ROTATE_SPEED);
+    return;
   }
+
+  m_filterData.rotateSpeed =
+      GetRandInRange(ZoomFilterData::MIN_ROTATE_SPEED, ZoomFilterData::MAX_ROTATE_SPEED);
 }
 
 void FilterControl::SetWaveEffect()
@@ -323,11 +332,7 @@ void FilterControl::SetWaveEffect()
 
 void FilterControl::SetHypercosEffect()
 {
-  using EventTypes = FilterControl::FilterEvents::FilterEventTypes;
-
-  m_filterData.hypercosEffect =
-      GetHypercosEffect(m_filterEvents->Happens(EventTypes::HYPERCOS_EFFECT));
-
+  m_filterData.hypercosEffect = GetRandomHypercosEffect();
   if (m_filterData.hypercosEffect == ZoomFilterData::HypercosEffect::NONE)
   {
     return;
@@ -346,6 +351,7 @@ void FilterControl::SetHypercosEffect()
   }
 
   m_filterData.hypercosReverse = ProbabilityOfMInN(1, 2);
+
   m_filterData.hypercosAmplitudeX = GetRandInRange(ZoomFilterData::MIN_HYPERCOS_AMPLITUDE,
                                                    ZoomFilterData::MAX_HYPERCOS_AMPLITUDE);
   if (ProbabilityOfMInN(1, 2))
@@ -359,9 +365,11 @@ void FilterControl::SetHypercosEffect()
   }
 }
 
-inline auto FilterControl::GetHypercosEffect(const bool active) -> ZoomFilterData::HypercosEffect
+inline auto FilterControl::GetRandomHypercosEffect() const -> ZoomFilterData::HypercosEffect
 {
-  if (!active)
+  using EventTypes = FilterControl::FilterEvents::FilterEventTypes;
+
+  if (!m_filterEvents->Happens(EventTypes::HYPERCOS_EFFECT))
   {
     return ZoomFilterData::HypercosEffect::NONE;
   }
@@ -373,6 +381,7 @@ inline auto FilterControl::GetHypercosEffect(const bool active) -> ZoomFilterDat
 
 void FilterControl::ChangeMilieu()
 {
+  m_hasChanged = true;
 
   if ((m_filterData.mode == ZoomFilterMode::WATER_MODE) ||
       (m_filterData.mode == ZoomFilterMode::Y_ONLY_MODE) ||
@@ -469,7 +478,7 @@ void FilterControl::ChangeMilieu()
   }
   m_filterData.hPlaneEffectAmplitude = GetRandInRange(ZoomFilterData::MIN_H_PLANE_EFFECT_AMPLITUDE,
                                                       ZoomFilterData::MAX_H_PLANE_EFFECT_AMPLITUDE);
-  // I think 'vPlaneEffectAmplitude' has to be the same as 'hPlaneEffectAmplitude' otherwise
+  // TODO I think 'vPlaneEffectAmplitude' has to be the same as 'hPlaneEffectAmplitude' otherwise
   //   buffer breaking effects occur.
   m_filterData.vPlaneEffectAmplitude =
       m_filterData.hPlaneEffectAmplitude + GetRandInRange(-0.0009F, 0.0009F);

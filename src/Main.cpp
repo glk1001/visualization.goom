@@ -98,7 +98,7 @@ auto CVisualizationGoom::Start(int iChannels,
   addLogHandler("kodi-logger", s_fKodiLog);
   setLogFile("/tmp/kodi_goom.log");
   setLogLevelForFiles(Logging::LogLevel::info);
-  //  setLogLevelForFiles(Logging::LogLevel::debug);
+  //setLogLevelForFiles(Logging::LogLevel::debug);
   logStart();
   logInfo("Visualization start. SongName = \"{}\".", szSongName);
 
