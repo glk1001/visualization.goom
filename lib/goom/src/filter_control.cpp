@@ -15,6 +15,25 @@ constexpr float PROB_HIGH = 0.9;
 constexpr float PROB_HALF = 0.5;
 constexpr float PROB_LOW = 0.1;
 
+//@formatter:off
+// clang-format off
+const Weights<ZoomFilterMode> FilterControl::WEIGHTED_FILTER_EVENTS{{
+    { ZoomFilterMode::AMULET_MODE,       5 },
+    { ZoomFilterMode::CRYSTAL_BALL_MODE, 8 },
+    { ZoomFilterMode::HYPERCOS0_MODE,    4 },
+    { ZoomFilterMode::HYPERCOS1_MODE,    3 },
+    { ZoomFilterMode::HYPERCOS2_MODE,    2 },
+    { ZoomFilterMode::NORMAL_MODE,       6 },
+    { ZoomFilterMode::SCRUNCH_MODE,      6 },
+    { ZoomFilterMode::SPEEDWAY_MODE,     6 },
+    { ZoomFilterMode::WAVE_MODE0,        5 },
+    { ZoomFilterMode::WAVE_MODE1,        4 },
+    { ZoomFilterMode::WATER_MODE,        0 },
+    { ZoomFilterMode::Y_ONLY_MODE,       4 },
+}};
+//@formatter:on
+// clang-format on
+
 class FilterControl::FilterEvents
 {
 public:
@@ -27,7 +46,7 @@ public:
 
   enum FilterEventTypes
   {
-    ROTATE,
+    ROTATE = 0,
     HYPERCOS_EFFECT,
     WAVE_EFFECT,
     ALLOW_STRANGE_WAVE_VALUES,
@@ -43,7 +62,7 @@ public:
     uint32_t outOf;
   };
 
-  auto Happens(FilterEventTypes event) -> bool;
+  static auto Happens(FilterEventTypes event) -> bool;
 
 private:
   static constexpr size_t NUM_FILTER_EVENT_TYPES = static_cast<size_t>(FilterEventTypes::_SIZE);
@@ -100,6 +119,15 @@ void FilterControl::SetRandomFilterSettings()
   SetRandomFilterSettings(GetNewRandomMode());
 }
 
+void FilterControl::SetDefaultFilterSettings(ZoomFilterMode mode)
+{
+  m_hasChanged = true;
+
+  m_filterData.mode = mode;
+
+  SetDefaultSettings();
+}
+
 void FilterControl::SetRandomFilterSettings(ZoomFilterMode mode)
 {
   m_hasChanged = true;
@@ -115,6 +143,9 @@ void FilterControl::SetRandomFilterSettings(ZoomFilterMode mode)
       break;
     case ZoomFilterMode::CRYSTAL_BALL_MODE:
       SetCrystalBallModeSettings();
+      break;
+    case ZoomFilterMode::HYPERCOS0_MODE:
+      SetHypercos0ModeSettings();
       break;
     case ZoomFilterMode::HYPERCOS1_MODE:
       SetHypercos1ModeSettings();
@@ -134,8 +165,11 @@ void FilterControl::SetRandomFilterSettings(ZoomFilterMode mode)
     case ZoomFilterMode::WATER_MODE:
       SetWaterModeSettings();
       break;
-    case ZoomFilterMode::WAVE_MODE:
-      SetWaveModeSettings();
+    case ZoomFilterMode::WAVE_MODE0:
+      SetWaveMode0Settings();
+      break;
+    case ZoomFilterMode::WAVE_MODE1:
+      SetWaveMode1Settings();
       break;
     case ZoomFilterMode::Y_ONLY_MODE:
       SetYOnlyModeSettings();
@@ -147,29 +181,12 @@ void FilterControl::SetRandomFilterSettings(ZoomFilterMode mode)
 
 auto FilterControl::GetNewRandomMode() const -> ZoomFilterMode
 {
-  //@formatter:off
-  // clang-format off
-  static const Weights<ZoomFilterMode> s_weightedFilterEvents{{
-    { ZoomFilterMode::AMULET_MODE,       2 },
-    { ZoomFilterMode::CRYSTAL_BALL_MODE, 3 },
-    { ZoomFilterMode::HYPERCOS1_MODE,    3 },
-    { ZoomFilterMode::HYPERCOS2_MODE,    3 },
-    { ZoomFilterMode::NORMAL_MODE,       2 },
-    { ZoomFilterMode::SCRUNCH_MODE,      3 },
-    { ZoomFilterMode::SPEEDWAY_MODE,     3 },
-    { ZoomFilterMode::WAVE_MODE,         5 },
-    { ZoomFilterMode::WATER_MODE,        0 },
-    { ZoomFilterMode::Y_ONLY_MODE,       1 },
-  }};
-  //@formatter:on
-  // clang-format on
-
   uint32_t numTries = 0;
   constexpr uint32_t MAX_TRIES = 20;
 
   while (true)
   {
-    const auto newMode = s_weightedFilterEvents.GetRandomWeighted();
+    const auto newMode = WEIGHTED_FILTER_EVENTS.GetRandomWeighted();
     if (newMode != m_filterData.mode)
     {
       return newMode;
@@ -193,7 +210,7 @@ void FilterControl::SetDefaultSettings()
   m_filterData.coeffVitesseDenominator = ZoomFilterData::DEFAULT_COEFF_VITESSE_DENOMINATOR;
   m_filterData.reverse = true;
 
-  m_filterData.tanEffect = ProbabilityOfMInN(1, 10);
+  m_filterData.tanEffect = false; //ProbabilityOfMInN(1, 10);
   m_filterData.rotateSpeed = 0.0;
   m_filterData.noisify = false;
   m_filterData.noiseFactor = 1;
@@ -240,16 +257,28 @@ void FilterControl::SetCrystalBallModeSettings()
                                                      ZoomFilterData::MAX_CRYSTAL_BALL_AMPLITUDE);
 }
 
+void FilterControl::SetHypercos0ModeSettings()
+{
+  SetRotate(PROB_LOW);
+  SetHypercosEffect(
+      {ZoomFilterData::MIN_HYPERCOS_FREQ, 0.10F * ZoomFilterData::MAX_HYPERCOS_FREQ},
+      {ZoomFilterData::MIN_HYPERCOS_AMPLITUDE, ZoomFilterData::MAX_HYPERCOS_AMPLITUDE});
+}
+
 void FilterControl::SetHypercos1ModeSettings()
 {
-  SetRotate(PROB_HIGH);
-  SetHypercosEffect(false);
+  SetRotate(PROB_LOW);
+  SetHypercosEffect(
+      {ZoomFilterData::MIN_HYPERCOS_FREQ, ZoomFilterData::MAX_HYPERCOS_FREQ},
+      {ZoomFilterData::MIN_HYPERCOS_AMPLITUDE, ZoomFilterData::MAX_HYPERCOS_AMPLITUDE});
 }
 
 void FilterControl::SetHypercos2ModeSettings()
 {
   SetRotate(PROB_HIGH);
-  SetHypercosEffect(true);
+  SetHypercosEffect(
+      {ZoomFilterData::MIN_HYPERCOS_FREQ, ZoomFilterData::BIG_MAX_HYPERCOS_FREQ},
+      {ZoomFilterData::MIN_HYPERCOS_AMPLITUDE, ZoomFilterData::MAX_HYPERCOS_AMPLITUDE});
 }
 
 void FilterControl::SetNormalModeSettings()
@@ -276,10 +305,37 @@ void FilterControl::SetWaterModeSettings()
 {
 }
 
-void FilterControl::SetWaveModeSettings()
+void FilterControl::SetWaveMode0Settings()
 {
   SetRotate(PROB_LOW);
 
+  SetWaveModeSettings({ZoomFilterData::MIN_WAVE_FREQ_FACTOR, ZoomFilterData::MAX_WAVE_FREQ_FACTOR},
+                      {ZoomFilterData::MIN_WAVE_AMPLITUDE, ZoomFilterData::MAX_WAVE_AMPLITUDE});
+}
+
+void FilterControl::SetWaveMode1Settings()
+{
+  SetRotate(PROB_LOW);
+
+  using EventTypes = FilterControl::FilterEvents::FilterEventTypes;
+
+  if (m_filterEvents->Happens(EventTypes::ALLOW_STRANGE_WAVE_VALUES))
+  {
+    SetWaveModeSettings(
+        {ZoomFilterData::SMALL_MIN_WAVE_FREQ_FACTOR, ZoomFilterData::SMALL_MAX_WAVE_FREQ_FACTOR},
+        {ZoomFilterData::BIG_MIN_WAVE_AMPLITUDE, ZoomFilterData::BIG_MAX_WAVE_AMPLITUDE});
+  }
+  else
+  {
+    SetWaveModeSettings(
+        {ZoomFilterData::MIN_WAVE_FREQ_FACTOR, ZoomFilterData::MAX_WAVE_FREQ_FACTOR},
+        {ZoomFilterData::MIN_WAVE_AMPLITUDE, ZoomFilterData::MAX_WAVE_AMPLITUDE});
+  }
+}
+
+void FilterControl::SetWaveModeSettings(const MinMaxValues& minMaxFreq,
+                                        const MinMaxValues& minMaxAmp)
+{
   using EventTypes = FilterControl::FilterEvents::FilterEventTypes;
 
   m_filterData.reverse = ProbabilityOfMInN(1, 2);
@@ -287,22 +343,16 @@ void FilterControl::SetWaveModeSettings()
   {
     m_filterData.vitesse = (m_filterData.vitesse + ZoomFilterData::DEFAULT_VITESSE) >> 1;
   }
+
   m_filterData.waveEffectType = static_cast<ZoomFilterData::WaveEffect>(GetRandInRange(0, 2));
-  if (m_filterEvents->Happens(EventTypes::ALLOW_STRANGE_WAVE_VALUES))
-  {
-    // BUG HERE - wrong ranges - BUT GIVES GOOD AFFECT
-    m_filterData.waveAmplitude = GetRandInRange(ZoomFilterData::MIN_LARGE_WAVE_AMPLITUDE,
-                                                ZoomFilterData::MAX_LARGE_WAVE_AMPLITUDE);
-    m_filterData.waveFreqFactor = GetRandInRange(ZoomFilterData::MIN_WAVE_SMALL_FREQ_FACTOR,
-                                                 ZoomFilterData::MAX_WAVE_SMALL_FREQ_FACTOR);
-  }
-  else
-  {
-    m_filterData.waveAmplitude =
-        GetRandInRange(ZoomFilterData::MIN_WAVE_AMPLITUDE, ZoomFilterData::MAX_WAVE_AMPLITUDE);
-    m_filterData.waveFreqFactor =
-        GetRandInRange(ZoomFilterData::MIN_WAVE_FREQ_FACTOR, ZoomFilterData::MAX_WAVE_FREQ_FACTOR);
-  }
+
+  SetWaveEffect(minMaxFreq, minMaxAmp);
+}
+
+void FilterControl::SetWaveEffect(const MinMaxValues& minMaxFreq, const MinMaxValues& minMaxAmp)
+{
+  m_filterData.waveFreqFactor = GetRandInRange(minMaxFreq.minVal, minMaxFreq.maxVal);
+  m_filterData.waveAmplitude = GetRandInRange(minMaxAmp.minVal, minMaxAmp.maxVal);
 }
 
 void FilterControl::SetYOnlyModeSettings()
@@ -321,14 +371,7 @@ void FilterControl::SetRotate(const float probability)
       GetRandInRange(ZoomFilterData::MIN_ROTATE_SPEED, ZoomFilterData::MAX_ROTATE_SPEED);
 }
 
-void FilterControl::SetWaveEffect()
-{
-  using EventTypes = FilterControl::FilterEvents::FilterEventTypes;
-
-  m_filterData.waveEffect = m_filterEvents->Happens(EventTypes::WAVE_EFFECT);
-}
-
-void FilterControl::SetHypercosEffect(const bool allowBigFrequency)
+void FilterControl::SetHypercosEffect(const MinMaxValues& minMaxFreq, const MinMaxValues& minMaxAmp)
 {
   m_filterData.hypercosEffect = GetRandomHypercosEffect();
   if (m_filterData.hypercosEffect == ZoomFilterData::HypercosEffect::NONE)
@@ -336,30 +379,26 @@ void FilterControl::SetHypercosEffect(const bool allowBigFrequency)
     return;
   }
 
-  const float maxFreq =
-      allowBigFrequency ? ZoomFilterData::BIG_MAX_HYPERCOS_FREQ : ZoomFilterData::MAX_HYPERCOS_FREQ;
-  m_filterData.hypercosFreqX = GetRandInRange(ZoomFilterData::MIN_HYPERCOS_FREQ, maxFreq);
+  m_filterData.hypercosFreqX = GetRandInRange(minMaxFreq.minVal, minMaxFreq.maxVal);
   if (ProbabilityOfMInN(1, 4))
   {
     m_filterData.hypercosFreqY = m_filterData.hypercosFreqX;
   }
   else
   {
-    m_filterData.hypercosFreqY = GetRandInRange(ZoomFilterData::MIN_HYPERCOS_FREQ, maxFreq);
+    m_filterData.hypercosFreqY = GetRandInRange(minMaxFreq.minVal, minMaxFreq.maxVal);
   }
 
   m_filterData.hypercosReverse = ProbabilityOfMInN(1, 2);
 
-  m_filterData.hypercosAmplitudeX = GetRandInRange(ZoomFilterData::MIN_HYPERCOS_AMPLITUDE,
-                                                   ZoomFilterData::MAX_HYPERCOS_AMPLITUDE);
+  m_filterData.hypercosAmplitudeX = GetRandInRange(minMaxAmp.minVal, minMaxAmp.maxVal);
   if (ProbabilityOfMInN(1, 2))
   {
     m_filterData.hypercosAmplitudeY = m_filterData.hypercosAmplitudeX;
   }
   else
   {
-    m_filterData.hypercosAmplitudeY = GetRandInRange(ZoomFilterData::MIN_HYPERCOS_AMPLITUDE,
-                                                     ZoomFilterData::MAX_HYPERCOS_AMPLITUDE);
+    m_filterData.hypercosAmplitudeY = GetRandInRange(minMaxAmp.minVal, minMaxAmp.maxVal);
   }
 }
 
@@ -476,12 +515,15 @@ void FilterControl::ChangeMilieu()
   }
   m_filterData.hPlaneEffectAmplitude = GetRandInRange(ZoomFilterData::MIN_H_PLANE_EFFECT_AMPLITUDE,
                                                       ZoomFilterData::MAX_H_PLANE_EFFECT_AMPLITUDE);
-  // TODO I think 'vPlaneEffectAmplitude' has to be the same as 'hPlaneEffectAmplitude' otherwise
-  //   buffer breaking effects occur.
-  m_filterData.vPlaneEffectAmplitude =
-      m_filterData.hPlaneEffectAmplitude + GetRandInRange(-0.0009F, 0.0009F);
-  //  goomData.zoomFilterData.vPlaneEffectAmplitude = getRandInRange(
-  //      ZoomFilterData::minVPlaneEffectAmplitude, ZoomFilterData::maxVPlaneEffectAmplitude);
+  if (ProbabilityOfMInN(3, 4))
+  {
+    m_filterData.vPlaneEffectAmplitude = m_filterData.hPlaneEffectAmplitude;
+  }
+  else
+  {
+    m_filterData.vPlaneEffectAmplitude = GetRandInRange(
+        ZoomFilterData::MIN_V_PLANE_EFFECT_AMPLITUDE, ZoomFilterData::MAX_V_PLANE_EFFECT_AMPLITUDE);
+  }
 }
 
 } // namespace GOOM

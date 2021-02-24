@@ -15,13 +15,15 @@ enum class ZoomFilterMode
   _NULL = -1,
   AMULET_MODE = 0,
   CRYSTAL_BALL_MODE,
+  HYPERCOS0_MODE,
   HYPERCOS1_MODE,
   HYPERCOS2_MODE,
   NORMAL_MODE,
   SCRUNCH_MODE,
   SPEEDWAY_MODE,
   WATER_MODE,
-  WAVE_MODE,
+  WAVE_MODE0,
+  WAVE_MODE1,
   Y_ONLY_MODE,
   _SIZE // must be last - gives number of enums
 };
@@ -92,15 +94,15 @@ struct ZoomFilterData
   static constexpr float DEFAULT_WAVE_FREQ_FACTOR = 20;
   static constexpr float MIN_WAVE_FREQ_FACTOR = 1;
   static constexpr float MAX_WAVE_FREQ_FACTOR = 50;
-  static constexpr float MIN_WAVE_SMALL_FREQ_FACTOR = 0.001;
-  static constexpr float MAX_WAVE_SMALL_FREQ_FACTOR = 0.1;
+  static constexpr float SMALL_MIN_WAVE_FREQ_FACTOR = 0.001;
+  static constexpr float SMALL_MAX_WAVE_FREQ_FACTOR = 0.1;
   float waveFreqFactor = DEFAULT_WAVE_FREQ_FACTOR;
 
   static constexpr float DEFAULT_WAVE_AMPLITUDE = 0.01;
   static constexpr float MIN_WAVE_AMPLITUDE = 0.001;
   static constexpr float MAX_WAVE_AMPLITUDE = 0.1;
-  static constexpr float MIN_LARGE_WAVE_AMPLITUDE = 1;
-  static constexpr float MAX_LARGE_WAVE_AMPLITUDE = 50;
+  static constexpr float BIG_MIN_WAVE_AMPLITUDE = 1;
+  static constexpr float BIG_MAX_WAVE_AMPLITUDE = 50;
   float waveAmplitude = DEFAULT_WAVE_AMPLITUDE;
 
   enum class WaveEffect

@@ -2,6 +2,7 @@
 #define VISUALIZATION_GOOM_FILTER_CONTROL_H
 
 #include "filters.h"
+#include "goomutils/goomrand.h"
 
 #include <memory>
 
@@ -34,8 +35,10 @@ public:
   auto GetFilterSettings() const -> const ZoomFilterData&;
   void SetRandomFilterSettings();
   void SetRandomFilterSettings(ZoomFilterMode mode);
+  void SetDefaultFilterSettings(ZoomFilterMode mode);
 
 private:
+  static const UTILS::Weights<ZoomFilterMode> WEIGHTED_FILTER_EVENTS;
   const std::shared_ptr<const PluginInfo> m_goomInfo;
   ZoomFilterData m_filterData{};
   class FilterEvents;
@@ -48,18 +51,27 @@ private:
 
   void SetAmuletModeSettings();
   void SetCrystalBallModeSettings();
+  void SetHypercos0ModeSettings();
   void SetHypercos1ModeSettings();
   void SetHypercos2ModeSettings();
   void SetNormalModeSettings();
   void SetScrunchModeSettings();
   void SetSpeedwayModeSettings();
   void SetWaterModeSettings();
-  void SetWaveModeSettings();
+  void SetWaveMode0Settings();
+  void SetWaveMode1Settings();
   void SetYOnlyModeSettings();
 
+  struct MinMaxValues
+  {
+    float minVal;
+    float maxVal;
+  };
+
   void SetRotate(float probability);
-  void SetHypercosEffect(bool allowBigFrequency);
-  void SetWaveEffect();
+  void SetHypercosEffect(const MinMaxValues& minMaxFreq, const MinMaxValues& minMaxAmp);
+  void SetWaveModeSettings(const MinMaxValues& minMaxFreq, const MinMaxValues& minMaxAmp);
+  void SetWaveEffect(const MinMaxValues& minMaxFreq, const MinMaxValues& minMaxAmp);
   auto GetRandomHypercosEffect() const -> ZoomFilterData::HypercosEffect;
 };
 
