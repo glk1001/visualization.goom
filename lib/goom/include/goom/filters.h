@@ -160,12 +160,6 @@ struct ZoomFilterData
   float vPlaneEffectAmplitude = DEFAULT_V_PLANE_EFFECT_AMPLITUDE;
 };
 
-/* filtre de zoom :
- * le contenu de pix1 est copie dans pix2.
- * zf : si non NULL, configure l'effet.
- * resx,resy : taille des buffers.
- */
-
 namespace UTILS
 {
 class Parallel;
@@ -195,6 +189,8 @@ public:
 
   auto GetFilterSettings() const -> const ZoomFilterData&;
   auto GetFilterSettingsArePending() const -> bool;
+
+  auto GetTranDiffFactor() const -> int32_t;
   auto GetGeneralSpeed() const -> float;
   auto GetTranBuffYLineStart() const -> uint32_t;
 

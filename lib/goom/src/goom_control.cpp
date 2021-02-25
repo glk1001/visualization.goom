@@ -841,6 +841,9 @@ void GoomControl::GoomControlImpl::Start()
   m_visualFx.ifs_fx->SetSmallImageBitmaps(m_smallBitmaps);
   m_visualFx.star_fx->SetSmallImageBitmaps(m_smallBitmaps);
 
+  SetNextFilterMode();
+  m_visualFx.zoomFilter_fx->ChangeFilterSettings(m_filterControl.GetFilterSettings());
+
   for (auto& v : m_visualFx.list)
   {
     v->SetResourcesDirectory(m_resourcesDirectory);
@@ -848,7 +851,6 @@ void GoomControl::GoomControlImpl::Start()
   }
 
   ChangeState();
-  ChangeFilterMode();
 }
 
 void GoomControl::GoomControlImpl::Finish()

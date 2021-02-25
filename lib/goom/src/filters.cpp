@@ -220,8 +220,12 @@ public:
 
   auto GetFilterSettings() const -> const ZoomFilterData&;
   auto GetFilterSettingsArePending() const -> bool;
+
+  auto GetTranDiffFactor() const -> int32_t;
   auto GetGeneralSpeed() const -> float;
   auto GetTranBuffYLineStart() const -> uint32_t;
+
+  void Start();
 
   void ZoomFilterFastRgb(const PixelBuffer& pix1,
                          PixelBuffer& pix2,
@@ -319,6 +323,7 @@ private:
   auto GetClampedCoeffVitesse(float coeffVitesse) const -> float;
 
   void LogState(const std::string& name) const;
+  void InitTranBuffer();
 };
 
 ZoomFilterFx::ZoomFilterFx(Parallel& p, const std::shared_ptr<const PluginInfo>& info) noexcept
@@ -345,6 +350,7 @@ void ZoomFilterFx::SetBuffSettings(const FXBuffSettings& settings)
 
 void ZoomFilterFx::Start()
 {
+  m_fxImpl->Start();
 }
 
 void ZoomFilterFx::Finish()
@@ -390,6 +396,11 @@ auto ZoomFilterFx::GetFilterSettingsArePending() const -> bool
   return m_fxImpl->GetFilterSettingsArePending();
 }
 
+auto ZoomFilterFx::GetTranDiffFactor() const -> int32_t
+{
+  return m_fxImpl->GetTranDiffFactor();
+}
+
 auto ZoomFilterFx::GetGeneralSpeed() const -> float
 {
   return m_fxImpl->GetGeneralSpeed();
@@ -433,15 +444,6 @@ ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl(Parallel& p,
 
   m_currentFilterSettings.middleX = m_screenWidth / 2;
   m_currentFilterSettings.middleY = m_screenHeight / 2;
-
-  GenerateWaterFxHorizontalBuffer();
-  DoNextTranBufferStripe(m_screenHeight);
-
-  // Copy the data from temp to dest and source
-  std::copy(m_tranXTemp.begin(), m_tranXTemp.end(), m_tranXSrce.begin());
-  std::copy(m_tranYTemp.begin(), m_tranYTemp.end(), m_tranYSrce.begin());
-  std::copy(m_tranXTemp.begin(), m_tranXTemp.end(), m_tranXDest.begin());
-  std::copy(m_tranYTemp.begin(), m_tranYTemp.end(), m_tranYDest.begin());
 }
 
 ZoomFilterFx::ZoomFilterImpl::~ZoomFilterImpl() noexcept = default;
@@ -482,6 +484,11 @@ auto ZoomFilterFx::ZoomFilterImpl::GetFilterSettings() const -> const ZoomFilter
 auto ZoomFilterFx::ZoomFilterImpl::GetFilterSettingsArePending() const -> bool
 {
   return m_pendingFilterSettings;
+}
+
+auto ZoomFilterFx::ZoomFilterImpl::GetTranDiffFactor() const -> int32_t
+{
+  return m_tranDiffFactor;
 }
 
 auto ZoomFilterFx::ZoomFilterImpl::GetGeneralSpeed() const -> float
@@ -619,6 +626,11 @@ void ZoomFilterFx::ZoomFilterImpl::ChangeFilterSettings(const ZoomFilterData& fi
   m_pendingFilterSettings = true;
 }
 
+void ZoomFilterFx::ZoomFilterImpl::Start()
+{
+  InitTranBuffer();
+}
+
 /**
  * Main work for the dynamic displacement map.
  *
@@ -711,6 +723,31 @@ void ZoomFilterFx::ZoomFilterImpl::UpdateTranBuffer()
     DoNextTranBufferStripe(m_tranBuffStripeHeight);
     //LogState("After DoNextTranBufferStripe");
   }
+}
+
+void ZoomFilterFx::ZoomFilterImpl::InitTranBuffer()
+{
+  GenerateWaterFxHorizontalBuffer();
+  DoNextTranBufferStripe(m_screenHeight);
+
+  // Identity source tran buffer
+  size_t i = 0;
+  for (uint32_t y = 0; y < m_screenHeight; y++)
+  {
+    for (uint32_t x = 0; x < m_screenWidth; x++)
+    {
+      m_tranXSrce[i] = static_cast<int32_t>(ScreenToTranCoord(x));
+      m_tranYSrce[i] = static_cast<int32_t>(ScreenToTranCoord(y));
+      i++;
+    }
+  }
+
+  // Copy temp tran to dest tran.
+  std::copy(m_tranXTemp.begin(), m_tranXTemp.end(), m_tranXDest.begin());
+  std::copy(m_tranYTemp.begin(), m_tranYTemp.end(), m_tranYDest.begin());
+
+  m_tranBuffYLineStart = 0;
+  m_tranBufferState = TranBufferState::RESTART_TRAN_BUFFER;
 }
 
 void ZoomFilterFx::ZoomFilterImpl::ResetTranBuffer()
