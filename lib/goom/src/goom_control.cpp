@@ -151,7 +151,7 @@ private:
     { /*.event = */GoomEvent::FILTER_CHANGE_VITESSE_AND_TOGGLE_REVERSE,   /*.m = */1, /*.outOf = */ 20 },
     { /*.event = */GoomEvent::FILTER_ZERO_H_PLANE_EFFECT,                 /*.m = */1, /*.outOf = */  2 },
     { /*.event = */GoomEvent::TURN_OFF_NOISE,                             /*.m = */5, /*.outOf = */  5 },
-    { /*.event = */GoomEvent::FILTER_TOGGLE_ROTATION,                     /*.m =*/15, /*.outOf = */ 40 },
+    { /*.event = */GoomEvent::FILTER_TOGGLE_ROTATION,                     /*.m =*/35, /*.outOf = */ 40 },
     { /*.event = */GoomEvent::FILTER_INCREASE_ROTATION,                   /*.m =*/10, /*.outOf = */ 40 },
     { /*.event = */GoomEvent::FILTER_DECREASE_ROTATION,                   /*.m =*/10, /*.outOf = */ 40 },
     { /*.event = */GoomEvent::IFS_RENEW,                                  /*.m = */2, /*.outOf = */  3 },

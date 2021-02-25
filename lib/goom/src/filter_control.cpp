@@ -279,7 +279,7 @@ void FilterControl::SetHypercos1ModeSettings()
 
 void FilterControl::SetHypercos2ModeSettings()
 {
-  SetRotate(PROB_HIGH);
+  SetRotate(PROB_LOW);
   SetHypercosEffect(
       {ZoomFilterData::MIN_HYPERCOS_FREQ, ZoomFilterData::BIG_MAX_HYPERCOS_FREQ},
       {ZoomFilterData::MIN_HYPERCOS_AMPLITUDE, ZoomFilterData::MAX_HYPERCOS_AMPLITUDE});
@@ -371,8 +371,8 @@ void FilterControl::SetRotate(const float probability)
     return;
   }
 
-  m_filterData.rotateSpeed =
-      GetRandInRange(ZoomFilterData::MIN_ROTATE_SPEED, ZoomFilterData::MAX_ROTATE_SPEED);
+  m_filterData.rotateSpeed = probability * GetRandInRange(ZoomFilterData::MIN_ROTATE_SPEED,
+                                                          ZoomFilterData::MAX_ROTATE_SPEED);
 }
 
 void FilterControl::SetHypercosEffect(const MinMaxValues& minMaxFreq, const MinMaxValues& minMaxAmp)
