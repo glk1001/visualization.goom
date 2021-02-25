@@ -1298,7 +1298,9 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetTanEffectVelocity(const float sqDis
   }
 
   m_stats.DoZoomVectorTanEffect();
-  const float tanSqDist = std::tan(sqDist);
+  const float tanArg =
+      stdnew::clamp(std::fmod(sqDist, m_half_pi), -0.85 * m_half_pi, 0.85 * m_half_pi);
+  const float tanSqDist = std::tan(tanArg);
   return {tanSqDist * velocity.x, tanSqDist * velocity.y};
 }
 
