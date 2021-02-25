@@ -1120,7 +1120,8 @@ auto ZoomFilterFx::ZoomFilterImpl::GetCoeffVitesse([[maybe_unused]] const float 
     case ZoomFilterMode::CRYSTAL_BALL_MODE:
     {
       m_stats.DoZoomVectorCrystalBallMode();
-      coeffVitesse -= m_currentFilterSettings.crystalBallAmplitude * (sqDist - 0.3F);
+      coeffVitesse -= m_currentFilterSettings.crystalBallAmplitude *
+                      (sqDist - m_currentFilterSettings.crystalBallSqDistOffset);
       break;
     }
     case ZoomFilterMode::AMULET_MODE:

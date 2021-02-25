@@ -86,10 +86,14 @@ struct ZoomFilterData
   static constexpr float MAX_AMULET_AMPLITUDE = 5;
   float amuletAmplitude = DEFAULT_AMULET_AMPLITUDE;
 
-  static constexpr float DEFAULT_CRYSTAL_BALL_AMPLITUDE = 1.0 / 15.0;
+  static constexpr float DEFAULT_CRYSTAL_BALL_AMPLITUDE = 0.1;
   static constexpr float MIN_CRYSTAL_BALL_AMPLITUDE = 0.05;
-  static constexpr float MAX_CRYSTAL_BALL_AMPLITUDE = 0.1;
+  static constexpr float MAX_CRYSTAL_BALL_AMPLITUDE = 2.0;
   float crystalBallAmplitude = DEFAULT_CRYSTAL_BALL_AMPLITUDE;
+  static constexpr float DEFAULT_CRYSTAL_BALL_SQ_DIST_OFFSET = 0.3;
+  static constexpr float MIN_CRYSTAL_BALL_SQ_DIST_OFFSET = 0.1;
+  static constexpr float MAX_CRYSTAL_BALL_SQ_DIST_OFFSET = 2.0;
+  float crystalBallSqDistOffset = DEFAULT_CRYSTAL_BALL_SQ_DIST_OFFSET;
 
   enum class HypercosEffect
   {

@@ -226,6 +226,7 @@ void FilterControl::SetDefaultSettings()
 
   m_filterData.amuletAmplitude = ZoomFilterData::DEFAULT_AMULET_AMPLITUDE;
   m_filterData.crystalBallAmplitude = ZoomFilterData::DEFAULT_CRYSTAL_BALL_AMPLITUDE;
+  m_filterData.crystalBallSqDistOffset = ZoomFilterData::DEFAULT_CRYSTAL_BALL_SQ_DIST_OFFSET;
   m_filterData.scrunchAmplitude = ZoomFilterData::DEFAULT_SCRUNCH_AMPLITUDE;
   m_filterData.speedwayAmplitude = ZoomFilterData::DEFAULT_SPEEDWAY_AMPLITUDE;
 
@@ -255,6 +256,9 @@ void FilterControl::SetCrystalBallModeSettings()
 
   m_filterData.crystalBallAmplitude = GetRandInRange(ZoomFilterData::MIN_CRYSTAL_BALL_AMPLITUDE,
                                                      ZoomFilterData::MAX_CRYSTAL_BALL_AMPLITUDE);
+  m_filterData.crystalBallSqDistOffset =
+      GetRandInRange(ZoomFilterData::MIN_CRYSTAL_BALL_SQ_DIST_OFFSET,
+                     ZoomFilterData::MAX_CRYSTAL_BALL_SQ_DIST_OFFSET);
 }
 
 void FilterControl::SetHypercos0ModeSettings()
