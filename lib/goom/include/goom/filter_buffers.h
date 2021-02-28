@@ -46,25 +46,23 @@ public:
   ZoomFilterBuffers(const ZoomFilterBuffers&) noexcept = delete;
   ZoomFilterBuffers(ZoomFilterBuffers&&) noexcept = delete;
   ~ZoomFilterBuffers() noexcept;
-
   auto operator=(const ZoomFilterBuffers&) -> ZoomFilterBuffers& = delete;
   auto operator=(ZoomFilterBuffers&&) -> ZoomFilterBuffers& = delete;
 
   using GetZoomVectorFunc = std::function<V2dFlt(float xNormalized, float yNormalized)>;
   void SetGetZoomVectorFunc(const GetZoomVectorFunc& f);
 
-  auto GetTranDiffFactor() const -> int32_t;
-  void SetTranDiffFactor(int32_t tranDiffFactor);
+  auto GetTranLerpFactor() const -> int32_t;
+  void SetTranLerpFactor(int32_t val);
+  static auto GetMaxTranLerpFactor() -> int32_t;
 
-  static auto GetMaxTranDiffFactor() -> int32_t;
   auto GetMaxTranX() const -> uint32_t;
   auto GetMaxTranY() const -> uint32_t;
   auto GetMinNormalizedCoordVal() const -> float;
   auto GetTranBuffYLineStart() const -> uint32_t;
 
-  // TODO Use V2dInt
   auto GetBuffMidPoint() const -> V2dInt;
-  void SetBuffMidPoint(const V2dInt& buffMidPoint);
+  void SetBuffMidPoint(const V2dInt& val);
 
   void Start();
 
@@ -72,10 +70,7 @@ public:
   void UpdateTranBuffer();
   auto GetTranBufferState() const -> TranBufferState;
   auto GetZoomBufferSrceDestLerp(size_t buffPos) const -> V2dInt;
-
-  // TODO Use V2dInt
-  auto GetSourceInfo(const V2dInt& tranPoint) const
-      -> std::tuple<uint32_t, uint32_t, NeighborhoodCoeffArray>;
+  auto GetSourceInfo(const V2dInt& tranPoint) const -> std::tuple<V2dInt, NeighborhoodCoeffArray>;
 
 private:
   const uint32_t m_screenWidth;
@@ -89,21 +84,19 @@ private:
   const float m_ratioNormalizedToScreenCoord;
   const float m_minNormalizedCoordVal;
   const float m_maxNormalizedCoordVal;
+  auto NormalizedToTranPoint(const V2dFlt& normalizedPoint) const -> V2dInt;
+  auto NormalizedToScreenCoordFlt(float normalizedCoord) const -> float;
+  auto ScreenToNormalizedCoord(int32_t screenCoord) const -> float;
+  void IncNormalizedCoord(float& normalizedCoord) const;
 
   UTILS::Parallel* const m_parallel;
 
-  // TODO Use V2dInt
-  V2dInt m_buffMidPoint{};
-
-  bool m_settingsChanged = false;
-
   GetZoomVectorFunc m_getZoomVector{};
 
-  // TODO Use V2dInt
-  auto NormalizedToScreenCoordFlt(float normalizedCoord) const -> float;
-  auto NormalizedToTranCoord(float normalizedCoord) const -> int32_t;
-  auto ScreenToNormalizedCoord(int32_t screenCoord) const -> float;
-  void IncNormalizedCoord(float& normalizedCoord) const;
+  V2dInt m_buffMidPoint{};
+  bool m_settingsChanged = false;
+  // modification by jeko : fixedpoint : tranDiffFactor = (16:16) (0 <= tranDiffFactor <= 2^16)
+  int32_t m_tranLerpFactor; // in [0, BUFF_POINT_MASK]
 
   std::vector<int32_t> m_tranXSrce{};
   std::vector<int32_t> m_tranYSrce{};
@@ -111,17 +104,10 @@ private:
   std::vector<int32_t> m_tranYDest{};
   std::vector<int32_t> m_tranXTemp{};
   std::vector<int32_t> m_tranYTemp{};
-  const uint32_t m_maxTranX;
-  const uint32_t m_maxTranY;
+  const V2dInt m_maxTranPoint;
   const uint32_t m_tranBuffStripeHeight;
   uint32_t m_tranBuffYLineStart;
   TranBufferState m_tranBufferState;
-  // modification by jeko : fixedpoint : tranDiffFactor = (16:16) (0 <= tranDiffFactor <= 2^16)
-  int32_t m_tranDiffFactor; // in [0, BUFF_POINT_MASK]
-  auto GetTranXBuffSrceDestLerp(size_t buffPos) const -> int32_t;
-  auto GetTranYBuffSrceDestLerp(size_t buffPos) const -> int32_t;
-  // TODO Use V2dInt
-  auto GetTranPoint(float xNormalised, float yNormalised) const -> V2dInt;
 
   std::vector<int32_t> m_firedec{};
 
@@ -130,6 +116,7 @@ private:
   void ResetTranBuffer();
   void DoNextTranBufferStripe(uint32_t tranBuffStripeHeight);
   void GenerateWaterFxHorizontalBuffer();
+  auto GetTranPoint(const V2dFlt& normalized) const -> V2dInt;
 };
 
 inline auto ZoomFilterBuffers::GetBuffMidPoint() const -> V2dInt
@@ -137,9 +124,9 @@ inline auto ZoomFilterBuffers::GetBuffMidPoint() const -> V2dInt
   return m_buffMidPoint;
 }
 
-inline void ZoomFilterBuffers::SetBuffMidPoint(const V2dInt& buffMidPoint)
+inline void ZoomFilterBuffers::SetBuffMidPoint(const V2dInt& val)
 {
-  m_buffMidPoint = buffMidPoint;
+  m_buffMidPoint = val;
 }
 
 inline auto ZoomFilterBuffers::GetTranBufferState() const -> TranBufferState
@@ -147,19 +134,19 @@ inline auto ZoomFilterBuffers::GetTranBufferState() const -> TranBufferState
   return m_tranBufferState;
 }
 
-inline auto ZoomFilterBuffers::GetTranDiffFactor() const -> int32_t
+inline auto ZoomFilterBuffers::GetTranLerpFactor() const -> int32_t
 {
-  return m_tranDiffFactor;
+  return m_tranLerpFactor;
 }
 
 inline auto ZoomFilterBuffers::GetMaxTranX() const -> uint32_t
 {
-  return m_maxTranX;
+  return static_cast<uint32_t>(m_maxTranPoint.x);
 }
 
 inline auto ZoomFilterBuffers::GetMaxTranY() const -> uint32_t
 {
-  return m_maxTranY;
+  return static_cast<uint32_t>(m_maxTranPoint.y);
 }
 
 inline auto ZoomFilterBuffers::GetMinNormalizedCoordVal() const -> float

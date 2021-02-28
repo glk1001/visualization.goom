@@ -241,7 +241,7 @@ void ZoomFilterFx::ZoomFilterImpl::Log(const StatsLogValueFunc& l) const
   m_stats.SetLastPrevX(m_screenWidth);
   m_stats.SetLastPrevY(m_screenHeight);
   m_stats.SetLastTranBuffYLineStart(m_filterBuffers.GetTranBuffYLineStart());
-  m_stats.SetLastTranDiffFactor(m_filterBuffers.GetTranDiffFactor());
+  m_stats.SetLastTranDiffFactor(m_filterBuffers.GetTranLerpFactor());
 
   m_stats.Log(l);
 }
@@ -273,7 +273,7 @@ auto ZoomFilterFx::ZoomFilterImpl::GetFilterSettingsArePending() const -> bool
 
 auto ZoomFilterFx::ZoomFilterImpl::GetTranDiffFactor() const -> int32_t
 {
-  return m_filterBuffers.GetTranDiffFactor();
+  return m_filterBuffers.GetTranLerpFactor();
 }
 
 auto ZoomFilterFx::ZoomFilterImpl::GetGeneralSpeed() const -> float
@@ -442,7 +442,7 @@ void ZoomFilterFx::ZoomFilterImpl::RestartTranBuffer()
 void ZoomFilterFx::ZoomFilterImpl::UpdateTranDiffFactor(const int32_t switchIncr,
                                                         const float switchMult)
 {
-  int32_t tranDiffFactor = m_filterBuffers.GetTranDiffFactor();
+  int32_t tranDiffFactor = m_filterBuffers.GetTranLerpFactor();
 
   logInfo("before switchIncr = {} tranDiffFactor = {}", switchIncr, tranDiffFactor);
   if (switchIncr != 0)
@@ -455,9 +455,9 @@ void ZoomFilterFx::ZoomFilterImpl::UpdateTranDiffFactor(const int32_t switchIncr
     {
       tranDiffFactor = 0;
     }
-    else if (tranDiffFactor > ZoomFilterBuffers::GetMaxTranDiffFactor())
+    else if (tranDiffFactor > ZoomFilterBuffers::GetMaxTranLerpFactor())
     {
-      tranDiffFactor = ZoomFilterBuffers::GetMaxTranDiffFactor();
+      tranDiffFactor = ZoomFilterBuffers::GetMaxTranLerpFactor();
     }
   }
   logInfo("after switchIncr = {} m_tranDiffFactor = {}", switchIncr, tranDiffFactor);
@@ -467,12 +467,12 @@ void ZoomFilterFx::ZoomFilterImpl::UpdateTranDiffFactor(const int32_t switchIncr
     m_stats.DoSwitchMultNotOne();
 
     tranDiffFactor = static_cast<int32_t>(
-        stdnew::lerp(static_cast<float>(ZoomFilterBuffers::GetMaxTranDiffFactor()),
+        stdnew::lerp(static_cast<float>(ZoomFilterBuffers::GetMaxTranLerpFactor()),
                      static_cast<float>(tranDiffFactor), switchMult));
   }
   logInfo("after switchMult = {} m_tranDiffFactor = {}", switchMult, tranDiffFactor);
 
-  m_filterBuffers.SetTranDiffFactor(tranDiffFactor);
+  m_filterBuffers.SetTranLerpFactor(tranDiffFactor);
 }
 
 #ifdef NO_PARALLEL
@@ -579,23 +579,22 @@ void ZoomFilterFx::ZoomFilterImpl::CZoom(const PixelBuffer& srceBuff,
       {
 #if __cplusplus <= 201402L
         const auto srceInfo = m_filterBuffers.GetSourceInfo(tranPoint);
-        const auto srceX = std::get<0>(srceInfo);
-        const auto srceY = std::get<1>(srceInfo);
-        const auto coeffs = std::get<2>(srceInfo);
+        const V2dInt srcePoint = std::get<0>(srceInfo);
+        const auto coeffs = std::get<1>(srceInfo);
 #else
-        const auto [srceX, srceY, coeffs] =
-            GetSourceInfo(static_cast<uint32_t>(tranX), static_cast<uint32_t>(tranY));
+        const auto [srcePoint, coeffs] = GetSourceInfo(tranPoint);
 #endif
-        const NeighborhoodPixelArray pixelNeighbours = srceBuff.Get4RHBNeighbours(srceX, srceY);
+        const NeighborhoodPixelArray pixelNeighbours = srceBuff.Get4RHBNeighbours(
+            static_cast<size_t>(srcePoint.x), static_cast<size_t>(srcePoint.y));
         *destRowBuff = GetNewColor(coeffs, pixelNeighbours);
 #ifndef NO_LOGGING
         if (43 < m_updateNum && m_updateNum < 51 && (*destRowBuff).Rgba() > 0xFF000000)
         {
           logInfo("destPos == {}", destPos);
-          logInfo("srceX == {}", srceX);
-          logInfo("srceY == {}", srceY);
-          logInfo("tranX == {}", tranX);
-          logInfo("tranY == {}", tranY);
+          logInfo("srcePoint.x == {}", srcePoint.x);
+          logInfo("srcePoint.y == {}", srcePoint.y);
+          logInfo("tranPoint.x == {}", tranPoint.x);
+          logInfo("tranPoint.y == {}", tranPoint.y);
           logInfo("coeffs[0] == {:x}", coeffs.c[0]);
           logInfo("coeffs[1] == {:x}", coeffs.c[1]);
           logInfo("coeffs[2] == {:x}", coeffs.c[2]);
