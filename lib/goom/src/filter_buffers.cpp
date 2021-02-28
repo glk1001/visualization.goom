@@ -127,7 +127,7 @@ auto ZoomFilterBuffers::FilterCoefficients::GetPrecalculatedCoefficients() -> Fi
   return precalculatedCoeffs;
 }
 
-static constexpr int32_t DIM_FILTER_COEFFS = ZoomFilterBuffers::DIM_FILTER_COEFFS;
+constexpr int32_t DIM_FILTER_COEFFS = ZoomFilterBuffers::DIM_FILTER_COEFFS;
 // For optimising multiplication, division, and mod by DIM_FILTER_COEFFS.
 constexpr int32_t DIM_FILTER_COEFFS_DIV_SHIFT = 4;
 constexpr int32_t DIM_FILTER_COEFFS_MOD_MASK = 0xF;
@@ -199,39 +199,14 @@ void ZoomFilterBuffers::SetGetZoomVectorFunc(const GetZoomVectorFunc& f)
   m_getZoomVector = f;
 }
 
-auto ZoomFilterBuffers::GetTranDiffFactor() const -> int32_t
-{
-  return m_tranDiffFactor;
-}
-
-void ZoomFilterBuffers::SetTranDiffFactor(const int32_t tranDiffFactor)
-{
-  m_tranDiffFactor = tranDiffFactor;
-}
-
 auto ZoomFilterBuffers::GetMaxTranDiffFactor() -> int32_t
 {
   return MAX_TRAN_DIFF_FACTOR;
 }
 
-auto ZoomFilterBuffers::GetXBuffMidPoint() const -> int32_t
+void ZoomFilterBuffers::SetTranDiffFactor(const int32_t tranDiffFactor)
 {
-  return m_xBuffMidPoint;
-}
-
-void ZoomFilterBuffers::SetXBuffMidPoint(const int32_t xBuffMidPoint)
-{
-  m_xBuffMidPoint = xBuffMidPoint;
-}
-
-auto ZoomFilterBuffers::GetYBuffMidPoint() const -> int32_t
-{
-  return m_yBuffMidPoint;
-}
-
-void ZoomFilterBuffers::SetYBuffMidPoint(const int32_t yBuffMidPoint)
-{
-  m_yBuffMidPoint = yBuffMidPoint;
+  m_tranDiffFactor = tranDiffFactor;
 }
 
 inline void ZoomFilterBuffers::IncNormalizedCoord(float& normalizedCoord) const
@@ -364,12 +339,12 @@ void ZoomFilterBuffers::ResetTranBuffer()
       m_tranYSrce[i] = static_cast<int32_t>(GetTranYBuffSrceDestLerp(i));
     }
   }
-  m_tranDiffFactor = 0;
 
   // Set up the next dest buffs from the last buffer stripes.
   std::swap(m_tranXDest, m_tranXTemp);
   std::swap(m_tranYDest, m_tranYTemp);
 
+  m_tranDiffFactor = 0;
   m_tranBuffYLineStart = 0;
   m_tranBufferState = TranBufferState::RESTART_TRAN_BUFFER;
 }
@@ -397,8 +372,8 @@ void ZoomFilterBuffers::DoNextTranBufferStripe(const uint32_t tranBuffStripeHeig
 {
   assert(m_tranBufferState == TranBufferState::TRAN_BUFFER_READY);
 
-  const float xMidNormalized = ScreenToNormalizedCoord(m_xBuffMidPoint);
-  const float yMidNormalized = ScreenToNormalizedCoord(m_yBuffMidPoint);
+  const float xMidNormalized = ScreenToNormalizedCoord(m_buffMidPoint.x);
+  const float yMidNormalized = ScreenToNormalizedCoord(m_buffMidPoint.y);
 
   const auto doStripeLine = [&](const uint32_t y) {
     // Position of the pixel to compute in screen coordinates
@@ -414,18 +389,11 @@ void ZoomFilterBuffers::DoNextTranBufferStripe(const uint32_t tranBuffStripeHeig
       const V2dFlt zoomVector = m_getZoomVector(xNormalized, yNormalized);
       logDebug("zoomVector = ({}, {})", zoomVector.x, zoomVector.y);
 
-#if __cplusplus <= 201402L
       const auto tranPoint = GetTranPoint(xMidNormalized + xNormalized - zoomVector.x,
                                           yMidNormalized + yNormalized - zoomVector.y);
-      const auto tranX = std::get<0>(tranPoint);
-      const auto tranY = std::get<1>(tranPoint);
-#else
-      const auto [tranX, tranY] = GetTranPoint(xMidNormalized + xNormalized - zoomVector.x,
-                                               yMidNormalized + yNormalized - zoomVector.y);
-#endif
       const uint32_t tranPos = tranPosStart + x;
-      m_tranXTemp[tranPos] = tranX;
-      m_tranYTemp[tranPos] = tranY;
+      m_tranXTemp[tranPos] = tranPoint.x;
+      m_tranYTemp[tranPos] = tranPoint.y;
 
       IncNormalizedCoord(xNormalized);
     }
@@ -446,9 +414,9 @@ void ZoomFilterBuffers::DoNextTranBufferStripe(const uint32_t tranBuffStripeHeig
 }
 
 inline auto ZoomFilterBuffers::GetTranPoint(const float xNormalised, const float yNormalised) const
-    -> std::tuple<int32_t, int32_t>
+    -> V2dInt
 {
-  return std::make_tuple(NormalizedToTranCoord(xNormalised), NormalizedToTranCoord(yNormalised));
+  return {NormalizedToTranCoord(xNormalised), NormalizedToTranCoord(yNormalised)};
 
   /**
   int32_t tranX = NormalizedToTranCoord(xNormalised);

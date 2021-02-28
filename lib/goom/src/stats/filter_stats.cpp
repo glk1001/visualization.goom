@@ -191,11 +191,6 @@ void FilterStats::DoZoomVectorVPlaneEffect()
   m_numZoomVectorVPlaneEffect++;
 }
 
-void FilterStats::DoNextTranBufferStripe()
-{
-  m_numMakeZoomBufferStripe++;
-}
-
 void FilterStats::DoGetMixedColor()
 {
   m_numGetMixedColor++;
@@ -211,11 +206,6 @@ void FilterStats::DoCZoom()
   m_numCZoom++;
 }
 
-void FilterStats::DoGenerateWaterFxHorizontalBuffer()
-{
-  m_numGenerateWaterFxHorizontalBuffer++;
-}
-
 void FilterStats::DoZoomFilterFastRgb()
 {
   m_numZoomFilterFastRgb++;
@@ -224,11 +214,6 @@ void FilterStats::DoZoomFilterFastRgb()
 void FilterStats::DoRestartTranBuffer()
 {
   m_numRestartTranBuffer++;
-}
-
-void FilterStats::DoResetTranBuffer()
-{
-  m_numResetTranBuffer++;
 }
 
 void FilterStats::DoSwitchMultNotOne()

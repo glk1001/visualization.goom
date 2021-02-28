@@ -133,7 +133,7 @@ private:
   //@formatter:off
   // clang-format off
   const std::array<WeightedEvent, NUM_GOOM_EVENTS> m_weightedEvents{{
-    { /*.event = */GoomEvent::CHANGE_FILTER_MODE,                         /*.m = */1, /*.outOf = */ 16 },
+    { /*.event = */GoomEvent::CHANGE_FILTER_MODE,                         /*.m = */1, /*.outOf = */ 20 },
     { /*.event = */GoomEvent::CHANGE_STATE,                               /*.m = */1, /*.outOf = */  2 },
     { /*.event = */GoomEvent::CHANGE_TO_MEGA_LENT_MODE,                   /*.m = */1, /*.outOf = */700 },
     { /*.event = */GoomEvent::CHANGE_LINE_CIRCLE_AMPLITUDE,               /*.m = */1, /*.outOf = */  3 },
@@ -1487,8 +1487,6 @@ void GoomControl::GoomControlImpl::DisplayStateText()
   message += std20::format("hypercosAmplitudeY: {}\n",
                            m_visualFx.zoomFilter_fx->GetFilterSettings().hypercosAmplitudeY);
 
-  message += std20::format("GetTranBuffYLineStart: {}\n",
-                           m_visualFx.zoomFilter_fx->GetTranBuffYLineStart());
   message += std20::format("cyclesSinceLastChange: {}\n", m_goomData.cyclesSinceLastChange);
   //  message += std20::format("GetGeneralSpeed: {}\n", m_visualFx.zoomFilter_fx->GetGeneralSpeed());
   //  message += std20::format("pertedec: {}\n", m_visualFx.zoomFilter_fx->GetFilterSettings().pertedec);

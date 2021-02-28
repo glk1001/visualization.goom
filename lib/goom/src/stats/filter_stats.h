@@ -46,14 +46,11 @@ public:
   void DoZoomVectorTanEffect();
   void DoZoomVectorNegativeRotate();
   void DoZoomVectorPositiveRotate();
-  void DoNextTranBufferStripe();
   void DoGetMixedColor();
   void DoGetBlockyMixedColor();
   void DoCZoom();
-  void DoGenerateWaterFxHorizontalBuffer();
   void DoZoomFilterFastRgb();
   void DoRestartTranBuffer();
-  void DoResetTranBuffer();
   void DoSwitchIncrNotZero();
   void DoSwitchMultNotOne();
   void DoTranPointClipped();

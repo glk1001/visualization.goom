@@ -35,6 +35,13 @@ public:
       std::array<std::array<NeighborhoodCoeffArray, DIM_FILTER_COEFFS>, DIM_FILTER_COEFFS>;
   using NeighborhoodPixelArray = std::array<Pixel, NUM_NEIGHBOR_COEFFS>;
 
+  enum class TranBufferState
+  {
+    RESTART_TRAN_BUFFER,
+    RESET_TRAN_BUFFER,
+    TRAN_BUFFER_READY,
+  };
+
   ZoomFilterBuffers(UTILS::Parallel& p, const std::shared_ptr<const PluginInfo>& goomInfo);
   ZoomFilterBuffers(const ZoomFilterBuffers&) noexcept = delete;
   ZoomFilterBuffers(ZoomFilterBuffers&&) noexcept = delete;
@@ -50,17 +57,20 @@ public:
   void SetTranDiffFactor(int32_t tranDiffFactor);
 
   static auto GetMaxTranDiffFactor() -> int32_t;
+  auto GetMaxTranX() const -> uint32_t;
+  auto GetMaxTranY() const -> uint32_t;
+  auto GetMinNormalizedCoordVal() const -> float;
+  auto GetTranBuffYLineStart() const -> uint32_t;
 
   // TODO Use V2dInt
-  auto GetXBuffMidPoint() const -> int32_t;
-  void SetXBuffMidPoint(int32_t xBuffMidPoint);
-  auto GetYBuffMidPoint() const -> int32_t;
-  void SetYBuffMidPoint(int32_t yBuffMidPoint);
+  auto GetBuffMidPoint() const -> V2dInt;
+  void SetBuffMidPoint(const V2dInt& buffMidPoint);
 
   void Start();
 
   void SettingsChanged();
-
+  void UpdateTranBuffer();
+  auto GetTranBufferState() const -> TranBufferState;
   auto GetZoomBufferSrceDestLerp(size_t buffPos) const -> V2dInt;
 
   // TODO Use V2dInt
@@ -83,8 +93,7 @@ private:
   UTILS::Parallel* const m_parallel;
 
   // TODO Use V2dInt
-  int32_t m_xBuffMidPoint{};
-  int32_t m_yBuffMidPoint{};
+  V2dInt m_buffMidPoint{};
 
   bool m_settingsChanged = false;
 
@@ -106,29 +115,62 @@ private:
   const uint32_t m_maxTranY;
   const uint32_t m_tranBuffStripeHeight;
   uint32_t m_tranBuffYLineStart;
-  enum class TranBufferState
-  {
-    RESTART_TRAN_BUFFER,
-    RESET_TRAN_BUFFER,
-    TRAN_BUFFER_READY,
-  };
   TranBufferState m_tranBufferState;
   // modification by jeko : fixedpoint : tranDiffFactor = (16:16) (0 <= tranDiffFactor <= 2^16)
   int32_t m_tranDiffFactor; // in [0, BUFF_POINT_MASK]
   auto GetTranXBuffSrceDestLerp(size_t buffPos) const -> int32_t;
   auto GetTranYBuffSrceDestLerp(size_t buffPos) const -> int32_t;
   // TODO Use V2dInt
-  auto GetTranPoint(float xNormalised, float yNormalised) const -> std::tuple<int32_t, int32_t>;
+  auto GetTranPoint(float xNormalised, float yNormalised) const -> V2dInt;
 
   std::vector<int32_t> m_firedec{};
 
   void InitTranBuffer();
-  void UpdateTranBuffer();
   void RestartTranBuffer();
   void ResetTranBuffer();
   void DoNextTranBufferStripe(uint32_t tranBuffStripeHeight);
   void GenerateWaterFxHorizontalBuffer();
 };
+
+inline auto ZoomFilterBuffers::GetBuffMidPoint() const -> V2dInt
+{
+  return m_buffMidPoint;
+}
+
+inline void ZoomFilterBuffers::SetBuffMidPoint(const V2dInt& buffMidPoint)
+{
+  m_buffMidPoint = buffMidPoint;
+}
+
+inline auto ZoomFilterBuffers::GetTranBufferState() const -> TranBufferState
+{
+  return m_tranBufferState;
+}
+
+inline auto ZoomFilterBuffers::GetTranDiffFactor() const -> int32_t
+{
+  return m_tranDiffFactor;
+}
+
+inline auto ZoomFilterBuffers::GetMaxTranX() const -> uint32_t
+{
+  return m_maxTranX;
+}
+
+inline auto ZoomFilterBuffers::GetMaxTranY() const -> uint32_t
+{
+  return m_maxTranY;
+}
+
+inline auto ZoomFilterBuffers::GetMinNormalizedCoordVal() const -> float
+{
+  return m_minNormalizedCoordVal;
+}
+
+inline auto ZoomFilterBuffers::GetTranBuffYLineStart() const -> uint32_t
+{
+  return m_tranBuffYLineStart;
+}
 
 } // namespace GOOM
 #endif
