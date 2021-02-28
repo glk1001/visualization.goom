@@ -72,7 +72,7 @@ public:
   auto GetFilterSettings() const -> const ZoomFilterData&;
   auto GetFilterSettingsArePending() const -> bool;
 
-  auto GetTranDiffFactor() const -> int32_t;
+  auto GetTranLerpFactor() const -> int32_t;
   auto GetGeneralSpeed() const -> float;
 
   void Start();
@@ -98,9 +98,10 @@ private:
   FXBuffSettings m_buffSettings{};
   std::string m_resourcesDirectory{};
   float m_generalSpeed;
-  uint64_t m_updateNum{0};
+  float m_maxCoeffVitesse = ZoomFilterData::DEFAULT_MAX_COEF_VITESSE;
 
   Parallel* const m_parallel;
+  uint64_t m_updateNum{0};
   mutable FilterStats m_stats{};
 
   using NeighborhoodCoeffArray = ZoomFilterBuffers::NeighborhoodCoeffArray;
@@ -115,7 +116,7 @@ private:
   void CZoom(const PixelBuffer& srceBuff, PixelBuffer& destBuff, uint32_t& numDestClipped) const;
 
   void UpdateTranBuffer();
-  void UpdateTranDiffFactor(int32_t switchIncr, float switchMult);
+  void UpdateTranLerpFactor(const int32_t switchIncr, const float switchMult);
   void RestartTranBuffer();
 
   auto GetZoomVector(float xNormalized, float yNormalized) const -> V2dFlt;
@@ -205,9 +206,9 @@ auto ZoomFilterFx::GetFilterSettingsArePending() const -> bool
   return m_fxImpl->GetFilterSettingsArePending();
 }
 
-auto ZoomFilterFx::GetTranDiffFactor() const -> int32_t
+auto ZoomFilterFx::GetTranLerpFactor() const -> int32_t
 {
-  return m_fxImpl->GetTranDiffFactor();
+  return m_fxImpl->GetTranLerpFactor();
 }
 
 auto ZoomFilterFx::GetGeneralSpeed() const -> float
@@ -271,7 +272,7 @@ auto ZoomFilterFx::ZoomFilterImpl::GetFilterSettingsArePending() const -> bool
   return m_pendingFilterSettings;
 }
 
-auto ZoomFilterFx::ZoomFilterImpl::GetTranDiffFactor() const -> int32_t
+auto ZoomFilterFx::ZoomFilterImpl::GetTranLerpFactor() const -> int32_t
 {
   return m_filterBuffers.GetTranLerpFactor();
 }
@@ -393,7 +394,7 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
   m_stats.DoZoomFilterFastRgb();
 
   UpdateTranBuffer();
-  UpdateTranDiffFactor(switchIncr, switchMult);
+  UpdateTranLerpFactor(switchIncr, switchMult);
 
   LogState("Before CZoom");
   CZoom(pix1, pix2, numClipped);
@@ -437,42 +438,44 @@ void ZoomFilterFx::ZoomFilterImpl::RestartTranBuffer()
   {
     m_generalSpeed = -m_generalSpeed;
   }
+
+  m_maxCoeffVitesse = GetRandInRange(0.5F, 1.0F) * ZoomFilterData::MAX_MAX_COEF_VITESSE;
 }
 
-void ZoomFilterFx::ZoomFilterImpl::UpdateTranDiffFactor(const int32_t switchIncr,
+void ZoomFilterFx::ZoomFilterImpl::UpdateTranLerpFactor(const int32_t switchIncr,
                                                         const float switchMult)
 {
-  int32_t tranDiffFactor = m_filterBuffers.GetTranLerpFactor();
+  int32_t tranLerpFactor = m_filterBuffers.GetTranLerpFactor();
 
-  logInfo("before switchIncr = {} tranDiffFactor = {}", switchIncr, tranDiffFactor);
+  logInfo("before switchIncr = {} tranLerpFactor = {}", switchIncr, tranLerpFactor);
   if (switchIncr != 0)
   {
     m_stats.DoSwitchIncrNotZero();
 
-    tranDiffFactor += switchIncr;
+    tranLerpFactor += switchIncr;
 
-    if (tranDiffFactor < 0)
+    if (tranLerpFactor < 0)
     {
-      tranDiffFactor = 0;
+      tranLerpFactor = 0;
     }
-    else if (tranDiffFactor > ZoomFilterBuffers::GetMaxTranLerpFactor())
+    else if (tranLerpFactor > ZoomFilterBuffers::GetMaxTranLerpFactor())
     {
-      tranDiffFactor = ZoomFilterBuffers::GetMaxTranLerpFactor();
+      tranLerpFactor = ZoomFilterBuffers::GetMaxTranLerpFactor();
     }
   }
-  logInfo("after switchIncr = {} m_tranDiffFactor = {}", switchIncr, tranDiffFactor);
+  logInfo("after switchIncr = {} m_tranDiffFactor = {}", switchIncr, tranLerpFactor);
 
   if (!floats_equal(switchMult, 1.0F))
   {
     m_stats.DoSwitchMultNotOne();
 
-    tranDiffFactor = static_cast<int32_t>(
+    tranLerpFactor = static_cast<int32_t>(
         stdnew::lerp(static_cast<float>(ZoomFilterBuffers::GetMaxTranLerpFactor()),
-                     static_cast<float>(tranDiffFactor), switchMult));
+                     static_cast<float>(tranLerpFactor), switchMult));
   }
-  logInfo("after switchMult = {} m_tranDiffFactor = {}", switchMult, tranDiffFactor);
+  logInfo("after switchMult = {} m_tranDiffFactor = {}", switchMult, tranLerpFactor);
 
-  m_filterBuffers.SetTranLerpFactor(tranDiffFactor);
+  m_filterBuffers.SetTranLerpFactor(tranLerpFactor);
 }
 
 #ifdef NO_PARALLEL
@@ -759,10 +762,10 @@ auto ZoomFilterFx::ZoomFilterImpl::GetClampedCoeffVitesse(const float coeffVites
     m_stats.DoZoomVectorCoeffVitesseBelowMin();
     return ZoomFilterData::MIN_COEF_VITESSE;
   }
-  if (coeffVitesse > ZoomFilterData::MAX_COEF_VITESSE)
+  if (coeffVitesse > m_maxCoeffVitesse)
   {
     m_stats.DoZoomVectorCoeffVitesseAboveMax();
-    return ZoomFilterData::MAX_COEF_VITESSE;
+    return m_maxCoeffVitesse;
   }
   return coeffVitesse;
 }

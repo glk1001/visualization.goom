@@ -85,7 +85,6 @@ private:
   uint64_t m_numZoomVectorHypercosEffect = 0;
   uint64_t m_numZoomVectorHPlaneEffect = 0;
   uint64_t m_numZoomVectorVPlaneEffect = 0;
-  uint64_t m_numMakeZoomBufferStripe = 0;
   uint64_t m_numGetMixedColor = 0;
   uint64_t m_numGetBlockyMixedColor = 0;
   uint64_t m_numCZoom = 0;

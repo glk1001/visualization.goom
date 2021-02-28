@@ -41,7 +41,8 @@ struct ZoomFilterData
   static constexpr float DEFAULT_COEFF_VITESSE_DENOMINATOR = 50.0;
   float coeffVitesseDenominator = DEFAULT_COEFF_VITESSE_DENOMINATOR;
   static constexpr float MIN_COEF_VITESSE = -4.01;
-  static constexpr float MAX_COEF_VITESSE = +4.01;
+  static constexpr float MAX_MAX_COEF_VITESSE = +4.01;
+  static constexpr float DEFAULT_MAX_COEF_VITESSE = +2.01;
 #if __cplusplus <= 201402L
   static const uint8_t pertedec; // NEVER SEEMS TO CHANGE
 #else
@@ -92,7 +93,7 @@ struct ZoomFilterData
   float crystalBallAmplitude = DEFAULT_CRYSTAL_BALL_AMPLITUDE;
   static constexpr float DEFAULT_CRYSTAL_BALL_SQ_DIST_OFFSET = 0.3;
   static constexpr float MIN_CRYSTAL_BALL_SQ_DIST_OFFSET = 0.1;
-  static constexpr float MAX_CRYSTAL_BALL_SQ_DIST_OFFSET = 2.0;
+  static constexpr float MAX_CRYSTAL_BALL_SQ_DIST_OFFSET = 1.5;
   float crystalBallSqDistOffset = DEFAULT_CRYSTAL_BALL_SQ_DIST_OFFSET;
 
   enum class HypercosEffect
@@ -192,7 +193,7 @@ public:
   auto GetFilterSettings() const -> const ZoomFilterData&;
   auto GetFilterSettingsArePending() const -> bool;
 
-  auto GetTranDiffFactor() const -> int32_t;
+  auto GetTranLerpFactor() const -> int32_t;
   auto GetGeneralSpeed() const -> float;
   auto GetTranBuffYLineStart() const -> uint32_t;
 

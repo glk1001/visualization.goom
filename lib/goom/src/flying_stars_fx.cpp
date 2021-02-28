@@ -134,10 +134,20 @@ private:
   std::vector<Star> m_stars{};
   static constexpr float OLD_AGE = 0.95;
   uint32_t m_maxStarAge = 15;
-  float m_minSideWind = -01;
-  float m_maxSideWind = +01;
-  float m_minGravity = +0.01;
-  float m_maxGravity = +0.09;
+
+  static constexpr float MIN_MIN_SIDE_WIND = -0.10F;
+  static constexpr float MAX_MIN_SIDE_WIND = -0.01F;
+  static constexpr float MIN_MAX_SIDE_WIND = +0.01F;
+  static constexpr float MAX_MAX_SIDE_WIND = +0.10F;
+  float m_minSideWind = 0.0;
+  float m_maxSideWind = 0.00001;
+
+  static constexpr float MIN_MIN_GRAVITY = +0.005F;
+  static constexpr float MAX_MIN_GRAVITY = +0.010F;
+  static constexpr float MIN_MAX_GRAVITY = +0.050F;
+  static constexpr float MAX_MAX_GRAVITY = +0.090F;
+  float m_minGravity = MAX_MIN_GRAVITY;
+  float m_maxGravity = MAX_MAX_GRAVITY;
 
   // Fireworks Largest Bombs
   float m_minAge = 1.0F - (99.0F / 100.0F);
@@ -690,10 +700,10 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
 
   if (ProbabilityOfMInN(1, 10))
   {
-    m_minSideWind = GetRandInRange(-0.20F, -0.01F);
-    m_maxSideWind = GetRandInRange(+0.01F, +0.20F);
-    m_minGravity = GetRandInRange(+0.005F, +0.010F);
-    m_maxGravity = GetRandInRange(+0.050F, +0.090F);
+    m_minSideWind = GetRandInRange(MIN_MIN_SIDE_WIND, MAX_MIN_SIDE_WIND);
+    m_maxSideWind = GetRandInRange(MIN_MAX_SIDE_WIND, MAX_MAX_SIDE_WIND);
+    m_minGravity = GetRandInRange(MIN_MIN_GRAVITY, MAX_MIN_GRAVITY);
+    m_maxGravity = GetRandInRange(MIN_MAX_GRAVITY, MAX_MAX_GRAVITY);
   }
 
   const auto halfWidth = static_cast<int32_t>(m_goomInfo->GetScreenInfo().width / 2);

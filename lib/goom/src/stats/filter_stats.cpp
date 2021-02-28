@@ -34,7 +34,6 @@ void FilterStats::Reset()
   m_numZoomVectorHypercosEffect = 0;
   m_numZoomVectorHPlaneEffect = 0;
   m_numZoomVectorVPlaneEffect = 0;
-  m_numMakeZoomBufferStripe = 0;
   m_numGetMixedColor = 0;
   m_numGetBlockyMixedColor = 0;
   m_numCZoom = 0;
@@ -73,7 +72,6 @@ void FilterStats::Log(const StatsLogValueFunc& logVal) const
   logVal(MODULE, "lastTranDiffFactor", m_lastTranDiffFactor);
 
   logVal(MODULE, "numChangeFilterSettings", m_numChangeFilterSettings);
-  logVal(MODULE, "numMakeZoomBufferStripe", m_numMakeZoomBufferStripe);
   logVal(MODULE, "numGetMixedColor", m_numGetMixedColor);
   logVal(MODULE, "numGetBlockyMixedColor", m_numGetBlockyMixedColor);
   logVal(MODULE, "numCZoom", m_numCZoom);
