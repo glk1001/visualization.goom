@@ -1,13 +1,15 @@
 #ifndef VISUALIZATION_GOOM_V2D_H
 #define VISUALIZATION_GOOM_V2D_H
 
+#include <cstdint>
+
 namespace GOOM
 {
 
 struct V2dInt
 {
-  int x;
-  int y;
+  int32_t x;
+  int32_t y;
 };
 
 struct V2dFlt

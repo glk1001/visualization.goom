@@ -14,6 +14,10 @@ class FilterControl
 public:
   explicit FilterControl(const std::shared_ptr<const PluginInfo>& goomInfo) noexcept;
   virtual ~FilterControl() noexcept;
+  FilterControl(const FilterControl&) noexcept = delete;
+  FilterControl(FilterControl&&) noexcept = delete;
+  auto operator=(const FilterControl&) -> FilterControl& = delete;
+  auto operator=(FilterControl&&) -> FilterControl& = delete;
 
   auto GetHasChangedSinceMark() const -> bool;
   void ClearUnchangedMark();
