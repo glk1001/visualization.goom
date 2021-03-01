@@ -25,6 +25,9 @@ void StarsStats::Log(const StatsLogValueFunc& logVal) const
 {
   const constexpr char* MODULE = "Stars";
 
+  logVal(MODULE, "lastNumActive", m_lastNumActive);
+  logVal(MODULE, "lastMaxStars", m_lastMaxStars);
+  logVal(MODULE, "lastMaxStarAge", m_lastMaxStarAge);
   logVal(MODULE, "numUpdateStars", m_numUpdateStars);
   logVal(MODULE, "numSoundEvents", m_numSoundEvents);
   logVal(MODULE, "numAddBombButTooManyStars", m_numAddBombButTooManyStars);
@@ -35,9 +38,6 @@ void StarsStats::Log(const StatsLogValueFunc& logVal) const
   logVal(MODULE, "numFountainFxChosen", m_numFountainFxChosen);
   logVal(MODULE, "numDeadStars", m_numDeadStars);
   logVal(MODULE, "numRemovedStars", m_numRemovedStars);
-  logVal(MODULE, "lastNumActive", m_lastNumActive);
-  logVal(MODULE, "lastMaxStars", m_lastMaxStars);
-  logVal(MODULE, "lastMaxStarAge", m_lastMaxStarAge);
 }
 
 void StarsStats::UpdateStars()

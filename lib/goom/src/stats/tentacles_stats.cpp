@@ -83,7 +83,7 @@ void TentacleStats::Log(const GOOM::StatsLogValueFunc& logVal) const
   std::string numDriverChangesStr;
   for (size_t i = 0; i < m_numDriverTentacles.size(); i++)
   {
-    if (i)
+    if (i > 0)
     {
       numTentaclesStr += ", ";
       numDriverChangesStr += ", ";

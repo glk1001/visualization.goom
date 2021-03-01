@@ -80,6 +80,49 @@ void GoomStats::Log(const StatsLogValueFunc& logVal) const
   logVal(MODULE, "lastNumClipped", m_lastNumClipped);
   logVal(MODULE, "lastFilterDuration", m_lastFilterDuration);
 
+  logVal(MODULE, "numUpdates", m_numUpdates);
+  const auto avTimeInUpdateMs = static_cast<int32_t>(std::lround(
+      m_numUpdates == 0
+          ? -1.0
+          : static_cast<float>(m_totalTimeInUpdatesMs) / static_cast<float>(m_numUpdates)));
+  logVal(MODULE, "avTimeInUpdateMs", avTimeInUpdateMs);
+  logVal(MODULE, "minTimeInUpdatesMs", m_minTimeInUpdatesMs);
+  logVal(MODULE, "stateAtMin", m_stateAtMin);
+  logVal(MODULE, "filterModeAtMin", EnumToString(m_filterModeAtMin));
+  logVal(MODULE, "maxTimeInUpdatesMs", m_maxTimeInUpdatesMs);
+  logVal(MODULE, "stateAtMax", m_stateAtMax);
+  logVal(MODULE, "filterModeAtMax", EnumToString(m_filterModeAtMax));
+  logVal(MODULE, "totalStateChanges", m_totalStateChanges);
+  const float avStateDuration =
+      m_totalStateChanges == 0
+          ? -1.0F
+          : static_cast<float>(m_totalStateDurations) / static_cast<float>(m_totalStateChanges);
+  logVal(MODULE, "averageStateDuration", avStateDuration);
+  for (size_t i = 0; i < m_numStateChanges.size(); i++)
+  {
+    logVal(MODULE, "numState_" + std::to_string(i) + "_Changes", m_numStateChanges[i]);
+  }
+  for (size_t i = 0; i < m_stateDurations.size(); i++)
+  {
+    const float avStateTime =
+        m_numStateChanges[i] == 0
+            ? -1.0F
+            : static_cast<float>(m_stateDurations[i]) / static_cast<float>(m_numStateChanges[i]);
+    logVal(MODULE, "averageState_" + std::to_string(i) + "_Duration", avStateTime);
+  }
+  logVal(MODULE, "numChangeFilterModes", m_numChangeFilterModes);
+  logVal(MODULE, "numApplyChangeFilterSettings", m_numApplyChangeFilterSettings);
+  const float avFilterDuration = m_numApplyChangeFilterSettings == 0
+                                     ? -1.0F
+                                     : static_cast<float>(m_totalFilterDurations) /
+                                           static_cast<float>(m_numApplyChangeFilterSettings);
+  logVal(MODULE, "averageFilterDuration", avFilterDuration);
+  for (size_t i = 0; i < m_numFilterModeChanges.size(); i++)
+  {
+    logVal(MODULE, "numFilterMode_" + EnumToString(static_cast<ZoomFilterMode>(i)) + "_Changes",
+           m_numFilterModeChanges[i]);
+  }
+
   if (m_lastZoomFilterSettings == nullptr)
   {
     logVal(MODULE, "lastZoomFilterData", 0U);
@@ -130,49 +173,6 @@ void GoomStats::Log(const StatsLogValueFunc& logVal) const
     logVal(MODULE, "lastZoomFilterData->rotateSpeed", m_lastZoomFilterSettings->rotateSpeed);
     logVal(MODULE, "lastZoomFilterData->tanEffect",
            static_cast<uint32_t>(m_lastZoomFilterSettings->tanEffect));
-  }
-
-  logVal(MODULE, "numUpdates", m_numUpdates);
-  const auto avTimeInUpdateMs = static_cast<int32_t>(std::lround(
-      m_numUpdates == 0
-          ? -1.0
-          : static_cast<float>(m_totalTimeInUpdatesMs) / static_cast<float>(m_numUpdates)));
-  logVal(MODULE, "avTimeInUpdateMs", avTimeInUpdateMs);
-  logVal(MODULE, "minTimeInUpdatesMs", m_minTimeInUpdatesMs);
-  logVal(MODULE, "stateAtMin", m_stateAtMin);
-  logVal(MODULE, "filterModeAtMin", EnumToString(m_filterModeAtMin));
-  logVal(MODULE, "maxTimeInUpdatesMs", m_maxTimeInUpdatesMs);
-  logVal(MODULE, "stateAtMax", m_stateAtMax);
-  logVal(MODULE, "filterModeAtMax", EnumToString(m_filterModeAtMax));
-  logVal(MODULE, "totalStateChanges", m_totalStateChanges);
-  const float avStateDuration =
-      m_totalStateChanges == 0
-          ? -1.0F
-          : static_cast<float>(m_totalStateDurations) / static_cast<float>(m_totalStateChanges);
-  logVal(MODULE, "averageStateDuration", avStateDuration);
-  for (size_t i = 0; i < m_numStateChanges.size(); i++)
-  {
-    logVal(MODULE, "numState_" + std::to_string(i) + "_Changes", m_numStateChanges[i]);
-  }
-  for (size_t i = 0; i < m_stateDurations.size(); i++)
-  {
-    const float avStateTime =
-        m_numStateChanges[i] == 0
-            ? -1.0F
-            : static_cast<float>(m_stateDurations[i]) / static_cast<float>(m_numStateChanges[i]);
-    logVal(MODULE, "averageState_" + std::to_string(i) + "_Duration", avStateTime);
-  }
-  logVal(MODULE, "numChangeFilterModes", m_numChangeFilterModes);
-  logVal(MODULE, "numApplyChangeFilterSettings", m_numApplyChangeFilterSettings);
-  const float avFilterDuration = m_numApplyChangeFilterSettings == 0
-                                     ? -1.0F
-                                     : static_cast<float>(m_totalFilterDurations) /
-                                           static_cast<float>(m_numApplyChangeFilterSettings);
-  logVal(MODULE, "averageFilterDuration", avFilterDuration);
-  for (size_t i = 0; i < m_numFilterModeChanges.size(); i++)
-  {
-    logVal(MODULE, "numFilterMode_" + EnumToString(static_cast<ZoomFilterMode>(i)) + "_Changes",
-           m_numFilterModeChanges[i]);
   }
   logVal(MODULE, "numLockChanges", m_numLockChanges);
   logVal(MODULE, "numDoIFS", m_numDoIFS);
