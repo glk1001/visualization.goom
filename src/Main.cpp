@@ -29,6 +29,8 @@
 #undef NO_LOGGING
 #include "goomutils/logging.h"
 
+#include <stdexcept>
+
 using GOOM::Pixel;
 using GOOM::PixelBuffer;
 using GOOM::UTILS::Logging;
@@ -358,86 +360,97 @@ void CVisualizationGoom::Process()
     kodi::Log(ADDON_LOG_FATAL, "CVisualizationGoom: Goom could not be initialized!");
     return;
   }
-  m_goomControl->Start();
 
-  std::vector<float> floatAudioData(m_audioBufferLen);
-  const char* title;
-  unsigned long buffNum = 0;
-
-  while (true)
+  try
   {
-    std::unique_lock<std::mutex> lk(m_mutex);
-    if (m_threadExit)
-    {
-      break;
-    }
-    if (m_buffer.DataAvailable() < m_audioBufferLen)
-    {
-      m_wait.wait(lk);
-    }
-    unsigned read = m_buffer.Read(floatAudioData.data(), m_audioBufferLen);
-    if (read != m_audioBufferLen)
-    {
-      kodi::Log(
-          ADDON_LOG_WARNING,
-          "Process: Num read audio length %u != %d = expected audio data length - skipping this.",
-          read, m_audioBufferLen);
-      AudioDataIncorrectReadLength();
-      continue;
-    }
-    lk.unlock();
+    m_goomControl->Start();
 
-    if (m_titleChange || m_showTitleAlways)
+    std::vector<float> floatAudioData(m_audioBufferLen);
+    uint64_t buffNum = 0;
+
+    while (true)
     {
-      title = m_currentSongName.c_str();
-      m_titleChange = false;
-    }
-    else
-    {
-      title = nullptr;
+      std::unique_lock<std::mutex> lk(m_mutex);
+      if (m_threadExit)
+      {
+        break;
+      }
+      if (m_buffer.DataAvailable() < m_audioBufferLen)
+      {
+        m_wait.wait(lk);
+      }
+      unsigned read = m_buffer.Read(floatAudioData.data(), m_audioBufferLen);
+      if (read != m_audioBufferLen)
+      {
+        kodi::Log(
+            ADDON_LOG_WARNING,
+            "Process: Num read audio length %u != %d = expected audio data length - skipping this.",
+            read, m_audioBufferLen);
+        AudioDataIncorrectReadLength();
+        continue;
+      }
+      lk.unlock();
+
+      if (m_threadExit)
+      {
+        break;
+      }
+
+      lk.lock();
+      if (m_activeQueue.size() > MAX_ACTIVE_QUEUE_LENGTH)
+      {
+        // Too far behind, skip this audio data.
+        SkippedAudioData();
+        continue;
+      }
+      lk.unlock();
+
+      std::shared_ptr<PixelBuffer> pixels;
+      lk.lock();
+      if (m_storedQueue.empty())
+      {
+        pixels = std::make_shared<PixelBuffer>(static_cast<uint32_t>(m_texWidth),
+                                               static_cast<uint32_t>(m_texHeight));
+      }
+      else
+      {
+        pixels = m_storedQueue.front();
+        m_storedQueue.pop();
+      }
+      lk.unlock();
+
+      UpdateGoomBuffer(GetTitle(), floatAudioData, pixels);
+      buffNum++;
+
+      lk.lock();
+      m_activeQueue.push(pixels);
+      lk.unlock();
     }
 
-    if (m_threadExit)
-    {
-      break;
-    }
-
-    lk.lock();
-    if (m_activeQueue.size() > MAX_ACTIVE_QUEUE_LENGTH)
-    {
-      // Too far behind, skip this audio data.
-      SkippedAudioData();
-      continue;
-    }
-    lk.unlock();
-
-    std::shared_ptr<GOOM::PixelBuffer> pixels;
-    lk.lock();
-    if (!m_storedQueue.empty())
-    {
-      pixels = m_storedQueue.front();
-      m_storedQueue.pop();
-    }
-    else
-    {
-      std::shared_ptr<PixelBuffer> sp{
-          new PixelBuffer{static_cast<uint32_t>(m_texWidth), static_cast<uint32_t>(m_texHeight)}};
-      pixels = sp;
-    }
-    lk.unlock();
-
-    UpdateGoomBuffer(title, floatAudioData, pixels);
-    buffNum++;
-
-    lk.lock();
-    m_activeQueue.push(pixels);
-    lk.unlock();
+    m_goomControl->Finish();
   }
-
-  m_goomControl->Finish();
+  catch (const std::exception& e)
+  {
+    std::string errMsg = std::string("CVisualizationGoom: Goom failed: ") + e.what();
+    kodi::Log(ADDON_LOG_FATAL, errMsg.c_str());
+  }
+  catch (...)
+  {
+    kodi::Log(ADDON_LOG_FATAL, "CVisualizationGoom: Goom failed: unknown error.");
+  }
 }
 
-void CVisualizationGoom::UpdateGoomBuffer(const char* title,
+auto CVisualizationGoom::GetTitle() -> std::string
+{
+  if (!m_titleChange && !m_showTitleAlways)
+  {
+    return "";
+  }
+  m_titleChange = false;
+  return m_currentSongName;
+}
+
+void CVisualizationGoom::UpdateGoomBuffer(const std::string& title,
                                           const std::vector<float>& floatAudioData,
                                           std::shared_ptr<PixelBuffer>& pixels)
 {

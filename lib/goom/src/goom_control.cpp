@@ -566,7 +566,10 @@ public:
   void Start();
   void Finish();
 
-  void Update(const AudioSamples& soundData, float fps, const char* songTitle, const char* message);
+  void Update(const AudioSamples& soundData,
+              float fps,
+              const std::string& songTitle,
+              const std::string& message);
 
 private:
   Parallel m_parallel;
@@ -618,7 +621,7 @@ private:
   void ApplyStarsIfRequired();
   void ApplyImageIfRequired();
 
-  void DisplayText(const char* songTitle, const char* message, float fps);
+  void DisplayText(const std::string& songTitle, const std::string& message, float fps);
 
 #ifdef SHOW_STATE_TEXT_ON_SCREEN
   void DisplayStateText();
@@ -656,7 +659,7 @@ private:
   void BigBreakIfMusicIsCalm();
   void BigBreak();
 
-  void UpdateMessage(const char* message);
+  void UpdateMessage(const std::string& message);
   void DrawText(const std::string&, int xPos, int yPos, float spacing, PixelBuffer&);
 };
 
@@ -713,8 +716,8 @@ void GoomControl::Finish()
 
 void GoomControl::Update(const AudioSamples& soundData,
                          const float fps,
-                         const char* songTitle,
-                         const char* message)
+                         const std::string& songTitle,
+                         const std::string& message)
 {
   m_controller->Update(soundData, fps, songTitle, message);
 }
@@ -875,8 +878,8 @@ void GoomControl::GoomControlImpl::Finish()
 
 void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,
                                           const float fps,
-                                          const char* songTitle,
-                                          const char* message)
+                                          const std::string& songTitle,
+                                          const std::string& message)
 {
   m_stats.UpdateChange(m_states.GetCurrentStateIndex(), m_filterControl.GetFilterSettings().mode);
 
@@ -1496,13 +1499,13 @@ void GoomControl::GoomControlImpl::DisplayStateText()
   //  message += std20::format("lockVar: {}\n", m_goomData.lockVar);
   //  message += std20::format("stopLines: {}\n", m_goomData.stopLines);
 
-  UpdateMessage(message.c_str());
+  UpdateMessage(message);
 }
 
 #endif
 
-void GoomControl::GoomControlImpl::DisplayText(const char* songTitle,
-                                               const char* message,
+void GoomControl::GoomControlImpl::DisplayText(const std::string& songTitle,
+                                               const std::string& message,
                                                const float fps)
 {
   UpdateMessage(message);
@@ -1513,7 +1516,7 @@ void GoomControl::GoomControlImpl::DisplayText(const char* songTitle,
     DrawText(text, 10, 24, 0.0, m_imageBuffers.GetOutputBuff());
   }
 
-  if (songTitle != nullptr)
+  if (!songTitle.empty())
   {
     m_stats.SetSongTitle(songTitle);
     m_goomData.title = songTitle;
@@ -1591,14 +1594,14 @@ void GoomControl::GoomControlImpl::DrawText(const std::string& str,
 /*
  * Met a jour l'affichage du message defilant
  */
-void GoomControl::GoomControlImpl::UpdateMessage(const char* message)
+void GoomControl::GoomControlImpl::UpdateMessage(const std::string& message)
 {
   constexpr int FONT_SIZE = 10;
   constexpr int VERTICAL_SPACING = 10;
   constexpr int LINE_HEIGHT = FONT_SIZE + VERTICAL_SPACING;
   constexpr int Y_START = 50;
 
-  if (message != nullptr)
+  if (!message.empty())
   {
     m_messageData.message = message;
     const std::vector<std::string> msgLines = SplitString(m_messageData.message, "\n");

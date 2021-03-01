@@ -41,15 +41,14 @@ public:
   /*
    * Update the next goom frame
    *
-   * forceMode == 0 : do nothing
-   * forceMode == -1 : lock the FX
-   * forceMode == 1..NB_FX : force a switch to FX n# forceMode
-   *
-   * songTitle = pointer to the title of the song...
-   *      - NULL if it is not the start of the song
+   * songTitle:
+   *      - empty if it is not the start of the song
    *      - only have a value at the start of the song
    */
-  void Update(const AudioSamples& s, float fps, const char* songTitle, const char* message);
+  void Update(const AudioSamples& s,
+              float fps,
+              const std::string& songTitle,
+              const std::string& message);
 
   void Finish();
 

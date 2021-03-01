@@ -83,7 +83,7 @@ protected:
   virtual void AudioDataQueueTooBig() {}
   virtual void SkippedAudioData() {}
   virtual void AudioDataIncorrectReadLength() {}
-  virtual void UpdateGoomBuffer(const char* title,
+  virtual void UpdateGoomBuffer(const std::string& title,
                                 const std::vector<float>& floatAudioData,
                                 std::shared_ptr<GOOM::PixelBuffer>& pixels);
 
@@ -110,6 +110,7 @@ private:
   std::string m_lastSongName{};
   bool m_titleChange = false;
   bool m_showTitleAlways = false;
+  auto GetTitle() -> std::string;
 
   GLint m_componentsPerVertex{};
   GLint m_componentsPerTexel{};
