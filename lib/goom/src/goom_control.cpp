@@ -110,6 +110,7 @@ public:
     FILTER_TOGGLE_ROTATION,
     FILTER_INCREASE_ROTATION,
     FILTER_DECREASE_ROTATION,
+    FILTER_STOP_ROTATION,
     IFS_RENEW,
     CHANGE_BLOCKY_WAVY_TO_ON,
     CHANGE_ZOOM_FILTER_ALLOW_OVEREXPOSED_TO_ON,
@@ -154,6 +155,7 @@ private:
     { /*.event = */GoomEvent::FILTER_TOGGLE_ROTATION,                     /*.m =*/ 5, /*.outOf = */ 40 },
     { /*.event = */GoomEvent::FILTER_INCREASE_ROTATION,                   /*.m =*/10, /*.outOf = */ 40 },
     { /*.event = */GoomEvent::FILTER_DECREASE_ROTATION,                   /*.m =*/35, /*.outOf = */ 40 },
+    { /*.event = */GoomEvent::FILTER_STOP_ROTATION,                       /*.m =*/35, /*.outOf = */ 40 },
     { /*.event = */GoomEvent::IFS_RENEW,                                  /*.m = */2, /*.outOf = */  3 },
     { /*.event = */GoomEvent::CHANGE_BLOCKY_WAVY_TO_ON,                   /*.m = */1, /*.outOf = */ 20 },
     { /*.event = */GoomEvent::CHANGE_ZOOM_FILTER_ALLOW_OVEREXPOSED_TO_ON, /*.m = */8, /*.outOf = */ 10 },
@@ -661,7 +663,7 @@ private:
   void BigBreak();
 
   void UpdateMessage(const std::string& message);
-  void DrawText(const std::string&, int xPos, int yPos, float spacing, PixelBuffer&);
+  void DrawText(const std::string& str, int xPos, int yPos, float spacing, PixelBuffer& buff);
 
   void ChangeAllowOverexposed();
   void ChangeBlockyWavy();
@@ -1287,17 +1289,21 @@ void GoomControl::GoomControlImpl::ChangeNoise()
 
 void GoomControl::GoomControlImpl::ChangeRotation()
 {
-  if (m_goomEvent.Happens(GoomEvent::FILTER_TOGGLE_ROTATION))
+  if (m_goomEvent.Happens(GoomEvent::FILTER_STOP_ROTATION))
   {
-    m_filterControl.ToggleRotateSetting();
+    m_filterControl.SetRotateSetting(0.0F);
+  }
+  else if (m_goomEvent.Happens(GoomEvent::FILTER_DECREASE_ROTATION))
+  {
+    m_filterControl.MultiplyRotateSetting(0.9F);
   }
   else if (m_goomEvent.Happens(GoomEvent::FILTER_INCREASE_ROTATION))
   {
     m_filterControl.MultiplyRotateSetting(1.1F);
   }
-  else if (m_goomEvent.Happens(GoomEvent::FILTER_DECREASE_ROTATION))
+  else if (m_goomEvent.Happens(GoomEvent::FILTER_TOGGLE_ROTATION))
   {
-    m_filterControl.MultiplyRotateSetting(0.9F);
+    m_filterControl.ToggleRotateSetting();
   }
 }
 
@@ -1361,6 +1367,7 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect()
       m_goomData.switchIncr = 0;
       m_goomData.switchMult = GoomData::SWITCH_MULT_AMOUNT;
 
+      ChangeRotation();
       DoIfsRenew();
     }
   }
@@ -1374,6 +1381,7 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect()
                m_goomData.cyclesSinceLastChange, TIME_BETWEEN_CHANGE);
       m_goomData.cyclesSinceLastChange = 0;
 
+      ChangeRotation();
       DoIfsRenew();
     }
     else
@@ -1895,7 +1903,7 @@ void GoomControl::GoomControlImpl::ApplyZoom()
 
   if (m_filterControl.GetFilterSettings().noisify)
   {
-    m_filterControl.SetNoiseFactorSetting(m_filterControl.GetFilterSettings().noiseFactor * 0.999);
+    m_filterControl.SetNoiseFactorSetting(m_filterControl.GetFilterSettings().noiseFactor * 0.999F);
   }
 }
 

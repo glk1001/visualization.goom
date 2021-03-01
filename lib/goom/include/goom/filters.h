@@ -53,8 +53,8 @@ struct ZoomFilterData
   bool reverse = true; // inverse la vitesse
   bool tanEffect = false;
   bool blockyWavy = false;
-  static constexpr float MAX_ROTATE_SPEED = +0.9;
-  static constexpr float MIN_ROTATE_SPEED = -0.9;
+  static constexpr float MAX_ROTATE_SPEED = +0.5;
+  static constexpr float MIN_ROTATE_SPEED = -0.5;
   static constexpr float DEFAULT_ROTATE_SPEED = 0.0;
   float rotateSpeed = DEFAULT_ROTATE_SPEED;
 

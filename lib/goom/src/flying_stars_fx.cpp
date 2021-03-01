@@ -128,7 +128,7 @@ private:
   static constexpr uint32_t MAX_COUNT = 100;
 
   StarModes m_fxMode = StarModes::FIREWORKS;
-  static constexpr uint32_t MAX_NUM_STARS = 2048;
+  static constexpr uint32_t MAX_NUM_STARS = 1024;
   static constexpr uint32_t MIN_NUM_STARS = 100;
   uint32_t m_maxStars = MAX_NUM_STARS;
   std::vector<Star> m_stars{};
