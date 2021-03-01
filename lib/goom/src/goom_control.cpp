@@ -520,24 +520,24 @@ GoomVisualFx::GoomVisualFx(Parallel& p, const std::shared_ptr<const PluginInfo>&
 
 struct GoomData
 {
-  int lockVar = 0; // pour empecher de nouveaux changements
-  int stopLines = 0;
-  int cyclesSinceLastChange = 0; // nombre de Cycle Depuis Dernier Changement
+  int32_t lockVar = 0; // pour empecher de nouveaux changements
+  int32_t stopLines = 0;
+  int32_t cyclesSinceLastChange = 0; // nombre de Cycle Depuis Dernier Changement
   // duree de la transition entre afficher les lignes ou pas
-  int drawLinesDuration = LinesFx::MIN_LINE_DURATION;
-  int lineMode = LinesFx::MIN_LINE_DURATION; // l'effet lineaire a dessiner
+  int32_t drawLinesDuration = LinesFx::MIN_LINE_DURATION;
+  int32_t lineMode = LinesFx::MIN_LINE_DURATION; // l'effet lineaire a dessiner
 
   static constexpr float SWITCH_MULT_AMOUNT = 29.0 / 30.0;
   float switchMult = SWITCH_MULT_AMOUNT;
   static constexpr int SWITCH_INCR_AMOUNT = 0x7f;
-  int switchIncr = SWITCH_INCR_AMOUNT;
+  int32_t switchIncr = SWITCH_INCR_AMOUNT;
   uint32_t stateSelectionBlocker = 0;
   int32_t previousZoomSpeed = 128;
 
   static constexpr int MAX_TITLE_DISPLAY_TIME = 200;
   static constexpr int TIME_TO_SPACE_TITLE_DISPLAY = 100;
   static constexpr int TIME_TO_FADE_TITLE_DISPLAY = 50;
-  int timeOfTitleDisplay = 0;
+  int32_t timeOfTitleDisplay = 0;
   std::string title{};
 };
 
@@ -600,7 +600,8 @@ private:
 
   [[nodiscard]] auto ChangeFilterModeEventHappens() -> bool;
   void SetNextFilterMode();
-  void ChangeState();
+  void SetLockVar(int32_t val);
+  void DoChangeState();
   void ChangeFilterMode();
   void BigNormalUpdate();
   void MegaLentUpdate();
@@ -661,6 +662,20 @@ private:
 
   void UpdateMessage(const std::string& message);
   void DrawText(const std::string&, int xPos, int yPos, float spacing, PixelBuffer&);
+
+  void ChangeAllowOverexposed();
+  void ChangeBlockyWavy();
+  void ChangeHPlaneEffect();
+  void ChangeMilieu();
+  void ChangeNoise();
+  void ChangeRotation();
+  void ChangeSpeedReverse();
+  void ChangeState();
+  void ChangeSwitchValues();
+  void ChangeStopSpeeds();
+  void ChangeVitesse();
+  void UpdateLockVar();
+  void DoIfsRenew();
 };
 
 auto GoomControl::GetRandSeed() -> uint64_t
@@ -853,7 +868,7 @@ void GoomControl::GoomControlImpl::Start()
     v->Start();
   }
 
-  ChangeState();
+  DoChangeState();
 }
 
 void GoomControl::GoomControlImpl::Finish()
@@ -898,16 +913,7 @@ void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,
 
   ApplyDotsIfRequired();
 
-  m_goomData.lockVar--;
-  if (m_goomData.lockVar < 0)
-  {
-    m_goomData.lockVar = 0;
-  }
-  m_stats.DoLockChange();
-  /* note pour ceux qui n'ont pas suivis : le lockVar permet d'empecher un */
-  /* changement d'etat du plugin juste apres un autre changement d'etat. oki */
-  // -- Note for those who have not followed: the lockVar prevents a change
-  // of state of the plugin just after another change of state.
+  UpdateLockVar();
 
   ChangeFilterModeIfMusicChanges();
 
@@ -953,6 +959,20 @@ void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,
   DisplayText(songTitle, message, fps);
 
   m_cycle++;
+}
+
+void GoomControl::GoomControlImpl::UpdateLockVar()
+{
+  m_goomData.lockVar--;
+  if (m_goomData.lockVar < 0)
+  {
+    m_goomData.lockVar = 0;
+  }
+  m_stats.DoLockChange();
+  /* note pour ceux qui n'ont pas suivis : le lockVar permet d'empecher un */
+  /* changement d'etat du plugin juste apres un autre changement d'etat. oki */
+  // -- Note for those who have not followed: the lockVar prevents a change
+  // of state of the plugin just after another change of state.
 }
 
 void GoomControl::GoomControlImpl::ChooseGoomLine(float* param1,
@@ -1035,18 +1055,6 @@ void GoomControl::GoomControlImpl::ChangeFilterModeIfMusicChanges()
   logDebug("sound GetTimeSinceLastGoom() = {}", m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom());
 }
 
-inline auto GetHypercosEffect(const bool active) -> ZoomFilterData::HypercosEffect
-{
-  if (!active)
-  {
-    return ZoomFilterData::HypercosEffect::NONE;
-  }
-
-  return static_cast<ZoomFilterData::HypercosEffect>(
-      GetRandInRange(static_cast<uint32_t>(ZoomFilterData::HypercosEffect::NONE) + 1,
-                     static_cast<uint32_t>(ZoomFilterData::HypercosEffect::_SIZE)));
-}
-
 void GoomControl::GoomControlImpl::ChangeFilterMode()
 {
   logDebug("Time to change the filter mode.");
@@ -1057,20 +1065,17 @@ void GoomControl::GoomControlImpl::ChangeFilterMode()
 
   m_stats.DoChangeFilterMode(m_filterControl.GetFilterSettings().mode);
 
-  m_visualFx.ifs_fx->Renew();
-  m_stats.DoIfsRenew();
+  DoIfsRenew();
 }
 
 void GoomControl::GoomControlImpl::SetNextFilterMode()
 {
   m_filterControl.SetRandomFilterSettings();
-
   m_filterControl.ChangeMilieu();
-
   m_curGDrawables = m_states.GetCurrentDrawables();
 }
 
-void GoomControl::GoomControlImpl::ChangeState()
+void GoomControl::GoomControlImpl::DoChangeState()
 {
   const auto oldGDrawables = m_states.GetCurrentDrawables();
 
@@ -1103,8 +1108,7 @@ void GoomControl::GoomControlImpl::ChangeState()
     }
     else if (m_goomEvent.Happens(GoomEvent::IFS_RENEW))
     {
-      m_visualFx.ifs_fx->Renew();
-      m_stats.DoIfsRenew();
+      DoIfsRenew();
     }
     m_visualFx.ifs_fx->UpdateIncr();
   }
@@ -1118,154 +1122,6 @@ void GoomControl::GoomControlImpl::ChangeState()
     m_goomData.stopLines = 0;
     m_goomData.lineMode = m_goomData.drawLinesDuration;
   }
-}
-
-void GoomControl::GoomControlImpl::BigNormalUpdate()
-{
-  if (m_goomData.stateSelectionBlocker)
-  {
-    m_goomData.stateSelectionBlocker--;
-  }
-  else if (m_goomEvent.Happens(GoomEvent::CHANGE_STATE))
-  {
-    m_goomData.stateSelectionBlocker = 3;
-    ChangeState();
-  }
-
-  m_goomData.lockVar = 50;
-  m_stats.DoLockChange();
-  // retablir le zoom avant..
-  if ((m_filterControl.GetFilterSettings().reverse) && (!(m_cycle % 13)) &&
-      m_goomEvent.Happens(GoomEvent::FILTER_REVERSE_OFF_AND_STOP_SPEED))
-  {
-    m_filterControl.SetReverseSetting(false);
-    m_filterControl.SetVitesseSetting(STOP_SPEED - 2);
-    logDebug("vitesse = {}", m_filterControl.GetFilterSettings().vitesse);
-    m_goomData.lockVar = 75;
-    m_stats.DoLockChange();
-  }
-  if (m_goomEvent.Happens(GoomEvent::FILTER_REVERSE_ON))
-  {
-    m_filterControl.SetReverseSetting(true);
-    m_goomData.lockVar = 100;
-    m_stats.DoLockChange();
-  }
-
-  if (m_goomEvent.Happens(GoomEvent::FILTER_TOGGLE_ROTATION))
-  {
-    m_filterControl.ToggleRotateSetting();
-  }
-  else if (m_goomEvent.Happens(GoomEvent::FILTER_INCREASE_ROTATION))
-  {
-    m_filterControl.MultiplyRotateSetting(1.1F);
-  }
-  else if (m_goomEvent.Happens(GoomEvent::FILTER_DECREASE_ROTATION))
-  {
-    m_filterControl.MultiplyRotateSetting(0.9F);
-  }
-
-  if (m_goomEvent.Happens(GoomEvent::FILTER_VITESSE_STOP_SPEED_MINUS1))
-  {
-    m_filterControl.SetVitesseSetting(STOP_SPEED - 1);
-    logDebug("vitesse = {}", m_filterControl.GetFilterSettings().vitesse);
-  }
-  if (m_goomEvent.Happens(GoomEvent::FILTER_VITESSE_STOP_SPEED_PLUS1))
-  {
-    m_filterControl.SetVitesseSetting(STOP_SPEED + 1);
-    logDebug("vitesse = {}", m_filterControl.GetFilterSettings().vitesse);
-  }
-
-  m_filterControl.ChangeMilieu();
-
-  if (m_goomEvent.Happens(GoomEvent::TURN_OFF_NOISE))
-  {
-    m_filterControl.SetNoisifySetting(false);
-    m_stats.DoTurnOffNoise();
-  }
-  else
-  {
-    m_filterControl.SetNoisifySetting(true);
-    m_filterControl.SetNoiseFactorSetting(1.0);
-    m_goomData.lockVar *= 2;
-    m_stats.DoLockChange();
-    m_stats.DoNoise();
-  }
-
-  if (!m_goomEvent.Happens(GoomEvent::CHANGE_BLOCKY_WAVY_TO_ON))
-  {
-    m_filterControl.SetBlockyWavySetting(false);
-  }
-  else
-  {
-    m_stats.DoBlockyWavy();
-    m_filterControl.SetBlockyWavySetting(true);
-  }
-
-  if (!m_goomEvent.Happens(GoomEvent::CHANGE_ZOOM_FILTER_ALLOW_OVEREXPOSED_TO_ON))
-  {
-    m_visualFx.zoomFilter_fx->SetBuffSettings(
-        {/*.buffIntensity = */ 0.5, /*.allowOverexposed = */ false});
-  }
-  else
-  {
-    m_stats.DoZoomFilterAllowOverexposed();
-    m_visualFx.zoomFilter_fx->SetBuffSettings(
-        {/*.buffIntensity = */ 0.5, /*.allowOverexposed = */ true});
-  }
-
-  if ((m_filterControl.GetFilterSettings().middleX == 1) ||
-      (m_filterControl.GetFilterSettings().middleX == GetScreenWidth() - 1))
-  {
-    m_filterControl.SetVPlaneEffectSetting(0);
-    if (m_goomEvent.Happens(GoomEvent::FILTER_ZERO_H_PLANE_EFFECT))
-    {
-      m_filterControl.SetHPlaneEffectSetting(0);
-    }
-  }
-
-  const int32_t newvit =
-      STOP_SPEED + 1 -
-      static_cast<int32_t>(
-          std::lround(3.5F * std::log10(m_goomInfo->GetSoundInfo().GetSpeed() * 500.0F + 1.0F)));
-  logDebug("vitesse = {}, newvit = {}, Speed = {}", m_filterControl.GetFilterSettings().vitesse,
-           newvit, m_goomInfo->GetSoundInfo().GetSpeed());
-  if (newvit < m_filterControl.GetFilterSettings().vitesse)
-  {
-    // on accelere
-    if (((newvit < (STOP_SPEED - 7)) &&
-         (m_filterControl.GetFilterSettings().vitesse < STOP_SPEED - 6) && (m_cycle % 3 == 0)) ||
-        m_goomEvent.Happens(GoomEvent::FILTER_CHANGE_VITESSE_AND_TOGGLE_REVERSE))
-    {
-      m_filterControl.SetVitesseSetting(STOP_SPEED - static_cast<int32_t>(GetNRand(2)) +
-                                        static_cast<int32_t>(GetNRand(2)));
-      m_filterControl.ToggleReverseSetting();
-    }
-    else
-    {
-      m_filterControl.SetVitesseSetting((newvit + m_filterControl.GetFilterSettings().vitesse * 7) /
-                                        8);
-    }
-    logDebug("vitesse = {}", m_filterControl.GetFilterSettings().vitesse);
-    m_goomData.lockVar += 50;
-    m_stats.DoLockChange();
-  }
-
-  if (m_goomData.lockVar > 150)
-  {
-    m_goomData.switchIncr = GoomData::SWITCH_INCR_AMOUNT;
-    m_goomData.switchMult = 1.0F;
-  }
-}
-
-void GoomControl::GoomControlImpl::MegaLentUpdate()
-{
-  logDebug("mega lent change");
-  m_filterControl.SetVitesseSetting(STOP_SPEED - 1);
-  m_goomData.lockVar += 50;
-  m_stats.DoLockChange();
-  m_goomData.switchIncr = GoomData::SWITCH_INCR_AMOUNT;
-  m_goomData.switchMult = 1.0F;
-  logDebug("vitesse = {}", m_filterControl.GetFilterSettings().vitesse);
 }
 
 void GoomControl::GoomControlImpl::BigUpdate()
@@ -1290,9 +1146,162 @@ void GoomControl::GoomControlImpl::BigUpdate()
   }
 }
 
-/* Changement d'effet de zoom !
- */
-void GoomControl::GoomControlImpl::ChangeZoomEffect()
+void GoomControl::GoomControlImpl::BigNormalUpdate()
+{
+  SetLockVar(50);
+
+  ChangeState();
+  ChangeSpeedReverse();
+  ChangeStopSpeeds();
+  ChangeRotation();
+  ChangeMilieu();
+  ChangeNoise();
+  ChangeBlockyWavy();
+  ChangeAllowOverexposed();
+  ChangeVitesse();
+  ChangeSwitchValues();
+}
+
+void GoomControl::GoomControlImpl::ChangeState()
+{
+  if (m_goomData.stateSelectionBlocker)
+  {
+    m_goomData.stateSelectionBlocker--;
+  }
+  else if (m_goomEvent.Happens(GoomEvent::CHANGE_STATE))
+  {
+    m_goomData.stateSelectionBlocker = 3;
+    DoChangeState();
+  }
+}
+
+void GoomControl::GoomControlImpl::ChangeMilieu()
+{
+  m_filterControl.ChangeMilieu();
+
+  ChangeHPlaneEffect();
+}
+
+void GoomControl::GoomControlImpl::ChangeHPlaneEffect()
+{
+  if ((m_filterControl.GetFilterSettings().middleX == 1) ||
+      (m_filterControl.GetFilterSettings().middleX == GetScreenWidth() - 1))
+  {
+    m_filterControl.SetVPlaneEffectSetting(0);
+    if (m_goomEvent.Happens(GoomEvent::FILTER_ZERO_H_PLANE_EFFECT))
+    {
+      m_filterControl.SetHPlaneEffectSetting(0);
+    }
+  }
+}
+
+void GoomControl::GoomControlImpl::ChangeVitesse()
+{
+  const int32_t newvit =
+      STOP_SPEED + 1 -
+      static_cast<int32_t>(
+          std::lround(3.5F * std::log10(m_goomInfo->GetSoundInfo().GetSpeed() * 500.0F + 1.0F)));
+  logDebug("vitesse = {}, newvit = {}, Speed = {}", m_filterControl.GetFilterSettings().vitesse,
+           newvit, m_goomInfo->GetSoundInfo().GetSpeed());
+  if (newvit < m_filterControl.GetFilterSettings().vitesse)
+  {
+    // on accelere
+    if (((newvit < (STOP_SPEED - 7)) &&
+         (m_filterControl.GetFilterSettings().vitesse < STOP_SPEED - 6) && (m_cycle % 3 == 0)) ||
+        m_goomEvent.Happens(GoomEvent::FILTER_CHANGE_VITESSE_AND_TOGGLE_REVERSE))
+    {
+      m_filterControl.SetVitesseSetting(STOP_SPEED - static_cast<int32_t>(GetNRand(2)) +
+                                        static_cast<int32_t>(GetNRand(2)));
+      m_filterControl.ToggleReverseSetting();
+    }
+    else
+    {
+      m_filterControl.SetVitesseSetting((newvit + m_filterControl.GetFilterSettings().vitesse * 7) /
+                                        8);
+    }
+
+    SetLockVar(m_goomData.lockVar + 50);
+  }
+}
+
+void GoomControl::GoomControlImpl::ChangeSpeedReverse()
+{ // retablir le zoom avant..
+  if ((m_filterControl.GetFilterSettings().reverse) && (!(m_cycle % 13)) &&
+      m_goomEvent.Happens(GoomEvent::FILTER_REVERSE_OFF_AND_STOP_SPEED))
+  {
+    m_filterControl.SetReverseSetting(false);
+    m_filterControl.SetVitesseSetting(STOP_SPEED - 2);
+    logDebug("vitesse = {}", m_filterControl.GetFilterSettings().vitesse);
+    SetLockVar(75);
+  }
+  if (m_goomEvent.Happens(GoomEvent::FILTER_REVERSE_ON))
+  {
+    m_filterControl.SetReverseSetting(true);
+    SetLockVar(100);
+  }
+}
+void GoomControl::GoomControlImpl::SetLockVar(const int32_t val)
+{
+  m_goomData.lockVar = val;
+  m_stats.DoLockChange();
+}
+
+void GoomControl::GoomControlImpl::ChangeStopSpeeds()
+{
+  if (m_goomEvent.Happens(GoomEvent::FILTER_VITESSE_STOP_SPEED_MINUS1))
+  {
+    m_filterControl.SetVitesseSetting(STOP_SPEED - 1);
+    logDebug("vitesse = {}", m_filterControl.GetFilterSettings().vitesse);
+  }
+  if (m_goomEvent.Happens(GoomEvent::FILTER_VITESSE_STOP_SPEED_PLUS1))
+  {
+    m_filterControl.SetVitesseSetting(STOP_SPEED + 1);
+    logDebug("vitesse = {}", m_filterControl.GetFilterSettings().vitesse);
+  }
+}
+
+void GoomControl::GoomControlImpl::ChangeSwitchValues()
+{
+  if (m_goomData.lockVar > 150)
+  {
+    m_goomData.switchIncr = GoomData::SWITCH_INCR_AMOUNT;
+    m_goomData.switchMult = 1.0F;
+  }
+}
+
+void GoomControl::GoomControlImpl::ChangeNoise()
+{
+  if (m_goomEvent.Happens(GoomEvent::TURN_OFF_NOISE))
+  {
+    m_filterControl.SetNoisifySetting(false);
+    m_stats.DoTurnOffNoise();
+  }
+  else
+  {
+    m_filterControl.SetNoisifySetting(true);
+    m_filterControl.SetNoiseFactorSetting(1.0);
+    SetLockVar(2 * m_goomData.lockVar);
+    m_stats.DoNoise();
+  }
+}
+
+void GoomControl::GoomControlImpl::ChangeRotation()
+{
+  if (m_goomEvent.Happens(GoomEvent::FILTER_TOGGLE_ROTATION))
+  {
+    m_filterControl.ToggleRotateSetting();
+  }
+  else if (m_goomEvent.Happens(GoomEvent::FILTER_INCREASE_ROTATION))
+  {
+    m_filterControl.MultiplyRotateSetting(1.1F);
+  }
+  else if (m_goomEvent.Happens(GoomEvent::FILTER_DECREASE_ROTATION))
+  {
+    m_filterControl.MultiplyRotateSetting(0.9F);
+  }
+}
+
+void GoomControl::GoomControlImpl::ChangeBlockyWavy()
 {
   if (!m_goomEvent.Happens(GoomEvent::CHANGE_BLOCKY_WAVY_TO_ON))
   {
@@ -1300,10 +1309,13 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect()
   }
   else
   {
-    m_filterControl.SetBlockyWavySetting(true);
     m_stats.DoBlockyWavy();
+    m_filterControl.SetBlockyWavySetting(true);
   }
+}
 
+void GoomControl::GoomControlImpl::ChangeAllowOverexposed()
+{
   if (!m_goomEvent.Happens(GoomEvent::CHANGE_ZOOM_FILTER_ALLOW_OVEREXPOSED_TO_ON))
   {
     m_visualFx.zoomFilter_fx->SetBuffSettings(
@@ -1315,6 +1327,14 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect()
     m_visualFx.zoomFilter_fx->SetBuffSettings(
         {/*.buffIntensity = */ 0.5, /*.allowOverexposed = */ true});
   }
+}
+
+/* Changement d'effet de zoom !
+ */
+void GoomControl::GoomControlImpl::ChangeZoomEffect()
+{
+  ChangeBlockyWavy();
+  ChangeAllowOverexposed();
 
   if (m_filterControl.GetHasChangedSinceMark())
   {
@@ -1341,8 +1361,7 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect()
       m_goomData.switchIncr = 0;
       m_goomData.switchMult = GoomData::SWITCH_MULT_AMOUNT;
 
-      m_visualFx.ifs_fx->Renew();
-      m_stats.DoIfsRenew();
+      DoIfsRenew();
     }
   }
   else
@@ -1354,14 +1373,29 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect()
       logDebug("goomData.cyclesSinceLastChange = {} > {} = timeBetweenChange",
                m_goomData.cyclesSinceLastChange, TIME_BETWEEN_CHANGE);
       m_goomData.cyclesSinceLastChange = 0;
-      m_visualFx.ifs_fx->Renew();
-      m_stats.DoIfsRenew();
+
+      DoIfsRenew();
     }
     else
     {
       m_goomData.cyclesSinceLastChange++;
     }
   }
+}
+
+void GoomControl::GoomControlImpl::DoIfsRenew()
+{
+  m_visualFx.ifs_fx->Renew();
+  m_stats.DoIfsRenew();
+}
+
+void GoomControl::GoomControlImpl::MegaLentUpdate()
+{
+  SetLockVar(m_goomData.lockVar + 50);
+
+  m_filterControl.SetVitesseSetting(STOP_SPEED - 1);
+  m_goomData.switchIncr = GoomData::SWITCH_INCR_AMOUNT;
+  m_goomData.switchMult = 1.0F;
 }
 
 void GoomControl::GoomControlImpl::ApplyTentaclesIfRequired()
@@ -1802,13 +1836,10 @@ void GoomControl::GoomControlImpl::StopDecrementing()
 
 void GoomControl::GoomControlImpl::BigUpdateIfNotLocked()
 {
-  logDebug("goomData.lockVar = {}", m_goomData.lockVar);
   if (m_goomData.lockVar == 0)
   {
-    logDebug("goomData.lockVar = 0");
     BigUpdate();
   }
-  logDebug("sound GetTimeSinceLastGoom() = {}", m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom());
 }
 
 void GoomControl::GoomControlImpl::StopIfRequested()
