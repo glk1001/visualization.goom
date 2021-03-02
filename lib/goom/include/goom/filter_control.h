@@ -97,13 +97,13 @@ inline void FilterControl::ClearUnchangedMark()
 inline void FilterControl::SetReverseSetting(const bool value)
 {
   m_hasChanged = true;
-  m_filterData.reverse = value;
+  m_filterData.reverseSpeed = value;
 }
 
 inline void FilterControl::ToggleReverseSetting()
 {
   m_hasChanged = true;
-  m_filterData.reverse = !m_filterData.reverse;
+  m_filterData.reverseSpeed = !m_filterData.reverseSpeed;
 }
 
 inline void FilterControl::SetVitesseSetting(const int32_t value)

@@ -51,6 +51,11 @@ public:
     WAVE_EFFECT,
     ALLOW_STRANGE_WAVE_VALUES,
     CHANGE_SPEED,
+    REVERSE_SPEED,
+    HYPERCOS_REVERSE,
+    HYPERCOS_FREQ_EQUAL,
+    HYPERCOS_AMP_EQUAL,
+    PLANE_AMP_EQUAL,
     _SIZE // must be last - gives number of enums
   };
 
@@ -73,11 +78,16 @@ private:
   static const std::array<Event, NUM_FILTER_EVENT_TYPES> WEIGHTED_EVENTS;
 #else
   static constexpr std::array<Event, NUM_FILTER_EVENT_TYPES> WEIGHTED_EVENTS{{
-     { /*.event = */FilterEventTypes::ROTATE,                     /*.m = */8, /*.outOf = */ 16 },
-     { /*.event = */FilterEventTypes::HYPERCOS_EFFECT,            /*.m = */8, /*.outOf = */ 16 },
-     { /*.event = */FilterEventTypes::WAVE_EFFECT,                /*.m = */8, /*.outOf = */ 16 },
-     { /*.event = */FilterEventTypes::ALLOW_STRANGE_WAVE_VALUES,  /*.m = */8, /*.outOf = */ 16 },
-     { /*.event = */FilterEventTypes::CHANGE_SPEED,               /*.m = */8, /*.outOf = */ 16 },
+     { .event = FilterEventTypes::ROTATE,                     .m =  8, .outOf = 16 },
+     { .event = FilterEventTypes::HYPERCOS_EFFECT,            .m =  8, .outOf = 16 },
+     { .event = FilterEventTypes::WAVE_EFFECT,                .m =  8, .outOf = 16 },
+     { .event = FilterEventTypes::ALLOW_STRANGE_WAVE_VALUES,  .m =  1, .outOf = 16 },
+     { .event = FilterEventTypes::CHANGE_SPEED,               .m =  8, .outOf = 16 },
+     { .event = FilterEventTypes::REVERSE_SPEED,              .m =  8, .outOf = 16 },
+     { .event = FilterEventTypes::HYPERCOS_REVERSE,           .m =  8, .outOf = 16 },
+     { .event = FilterEventTypes::HYPERCOS_FREQ_EQUAL,        .m =  4, .outOf = 16 },
+     { .event = FilterEventTypes::HYPERCOS_AMP_EQUAL,         .m =  8, .outOf = 16 },
+     { .event = FilterEventTypes::PLANE_AMP_EQUAL,            .m = 12, .outOf = 16 },
   }};
 #endif
   // clang-format on
@@ -85,20 +95,23 @@ private:
 };
 
 #if __cplusplus <= 201402L
-const std::array<FilterControl::FilterEvents::Event,
-                 FilterControl::FilterEvents::NUM_FILTER_EVENT_TYPES>
+//@formatter:off
+// clang-format off
+const std::array<FilterControl::FilterEvents::Event, FilterControl::FilterEvents::NUM_FILTER_EVENT_TYPES>
     FilterControl::FilterEvents::WEIGHTED_EVENTS{{
-        {/*.event = */ FilterControl::FilterEvents::FilterEventTypes::ROTATE, /*.m = */ 8,
-         /*.outOf = */ 16},
-        {/*.event = */ FilterControl::FilterEvents::FilterEventTypes::HYPERCOS_EFFECT, /*.m = */ 8,
-         /*.outOf = */ 16},
-        {/*.event = */ FilterControl::FilterEvents::FilterEventTypes::WAVE_EFFECT, /*.m = */ 8,
-         /*.outOf = */ 16},
-        {/*.event = */ FilterControl::FilterEvents::FilterEventTypes::ALLOW_STRANGE_WAVE_VALUES,
-         /*.m = */ 8, /*.outOf = */ 16},
-        {/*.event = */ FilterControl::FilterEvents::FilterEventTypes::CHANGE_SPEED, /*.m = */ 8,
-         /*.outOf = */ 16},
-    }};
+   {/*.event = */ FilterEventTypes::ROTATE,                    /*.m = */  8, /*.outOf = */ 16},
+   {/*.event = */ FilterEventTypes::HYPERCOS_EFFECT,           /*.m = */  8, /*.outOf = */ 16},
+   {/*.event = */ FilterEventTypes::WAVE_EFFECT,               /*.m = */  8, /*.outOf = */ 16},
+   {/*.event = */ FilterEventTypes::ALLOW_STRANGE_WAVE_VALUES, /*.m = */  1, /*.outOf = */ 50},
+   {/*.event = */ FilterEventTypes::CHANGE_SPEED,              /*.m = */  8, /*.outOf = */ 16},
+   {/*.event = */ FilterEventTypes::REVERSE_SPEED,             /*.m = */  8, /*.outOf = */ 16},
+   {/*.event = */ FilterEventTypes::HYPERCOS_REVERSE,          /*.m = */  8, /*.outOf = */ 16},
+   {/*.event = */ FilterEventTypes::HYPERCOS_FREQ_EQUAL,       /*.m = */  4, /*.outOf = */ 16},
+   {/*.event = */ FilterEventTypes::HYPERCOS_AMP_EQUAL,        /*.m = */  8, /*.outOf = */ 16},
+   {/*.event = */ FilterEventTypes::PLANE_AMP_EQUAL,           /*.m = */ 12, /*.outOf = */ 16},
+}};
+// clang-format on
+//@formatter:on
 #endif
 
 inline auto FilterControl::FilterEvents::Happens(const FilterEventTypes event) -> bool
@@ -208,7 +221,7 @@ void FilterControl::SetDefaultSettings()
 
   m_filterData.vitesse = ZoomFilterData::DEFAULT_VITESSE;
   m_filterData.coeffVitesseDenominator = ZoomFilterData::DEFAULT_COEFF_VITESSE_DENOMINATOR;
-  m_filterData.reverse = true;
+  m_filterData.reverseSpeed = true;
 
   m_filterData.tanEffect = false; //ProbabilityOfMInN(1, 10);
   m_filterData.rotateSpeed = 0.0;
@@ -342,7 +355,8 @@ void FilterControl::SetWaveModeSettings(const MinMaxValues& minMaxFreq,
 {
   using EventTypes = FilterControl::FilterEvents::FilterEventTypes;
 
-  m_filterData.reverse = ProbabilityOfMInN(1, 2);
+  m_filterData.reverseSpeed = m_filterEvents->Happens(EventTypes::REVERSE_SPEED);
+
   if (m_filterEvents->Happens(EventTypes::CHANGE_SPEED))
   {
     m_filterData.vitesse = (m_filterData.vitesse + ZoomFilterData::DEFAULT_VITESSE) >> 1;
@@ -377,6 +391,8 @@ void FilterControl::SetRotate(const float probability)
 
 void FilterControl::SetHypercosEffect(const MinMaxValues& minMaxFreq, const MinMaxValues& minMaxAmp)
 {
+  using EventTypes = FilterControl::FilterEvents::FilterEventTypes;
+
   m_filterData.hypercosEffect = GetRandomHypercosEffect();
   if (m_filterData.hypercosEffect == ZoomFilterData::HypercosEffect::NONE)
   {
@@ -384,7 +400,7 @@ void FilterControl::SetHypercosEffect(const MinMaxValues& minMaxFreq, const MinM
   }
 
   m_filterData.hypercosFreqX = GetRandInRange(minMaxFreq.minVal, minMaxFreq.maxVal);
-  if (ProbabilityOfMInN(1, 4))
+  if (m_filterEvents->Happens(EventTypes::HYPERCOS_FREQ_EQUAL))
   {
     m_filterData.hypercosFreqY = m_filterData.hypercosFreqX;
   }
@@ -393,10 +409,10 @@ void FilterControl::SetHypercosEffect(const MinMaxValues& minMaxFreq, const MinM
     m_filterData.hypercosFreqY = GetRandInRange(minMaxFreq.minVal, minMaxFreq.maxVal);
   }
 
-  m_filterData.hypercosReverse = ProbabilityOfMInN(1, 2);
+  m_filterData.hypercosReverse = m_filterEvents->Happens(EventTypes::HYPERCOS_REVERSE);
 
   m_filterData.hypercosAmplitudeX = GetRandInRange(minMaxAmp.minVal, minMaxAmp.maxVal);
-  if (ProbabilityOfMInN(1, 2))
+  if (m_filterEvents->Happens(EventTypes::HYPERCOS_AMP_EQUAL))
   {
     m_filterData.hypercosAmplitudeY = m_filterData.hypercosAmplitudeX;
   }
@@ -422,6 +438,8 @@ inline auto FilterControl::GetRandomHypercosEffect() const -> ZoomFilterData::Hy
 
 void FilterControl::ChangeMilieu()
 {
+  using EventTypes = FilterControl::FilterEvents::FilterEventTypes;
+
   m_hasChanged = true;
 
   if ((m_filterData.mode == ZoomFilterMode::WATER_MODE) ||
@@ -519,7 +537,7 @@ void FilterControl::ChangeMilieu()
   }
   m_filterData.hPlaneEffectAmplitude = GetRandInRange(ZoomFilterData::MIN_H_PLANE_EFFECT_AMPLITUDE,
                                                       ZoomFilterData::MAX_H_PLANE_EFFECT_AMPLITUDE);
-  if (ProbabilityOfMInN(3, 4))
+  if (m_filterEvents->Happens(EventTypes::PLANE_AMP_EQUAL))
   {
     m_filterData.vPlaneEffectAmplitude = m_filterData.hPlaneEffectAmplitude;
   }

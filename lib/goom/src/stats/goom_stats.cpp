@@ -134,8 +134,8 @@ void GoomStats::Log(const StatsLogValueFunc& logVal) const
     logVal(MODULE, "lastZoomFilterData->pertedec", static_cast<uint32_t>(ZoomFilterData::pertedec));
     logVal(MODULE, "lastZoomFilterData->middleX", m_lastZoomFilterSettings->middleX);
     logVal(MODULE, "lastZoomFilterData->middleY", m_lastZoomFilterSettings->middleY);
-    logVal(MODULE, "lastZoomFilterData->reverse",
-           static_cast<uint32_t>(m_lastZoomFilterSettings->reverse));
+    logVal(MODULE, "lastZoomFilterData->reverseSpeed",
+           static_cast<uint32_t>(m_lastZoomFilterSettings->reverseSpeed));
     logVal(MODULE, "lastZoomFilterData->hPlaneEffect", m_lastZoomFilterSettings->hPlaneEffect);
     logVal(MODULE, "lastZoomFilterData->vPlaneEffect", m_lastZoomFilterSettings->vPlaneEffect);
     logVal(MODULE, "lastZoomFilterData->waveEffect",

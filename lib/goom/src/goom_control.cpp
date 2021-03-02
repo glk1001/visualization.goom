@@ -1228,7 +1228,7 @@ void GoomControl::GoomControlImpl::ChangeVitesse()
 
 void GoomControl::GoomControlImpl::ChangeSpeedReverse()
 { // retablir le zoom avant..
-  if ((m_filterControl.GetFilterSettings().reverse) && (!(m_cycle % 13)) &&
+  if ((m_filterControl.GetFilterSettings().reverseSpeed) && (!(m_cycle % 13)) &&
       m_goomEvent.Happens(GoomEvent::FILTER_REVERSE_OFF_AND_STOP_SPEED))
   {
     m_filterControl.SetReverseSetting(false);

@@ -50,7 +50,7 @@ struct ZoomFilterData
 #endif
   uint32_t middleX = 16;
   uint32_t middleY = 1; // milieu de l'effet
-  bool reverse = true; // inverse la vitesse
+  bool reverseSpeed = true; // inverse la vitesse
   bool tanEffect = false;
   bool blockyWavy = false;
   static constexpr float MAX_ROTATE_SPEED = +0.5;
@@ -58,35 +58,39 @@ struct ZoomFilterData
   static constexpr float DEFAULT_ROTATE_SPEED = 0.0;
   float rotateSpeed = DEFAULT_ROTATE_SPEED;
 
+  //* @since April 2002
+  // TODO - Not used yet
+  bool waveEffect = false; // applique une "surcouche" de wave effect
+
+  // Noise:
   bool noisify = false; // ajoute un bruit a la transformation
   float noiseFactor = 1; // in range [0, 1]
   // For noise amplitude, take the reciprocal of these.
   static constexpr float NOISE_MIN = 70;
   static constexpr float NOISE_MAX = 120;
 
+  // H Plane:
   // @since June 2001
   int hPlaneEffect = 0; // deviation horitontale
-  int vPlaneEffect = 0; // deviation verticale
-
   static constexpr float DEFAULT_H_PLANE_EFFECT_AMPLITUDE = 0.0025;
   static constexpr float MIN_H_PLANE_EFFECT_AMPLITUDE = 0.0015;
   static constexpr float MAX_H_PLANE_EFFECT_AMPLITUDE = 0.0035;
   float hPlaneEffectAmplitude = DEFAULT_H_PLANE_EFFECT_AMPLITUDE;
 
+  // V Plane:
+  int vPlaneEffect = 0; // deviation verticale
   static constexpr float DEFAULT_V_PLANE_EFFECT_AMPLITUDE = 0.0025;
   static constexpr float MIN_V_PLANE_EFFECT_AMPLITUDE = 0.0015;
   static constexpr float MAX_V_PLANE_EFFECT_AMPLITUDE = 0.0035;
   float vPlaneEffectAmplitude = DEFAULT_V_PLANE_EFFECT_AMPLITUDE;
 
-  //* @since April 2002
-  // TODO - Not used yet
-  bool waveEffect = false; // applique une "surcouche" de wave effect
-
+  // Amulet:
   static constexpr float DEFAULT_AMULET_AMPLITUDE = 3.5;
   static constexpr float MIN_AMULET_AMPLITUDE = 2;
   static constexpr float MAX_AMULET_AMPLITUDE = 5;
   float amuletAmplitude = DEFAULT_AMULET_AMPLITUDE;
 
+  // Crystal ball:
   static constexpr float DEFAULT_CRYSTAL_BALL_AMPLITUDE = 0.1;
   static constexpr float MIN_CRYSTAL_BALL_AMPLITUDE = 0.05;
   static constexpr float MAX_CRYSTAL_BALL_AMPLITUDE = 2.0;
@@ -96,6 +100,7 @@ struct ZoomFilterData
   static constexpr float MAX_CRYSTAL_BALL_SQ_DIST_OFFSET = 1.5;
   float crystalBallSqDistOffset = DEFAULT_CRYSTAL_BALL_SQ_DIST_OFFSET;
 
+  // Hypercos:
   enum class HypercosEffect
   {
     NONE,
@@ -129,6 +134,7 @@ struct ZoomFilterData
   float hypercosAmplitudeX = DEFAULT_HYPERCOS_AMPLITUDE;
   float hypercosAmplitudeY = DEFAULT_HYPERCOS_AMPLITUDE;
 
+  // Wave:
   enum class WaveEffect
   {
     WAVE_SIN_EFFECT,
@@ -141,22 +147,26 @@ struct ZoomFilterData
   static constexpr float DEFAULT_WAVE_FREQ_FACTOR = 20;
   static constexpr float MIN_WAVE_FREQ_FACTOR = 1;
   static constexpr float MAX_WAVE_FREQ_FACTOR = 50;
-  static constexpr float SMALL_MIN_WAVE_FREQ_FACTOR = 0.001;
-  static constexpr float SMALL_MAX_WAVE_FREQ_FACTOR = 0.1;
   float waveFreqFactor = DEFAULT_WAVE_FREQ_FACTOR;
 
   static constexpr float DEFAULT_WAVE_AMPLITUDE = 0.01;
   static constexpr float MIN_WAVE_AMPLITUDE = 0.001;
-  static constexpr float MAX_WAVE_AMPLITUDE = 0.1;
-  static constexpr float BIG_MIN_WAVE_AMPLITUDE = 1;
-  static constexpr float BIG_MAX_WAVE_AMPLITUDE = 50;
+  static constexpr float MAX_WAVE_AMPLITUDE = 0.25;
   float waveAmplitude = DEFAULT_WAVE_AMPLITUDE;
 
+  // These give weird but interesting wave results
+  static constexpr float SMALL_MIN_WAVE_FREQ_FACTOR = 0.001;
+  static constexpr float SMALL_MAX_WAVE_FREQ_FACTOR = 0.1;
+  static constexpr float BIG_MIN_WAVE_AMPLITUDE = 1;
+  static constexpr float BIG_MAX_WAVE_AMPLITUDE = 50;
+
+  // Scrunch:
   static constexpr float DEFAULT_SCRUNCH_AMPLITUDE = 0.1;
   static constexpr float MIN_SCRUNCH_AMPLITUDE = 0.05;
   static constexpr float MAX_SCRUNCH_AMPLITUDE = 0.2;
   float scrunchAmplitude = DEFAULT_SCRUNCH_AMPLITUDE;
 
+  // Speedway:
   static constexpr float DEFAULT_SPEEDWAY_AMPLITUDE = 4;
   static constexpr float MIN_SPEEDWAY_AMPLITUDE = 1;
   static constexpr float MAX_SPEEDWAY_AMPLITUDE = 8;
