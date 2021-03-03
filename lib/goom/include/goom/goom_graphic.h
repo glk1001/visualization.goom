@@ -16,32 +16,32 @@ namespace GOOM
 template<class T>
 struct channel_limits
 {
-  static constexpr T min() noexcept { return T(); }
-  static constexpr T max() noexcept { return T(); }
+  static constexpr auto min() noexcept -> T { return T(); }
+  static constexpr auto max() noexcept -> T { return T(); }
 };
 template<>
 struct channel_limits<uint8_t>
 {
-  static constexpr uint8_t min() noexcept { return 0; }
-  static constexpr uint8_t max() noexcept { return 255; }
+  static constexpr auto min() noexcept -> uint8_t { return 0; }
+  static constexpr auto max() noexcept -> uint8_t { return 255; }
 };
 template<>
 struct channel_limits<uint32_t>
 {
-  static constexpr uint32_t min() noexcept { return channel_limits<uint8_t>::min(); }
-  static constexpr uint32_t max() noexcept { return channel_limits<uint8_t>::max(); }
+  static constexpr auto min() noexcept -> uint32_t { return channel_limits<uint8_t>::min(); }
+  static constexpr auto max() noexcept -> uint32_t { return channel_limits<uint8_t>::max(); }
 };
 template<>
 struct channel_limits<int32_t>
 {
-  static constexpr int32_t min() noexcept { return channel_limits<uint8_t>::min(); }
-  static constexpr int32_t max() noexcept { return channel_limits<uint8_t>::max(); }
+  static constexpr auto min() noexcept -> int32_t { return channel_limits<uint8_t>::min(); }
+  static constexpr auto max() noexcept -> int32_t { return channel_limits<uint8_t>::max(); }
 };
 template<>
 struct channel_limits<float>
 {
-  static constexpr float min() noexcept { return channel_limits<uint8_t>::min(); }
-  static constexpr float max() noexcept { return channel_limits<uint8_t>::max(); }
+  static constexpr auto min() noexcept -> float { return channel_limits<uint8_t>::min(); }
+  static constexpr auto max() noexcept -> float { return channel_limits<uint8_t>::max(); }
 };
 
 constexpr uint8_t MAX_COLOR_VAL = channel_limits<uint8_t>::max();
@@ -99,6 +99,10 @@ public:
   void SetG(uint8_t c);
   void SetB(uint8_t c);
   void SetA(uint8_t c);
+
+  [[nodiscard]] auto RFlt() const -> float;
+  [[nodiscard]] auto GFlt() const -> float;
+  [[nodiscard]] auto BFlt() const -> float;
 
   [[nodiscard]] auto Rgba() const -> uint32_t;
   void SetRgba(uint32_t v);
@@ -222,6 +226,21 @@ inline auto Pixel::A() const -> uint8_t
 inline void Pixel::SetA(const uint8_t c)
 {
   m_color.channels.a = c;
+}
+
+inline auto Pixel::RFlt() const -> float
+{
+  return static_cast<float>(R()) / channel_limits<float>::max();
+}
+
+inline auto Pixel::GFlt() const -> float
+{
+  return static_cast<float>(G()) / channel_limits<float>::max();
+}
+
+inline auto Pixel::BFlt() const -> float
+{
+  return static_cast<float>(B()) / channel_limits<float>::max();
 }
 
 inline auto Pixel::Rgba() const -> uint32_t

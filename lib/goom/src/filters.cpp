@@ -29,6 +29,7 @@
 #include "goomutils/logging.h"
 #include "goomutils/mathutils.h"
 #include "goomutils/parallel_utils.h"
+#include "image_displacement.h"
 #include "stats/filter_stats.h"
 #include "v2d.h"
 
@@ -99,6 +100,8 @@ private:
   std::string m_resourcesDirectory{};
   float m_generalSpeed;
   float m_maxCoeffVitesse = ZoomFilterData::DEFAULT_MAX_COEF_VITESSE;
+  std::unique_ptr<ImageDisplacement> m_imageDisplacement{};
+  auto GetImageFilename(const std::string& imageFilename) -> std::string;
 
   Parallel* const m_parallel;
   uint64_t m_updateNum{0};
@@ -121,6 +124,11 @@ private:
 
   auto GetZoomVector(float xNormalized, float yNormalized) const -> V2dFlt;
   auto GetStandardVelocity(float xNormalized, float yNormalized) const -> V2dFlt;
+  auto GetCoeffVitesseVelocity(const float xNormalized,
+                               const float yNormalized,
+                               const float sqDist) const -> V2dFlt;
+  auto GetImageDisplacementVelocity(const float xNormalized, const float yNormalized) const
+      -> V2dFlt;
   auto GetHypercosVelocity(float xNormalized, float yNormalized) const -> V2dFlt;
   auto GetHPlaneEffectVelocity(float xNormalized, float yNormalized) const -> float;
   auto GetVPlaneEffectVelocity(float xNormalized, float yNormalized) const -> float;
@@ -360,6 +368,15 @@ void ZoomFilterFx::ZoomFilterImpl::ChangeFilterSettings(const ZoomFilterData& fi
   m_pendingFilterSettings = true;
 }
 
+constexpr const char* IMAGE_DISPLACEMENT_DIR = "displacements";
+
+inline auto ZoomFilterFx::ZoomFilterImpl::GetImageFilename(const std::string& imageFilename)
+    -> std::string
+{
+  return m_resourcesDirectory + PATH_SEP + IMAGES_DIR + PATH_SEP + IMAGE_DISPLACEMENT_DIR +
+         PATH_SEP + imageFilename;
+}
+
 void ZoomFilterFx::ZoomFilterImpl::Start()
 {
   ChangeFilterSettings(m_currentFilterSettings);
@@ -440,6 +457,12 @@ void ZoomFilterFx::ZoomFilterImpl::RestartTranBuffer()
   }
 
   m_maxCoeffVitesse = GetRandInRange(0.5F, 1.0F) * ZoomFilterData::MAX_MAX_COEF_VITESSE;
+
+  if (!m_currentFilterSettings.imageDisplacementFilename.empty())
+  {
+    m_imageDisplacement = std::make_unique<ImageDisplacement>(
+        GetImageFilename(m_currentFilterSettings.imageDisplacementFilename));
+  }
 }
 
 void ZoomFilterFx::ZoomFilterImpl::UpdateTranLerpFactor(const int32_t switchIncr,
@@ -669,12 +692,37 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetStandardVelocity(const float xNorma
 {
   const float sqDist = SqDistance(xNormalized, yNormalized);
 
-  const float coeffVitesse = GetCoeffVitesse(xNormalized, yNormalized, sqDist);
-  logDebug("coeffVitesse = {}", coeffVitesse);
+  V2dFlt velocity = m_currentFilterSettings.mode == ZoomFilterMode::IMAGE_DISPLACEMENT_MODE
+                        ? GetImageDisplacementVelocity(xNormalized, yNormalized)
+                        : GetCoeffVitesseVelocity(xNormalized, yNormalized, sqDist);
 
-  V2dFlt velocity{coeffVitesse * xNormalized, coeffVitesse * yNormalized};
   velocity = GetTanEffectVelocity(sqDist, velocity);
+
   return GetRotatedVelocity(velocity);
+}
+
+inline auto ZoomFilterFx::ZoomFilterImpl::GetCoeffVitesseVelocity(const float xNormalized,
+                                                                  const float yNormalized,
+                                                                  const float sqDist) const
+    -> V2dFlt
+{
+  const float coeffVitesse = GetCoeffVitesse(xNormalized, yNormalized, sqDist);
+
+  return {coeffVitesse * xNormalized, coeffVitesse * yNormalized};
+}
+
+inline auto ZoomFilterFx::ZoomFilterImpl::GetImageDisplacementVelocity(
+    const float xNormalized, const float yNormalized) const -> V2dFlt
+{
+  m_stats.DoZoomVectorImageDisplacementMode();
+  if (!m_imageDisplacement)
+  {
+    throw std::logic_error("No image displacement map setup.");
+  }
+
+  const V2dFlt displacement =
+      m_imageDisplacement->GetDisplacementVector({xNormalized, yNormalized});
+  return m_currentFilterSettings.imageDisplacementAmplitude * displacement;
 }
 
 auto ZoomFilterFx::ZoomFilterImpl::GetCoeffVitesse([[maybe_unused]] const float xNormalized,
@@ -685,17 +733,17 @@ auto ZoomFilterFx::ZoomFilterImpl::GetCoeffVitesse([[maybe_unused]] const float 
 
   switch (m_currentFilterSettings.mode)
   {
+    case ZoomFilterMode::AMULET_MODE:
+    {
+      m_stats.DoZoomVectorAmuletMode();
+      coeffVitesse += m_currentFilterSettings.amuletAmplitude * sqDist;
+      break;
+    }
     case ZoomFilterMode::CRYSTAL_BALL_MODE:
     {
       m_stats.DoZoomVectorCrystalBallMode();
       coeffVitesse -= m_currentFilterSettings.crystalBallAmplitude *
                       (sqDist - m_currentFilterSettings.crystalBallSqDistOffset);
-      break;
-    }
-    case ZoomFilterMode::AMULET_MODE:
-    {
-      m_stats.DoZoomVectorAmuletMode();
-      coeffVitesse += m_currentFilterSettings.amuletAmplitude * sqDist;
       break;
     }
     case ZoomFilterMode::SCRUNCH_MODE:

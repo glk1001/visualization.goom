@@ -23,12 +23,13 @@ void FilterStats::Reset()
 
   m_numChangeFilterSettings = 0;
   m_numZoomVectors = 0;
-  m_numZoomVectorCrystalBallMode = 0;
   m_numZoomVectorAmuletMode = 0;
-  m_numZoomVectorWaveMode = 0;
+  m_numZoomVectorCrystalBallMode = 0;
+  m_numZoomVectorDefaultMode = 0;
+  m_numZoomVectorImageDisplacementMode = 0;
   m_numZoomVectorScrunchMode = 0;
   m_numZoomVectorSpeedwayMode = 0;
-  m_numZoomVectorDefaultMode = 0;
+  m_numZoomVectorWaveMode = 0;
   m_numZoomVectorNoisify = 0;
   m_numZoomVectorChangeNoiseFactor = 0;
   m_numZoomVectorHypercosEffect = 0;
@@ -77,12 +78,13 @@ void FilterStats::Log(const StatsLogValueFunc& logVal) const
   logVal(MODULE, "numCZoom", m_numCZoom);
   logVal(MODULE, "numGenerateWaterFXHorizontalBuffer", m_numGenerateWaterFxHorizontalBuffer);
   logVal(MODULE, "numZoomVectors", m_numZoomVectors);
-  logVal(MODULE, "numZoomVectorCrystalBallMode", m_numZoomVectorCrystalBallMode);
   logVal(MODULE, "numZoomVectorAmuletMode", m_numZoomVectorAmuletMode);
-  logVal(MODULE, "numZoomVectorWaveMode", m_numZoomVectorWaveMode);
+  logVal(MODULE, "numZoomVectorCrystalBallMode", m_numZoomVectorCrystalBallMode);
+  logVal(MODULE, "numZoomVectorDefaultMode", m_numZoomVectorDefaultMode);
+  logVal(MODULE, "numZoomVectorImageDisplacementMode", m_numZoomVectorImageDisplacementMode);
   logVal(MODULE, "numZoomVectorScrunchMode", m_numZoomVectorScrunchMode);
   logVal(MODULE, "numZoomVectorSpeedwayMode", m_numZoomVectorSpeedwayMode);
-  logVal(MODULE, "numZoomVectorDefaultMode", m_numZoomVectorDefaultMode);
+  logVal(MODULE, "numZoomVectorWaveMode", m_numZoomVectorWaveMode);
   logVal(MODULE, "numZoomVectorNoisify", m_numZoomVectorNoisify);
   logVal(MODULE, "numZoomVectorChangeNoiseFactor", m_numZoomVectorChangeNoiseFactor);
   logVal(MODULE, "numZoomVectorHypercosEffect", m_numZoomVectorHypercosEffect);
@@ -162,6 +164,11 @@ void FilterStats::DoZoomVectorSpeedwayMode()
 void FilterStats::DoZoomVectorDefaultMode()
 {
   m_numZoomVectorDefaultMode++;
+}
+
+void FilterStats::DoZoomVectorImageDisplacementMode()
+{
+  m_numZoomVectorImageDisplacementMode++;
 }
 
 void FilterStats::DoZoomVectorNoisify()

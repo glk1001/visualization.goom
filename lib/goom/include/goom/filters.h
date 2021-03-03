@@ -18,6 +18,7 @@ enum class ZoomFilterMode
   HYPERCOS0_MODE,
   HYPERCOS1_MODE,
   HYPERCOS2_MODE,
+  IMAGE_DISPLACEMENT_MODE,
   NORMAL_MODE,
   SCRUNCH_MODE,
   SPEEDWAY_MODE,
@@ -133,6 +134,13 @@ struct ZoomFilterData
   static constexpr float MAX_HYPERCOS_AMPLITUDE = 1.0F / 100.0;
   float hypercosAmplitudeX = DEFAULT_HYPERCOS_AMPLITUDE;
   float hypercosAmplitudeY = DEFAULT_HYPERCOS_AMPLITUDE;
+
+  // Image Displacement:
+  static constexpr float DEFAULT_IMAGE_DISPL_AMPLITUDE = 0.0250;
+  static constexpr float MIN_IMAGE_DISPL_AMPLITUDE = 0.0025;
+  static constexpr float MAX_IMAGE_DISPL_AMPLITUDE = 0.1000;
+  float imageDisplacementAmplitude = DEFAULT_IMAGE_DISPL_AMPLITUDE;
+  std::string imageDisplacementFilename{};
 
   // Wave:
   enum class WaveEffect

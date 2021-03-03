@@ -18,18 +18,19 @@ constexpr float PROB_LOW = 0.1;
 //@formatter:off
 // clang-format off
 const Weights<ZoomFilterMode> FilterControl::WEIGHTED_FILTER_EVENTS{{
-    { ZoomFilterMode::AMULET_MODE,       5 },
-    { ZoomFilterMode::CRYSTAL_BALL_MODE, 8 },
-    { ZoomFilterMode::HYPERCOS0_MODE,    4 },
-    { ZoomFilterMode::HYPERCOS1_MODE,    3 },
-    { ZoomFilterMode::HYPERCOS2_MODE,    2 },
-    { ZoomFilterMode::NORMAL_MODE,       6 },
-    { ZoomFilterMode::SCRUNCH_MODE,      6 },
-    { ZoomFilterMode::SPEEDWAY_MODE,     6 },
-    { ZoomFilterMode::WAVE_MODE0,        5 },
-    { ZoomFilterMode::WAVE_MODE1,        4 },
-    { ZoomFilterMode::WATER_MODE,        0 },
-    { ZoomFilterMode::Y_ONLY_MODE,       4 },
+    { ZoomFilterMode::AMULET_MODE,            5 },
+    { ZoomFilterMode::CRYSTAL_BALL_MODE,      8 },
+    { ZoomFilterMode::HYPERCOS0_MODE,         4 },
+    { ZoomFilterMode::HYPERCOS1_MODE,         3 },
+    { ZoomFilterMode::HYPERCOS2_MODE,         2 },
+    { ZoomFilterMode::IMAGE_DISPLACEMENT_MODE,5 },
+    { ZoomFilterMode::NORMAL_MODE,            6 },
+    { ZoomFilterMode::SCRUNCH_MODE,           6 },
+    { ZoomFilterMode::SPEEDWAY_MODE,          6 },
+    { ZoomFilterMode::WAVE_MODE0,             5 },
+    { ZoomFilterMode::WAVE_MODE1,             4 },
+    { ZoomFilterMode::WATER_MODE,             0 },
+    { ZoomFilterMode::Y_ONLY_MODE,            4 },
 }};
 //@formatter:on
 // clang-format on
@@ -120,6 +121,15 @@ inline auto FilterControl::FilterEvents::Happens(const FilterEventTypes event) -
   return ProbabilityOfMInN(weightedEvent.m, weightedEvent.outOf);
 }
 
+const std::vector<std::string> FilterControl::imageFilenames{
+    "pattern1.jpg", "pattern2.jpg", "pattern3.jpg", "chameleon-tail.jpg", "mountain_sunset.png",
+};
+
+inline auto FilterControl::GetNextDisplacementImageFilename() -> std::string
+{
+  return imageFilenames[GetRandInRange(0U, imageFilenames.size())];
+}
+
 FilterControl::FilterControl(const std::shared_ptr<const PluginInfo>& goomInfo) noexcept
   : m_goomInfo{goomInfo}, m_filterEvents{std::make_unique<FilterEvents>()}
 {
@@ -165,6 +175,9 @@ void FilterControl::SetRandomFilterSettings(ZoomFilterMode mode)
       break;
     case ZoomFilterMode::HYPERCOS2_MODE:
       SetHypercos2ModeSettings();
+      break;
+    case ZoomFilterMode::IMAGE_DISPLACEMENT_MODE:
+      SetImageDisplacementModeSettings();
       break;
     case ZoomFilterMode::NORMAL_MODE:
       SetNormalModeSettings();
@@ -240,6 +253,8 @@ void FilterControl::SetDefaultSettings()
   m_filterData.amuletAmplitude = ZoomFilterData::DEFAULT_AMULET_AMPLITUDE;
   m_filterData.crystalBallAmplitude = ZoomFilterData::DEFAULT_CRYSTAL_BALL_AMPLITUDE;
   m_filterData.crystalBallSqDistOffset = ZoomFilterData::DEFAULT_CRYSTAL_BALL_SQ_DIST_OFFSET;
+  m_filterData.imageDisplacementAmplitude = ZoomFilterData::DEFAULT_IMAGE_DISPL_AMPLITUDE;
+  m_filterData.imageDisplacementFilename = "";
   m_filterData.scrunchAmplitude = ZoomFilterData::DEFAULT_SCRUNCH_AMPLITUDE;
   m_filterData.speedwayAmplitude = ZoomFilterData::DEFAULT_SPEEDWAY_AMPLITUDE;
 
@@ -296,6 +311,13 @@ void FilterControl::SetHypercos2ModeSettings()
   SetHypercosEffect(
       {ZoomFilterData::MIN_HYPERCOS_FREQ, ZoomFilterData::BIG_MAX_HYPERCOS_FREQ},
       {ZoomFilterData::MIN_HYPERCOS_AMPLITUDE, ZoomFilterData::MAX_HYPERCOS_AMPLITUDE});
+}
+
+void FilterControl::SetImageDisplacementModeSettings()
+{
+  m_filterData.imageDisplacementFilename = GetNextDisplacementImageFilename();
+  m_filterData.imageDisplacementAmplitude = GetRandInRange(
+      ZoomFilterData::MIN_IMAGE_DISPL_AMPLITUDE, ZoomFilterData::MAX_IMAGE_DISPL_AMPLITUDE);
 }
 
 void FilterControl::SetNormalModeSettings()
@@ -438,50 +460,68 @@ inline auto FilterControl::GetRandomHypercosEffect() const -> ZoomFilterData::Hy
 
 void FilterControl::ChangeMilieu()
 {
-  using EventTypes = FilterControl::FilterEvents::FilterEventTypes;
-
   m_hasChanged = true;
 
+  SetMiddlePoints();
+  SetPlaneEffects();
+}
+
+void FilterControl::SetMiddlePoints()
+{
   if ((m_filterData.mode == ZoomFilterMode::WATER_MODE) ||
       (m_filterData.mode == ZoomFilterMode::Y_ONLY_MODE) ||
       (m_filterData.mode == ZoomFilterMode::AMULET_MODE))
   {
     m_filterData.middleX = m_goomInfo->GetScreenInfo().width / 2;
     m_filterData.middleY = m_goomInfo->GetScreenInfo().height / 2;
+    return;
   }
-  else
+
+  // clang-format off
+  // @formatter:off
+  enum class MiddlePointEvents { EVENT1, EVENT2, EVENT3, EVENT4, EVENT5, EVENT6 };
+  static const Weights<MiddlePointEvents> s_middlePointWeights{{
+     { MiddlePointEvents::EVENT1,  3 },
+     { MiddlePointEvents::EVENT2,  2 },
+     { MiddlePointEvents::EVENT3,  2 },
+     { MiddlePointEvents::EVENT4, 18 },
+     { MiddlePointEvents::EVENT5, 10 },
+     { MiddlePointEvents::EVENT6, 10 },
+  }};
+  // @formatter:on
+  // clang-format on
+
+  switch (s_middlePointWeights.GetRandomWeighted())
   {
-    // clang-format off
-    enum class MiddlePointEvents { EVENT1, EVENT2, EVENT3, EVENT4 };
-    static const Weights<MiddlePointEvents> s_middlePointWeights{{
-       { MiddlePointEvents::EVENT1,  3 },
-       { MiddlePointEvents::EVENT2,  2 },
-       { MiddlePointEvents::EVENT3,  2 },
-       { MiddlePointEvents::EVENT4, 18 },
-    }};
-    // clang-format on
-
-    switch (s_middlePointWeights.GetRandomWeighted())
-    {
-      case MiddlePointEvents::EVENT1:
-        m_filterData.middleX = m_goomInfo->GetScreenInfo().width / 2;
-        m_filterData.middleY = m_goomInfo->GetScreenInfo().height - 1;
-        break;
-      case MiddlePointEvents::EVENT2:
-        m_filterData.middleX = m_goomInfo->GetScreenInfo().width - 1;
-        break;
-      case MiddlePointEvents::EVENT3:
-        m_filterData.middleX = 1;
-        break;
-      case MiddlePointEvents::EVENT4:
-        m_filterData.middleX = m_goomInfo->GetScreenInfo().width / 2;
-        m_filterData.middleY = m_goomInfo->GetScreenInfo().height / 2;
-        break;
-      default:
-        throw std::logic_error("Unknown MiddlePointEvents enum.");
-    }
+    case MiddlePointEvents::EVENT1:
+      m_filterData.middleX = m_goomInfo->GetScreenInfo().width / 2;
+      m_filterData.middleY = m_goomInfo->GetScreenInfo().height - 1;
+      break;
+    case MiddlePointEvents::EVENT2:
+      m_filterData.middleX = m_goomInfo->GetScreenInfo().width - 1;
+      break;
+    case MiddlePointEvents::EVENT3:
+      m_filterData.middleX = 1;
+      break;
+    case MiddlePointEvents::EVENT4:
+      m_filterData.middleX = m_goomInfo->GetScreenInfo().width / 2;
+      m_filterData.middleY = m_goomInfo->GetScreenInfo().height / 2;
+      break;
+    case MiddlePointEvents::EVENT5:
+      m_filterData.middleX = m_goomInfo->GetScreenInfo().width / 4;
+      m_filterData.middleY = m_goomInfo->GetScreenInfo().height / 4;
+      break;
+    case MiddlePointEvents::EVENT6:
+      m_filterData.middleX = 3 * m_goomInfo->GetScreenInfo().width / 4;
+      m_filterData.middleY = 3 * m_goomInfo->GetScreenInfo().height / 4;
+      break;
+    default:
+      throw std::logic_error("Unknown MiddlePointEvents enum.");
   }
+}
 
+void FilterControl::SetPlaneEffects()
+{
   // clang-format off
   // @formatter:off
   enum class PlaneEffectEvents { EVENT1, EVENT2, EVENT3, EVENT4, EVENT5, EVENT6, EVENT7, EVENT8 };
@@ -537,7 +577,7 @@ void FilterControl::ChangeMilieu()
   }
   m_filterData.hPlaneEffectAmplitude = GetRandInRange(ZoomFilterData::MIN_H_PLANE_EFFECT_AMPLITUDE,
                                                       ZoomFilterData::MAX_H_PLANE_EFFECT_AMPLITUDE);
-  if (m_filterEvents->Happens(EventTypes::PLANE_AMP_EQUAL))
+  if (m_filterEvents->Happens(FilterEvents::PLANE_AMP_EQUAL))
   {
     m_filterData.vPlaneEffectAmplitude = m_filterData.hPlaneEffectAmplitude;
   }

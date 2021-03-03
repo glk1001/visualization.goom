@@ -167,7 +167,7 @@ ZoomFilterBuffers::ZoomFilterBuffers(Parallel& p, const std::shared_ptr<const Pl
     m_screenHeight{goomInfo->GetScreenInfo().height},
     m_bufferSize{goomInfo->GetScreenInfo().size},
     m_precalculatedCoeffs{std::make_unique<FilterCoefficients>()},
-    m_ratioScreenToNormalizedCoord{2.0F / static_cast<float>(m_screenWidth)},
+    m_ratioScreenToNormalizedCoord{MAX_NORMALIZED_COORD / static_cast<float>(m_screenWidth - 1)},
     m_ratioNormalizedToScreenCoord{1.0F / m_ratioScreenToNormalizedCoord},
     m_minNormalizedCoordVal{m_ratioScreenToNormalizedCoord * MIN_SCREEN_COORD_VAL},
     m_maxNormalizedCoordVal{m_ratioScreenToNormalizedCoord * static_cast<float>(m_screenWidth - 1)},

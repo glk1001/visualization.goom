@@ -32,6 +32,7 @@ add_library(${PROJECT_NAME}
         src/goom_testing.cpp
         src/goom_visual_fx.cpp
         src/ifs_dancers_fx.cpp
+        src/image_displacement.cpp
         src/image_fx.cpp
         src/lines_fx.cpp
         src/sound_info.cpp

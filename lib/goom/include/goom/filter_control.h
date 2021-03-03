@@ -5,6 +5,8 @@
 #include "goomutils/goomrand.h"
 
 #include <memory>
+#include <string>
+#include <vector>
 
 namespace GOOM
 {
@@ -48,6 +50,8 @@ private:
   class FilterEvents;
   std::unique_ptr<FilterEvents> m_filterEvents;
   bool m_hasChanged = false;
+  static const std::vector<std::string> imageFilenames;
+  static auto GetNextDisplacementImageFilename() -> std::string;
 
   auto GetNewRandomMode() const -> ZoomFilterMode;
 
@@ -58,6 +62,7 @@ private:
   void SetHypercos0ModeSettings();
   void SetHypercos1ModeSettings();
   void SetHypercos2ModeSettings();
+  void SetImageDisplacementModeSettings();
   void SetNormalModeSettings();
   void SetScrunchModeSettings();
   void SetSpeedwayModeSettings();
@@ -72,6 +77,8 @@ private:
     float maxVal;
   };
 
+  void SetMiddlePoints();
+  void SetPlaneEffects();
   void SetRotate(float probability);
   void SetHypercosEffect(const MinMaxValues& minMaxFreq, const MinMaxValues& minMaxAmp);
   void SetWaveModeSettings(const MinMaxValues& minMaxFreq, const MinMaxValues& minMaxAmp);

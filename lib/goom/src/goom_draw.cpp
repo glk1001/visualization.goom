@@ -24,6 +24,7 @@ void GoomDraw::Circle(
   DrawCircle(buff, x0, y0, radius, color, m_intBuffIntensity, m_allowOverexposed, m_screenWidth,
              m_screenHeight);
 }
+
 void GoomDraw::Circle(const std::vector<PixelBuffer*>& buffs,
                       const int x0,
                       const int y0,
