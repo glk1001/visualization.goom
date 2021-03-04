@@ -1,7 +1,9 @@
 #include "catch2/catch.hpp"
 #include "goomrand.h"
+#include "mathutils.h"
 
 #include <cstdint>
+#include <format>
 #include <fstream>
 #include <limits>
 #include <string>
@@ -197,4 +199,42 @@ TEST_CASE("float min max get random", "[fltMinMaxGetRandom]")
   REQUIRE_THROWS_WITH(GetRandInRange(-5.0F, -6.0F), "float x0 >= x1");
   REQUIRE_THROWS_WITH(GetRandInRange(5.0F, 1.0F), "float x0 >= x1");
   REQUIRE_THROWS_WITH(GetRandInRange(5.0F, -1.0F), "float x0 >= x1");
+}
+
+TEST_CASE("weighted events", "[weightedEvents]")
+{
+  enum class Events
+  {
+    EVENT1,
+    EVENT2,
+    EVENT3,
+    EVENT4,
+    _SIZE
+  };
+  const Weights<Events> WEIGHTED_EVENTS{{
+      {Events::EVENT1, 5},
+      {Events::EVENT2, 2},
+      {Events::EVENT3, 10},
+      {Events::EVENT4, 6},
+  }};
+  const size_t NUM_EVENTS = static_cast<size_t>(Events::_SIZE);
+
+  constexpr size_t numLoop = 10000000;
+  std::array<uint32_t, NUM_EVENTS> counts{};
+  for (size_t i = 0; i < numLoop; ++i)
+  {
+    const auto event = WEIGHTED_EVENTS.GetRandomWeighted();
+    counts[static_cast<size_t>(event)]++;
+  }
+
+  const size_t sumOfWeights = WEIGHTED_EVENTS.GetSumOfWeights();
+  for (size_t i = 0; i < NUM_EVENTS; ++i)
+  {
+    const double countFrac = static_cast<double>(counts[i]) / static_cast<double>(numLoop);
+    const double eventFrac =
+        static_cast<double>(WEIGHTED_EVENTS.GetWeight(static_cast<Events>(i))) /
+        static_cast<double>(sumOfWeights);
+    REQUIRE(floats_equal(countFrac, eventFrac, 0.001F));
+    UNSCOPED_INFO(std20::format("i = {}, countFrac = {}, eventFrac = {}", i, countFrac, eventFrac));
+  }
 }
