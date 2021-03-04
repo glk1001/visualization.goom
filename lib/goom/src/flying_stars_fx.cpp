@@ -365,6 +365,10 @@ inline auto FlyingStarsFx::FlyingStarsImpl::GetImageBitmap(const size_t size) ->
 
 inline void FlyingStarsFx::FlyingStarsImpl::Start()
 {
+  if (m_smallBitmaps == nullptr)
+  {
+    throw std::logic_error("FlyingStarsFx: Starting without setting 'm_smallBitmaps'.");
+  }
 }
 
 void FlyingStarsFx::FlyingStarsImpl::Finish()
