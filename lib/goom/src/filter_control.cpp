@@ -20,7 +20,7 @@ constexpr float PROB_LOW = 0.1;
 const Weights<ZoomFilterMode> FilterControl::WEIGHTED_FILTER_EVENTS{{
     { ZoomFilterMode::AMULET_MODE,            5 },
     { ZoomFilterMode::CRYSTAL_BALL_MODE,      8 },
-    { ZoomFilterMode::HYPERCOS0_MODE,         4 },
+    { ZoomFilterMode::HYPERCOS0_MODE,         5 },
     { ZoomFilterMode::HYPERCOS1_MODE,         3 },
     { ZoomFilterMode::HYPERCOS2_MODE,         2 },
     { ZoomFilterMode::IMAGE_DISPLACEMENT_MODE,5 },
@@ -101,8 +101,8 @@ private:
 const std::array<FilterControl::FilterEvents::Event, FilterControl::FilterEvents::NUM_FILTER_EVENT_TYPES>
     FilterControl::FilterEvents::WEIGHTED_EVENTS{{
    {/*.event = */ FilterEventTypes::ROTATE,                    /*.m = */  8, /*.outOf = */ 16},
-   {/*.event = */ FilterEventTypes::HYPERCOS_EFFECT,           /*.m = */  8, /*.outOf = */ 16},
-   {/*.event = */ FilterEventTypes::WAVE_EFFECT,               /*.m = */  8, /*.outOf = */ 16},
+   {/*.event = */ FilterEventTypes::HYPERCOS_EFFECT,           /*.m = */ 16, /*.outOf = */ 16},
+   {/*.event = */ FilterEventTypes::WAVE_EFFECT,               /*.m = */ 12, /*.outOf = */ 16},
    {/*.event = */ FilterEventTypes::ALLOW_STRANGE_WAVE_VALUES, /*.m = */  1, /*.outOf = */ 50},
    {/*.event = */ FilterEventTypes::CHANGE_SPEED,              /*.m = */  8, /*.outOf = */ 16},
    {/*.event = */ FilterEventTypes::REVERSE_SPEED,             /*.m = */  8, /*.outOf = */ 16},
@@ -316,8 +316,14 @@ void FilterControl::SetHypercos2ModeSettings()
 void FilterControl::SetImageDisplacementModeSettings()
 {
   m_filterData.imageDisplacementFilename = GetNextDisplacementImageFilename();
+
   m_filterData.imageDisplacementAmplitude = GetRandInRange(
       ZoomFilterData::MIN_IMAGE_DISPL_AMPLITUDE, ZoomFilterData::MAX_IMAGE_DISPL_AMPLITUDE);
+
+  m_filterData.imageDisplacementXColorCutoff = GetRandInRange(
+      ZoomFilterData::MIN_IMAGE_DISPL_COLOR_CUTOFF, ZoomFilterData::MAX_IMAGE_DISPL_COLOR_CUTOFF);
+  m_filterData.imageDisplacementYColorCutoff = GetRandInRange(
+      ZoomFilterData::MIN_IMAGE_DISPL_COLOR_CUTOFF, ZoomFilterData::MAX_IMAGE_DISPL_COLOR_CUTOFF);
 }
 
 void FilterControl::SetNormalModeSettings()

@@ -16,11 +16,13 @@ using UTILS::ProbabilityOfMInN;
 
 ImageDisplacement::ImageDisplacement(const std::string& imageFilename)
   : m_imageBuffer(std::make_unique<ImageBitmap>(imageFilename)),
+    m_xMax{static_cast<int32_t>(m_imageBuffer->GetWidth() - 1)},
+    m_yMax{static_cast<int32_t>(m_imageBuffer->GetHeight() - 1)},
     m_ratioNormalizedXCoordToImageCoord{
-        static_cast<float>(m_imageBuffer->GetWidth() - 1) /
+        static_cast<float>(m_xMax) /
         (ZoomFilterBuffers::MAX_NORMALIZED_COORD - ZoomFilterBuffers::MIN_NORMALIZED_COORD)},
     m_ratioNormalizedYCoordToImageCoord{
-        static_cast<float>(m_imageBuffer->GetHeight() - 1) /
+        static_cast<float>(m_yMax) /
         (ZoomFilterBuffers::MAX_NORMALIZED_COORD - ZoomFilterBuffers::MIN_NORMALIZED_COORD)}
 {
 }
@@ -33,8 +35,8 @@ auto ImageDisplacement::GetDisplacementVector(const V2dFlt& normalizedPoint) con
   const Pixel color =
       (*m_imageBuffer)(static_cast<size_t>(imagePoint.x), static_cast<size_t>(imagePoint.y));
 
-  const float x = color.RFlt() - 0.5F;
-  const float y = color.GFlt() - 0.5F;
+  const float x = color.RFlt() - m_xColorCutoff;
+  const float y = color.GFlt() - m_yColorCutoff;
   //const float y = (ProbabilityOfMInN(1, 2) ? color.GFlt() : color.BFlt()) - 0.5F;
 
   return {x, y};
@@ -50,10 +52,8 @@ inline auto ImageDisplacement::NormalizedToImagePoint(const V2dFlt& normalizedPo
                   (normalizedPoint.y - ZoomFilterBuffers::MIN_NORMALIZED_COORD)));
 
   constexpr int32_t FUZZ = 3;
-  return {stdnew::clamp(GetRandInRange(x - FUZZ, x + FUZZ), 0,
-                        static_cast<int32_t>(m_imageBuffer->GetWidth() - 1)),
-          stdnew::clamp(GetRandInRange(y - FUZZ, y + FUZZ), 0,
-                        static_cast<int32_t>(m_imageBuffer->GetHeight() - 1))};
+  return {stdnew::clamp(GetRandInRange(x - FUZZ, x + FUZZ), 0, m_xMax),
+          stdnew::clamp(GetRandInRange(y - FUZZ, y + FUZZ), 0, m_yMax)};
 }
 
 } // namespace GOOM

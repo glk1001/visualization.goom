@@ -462,6 +462,8 @@ void ZoomFilterFx::ZoomFilterImpl::RestartTranBuffer()
   {
     m_imageDisplacement = std::make_unique<ImageDisplacement>(
         GetImageFilename(m_currentFilterSettings.imageDisplacementFilename));
+    m_imageDisplacement->SetXYColorCutoffs(m_currentFilterSettings.imageDisplacementXColorCutoff,
+                                           m_currentFilterSettings.imageDisplacementXColorCutoff);
   }
 }
 

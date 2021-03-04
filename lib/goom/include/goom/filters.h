@@ -141,6 +141,11 @@ struct ZoomFilterData
   static constexpr float MAX_IMAGE_DISPL_AMPLITUDE = 0.1000;
   float imageDisplacementAmplitude = DEFAULT_IMAGE_DISPL_AMPLITUDE;
   std::string imageDisplacementFilename{};
+  static constexpr float MIN_IMAGE_DISPL_COLOR_CUTOFF = 0.1;
+  static constexpr float MAX_IMAGE_DISPL_COLOR_CUTOFF = 0.9;
+  static constexpr float DEFAULT_IMAGE_DISPL_COLOR_CUTOFF = 0.5;
+  float imageDisplacementXColorCutoff = DEFAULT_IMAGE_DISPL_COLOR_CUTOFF;
+  float imageDisplacementYColorCutoff = DEFAULT_IMAGE_DISPL_COLOR_CUTOFF;
 
   // Wave:
   enum class WaveEffect
