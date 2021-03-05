@@ -596,6 +596,8 @@ private:
   std::string m_resourcesDirectory{};
   const SmallImageBitmaps m_smallBitmaps;
 
+  bool m_singleBufferDots = true;
+
   // Line Fx
   LinesFx m_gmline1;
   LinesFx m_gmline2;
@@ -606,10 +608,13 @@ private:
   void ChangeZoomEffect();
   void ApplyZoom();
 
+  void ApplyCurrentStateToSingleBuffer();
+  void ApplyCurrentStateToMultipleBuffers();
   void ApplyDotsIfRequired();
-  void ApplyIfsIfRequired();
-  void ApplyTentaclesIfRequired();
-  void ApplyStarsIfRequired();
+  void ApplyDotsToBothBuffersIfRequired();
+  void ApplyIfsToBothBuffersIfRequired();
+  void ApplyTentaclesToBothBuffersIfRequired();
+  void ApplyStarsToBothBuffersIfRequired();
   void ApplyImageIfRequired();
 
   [[nodiscard]] auto ChangeFilterModeEventHappens() -> bool;
@@ -911,31 +916,20 @@ void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,
 
   ProcessAudio(soundData);
 
-  // applyIfsIfRequired();
-
-  ApplyDotsIfRequired();
+  ApplyCurrentStateToSingleBuffer();
 
   UpdateLockVar();
 
   ChangeFilterModeIfMusicChanges();
-
   BigUpdateIfNotLocked();
-
   BigBreakIfMusicIsCalm();
-
   RegularlyLowerTheSpeed();
-
   StopDecrementingAfterAWhile();
-
   ChangeZoomEffect();
 
   ApplyZoom();
 
-  // applyDotsIfRequired();
-  ApplyIfsIfRequired();
-  ApplyTentaclesIfRequired();
-  ApplyStarsIfRequired();
-  //  ApplyImageIfRequired();
+  ApplyCurrentStateToMultipleBuffers();
 
   // Gestion du Scope - Scope management
   StopIfRequested();
@@ -950,6 +944,21 @@ void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,
   DisplayText(songTitle, message, fps);
 
   m_cycle++;
+}
+
+void GoomControl::GoomControlImpl::ApplyCurrentStateToSingleBuffer()
+{
+  // applyIfsIfRequired();
+  ApplyDotsIfRequired();
+}
+
+void GoomControl::GoomControlImpl::ApplyCurrentStateToMultipleBuffers()
+{
+  ApplyDotsToBothBuffersIfRequired();
+  ApplyIfsToBothBuffersIfRequired();
+  ApplyTentaclesToBothBuffersIfRequired();
+  ApplyStarsToBothBuffersIfRequired();
+  //  ApplyImageIfRequired();
 }
 
 void GoomControl::GoomControlImpl::UpdateBuffers()
@@ -1172,6 +1181,8 @@ void GoomControl::GoomControlImpl::BigNormalUpdate()
   ChangeAllowOverexposed();
   ChangeVitesse();
   ChangeSwitchValues();
+
+  m_singleBufferDots = ProbabilityOfMInN(1, 2);
 }
 
 void GoomControl::GoomControlImpl::ChangeState()
@@ -1417,7 +1428,7 @@ void GoomControl::GoomControlImpl::MegaLentUpdate()
   m_goomData.switchMult = 1.0F;
 }
 
-void GoomControl::GoomControlImpl::ApplyTentaclesIfRequired()
+void GoomControl::GoomControlImpl::ApplyTentaclesToBothBuffersIfRequired()
 {
 #if __cplusplus <= 201402L
   if (m_curGDrawables.find(GoomDrawable::TENTACLES) == m_curGDrawables.end())
@@ -1436,7 +1447,7 @@ void GoomControl::GoomControlImpl::ApplyTentaclesIfRequired()
   m_visualFx.tentacles_fx->Apply(m_imageBuffers.GetP2(), m_imageBuffers.GetP1());
 }
 
-void GoomControl::GoomControlImpl::ApplyStarsIfRequired()
+void GoomControl::GoomControlImpl::ApplyStarsToBothBuffersIfRequired()
 {
 #if __cplusplus <= 201402L
   if (m_curGDrawables.find(GoomDrawable::STARS) == m_curGDrawables.end())
@@ -1918,7 +1929,7 @@ void GoomControl::GoomControlImpl::ApplyZoom()
   }
 }
 
-void GoomControl::GoomControlImpl::ApplyIfsIfRequired()
+void GoomControl::GoomControlImpl::ApplyIfsToBothBuffersIfRequired()
 {
 #if __cplusplus <= 201402L
   if (m_curGDrawables.find(GoomDrawable::IFS) == m_curGDrawables.end())
@@ -1968,9 +1979,36 @@ void GoomControl::GoomControlImpl::ApplyDotsIfRequired()
     return;
   }
 
+  if (!m_singleBufferDots)
+  {
+    return;
+  }
+
   logDebug("goomInfo->curGDrawables points is set.");
   m_stats.DoDots();
   m_visualFx.goomDots_fx->Apply(m_imageBuffers.GetP1());
+  logDebug("sound GetTimeSinceLastGoom() = {}", m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom());
+}
+
+void GoomControl::GoomControlImpl::ApplyDotsToBothBuffersIfRequired()
+{
+#if __cplusplus <= 201402L
+  if (m_curGDrawables.find(GoomDrawable::DOTS) == m_curGDrawables.end())
+#else
+    if (!m_curGDrawables.contains(GoomDrawable::DOTS))
+#endif
+  {
+    return;
+  }
+
+  if (m_singleBufferDots)
+  {
+    return;
+  }
+
+  logDebug("goomInfo->curGDrawables points is set.");
+  m_stats.DoDots();
+  m_visualFx.goomDots_fx->Apply(m_imageBuffers.GetP2(), m_imageBuffers.GetP1());
   logDebug("sound GetTimeSinceLastGoom() = {}", m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom());
 }
 

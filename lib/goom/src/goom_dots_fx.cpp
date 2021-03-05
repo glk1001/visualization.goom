@@ -51,6 +51,7 @@ public:
   void Start();
 
   void Apply(PixelBuffer& currentBuff);
+  void Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff);
 
 private:
   const std::shared_ptr<const PluginInfo> m_goomInfo;
@@ -99,13 +100,14 @@ private:
 
   GammaCorrection m_gammaCorrect{5.0, 0.01};
 
+  void Update(PixelBuffer& currentBuff, PixelBuffer* nextBuff);
+
   void ChangeColors();
-
   [[nodiscard]] auto GetColor(const Pixel& color0, const Pixel& color1, float brightness) -> Pixel;
-
   [[nodiscard]] static auto GetLargeSoundFactor(const SoundInfo& soundInfo) -> float;
 
   void DotFilter(PixelBuffer& currentBuff,
+                 PixelBuffer* nextBuff,
                  const Pixel& color,
                  float t1,
                  float t2,
@@ -168,6 +170,16 @@ void GoomDotsFx::Apply(PixelBuffer& currentBuff)
   }
   m_fxImpl->Apply(currentBuff);
 }
+
+void GoomDotsFx::Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
+{
+  if (!m_enabled)
+  {
+    return;
+  }
+  m_fxImpl->Apply(currentBuff, nextBuff);
+}
+
 
 GoomDotsFx::GoomDotsFxImpl::GoomDotsFxImpl(const std::shared_ptr<const PluginInfo>& info) noexcept
   : m_goomInfo(info),
@@ -237,6 +249,16 @@ void GoomDotsFx::GoomDotsFxImpl::SetBuffSettings(const FXBuffSettings& settings)
 }
 
 void GoomDotsFx::GoomDotsFxImpl::Apply(PixelBuffer& currentBuff)
+{
+  Update(currentBuff, nullptr);
+}
+
+void GoomDotsFx::GoomDotsFxImpl::Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
+{
+  Update(currentBuff, &nextBuff);
+}
+
+void GoomDotsFx::GoomDotsFxImpl::Update(PixelBuffer& currentBuff, PixelBuffer* nextBuff)
 {
   uint32_t radius = MIN_DOT_SIZE / 2;
   if ((m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom() == 0) || ChangeDotColorsEvent())
@@ -322,11 +344,16 @@ void GoomDotsFx::GoomDotsFxImpl::Apply(PixelBuffer& currentBuff)
     const float color5T4 = 74.0F;
     const uint32_t color5Cycle = m_loopVar + i * 500;
 
-    DotFilter(currentBuff, colors1, color1T1, color1T2, color1T3, color1T4, color1Cycle, radius);
-    DotFilter(currentBuff, colors2, color2T1, color2T2, color2T3, color2T4, color2Cycle, radius);
-    DotFilter(currentBuff, colors3, color3T1, color3T2, color3T3, color3T4, color3Cycle, radius);
-    DotFilter(currentBuff, colors4, color4T1, color4T2, color4T3, color4T4, color4Cycle, radius);
-    DotFilter(currentBuff, colors5, color5T1, color5T2, color5T3, color5T4, color5Cycle, radius);
+    DotFilter(currentBuff, nextBuff, colors1, color1T1, color1T2, color1T3, color1T4, color1Cycle,
+              radius);
+    DotFilter(currentBuff, nextBuff, colors2, color2T1, color2T2, color2T3, color2T4, color2Cycle,
+              radius);
+    DotFilter(currentBuff, nextBuff, colors3, color3T1, color3T2, color3T3, color3T4, color3Cycle,
+              radius);
+    DotFilter(currentBuff, nextBuff, colors4, color4T1, color4T2, color4T3, color4T4, color4Cycle,
+              radius);
+    DotFilter(currentBuff, nextBuff, colors5, color5T1, color5T2, color5T3, color5T4, color5Cycle,
+              radius);
 
     t += t_step;
   }
@@ -367,26 +394,27 @@ auto GoomDotsFx::GoomDotsFxImpl::GetLargeSoundFactor(const SoundInfo& soundInfo)
 }
 
 void GoomDotsFx::GoomDotsFxImpl::DotFilter(PixelBuffer& currentBuff,
+                                           PixelBuffer* nextBuff,
                                            const Pixel& color,
                                            const float t1,
                                            const float t2,
                                            const float t3,
                                            const float t4,
                                            const uint32_t cycle,
-                                           uint32_t radius)
+                                           const uint32_t radius)
 {
   const auto xOffset = static_cast<uint32_t>(t1 * std::cos(static_cast<float>(cycle) / t3));
   const auto yOffset = static_cast<uint32_t>(t2 * std::sin(static_cast<float>(cycle) / t4));
-  const auto x0 = static_cast<int>(m_goomInfo->GetScreenInfo().width / 2 + xOffset);
-  const auto y0 = static_cast<int>(m_goomInfo->GetScreenInfo().height / 2 + yOffset);
+  const auto x0 = static_cast<int32_t>(m_goomInfo->GetScreenInfo().width / 2 + xOffset);
+  const auto y0 = static_cast<int32_t>(m_goomInfo->GetScreenInfo().height / 2 + yOffset);
 
   const uint32_t diameter = 2 * radius + 1; // must be odd
   const auto screenWidthLessDiameter =
-      static_cast<int>(m_goomInfo->GetScreenInfo().width - diameter);
+      static_cast<int32_t>(m_goomInfo->GetScreenInfo().width - diameter);
   const auto screenHeightLessDiameter =
-      static_cast<int>(m_goomInfo->GetScreenInfo().height - diameter);
+      static_cast<int32_t>(m_goomInfo->GetScreenInfo().height - diameter);
 
-  if ((x0 < static_cast<int>(diameter)) || (y0 < static_cast<int>(diameter)) ||
+  if ((x0 < static_cast<int32_t>(diameter)) || (y0 < static_cast<int32_t>(diameter)) ||
       (x0 >= screenWidthLessDiameter) || (y0 >= screenHeightLessDiameter))
   {
     return;
@@ -396,13 +424,21 @@ void GoomDotsFx::GoomDotsFxImpl::DotFilter(PixelBuffer& currentBuff,
   const auto yMid = y0 + static_cast<int32_t>(radius);
   constexpr float BRIGHTNESS = 20.0F;
   const auto getColor = [&]([[maybe_unused]] const size_t x, [[maybe_unused]] const size_t y,
-                            const Pixel& b) -> Pixel {
+                            const Pixel& b) -> Pixel
+  {
     // const Pixel newColor = x == xMid && y == yMid ? m_middleColor : color;
     return m_gammaCorrect.GetCorrection(
         BRIGHTNESS, GetColorMultiply(b, color, m_buffSettings.allowOverexposed));
   };
+  const auto getColor2 = [&]([[maybe_unused]] const size_t x, [[maybe_unused]] const size_t y,
+                             [[maybe_unused]] const Pixel& b) -> Pixel
+  { return m_gammaCorrect.GetCorrection(BRIGHTNESS, color); };
 
   m_draw.Bitmap(currentBuff, xMid, yMid, GetImageBitmap(diameter), getColor);
+  if (nextBuff != nullptr)
+  {
+    m_draw.Bitmap(*nextBuff, xMid, yMid, GetImageBitmap(diameter), getColor2);
+  }
 }
 
 } // namespace GOOM

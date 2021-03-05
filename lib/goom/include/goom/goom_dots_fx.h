@@ -39,6 +39,7 @@ public:
   void Start() override;
 
   void Apply(PixelBuffer& currentBuff);
+  void Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff);
 
   void Log(const StatsLogValueFunc& l) const override;
   void Finish() override;
