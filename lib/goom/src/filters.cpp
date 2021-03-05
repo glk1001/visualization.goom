@@ -761,6 +761,7 @@ auto ZoomFilterFx::ZoomFilterImpl::GetCoeffVitesse([[maybe_unused]] const float 
       break;
     }
     case ZoomFilterMode::WAVE_MODE0:
+    case ZoomFilterMode::WAVE_MODE1:
     {
       m_stats.DoZoomVectorWaveMode();
       coeffVitesse += GetWaveEffectCoeffVitesse(sqDist);

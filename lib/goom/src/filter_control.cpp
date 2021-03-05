@@ -103,7 +103,7 @@ const std::array<FilterControl::FilterEvents::Event, FilterControl::FilterEvents
    {/*.event = */ FilterEventTypes::ROTATE,                    /*.m = */  8, /*.outOf = */ 16},
    {/*.event = */ FilterEventTypes::HYPERCOS_EFFECT,           /*.m = */  1, /*.outOf = */ 50},
    {/*.event = */ FilterEventTypes::WAVE_EFFECT,               /*.m = */ 12, /*.outOf = */ 16},
-   {/*.event = */ FilterEventTypes::ALLOW_STRANGE_WAVE_VALUES, /*.m = */  1, /*.outOf = */ 50},
+   {/*.event = */ FilterEventTypes::ALLOW_STRANGE_WAVE_VALUES, /*.m = */ 10, /*.outOf = */ 50},
    {/*.event = */ FilterEventTypes::CHANGE_SPEED,              /*.m = */  8, /*.outOf = */ 16},
    {/*.event = */ FilterEventTypes::REVERSE_SPEED,             /*.m = */  8, /*.outOf = */ 16},
    {/*.event = */ FilterEventTypes::HYPERCOS_REVERSE,          /*.m = */  8, /*.outOf = */ 16},
@@ -390,7 +390,7 @@ void FilterControl::SetWaveMode0Settings()
 
 void FilterControl::SetWaveMode1Settings()
 {
-  SetRotate(PROB_LOW);
+  SetRotate(PROB_HIGH);
 
   using EventTypes = FilterControl::FilterEvents::FilterEventTypes;
 
