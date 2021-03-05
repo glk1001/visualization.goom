@@ -101,7 +101,7 @@ private:
 const std::array<FilterControl::FilterEvents::Event, FilterControl::FilterEvents::NUM_FILTER_EVENT_TYPES>
     FilterControl::FilterEvents::WEIGHTED_EVENTS{{
    {/*.event = */ FilterEventTypes::ROTATE,                    /*.m = */  8, /*.outOf = */ 16},
-   {/*.event = */ FilterEventTypes::HYPERCOS_EFFECT,           /*.m = */ 16, /*.outOf = */ 16},
+   {/*.event = */ FilterEventTypes::HYPERCOS_EFFECT,           /*.m = */  1, /*.outOf = */ 50},
    {/*.event = */ FilterEventTypes::WAVE_EFFECT,               /*.m = */ 12, /*.outOf = */ 16},
    {/*.event = */ FilterEventTypes::ALLOW_STRANGE_WAVE_VALUES, /*.m = */  1, /*.outOf = */ 50},
    {/*.event = */ FilterEventTypes::CHANGE_SPEED,              /*.m = */  8, /*.outOf = */ 16},
@@ -276,6 +276,12 @@ void FilterControl::SetAmuletModeSettings()
 
   m_filterData.amuletAmplitude =
       GetRandInRange(ZoomFilterData::MIN_AMULET_AMPLITUDE, ZoomFilterData::MAX_AMULET_AMPLITUDE);
+
+  using EventTypes = FilterControl::FilterEvents::FilterEventTypes;
+  if (m_filterEvents->Happens(EventTypes::HYPERCOS_EFFECT))
+  {
+    SetHypercos2ModeSettings();
+  }
 }
 
 void FilterControl::SetCrystalBallModeSettings()
@@ -287,6 +293,12 @@ void FilterControl::SetCrystalBallModeSettings()
   m_filterData.crystalBallSqDistOffset =
       GetRandInRange(ZoomFilterData::MIN_CRYSTAL_BALL_SQ_DIST_OFFSET,
                      ZoomFilterData::MAX_CRYSTAL_BALL_SQ_DIST_OFFSET);
+
+  using EventTypes = FilterControl::FilterEvents::FilterEventTypes;
+  if (m_filterEvents->Happens(EventTypes::HYPERCOS_EFFECT))
+  {
+    SetHypercos2ModeSettings();
+  }
 }
 
 void FilterControl::SetHypercos0ModeSettings()
@@ -324,6 +336,12 @@ void FilterControl::SetImageDisplacementModeSettings()
       ZoomFilterData::MIN_IMAGE_DISPL_COLOR_CUTOFF, ZoomFilterData::MAX_IMAGE_DISPL_COLOR_CUTOFF);
   m_filterData.imageDisplacementYColorCutoff = GetRandInRange(
       ZoomFilterData::MIN_IMAGE_DISPL_COLOR_CUTOFF, ZoomFilterData::MAX_IMAGE_DISPL_COLOR_CUTOFF);
+
+  using EventTypes = FilterControl::FilterEvents::FilterEventTypes;
+  if (m_filterEvents->Happens(EventTypes::HYPERCOS_EFFECT))
+  {
+    SetHypercos1ModeSettings();
+  }
 }
 
 void FilterControl::SetNormalModeSettings()
@@ -336,6 +354,12 @@ void FilterControl::SetScrunchModeSettings()
 
   m_filterData.scrunchAmplitude =
       GetRandInRange(ZoomFilterData::MIN_SCRUNCH_AMPLITUDE, ZoomFilterData::MAX_SCRUNCH_AMPLITUDE);
+
+  using EventTypes = FilterControl::FilterEvents::FilterEventTypes;
+  if (m_filterEvents->Happens(EventTypes::HYPERCOS_EFFECT))
+  {
+    SetHypercos1ModeSettings();
+  }
 }
 
 void FilterControl::SetSpeedwayModeSettings()
@@ -344,6 +368,12 @@ void FilterControl::SetSpeedwayModeSettings()
 
   m_filterData.speedwayAmplitude = GetRandInRange(ZoomFilterData::MIN_SPEEDWAY_AMPLITUDE,
                                                   ZoomFilterData::MAX_SPEEDWAY_AMPLITUDE);
+
+  using EventTypes = FilterControl::FilterEvents::FilterEventTypes;
+  if (m_filterEvents->Happens(EventTypes::HYPERCOS_EFFECT))
+  {
+    SetHypercos0ModeSettings();
+  }
 }
 
 void FilterControl::SetWaterModeSettings()
@@ -404,6 +434,12 @@ void FilterControl::SetWaveEffect(const MinMaxValues& minMaxFreq, const MinMaxVa
 void FilterControl::SetYOnlyModeSettings()
 {
   SetRotate(PROB_HALF);
+
+  using EventTypes = FilterControl::FilterEvents::FilterEventTypes;
+  if (m_filterEvents->Happens(EventTypes::HYPERCOS_EFFECT))
+  {
+    SetHypercos1ModeSettings();
+  }
 }
 
 void FilterControl::SetRotate(const float probability)
@@ -452,13 +488,6 @@ void FilterControl::SetHypercosEffect(const MinMaxValues& minMaxFreq, const MinM
 
 inline auto FilterControl::GetRandomHypercosEffect() const -> ZoomFilterData::HypercosEffect
 {
-  using EventTypes = FilterControl::FilterEvents::FilterEventTypes;
-
-  if (!m_filterEvents->Happens(EventTypes::HYPERCOS_EFFECT))
-  {
-    return ZoomFilterData::HypercosEffect::NONE;
-  }
-
   return static_cast<ZoomFilterData::HypercosEffect>(
       GetRandInRange(static_cast<uint32_t>(ZoomFilterData::HypercosEffect::NONE) + 1,
                      static_cast<uint32_t>(ZoomFilterData::HypercosEffect::_SIZE)));
