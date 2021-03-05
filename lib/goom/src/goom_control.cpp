@@ -600,6 +600,18 @@ private:
   LinesFx m_gmline1;
   LinesFx m_gmline2;
 
+  void ProcessAudio(const AudioSamples& soundData) const;
+
+  // Changement d'effet de zoom !
+  void ChangeZoomEffect();
+  void ApplyZoom();
+
+  void ApplyDotsIfRequired();
+  void ApplyIfsIfRequired();
+  void ApplyTentaclesIfRequired();
+  void ApplyStarsIfRequired();
+  void ApplyImageIfRequired();
+
   [[nodiscard]] auto ChangeFilterModeEventHappens() -> bool;
   void SetNextFilterMode();
   void SetLockVar(int32_t val);
@@ -614,23 +626,6 @@ private:
 
   // on verifie qu'il ne se pas un truc interressant avec le son.
   void ChangeFilterModeIfMusicChanges();
-
-  // Changement d'effet de zoom !
-  void ChangeZoomEffect();
-
-  void ApplyZoom();
-  void ApplyIfsIfRequired();
-  void ApplyTentaclesIfRequired();
-  void ApplyStarsIfRequired();
-  void ApplyImageIfRequired();
-
-  void DisplayText(const std::string& songTitle, const std::string& message, float fps);
-
-#ifdef SHOW_STATE_TEXT_ON_SCREEN
-  void DisplayStateText();
-#endif
-
-  void ApplyDotsIfRequired();
 
   void ChooseGoomLine(float* param1,
                       float* param2,
@@ -664,6 +659,10 @@ private:
 
   void UpdateMessage(const std::string& message);
   void DrawText(const std::string& str, int xPos, int yPos, float spacing, PixelBuffer& buff);
+  void DisplayText(const std::string& songTitle, const std::string& message, float fps);
+#ifdef SHOW_STATE_TEXT_ON_SCREEN
+  void DisplayStateText();
+#endif
 
   void ChangeAllowOverexposed();
   void ChangeBlockyWavy();
@@ -678,6 +677,8 @@ private:
   void ChangeVitesse();
   void UpdateLockVar();
   void DoIfsRenew();
+  void UpdateBuffers();
+  void SetNextState();
 };
 
 auto GoomControl::GetRandSeed() -> uint64_t
@@ -908,8 +909,7 @@ void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,
 
   logDebug("sound GetTimeSinceLastGoom() = {}", m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom());
 
-  /* ! etude du signal ... */
-  m_goomInfo->ProcessSoundSample(soundData);
+  ProcessAudio(soundData);
 
   // applyIfsIfRequired();
 
@@ -937,23 +937,12 @@ void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,
   ApplyStarsIfRequired();
   //  ApplyImageIfRequired();
 
-  /**
-#ifdef SHOW_STATE_TEXT_ON_SCREEN
-  DisplayStateText();
-#endif
-  displayText(songTitle, message, fps);
-**/
-
   // Gestion du Scope - Scope management
   StopIfRequested();
   StopRandomLineChangeMode();
   DisplayLinesIfInAGoom(soundData);
 
-  // affichage et swappage des buffers...
-  m_visualFx.convolve_fx->Convolve(m_imageBuffers.GetP2(), m_imageBuffers.GetOutputBuff());
-
-  m_imageBuffers.SetBuffInc(GetRandInRange(1U, GoomImageBuffers::MAX_BUFF_INC + 1));
-  m_imageBuffers.RotateBuffers();
+  UpdateBuffers();
 
 #ifdef SHOW_STATE_TEXT_ON_SCREEN
   DisplayStateText();
@@ -961,6 +950,21 @@ void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,
   DisplayText(songTitle, message, fps);
 
   m_cycle++;
+}
+
+void GoomControl::GoomControlImpl::UpdateBuffers()
+{
+  // affichage et swappage des buffers...
+  m_visualFx.convolve_fx->Convolve(m_imageBuffers.GetP2(), m_imageBuffers.GetOutputBuff());
+
+  m_imageBuffers.SetBuffInc(GetRandInRange(1U, GoomImageBuffers::MAX_BUFF_INC + 1));
+  m_imageBuffers.RotateBuffers();
+}
+
+void GoomControl::GoomControlImpl::ProcessAudio(const AudioSamples& soundData) const
+{
+  /* ! etude du signal ... */
+  m_goomInfo->ProcessSoundSample(soundData);
 }
 
 void GoomControl::GoomControlImpl::UpdateLockVar()
@@ -1081,16 +1085,7 @@ void GoomControl::GoomControlImpl::DoChangeState()
 {
   const auto oldGDrawables = m_states.GetCurrentDrawables();
 
-  const size_t oldStateIndex = m_states.GetCurrentStateIndex();
-  for (size_t numTry = 0; numTry < 10; numTry++)
-  {
-    m_states.DoRandomStateChange();
-    if (oldStateIndex != m_states.GetCurrentStateIndex())
-    {
-      // Only pick a different state.
-      break;
-    }
-  }
+  SetNextState();
 
   m_curGDrawables = m_states.GetCurrentDrawables();
   logDebug("Changed goom state to {}", m_states.GetCurrentStateIndex());
@@ -1123,6 +1118,21 @@ void GoomControl::GoomControlImpl::DoChangeState()
   {
     m_goomData.stopLines = 0;
     m_goomData.lineMode = m_goomData.drawLinesDuration;
+  }
+}
+
+void GoomControl::GoomControlImpl::SetNextState()
+{
+  const size_t oldStateIndex = m_states.GetCurrentStateIndex();
+
+  for (size_t numTry = 0; numTry < 10; numTry++)
+  {
+    m_states.DoRandomStateChange();
+    if (oldStateIndex != m_states.GetCurrentStateIndex())
+    {
+      // Only pick a different state.
+      break;
+    }
   }
 }
 
@@ -1242,6 +1252,7 @@ void GoomControl::GoomControlImpl::ChangeSpeedReverse()
     SetLockVar(100);
   }
 }
+
 void GoomControl::GoomControlImpl::SetLockVar(const int32_t val)
 {
   m_goomData.lockVar = val;
