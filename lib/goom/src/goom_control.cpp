@@ -409,7 +409,7 @@ public:
   [[nodiscard]] auto GetOutputBuff() const -> PixelBuffer& { return *m_outputBuff; }
   void SetOutputBuff(PixelBuffer& val) { m_outputBuff = &val; }
 
-  static constexpr size_t MAX_NUM_BUFFS = 10;
+  static constexpr size_t MAX_NUM_BUFFS = 2;
   static constexpr size_t MAX_BUFF_INC = MAX_NUM_BUFFS / 2;
   void SetBuffInc(size_t i);
   void RotateBuffers();
