@@ -30,7 +30,7 @@ const Weights<ZoomFilterMode> FilterControl::WEIGHTED_FILTER_EVENTS{{
     { ZoomFilterMode::WAVE_MODE0,             5 },
     { ZoomFilterMode::WAVE_MODE1,             4 },
     { ZoomFilterMode::WATER_MODE,             0 },
-    { ZoomFilterMode::Y_ONLY_MODE,            4000000 },
+    { ZoomFilterMode::Y_ONLY_MODE,            4 },
 }};
 //@formatter:on
 // clang-format on

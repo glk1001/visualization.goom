@@ -917,8 +917,6 @@ void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,
 
   ProcessAudio(soundData);
 
-  ApplyCurrentStateToSingleBuffer();
-
   UpdateLockVar();
 
   ChangeFilterModeIfMusicChanges();
@@ -927,6 +925,8 @@ void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,
   RegularlyLowerTheSpeed();
   StopDecrementingAfterAWhile();
   ChangeZoomEffect();
+
+  ApplyCurrentStateToSingleBuffer();
 
   ApplyZoom();
 
@@ -945,6 +945,12 @@ void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,
   DisplayText(songTitle, message, fps);
 
   m_cycle++;
+}
+
+void GoomControl::GoomControlImpl::ProcessAudio(const AudioSamples& soundData) const
+{
+  /* ! etude du signal ... */
+  m_goomInfo->ProcessSoundSample(soundData);
 }
 
 void GoomControl::GoomControlImpl::ApplyCurrentStateToSingleBuffer()
@@ -971,12 +977,6 @@ void GoomControl::GoomControlImpl::UpdateBuffers()
   m_imageBuffers.RotateBuffers();
 }
 
-void GoomControl::GoomControlImpl::ProcessAudio(const AudioSamples& soundData) const
-{
-  /* ! etude du signal ... */
-  m_goomInfo->ProcessSoundSample(soundData);
-}
-
 void GoomControl::GoomControlImpl::UpdateLockVar()
 {
   m_goomData.lockVar--;
@@ -991,70 +991,10 @@ void GoomControl::GoomControlImpl::UpdateLockVar()
   // of state of the plugin just after another change of state.
 }
 
-void GoomControl::GoomControlImpl::ChooseGoomLine(float* param1,
-                                                  float* param2,
-                                                  Pixel* couleur,
-                                                  LinesFx::LineType* mode,
-                                                  float* amplitude,
-                                                  const int far)
+void GoomControl::GoomControlImpl::SetLockVar(const int32_t val)
 {
-  *amplitude = 1.0F;
-  *mode = m_goomEvent.GetRandomLineTypeEvent();
-
-  switch (*mode)
-  {
-    case LinesFx::LineType::circle:
-      if (far)
-      {
-        *param1 = *param2 = 0.47F;
-        *amplitude = 0.8F;
-        break;
-      }
-      if (m_goomEvent.Happens(GoomEvent::CHANGE_LINE_CIRCLE_AMPLITUDE))
-      {
-        *param1 = *param2 = 0.0F;
-        *amplitude = 3.0F;
-      }
-      else if (m_goomEvent.Happens(GoomEvent::CHANGE_LINE_CIRCLE_PARAMS))
-      {
-        *param1 = 0.40F * static_cast<float>(GetScreenHeight());
-        *param2 = 0.22F * static_cast<float>(GetScreenHeight());
-      }
-      else
-      {
-        *param1 = *param2 = static_cast<float>(GetScreenHeight()) * 0.35F;
-      }
-      break;
-    case LinesFx::LineType::hline:
-      if (m_goomEvent.Happens(GoomEvent::CHANGE_H_LINE_PARAMS) || far)
-      {
-        *param1 = static_cast<float>(GetScreenHeight()) / 7.0F;
-        *param2 = 6.0F * static_cast<float>(GetScreenHeight()) / 7.0F;
-      }
-      else
-      {
-        *param1 = *param2 = static_cast<float>(GetScreenHeight()) / 2.0F;
-        *amplitude = 2.0F;
-      }
-      break;
-    case LinesFx::LineType::vline:
-      if (m_goomEvent.Happens(GoomEvent::CHANGE_V_LINE_PARAMS) || far)
-      {
-        *param1 = static_cast<float>(GetScreenWidth()) / 7.0F;
-        *param2 = 6.0F * static_cast<float>(GetScreenWidth()) / 7.0F;
-      }
-      else
-      {
-        *param1 = *param2 = static_cast<float>(GetScreenWidth()) / 2.0F;
-        *amplitude = 1.5F;
-      }
-      break;
-    default:
-      throw std::logic_error("Unknown LineTypes enum.");
-  }
-
-  m_stats.DoChangeLineColor();
-  *couleur = m_gmline1.GetRandomLineColor();
+  m_goomData.lockVar = val;
+  m_stats.DoLockChange();
 }
 
 void GoomControl::GoomControlImpl::ChangeFilterModeIfMusicChanges()
@@ -1089,6 +1029,19 @@ void GoomControl::GoomControlImpl::SetNextFilterMode()
   m_filterControl.SetRandomFilterSettings();
   m_filterControl.ChangeMilieu();
   m_curGDrawables = m_states.GetCurrentDrawables();
+}
+
+void GoomControl::GoomControlImpl::ChangeState()
+{
+  if (m_goomData.stateSelectionBlocker)
+  {
+    m_goomData.stateSelectionBlocker--;
+  }
+  else if (m_goomEvent.Happens(GoomEvent::CHANGE_STATE))
+  {
+    m_goomData.stateSelectionBlocker = 3;
+    DoChangeState();
+  }
 }
 
 void GoomControl::GoomControlImpl::DoChangeState()
@@ -1146,6 +1099,33 @@ void GoomControl::GoomControlImpl::SetNextState()
   }
 }
 
+void GoomControl::GoomControlImpl::BigBreakIfMusicIsCalm()
+{
+  logDebug("sound GetSpeed() = {:.2}, m_filterControl.GetFilterSettings().vitesse = {}, "
+           "cycle = {}",
+           m_goomInfo->GetSoundInfo().GetSpeed(), m_filterControl.GetFilterSettings().vitesse,
+           m_cycle);
+  if ((m_goomInfo->GetSoundInfo().GetSpeed() < 0.01F) &&
+      (m_filterControl.GetFilterSettings().vitesse < (STOP_SPEED - 4)) && (m_cycle % 16 == 0))
+  {
+    logDebug("sound GetSpeed() = {:.2}", m_goomInfo->GetSoundInfo().GetSpeed());
+    BigBreak();
+  }
+}
+
+void GoomControl::GoomControlImpl::BigBreak()
+{
+  m_filterControl.SetVitesseSetting(m_filterControl.GetFilterSettings().vitesse + 3);
+}
+
+void GoomControl::GoomControlImpl::BigUpdateIfNotLocked()
+{
+  if (m_goomData.lockVar == 0)
+  {
+    BigUpdate();
+  }
+}
+
 void GoomControl::GoomControlImpl::BigUpdate()
 {
   m_stats.DoBigUpdate();
@@ -1186,17 +1166,13 @@ void GoomControl::GoomControlImpl::BigNormalUpdate()
   m_singleBufferDots = ProbabilityOfMInN(1, 2);
 }
 
-void GoomControl::GoomControlImpl::ChangeState()
+void GoomControl::GoomControlImpl::MegaLentUpdate()
 {
-  if (m_goomData.stateSelectionBlocker)
-  {
-    m_goomData.stateSelectionBlocker--;
-  }
-  else if (m_goomEvent.Happens(GoomEvent::CHANGE_STATE))
-  {
-    m_goomData.stateSelectionBlocker = 3;
-    DoChangeState();
-  }
+  SetLockVar(m_goomData.lockVar + 50);
+
+  m_filterControl.SetVitesseSetting(STOP_SPEED - 1);
+  m_goomData.switchIncr = GoomData::SWITCH_INCR_AMOUNT;
+  m_goomData.switchMult = 1.0F;
 }
 
 void GoomControl::GoomControlImpl::ChangeMilieu()
@@ -1263,12 +1239,6 @@ void GoomControl::GoomControlImpl::ChangeSpeedReverse()
     m_filterControl.SetReverseSetting(true);
     SetLockVar(100);
   }
-}
-
-void GoomControl::GoomControlImpl::SetLockVar(const int32_t val)
-{
-  m_goomData.lockVar = val;
-  m_stats.DoLockChange();
 }
 
 void GoomControl::GoomControlImpl::ChangeStopSpeeds()
@@ -1414,19 +1384,147 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect()
   }
 }
 
+void GoomControl::GoomControlImpl::LowerSpeed()
+{
+  m_filterControl.SetVitesseSetting(m_filterControl.GetFilterSettings().vitesse + 1);
+}
+
+void GoomControl::GoomControlImpl::StopDecrementingAfterAWhile()
+{
+  logDebug("cycle = {}", m_cycle);
+  if (m_cycle % 101 == 0)
+  {
+    logDebug("cycle = {}, vitesse = {}", m_cycle, m_filterControl.GetFilterSettings().vitesse);
+    StopDecrementing();
+  }
+}
+
+void GoomControl::GoomControlImpl::StopDecrementing()
+{
+  // TODO What used to be here???
+}
+
+void GoomControl::GoomControlImpl::StopIfRequested()
+{
+  logDebug("goomData.stopLines = {}, curGState->scope = {}", m_goomData.stopLines,
+           m_states.IsCurrentlyDrawable(GoomDrawable::SCOPE));
+  if ((m_goomData.stopLines & 0xf000) || !m_states.IsCurrentlyDrawable(GoomDrawable::SCOPE))
+  {
+    StopRequest();
+  }
+}
+
+void GoomControl::GoomControlImpl::RegularlyLowerTheSpeed()
+{
+  logDebug("vitesse = {}, cycle = {}", m_filterControl.GetFilterSettings().vitesse, m_cycle);
+  if ((m_cycle % 73 == 0) && (m_filterControl.GetFilterSettings().vitesse < (STOP_SPEED - 5)))
+  {
+    logDebug("cycle % 73 = 0 && vitesse = {} < {} - 5, ", m_cycle,
+             m_filterControl.GetFilterSettings().vitesse, STOP_SPEED);
+    LowerSpeed();
+  }
+}
+
+void GoomControl::GoomControlImpl::ApplyZoom()
+{
+  if (m_filterControl.GetHasChangedSinceMark())
+  {
+    if (m_filterControl.GetFilterSettings().mode !=
+        m_visualFx.zoomFilter_fx->GetFilterSettings().mode)
+    {
+      m_stats.DoApplyChangeFilterSettings(m_timeWithFilter);
+      m_timeWithFilter = 0;
+    }
+    m_visualFx.zoomFilter_fx->ChangeFilterSettings(m_filterControl.GetFilterSettings());
+    m_filterControl.ClearUnchangedMark();
+  }
+
+  uint32_t numClipped = 0;
+  m_visualFx.zoomFilter_fx->ZoomFilterFastRgb(m_imageBuffers.GetP1(), m_imageBuffers.GetP2(),
+                                              m_goomData.switchIncr, m_goomData.switchMult,
+                                              numClipped);
+
+  m_stats.SetLastNumClipped(numClipped);
+  if (numClipped > m_goomInfo->GetScreenInfo().size / 100)
+  {
+    m_stats.TooManyClipped();
+    m_goomData.switchIncr = -m_goomData.switchIncr;
+    m_goomData.switchMult = 1.0F;
+    // ChangeFilterMode();
+  }
+
+  if (m_filterControl.GetFilterSettings().noisify)
+  {
+    m_filterControl.SetNoiseFactorSetting(m_filterControl.GetFilterSettings().noiseFactor * 0.999F);
+  }
+}
+
+void GoomControl::GoomControlImpl::ApplyDotsIfRequired()
+{
+#if __cplusplus <= 201402L
+  if (m_curGDrawables.find(GoomDrawable::DOTS) == m_curGDrawables.end())
+#else
+  if (!m_curGDrawables.contains(GoomDrawable::DOTS))
+#endif
+  {
+    return;
+  }
+
+  if (!m_singleBufferDots)
+  {
+    return;
+  }
+
+  logDebug("goomInfo->curGDrawables points is set.");
+  m_stats.DoDots();
+  m_visualFx.goomDots_fx->Apply(m_imageBuffers.GetP1());
+  logDebug("sound GetTimeSinceLastGoom() = {}", m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom());
+}
+
+void GoomControl::GoomControlImpl::ApplyDotsToBothBuffersIfRequired()
+{
+#if __cplusplus <= 201402L
+  if (m_curGDrawables.find(GoomDrawable::DOTS) == m_curGDrawables.end())
+#else
+  if (!m_curGDrawables.contains(GoomDrawable::DOTS))
+#endif
+  {
+    return;
+  }
+
+  if (m_singleBufferDots)
+  {
+    return;
+  }
+
+  logDebug("goomInfo->curGDrawables points is set.");
+  m_stats.DoDots();
+  m_visualFx.goomDots_fx->Apply(m_imageBuffers.GetP2(), m_imageBuffers.GetP1());
+  logDebug("sound GetTimeSinceLastGoom() = {}", m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom());
+}
+
+void GoomControl::GoomControlImpl::ApplyIfsToBothBuffersIfRequired()
+{
+#if __cplusplus <= 201402L
+  if (m_curGDrawables.find(GoomDrawable::IFS) == m_curGDrawables.end())
+#else
+  if (!m_curGDrawables.contains(GoomDrawable::IFS))
+#endif
+  {
+    m_visualFx.ifs_fx->ApplyNoDraw();
+    return;
+  }
+
+  logDebug("curGDrawables IFS is set");
+  m_stats.DoIfs();
+  m_visualFx.ifs_fx->SetBuffSettings(m_states.GetCurrentBuffSettings(GoomDrawable::IFS));
+  m_visualFx.ifs_fx->Apply(m_imageBuffers.GetP2(), m_imageBuffers.GetP1());
+}
+
 void GoomControl::GoomControlImpl::DoIfsRenew()
 {
   m_visualFx.ifs_fx->Renew();
   m_stats.DoIfsRenew();
-}
-
-void GoomControl::GoomControlImpl::MegaLentUpdate()
-{
-  SetLockVar(m_goomData.lockVar + 50);
-
-  m_filterControl.SetVitesseSetting(STOP_SPEED - 1);
-  m_goomData.switchIncr = GoomData::SWITCH_INCR_AMOUNT;
-  m_goomData.switchMult = 1.0F;
 }
 
 void GoomControl::GoomControlImpl::ApplyTentaclesToBothBuffersIfRequired()
@@ -1482,6 +1580,214 @@ void GoomControl::GoomControlImpl::ApplyImageIfRequired()
   m_visualFx.image_fx->SetBuffSettings(m_states.GetCurrentBuffSettings(GoomDrawable::IMAGE));
   //  m_visualFx.image_fx->Apply(m_imageBuffers.GetP2());
   m_visualFx.image_fx->Apply(m_imageBuffers.GetP2(), m_imageBuffers.GetP1());
+}
+
+void GoomControl::GoomControlImpl::StopRequest()
+{
+  if (!m_gmline1.CanResetDestLine() || !m_gmline2.CanResetDestLine())
+  {
+    return;
+  }
+
+  float param1 = 0.0;
+  float param2 = 0.0;
+  float amplitude = 0.0;
+  Pixel couleur{};
+  LinesFx::LineType mode;
+  ChooseGoomLine(&param1, &param2, &couleur, &mode, &amplitude, 1);
+  couleur = GetBlackLineColor();
+
+  m_gmline1.ResetDestLine(mode, param1, amplitude, couleur);
+  m_gmline2.ResetDestLine(mode, param2, amplitude, couleur);
+  m_stats.DoSwitchLines();
+  m_goomData.stopLines &= 0x0fff;
+}
+
+void GoomControl::GoomControlImpl::ChooseGoomLine(float* param1,
+                                                  float* param2,
+                                                  Pixel* couleur,
+                                                  LinesFx::LineType* mode,
+                                                  float* amplitude,
+                                                  const int far)
+{
+  *amplitude = 1.0F;
+  *mode = m_goomEvent.GetRandomLineTypeEvent();
+
+  switch (*mode)
+  {
+    case LinesFx::LineType::circle:
+      if (far)
+      {
+        *param1 = *param2 = 0.47F;
+        *amplitude = 0.8F;
+        break;
+      }
+      if (m_goomEvent.Happens(GoomEvent::CHANGE_LINE_CIRCLE_AMPLITUDE))
+      {
+        *param1 = *param2 = 0.0F;
+        *amplitude = 3.0F;
+      }
+      else if (m_goomEvent.Happens(GoomEvent::CHANGE_LINE_CIRCLE_PARAMS))
+      {
+        *param1 = 0.40F * static_cast<float>(GetScreenHeight());
+        *param2 = 0.22F * static_cast<float>(GetScreenHeight());
+      }
+      else
+      {
+        *param1 = *param2 = static_cast<float>(GetScreenHeight()) * 0.35F;
+      }
+      break;
+    case LinesFx::LineType::hline:
+      if (m_goomEvent.Happens(GoomEvent::CHANGE_H_LINE_PARAMS) || far)
+      {
+        *param1 = static_cast<float>(GetScreenHeight()) / 7.0F;
+        *param2 = 6.0F * static_cast<float>(GetScreenHeight()) / 7.0F;
+      }
+      else
+      {
+        *param1 = *param2 = static_cast<float>(GetScreenHeight()) / 2.0F;
+        *amplitude = 2.0F;
+      }
+      break;
+    case LinesFx::LineType::vline:
+      if (m_goomEvent.Happens(GoomEvent::CHANGE_V_LINE_PARAMS) || far)
+      {
+        *param1 = static_cast<float>(GetScreenWidth()) / 7.0F;
+        *param2 = 6.0F * static_cast<float>(GetScreenWidth()) / 7.0F;
+      }
+      else
+      {
+        *param1 = *param2 = static_cast<float>(GetScreenWidth()) / 2.0F;
+        *amplitude = 1.5F;
+      }
+      break;
+    default:
+      throw std::logic_error("Unknown LineTypes enum.");
+  }
+
+  m_stats.DoChangeLineColor();
+  *couleur = m_gmline1.GetRandomLineColor();
+}
+
+/* arret aleatore.. changement de mode de ligne..
+  */
+void GoomControl::GoomControlImpl::StopRandomLineChangeMode()
+{
+  if (m_goomData.lineMode != m_goomData.drawLinesDuration)
+  {
+    m_goomData.lineMode--;
+    if (m_goomData.lineMode == -1)
+    {
+      m_goomData.lineMode = 0;
+    }
+  }
+  else if ((m_cycle % 80 == 0) && m_goomEvent.Happens(GoomEvent::REDUCE_LINE_MODE) &&
+           m_goomData.lineMode)
+  {
+    m_goomData.lineMode--;
+  }
+
+  if ((m_cycle % 120 == 0) && m_goomEvent.Happens(GoomEvent::UPDATE_LINE_MODE) &&
+#if __cplusplus <= 201402L
+      m_curGDrawables.find(GoomDrawable::SCOPE) != m_curGDrawables.end())
+#else
+      m_curGDrawables.contains(GoomDrawable::SCOPE))
+#endif
+  {
+    if (m_goomData.lineMode == 0)
+    {
+      m_goomData.lineMode = m_goomData.drawLinesDuration;
+    }
+    else if (m_goomData.lineMode == m_goomData.drawLinesDuration && m_gmline1.CanResetDestLine() &&
+             m_gmline2.CanResetDestLine())
+    {
+      m_goomData.lineMode--;
+
+      float param1 = 0.0;
+      float param2 = 0.0;
+      float amplitude = 0.0;
+      Pixel color1{};
+      LinesFx::LineType mode;
+      ChooseGoomLine(&param1, &param2, &color1, &mode, &amplitude, m_goomData.stopLines);
+
+      Pixel color2 = m_gmline2.GetRandomLineColor();
+      if (m_goomData.stopLines)
+      {
+        m_goomData.stopLines--;
+        if (m_goomEvent.Happens(GoomEvent::CHANGE_LINE_TO_BLACK))
+        {
+          color2 = color1 = GetBlackLineColor();
+        }
+      }
+
+      logDebug("goomData.lineMode = {} == {} = goomData.drawLinesDuration", m_goomData.lineMode,
+               m_goomData.drawLinesDuration);
+      m_gmline1.ResetDestLine(mode, param1, amplitude, color1);
+      m_gmline2.ResetDestLine(mode, param2, amplitude, color2);
+      m_stats.DoSwitchLines();
+    }
+  }
+}
+
+void GoomControl::GoomControlImpl::DisplayLines(const AudioSamples& soundData)
+{
+#if __cplusplus <= 201402L
+  if (m_curGDrawables.find(GoomDrawable::LINES) == m_curGDrawables.end())
+#else
+  if (!m_curGDrawables.contains(GoomDrawable::LINES))
+#endif
+  {
+    return;
+  }
+
+  logDebug("curGDrawables lines is set.");
+
+  m_stats.DoLines();
+
+  m_gmline2.SetPower(m_gmline1.GetPower());
+
+  const std::vector<int16_t>& audioSample = soundData.GetSample(0);
+  m_gmline1.DrawLines(audioSample, m_imageBuffers.GetP1(), m_imageBuffers.GetP2());
+  m_gmline2.DrawLines(audioSample, m_imageBuffers.GetP1(), m_imageBuffers.GetP2());
+  //  gmline2.drawLines(soundData.GetSample(1), imageBuffers.getP1(), imageBuffers.getP2());
+
+  if (((m_cycle % 121) == 9) && m_goomEvent.Happens(GoomEvent::CHANGE_GOOM_LINE) &&
+      ((m_goomData.lineMode == 0) || (m_goomData.lineMode == m_goomData.drawLinesDuration)) &&
+      m_gmline1.CanResetDestLine() && m_gmline2.CanResetDestLine())
+  {
+    logDebug("cycle % 121 etc.: goomInfo->cycle = {}, rand1_3 = ?", m_cycle);
+    float param1 = 0.0;
+    float param2 = 0.0;
+    float amplitude = 0.0;
+    Pixel color1{};
+    LinesFx::LineType mode;
+    ChooseGoomLine(&param1, &param2, &color1, &mode, &amplitude, m_goomData.stopLines);
+
+    Pixel color2 = m_gmline2.GetRandomLineColor();
+    if (m_goomData.stopLines)
+    {
+      m_goomData.stopLines--;
+      if (m_goomEvent.Happens(GoomEvent::CHANGE_LINE_TO_BLACK))
+      {
+        color2 = color1 = GetBlackLineColor();
+      }
+    }
+    m_gmline1.ResetDestLine(mode, param1, amplitude, color1);
+    m_gmline2.ResetDestLine(mode, param2, amplitude, color2);
+  }
+}
+
+void GoomControl::GoomControlImpl::DisplayLinesIfInAGoom(const AudioSamples& soundData)
+{
+  logDebug("goomData.lineMode = {} != 0 || sound GetTimeSinceLastGoom() = {}", m_goomData.lineMode,
+           m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom());
+  if ((m_goomData.lineMode != 0) || (m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom() < 5))
+  {
+    logDebug("goomData.lineMode = {} != 0 || sound GetTimeSinceLastGoom() = {} < 5",
+             m_goomData.lineMode, m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom());
+
+    DisplayLines(soundData);
+  }
 }
 
 #ifdef SHOW_STATE_TEXT_ON_SCREEN
@@ -1705,312 +2011,6 @@ void GoomControl::GoomControlImpl::UpdateMessage(const std::string& message)
     }
     m_messageData.affiche--;
   }
-}
-
-void GoomControl::GoomControlImpl::StopRequest()
-{
-  if (!m_gmline1.CanResetDestLine() || !m_gmline2.CanResetDestLine())
-  {
-    return;
-  }
-
-  float param1 = 0.0;
-  float param2 = 0.0;
-  float amplitude = 0.0;
-  Pixel couleur{};
-  LinesFx::LineType mode;
-  ChooseGoomLine(&param1, &param2, &couleur, &mode, &amplitude, 1);
-  couleur = GetBlackLineColor();
-
-  m_gmline1.ResetDestLine(mode, param1, amplitude, couleur);
-  m_gmline2.ResetDestLine(mode, param2, amplitude, couleur);
-  m_stats.DoSwitchLines();
-  m_goomData.stopLines &= 0x0fff;
-}
-
-/* arret aleatore.. changement de mode de ligne..
-  */
-void GoomControl::GoomControlImpl::StopRandomLineChangeMode()
-{
-  if (m_goomData.lineMode != m_goomData.drawLinesDuration)
-  {
-    m_goomData.lineMode--;
-    if (m_goomData.lineMode == -1)
-    {
-      m_goomData.lineMode = 0;
-    }
-  }
-  else if ((m_cycle % 80 == 0) && m_goomEvent.Happens(GoomEvent::REDUCE_LINE_MODE) &&
-           m_goomData.lineMode)
-  {
-    m_goomData.lineMode--;
-  }
-
-  if ((m_cycle % 120 == 0) && m_goomEvent.Happens(GoomEvent::UPDATE_LINE_MODE) &&
-#if __cplusplus <= 201402L
-      m_curGDrawables.find(GoomDrawable::SCOPE) != m_curGDrawables.end())
-#else
-      m_curGDrawables.contains(GoomDrawable::SCOPE))
-#endif
-  {
-    if (m_goomData.lineMode == 0)
-    {
-      m_goomData.lineMode = m_goomData.drawLinesDuration;
-    }
-    else if (m_goomData.lineMode == m_goomData.drawLinesDuration && m_gmline1.CanResetDestLine() &&
-             m_gmline2.CanResetDestLine())
-    {
-      m_goomData.lineMode--;
-
-      float param1 = 0.0;
-      float param2 = 0.0;
-      float amplitude = 0.0;
-      Pixel color1{};
-      LinesFx::LineType mode;
-      ChooseGoomLine(&param1, &param2, &color1, &mode, &amplitude, m_goomData.stopLines);
-
-      Pixel color2 = m_gmline2.GetRandomLineColor();
-      if (m_goomData.stopLines)
-      {
-        m_goomData.stopLines--;
-        if (m_goomEvent.Happens(GoomEvent::CHANGE_LINE_TO_BLACK))
-        {
-          color2 = color1 = GetBlackLineColor();
-        }
-      }
-
-      logDebug("goomData.lineMode = {} == {} = goomData.drawLinesDuration", m_goomData.lineMode,
-               m_goomData.drawLinesDuration);
-      m_gmline1.ResetDestLine(mode, param1, amplitude, color1);
-      m_gmline2.ResetDestLine(mode, param2, amplitude, color2);
-      m_stats.DoSwitchLines();
-    }
-  }
-}
-
-void GoomControl::GoomControlImpl::DisplayLines(const AudioSamples& soundData)
-{
-#if __cplusplus <= 201402L
-  if (m_curGDrawables.find(GoomDrawable::LINES) == m_curGDrawables.end())
-#else
-  if (!m_curGDrawables.contains(GoomDrawable::LINES))
-#endif
-  {
-    return;
-  }
-
-  logDebug("curGDrawables lines is set.");
-
-  m_stats.DoLines();
-
-  m_gmline2.SetPower(m_gmline1.GetPower());
-
-  const std::vector<int16_t>& audioSample = soundData.GetSample(0);
-  m_gmline1.DrawLines(audioSample, m_imageBuffers.GetP1(), m_imageBuffers.GetP2());
-  m_gmline2.DrawLines(audioSample, m_imageBuffers.GetP1(), m_imageBuffers.GetP2());
-  //  gmline2.drawLines(soundData.GetSample(1), imageBuffers.getP1(), imageBuffers.getP2());
-
-  if (((m_cycle % 121) == 9) && m_goomEvent.Happens(GoomEvent::CHANGE_GOOM_LINE) &&
-      ((m_goomData.lineMode == 0) || (m_goomData.lineMode == m_goomData.drawLinesDuration)) &&
-      m_gmline1.CanResetDestLine() && m_gmline2.CanResetDestLine())
-  {
-    logDebug("cycle % 121 etc.: goomInfo->cycle = {}, rand1_3 = ?", m_cycle);
-    float param1 = 0.0;
-    float param2 = 0.0;
-    float amplitude = 0.0;
-    Pixel color1{};
-    LinesFx::LineType mode;
-    ChooseGoomLine(&param1, &param2, &color1, &mode, &amplitude, m_goomData.stopLines);
-
-    Pixel color2 = m_gmline2.GetRandomLineColor();
-    if (m_goomData.stopLines)
-    {
-      m_goomData.stopLines--;
-      if (m_goomEvent.Happens(GoomEvent::CHANGE_LINE_TO_BLACK))
-      {
-        color2 = color1 = GetBlackLineColor();
-      }
-    }
-    m_gmline1.ResetDestLine(mode, param1, amplitude, color1);
-    m_gmline2.ResetDestLine(mode, param2, amplitude, color2);
-  }
-}
-
-void GoomControl::GoomControlImpl::BigBreakIfMusicIsCalm()
-{
-  logDebug("sound GetSpeed() = {:.2}, m_filterControl.GetFilterSettings().vitesse = {}, "
-           "cycle = {}",
-           m_goomInfo->GetSoundInfo().GetSpeed(), m_filterControl.GetFilterSettings().vitesse,
-           m_cycle);
-  if ((m_goomInfo->GetSoundInfo().GetSpeed() < 0.01F) &&
-      (m_filterControl.GetFilterSettings().vitesse < (STOP_SPEED - 4)) && (m_cycle % 16 == 0))
-  {
-    logDebug("sound GetSpeed() = {:.2}", m_goomInfo->GetSoundInfo().GetSpeed());
-    BigBreak();
-  }
-}
-
-void GoomControl::GoomControlImpl::BigBreak()
-{
-  m_filterControl.SetVitesseSetting(m_filterControl.GetFilterSettings().vitesse + 3);
-}
-
-void GoomControl::GoomControlImpl::LowerSpeed()
-{
-  m_filterControl.SetVitesseSetting(m_filterControl.GetFilterSettings().vitesse + 1);
-}
-
-void GoomControl::GoomControlImpl::StopDecrementing()
-{
-  // TODO What used to be here???
-}
-
-void GoomControl::GoomControlImpl::BigUpdateIfNotLocked()
-{
-  if (m_goomData.lockVar == 0)
-  {
-    BigUpdate();
-  }
-}
-
-void GoomControl::GoomControlImpl::StopIfRequested()
-{
-  logDebug("goomData.stopLines = {}, curGState->scope = {}", m_goomData.stopLines,
-           m_states.IsCurrentlyDrawable(GoomDrawable::SCOPE));
-  if ((m_goomData.stopLines & 0xf000) || !m_states.IsCurrentlyDrawable(GoomDrawable::SCOPE))
-  {
-    StopRequest();
-  }
-}
-
-void GoomControl::GoomControlImpl::DisplayLinesIfInAGoom(const AudioSamples& soundData)
-{
-  logDebug("goomData.lineMode = {} != 0 || sound GetTimeSinceLastGoom() = {}", m_goomData.lineMode,
-           m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom());
-  if ((m_goomData.lineMode != 0) || (m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom() < 5))
-  {
-    logDebug("goomData.lineMode = {} != 0 || sound GetTimeSinceLastGoom() = {} < 5",
-             m_goomData.lineMode, m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom());
-
-    DisplayLines(soundData);
-  }
-}
-
-void GoomControl::GoomControlImpl::ApplyZoom()
-{
-  if (m_filterControl.GetHasChangedSinceMark())
-  {
-    if (m_filterControl.GetFilterSettings().mode !=
-        m_visualFx.zoomFilter_fx->GetFilterSettings().mode)
-    {
-      m_stats.DoApplyChangeFilterSettings(m_timeWithFilter);
-      m_timeWithFilter = 0;
-    }
-    m_visualFx.zoomFilter_fx->ChangeFilterSettings(m_filterControl.GetFilterSettings());
-    m_filterControl.ClearUnchangedMark();
-  }
-
-  uint32_t numClipped = 0;
-  m_visualFx.zoomFilter_fx->ZoomFilterFastRgb(m_imageBuffers.GetP1(), m_imageBuffers.GetP2(),
-                                              m_goomData.switchIncr, m_goomData.switchMult,
-                                              numClipped);
-
-  m_stats.SetLastNumClipped(numClipped);
-  if (numClipped > m_goomInfo->GetScreenInfo().size / 100)
-  {
-    m_stats.TooManyClipped();
-    m_goomData.switchIncr = -m_goomData.switchIncr;
-    m_goomData.switchMult = 1.0F;
-    // ChangeFilterMode();
-  }
-
-  if (m_filterControl.GetFilterSettings().noisify)
-  {
-    m_filterControl.SetNoiseFactorSetting(m_filterControl.GetFilterSettings().noiseFactor * 0.999F);
-  }
-}
-
-void GoomControl::GoomControlImpl::ApplyIfsToBothBuffersIfRequired()
-{
-#if __cplusplus <= 201402L
-  if (m_curGDrawables.find(GoomDrawable::IFS) == m_curGDrawables.end())
-#else
-  if (!m_curGDrawables.contains(GoomDrawable::IFS))
-#endif
-  {
-    m_visualFx.ifs_fx->ApplyNoDraw();
-    return;
-  }
-
-  logDebug("curGDrawables IFS is set");
-  m_stats.DoIfs();
-  m_visualFx.ifs_fx->SetBuffSettings(m_states.GetCurrentBuffSettings(GoomDrawable::IFS));
-  m_visualFx.ifs_fx->Apply(m_imageBuffers.GetP2(), m_imageBuffers.GetP1());
-}
-
-void GoomControl::GoomControlImpl::RegularlyLowerTheSpeed()
-{
-  logDebug("vitesse = {}, cycle = {}", m_filterControl.GetFilterSettings().vitesse, m_cycle);
-  if ((m_cycle % 73 == 0) && (m_filterControl.GetFilterSettings().vitesse < (STOP_SPEED - 5)))
-  {
-    logDebug("cycle % 73 = 0 && vitesse = {} < {} - 5, ", m_cycle,
-             m_filterControl.GetFilterSettings().vitesse, STOP_SPEED);
-    LowerSpeed();
-  }
-}
-
-void GoomControl::GoomControlImpl::StopDecrementingAfterAWhile()
-{
-  logDebug("cycle = {}", m_cycle);
-  if (m_cycle % 101 == 0)
-  {
-    logDebug("cycle = {}, vitesse = {}", m_cycle, m_filterControl.GetFilterSettings().vitesse);
-    StopDecrementing();
-  }
-}
-
-void GoomControl::GoomControlImpl::ApplyDotsIfRequired()
-{
-#if __cplusplus <= 201402L
-  if (m_curGDrawables.find(GoomDrawable::DOTS) == m_curGDrawables.end())
-#else
-  if (!m_curGDrawables.contains(GoomDrawable::DOTS))
-#endif
-  {
-    return;
-  }
-
-  if (!m_singleBufferDots)
-  {
-    return;
-  }
-
-  logDebug("goomInfo->curGDrawables points is set.");
-  m_stats.DoDots();
-  m_visualFx.goomDots_fx->Apply(m_imageBuffers.GetP1());
-  logDebug("sound GetTimeSinceLastGoom() = {}", m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom());
-}
-
-void GoomControl::GoomControlImpl::ApplyDotsToBothBuffersIfRequired()
-{
-#if __cplusplus <= 201402L
-  if (m_curGDrawables.find(GoomDrawable::DOTS) == m_curGDrawables.end())
-#else
-    if (!m_curGDrawables.contains(GoomDrawable::DOTS))
-#endif
-  {
-    return;
-  }
-
-  if (m_singleBufferDots)
-  {
-    return;
-  }
-
-  logDebug("goomInfo->curGDrawables points is set.");
-  m_stats.DoDots();
-  m_visualFx.goomDots_fx->Apply(m_imageBuffers.GetP2(), m_imageBuffers.GetP1());
-  logDebug("sound GetTimeSinceLastGoom() = {}", m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom());
 }
 
 GoomEvents::GoomEvents() noexcept
