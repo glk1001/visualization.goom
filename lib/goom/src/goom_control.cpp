@@ -869,6 +869,7 @@ void GoomControl::GoomControlImpl::Start()
 
   SetNextFilterMode();
   m_visualFx.zoomFilter_fx->ChangeFilterSettings(m_filterControl.GetFilterSettings());
+  m_stats.DoChangeFilterMode(m_filterControl.GetFilterSettings().mode);
 
   for (auto& v : m_visualFx.list)
   {

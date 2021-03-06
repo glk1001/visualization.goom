@@ -244,7 +244,7 @@ ZoomFilterFx::ZoomFilterImpl::~ZoomFilterImpl() noexcept = default;
 
 void ZoomFilterFx::ZoomFilterImpl::Log(const StatsLogValueFunc& l) const
 {
-  m_stats.SetLastMode(m_currentFilterSettings.mode);
+  m_stats.SetLastZoomFilterSettings(m_currentFilterSettings);
   m_stats.SetLastJustChangedFilterSettings(m_pendingFilterSettings);
   m_stats.SetLastGeneralSpeed(m_generalSpeed);
   m_stats.SetLastPrevX(m_screenWidth);
@@ -424,8 +424,12 @@ void ZoomFilterFx::ZoomFilterImpl::UpdateTranBuffer()
 {
   m_filterBuffers.UpdateTranBuffer();
 
-  if (m_filterBuffers.GetTranBufferState() ==
-      ZoomFilterBuffers::TranBufferState::RESTART_TRAN_BUFFER)
+  if (m_filterBuffers.GetTranBufferState() == ZoomFilterBuffers::TranBufferState::RESET_TRAN_BUFFER)
+  {
+    m_stats.DoResetTranBuffer();
+  }
+  else if (m_filterBuffers.GetTranBufferState() ==
+           ZoomFilterBuffers::TranBufferState::RESTART_TRAN_BUFFER)
   {
     RestartTranBuffer();
   }
@@ -716,7 +720,6 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetCoeffVitesseVelocity(const float xN
 inline auto ZoomFilterFx::ZoomFilterImpl::GetImageDisplacementVelocity(
     const float xNormalized, const float yNormalized) const -> V2dFlt
 {
-  m_stats.DoZoomVectorImageDisplacementMode();
   if (!m_imageDisplacement)
   {
     throw std::logic_error("No image displacement map setup.");
@@ -737,49 +740,49 @@ auto ZoomFilterFx::ZoomFilterImpl::GetCoeffVitesse([[maybe_unused]] const float 
   {
     case ZoomFilterMode::AMULET_MODE:
     {
-      m_stats.DoZoomVectorAmuletMode();
       coeffVitesse += m_currentFilterSettings.amuletAmplitude * sqDist;
       break;
     }
     case ZoomFilterMode::CRYSTAL_BALL_MODE:
     {
-      m_stats.DoZoomVectorCrystalBallMode();
       coeffVitesse -= m_currentFilterSettings.crystalBallAmplitude *
                       (sqDist - m_currentFilterSettings.crystalBallSqDistOffset);
       break;
     }
+    case ZoomFilterMode::HYPERCOS0_MODE:
+    case ZoomFilterMode::HYPERCOS1_MODE:
+    case ZoomFilterMode::HYPERCOS2_MODE:
+    case ZoomFilterMode::IMAGE_DISPLACEMENT_MODE:
+    case ZoomFilterMode::NORMAL_MODE:
+    {
+      break;
+    }
     case ZoomFilterMode::SCRUNCH_MODE:
     {
-      m_stats.DoZoomVectorScrunchMode();
       coeffVitesse += m_currentFilterSettings.scrunchAmplitude * sqDist;
       break;
     }
     case ZoomFilterMode::SPEEDWAY_MODE:
     {
-      m_stats.DoZoomVectorSpeedwayMode();
       coeffVitesse *= m_currentFilterSettings.speedwayAmplitude * (yNormalized + 0.01F * sqDist);
       break;
     }
     case ZoomFilterMode::WAVE_MODE0:
     case ZoomFilterMode::WAVE_MODE1:
     {
-      m_stats.DoZoomVectorWaveMode();
       coeffVitesse += GetWaveEffectCoeffVitesse(sqDist);
       break;
     }
-      //case ZoomFilterMode::HYPERCOS1_MODE:
-      //break;
-      //case ZoomFilterMode::HYPERCOS2_MODE:
-      //break;
-      //case ZoomFilterMode::YONLY_MODE:
-      //break;
+    case ZoomFilterMode::Y_ONLY_MODE:
+    {
+      break;
+    }
       /* Amulette 2 */
       // vx = X * tan(dist);
       // vy = Y * tan(dist);
-
     default:
-      m_stats.DoZoomVectorDefaultMode();
-      break;
+      throw std::logic_error(
+          std20::format("Switch: unhandled case '{}'.", m_currentFilterSettings.mode));
   }
 
   return GetClampedCoeffVitesse(coeffVitesse);

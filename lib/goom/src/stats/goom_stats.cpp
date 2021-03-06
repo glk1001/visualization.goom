@@ -136,56 +136,70 @@ void GoomStats::Log(const StatsLogValueFunc& logVal) const
     logVal(MODULE, "lastZoomFilterData->middleY", m_lastZoomFilterSettings->middleY);
     logVal(MODULE, "lastZoomFilterData->reverseSpeed",
            static_cast<uint32_t>(m_lastZoomFilterSettings->reverseSpeed));
-    logVal(MODULE, "lastZoomFilterData->hPlaneEffect", m_lastZoomFilterSettings->hPlaneEffect);
-    logVal(MODULE, "lastZoomFilterData->vPlaneEffect", m_lastZoomFilterSettings->vPlaneEffect);
-    logVal(MODULE, "lastZoomFilterData->waveEffect",
-           static_cast<uint32_t>(m_lastZoomFilterSettings->waveEffect));
-    logVal(MODULE, "lastZoomFilterData->hypercosEffect",
-           EnumToString(m_lastZoomFilterSettings->hypercosEffect));
-    logVal(MODULE, "lastZoomFilterData->noisify",
-           static_cast<uint32_t>(m_lastZoomFilterSettings->noisify));
-    logVal(MODULE, "lastZoomFilterData->noiseFactor",
-           static_cast<float>(m_lastZoomFilterSettings->noiseFactor));
-    logVal(MODULE, "lastZoomFilterData->blockyWavy",
-           static_cast<uint32_t>(m_lastZoomFilterSettings->blockyWavy));
-    logVal(MODULE, "lastZoomFilterData->waveFreqFactor", m_lastZoomFilterSettings->waveFreqFactor);
-    logVal(MODULE, "lastZoomFilterData->waveAmplitude", m_lastZoomFilterSettings->waveAmplitude);
-    logVal(MODULE, "lastZoomFilterData->waveEffectType",
-           EnumToString(m_lastZoomFilterSettings->waveEffectType));
-    logVal(MODULE, "lastZoomFilterData->scrunchAmplitude",
-           m_lastZoomFilterSettings->scrunchAmplitude);
-    logVal(MODULE, "lastZoomFilterData->speedwayAmplitude",
-           m_lastZoomFilterSettings->speedwayAmplitude);
+
     logVal(MODULE, "lastZoomFilterData->amuletteAmplitude",
            m_lastZoomFilterSettings->amuletAmplitude);
     logVal(MODULE, "lastZoomFilterData->crystalBallAmplitude",
            m_lastZoomFilterSettings->crystalBallAmplitude);
+    logVal(MODULE, "lastZoomFilterData->crystalBallSqDistOffset",
+           m_lastZoomFilterSettings->crystalBallSqDistOffset);
+    logVal(MODULE, "lastZoomFilterData->hPlaneEffect", m_lastZoomFilterSettings->hPlaneEffect);
+    logVal(MODULE, "lastZoomFilterData->vPlaneEffect", m_lastZoomFilterSettings->vPlaneEffect);
+    logVal(MODULE, "lastZoomFilterData->hPlaneEffectAmplitude",
+           m_lastZoomFilterSettings->hPlaneEffectAmplitude);
+    logVal(MODULE, "lastZoomFilterData->vPlaneEffectAmplitude",
+           m_lastZoomFilterSettings->vPlaneEffectAmplitude);
+    logVal(MODULE, "lastZoomFilterData->hypercosEffect",
+           EnumToString(m_lastZoomFilterSettings->hypercosEffect));
+    logVal(MODULE, "lastZoomFilterData->hypercosReverse",
+           static_cast<uint32_t>(m_lastZoomFilterSettings->hypercosReverse));
     logVal(MODULE, "lastZoomFilterData->hypercosFreqX", m_lastZoomFilterSettings->hypercosFreqX);
     logVal(MODULE, "lastZoomFilterData->hypercosFreqY", m_lastZoomFilterSettings->hypercosFreqY);
     logVal(MODULE, "lastZoomFilterData->hypercosAmplitudeX",
            m_lastZoomFilterSettings->hypercosAmplitudeX);
     logVal(MODULE, "lastZoomFilterData->hypercosAmplitudeY",
            m_lastZoomFilterSettings->hypercosAmplitudeY);
-    logVal(MODULE, "lastZoomFilterData->hPlaneEffectAmplitude",
-           m_lastZoomFilterSettings->hPlaneEffectAmplitude);
-    logVal(MODULE, "lastZoomFilterData->vPlaneEffectAmplitude",
-           m_lastZoomFilterSettings->vPlaneEffectAmplitude);
+    logVal(MODULE, "lastZoomFilterData->imageDisplacementFilename",
+           m_lastZoomFilterSettings->imageDisplacementFilename);
+    logVal(MODULE, "lastZoomFilterData->imageDisplacementAmplitude",
+           m_lastZoomFilterSettings->imageDisplacementAmplitude);
+    logVal(MODULE, "lastZoomFilterData->imageDisplacementXColorCutoff",
+           m_lastZoomFilterSettings->imageDisplacementXColorCutoff);
+    logVal(MODULE, "lastZoomFilterData->imageDisplacementYColorCutoff",
+           m_lastZoomFilterSettings->imageDisplacementYColorCutoff);
+    logVal(MODULE, "lastZoomFilterData->scrunchAmplitude",
+           m_lastZoomFilterSettings->scrunchAmplitude);
+    logVal(MODULE, "lastZoomFilterData->speedwayAmplitude",
+           m_lastZoomFilterSettings->speedwayAmplitude);
+    logVal(MODULE, "lastZoomFilterData->waveEffectType",
+           EnumToString(m_lastZoomFilterSettings->waveEffectType));
+    logVal(MODULE, "lastZoomFilterData->waveFreqFactor", m_lastZoomFilterSettings->waveFreqFactor);
+    logVal(MODULE, "lastZoomFilterData->waveAmplitude", m_lastZoomFilterSettings->waveAmplitude);
+
+    logVal(MODULE, "lastZoomFilterData->noisify",
+           static_cast<uint32_t>(m_lastZoomFilterSettings->noisify));
+    logVal(MODULE, "lastZoomFilterData->noiseFactor",
+           static_cast<float>(m_lastZoomFilterSettings->noiseFactor));
+    logVal(MODULE, "lastZoomFilterData->blockyWavy",
+           static_cast<uint32_t>(m_lastZoomFilterSettings->blockyWavy));
     logVal(MODULE, "lastZoomFilterData->rotateSpeed", m_lastZoomFilterSettings->rotateSpeed);
     logVal(MODULE, "lastZoomFilterData->tanEffect",
            static_cast<uint32_t>(m_lastZoomFilterSettings->tanEffect));
   }
-  logVal(MODULE, "numLockChanges", m_numLockChanges);
+
   logVal(MODULE, "numDoIFS", m_numDoIFS);
+  logVal(MODULE, "numIfsRenew", m_numIfsRenew);
   logVal(MODULE, "numDoDots", m_numDoDots);
   logVal(MODULE, "numDoLines", m_numDoLines);
   logVal(MODULE, "numDoStars", m_numDoStars);
   logVal(MODULE, "numDoTentacles", m_numDoTentacles);
   logVal(MODULE, "numDisabledTentacles", m_numDisabledTentacles);
+
+  logVal(MODULE, "numLockChanges", m_numLockChanges);
   logVal(MODULE, "numLastTimeGoomChanges", m_numLastTimeGoomChanges);
   logVal(MODULE, "numMegaLentChanges", m_numMegaLentChanges);
   logVal(MODULE, "numDoNoise", m_numDoNoise);
   logVal(MODULE, "numTurnOffNoise", m_numTurnOffNoise);
-  logVal(MODULE, "numIfsRenew", m_numIfsRenew);
   logVal(MODULE, "numChangeLineColor", m_numChangeLineColor);
   logVal(MODULE, "numSwitchLines", m_numSwitchLines);
   logVal(MODULE, "numBlockyWavy", m_numBlockyWavy);
