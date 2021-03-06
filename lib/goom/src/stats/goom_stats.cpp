@@ -175,6 +175,13 @@ void GoomStats::Log(const StatsLogValueFunc& logVal) const
            EnumToString(m_lastZoomFilterSettings->waveEffectType));
     logVal(MODULE, "lastZoomFilterData->waveFreqFactor", m_lastZoomFilterSettings->waveFreqFactor);
     logVal(MODULE, "lastZoomFilterData->waveAmplitude", m_lastZoomFilterSettings->waveAmplitude);
+    logVal(MODULE, "lastZoomFilterData->yOnlyEffect",
+           EnumToString(m_lastZoomFilterSettings->yOnlyEffect));
+    logVal(MODULE, "lastZoomFilterData->yOnlyAmplitude", m_lastZoomFilterSettings->yOnlyAmplitude);
+    logVal(MODULE, "lastZoomFilterData->yOnlyFreqFactor",
+           m_lastZoomFilterSettings->yOnlyFreqFactor);
+    logVal(MODULE, "lastZoomFilterData->yOnlyXFreqFactor",
+           m_lastZoomFilterSettings->yOnlyXFreqFactor);
 
     logVal(MODULE, "lastZoomFilterData->noisify",
            static_cast<uint32_t>(m_lastZoomFilterSettings->noisify));

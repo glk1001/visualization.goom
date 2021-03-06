@@ -139,6 +139,7 @@ private:
 
   auto GetCoeffVitesse(float xNormalized, float yNormalized, float sqDist) const -> float;
   auto GetWaveEffectCoeffVitesse(float sqDist) const -> float;
+  auto GetYOnlyCoeffVitesse(float xNormalized, float yNormalized) const -> float;
   auto GetClampedCoeffVitesse(float coeffVitesse) const -> float;
 
   void LogState(const std::string& name) const;
@@ -775,6 +776,7 @@ auto ZoomFilterFx::ZoomFilterImpl::GetCoeffVitesse([[maybe_unused]] const float 
     }
     case ZoomFilterMode::Y_ONLY_MODE:
     {
+      coeffVitesse *= GetYOnlyCoeffVitesse(xNormalized, yNormalized);
       break;
     }
       /* Amulette 2 */
@@ -807,6 +809,33 @@ auto ZoomFilterFx::ZoomFilterImpl::GetWaveEffectCoeffVitesse(const float sqDist)
       throw std::logic_error("Unknown WaveEffect enum");
   }
   return m_currentFilterSettings.waveAmplitude * periodicPart;
+}
+
+auto ZoomFilterFx::ZoomFilterImpl::GetYOnlyCoeffVitesse([[maybe_unused]] const float xNormalized,
+                                                        const float yNormalized) const -> float
+{
+  switch (m_currentFilterSettings.yOnlyEffect)
+  {
+    case ZoomFilterData::YOnlyEffect::XSIN_YSIN:
+      return m_currentFilterSettings.yOnlyAmplitude *
+             std::sin(m_currentFilterSettings.yOnlyXFreqFactor * xNormalized) *
+             std::sin(m_currentFilterSettings.yOnlyFreqFactor * yNormalized);
+    case ZoomFilterData::YOnlyEffect::XSIN_YCOS:
+      return m_currentFilterSettings.yOnlyAmplitude *
+             std::sin(m_currentFilterSettings.yOnlyXFreqFactor * xNormalized) *
+             std::cos(m_currentFilterSettings.yOnlyFreqFactor * yNormalized);
+    case ZoomFilterData::YOnlyEffect::XCOS_YSIN:
+      return m_currentFilterSettings.yOnlyAmplitude *
+             std::cos(m_currentFilterSettings.yOnlyXFreqFactor * xNormalized) *
+             std::sin(m_currentFilterSettings.yOnlyFreqFactor * yNormalized);
+    case ZoomFilterData::YOnlyEffect::XCOS_YCOS:
+      return m_currentFilterSettings.yOnlyAmplitude *
+             std::cos(m_currentFilterSettings.yOnlyXFreqFactor * xNormalized) *
+             std::cos(m_currentFilterSettings.yOnlyFreqFactor * yNormalized);
+    default:
+      throw std::logic_error(
+          std20::format("Switch: unhandled case '{}'.", m_currentFilterSettings.yOnlyEffect));
+  }
 }
 
 auto ZoomFilterFx::ZoomFilterImpl::GetClampedCoeffVitesse(const float coeffVitesse) const -> float

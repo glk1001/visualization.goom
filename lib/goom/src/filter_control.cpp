@@ -30,7 +30,7 @@ const Weights<ZoomFilterMode> FilterControl::WEIGHTED_FILTER_EVENTS{{
     { ZoomFilterMode::WAVE_MODE0,             5 },
     { ZoomFilterMode::WAVE_MODE1,             4 },
     { ZoomFilterMode::WATER_MODE,             0 },
-    { ZoomFilterMode::Y_ONLY_MODE,            4 },
+    { ZoomFilterMode::Y_ONLY_MODE,            4000000 },
 }};
 //@formatter:on
 // clang-format on
@@ -434,6 +434,17 @@ void FilterControl::SetWaveEffect(const MinMaxValues& minMaxFreq, const MinMaxVa
 void FilterControl::SetYOnlyModeSettings()
 {
   SetRotate(PROB_HALF);
+
+  m_filterData.yOnlyEffect = static_cast<ZoomFilterData::YOnlyEffect>(
+      GetRandInRange(static_cast<uint32_t>(ZoomFilterData::YOnlyEffect::NONE) + 1,
+                     static_cast<uint32_t>(ZoomFilterData::YOnlyEffect::_SIZE)));
+
+  m_filterData.yOnlyFreqFactor = GetRandInRange(ZoomFilterData::MIN_Y_ONLY_FREQ_FACTOR,
+                                                ZoomFilterData::MAX_Y_ONLY_FREQ_FACTOR);
+  m_filterData.yOnlyXFreqFactor = GetRandInRange(ZoomFilterData::MIN_Y_ONLY_X_FREQ_FACTOR,
+                                                 ZoomFilterData::MAX_Y_ONLY_X_FREQ_FACTOR);
+  m_filterData.yOnlyAmplitude =
+      GetRandInRange(ZoomFilterData::MIN_Y_ONLY_AMPLITUDE, ZoomFilterData::MAX_Y_ONLY_AMPLITUDE);
 
   using EventTypes = FilterControl::FilterEvents::FilterEventTypes;
   if (m_filterEvents->Happens(EventTypes::HYPERCOS_EFFECT))

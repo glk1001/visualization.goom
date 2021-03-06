@@ -184,6 +184,34 @@ struct ZoomFilterData
   static constexpr float MIN_SPEEDWAY_AMPLITUDE = 1;
   static constexpr float MAX_SPEEDWAY_AMPLITUDE = 8;
   float speedwayAmplitude = DEFAULT_SPEEDWAY_AMPLITUDE;
+
+  // Y Only
+  enum class YOnlyEffect
+  {
+    NONE,
+    XSIN_YSIN,
+    XSIN_YCOS,
+    XCOS_YSIN,
+    XCOS_YCOS,
+    _SIZE
+  };
+
+  YOnlyEffect yOnlyEffect = YOnlyEffect::XSIN_YSIN;
+
+  static constexpr float DEFAULT_Y_ONLY_X_FREQ_FACTOR = 1.0;
+  static constexpr float MIN_Y_ONLY_X_FREQ_FACTOR = -10.0;
+  static constexpr float MAX_Y_ONLY_X_FREQ_FACTOR = +10.0;
+  float yOnlyXFreqFactor = DEFAULT_Y_ONLY_X_FREQ_FACTOR;
+
+  static constexpr float DEFAULT_Y_ONLY_FREQ_FACTOR = 10.0;
+  static constexpr float MIN_Y_ONLY_FREQ_FACTOR = -10.0;
+  static constexpr float MAX_Y_ONLY_FREQ_FACTOR = +10.0;
+  float yOnlyFreqFactor = DEFAULT_Y_ONLY_FREQ_FACTOR;
+
+  static constexpr float DEFAULT_Y_ONLY_AMPLITUDE = 10.0;
+  static constexpr float MIN_Y_ONLY_AMPLITUDE = 0.1;
+  static constexpr float MAX_Y_ONLY_AMPLITUDE = 20.0;
+  float yOnlyAmplitude = DEFAULT_Y_ONLY_AMPLITUDE;
 };
 
 namespace UTILS
