@@ -2,6 +2,11 @@
 
 #include "goom/goom_plugin_info.h"
 #include "goomutils/goomrand.h"
+#include "image_displacement.h"
+
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 namespace GOOM
 {
@@ -121,21 +126,37 @@ inline auto FilterControl::FilterEvents::Happens(const FilterEventTypes event) -
   return ProbabilityOfMInN(weightedEvent.m, weightedEvent.outOf);
 }
 
-const std::vector<std::string> FilterControl::imageFilenames{
-    "pattern1.jpg", "pattern2.jpg", "pattern3.jpg", "chameleon-tail.jpg", "mountain_sunset.png",
-};
-
-inline auto FilterControl::GetNextDisplacementImageFilename() -> std::string
-{
-  return imageFilenames[GetRandInRange(0U, imageFilenames.size())];
-}
-
 FilterControl::FilterControl(const std::shared_ptr<const PluginInfo>& goomInfo) noexcept
   : m_goomInfo{goomInfo}, m_filterEvents{std::make_unique<FilterEvents>()}
 {
 }
 
 FilterControl::~FilterControl() noexcept = default;
+
+void FilterControl::Start()
+{
+  if (m_resourcesDirectory.empty())
+  {
+    throw std::logic_error("FilterControl::Start: Resources directory is empty.");
+  }
+
+  m_imageDisplacements.resize(IMAGE_FILENAMES.size());
+  for (size_t i = 0; i < IMAGE_FILENAMES.size(); i++)
+  {
+    m_imageDisplacements[i] =
+        std::make_shared<ImageDisplacement>(GetImageFilename(IMAGE_FILENAMES[i]));
+  }
+}
+
+const std::vector<std::string> FilterControl::IMAGE_FILENAMES{
+    "pattern1.jpg", "pattern2.jpg", "pattern3.jpg", "chameleon-tail.jpg", "mountain_sunset.png",
+};
+
+inline auto FilterControl::GetImageFilename(const std::string& imageFilename) -> std::string
+{
+  return m_resourcesDirectory + PATH_SEP + IMAGES_DIR + PATH_SEP + IMAGE_DISPLACEMENT_DIR +
+         PATH_SEP + imageFilename;
+}
 
 void FilterControl::SetRandomFilterSettings()
 {
@@ -254,7 +275,7 @@ void FilterControl::SetDefaultSettings()
   m_filterData.crystalBallAmplitude = ZoomFilterData::DEFAULT_CRYSTAL_BALL_AMPLITUDE;
   m_filterData.crystalBallSqDistOffset = ZoomFilterData::DEFAULT_CRYSTAL_BALL_SQ_DIST_OFFSET;
   m_filterData.imageDisplacementAmplitude = ZoomFilterData::DEFAULT_IMAGE_DISPL_AMPLITUDE;
-  m_filterData.imageDisplacementFilename = "";
+  m_filterData.imageDisplacement = nullptr;
   m_filterData.scrunchAmplitude = ZoomFilterData::DEFAULT_SCRUNCH_AMPLITUDE;
   m_filterData.speedwayAmplitude = ZoomFilterData::DEFAULT_SPEEDWAY_AMPLITUDE;
 
@@ -327,7 +348,8 @@ void FilterControl::SetHypercos2ModeSettings()
 
 void FilterControl::SetImageDisplacementModeSettings()
 {
-  m_filterData.imageDisplacementFilename = GetNextDisplacementImageFilename();
+  m_filterData.imageDisplacement =
+      m_imageDisplacements[GetRandInRange(0U, m_imageDisplacements.size())];
 
   m_filterData.imageDisplacementAmplitude = GetRandInRange(
       ZoomFilterData::MIN_IMAGE_DISPL_AMPLITUDE, ZoomFilterData::MAX_IMAGE_DISPL_AMPLITUDE);

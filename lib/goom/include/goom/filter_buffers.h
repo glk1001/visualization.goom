@@ -39,6 +39,7 @@ public:
 
   enum class TranBufferState
   {
+    _NULL = -1,
     RESTART_TRAN_BUFFER,
     RESET_TRAN_BUFFER,
     TRAN_BUFFER_READY,

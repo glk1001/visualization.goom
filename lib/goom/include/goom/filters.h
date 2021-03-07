@@ -10,6 +10,8 @@
 namespace GOOM
 {
 
+class ImageDisplacement;
+
 enum class ZoomFilterMode
 {
   _NULL = -1,
@@ -140,7 +142,7 @@ struct ZoomFilterData
   static constexpr float MIN_IMAGE_DISPL_AMPLITUDE = 0.0025;
   static constexpr float MAX_IMAGE_DISPL_AMPLITUDE = 0.1000;
   float imageDisplacementAmplitude = DEFAULT_IMAGE_DISPL_AMPLITUDE;
-  std::string imageDisplacementFilename{};
+  std::shared_ptr<ImageDisplacement> imageDisplacement{};
   static constexpr float MIN_IMAGE_DISPL_COLOR_CUTOFF = 0.1;
   static constexpr float MAX_IMAGE_DISPL_COLOR_CUTOFF = 0.9;
   static constexpr float DEFAULT_IMAGE_DISPL_COLOR_CUTOFF = 0.5;

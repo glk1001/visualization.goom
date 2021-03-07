@@ -2,6 +2,7 @@
 
 #include "goom/goom_config.h"
 #include "goomutils/strutils.h"
+#include "image_displacement.h"
 
 #include <chrono>
 #include <cmath>
@@ -19,7 +20,17 @@ void FilterStats::Reset()
   m_totalTimeInUpdatesMs = 0;
   m_minTimeInUpdatesMs = std::numeric_limits<uint32_t>::max();
   m_maxTimeInUpdatesMs = 0;
-  m_timeNowHiRes = std::chrono::high_resolution_clock::now();
+  m_startUpdateTime = std::chrono::high_resolution_clock::now();
+
+  m_numTranBuffersUpdates = 0;
+  m_totalTimeInTranBuffersUpdatesMs = 0;
+  m_minTimeInTranBuffersUpdatesMs = std::numeric_limits<uint32_t>::max();
+  m_maxTimeInTranBuffersUpdatesMs = 0;
+  m_startTranBuffersUpdateTime = std::chrono::high_resolution_clock::now();
+  m_modeAtMinTimeOfTranBuffersUpdate = ZoomFilterMode::_NULL;
+  m_bufferStateAtMinTimeOfTranBuffersUpdate = ZoomFilterBuffers::TranBufferState::_NULL;
+  m_modeAtMaxTimeOfTranBuffersUpdate = ZoomFilterMode::_NULL;
+  m_bufferStateAtMaxTimeOfTranBuffersUpdate = ZoomFilterBuffers::TranBufferState::_NULL;
 
   m_numChangeFilterSettings = 0;
   m_numZoomVectors = 0;
@@ -53,6 +64,22 @@ void FilterStats::Log(const StatsLogValueFunc& logVal) const
   logVal(MODULE, "avTimeInUpdateMs", avTimeInUpdateMs);
   logVal(MODULE, "minTimeInUpdatesMs", m_minTimeInUpdatesMs);
   logVal(MODULE, "maxTimeInUpdatesMs", m_maxTimeInUpdatesMs);
+
+  const auto avTimeInTranBuffersUpdateMs = static_cast<int32_t>(std::lround(
+      m_numTranBuffersUpdates == 0 ? -1.0
+                                   : static_cast<float>(m_totalTimeInTranBuffersUpdatesMs) /
+                                         static_cast<float>(m_numTranBuffersUpdates)));
+  logVal(MODULE, "avTimeInTranBuffersUpdateMs", avTimeInTranBuffersUpdateMs);
+  logVal(MODULE, "minTimeInTranBuffersUpdatesMs", m_minTimeInTranBuffersUpdatesMs);
+  logVal(MODULE, "maxTimeInTranBuffersUpdatesMs", m_maxTimeInTranBuffersUpdatesMs);
+  logVal(MODULE, "m_modeAtMinTimeOfTranBuffersUpdate",
+         EnumToString(m_modeAtMinTimeOfTranBuffersUpdate));
+  logVal(MODULE, "m_modeAtMaxTimeOfTranBuffersUpdate",
+         EnumToString(m_modeAtMaxTimeOfTranBuffersUpdate));
+  logVal(MODULE, "m_bufferStateAtMinTimeOfTranBuffersUpdate",
+         EnumToString(m_bufferStateAtMinTimeOfTranBuffersUpdate));
+  logVal(MODULE, "m_bufferStateAtMaxTimeOfTranBuffersUpdate",
+         EnumToString(m_bufferStateAtMaxTimeOfTranBuffersUpdate));
 
   logVal(MODULE, "lastJustChangedFilterSettings",
          static_cast<uint32_t>(m_lastJustChangedFilterSettings));
@@ -98,8 +125,15 @@ void FilterStats::Log(const StatsLogValueFunc& logVal) const
            m_lastZoomFilterSettings->hypercosAmplitudeX);
     logVal(MODULE, "lastZoomFilterData->hypercosAmplitudeY",
            m_lastZoomFilterSettings->hypercosAmplitudeY);
-    logVal(MODULE, "lastZoomFilterData->imageDisplacementFilename",
-           m_lastZoomFilterSettings->imageDisplacementFilename);
+    if (m_lastZoomFilterSettings->imageDisplacement == nullptr)
+    {
+      logVal(MODULE, "lastZoomFilterData->imageDisplacementFilename", std::string(""));
+    }
+    else
+    {
+      logVal(MODULE, "lastZoomFilterData->imageDisplacementFilename",
+             m_lastZoomFilterSettings->imageDisplacement->GetImageFilename());
+    }
     logVal(MODULE, "lastZoomFilterData->imageDisplacementAmplitude",
            m_lastZoomFilterSettings->imageDisplacementAmplitude);
     logVal(MODULE, "lastZoomFilterData->imageDisplacementXColorCutoff",
@@ -156,7 +190,7 @@ void FilterStats::Log(const StatsLogValueFunc& logVal) const
 
 void FilterStats::UpdateStart()
 {
-  m_timeNowHiRes = std::chrono::high_resolution_clock::now();
+  m_startUpdateTime = std::chrono::high_resolution_clock::now();
   m_numUpdates++;
 }
 
@@ -165,7 +199,7 @@ void FilterStats::UpdateEnd()
   const auto timeNow = std::chrono::high_resolution_clock::now();
 
   using Ms = std::chrono::milliseconds;
-  const Ms diff = std::chrono::duration_cast<Ms>(timeNow - m_timeNowHiRes);
+  const Ms diff = std::chrono::duration_cast<Ms>(timeNow - m_startUpdateTime);
   const auto timeInUpdateMs = static_cast<uint32_t>(diff.count());
   if (timeInUpdateMs < m_minTimeInUpdatesMs)
   {
@@ -176,6 +210,35 @@ void FilterStats::UpdateEnd()
     m_maxTimeInUpdatesMs = timeInUpdateMs;
   }
   m_totalTimeInUpdatesMs += timeInUpdateMs;
+}
+
+void FilterStats::UpdateTranBufferStart()
+{
+  m_startTranBuffersUpdateTime = std::chrono::high_resolution_clock::now();
+  m_numTranBuffersUpdates++;
+}
+
+void FilterStats::UpdateTranBufferEnd(const ZoomFilterMode mode,
+                                      const ZoomFilterBuffers::TranBufferState bufferState)
+{
+  const auto timeNow = std::chrono::high_resolution_clock::now();
+
+  using Ms = std::chrono::milliseconds;
+  const Ms diff = std::chrono::duration_cast<Ms>(timeNow - m_startTranBuffersUpdateTime);
+  const auto timeInUpdateMs = static_cast<uint32_t>(diff.count());
+  if (timeInUpdateMs < m_minTimeInTranBuffersUpdatesMs)
+  {
+    m_minTimeInTranBuffersUpdatesMs = timeInUpdateMs;
+    m_modeAtMinTimeOfTranBuffersUpdate = mode;
+    m_bufferStateAtMinTimeOfTranBuffersUpdate = bufferState;
+  }
+  else if (timeInUpdateMs > m_maxTimeInTranBuffersUpdatesMs)
+  {
+    m_maxTimeInTranBuffersUpdatesMs = timeInUpdateMs;
+    m_modeAtMaxTimeOfTranBuffersUpdate = mode;
+    m_bufferStateAtMaxTimeOfTranBuffersUpdate = bufferState;
+  }
+  m_totalTimeInTranBuffersUpdatesMs += timeInUpdateMs;
 }
 
 void FilterStats::DoChangeFilterSettings()

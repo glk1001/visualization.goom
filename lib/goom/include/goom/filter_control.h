@@ -21,6 +21,11 @@ public:
   auto operator=(const FilterControl&) -> FilterControl& = delete;
   auto operator=(FilterControl&&) -> FilterControl& = delete;
 
+  [[nodiscard]] auto GetResourcesDirectory() const -> const std::string&;
+  void SetResourcesDirectory(const std::string& dirName);
+
+  void Start();
+
   auto GetHasChangedSinceMark() const -> bool;
   void ClearUnchangedMark();
 
@@ -50,8 +55,10 @@ private:
   class FilterEvents;
   std::unique_ptr<FilterEvents> m_filterEvents;
   bool m_hasChanged = false;
-  static const std::vector<std::string> imageFilenames;
-  static auto GetNextDisplacementImageFilename() -> std::string;
+  std::string m_resourcesDirectory{};
+  static const std::vector<std::string> IMAGE_FILENAMES;
+  auto GetImageFilename(const std::string& imageFilename) -> std::string;
+  std::vector<std::shared_ptr<ImageDisplacement>> m_imageDisplacements{};
 
   auto GetNewRandomMode() const -> ZoomFilterMode;
 
@@ -85,6 +92,16 @@ private:
   void SetWaveEffect(const MinMaxValues& minMaxFreq, const MinMaxValues& minMaxAmp);
   auto GetRandomHypercosEffect() const -> ZoomFilterData::HypercosEffect;
 };
+
+inline auto FilterControl::GetResourcesDirectory() const -> const std::string&
+{
+  return m_resourcesDirectory;
+}
+
+inline void FilterControl::SetResourcesDirectory(const std::string& dirName)
+{
+  m_resourcesDirectory = dirName;
+}
 
 inline auto FilterControl::GetFilterSettings() const -> const ZoomFilterData&
 {

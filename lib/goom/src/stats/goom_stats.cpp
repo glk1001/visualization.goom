@@ -3,6 +3,7 @@
 #include "goom/filters.h"
 #include "goomutils/logging.h"
 #include "goomutils/strutils.h"
+#include "image_displacement.h"
 
 #include <array>
 #include <chrono>
@@ -159,8 +160,15 @@ void GoomStats::Log(const StatsLogValueFunc& logVal) const
            m_lastZoomFilterSettings->hypercosAmplitudeX);
     logVal(MODULE, "lastZoomFilterData->hypercosAmplitudeY",
            m_lastZoomFilterSettings->hypercosAmplitudeY);
-    logVal(MODULE, "lastZoomFilterData->imageDisplacementFilename",
-           m_lastZoomFilterSettings->imageDisplacementFilename);
+    if (m_lastZoomFilterSettings->imageDisplacement == nullptr)
+    {
+      logVal(MODULE, "lastZoomFilterData->imageDisplacementFilename", std::string(""));
+    }
+    else
+    {
+      logVal(MODULE, "lastZoomFilterData->imageDisplacementFilename",
+             m_lastZoomFilterSettings->imageDisplacement->GetImageFilename());
+    }
     logVal(MODULE, "lastZoomFilterData->imageDisplacementAmplitude",
            m_lastZoomFilterSettings->imageDisplacementAmplitude);
     logVal(MODULE, "lastZoomFilterData->imageDisplacementXColorCutoff",

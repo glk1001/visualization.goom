@@ -16,6 +16,7 @@ using UTILS::ProbabilityOfMInN;
 
 ImageDisplacement::ImageDisplacement(const std::string& imageFilename)
   : m_imageBuffer(std::make_unique<ImageBitmap>(imageFilename)),
+    m_imageFilename{imageFilename},
     m_xMax{static_cast<int32_t>(m_imageBuffer->GetWidth() - 1)},
     m_yMax{static_cast<int32_t>(m_imageBuffer->GetHeight() - 1)},
     m_ratioNormalizedXCoordToImageCoord{

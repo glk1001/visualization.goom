@@ -1,6 +1,7 @@
 #ifndef VISUALIZATION_GOOM_STATS_FILTER_STATS_H
 #define VISUALIZATION_GOOM_STATS_FILTER_STATS_H
 
+#include "goom/filter_buffers.h"
 #include "goom/filters.h"
 #include "goom/goom_config.h"
 
@@ -30,6 +31,9 @@ public:
   void UpdateStart();
   void UpdateEnd();
 
+  void UpdateTranBufferStart();
+  void UpdateTranBufferEnd(ZoomFilterMode mode, ZoomFilterBuffers::TranBufferState bufferState);
+
   void DoChangeFilterSettings();
   void DoZoomFilterFastRgb();
   void DoCZoom();
@@ -51,11 +55,25 @@ public:
   void DoZoomVectorCoeffVitesseAboveMax();
 
 private:
+  using TimePoint = std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>;
+
   uint32_t m_numUpdates = 0;
   uint64_t m_totalTimeInUpdatesMs = 0;
   uint32_t m_minTimeInUpdatesMs = std::numeric_limits<uint32_t>::max();
   uint32_t m_maxTimeInUpdatesMs = 0;
-  std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> m_timeNowHiRes{};
+  TimePoint m_startUpdateTime{};
+
+  uint32_t m_numTranBuffersUpdates = 0;
+  uint64_t m_totalTimeInTranBuffersUpdatesMs = 0;
+  uint32_t m_minTimeInTranBuffersUpdatesMs = std::numeric_limits<uint32_t>::max();
+  uint32_t m_maxTimeInTranBuffersUpdatesMs = 0;
+  TimePoint m_startTranBuffersUpdateTime{};
+  ZoomFilterMode m_modeAtMinTimeOfTranBuffersUpdate{ZoomFilterMode::_NULL};
+  ZoomFilterBuffers::TranBufferState m_bufferStateAtMinTimeOfTranBuffersUpdate{
+      ZoomFilterBuffers::TranBufferState::_NULL};
+  ZoomFilterMode m_modeAtMaxTimeOfTranBuffersUpdate{ZoomFilterMode::_NULL};
+  ZoomFilterBuffers::TranBufferState m_bufferStateAtMaxTimeOfTranBuffersUpdate{
+      ZoomFilterBuffers::TranBufferState::_NULL};
 
   bool m_lastJustChangedFilterSettings = false;
   float m_lastGeneralSpeed = -1000.0;

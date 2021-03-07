@@ -100,7 +100,6 @@ private:
   std::string m_resourcesDirectory{};
   float m_generalSpeed;
   float m_maxCoeffVitesse = ZoomFilterData::DEFAULT_MAX_COEF_VITESSE;
-  std::unique_ptr<ImageDisplacement> m_imageDisplacement{};
   auto GetImageFilename(const std::string& imageFilename) -> std::string;
 
   Parallel* const m_parallel;
@@ -369,8 +368,6 @@ void ZoomFilterFx::ZoomFilterImpl::ChangeFilterSettings(const ZoomFilterData& fi
   m_pendingFilterSettings = true;
 }
 
-constexpr const char* IMAGE_DISPLACEMENT_DIR = "displacements";
-
 inline auto ZoomFilterFx::ZoomFilterImpl::GetImageFilename(const std::string& imageFilename)
     -> std::string
 {
@@ -423,6 +420,8 @@ void ZoomFilterFx::ZoomFilterImpl::ZoomFilterFastRgb(const PixelBuffer& pix1,
 
 void ZoomFilterFx::ZoomFilterImpl::UpdateTranBuffer()
 {
+  m_stats.UpdateTranBufferStart();
+
   m_filterBuffers.UpdateTranBuffer();
 
   if (m_filterBuffers.GetTranBufferState() == ZoomFilterBuffers::TranBufferState::RESET_TRAN_BUFFER)
@@ -434,6 +433,8 @@ void ZoomFilterFx::ZoomFilterImpl::UpdateTranBuffer()
   {
     RestartTranBuffer();
   }
+
+  m_stats.UpdateTranBufferEnd(m_currentFilterSettings.mode, m_filterBuffers.GetTranBufferState());
 }
 
 void ZoomFilterFx::ZoomFilterImpl::RestartTranBuffer()
@@ -463,12 +464,11 @@ void ZoomFilterFx::ZoomFilterImpl::RestartTranBuffer()
 
   m_maxCoeffVitesse = GetRandInRange(0.5F, 1.0F) * ZoomFilterData::MAX_MAX_COEF_VITESSE;
 
-  if (!m_currentFilterSettings.imageDisplacementFilename.empty())
+  if (m_currentFilterSettings.imageDisplacement != nullptr)
   {
-    m_imageDisplacement = std::make_unique<ImageDisplacement>(
-        GetImageFilename(m_currentFilterSettings.imageDisplacementFilename));
-    m_imageDisplacement->SetXYColorCutoffs(m_currentFilterSettings.imageDisplacementXColorCutoff,
-                                           m_currentFilterSettings.imageDisplacementXColorCutoff);
+    m_currentFilterSettings.imageDisplacement->SetXyColorCutoffs(
+        m_currentFilterSettings.imageDisplacementXColorCutoff,
+        m_currentFilterSettings.imageDisplacementXColorCutoff);
   }
 }
 
@@ -721,13 +721,13 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetCoeffVitesseVelocity(const float xN
 inline auto ZoomFilterFx::ZoomFilterImpl::GetImageDisplacementVelocity(
     const float xNormalized, const float yNormalized) const -> V2dFlt
 {
-  if (!m_imageDisplacement)
+  if (m_currentFilterSettings.imageDisplacement == nullptr)
   {
     throw std::logic_error("No image displacement map setup.");
   }
 
   const V2dFlt displacement =
-      m_imageDisplacement->GetDisplacementVector({xNormalized, yNormalized});
+      m_currentFilterSettings.imageDisplacement->GetDisplacementVector({xNormalized, yNormalized});
   return m_currentFilterSettings.imageDisplacementAmplitude * displacement;
 }
 

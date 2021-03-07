@@ -867,6 +867,9 @@ void GoomControl::GoomControlImpl::Start()
   m_visualFx.ifs_fx->SetSmallImageBitmaps(m_smallBitmaps);
   m_visualFx.star_fx->SetSmallImageBitmaps(m_smallBitmaps);
 
+  m_filterControl.SetResourcesDirectory(m_resourcesDirectory);
+  m_filterControl.Start();
+
   SetNextFilterMode();
   m_visualFx.zoomFilter_fx->ChangeFilterSettings(m_filterControl.GetFilterSettings());
   m_stats.DoChangeFilterMode(m_filterControl.GetFilterSettings().mode);
