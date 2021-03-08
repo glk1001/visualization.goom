@@ -4,10 +4,13 @@
 #include "goom_config.h"
 
 #include <cstdint>
+#include <memory>
 #include <vector>
 
 namespace GOOM
 {
+
+class SoundStats;
 
 class AudioSamples
 {
@@ -15,11 +18,11 @@ public:
   static constexpr size_t NUM_CHANNELS = 2;
 
   // AudioSample object: numSampleChannels = 1 or 2.
-  //   If numSampleChannels = 1, then the first  AUDIO_SAMPLE_LEN values of
-  //   'floatAudioData' are used to for two channels
-  //   If numSampleChannels = 2, then the 'floatAudioData' must interleave the two channels
-  //   one after the other. So 'floatAudioData[0]' is channel 0, 'floatAudioData[1]'
-  //   is channel 1, 'floatAudioData[2]' is channel 0, 'floatAudioData[3]' is channel 1, etc.
+  //   If numSampleChannels = 1, then the first  AUDIO_SAMPLE_LEN values of 'floatAudioData'
+  //   are used to for two channels.
+  //   If numSampleChannels = 2, then the 'floatAudioData' must interleave the two channels,
+  //   one after the other. So 'floatAudioData[0]' is channel 0, 'floatAudioData[1]' is
+  //   channel 1, 'floatAudioData[2]' is channel 0, 'floatAudioData[3]' is channel 1, etc.
   AudioSamples(size_t numSampleChannels,
                const float floatAudioData[NUM_AUDIO_SAMPLES * AUDIO_SAMPLE_LEN]);
 
@@ -49,49 +52,65 @@ public:
   [[nodiscard]] auto GetTimeSinceLastGoom() const -> uint32_t; // >= 0
   [[nodiscard]] auto GetTimeSinceLastBigGoom() const -> uint32_t; // >= 0
 
-  // number of goom since last reset (every 'cycleTime')
-  [[nodiscard]] auto GetTotalGoom() const -> uint32_t;
+  // Number of Gooms since last reset (every 'CYCLE_TIME')
+  [[nodiscard]] auto GetTotalGoomsInCurrentCycle() const -> uint32_t;
 
-  // power of the last Goom [0..1]
+  // Power of the last Goom [0..1]
   [[nodiscard]] auto GetGoomPower() const -> float;
 
-  [[nodiscard]] auto GetVolume() const -> float; // [0..1]
+  // Volume of the sound [0..1]
+  [[nodiscard]] auto GetVolume() const -> float;
 
-  // speed of the sound [0..100]
+  // Speed of the sound [0..1]
   [[nodiscard]] auto GetSpeed() const -> float;
 
-  // acceleration of the sound [0..1]
+  // Acceleration of the sound [0..1]
   [[nodiscard]] auto GetAcceleration() const -> float;
 
   [[nodiscard]] auto GetAllTimesMaxVolume() const -> int16_t;
   [[nodiscard]] auto GetAllTimesMinVolume() const -> int16_t;
 
-private:
-  uint32_t m_timeSinceLastGoom = 0;
-  uint32_t m_timeSinceLastBigGoom = 0;
-  float m_goomLimit = 1.0F; // auto-updated limit of goom_detection
-  float m_bigGoomLimit = 1.0F;
-  static constexpr float BIG_GOOM_SPEED_LIMIT = 10.0F;
-  static constexpr float BIG_GOOM_FACTOR = 10.0F;
-  float m_goomPower = 0.0F;
-  uint32_t m_totalGoom = 0;
-  static constexpr uint32_t CYCLE_TIME = 64;
-  uint32_t m_cycle = 0;
+  void Log(const StatsLogValueFunc& l) const;
 
-  static constexpr uint32_t BIG_GOOM_DURATION = 100;
-  // static constexpr float BIG_GOOM_SPEED_LIMIT = 0.1;
+private:
+  std::shared_ptr<SoundStats> m_stats{};
+
+  uint32_t m_updateNum = 0;
+  uint32_t m_totalGoomsInCurrentCycle = 0;
+  static constexpr uint32_t CYCLE_TIME = 64;
+  uint32_t m_timeSinceLastGoom = 0;
+  static constexpr uint32_t MAX_BIG_GOOM_DURATION = 100;
+  uint32_t m_timeSinceLastBigGoom = 0;
+  static constexpr float BIG_GOOM_SPEED_LIMIT = 0.10;
+  static constexpr float BIG_GOOM_FACTOR = 1.01;
+  float m_goomLimit = 1.0; // auto-updated limit of goom_detection
+  float m_bigGoomLimit = 1.0;
+  float m_goomPower = 0.0;
+
   static constexpr float ACCELERATION_MULTIPLIER = 0.95;
   static constexpr float SPEED_MULTIPLIER = 0.99;
 
-  float m_volume = 0.0F;
-  float m_acceleration = 0.0F;
-  float m_speed = 0.0F;
+  float m_volume = 0.0;
+  float m_acceleration = 0.0;
+  float m_speed = 0.0;
 
-  int16_t m_allTimesMaxVolume{};
-  int16_t m_allTimesMinVolume{};
+  int16_t m_allTimesMaxVolume = 0;
+  int16_t m_allTimesMinVolume = 0;
   int16_t m_allTimesPositiveMaxVolume = 1;
   float m_maxAccelSinceLastReset = 0.0F;
+
+  void UpdateVolume(const AudioSamples& samples);
+  void UpdateAcceleration();
+  void UpdateSpeed(float prevAcceleration);
+  void UpdateLastGoom();
+  void UpdateLastBigGoom();
+  void UpdateGoomLimit();
 };
+
+inline auto SoundInfo::GetTotalGoomsInCurrentCycle() const -> uint32_t
+{
+  return m_totalGoomsInCurrentCycle;
+}
 
 inline auto SoundInfo::GetTimeSinceLastGoom() const -> uint32_t
 {
@@ -103,9 +122,9 @@ inline auto SoundInfo::GetTimeSinceLastBigGoom() const -> uint32_t
   return m_timeSinceLastBigGoom;
 }
 
-inline auto SoundInfo::GetGoomPower() const -> float
+inline auto SoundInfo::GetVolume() const -> float
 {
-  return m_goomPower;
+  return m_volume;
 }
 
 inline auto SoundInfo::GetSpeed() const -> float
@@ -118,16 +137,6 @@ inline auto SoundInfo::GetAcceleration() const -> float
   return m_acceleration;
 }
 
-inline auto SoundInfo::GetTotalGoom() const -> uint32_t
-{
-  return m_totalGoom;
-}
-
-inline auto SoundInfo::GetVolume() const -> float
-{
-  return m_volume;
-}
-
 inline auto SoundInfo::GetAllTimesMaxVolume() const -> int16_t
 {
   return m_allTimesMaxVolume;
@@ -136,6 +145,11 @@ inline auto SoundInfo::GetAllTimesMaxVolume() const -> int16_t
 inline auto SoundInfo::GetAllTimesMinVolume() const -> int16_t
 {
   return m_allTimesMinVolume;
+}
+
+inline auto SoundInfo::GetGoomPower() const -> float
+{
+  return m_goomPower;
 }
 
 } // namespace GOOM

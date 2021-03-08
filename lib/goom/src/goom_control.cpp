@@ -62,7 +62,7 @@ using namespace GOOM::UTILS;
 
 constexpr int32_t STOP_SPEED = 128;
 // TODO: put that as variable in PluginInfo
-constexpr int32_t TIME_BETWEEN_CHANGE = 200;
+constexpr int32_t MAX_TIME_BETWEEN_ZOOM_EFFECTS_CHANGE = 200;
 
 enum class GoomDrawable
 {
@@ -524,7 +524,7 @@ struct GoomData
 {
   int32_t lockVar = 0; // pour empecher de nouveaux changements
   int32_t stopLines = 0;
-  int32_t cyclesSinceLastChange = 0; // nombre de Cycle Depuis Dernier Changement
+  int32_t updatesSinceLastZoomEffectsChange = 0; // nombre de Cycle Depuis Dernier Changement
   // duree de la transition entre afficher les lignes ou pas
   int32_t drawLinesDuration = LinesFx::MIN_LINE_DURATION;
   int32_t lineMode = LinesFx::MIN_LINE_DURATION; // l'effet lineaire a dessiner
@@ -892,6 +892,8 @@ void GoomControl::GoomControlImpl::Finish()
     v->Log(GoomStats::LogStatsValue);
   }
 
+  m_goomInfo->GetSoundInfo().Log(GoomStats::LogStatsValue);
+
   m_stats.SetStateLastValue(m_states.GetCurrentStateIndex());
   m_stats.SetZoomFilterLastValue(&m_filterControl.GetFilterSettings());
   m_stats.SetSeedLastValue(GetRandSeed());
@@ -1000,7 +1002,7 @@ void GoomControl::GoomControlImpl::SetLockVar(const int32_t val)
 void GoomControl::GoomControlImpl::ChangeFilterModeIfMusicChanges()
 {
   if ((m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom() == 0) ||
-      (m_goomData.cyclesSinceLastChange > TIME_BETWEEN_CHANGE))
+      (m_goomData.updatesSinceLastZoomEffectsChange > MAX_TIME_BETWEEN_ZOOM_EFFECTS_CHANGE))
   {
     logDebug("Try to change the filter mode.");
     if (ChangeFilterModeEventHappens())
@@ -1101,14 +1103,9 @@ void GoomControl::GoomControlImpl::SetNextState()
 
 void GoomControl::GoomControlImpl::BigBreakIfMusicIsCalm()
 {
-  logDebug("sound GetSpeed() = {:.2}, m_filterControl.GetFilterSettings().vitesse = {}, "
-           "cycle = {}",
-           m_goomInfo->GetSoundInfo().GetSpeed(), m_filterControl.GetFilterSettings().vitesse,
-           m_cycle);
   if ((m_goomInfo->GetSoundInfo().GetSpeed() < 0.01F) &&
       (m_filterControl.GetFilterSettings().vitesse < (STOP_SPEED - 4)) && (m_cycle % 16 == 0))
   {
-    logDebug("sound GetSpeed() = {:.2}", m_goomInfo->GetSoundInfo().GetSpeed());
     BigBreak();
   }
 }
@@ -1130,12 +1127,12 @@ void GoomControl::GoomControlImpl::BigUpdate()
 {
   m_stats.DoBigUpdate();
 
-  // reperage de goom (acceleration forte de l'acceleration du volume)
-  //   -> coup de boost de la vitesse si besoin..
-  logDebug("sound GetTimeSinceLastGoom() = {}", m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom());
+  // Reperage de goom (acceleration forte de l'acceleration du volume).
+  // Coup de boost de la vitesse si besoin.
+  // Goom tracking (strong acceleration of volume acceleration).
+  // Speed boost if needed.
   if (m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom() == 0)
   {
-    logDebug("sound GetTimeSinceLastGoom() = 0.");
     m_stats.LastTimeGoomChange();
     BigNormalUpdate();
   }
@@ -1201,8 +1198,6 @@ void GoomControl::GoomControlImpl::ChangeVitesse()
       STOP_SPEED + 1 -
       static_cast<int32_t>(
           std::lround(3.5F * std::log10(m_goomInfo->GetSoundInfo().GetSpeed() * 500.0F + 1.0F)));
-  logDebug("vitesse = {}, newvit = {}, Speed = {}", m_filterControl.GetFilterSettings().vitesse,
-           newvit, m_goomInfo->GetSoundInfo().GetSpeed());
   if (newvit < m_filterControl.GetFilterSettings().vitesse)
   {
     // on accelere
@@ -1335,12 +1330,25 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect()
   ChangeBlockyWavy();
   ChangeAllowOverexposed();
 
-  if (m_filterControl.GetHasChangedSinceMark())
+  if (!m_filterControl.GetSettingsChangedSinceMark())
   {
-    m_goomData.cyclesSinceLastChange = 0;
+    if (m_goomData.updatesSinceLastZoomEffectsChange > MAX_TIME_BETWEEN_ZOOM_EFFECTS_CHANGE)
+    {
+      m_goomData.updatesSinceLastZoomEffectsChange = 0;
+
+      ChangeRotation();
+      DoIfsRenew();
+    }
+    else
+    {
+      m_goomData.updatesSinceLastZoomEffectsChange++;
+    }
+  }
+  else
+  {
+    m_goomData.updatesSinceLastZoomEffectsChange = 0;
     m_goomData.switchIncr = GoomData::SWITCH_INCR_AMOUNT;
 
-    logDebug("vitesse = {}", m_filterControl.GetFilterSettings().vitesse);
     int diff = m_filterControl.GetFilterSettings().vitesse - m_goomData.previousZoomSpeed;
     if (diff < 0)
     {
@@ -1355,31 +1363,13 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect()
     m_goomData.switchMult = 1.0F;
 
     if (m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom() == 0 &&
-        m_goomInfo->GetSoundInfo().GetTotalGoom() < 2)
+        m_goomInfo->GetSoundInfo().GetTotalGoomsInCurrentCycle() < 2)
     {
       m_goomData.switchIncr = 0;
       m_goomData.switchMult = GoomData::SWITCH_MULT_AMOUNT;
 
       ChangeRotation();
       DoIfsRenew();
-    }
-  }
-  else
-  {
-    logDebug("goomData.cyclesSinceLastChange = {}", m_goomData.cyclesSinceLastChange);
-    logDebug("vitesse = {}", m_filterControl.GetFilterSettings().vitesse);
-    if (m_goomData.cyclesSinceLastChange > TIME_BETWEEN_CHANGE)
-    {
-      logDebug("goomData.cyclesSinceLastChange = {} > {} = timeBetweenChange",
-               m_goomData.cyclesSinceLastChange, TIME_BETWEEN_CHANGE);
-      m_goomData.cyclesSinceLastChange = 0;
-
-      ChangeRotation();
-      DoIfsRenew();
-    }
-    else
-    {
-      m_goomData.cyclesSinceLastChange++;
     }
   }
 }
@@ -1427,7 +1417,7 @@ void GoomControl::GoomControlImpl::RegularlyLowerTheSpeed()
 
 void GoomControl::GoomControlImpl::ApplyZoom()
 {
-  if (m_filterControl.GetHasChangedSinceMark())
+  if (m_filterControl.GetSettingsChangedSinceMark())
   {
     if (m_filterControl.GetFilterSettings().mode !=
         m_visualFx.zoomFilter_fx->GetFilterSettings().mode)

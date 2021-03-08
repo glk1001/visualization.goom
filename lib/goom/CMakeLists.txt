@@ -39,6 +39,7 @@ add_library(${PROJECT_NAME}
         src/stats/filter_stats.cpp
         src/stats/goom_stats.cpp
         src/stats/ifs_stats.cpp
+        src/stats/sound_stats.cpp
         src/stats/stars_stats.cpp
         src/stats/tentacles_stats.cpp
         src/tentacles_fx.cpp

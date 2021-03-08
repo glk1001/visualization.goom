@@ -1,7 +1,11 @@
 #include "sound_info.h"
 
 #include "goom_config.h"
+#include "goomutils/mathutils.h"
+#include "stats/sound_stats.h"
 
+#undef NDEBUG
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -72,7 +76,8 @@ auto AudioSamples::GetSample(const size_t channelIndex) -> std::vector<int16_t>&
 }
 
 SoundInfo::SoundInfo() noexcept
-  : m_allTimesMaxVolume{std::numeric_limits<int16_t>::min()},
+  : m_stats{std::make_shared<SoundStats>()},
+    m_allTimesMaxVolume{std::numeric_limits<int16_t>::min()},
     m_allTimesMinVolume{std::numeric_limits<int16_t>::max()}
 {
 }
@@ -82,6 +87,26 @@ SoundInfo::SoundInfo(const SoundInfo& s) noexcept = default;
 SoundInfo::~SoundInfo() noexcept = default;
 
 void SoundInfo::ProcessSample(const AudioSamples& samples)
+{
+  m_updateNum++;
+
+  UpdateVolume(samples);
+  assert(0.0 <= m_volume && m_volume <= 1.0);
+
+  const float prevAcceleration = m_acceleration;
+  UpdateAcceleration();
+  assert(0.0 <= m_acceleration && m_acceleration <= 1.0);
+
+  UpdateSpeed(prevAcceleration);
+  assert(0.0 <= m_speed && m_speed <= 1.0);
+
+  // Detection des nouveaux gooms
+  // Detection of new gooms
+  UpdateLastBigGoom();
+  UpdateLastGoom();
+}
+
+void SoundInfo::UpdateVolume(const AudioSamples& samples)
 {
   // Find the min/max of volumes
   int16_t maxPosVar = 0;
@@ -123,36 +148,44 @@ void SoundInfo::ProcessSample(const AudioSamples& samples)
   // Volume sonore - TODO: why only positive volumes?
   m_volume = static_cast<float>(maxPosVar) / static_cast<float>(m_allTimesPositiveMaxVolume);
 
-  const float prevAcceleration = m_acceleration;
-  m_acceleration = m_volume; // accel entre 0 et 1
+  m_stats->DoUpdateVolume(m_volume);
+}
 
+void SoundInfo::UpdateAcceleration()
+{
   // Transformations sur la vitesse du son
   // Speed of sound transformations
-  if (m_speed > 1.0F)
-  {
-    m_speed = 1.0F;
-  }
+  m_acceleration = m_volume;
+
   if (m_speed < 0.1F)
   {
     m_acceleration *= (1.0F - static_cast<float>(m_speed));
   }
   else if (m_speed < 0.3F)
   {
-    m_acceleration *= (0.9F - static_cast<float>(m_speed - 0.1F) / 2.0F);
+    m_acceleration *= (0.9F - 0.5F * static_cast<float>(m_speed - 0.1F));
   }
   else
   {
-    m_acceleration *= (0.8F - static_cast<float>(m_speed - 0.3F) / 4.0F);
+    m_acceleration *= (0.8F - 0.25F * static_cast<float>(m_speed - 0.3F));
   }
 
   // Adoucissement de l'acceleration
   // Smooth acceleration
-  m_acceleration *= ACCELERATION_MULTIPLIER;
   if (m_acceleration < 0.0F)
   {
     m_acceleration = 0.0F;
   }
+  else
+  {
+    m_acceleration *= ACCELERATION_MULTIPLIER;
+  }
 
+  m_stats->DoUpdateAcceleration(m_acceleration);
+}
+
+void SoundInfo::UpdateSpeed(const float prevAcceleration)
+{
   // Mise a jour de la vitesse
   // Speed update
   float diffAcceleration = m_acceleration - prevAcceleration;
@@ -160,87 +193,112 @@ void SoundInfo::ProcessSample(const AudioSamples& samples)
   {
     diffAcceleration = -diffAcceleration;
   }
-  const float prevSpeed = m_speed;
-  m_speed = (m_speed + 0.5F * diffAcceleration) / 2.0F;
-  m_speed *= SPEED_MULTIPLIER;
-  m_speed = (m_speed + 3.0F * prevSpeed) / 4.0F;
+
+  const float newSpeed = SPEED_MULTIPLIER * (0.5F * m_speed + 0.25F * diffAcceleration);
+  m_speed = stdnew::lerp(newSpeed, m_speed, 0.75F);
   if (m_speed < 0.0F)
   {
     m_speed = 0.0F;
   }
-  if (m_speed > 1.0F)
+  else if (m_speed > 1.0F)
   {
     m_speed = 1.0F;
   }
 
+  m_stats->DoUpdateSpeed(m_speed);
+}
+
+void SoundInfo::UpdateLastGoom()
+{
   // Temps du goom
   // Goom time
   m_timeSinceLastGoom++;
-  m_timeSinceLastBigGoom++;
-  m_cycle++;
-
-  // Detection des nouveaux gooms
-  // Detection of new gooms
-  if ((m_speed > BIG_GOOM_SPEED_LIMIT / 100.0F) && (m_acceleration > m_bigGoomLimit) &&
-      (m_timeSinceLastBigGoom > BIG_GOOM_DURATION))
-  {
-    m_timeSinceLastBigGoom = 0;
-  }
 
   if (m_acceleration > m_goomLimit)
   {
-    // TODO: tester && (info->m_timeSinceLastGoom > 20)) {
-    m_totalGoom++;
     m_timeSinceLastGoom = 0;
+    m_stats->DoGoom();
+
+    // TODO: tester && (info->m_timeSinceLastGoom > 20)) {
+    m_totalGoomsInCurrentCycle++;
     m_goomPower = m_acceleration - m_goomLimit;
   }
-
   if (m_acceleration > m_maxAccelSinceLastReset)
   {
     m_maxAccelSinceLastReset = m_acceleration;
   }
 
-  if (m_goomLimit > 1.0F)
-  {
-    m_goomLimit = 1.0F;
-  }
-
   // Toute les 2 secondes: vérifier si le taux de goom est correct et le modifier sinon.
   // Every 2 seconds: check if the goom rate is correct and modify it otherwise.
-  if (m_cycle % CYCLE_TIME == 0)
+  if (m_updateNum % CYCLE_TIME == 0)
   {
-    if (m_speed < 0.01F)
-    {
-      m_goomLimit *= 0.91;
-    }
-    if (m_totalGoom > 4)
-    {
-      m_goomLimit += 0.02;
-    }
-    if (m_totalGoom > 7)
-    {
-      m_goomLimit *= 1.03F;
-      m_goomLimit += 0.03F;
-    }
-    if (m_totalGoom > 16)
-    {
-      m_goomLimit *= 1.05F;
-      m_goomLimit += 0.04F;
-    }
-    if (m_totalGoom == 0)
-    {
-      m_goomLimit = m_maxAccelSinceLastReset - 0.02F;
-    }
-    if ((m_totalGoom == 1) && (m_goomLimit > 0.02F))
-    {
-      m_goomLimit -= 0.01F;
-    }
-    m_totalGoom = 0;
-    m_bigGoomLimit = m_goomLimit * (1.0F + BIG_GOOM_FACTOR / 500.0F);
+    UpdateGoomLimit();
+    assert(0.0 <= m_goomLimit && m_goomLimit <= 1.0);
+
+    m_totalGoomsInCurrentCycle = 0;
     m_maxAccelSinceLastReset = 0.0F;
+    m_bigGoomLimit = m_goomLimit * BIG_GOOM_FACTOR;
   }
 
   // m_bigGoomLimit == m_goomLimit*9/8+7 ?
+}
+
+void SoundInfo::UpdateLastBigGoom()
+{
+  m_timeSinceLastBigGoom++;
+
+  if ((m_speed > BIG_GOOM_SPEED_LIMIT) && (m_acceleration > m_bigGoomLimit) &&
+      (m_timeSinceLastBigGoom > MAX_BIG_GOOM_DURATION))
+  {
+    m_timeSinceLastBigGoom = 0;
+    m_stats->DoBigGoom();
+  }
+}
+
+void SoundInfo::UpdateGoomLimit()
+{
+  if (m_speed < 0.01F)
+  {
+    m_goomLimit *= 0.91;
+  }
+
+  if (m_totalGoomsInCurrentCycle > 4)
+  {
+    m_goomLimit += 0.02;
+  }
+  else if (m_totalGoomsInCurrentCycle > 7)
+  {
+    m_goomLimit *= 1.03F;
+    m_goomLimit += 0.03F;
+  }
+  else if (m_totalGoomsInCurrentCycle > 16)
+  {
+    m_goomLimit *= 1.05F;
+    m_goomLimit += 0.04F;
+  }
+  else if (m_totalGoomsInCurrentCycle == 0)
+  {
+    m_goomLimit = m_maxAccelSinceLastReset - 0.02F;
+  }
+
+  if ((m_totalGoomsInCurrentCycle == 1) && (m_goomLimit > 0.02F))
+  {
+    m_goomLimit -= 0.01F;
+  }
+
+  if (m_goomLimit < 0.0F)
+  {
+    m_goomLimit = 0.0F;
+  }
+  else if (m_goomLimit > 1.0F)
+  {
+    m_goomLimit = 1.0F;
+  }
+}
+
+void SoundInfo::Log(const StatsLogValueFunc& l) const
+{
+  m_stats->Log(l);
 }
 
 } // namespace GOOM

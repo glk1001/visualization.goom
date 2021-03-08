@@ -26,7 +26,7 @@ public:
 
   void Start();
 
-  auto GetHasChangedSinceMark() const -> bool;
+  auto GetSettingsChangedSinceMark() const -> bool;
   void ClearUnchangedMark();
 
   void SetReverseSetting(bool value);
@@ -108,7 +108,7 @@ inline auto FilterControl::GetFilterSettings() const -> const ZoomFilterData&
   return m_filterData;
 }
 
-inline auto FilterControl::GetHasChangedSinceMark() const -> bool
+inline auto FilterControl::GetSettingsChangedSinceMark() const -> bool
 {
   return m_hasChanged;
 }
