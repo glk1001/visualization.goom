@@ -469,6 +469,8 @@ void ZoomFilterFx::ZoomFilterImpl::RestartTranBuffer()
     m_currentFilterSettings.imageDisplacement->SetXyColorCutoffs(
         m_currentFilterSettings.imageDisplacementXColorCutoff,
         m_currentFilterSettings.imageDisplacementXColorCutoff);
+    m_currentFilterSettings.imageDisplacement->SetZoomFactor(
+        m_currentFilterSettings.imageDisplacementZoomFactor);
   }
 }
 

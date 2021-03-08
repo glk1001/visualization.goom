@@ -28,7 +28,7 @@ const Weights<ZoomFilterMode> FilterControl::WEIGHTED_FILTER_EVENTS{{
     { ZoomFilterMode::HYPERCOS0_MODE,         5 },
     { ZoomFilterMode::HYPERCOS1_MODE,         3 },
     { ZoomFilterMode::HYPERCOS2_MODE,         2 },
-    { ZoomFilterMode::IMAGE_DISPLACEMENT_MODE,5 },
+    { ZoomFilterMode::IMAGE_DISPLACEMENT_MODE,500000 },
     { ZoomFilterMode::NORMAL_MODE,            6 },
     { ZoomFilterMode::SCRUNCH_MODE,           6 },
     { ZoomFilterMode::SPEEDWAY_MODE,          6 },
@@ -359,6 +359,9 @@ void FilterControl::SetImageDisplacementModeSettings()
   m_filterData.imageDisplacementYColorCutoff = GetRandInRange(
       ZoomFilterData::MIN_IMAGE_DISPL_COLOR_CUTOFF, ZoomFilterData::MAX_IMAGE_DISPL_COLOR_CUTOFF);
 
+  m_filterData.imageDisplacementZoomFactor = GetRandInRange(
+      ZoomFilterData::MIN_IMAGE_DISPL_ZOOM_FACTOR, ZoomFilterData::MAX_IMAGE_DISPL_ZOOM_FACTOR);
+
   using EventTypes = FilterControl::FilterEvents::FilterEventTypes;
   if (m_filterEvents->Happens(EventTypes::HYPERCOS_EFFECT))
   {
@@ -618,15 +621,15 @@ void FilterControl::SetPlaneEffects()
       break;
     case PlaneEffectEvents::EVENT3:
       m_filterData.vPlaneEffect = GetRandInRange(-5, +6);
-      m_filterData.hPlaneEffect = -m_filterData.vPlaneEffect;
+      m_filterData.hPlaneEffect = -m_filterData.vPlaneEffect + 1;
       break;
     case PlaneEffectEvents::EVENT4:
       m_filterData.hPlaneEffect = static_cast<int>(GetRandInRange(5U, 13U));
-      m_filterData.vPlaneEffect = -m_filterData.hPlaneEffect;
+      m_filterData.vPlaneEffect = -m_filterData.hPlaneEffect + 1;
       break;
     case PlaneEffectEvents::EVENT5:
       m_filterData.vPlaneEffect = static_cast<int>(GetRandInRange(5U, 13U));
-      m_filterData.hPlaneEffect = -m_filterData.hPlaneEffect;
+      m_filterData.hPlaneEffect = -m_filterData.hPlaneEffect + 1;
       break;
     case PlaneEffectEvents::EVENT6:
       m_filterData.hPlaneEffect = 0;

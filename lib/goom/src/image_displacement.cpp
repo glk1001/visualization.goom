@@ -45,12 +45,15 @@ auto ImageDisplacement::GetDisplacementVector(const V2dFlt& normalizedPoint) con
 
 inline auto ImageDisplacement::NormalizedToImagePoint(const V2dFlt& normalizedPoint) const -> V2dInt
 {
-  const int32_t x = static_cast<int32_t>(
-      std::lround(m_ratioNormalizedXCoordToImageCoord *
-                  (normalizedPoint.x - ZoomFilterBuffers::MIN_NORMALIZED_COORD)));
-  const int32_t y = static_cast<int32_t>(
-      std::lround(m_ratioNormalizedYCoordToImageCoord *
-                  (normalizedPoint.y - ZoomFilterBuffers::MIN_NORMALIZED_COORD)));
+  const float xZoom =
+      std::min(ZoomFilterBuffers::MAX_NORMALIZED_COORD, m_zoomFactor * normalizedPoint.x);
+  const float yZoom =
+      std::min(ZoomFilterBuffers::MAX_NORMALIZED_COORD, m_zoomFactor * normalizedPoint.y);
+
+  const int32_t x = static_cast<int32_t>(std::lround(
+      m_ratioNormalizedXCoordToImageCoord * (xZoom - ZoomFilterBuffers::MIN_NORMALIZED_COORD)));
+  const int32_t y = static_cast<int32_t>(std::lround(
+      m_ratioNormalizedYCoordToImageCoord * (yZoom - ZoomFilterBuffers::MIN_NORMALIZED_COORD)));
 
   constexpr int32_t FUZZ = 3;
   return {stdnew::clamp(GetRandInRange(x - FUZZ, x + FUZZ), 0, m_xMax),

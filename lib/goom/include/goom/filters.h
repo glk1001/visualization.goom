@@ -148,6 +148,10 @@ struct ZoomFilterData
   static constexpr float DEFAULT_IMAGE_DISPL_COLOR_CUTOFF = 0.5;
   float imageDisplacementXColorCutoff = DEFAULT_IMAGE_DISPL_COLOR_CUTOFF;
   float imageDisplacementYColorCutoff = DEFAULT_IMAGE_DISPL_COLOR_CUTOFF;
+  static constexpr float MIN_IMAGE_DISPL_ZOOM_FACTOR = 1.00;
+  static constexpr float MAX_IMAGE_DISPL_ZOOM_FACTOR = 10.0;
+  static constexpr float DEFAULT_IMAGE_DISPL_ZOOM_FACTOR = 5.0;
+  float imageDisplacementZoomFactor = DEFAULT_IMAGE_DISPL_ZOOM_FACTOR;
 
   // Wave:
   enum class WaveEffect
