@@ -66,8 +66,6 @@ public:
   [[nodiscard]] auto GetAllTimesMaxVolume() const -> int16_t;
   [[nodiscard]] auto GetAllTimesMinVolume() const -> int16_t;
 
-  auto operator==(const SoundInfo& s) const -> bool;
-
 private:
   uint32_t m_timeSinceLastGoom = 0;
   uint32_t m_timeSinceLastBigGoom = 0;

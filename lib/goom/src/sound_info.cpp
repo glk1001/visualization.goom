@@ -81,18 +81,6 @@ SoundInfo::SoundInfo(const SoundInfo& s) noexcept = default;
 
 SoundInfo::~SoundInfo() noexcept = default;
 
-auto SoundInfo::operator==(const SoundInfo& s) const -> bool
-{
-  return m_timeSinceLastGoom == s.m_timeSinceLastGoom &&
-         m_timeSinceLastBigGoom == s.m_timeSinceLastBigGoom && m_goomLimit == s.m_goomLimit &&
-         m_bigGoomLimit == s.m_bigGoomLimit && m_goomPower == s.m_goomPower &&
-         m_totalGoom == s.m_totalGoom && m_cycle == s.m_cycle && m_volume == s.m_volume &&
-         m_acceleration == s.m_acceleration && m_allTimesMaxVolume == s.m_allTimesMaxVolume &&
-         m_allTimesMinVolume == s.m_allTimesMinVolume &&
-         m_allTimesPositiveMaxVolume == s.m_allTimesPositiveMaxVolume &&
-         m_maxAccelSinceLastReset == s.m_maxAccelSinceLastReset;
-}
-
 void SoundInfo::ProcessSample(const AudioSamples& samples)
 {
   // Find the min/max of volumes
@@ -139,6 +127,7 @@ void SoundInfo::ProcessSample(const AudioSamples& samples)
   m_acceleration = m_volume; // accel entre 0 et 1
 
   // Transformations sur la vitesse du son
+  // Speed of sound transformations
   if (m_speed > 1.0F)
   {
     m_speed = 1.0F;
@@ -157,6 +146,7 @@ void SoundInfo::ProcessSample(const AudioSamples& samples)
   }
 
   // Adoucissement de l'acceleration
+  // Smooth acceleration
   m_acceleration *= ACCELERATION_MULTIPLIER;
   if (m_acceleration < 0.0F)
   {
@@ -164,6 +154,7 @@ void SoundInfo::ProcessSample(const AudioSamples& samples)
   }
 
   // Mise a jour de la vitesse
+  // Speed update
   float diffAcceleration = m_acceleration - prevAcceleration;
   if (diffAcceleration < 0.0F)
   {
@@ -183,11 +174,13 @@ void SoundInfo::ProcessSample(const AudioSamples& samples)
   }
 
   // Temps du goom
+  // Goom time
   m_timeSinceLastGoom++;
   m_timeSinceLastBigGoom++;
   m_cycle++;
 
   // Detection des nouveaux gooms
+  // Detection of new gooms
   if ((m_speed > BIG_GOOM_SPEED_LIMIT / 100.0F) && (m_acceleration > m_bigGoomLimit) &&
       (m_timeSinceLastBigGoom > BIG_GOOM_DURATION))
   {
@@ -212,7 +205,8 @@ void SoundInfo::ProcessSample(const AudioSamples& samples)
     m_goomLimit = 1.0F;
   }
 
-  // Toute les 2 secondes : vérifier si le taux de goom est correct et le modifier sinon..
+  // Toute les 2 secondes: vérifier si le taux de goom est correct et le modifier sinon.
+  // Every 2 seconds: check if the goom rate is correct and modify it otherwise.
   if (m_cycle % CYCLE_TIME == 0)
   {
     if (m_speed < 0.01F)
