@@ -1,7 +1,5 @@
-#ifndef VISUALIZATION_GOOM_LIB_GOOMUTILS_THREAD_POOL_H_
-#define VISUALIZATION_GOOM_LIB_GOOMUTILS_THREAD_POOL_H_
-
-#include "thread_pool_macros.h"
+#ifndef VISUALIZATION_GOOM_THREAD_POOL_H
+#define VISUALIZATION_GOOM_THREAD_POOL_H
 
 #include <condition_variable>
 #include <functional>
@@ -23,6 +21,13 @@ namespace GOOM::UTILS
 {
 #endif
 
+#if __cplusplus <= 201402L
+#define INVOKE_MACRO(CALLABLE, ARGS_TYPE, ARGS) CALLABLE(std::forward<ARGS_TYPE>(ARGS)...)
+#else
+#define INVOKE_MACRO(CALLABLE, ARGS_TYPE, ARGS) \
+  std::invoke(CALLABLE, std::forward<ARGS_TYPE>(ARGS)...)
+#endif
+
 class ThreadPool
 {
 public:
@@ -33,40 +38,12 @@ public:
   auto operator=(const ThreadPool&) -> ThreadPool& = delete;
   auto operator=(ThreadPool&&) noexcept -> ThreadPool& = delete;
 
-  // The `ThreadPool` destructor blocks until all outstanding work is complete.
+  // The destructor blocks until all outstanding work is complete.
   ~ThreadPool() noexcept;
 
-  // Add `func` to the thread pool, and return a std::future that can be used to
-  // access the function's return value.
-  //
-  // *** Usage example ***
-  //   Don't be alarmed by this function's tricky looking signature - this is
-  //   very easy to use. Here's an example:
-  //
-  //   int ComputeSum(std::vector<int>& values) {
-  //     int sum = 0;
-  //     for (const int& v : values) {
-  //       sum += v;
-  //     }
-  //     return sum;
-  //   }
-  //
-  //   ThreadPool pool = ...;
-  //   std::vector<int> numbers = ...;
-  //
-  //   std::future<int> sum_future = ScheduleAndGetFuture(
-  //     []() {
-  //       return ComputeSum(numbers);
-  //     });
-  //
-  //   // Do other work...
-  //
-  //   std::cout << "The sum is " << sum_future.get() << std::endl;
-  //
-  // *** Details ***
-  //   Given a callable `func` that returns a value of type `RetT`, this
+  //   Given a callable 'func' that returns a value of type 'RetT', this
   //   function returns a std::future<RetT> that can be used to access
-  //   `func`'s results.
+  //   func's results.
   template<typename FuncT, typename... ArgsT>
   auto ScheduleAndGetFuture(FuncT&& func, ArgsT&&... args)
       -> std::future<decltype(INVOKE_MACRO(func, ArgsT, args))>;
@@ -74,11 +51,9 @@ public:
   // Wait for all outstanding work to be completed.
   void Wait();
 
-  // Return the number of outstanding functions to be executed.
-  auto OutstandingWorkSize() const -> int;
+  auto GetNumWorkers() const -> size_t;
 
-  auto NumWorkers() const -> size_t;
-
+  auto GetOutstandingWorkSize() const -> size_t;
   void SetWorkDoneCallback(std::function<void(int)> func);
 
 private:
@@ -88,9 +63,8 @@ private:
   // 'finished' causes each thread to break out of their work loop.
   bool m_finished = false;
 
+  // Work queue. Guarded by 'm_mutex'.
   mutable std::mutex m_mutex{};
-
-  // Work queue. Guarded by 'mu'.
   struct WorkItem
   {
     std::function<void(void)> func{};
@@ -108,22 +82,25 @@ private:
   void ThreadLoop();
 };
 
-namespace IMPL
+namespace THREAD_POOL_IMPL
 {
 
 // This helper class simply returns a std::function that executes:
+//
 //   ReturnT x = func();
 //   promise->set_value(x);
+//
 // However, this is tricky in the case where T == void. The code above won't
 // compile if ReturnT == void, and neither will
+//
 //   promise->set_value(func());
-// To workaround this, we use a template specialization for the case where
-// ReturnT is void. If the "regular void" proposal is accepted, this could be
-// simpler:
-// http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0146r1.html.
+//
+// To workaround this, we use a template specialization for the case where ReturnT
+// is void. If the "regular void" proposal is accepted, this could be simpler:
+//   http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0146r1.html.
 
-// The non-specialized `FuncWrapper` implementation handles callables that
-// return a non-void value.
+// The following non-specialized 'FuncWrapper' handles callables that return a
+// non-void value.
 template<typename ReturnT>
 struct FuncWrapper
 {
@@ -131,10 +108,8 @@ struct FuncWrapper
   auto GetWrapped(FuncT&& func, std::shared_ptr<std::promise<ReturnT>> promise, ArgsT&&... args)
       -> std::function<void()>
   {
-    // TODO(cbraley): Capturing by value is inefficient. It would be more
-    // efficient to move-capture everything, but we can't do this until C++14
-    // generalized lambda capture is available. Can we use std::bind instead to
-    // make this more efficient and still use C++11?
+    // Capturing by value is inefficient. It would be more efficient to move-capture
+    // everything - can generalized lambda capture help??
     return
         [promise, func, args...]() mutable { promise->set_value(INVOKE_MACRO(func, ArgsT, args)); };
   }
@@ -149,12 +124,12 @@ void InvokeVoidRet(FuncT&& func,
   promise->set_value();
 }
 
-// This `FuncWrapper` specialization handles callables that return void.
+// Specialization to handle callables that return void.
 template<>
 struct FuncWrapper<void>
 {
   template<typename FuncT, typename... ArgsT>
-  auto GetWrapped(FuncT&& func, std::shared_ptr<std::promise<void>> promise, ArgsT&&... args)
+  auto GetWrapped(FuncT&& func, const std::shared_ptr<std::promise<void>>& promise, ArgsT&&... args)
       -> std::function<void()>
   {
     return [promise, func, args...]() mutable {
@@ -164,7 +139,7 @@ struct FuncWrapper<void>
   }
 };
 
-} // namespace IMPL
+} // namespace THREAD_POOL_IMPL
 
 template<typename FuncT, typename... ArgsT>
 auto ThreadPool::ScheduleAndGetFuture(FuncT&& func, ArgsT&&... args)
@@ -175,11 +150,11 @@ auto ThreadPool::ScheduleAndGetFuture(FuncT&& func, ArgsT&&... args)
   // We are only allocating this std::promise in a shared_ptr because
   // std::promise is non-copyable.
   std::shared_ptr<std::promise<ReturnT>> promise = std::make_shared<std::promise<ReturnT>>();
-  std::future<ReturnT> ret_future = promise->get_future();
+  std::future<ReturnT> retFuture = promise->get_future();
 
-  IMPL::FuncWrapper<ReturnT> funcWrapper{};
-  std::function<void()> wrappedFunc =
-      funcWrapper.GetWrapped(std::move(func), std::move(promise), std::forward<ArgsT>(args)...);
+  THREAD_POOL_IMPL::FuncWrapper<ReturnT> funcWrapper{};
+  std::function<void()> wrappedFunc = funcWrapper.GetWrapped(
+      std::forward<FuncT>(func), std::move(promise), std::forward<ArgsT>(args)...);
 
   // Acquire the lock, and then push the WorkItem onto the queue.
   {
@@ -190,7 +165,7 @@ auto ThreadPool::ScheduleAndGetFuture(FuncT&& func, ArgsT&&... args)
   }
   m_newWorkCondition.notify_one(); // Tell one worker we are ready.
 
-  return ret_future;
+  return retFuture;
 }
 
 #if __cplusplus <= 201402L

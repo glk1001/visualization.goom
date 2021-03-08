@@ -1,5 +1,5 @@
-#ifndef VISUALIZATION_GOOM_LIB_GOOMUTILS_PARALLEL_UTILS_H_
-#define VISUALIZATION_GOOM_LIB_GOOMUTILS_PARALLEL_UTILS_H_
+#ifndef VISUALIZATION_GOOM_PARALLEL_UTILS_H
+#define VISUALIZATION_GOOM_PARALLEL_UTILS_H
 
 #include "thread_pool.h"
 
@@ -22,10 +22,10 @@ namespace GOOM::UTILS
 class Parallel
 {
 public:
-  // numPoolThreads > 0:  use this number of threads in pool
-  // numPoolThreads <= 0: use max cores - this number of threads
-  ~Parallel() noexcept = default;
+  // numPoolThreads > 0:  use this number of threads in the pool
+  // numPoolThreads <= 0: use (max cores - numPoolThreads) in the pool
   explicit Parallel(int32_t numPoolThreads = 0) noexcept;
+  ~Parallel() noexcept = default;
   Parallel(const Parallel&) = delete;
   Parallel(Parallel&&) = delete;
   auto operator=(const Parallel&) -> Parallel& = delete;
@@ -43,21 +43,22 @@ private:
 inline Parallel::Parallel(const int32_t numPoolThreads) noexcept
   : m_threadPool{
         (numPoolThreads <= 0)
-            ? static_cast<size_t>(static_cast<int32_t>(std::thread::hardware_concurrency()) +
-                                  numPoolThreads)
-            : static_cast<size_t>(numPoolThreads)}
+            ? static_cast<size_t>(std::max(
+                  1, static_cast<int32_t>(std::thread::hardware_concurrency()) + numPoolThreads))
+            : static_cast<size_t>(std::min(
+                  numPoolThreads, static_cast<int32_t>(std::thread::hardware_concurrency())))}
 {
 }
 
 inline auto Parallel::GetNumThreadsUsed() const -> size_t
 {
-  return m_threadPool.NumWorkers();
+  return m_threadPool.GetNumWorkers();
 }
 
 template<typename Callable>
 void Parallel::ForLoop(uint32_t numIters, const Callable loopFunc)
 {
-  const uint32_t numThreads = m_threadPool.NumWorkers();
+  const uint32_t numThreads = m_threadPool.GetNumWorkers();
 
   if (numIters < numThreads || numThreads == 1)
   {

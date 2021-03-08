@@ -18,7 +18,6 @@ namespace GOOM::UTILS
 ThreadPool::ThreadPool(const size_t numWorkers) noexcept : m_numWorkers(numWorkers)
 {
   assert(m_numWorkers > 0);
-  // TODO(cbraley): Handle thread construction exceptions.
   m_workers.reserve(m_numWorkers);
   for (size_t i = 0; i < m_numWorkers; ++i)
   {
@@ -28,15 +27,12 @@ ThreadPool::ThreadPool(const size_t numWorkers) noexcept : m_numWorkers(numWorke
 
 ThreadPool::~ThreadPool() noexcept
 {
-  // TODO(cbraley): The current thread could help out to drain the work_ queue
-  // faster - for example, if there is work that hasn't yet been scheduled this
-  // thread could "pitch in" to help finish faster.
-
   {
     const std::lock_guard<std::mutex> lock{m_mutex};
     m_finished = true;
   }
-  m_newWorkCondition.notify_all(); // Tell *all* workers we are ready.
+  // Tell all the workers we're ready.
+  m_newWorkCondition.notify_all();
 
   for (std::thread& thread : m_workers)
   {
@@ -44,13 +40,13 @@ ThreadPool::~ThreadPool() noexcept
   }
 }
 
-auto ThreadPool::OutstandingWorkSize() const -> int
+auto ThreadPool::GetOutstandingWorkSize() const -> size_t
 {
   const std::lock_guard<std::mutex> lock{m_mutex};
   return m_workQueue.size();
 }
 
-auto ThreadPool::NumWorkers() const -> size_t
+auto ThreadPool::GetNumWorkers() const -> size_t
 {
   return m_numWorkers;
 }
@@ -80,9 +76,8 @@ void ThreadPool::ThreadLoop()
     {
       std::unique_lock<std::mutex> lock{m_mutex};
       m_newWorkCondition.wait(lock, [this] { return m_finished || (!m_workQueue.empty()); });
-      // ...after the wait(), we hold the lock.
 
-      // If all the work is done and exit_ is true, break out of the loop.
+      // If all the work is done and exit_ is true, then break out of the loop.
       if (m_finished && m_workQueue.empty())
       {
         break;
@@ -96,7 +91,6 @@ void ThreadPool::ThreadLoop()
     }
 
     // We are careful to do the work without the lock held!
-    // TODO(cbraley): Handle exceptions properly.
     workItem.func(); // Do work.
 
     if (m_workDoneCallback)
