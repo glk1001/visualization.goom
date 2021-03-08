@@ -155,7 +155,7 @@ private:
     { /*.event = */GoomEvent::FILTER_TOGGLE_ROTATION,                     /*.m =*/ 5, /*.outOf = */ 40 },
     { /*.event = */GoomEvent::FILTER_INCREASE_ROTATION,                   /*.m =*/10, /*.outOf = */ 40 },
     { /*.event = */GoomEvent::FILTER_DECREASE_ROTATION,                   /*.m =*/35, /*.outOf = */ 40 },
-    { /*.event = */GoomEvent::FILTER_STOP_ROTATION,                       /*.m =*/35, /*.outOf = */ 40 },
+    { /*.event = */GoomEvent::FILTER_STOP_ROTATION,                       /*.m =*/20, /*.outOf = */ 40 },
     { /*.event = */GoomEvent::IFS_RENEW,                                  /*.m = */2, /*.outOf = */  3 },
     { /*.event = */GoomEvent::CHANGE_BLOCKY_WAVY_TO_ON,                   /*.m = */1, /*.outOf = */ 20 },
     { /*.event = */GoomEvent::CHANGE_ZOOM_FILTER_ALLOW_OVEREXPOSED_TO_ON, /*.m = */8, /*.outOf = */ 10 },
@@ -649,11 +649,10 @@ private:
 
   // baisser regulierement la vitesse
   void RegularlyLowerTheSpeed();
-  void LowerSpeed();
 
   // arret demande
-  void StopRequest();
-  void StopIfRequested();
+  void StopLinesRequest();
+  void StopLinesIfRequested();
 
   // arret aleatore.. changement de mode de ligne..
   void StopRandomLineChangeMode();
@@ -887,19 +886,19 @@ void GoomControl::GoomControlImpl::Finish()
     v->Finish();
   }
 
-  for (auto& v : m_visualFx.list)
-  {
-    v->Log(GoomStats::LogStatsValue);
-  }
-
-  m_goomInfo->GetSoundInfo().Log(GoomStats::LogStatsValue);
-
   m_stats.SetStateLastValue(m_states.GetCurrentStateIndex());
   m_stats.SetZoomFilterLastValue(&m_filterControl.GetFilterSettings());
   m_stats.SetSeedLastValue(GetRandSeed());
   m_stats.SetNumThreadsUsedValue(m_parallel.GetNumThreadsUsed());
 
   m_stats.Log(GoomStats::LogStatsValue);
+
+  m_goomInfo->GetSoundInfo().Log(GoomStats::LogStatsValue);
+
+  for (auto& v : m_visualFx.list)
+  {
+    v->Log(GoomStats::LogStatsValue);
+  }
 }
 
 void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,
@@ -935,7 +934,7 @@ void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,
   ApplyCurrentStateToMultipleBuffers();
 
   // Gestion du Scope - Scope management
-  StopIfRequested();
+  StopLinesIfRequested();
   StopRandomLineChangeMode();
   DisplayLinesIfInAGoom(soundData);
 
@@ -981,12 +980,13 @@ void GoomControl::GoomControlImpl::UpdateBuffers()
 
 void GoomControl::GoomControlImpl::UpdateLockVar()
 {
+  m_stats.DoLockChange();
+
   m_goomData.lockVar--;
   if (m_goomData.lockVar < 0)
   {
     m_goomData.lockVar = 0;
   }
-  m_stats.DoLockChange();
   /* note pour ceux qui n'ont pas suivis : le lockVar permet d'empecher un */
   /* changement d'etat du plugin juste apres un autre changement d'etat. oki */
   // -- Note for those who have not followed: the lockVar prevents a change
@@ -995,8 +995,9 @@ void GoomControl::GoomControlImpl::UpdateLockVar()
 
 void GoomControl::GoomControlImpl::SetLockVar(const int32_t val)
 {
-  m_goomData.lockVar = val;
   m_stats.DoLockChange();
+
+  m_goomData.lockVar = val;
 }
 
 void GoomControl::GoomControlImpl::ChangeFilterModeIfMusicChanges()
@@ -1015,8 +1016,6 @@ void GoomControl::GoomControlImpl::ChangeFilterModeIfMusicChanges()
 
 void GoomControl::GoomControlImpl::ChangeFilterMode()
 {
-  logDebug("Time to change the filter mode.");
-
   m_stats.DoChangeFilterMode();
 
   SetNextFilterMode();
@@ -1035,6 +1034,8 @@ void GoomControl::GoomControlImpl::SetNextFilterMode()
 
 void GoomControl::GoomControlImpl::ChangeState()
 {
+  m_stats.DoStateChangeRequest();
+
   if (m_goomData.stateSelectionBlocker)
   {
     m_goomData.stateSelectionBlocker--;
@@ -1048,14 +1049,15 @@ void GoomControl::GoomControlImpl::ChangeState()
 
 void GoomControl::GoomControlImpl::DoChangeState()
 {
+  m_stats.DoStateChange(m_timeInState);
+
   const auto oldGDrawables = m_states.GetCurrentDrawables();
 
   SetNextState();
 
-  m_curGDrawables = m_states.GetCurrentDrawables();
-  logDebug("Changed goom state to {}", m_states.GetCurrentStateIndex());
-  m_stats.DoStateChange(m_timeInState);
   m_stats.DoStateChange(m_states.GetCurrentStateIndex(), m_timeInState);
+
+  m_curGDrawables = m_states.GetCurrentDrawables();
   m_timeInState = 0;
 
   if (m_states.IsCurrentlyDrawable(GoomDrawable::IFS))
@@ -1112,6 +1114,8 @@ void GoomControl::GoomControlImpl::BigBreakIfMusicIsCalm()
 
 void GoomControl::GoomControlImpl::BigBreak()
 {
+  m_stats.DoBigBreak();
+
   m_filterControl.SetVitesseSetting(m_filterControl.GetFilterSettings().vitesse + 3);
 }
 
@@ -1133,20 +1137,20 @@ void GoomControl::GoomControlImpl::BigUpdate()
   // Speed boost if needed.
   if (m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom() == 0)
   {
-    m_stats.LastTimeGoomChange();
     BigNormalUpdate();
   }
 
   // mode mega-lent
   if (m_goomEvent.Happens(GoomEvent::CHANGE_TO_MEGA_LENT_MODE))
   {
-    m_stats.DoMegaLentChange();
     MegaLentUpdate();
   }
 }
 
 void GoomControl::GoomControlImpl::BigNormalUpdate()
 {
+  m_stats.DoBigNormalUpdate();
+
   SetLockVar(50);
 
   ChangeState();
@@ -1165,6 +1169,8 @@ void GoomControl::GoomControlImpl::BigNormalUpdate()
 
 void GoomControl::GoomControlImpl::MegaLentUpdate()
 {
+  m_stats.DoMegaLentChange();
+
   SetLockVar(m_goomData.lockVar + 50);
 
   m_filterControl.SetVitesseSetting(STOP_SPEED - 1);
@@ -1174,8 +1180,9 @@ void GoomControl::GoomControlImpl::MegaLentUpdate()
 
 void GoomControl::GoomControlImpl::ChangeMilieu()
 {
-  m_filterControl.ChangeMilieu();
+  m_stats.DoChangeMilieu();
 
+  m_filterControl.ChangeMilieu();
   ChangeHPlaneEffect();
 }
 
@@ -1200,6 +1207,8 @@ void GoomControl::GoomControlImpl::ChangeVitesse()
           std::lround(3.5F * std::log10(m_goomInfo->GetSoundInfo().GetSpeed() * 500.0F + 1.0F)));
   if (newvit < m_filterControl.GetFilterSettings().vitesse)
   {
+    m_stats.DoChangeVitesse();
+
     // on accelere
     if (((newvit < (STOP_SPEED - 7)) &&
          (m_filterControl.GetFilterSettings().vitesse < STOP_SPEED - 6) && (m_cycle % 3 == 0)) ||
@@ -1220,17 +1229,21 @@ void GoomControl::GoomControlImpl::ChangeVitesse()
 }
 
 void GoomControl::GoomControlImpl::ChangeSpeedReverse()
-{ // retablir le zoom avant..
-  if ((m_filterControl.GetFilterSettings().reverseSpeed) && (!(m_cycle % 13)) &&
+{
+  // Retablir le zoom avant.
+  // Restore zoom in.
+
+  if ((m_filterControl.GetFilterSettings().reverseSpeed) && (m_cycle % 13 != 0) &&
       m_goomEvent.Happens(GoomEvent::FILTER_REVERSE_OFF_AND_STOP_SPEED))
   {
+    m_stats.DoChangeReverseSpeedOff();
     m_filterControl.SetReverseSetting(false);
     m_filterControl.SetVitesseSetting(STOP_SPEED - 2);
-    logDebug("vitesse = {}", m_filterControl.GetFilterSettings().vitesse);
     SetLockVar(75);
   }
   if (m_goomEvent.Happens(GoomEvent::FILTER_REVERSE_ON))
   {
+    m_stats.DoChangeReverseSpeedOn();
     m_filterControl.SetReverseSetting(true);
     SetLockVar(100);
   }
@@ -1240,13 +1253,13 @@ void GoomControl::GoomControlImpl::ChangeStopSpeeds()
 {
   if (m_goomEvent.Happens(GoomEvent::FILTER_VITESSE_STOP_SPEED_MINUS1))
   {
+    m_stats.DoReduceStopSpeed();
     m_filterControl.SetVitesseSetting(STOP_SPEED - 1);
-    logDebug("vitesse = {}", m_filterControl.GetFilterSettings().vitesse);
   }
   if (m_goomEvent.Happens(GoomEvent::FILTER_VITESSE_STOP_SPEED_PLUS1))
   {
+    m_stats.DoIncreaseStopSpeed();
     m_filterControl.SetVitesseSetting(STOP_SPEED + 1);
-    logDebug("vitesse = {}", m_filterControl.GetFilterSettings().vitesse);
   }
 }
 
@@ -1254,6 +1267,7 @@ void GoomControl::GoomControlImpl::ChangeSwitchValues()
 {
   if (m_goomData.lockVar > 150)
   {
+    m_stats.DoChangeSwitchValues();
     m_goomData.switchIncr = GoomData::SWITCH_INCR_AMOUNT;
     m_goomData.switchMult = 1.0F;
   }
@@ -1263,15 +1277,15 @@ void GoomControl::GoomControlImpl::ChangeNoise()
 {
   if (m_goomEvent.Happens(GoomEvent::TURN_OFF_NOISE))
   {
-    m_filterControl.SetNoisifySetting(false);
     m_stats.DoTurnOffNoise();
+    m_filterControl.SetNoisifySetting(false);
   }
   else
   {
+    m_stats.DoNoise();
     m_filterControl.SetNoisifySetting(true);
     m_filterControl.SetNoiseFactorSetting(1.0);
     SetLockVar(2 * m_goomData.lockVar);
-    m_stats.DoNoise();
   }
 }
 
@@ -1279,18 +1293,22 @@ void GoomControl::GoomControlImpl::ChangeRotation()
 {
   if (m_goomEvent.Happens(GoomEvent::FILTER_STOP_ROTATION))
   {
+    m_stats.DoStopRotation();
     m_filterControl.SetRotateSetting(0.0F);
   }
   else if (m_goomEvent.Happens(GoomEvent::FILTER_DECREASE_ROTATION))
   {
+    m_stats.DoDecreaseRotation();
     m_filterControl.MultiplyRotateSetting(0.9F);
   }
   else if (m_goomEvent.Happens(GoomEvent::FILTER_INCREASE_ROTATION))
   {
+    m_stats.DoIncreaseRotation();
     m_filterControl.MultiplyRotateSetting(1.1F);
   }
   else if (m_goomEvent.Happens(GoomEvent::FILTER_TOGGLE_ROTATION))
   {
+    m_stats.DoToggleRotation();
     m_filterControl.ToggleRotateSetting();
   }
 }
@@ -1299,11 +1317,12 @@ void GoomControl::GoomControlImpl::ChangeBlockyWavy()
 {
   if (!m_goomEvent.Happens(GoomEvent::CHANGE_BLOCKY_WAVY_TO_ON))
   {
+    m_stats.DoBlockyWavyOff();
     m_filterControl.SetBlockyWavySetting(false);
   }
   else
   {
-    m_stats.DoBlockyWavy();
+    m_stats.DoBlockyWavyOn();
     m_filterControl.SetBlockyWavySetting(true);
   }
 }
@@ -1312,12 +1331,13 @@ void GoomControl::GoomControlImpl::ChangeAllowOverexposed()
 {
   if (!m_goomEvent.Happens(GoomEvent::CHANGE_ZOOM_FILTER_ALLOW_OVEREXPOSED_TO_ON))
   {
+    m_stats.DoZoomFilterAllowOverexposedOff();
     m_visualFx.zoomFilter_fx->SetBuffSettings(
         {/*.buffIntensity = */ 0.5, /*.allowOverexposed = */ false});
   }
   else
   {
-    m_stats.DoZoomFilterAllowOverexposed();
+    m_stats.DoZoomFilterAllowOverexposedOn();
     m_visualFx.zoomFilter_fx->SetBuffSettings(
         {/*.buffIntensity = */ 0.5, /*.allowOverexposed = */ true});
   }
@@ -1374,11 +1394,6 @@ void GoomControl::GoomControlImpl::ChangeZoomEffect()
   }
 }
 
-void GoomControl::GoomControlImpl::LowerSpeed()
-{
-  m_filterControl.SetVitesseSetting(m_filterControl.GetFilterSettings().vitesse + 1);
-}
-
 void GoomControl::GoomControlImpl::StopDecrementingAfterAWhile()
 {
   logDebug("cycle = {}", m_cycle);
@@ -1394,24 +1409,12 @@ void GoomControl::GoomControlImpl::StopDecrementing()
   // TODO What used to be here???
 }
 
-void GoomControl::GoomControlImpl::StopIfRequested()
-{
-  logDebug("goomData.stopLines = {}, curGState->scope = {}", m_goomData.stopLines,
-           m_states.IsCurrentlyDrawable(GoomDrawable::SCOPE));
-  if ((m_goomData.stopLines & 0xf000) || !m_states.IsCurrentlyDrawable(GoomDrawable::SCOPE))
-  {
-    StopRequest();
-  }
-}
-
 void GoomControl::GoomControlImpl::RegularlyLowerTheSpeed()
 {
-  logDebug("vitesse = {}, cycle = {}", m_filterControl.GetFilterSettings().vitesse, m_cycle);
   if ((m_cycle % 73 == 0) && (m_filterControl.GetFilterSettings().vitesse < (STOP_SPEED - 5)))
   {
-    logDebug("cycle % 73 = 0 && vitesse = {} < {} - 5, ", m_cycle,
-             m_filterControl.GetFilterSettings().vitesse, STOP_SPEED);
-    LowerSpeed();
+    m_stats.DoLowerVitesse();
+    m_filterControl.SetVitesseSetting(m_filterControl.GetFilterSettings().vitesse + 1);
   }
 }
 
@@ -1465,10 +1468,9 @@ void GoomControl::GoomControlImpl::ApplyDotsIfRequired()
     return;
   }
 
-  logDebug("goomInfo->curGDrawables points is set.");
   m_stats.DoDots();
+  m_visualFx.goomDots_fx->SetBuffSettings(m_states.GetCurrentBuffSettings(GoomDrawable::DOTS));
   m_visualFx.goomDots_fx->Apply(m_imageBuffers.GetP1());
-  logDebug("sound GetTimeSinceLastGoom() = {}", m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom());
 }
 
 void GoomControl::GoomControlImpl::ApplyDotsToBothBuffersIfRequired()
@@ -1487,10 +1489,9 @@ void GoomControl::GoomControlImpl::ApplyDotsToBothBuffersIfRequired()
     return;
   }
 
-  logDebug("goomInfo->curGDrawables points is set.");
   m_stats.DoDots();
+  m_visualFx.goomDots_fx->SetBuffSettings(m_states.GetCurrentBuffSettings(GoomDrawable::DOTS));
   m_visualFx.goomDots_fx->Apply(m_imageBuffers.GetP2(), m_imageBuffers.GetP1());
-  logDebug("sound GetTimeSinceLastGoom() = {}", m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom());
 }
 
 void GoomControl::GoomControlImpl::ApplyIfsToBothBuffersIfRequired()
@@ -1505,7 +1506,6 @@ void GoomControl::GoomControlImpl::ApplyIfsToBothBuffersIfRequired()
     return;
   }
 
-  logDebug("curGDrawables IFS is set");
   m_stats.DoIfs();
   m_visualFx.ifs_fx->SetBuffSettings(m_states.GetCurrentBuffSettings(GoomDrawable::IFS));
   m_visualFx.ifs_fx->Apply(m_imageBuffers.GetP2(), m_imageBuffers.GetP1());
@@ -1529,7 +1529,6 @@ void GoomControl::GoomControlImpl::ApplyTentaclesToBothBuffersIfRequired()
     return;
   }
 
-  logDebug("curGDrawables tentacles is set.");
   m_stats.DoTentacles();
   m_visualFx.tentacles_fx->SetBuffSettings(
       m_states.GetCurrentBuffSettings(GoomDrawable::TENTACLES));
@@ -1565,19 +1564,28 @@ void GoomControl::GoomControlImpl::ApplyImageIfRequired()
     return;
   }
 
-  logDebug("curGDrawables image is set.");
   //m_stats.DoImage();
   m_visualFx.image_fx->SetBuffSettings(m_states.GetCurrentBuffSettings(GoomDrawable::IMAGE));
   //  m_visualFx.image_fx->Apply(m_imageBuffers.GetP2());
   m_visualFx.image_fx->Apply(m_imageBuffers.GetP2(), m_imageBuffers.GetP1());
 }
 
-void GoomControl::GoomControlImpl::StopRequest()
+void GoomControl::GoomControlImpl::StopLinesIfRequested()
+{
+  if ((m_goomData.stopLines & 0xf000) || !m_states.IsCurrentlyDrawable(GoomDrawable::SCOPE))
+  {
+    StopLinesRequest();
+  }
+}
+
+void GoomControl::GoomControlImpl::StopLinesRequest()
 {
   if (!m_gmline1.CanResetDestLine() || !m_gmline2.CanResetDestLine())
   {
     return;
   }
+
+  m_stats.DoStopLinesRequest();
 
   float param1 = 0.0;
   float param2 = 0.0;

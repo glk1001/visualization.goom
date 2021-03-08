@@ -36,31 +36,54 @@ void GoomStats::Reset()
   m_totalTimeInUpdatesMs = 0;
   m_minTimeInUpdatesMs = std::numeric_limits<uint32_t>::max();
   m_maxTimeInUpdatesMs = 0;
-  m_timeNowHiRes = std::chrono::high_resolution_clock::now();
+  m_timeNowInUpdate = std::chrono::high_resolution_clock::now();
+
+  m_numLockChanges = 0;
+
+  m_numStateChangeRequests = 0;
   m_totalStateChanges = 0;
   m_totalStateDurations = 0;
   std::fill(m_numStateChanges.begin(), m_numStateChanges.end(), 0);
   std::fill(m_stateDurations.begin(), m_stateDurations.end(), 0);
+
   m_numChangeFilterModes = 0;
   m_numApplyChangeFilterSettings = 0;
   m_numFilterModeChanges.fill(0);
-  m_numLockChanges = 0;
+
+  m_numBigUpdates = 0;
+  m_numBigBreaks = 0;
+  m_numBigNormalUpdates = 0;
+  m_numMegaLentChanges = 0;
+  m_numChangeMilieu = 0;
+  m_numChangeVitesse = 0;
+  m_numChangeReverseSpeedOn = 0;
+  m_numChangeReverseSpeedOff = 0;
+
   m_numDoIFS = 0;
+  m_numIfsRenew = 0;
   m_numDoDots = 0;
   m_numDoLines = 0;
   m_numDoStars = 0;
   m_numDoTentacles = 0;
   m_numDisabledTentacles = 0;
-  m_numBigUpdates = 0;
-  m_numLastTimeGoomChanges = 0;
-  m_numMegaLentChanges = 0;
+
+  m_numReduceStopSpeed = 0;
+  m_numIncreaseStopSpeed = 0;
+  m_numStopLinesRequests = 0;
+  m_numLowerVitesse = 0;
+  m_numChangeSwitchValues = 0;
   m_numDoNoise = 0;
   m_numTurnOffNoise = 0;
-  m_numIfsRenew = 0;
   m_numChangeLineColor = 0;
   m_numSwitchLines = 0;
-  m_numBlockyWavy = 0;
-  m_numZoomFilterAllowOverexposed = 0;
+  m_numStopRotation = 0;
+  m_numDecreaseRotation = 0;
+  m_numIncreaseRotation = 0;
+  m_numToggleRotation = 0;
+  m_numBlockyWavyOn = 0;
+  m_numBlockyWavyOff = 0;
+  m_numZoomFilterAllowOverexposedOff = 0;
+  m_numZoomFilterAllowOverexposedOn = 0;
   m_numTooManyClipped = 0;
 }
 
@@ -202,6 +225,35 @@ void GoomStats::Log(const StatsLogValueFunc& logVal) const
            static_cast<uint32_t>(m_lastZoomFilterSettings->tanEffect));
   }
 
+  logVal(MODULE, "numLockChanges", m_numLockChanges);
+  logVal(MODULE, "numLastTimeGoomChanges", m_numBigNormalUpdates);
+  logVal(MODULE, "numBigUpdates", m_numBigUpdates);
+  logVal(MODULE, "numBigBreaks", m_numBigBreaks);
+  logVal(MODULE, "numMegaLentChanges", m_numMegaLentChanges);
+  logVal(MODULE, "numChangeMilieu", m_numChangeMilieu);
+  logVal(MODULE, "numChangeVitesse", m_numChangeVitesse);
+  logVal(MODULE, "numChangeReverseSpeedOff", m_numChangeReverseSpeedOff);
+  logVal(MODULE, "numChangeReverseSpeedOn", m_numChangeReverseSpeedOn);
+
+  logVal(MODULE, "numReduceStopSpeed", m_numReduceStopSpeed);
+  logVal(MODULE, "numIncreaseStopSpeed", m_numIncreaseStopSpeed);
+  logVal(MODULE, "numStopLinesRequests", m_numStopLinesRequests);
+  logVal(MODULE, "numLowerVitesse", m_numLowerVitesse);
+  logVal(MODULE, "numChangeSwitchValues", m_numChangeSwitchValues);
+  logVal(MODULE, "numDoNoise", m_numDoNoise);
+  logVal(MODULE, "numTurnOffNoise", m_numTurnOffNoise);
+  logVal(MODULE, "numChangeLineColor", m_numChangeLineColor);
+  logVal(MODULE, "numSwitchLines", m_numSwitchLines);
+  logVal(MODULE, "numStopRotation", m_numStopRotation);
+  logVal(MODULE, "numDecreaseRotation", m_numDecreaseRotation);
+  logVal(MODULE, "numIncreaseRotation", m_numIncreaseRotation);
+  logVal(MODULE, "numToggleRotation", m_numToggleRotation);
+  logVal(MODULE, "numBlockyWavyOff", m_numBlockyWavyOff);
+  logVal(MODULE, "numBlockyWavyOn", m_numBlockyWavyOn);
+  logVal(MODULE, "numZoomFilterAllowOverexposedOff", m_numZoomFilterAllowOverexposedOff);
+  logVal(MODULE, "numZoomFilterAllowOverexposedOn", m_numZoomFilterAllowOverexposedOn);
+  logVal(MODULE, "numTooManyClipped", m_numTooManyClipped);
+
   logVal(MODULE, "numDoIFS", m_numDoIFS);
   logVal(MODULE, "numIfsRenew", m_numIfsRenew);
   logVal(MODULE, "numDoDots", m_numDoDots);
@@ -209,17 +261,6 @@ void GoomStats::Log(const StatsLogValueFunc& logVal) const
   logVal(MODULE, "numDoStars", m_numDoStars);
   logVal(MODULE, "numDoTentacles", m_numDoTentacles);
   logVal(MODULE, "numDisabledTentacles", m_numDisabledTentacles);
-
-  logVal(MODULE, "numLockChanges", m_numLockChanges);
-  logVal(MODULE, "numLastTimeGoomChanges", m_numLastTimeGoomChanges);
-  logVal(MODULE, "numMegaLentChanges", m_numMegaLentChanges);
-  logVal(MODULE, "numDoNoise", m_numDoNoise);
-  logVal(MODULE, "numTurnOffNoise", m_numTurnOffNoise);
-  logVal(MODULE, "numChangeLineColor", m_numChangeLineColor);
-  logVal(MODULE, "numSwitchLines", m_numSwitchLines);
-  logVal(MODULE, "numBlockyWavy", m_numBlockyWavy);
-  logVal(MODULE, "numZoomFilterAllowOverexposed", m_numZoomFilterAllowOverexposed);
-  logVal(MODULE, "numTooManyClipped", m_numTooManyClipped);
 }
 
 void GoomStats::SetSongTitle(const std::string& s)
@@ -273,7 +314,7 @@ void GoomStats::UpdateChange(const size_t currentState, const ZoomFilterMode cur
   if (m_numUpdates > 0)
   {
     using Ms = std::chrono::milliseconds;
-    const Ms diff = std::chrono::duration_cast<Ms>(timeNow - m_timeNowHiRes);
+    const Ms diff = std::chrono::duration_cast<Ms>(timeNow - m_timeNowInUpdate);
     const auto timeInUpdateMs = static_cast<uint32_t>(diff.count());
     if (timeInUpdateMs < m_minTimeInUpdatesMs)
     {
@@ -289,9 +330,14 @@ void GoomStats::UpdateChange(const size_t currentState, const ZoomFilterMode cur
     }
     m_totalTimeInUpdatesMs += timeInUpdateMs;
   }
-  m_timeNowHiRes = timeNow;
+  m_timeNowInUpdate = timeNow;
 
   m_numUpdates++;
+}
+
+void GoomStats::DoStateChangeRequest()
+{
+  m_numStateChangeRequests++;
 }
 
 void GoomStats::DoStateChange(const uint32_t timeInState)
@@ -368,19 +414,69 @@ void GoomStats::DoTentacles()
   m_numDoTentacles++;
 }
 
+void GoomStats::DoBigBreak()
+{
+  m_numBigBreaks++;
+}
+
 void GoomStats::DoBigUpdate()
 {
   m_numBigUpdates++;
 }
 
-void GoomStats::LastTimeGoomChange()
+void GoomStats::DoBigNormalUpdate()
 {
-  m_numLastTimeGoomChanges++;
+  m_numBigNormalUpdates++;
 }
 
 void GoomStats::DoMegaLentChange()
 {
   m_numMegaLentChanges++;
+}
+
+void GoomStats::DoChangeMilieu()
+{
+  m_numChangeMilieu++;
+}
+
+void GoomStats::DoChangeVitesse()
+{
+  m_numChangeVitesse++;
+}
+
+void GoomStats::DoChangeReverseSpeedOff()
+{
+  m_numChangeReverseSpeedOff++;
+}
+
+void GoomStats::DoChangeReverseSpeedOn()
+{
+  m_numChangeReverseSpeedOn++;
+}
+
+void GoomStats::DoReduceStopSpeed()
+{
+  m_numReduceStopSpeed++;
+}
+
+void GoomStats::DoIncreaseStopSpeed()
+{
+  m_numIncreaseStopSpeed++;
+}
+
+void GoomStats::DoStopLinesRequest()
+{
+  m_numStopLinesRequests++;
+}
+
+void GoomStats::DoLowerVitesse()
+{
+  m_numLowerVitesse++;
+}
+
+void GoomStats::DoChangeSwitchValues()
+{
+  m_numChangeSwitchValues++;
 }
 
 void GoomStats::DoNoise()
@@ -403,19 +499,49 @@ void GoomStats::DoChangeLineColor()
   m_numChangeLineColor++;
 }
 
+void GoomStats::DoStopRotation()
+{
+  m_numStopRotation++;
+}
+
+void GoomStats::DoDecreaseRotation()
+{
+  m_numDecreaseRotation++;
+}
+
+void GoomStats::DoIncreaseRotation()
+{
+  m_numIncreaseRotation++;
+}
+
+void GoomStats::DoToggleRotation()
+{
+  m_numToggleRotation++;
+}
+
 void GoomStats::DoSwitchLines()
 {
   m_numSwitchLines++;
 }
 
-void GoomStats::DoBlockyWavy()
+void GoomStats::DoBlockyWavyOff()
 {
-  m_numBlockyWavy++;
+  m_numBlockyWavyOff++;
 }
 
-void GoomStats::DoZoomFilterAllowOverexposed()
+void GoomStats::DoBlockyWavyOn()
 {
-  m_numZoomFilterAllowOverexposed++;
+  m_numBlockyWavyOn++;
+}
+
+void GoomStats::DoZoomFilterAllowOverexposedOff()
+{
+  m_numZoomFilterAllowOverexposedOff++;
+}
+
+void GoomStats::DoZoomFilterAllowOverexposedOn()
+{
+  m_numZoomFilterAllowOverexposedOn++;
 }
 
 void GoomStats::TooManyClipped()
