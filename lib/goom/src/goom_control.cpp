@@ -607,6 +607,7 @@ private:
   // Changement d'effet de zoom !
   void ChangeZoomEffect();
   void ApplyZoom();
+  void UpdateBuffers();
 
   void ApplyCurrentStateToSingleBuffer();
   void ApplyCurrentStateToMultipleBuffers();
@@ -617,31 +618,38 @@ private:
   void ApplyStarsToBothBuffersIfRequired();
   void ApplyImageIfRequired();
 
-  [[nodiscard]] auto ChangeFilterModeEventHappens() -> bool;
-  void SetNextFilterMode();
+  void DoIfsRenew();
+
   void SetLockVar(int32_t val);
+  void UpdateLockVar();
+
+  void ChangeState();
   void DoChangeState();
-  void ChangeFilterMode();
+  void SetNextState();
+
   void BigNormalUpdate();
   void MegaLentUpdate();
+
+  void ChangeAllowOverexposed();
+  void ChangeBlockyWavy();
+  void ChangeHPlaneEffect();
+  void ChangeNoise();
+  void ChangeRotation();
+  void ChangeSwitchValues();
+  void ChangeSpeedReverse();
+  void ChangeVitesse();
+  void ChangeStopSpeeds();
+
+  // on verifie qu'il ne se pas un truc interressant avec le son.
+  void ChangeFilterModeIfMusicChanges();
+  [[nodiscard]] auto ChangeFilterModeEventHappens() -> bool;
+  void ChangeFilterMode();
+  void SetNextFilterMode();
+  void ChangeMilieu();
 
   // baisser regulierement la vitesse
   void RegularlyLowerTheSpeed();
   void LowerSpeed();
-
-  // on verifie qu'il ne se pas un truc interressant avec le son.
-  void ChangeFilterModeIfMusicChanges();
-
-  void ChooseGoomLine(float* param1,
-                      float* param2,
-                      Pixel* couleur,
-                      LinesFx::LineType* mode,
-                      float* amplitude,
-                      int far);
-
-  // si on est dans un goom : afficher les lignes
-  void DisplayLinesIfInAGoom(const AudioSamples& soundData);
-  void DisplayLines(const AudioSamples& soundData);
 
   // arret demande
   void StopRequest();
@@ -662,28 +670,21 @@ private:
   void BigBreakIfMusicIsCalm();
   void BigBreak();
 
+  void DisplayLinesIfInAGoom(const AudioSamples& soundData);
+  void DisplayLines(const AudioSamples& soundData);
+  void ChooseGoomLine(float* param1,
+                      float* param2,
+                      Pixel* couleur,
+                      LinesFx::LineType* mode,
+                      float* amplitude,
+                      int far);
+
   void UpdateMessage(const std::string& message);
   void DrawText(const std::string& str, int xPos, int yPos, float spacing, PixelBuffer& buff);
   void DisplayText(const std::string& songTitle, const std::string& message, float fps);
 #ifdef SHOW_STATE_TEXT_ON_SCREEN
   void DisplayStateText();
 #endif
-
-  void ChangeAllowOverexposed();
-  void ChangeBlockyWavy();
-  void ChangeHPlaneEffect();
-  void ChangeMilieu();
-  void ChangeNoise();
-  void ChangeRotation();
-  void ChangeSpeedReverse();
-  void ChangeState();
-  void ChangeSwitchValues();
-  void ChangeStopSpeeds();
-  void ChangeVitesse();
-  void UpdateLockVar();
-  void DoIfsRenew();
-  void UpdateBuffers();
-  void SetNextState();
 };
 
 auto GoomControl::GetRandSeed() -> uint64_t
@@ -705,10 +706,6 @@ GoomControl::GoomControl(const uint32_t resx, const uint32_t resy, std::string r
 GoomControl::~GoomControl() noexcept = default;
 
 void GoomControl::SaveState([[maybe_unused]] std::ostream& f) const
-{
-}
-
-void GoomControl::RestoreState([[maybe_unused]] std::istream& f)
 {
 }
 
@@ -913,10 +910,10 @@ void GoomControl::GoomControlImpl::Update(const AudioSamples& soundData,
   m_timeInState++;
   m_timeWithFilter++;
 
-  // elargissement de l'intervalle d'évolution des points
-  // ! calcul du deplacement des petits points ...
-
-  logDebug("sound GetTimeSinceLastGoom() = {}", m_goomInfo->GetSoundInfo().GetTimeSinceLastGoom());
+  // Elargissement de l'intervalle d'évolution des points!
+  // Calcul du deplacement des petits points ...
+  // Widening of the interval of evolution of the points!
+  // Calculation of the displacement of small points ...
 
   ProcessAudio(soundData);
 

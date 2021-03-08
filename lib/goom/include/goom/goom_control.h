@@ -30,7 +30,6 @@ public:
   auto operator=(GoomControl&&) -> GoomControl& = delete;
 
   void SaveState(std::ostream& s) const;
-  void RestoreState(std::istream& s);
 
   [[nodiscard]] auto GetResourcesDirectory() const -> const std::string&;
   void SetResourcesDirectory(const std::string& dirName);
