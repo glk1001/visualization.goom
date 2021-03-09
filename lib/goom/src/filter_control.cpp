@@ -149,7 +149,8 @@ void FilterControl::Start()
 }
 
 const std::vector<std::string> FilterControl::IMAGE_FILENAMES{
-    "pattern1.jpg", "pattern2.jpg", "pattern3.jpg", "chameleon-tail.jpg", "mountain_sunset.png",
+    "pattern1.jpg", "pattern2.jpg",       "pattern3.jpg",        "pattern4.jpg",
+    "pattern5.jpg", "chameleon-tail.jpg", "mountain_sunset.png",
 };
 
 inline auto FilterControl::GetImageFilename(const std::string& imageFilename) -> std::string
