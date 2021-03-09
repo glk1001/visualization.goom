@@ -51,8 +51,8 @@ public:
   void DoZoomVectorTanEffect();
   void DoZoomVectorNegativeRotate();
   void DoZoomVectorPositiveRotate();
-  void DoZoomVectorCoeffVitesseBelowMin();
-  void DoZoomVectorCoeffVitesseAboveMax();
+  void DoZoomVectorSpeedCoeffBelowMin();
+  void DoZoomVectorSpeedCoeffAboveMax();
 
 private:
   using TimePoint = std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>;

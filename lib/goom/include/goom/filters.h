@@ -2,6 +2,7 @@
 #define VISUALIZATION_GOOM_FILTERS_H
 
 #include "goom_visual_fx.h"
+#include "goomutils/mathutils.h"
 
 #include <cstdint>
 #include <memory>
@@ -31,21 +32,69 @@ enum class ZoomFilterMode
   _SIZE // must be last - gives number of enums
 };
 
+// 128 = vitesse nule...
+// 256 = en arriere
+//   hyper vite.. * * 0 = en avant hype vite.
+// 128 = zero speed
+// 256 = reverse
+//   super fast ... 0 = forward quickly.
+class Vitesse
+{
+  static constexpr int32_t MAX_VITESSE = 128;
+
+public:
+  static constexpr int32_t STOP_SPEED = MAX_VITESSE;
+  static constexpr int32_t FASTEST_SPEED = 0;
+  static constexpr int32_t DEFAULT_VITESSE = 127;
+
+  auto GetVitesse() const -> int32_t { return vitesse; };
+  void SetVitesse(const int32_t val);
+  void SetDefault();
+  void GoSlowerBy(const int32_t val);
+  void GoFasterBy(const int32_t val);
+
+  auto GetReverseVitesse() const -> bool { return reverseVitesse; }
+  void SetReverseVitesse(const bool val) { reverseVitesse = val; }
+  void ToggleReverseVitesse() { reverseVitesse = !reverseVitesse; }
+
+  auto GetRelativeSpeed() const -> float;
+
+private:
+  int32_t vitesse = DEFAULT_VITESSE;
+  bool reverseVitesse = true;
+};
+
+inline void Vitesse::SetVitesse(const int32_t val)
+{
+  vitesse = stdnew::clamp(val, FASTEST_SPEED, STOP_SPEED);
+}
+
+inline void Vitesse::SetDefault()
+{
+  vitesse = DEFAULT_VITESSE;
+  reverseVitesse = true;
+}
+
+inline void Vitesse::GoSlowerBy(const int32_t val)
+{
+  SetVitesse(vitesse + val);
+}
+
+inline void Vitesse::GoFasterBy(const int32_t val)
+{
+  SetVitesse(vitesse - 30 * val);
+}
+
+inline auto Vitesse::GetRelativeSpeed() const -> float
+{
+  const float speed = static_cast<float>(vitesse - MAX_VITESSE) / static_cast<float>(MAX_VITESSE);
+  return reverseVitesse ? -speed : +speed;
+}
+
 struct ZoomFilterData
 {
-  ZoomFilterMode mode = ZoomFilterMode::NORMAL_MODE; // type d'effet à appliquer
-  // 128 = vitesse nule... * * 256 = en arriere
-  //   hyper vite.. * * 0 = en avant hype vite.
-  static constexpr int32_t MAX_VITESSE = 128;
-  static constexpr int32_t DEFAULT_VITESSE = 127;
-  int32_t vitesse = DEFAULT_VITESSE;
-  static constexpr float MIN_COEFF_VITESSE_DENOMINATOR = 50.0;
-  static constexpr float MAX_COEFF_VITESSE_DENOMINATOR = 50.01;
-  static constexpr float DEFAULT_COEFF_VITESSE_DENOMINATOR = 50.0;
-  float coeffVitesseDenominator = DEFAULT_COEFF_VITESSE_DENOMINATOR;
-  static constexpr float MIN_COEF_VITESSE = -4.01;
-  static constexpr float MAX_MAX_COEF_VITESSE = +4.01;
-  static constexpr float DEFAULT_MAX_COEF_VITESSE = +2.01;
+  ZoomFilterMode mode = ZoomFilterMode::NORMAL_MODE;
+  Vitesse vitesse{};
 #if __cplusplus <= 201402L
   static const uint8_t pertedec; // NEVER SEEMS TO CHANGE
 #else
@@ -53,11 +102,10 @@ struct ZoomFilterData
 #endif
   uint32_t middleX = 16;
   uint32_t middleY = 1; // milieu de l'effet
-  bool reverseSpeed = true; // inverse la vitesse
   bool tanEffect = false;
   bool blockyWavy = false;
-  static constexpr float MAX_ROTATE_SPEED = +0.5;
   static constexpr float MIN_ROTATE_SPEED = -0.5;
+  static constexpr float MAX_ROTATE_SPEED = +0.5;
   static constexpr float DEFAULT_ROTATE_SPEED = 0.0;
   float rotateSpeed = DEFAULT_ROTATE_SPEED;
 

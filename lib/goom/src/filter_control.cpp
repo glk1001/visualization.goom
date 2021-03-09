@@ -24,11 +24,11 @@ constexpr float PROB_LOW = 0.1;
 // clang-format off
 const Weights<ZoomFilterMode> FilterControl::WEIGHTED_FILTER_EVENTS{{
     { ZoomFilterMode::AMULET_MODE,            5 },
-    { ZoomFilterMode::CRYSTAL_BALL_MODE,      8 },
+    { ZoomFilterMode::CRYSTAL_BALL_MODE,      6 },
     { ZoomFilterMode::HYPERCOS0_MODE,         5 },
-    { ZoomFilterMode::HYPERCOS1_MODE,         3 },
-    { ZoomFilterMode::HYPERCOS2_MODE,         2 },
-    { ZoomFilterMode::IMAGE_DISPLACEMENT_MODE,500000 },
+    { ZoomFilterMode::HYPERCOS1_MODE,         4 },
+    { ZoomFilterMode::HYPERCOS2_MODE,         3 },
+    { ZoomFilterMode::IMAGE_DISPLACEMENT_MODE,5 },
     { ZoomFilterMode::NORMAL_MODE,            6 },
     { ZoomFilterMode::SCRUNCH_MODE,           6 },
     { ZoomFilterMode::SPEEDWAY_MODE,          6 },
@@ -253,14 +253,12 @@ void FilterControl::SetDefaultSettings()
   m_filterData.middleX = 16;
   m_filterData.middleY = 1;
 
-  m_filterData.vitesse = ZoomFilterData::DEFAULT_VITESSE;
-  m_filterData.coeffVitesseDenominator = ZoomFilterData::DEFAULT_COEFF_VITESSE_DENOMINATOR;
-  m_filterData.reverseSpeed = true;
+  m_filterData.vitesse.SetDefault();
 
   m_filterData.tanEffect = false; //ProbabilityOfMInN(1, 10);
   m_filterData.rotateSpeed = 0.0;
   m_filterData.noisify = false;
-  m_filterData.noiseFactor = 1;
+  m_filterData.noiseFactor = 1.0;
   m_filterData.blockyWavy = false;
 
   m_filterData.waveEffect = false; // TODO - not used?
@@ -438,11 +436,12 @@ void FilterControl::SetWaveModeSettings(const MinMaxValues& minMaxFreq,
 {
   using EventTypes = FilterControl::FilterEvents::FilterEventTypes;
 
-  m_filterData.reverseSpeed = m_filterEvents->Happens(EventTypes::REVERSE_SPEED);
+  m_filterData.vitesse.SetReverseVitesse(m_filterEvents->Happens(EventTypes::REVERSE_SPEED));
 
   if (m_filterEvents->Happens(EventTypes::CHANGE_SPEED))
   {
-    m_filterData.vitesse = (m_filterData.vitesse + ZoomFilterData::DEFAULT_VITESSE) >> 1;
+    m_filterData.vitesse.SetVitesse((m_filterData.vitesse.GetVitesse() + Vitesse::DEFAULT_VITESSE) /
+                                    2);
   }
 
   m_filterData.waveEffectType = static_cast<ZoomFilterData::WaveEffect>(GetRandInRange(0, 2));

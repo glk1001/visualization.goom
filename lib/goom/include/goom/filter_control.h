@@ -29,9 +29,9 @@ public:
   auto GetSettingsChangedSinceMark() const -> bool;
   void ClearUnchangedMark();
 
-  void SetReverseSetting(bool value);
-  void ToggleReverseSetting();
-  void SetVitesseSetting(int32_t value);
+  auto GetVitesseSetting() const -> const Vitesse&;
+  auto GetVitesseSetting() -> Vitesse&;
+
   void SetNoisifySetting(bool value);
   void SetNoiseFactorSetting(float value);
   void SetBlockyWavySetting(bool value);
@@ -118,22 +118,15 @@ inline void FilterControl::ClearUnchangedMark()
   m_hasChanged = false;
 }
 
-inline void FilterControl::SetReverseSetting(const bool value)
+inline auto FilterControl::GetVitesseSetting() const -> const Vitesse&
 {
-  m_hasChanged = true;
-  m_filterData.reverseSpeed = value;
+  return m_filterData.vitesse;
 }
 
-inline void FilterControl::ToggleReverseSetting()
+inline auto FilterControl::GetVitesseSetting() -> Vitesse&
 {
   m_hasChanged = true;
-  m_filterData.reverseSpeed = !m_filterData.reverseSpeed;
-}
-
-inline void FilterControl::SetVitesseSetting(const int32_t value)
-{
-  m_hasChanged = true;
-  m_filterData.vitesse = value;
+  return m_filterData.vitesse;
 }
 
 inline void FilterControl::SetNoisifySetting(const bool value)

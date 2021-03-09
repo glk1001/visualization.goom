@@ -98,12 +98,17 @@ private:
 
   FXBuffSettings m_buffSettings{};
   std::string m_resourcesDirectory{};
-  float m_generalSpeed;
-  float m_maxCoeffVitesse = ZoomFilterData::DEFAULT_MAX_COEF_VITESSE;
+
+  static constexpr float SPEED_COEFF_DENOMINATOR = 50.0;
+  static constexpr float MIN_SPEED_COEFF = -4.01;
+  static constexpr float MAX_MAX_SPEED_COEFF = +4.01;
+  static constexpr float DEFAULT_MAX_SPEED_COEFF = +2.01;
+  float m_generalSpeed = 0;
+  float m_maxSpeedCoeff = DEFAULT_MAX_SPEED_COEFF;
   auto GetImageFilename(const std::string& imageFilename) -> std::string;
 
   Parallel* const m_parallel;
-  uint64_t m_updateNum{0};
+  uint64_t m_updateNum = 0;
   mutable FilterStats m_stats{};
 
   using NeighborhoodCoeffArray = ZoomFilterBuffers::NeighborhoodCoeffArray;
@@ -123,9 +128,9 @@ private:
 
   auto GetZoomVector(float xNormalized, float yNormalized) const -> V2dFlt;
   auto GetStandardVelocity(float xNormalized, float yNormalized) const -> V2dFlt;
-  auto GetCoeffVitesseVelocity(const float xNormalized,
-                               const float yNormalized,
-                               const float sqDist) const -> V2dFlt;
+  auto GetSpeedCoeffVelocity(const float xNormalized,
+                             const float yNormalized,
+                             const float sqDist) const -> V2dFlt;
   auto GetImageDisplacementVelocity(const float xNormalized, const float yNormalized) const
       -> V2dFlt;
   auto GetHypercosVelocity(float xNormalized, float yNormalized) const -> V2dFlt;
@@ -136,10 +141,10 @@ private:
   auto GetRotatedVelocity(const V2dFlt& velocity) const -> V2dFlt;
   auto GetCleanedVelocity(const V2dFlt& velocity) const -> V2dFlt;
 
-  auto GetCoeffVitesse(float xNormalized, float yNormalized, float sqDist) const -> float;
-  auto GetWaveEffectCoeffVitesse(float sqDist) const -> float;
-  auto GetYOnlyCoeffVitesse(float xNormalized, float yNormalized) const -> float;
-  auto GetClampedCoeffVitesse(float coeffVitesse) const -> float;
+  auto GetSpeedCoefficient(float xNormalized, float yNormalized, float sqDist) const -> float;
+  auto GetWaveEffectSpeedCoeff(float sqDist) const -> float;
+  auto GetYOnlySpeedCoeff(float xNormalized, float yNormalized) const -> float;
+  auto GetClampedSpeedCoeff(float speedCoeff) const -> float;
 
   void LogState(const std::string& name) const;
 };
@@ -229,7 +234,6 @@ ZoomFilterFx::ZoomFilterImpl::ZoomFilterImpl(Parallel& p,
   : m_screenWidth{goomInfo->GetScreenInfo().width},
     m_screenHeight{goomInfo->GetScreenInfo().height},
     m_filterBuffers{p, goomInfo},
-    m_generalSpeed{0},
     m_parallel{&p}
 {
   m_currentFilterSettings.middleX = m_screenWidth / 2;
@@ -454,15 +458,8 @@ void ZoomFilterFx::ZoomFilterImpl::RestartTranBuffer()
                                    static_cast<int32_t>(m_currentFilterSettings.middleY)});
   m_filterBuffers.SettingsChanged();
 
-  m_generalSpeed =
-      static_cast<float>(m_currentFilterSettings.vitesse - ZoomFilterData::MAX_VITESSE) /
-      static_cast<float>(ZoomFilterData::MAX_VITESSE);
-  if (m_currentFilterSettings.reverseSpeed)
-  {
-    m_generalSpeed = -m_generalSpeed;
-  }
-
-  m_maxCoeffVitesse = GetRandInRange(0.5F, 1.0F) * ZoomFilterData::MAX_MAX_COEF_VITESSE;
+  m_generalSpeed = m_currentFilterSettings.vitesse.GetRelativeSpeed();
+  m_maxSpeedCoeff = GetRandInRange(0.5F, 1.0F) * MAX_MAX_SPEED_COEFF;
 
   if (m_currentFilterSettings.imageDisplacement != nullptr)
   {
@@ -703,21 +700,20 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetStandardVelocity(const float xNorma
 
   V2dFlt velocity = m_currentFilterSettings.mode == ZoomFilterMode::IMAGE_DISPLACEMENT_MODE
                         ? GetImageDisplacementVelocity(xNormalized, yNormalized)
-                        : GetCoeffVitesseVelocity(xNormalized, yNormalized, sqDist);
+                        : GetSpeedCoeffVelocity(xNormalized, yNormalized, sqDist);
 
   velocity = GetTanEffectVelocity(sqDist, velocity);
 
   return GetRotatedVelocity(velocity);
 }
 
-inline auto ZoomFilterFx::ZoomFilterImpl::GetCoeffVitesseVelocity(const float xNormalized,
-                                                                  const float yNormalized,
-                                                                  const float sqDist) const
-    -> V2dFlt
+inline auto ZoomFilterFx::ZoomFilterImpl::GetSpeedCoeffVelocity(const float xNormalized,
+                                                                const float yNormalized,
+                                                                const float sqDist) const -> V2dFlt
 {
-  const float coeffVitesse = GetCoeffVitesse(xNormalized, yNormalized, sqDist);
+  const float speedCoeff = GetSpeedCoefficient(xNormalized, yNormalized, sqDist);
 
-  return {coeffVitesse * xNormalized, coeffVitesse * yNormalized};
+  return {speedCoeff * xNormalized, speedCoeff * yNormalized};
 }
 
 inline auto ZoomFilterFx::ZoomFilterImpl::GetImageDisplacementVelocity(
@@ -733,23 +729,23 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetImageDisplacementVelocity(
   return m_currentFilterSettings.imageDisplacementAmplitude * displacement;
 }
 
-auto ZoomFilterFx::ZoomFilterImpl::GetCoeffVitesse([[maybe_unused]] const float xNormalized,
-                                                   const float yNormalized,
-                                                   const float sqDist) const -> float
+auto ZoomFilterFx::ZoomFilterImpl::GetSpeedCoefficient([[maybe_unused]] const float xNormalized,
+                                                       const float yNormalized,
+                                                       const float sqDist) const -> float
 {
-  float coeffVitesse = (1.0F + m_generalSpeed) / m_currentFilterSettings.coeffVitesseDenominator;
+  float speedCoeff = (1.0F + m_generalSpeed) / SPEED_COEFF_DENOMINATOR;
 
   switch (m_currentFilterSettings.mode)
   {
     case ZoomFilterMode::AMULET_MODE:
     {
-      coeffVitesse += m_currentFilterSettings.amuletAmplitude * sqDist;
+      speedCoeff += m_currentFilterSettings.amuletAmplitude * sqDist;
       break;
     }
     case ZoomFilterMode::CRYSTAL_BALL_MODE:
     {
-      coeffVitesse -= m_currentFilterSettings.crystalBallAmplitude *
-                      (sqDist - m_currentFilterSettings.crystalBallSqDistOffset);
+      speedCoeff -= m_currentFilterSettings.crystalBallAmplitude *
+                    (sqDist - m_currentFilterSettings.crystalBallSqDistOffset);
       break;
     }
     case ZoomFilterMode::HYPERCOS0_MODE:
@@ -762,23 +758,23 @@ auto ZoomFilterFx::ZoomFilterImpl::GetCoeffVitesse([[maybe_unused]] const float 
     }
     case ZoomFilterMode::SCRUNCH_MODE:
     {
-      coeffVitesse += m_currentFilterSettings.scrunchAmplitude * sqDist;
+      speedCoeff += m_currentFilterSettings.scrunchAmplitude * sqDist;
       break;
     }
     case ZoomFilterMode::SPEEDWAY_MODE:
     {
-      coeffVitesse *= m_currentFilterSettings.speedwayAmplitude * (yNormalized + 0.01F * sqDist);
+      speedCoeff *= m_currentFilterSettings.speedwayAmplitude * (yNormalized + 0.01F * sqDist);
       break;
     }
     case ZoomFilterMode::WAVE_MODE0:
     case ZoomFilterMode::WAVE_MODE1:
     {
-      coeffVitesse += GetWaveEffectCoeffVitesse(sqDist);
+      speedCoeff += GetWaveEffectSpeedCoeff(sqDist);
       break;
     }
     case ZoomFilterMode::Y_ONLY_MODE:
     {
-      coeffVitesse *= GetYOnlyCoeffVitesse(xNormalized, yNormalized);
+      speedCoeff *= GetYOnlySpeedCoeff(xNormalized, yNormalized);
       break;
     }
       /* Amulette 2 */
@@ -789,10 +785,10 @@ auto ZoomFilterFx::ZoomFilterImpl::GetCoeffVitesse([[maybe_unused]] const float 
           std20::format("Switch: unhandled case '{}'.", m_currentFilterSettings.mode));
   }
 
-  return GetClampedCoeffVitesse(coeffVitesse);
+  return GetClampedSpeedCoeff(speedCoeff);
 }
 
-auto ZoomFilterFx::ZoomFilterImpl::GetWaveEffectCoeffVitesse(const float sqDist) const -> float
+auto ZoomFilterFx::ZoomFilterImpl::GetWaveEffectSpeedCoeff(const float sqDist) const -> float
 {
   const float angle = m_currentFilterSettings.waveFreqFactor * sqDist;
   float periodicPart;
@@ -813,8 +809,8 @@ auto ZoomFilterFx::ZoomFilterImpl::GetWaveEffectCoeffVitesse(const float sqDist)
   return m_currentFilterSettings.waveAmplitude * periodicPart;
 }
 
-auto ZoomFilterFx::ZoomFilterImpl::GetYOnlyCoeffVitesse([[maybe_unused]] const float xNormalized,
-                                                        const float yNormalized) const -> float
+auto ZoomFilterFx::ZoomFilterImpl::GetYOnlySpeedCoeff([[maybe_unused]] const float xNormalized,
+                                                      const float yNormalized) const -> float
 {
   switch (m_currentFilterSettings.yOnlyEffect)
   {
@@ -840,19 +836,19 @@ auto ZoomFilterFx::ZoomFilterImpl::GetYOnlyCoeffVitesse([[maybe_unused]] const f
   }
 }
 
-auto ZoomFilterFx::ZoomFilterImpl::GetClampedCoeffVitesse(const float coeffVitesse) const -> float
+auto ZoomFilterFx::ZoomFilterImpl::GetClampedSpeedCoeff(const float speedCoeff) const -> float
 {
-  if (coeffVitesse < ZoomFilterData::MIN_COEF_VITESSE)
+  if (speedCoeff < MIN_SPEED_COEFF)
   {
-    m_stats.DoZoomVectorCoeffVitesseBelowMin();
-    return ZoomFilterData::MIN_COEF_VITESSE;
+    m_stats.DoZoomVectorSpeedCoeffBelowMin();
+    return MIN_SPEED_COEFF;
   }
-  if (coeffVitesse > m_maxCoeffVitesse)
+  if (speedCoeff > m_maxSpeedCoeff)
   {
-    m_stats.DoZoomVectorCoeffVitesseAboveMax();
-    return m_maxCoeffVitesse;
+    m_stats.DoZoomVectorSpeedCoeffAboveMax();
+    return m_maxSpeedCoeff;
   }
-  return coeffVitesse;
+  return speedCoeff;
 }
 
 inline auto ZoomFilterFx::ZoomFilterImpl::GetHypercosVelocity(const float xNormalized,
@@ -865,8 +861,8 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetHypercosVelocity(const float xNorma
   const float hypercosFreqY = m_currentFilterSettings.hypercosReverse
                                   ? -m_currentFilterSettings.hypercosFreqY
                                   : +m_currentFilterSettings.hypercosFreqY;
-  float xVal = 0;
-  float yVal = 0;
+  float xVal = 0.0;
+  float yVal = 0.0;
 
   switch (m_currentFilterSettings.hypercosEffect)
   {
@@ -936,7 +932,7 @@ inline auto ZoomFilterFx::ZoomFilterImpl::GetNoiseVelocity() const -> V2dFlt
 {
   if (m_currentFilterSettings.noiseFactor < 0.01)
   {
-    return {0, 0};
+    return {0.0, 0.0};
   }
 
   m_stats.DoZoomVectorNoiseFactor();
@@ -1008,8 +1004,8 @@ void ZoomFilterFx::ZoomFilterImpl::LogState(const std::string& name) const
   logInfo("m_currentFilterSettings.middleX = {}", m_currentFilterSettings.middleX);
   logInfo("m_currentFilterSettings.middleY = {}", m_currentFilterSettings.middleY);
   logInfo("m_currentFilterSettings.vitesse = {}", m_currentFilterSettings.vitesse);
-  logInfo("m_currentFilterSettings.coeffVitesseDenominator = {}",
-          m_currentFilterSettings.coeffVitesseDenominator);
+  logInfo("m_currentFilterSettings.speedCoeffDenominator = {}",
+          m_currentFilterSettings.speedCoeffDenominator);
   logInfo("m_currentFilterSettings.reverse = {}", m_currentFilterSettings.reverse);
   logInfo("m_currentFilterSettings.hPlaneEffect = {}", m_currentFilterSettings.hPlaneEffect);
   logInfo("m_currentFilterSettings.hPlaneEffectAmplitude = {}",

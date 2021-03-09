@@ -154,12 +154,14 @@ void GoomStats::Log(const StatsLogValueFunc& logVal) const
   else
   {
     logVal(MODULE, "lastZoomFilterData->mode", EnumToString(m_lastZoomFilterSettings->mode));
-    logVal(MODULE, "lastZoomFilterData->vitesse", m_lastZoomFilterSettings->vitesse);
+    logVal(MODULE, "lastZoomFilterData->vitesse", m_lastZoomFilterSettings->vitesse.GetVitesse());
+    logVal(MODULE, "lastZoomFilterData->reverseSpeed",
+           static_cast<uint32_t>(m_lastZoomFilterSettings->vitesse.GetReverseVitesse()));
+    logVal(MODULE, "lastZoomFilterData->relativeSpeed",
+           m_lastZoomFilterSettings->vitesse.GetRelativeSpeed());
     logVal(MODULE, "lastZoomFilterData->pertedec", static_cast<uint32_t>(ZoomFilterData::pertedec));
     logVal(MODULE, "lastZoomFilterData->middleX", m_lastZoomFilterSettings->middleX);
     logVal(MODULE, "lastZoomFilterData->middleY", m_lastZoomFilterSettings->middleY);
-    logVal(MODULE, "lastZoomFilterData->reverseSpeed",
-           static_cast<uint32_t>(m_lastZoomFilterSettings->reverseSpeed));
 
     logVal(MODULE, "lastZoomFilterData->amuletteAmplitude",
            m_lastZoomFilterSettings->amuletAmplitude);
