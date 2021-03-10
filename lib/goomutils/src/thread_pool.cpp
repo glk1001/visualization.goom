@@ -40,6 +40,16 @@ ThreadPool::~ThreadPool() noexcept
   }
 }
 
+auto ThreadPool::GetThreadIds() const -> std::vector<std::thread::id>
+{
+  std::vector<std::thread::id> threadIds{};
+  for (const std::thread& thread : m_workers)
+  {
+    threadIds.emplace_back(thread.get_id());
+  }
+  return threadIds;
+}
+
 auto ThreadPool::GetOutstandingWorkSize() const -> size_t
 {
   const std::lock_guard<std::mutex> lock{m_mutex};

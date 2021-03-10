@@ -32,6 +32,7 @@ public:
   auto operator=(Parallel&&) -> Parallel& = delete;
 
   auto GetNumThreadsUsed() const -> size_t;
+  auto GetThreadIds() const -> std::vector<std::thread::id>;
 
   template<typename Callable>
   void ForLoop(uint32_t numIters, Callable loopFunc);
@@ -53,6 +54,11 @@ inline Parallel::Parallel(const int32_t numPoolThreads) noexcept
 inline auto Parallel::GetNumThreadsUsed() const -> size_t
 {
   return m_threadPool.GetNumWorkers();
+}
+
+inline auto Parallel::GetThreadIds() const -> std::vector<std::thread::id>
+{
+  return m_threadPool.GetThreadIds();
 }
 
 template<typename Callable>

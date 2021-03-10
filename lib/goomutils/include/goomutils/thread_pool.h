@@ -52,6 +52,7 @@ public:
   void Wait();
 
   auto GetNumWorkers() const -> size_t;
+  auto GetThreadIds() const -> std::vector<std::thread::id>;
 
   auto GetOutstandingWorkSize() const -> size_t;
   void SetWorkDoneCallback(std::function<void(int)> func);

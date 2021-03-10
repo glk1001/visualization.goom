@@ -6,20 +6,20 @@
 #include <thread>
 #include <vector>
 
-
-using namespace GOOM;
-using namespace UTILS;
+using GOOM::UTILS::Parallel;
 
 TEST_CASE("Test Parallel Utils", "[ParallelFor]")
 {
   std::set<std::thread::id> threadsUsed{};
+  std::mutex mutex{};
 
   constexpr size_t ARRAY_LEN = 100000;
   std::vector<uint64_t> testArray(ARRAY_LEN);
   constexpr uint64_t FIXED_VAL = 33;
   const auto f = [](const uint64_t i) { return i * FIXED_VAL + i * i; };
-  const auto assignF = [&testArray, &f, &threadsUsed](const uint64_t i) {
+  const auto assignF = [&testArray, &f, &threadsUsed, &mutex](const uint64_t i) {
     testArray[i] = f(i);
+    std::lock_guard<std::mutex> l(mutex);
     (void)threadsUsed.emplace(std::this_thread::get_id());
   };
 
