@@ -324,24 +324,33 @@ void FilterControl::SetCrystalBallModeSettings()
 void FilterControl::SetHypercos0ModeSettings()
 {
   SetRotate(PROB_LOW);
+
+  const float hypercos0Max =
+      stdnew::lerp(ZoomFilterData::MIN_HYPERCOS_FREQ, ZoomFilterData::MAX_HYPERCOS_FREQ, 0.1F);
   SetHypercosEffect(
-      {ZoomFilterData::MIN_HYPERCOS_FREQ, 0.10F * ZoomFilterData::MAX_HYPERCOS_FREQ},
+      {ZoomFilterData::MIN_HYPERCOS_FREQ, hypercos0Max},
       {ZoomFilterData::MIN_HYPERCOS_AMPLITUDE, ZoomFilterData::MAX_HYPERCOS_AMPLITUDE});
 }
 
 void FilterControl::SetHypercos1ModeSettings()
 {
   SetRotate(PROB_LOW);
+
+  const float hypercos1Min =
+      stdnew::lerp(ZoomFilterData::MIN_HYPERCOS_FREQ, ZoomFilterData::MAX_HYPERCOS_FREQ, 0.2F);
   SetHypercosEffect(
-      {ZoomFilterData::MIN_HYPERCOS_FREQ, ZoomFilterData::MAX_HYPERCOS_FREQ},
+      {hypercos1Min, ZoomFilterData::MAX_HYPERCOS_FREQ},
       {ZoomFilterData::MIN_HYPERCOS_AMPLITUDE, ZoomFilterData::MAX_HYPERCOS_AMPLITUDE});
 }
 
 void FilterControl::SetHypercos2ModeSettings()
 {
   SetRotate(PROB_LOW);
+
+  const float hypercos2Min =
+      stdnew::lerp(ZoomFilterData::MIN_HYPERCOS_FREQ, ZoomFilterData::MAX_HYPERCOS_FREQ, 0.5F);
   SetHypercosEffect(
-      {ZoomFilterData::MIN_HYPERCOS_FREQ, ZoomFilterData::BIG_MAX_HYPERCOS_FREQ},
+      {hypercos2Min, ZoomFilterData::BIG_MAX_HYPERCOS_FREQ},
       {ZoomFilterData::MIN_HYPERCOS_AMPLITUDE, ZoomFilterData::MAX_HYPERCOS_AMPLITUDE});
 }
 
