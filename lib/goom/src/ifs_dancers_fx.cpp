@@ -52,14 +52,11 @@
 #include "goomutils/random_colormaps.h"
 #include "goomutils/random_colormaps_manager.h"
 #include "goomutils/small_image_bitmaps.h"
-#include "goomutils/strutils.h"
 #include "stats/ifs_stats.h"
 
 #include <array>
 
 //#undef NDEBUG
-#include <algorithm>
-#include <array>
 #include <cassert>
 #include <cmath>
 #include <cstdint>
@@ -94,12 +91,6 @@ struct IfsPoint
   uint32_t count = 0;
   Pixel color{0U};
   const Similitude* simi{};
-
-  template<class Archive>
-  void serialize(Archive& ar)
-  {
-    ar(x, y);
-  }
 };
 
 using Dbl = float;
@@ -169,7 +160,6 @@ struct Similitude
 class FractalHits
 {
 public:
-  FractalHits() noexcept = default;
   FractalHits(uint32_t width, uint32_t height) noexcept;
   void Reset();
   void AddHit(uint32_t x, uint32_t y, const Similitude& s);
@@ -187,6 +177,7 @@ private:
   };
   std::vector<std::vector<HitInfo>> m_hitInfo{};
   uint32_t m_maxHitCount = 0;
+  static constexpr size_t HITS_ESTIMATE = 1000;
   std::vector<IfsPoint> m_hits{};
   std::vector<IfsPoint> m_buffer{};
 };
@@ -198,7 +189,7 @@ FractalHits::FractalHits(const uint32_t w, const uint32_t h) noexcept
   {
     xHit.resize(m_width);
   }
-  m_hits.reserve(1000);
+  m_hits.reserve(HITS_ESTIMATE);
 }
 
 void FractalHits::Reset()
@@ -218,8 +209,8 @@ void FractalHits::Reset()
 
 void FractalHits::AddHit(uint32_t x, uint32_t y, const Similitude& s)
 {
-  const uint32_t ux = x & 0x7fffffff;
-  const uint32_t uy = y & 0x7fffffff;
+  const uint32_t ux = x & 0x7fffffffU;
+  const uint32_t uy = y & 0x7fffffffU;
 
   if (ux >= m_width || uy >= m_height)
   {
@@ -260,7 +251,6 @@ auto FractalHits::GetBuffer() -> const std::vector<IfsPoint>&
 class Fractal
 {
 public:
-  Fractal() noexcept = default;
   Fractal(const std::shared_ptr<const PluginInfo>& goomInfo,
           const RandomColorMaps& cm,
           IfsStats* s);
@@ -302,8 +292,8 @@ private:
 
   std::vector<Similitude> m_components{};
 
-  FractalHits m_hits1{};
-  FractalHits m_hits2{};
+  FractalHits m_hits1;
+  FractalHits m_hits2;
   FractalHits* m_prevHits = nullptr;
   FractalHits* m_curHits = nullptr;
 
@@ -509,27 +499,27 @@ void Fractal::DrawFractal()
 
 constexpr auto Fractal::Get_1_minus_exp_neg_S(const Dbl S) -> Dbl
 {
-  return 1.0 - std::exp(-S);
+  return 1.0F - std::exp(-S);
 }
 
 auto Fractal::GaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S) -> Dbl
 {
   const Dbl x = GetRandInRange(0.0F, 1.0F);
-  const Dbl y = A_mult_1_minus_exp_neg_S * (1.0 - std::exp(-x * x * S));
+  const Dbl y = A_mult_1_minus_exp_neg_S * (1.0F - std::exp(-x * x * S));
   return ProbabilityOfMInN(1, 2) ? c + y : c - y;
 }
 
 auto Fractal::HalfGaussRand(const Dbl c, const Dbl S, const Dbl A_mult_1_minus_exp_neg_S) -> Dbl
 {
   const Dbl x = GetRandInRange(0.0F, 1.0F);
-  const Dbl y = A_mult_1_minus_exp_neg_S * (1.0 - std::exp(-x * x * S));
+  const Dbl y = A_mult_1_minus_exp_neg_S * (1.0F - std::exp(-x * x * S));
   return c + y;
 }
 
 void Fractal::RandomSimis(const size_t start, const size_t num)
 {
 #if __cplusplus <= 201402L
-  static const Dbl c_factor = 0.8f * Get_1_minus_exp_neg_S(4.0);
+  static const Dbl c_factor = 0.8F * Get_1_minus_exp_neg_S(4.0);
   static const Dbl r1_1_minus_exp_neg_S = Get_1_minus_exp_neg_S(3.0);
   static const Dbl r2_1_minus_exp_neg_S = Get_1_minus_exp_neg_S(2.0);
   static const Dbl A1_factor = 360.0F * Get_1_minus_exp_neg_S(4.0);
@@ -621,7 +611,8 @@ inline auto Fractal::Transform(const Similitude& simi, const FltPoint& p0) const
   const Flt x2 = DivByUnit((+x1 - simi.cx) * simi.r2);
   const Flt y2 = DivByUnit((-y1 - simi.cy) * simi.r2);
 
-  return m_curFunc(simi, x1, y1, x2, y2);
+  return m_curFunc(simi, static_cast<float>(x1), static_cast<float>(y1), static_cast<float>(x2),
+                   static_cast<float>(y2));
 }
 
 inline void Fractal::UpdateHits(const Similitude& simi, const FltPoint& p)
@@ -653,11 +644,6 @@ public:
 
   [[nodiscard]] auto GetMixedColor(
       const Pixel& baseColor, uint32_t hitCount, float tMix, float x, float y) -> Pixel;
-
-  auto operator==(const Colorizer& c) const -> bool;
-
-  template<class Archive>
-  void serialize(Archive& ar);
 
 private:
   std::shared_ptr<WeightedColorMaps> m_colorMaps{
@@ -703,7 +689,7 @@ Colorizer::Colorizer() noexcept
 inline void Colorizer::SetMaxHitCount(uint32_t val)
 {
   m_maxHitCount = val;
-  m_logMaxHitCount = std::log(m_maxHitCount);
+  m_logMaxHitCount = std::log(static_cast<float>(m_maxHitCount));
 }
 
 inline auto Colorizer::GetColorMaps() const -> const RandomColorMaps&
@@ -928,7 +914,6 @@ void LowDensityBlurrer::DoBlur(std::vector<IfsPoint>& lowDensityPoints,
 class IfsDancersFx::IfsDancersFxImpl
 {
 public:
-  IfsDancersFxImpl() noexcept = default;
   explicit IfsDancersFxImpl(std::shared_ptr<const PluginInfo> info) noexcept;
   ~IfsDancersFxImpl() noexcept;
   IfsDancersFxImpl(const IfsDancersFxImpl&) = delete;
@@ -973,7 +958,6 @@ private:
   std::unique_ptr<Fractal> m_fractal{};
 
   int m_cycle = 0;
-  bool m_initialized = false;
   int m_ifsIncr = 1; // dessiner l'ifs (0 = non: > = increment)
   int m_decayIfs = 0; // disparition de l'ifs
   int m_recayIfs = 0; // dedisparition de l'ifs
@@ -1166,8 +1150,13 @@ void IfsDancersFx::IfsDancersFxImpl::Renew()
   m_colorizer.ChangeColorMode();
   UpdateAllowOverexposed();
 
-  m_fractal->SetSpeed(static_cast<uint32_t>(std::min(GetRandInRange(1.1F, 10.0F), 5.1F) /
-                                            (1.1F - m_goomInfo->GetSoundInfo().GetAcceleration())));
+  constexpr float MIN_SPEED_AMP = 1.1;
+  constexpr float MAX_SPEED_AMP = 5.1;
+  constexpr float MAX_SPEED_WEIGHT = 10.0;
+  const float speedAmp = std::min(GetRandInRange(MIN_SPEED_AMP, MAX_SPEED_WEIGHT), MAX_SPEED_AMP);
+  const float accelFactor = 1.0F / (1.2F - m_goomInfo->GetSoundInfo().GetAcceleration());
+
+  m_fractal->SetSpeed(static_cast<uint32_t>(speedAmp * accelFactor));
 }
 
 void IfsDancersFx::IfsDancersFxImpl::ChangeColormaps()
