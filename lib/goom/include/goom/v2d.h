@@ -6,22 +6,30 @@
 namespace GOOM
 {
 
+struct V2dFlt;
+
 struct V2dInt
 {
-  int32_t x;
-  int32_t y;
+  int32_t x = 0;
+  int32_t y = 0;
+  auto ToFlt() const -> V2dFlt;
 };
 
 struct V2dFlt
 {
-  float x;
-  float y;
+  float x = 0.0;
+  float y = 0.0;
   auto operator+=(const V2dFlt& v) -> V2dFlt&;
   auto operator*=(float a) -> V2dFlt&;
   auto operator*(float a) const -> V2dFlt;
 };
 
-auto operator*(float a, const V2dFlt& v) -> V2dFlt;
+inline auto V2dInt::ToFlt() const -> V2dFlt
+{
+  return {static_cast<float>(x), static_cast<float>(y)};
+}
+
+inline auto operator*(float a, const V2dFlt& v) -> V2dFlt;
 
 inline auto V2dFlt::operator+=(const V2dFlt& v) -> V2dFlt&
 {

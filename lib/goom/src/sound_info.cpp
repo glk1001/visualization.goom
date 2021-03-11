@@ -298,6 +298,8 @@ void SoundInfo::UpdateGoomLimit()
 
 void SoundInfo::Log(const StatsLogValueFunc& l) const
 {
+  m_stats->LastGoomPower(GetGoomPower());
+
   m_stats->Log(l);
 }
 

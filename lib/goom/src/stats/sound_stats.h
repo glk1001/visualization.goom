@@ -16,6 +16,8 @@ public:
   void Reset();
   void Log(const StatsLogValueFunc& logVal) const;
 
+  void LastGoomPower(float val);
+
   void DoGoom();
   void DoBigGoom();
   void DoUpdateVolume(float volume);
@@ -25,6 +27,8 @@ public:
 private:
   uint64_t m_numGooms = 0;
   uint64_t m_numBigGooms = 0;
+
+  float m_lastGoomPower = 0.0;
 
   float m_minVolume = 1.0;
   float m_maxVolume = 0.0;

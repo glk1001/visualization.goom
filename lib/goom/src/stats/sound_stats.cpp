@@ -13,6 +13,8 @@ void SoundStats::Reset()
   m_numGooms = 0;
   m_numBigGooms = 0;
 
+  m_lastGoomPower = 0.0;
+
   m_numVolumeUpdates = 0;
   m_minVolume = 1.0;
   m_maxVolume = 0.0;
@@ -29,6 +31,7 @@ void SoundStats::Log(const StatsLogValueFunc& logVal) const
 
   logVal(MODULE, "numGooms", m_numGooms);
   logVal(MODULE, "numBigGooms", m_numBigGooms);
+  logVal(MODULE, "lastGoomPower", m_lastGoomPower);
 
   const float avVolume =
       m_numVolumeUpdates == 0
@@ -56,6 +59,11 @@ void SoundStats::Log(const StatsLogValueFunc& logVal) const
   logVal(MODULE, "avSpeed", avSpeed);
   logVal(MODULE, "minSpeed", m_minSpeed);
   logVal(MODULE, "maxSpeed", m_maxSpeed);
+}
+
+void SoundStats::LastGoomPower(float val)
+{
+  m_lastGoomPower = val;
 }
 
 void SoundStats::DoGoom()

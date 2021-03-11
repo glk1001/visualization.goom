@@ -16,6 +16,7 @@
 #include "goomutils/random_colormaps_manager.h"
 #include "goomutils/small_image_bitmaps.h"
 #include "stats/stars_stats.h"
+#include "v2d.h"
 
 #include <cmath>
 #include <cstddef>
@@ -50,14 +51,11 @@ constexpr size_t NUM_FX = static_cast<uint32_t>(StarModes::_SIZE);
 
 struct Star
 {
-  float x = 0;
-  float y = 0;
-  float xVelocity = 0;
-  float yVelocity = 0;
-  float xAcceleration = 0;
-  float yAcceleration = 0;
-  float age = 0;
-  float vage = 0;
+  V2dFlt pos{};
+  V2dFlt velocity{};
+  V2dFlt acceleration{};
+  float age = 0.0;
+  float vage = 0.0;
   std::shared_ptr<const IColorMap> dominantColormap{};
   std::shared_ptr<const IColorMap> dominantLowColormap{};
   std::shared_ptr<const IColorMap> currentColorMap{};
@@ -88,6 +86,8 @@ public:
 
 private:
   const std::shared_ptr<const PluginInfo> m_goomInfo;
+  const int32_t m_halfWidth;
+  const int32_t m_halfHeight;
 
   const std::shared_ptr<WeightedColorMaps> m_colorMaps{
       std::make_shared<WeightedColorMaps>(Weights<ColorMapGroup>{{
@@ -111,7 +111,7 @@ private:
           {ColorMapGroup::QUALITATIVE, 1},
           {ColorMapGroup::MISC, 10},
       }})};
-  RandomColorMapsManager m_colorMapsManager{};
+  RandomColorMapsManager m_randomColorMapsManager{};
   uint32_t m_dominantColorMapID{};
   uint32_t m_dominantLowColorMapID{};
   uint32_t m_colorMapID{};
@@ -161,6 +161,17 @@ private:
 
   void CheckForStarEvents();
   void SoundEventOccurred();
+  void UpdateWindAndGravity();
+  void ChangeColorMaps();
+  void UpdateStarColorMaps(float angle, Star& star);
+  static constexpr size_t NUM_SEGMENTS = 20;
+  std::array<COLOR_DATA::ColorMapName, NUM_SEGMENTS> m_angleColorMapName{};
+  void UpdateAngleColorMapNames();
+  static auto GetSegmentNum(float angle) -> size_t;
+  auto GetDominantColorMapPtr(float angle) const -> std::shared_ptr<const IColorMap>;
+  auto GetDominantLowColorMapPtr(float angle) const -> std::shared_ptr<const IColorMap>;
+  auto GetCurrentColorMapPtr(float angle) const -> std::shared_ptr<const IColorMap>;
+  auto GetCurrentLowColorMapPtr(float angle) const -> std::shared_ptr<const IColorMap>;
   void DrawStars(PixelBuffer& currentBuff, PixelBuffer& nextBuff);
   static void UpdateStar(Star& s);
   [[nodiscard]] auto IsStarDead(const Star& s) const -> bool;
@@ -211,8 +222,23 @@ private:
                        uint32_t size,
                        const std::vector<Pixel>& colors);
   void RemoveDeadStars();
-  void AddABomb(int32_t mx, int32_t my, float radius, float vage, float gravity, float sideWind);
-  [[nodiscard]] auto GetBombAngle(float x, float y) const -> float;
+
+  struct StarModeParams
+  {
+    V2dInt pos{};
+    float gravityFactor = 1.0F;
+    float windFactor = 1.0F;
+    float vage = 0.0;
+    float radius = 1.0F;
+  };
+  auto GetStarParams(float defaultRadius, float heightRatio) -> StarModeParams;
+  auto GetFireworksStarParams(float defaultRadius) const -> StarModeParams;
+  auto GetRainStarParams(float defaultRadius) const -> StarModeParams;
+  auto GetFountainStarParams(float defaultRadius) const -> StarModeParams;
+  void AddStarBombs(const StarModeParams& starModeParams, size_t maxStarsInBomb);
+  auto GetMaxStarsInABomb(const float heightRatio) const -> size_t;
+  void AddABomb(const V2dInt& pos, float radius, float vage, float gravity, float sideWind);
+  [[nodiscard]] auto GetBombAngle(const Star& star) const -> float;
 
   static constexpr size_t MIN_DOT_SIZE = 3;
   static constexpr size_t MAX_DOT_SIZE = 5;
@@ -278,6 +304,8 @@ void FlyingStarsFx::Apply(PixelBuffer& currentBuff, PixelBuffer& nextBuff)
 
 FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl(std::shared_ptr<const PluginInfo> info) noexcept
   : m_goomInfo{std::move(info)},
+    m_halfWidth{static_cast<int32_t>(m_goomInfo->GetScreenInfo().width / 2)},
+    m_halfHeight{static_cast<int32_t>(m_goomInfo->GetScreenInfo().height / 2)},
     m_draw{m_goomInfo->GetScreenInfo().width, m_goomInfo->GetScreenInfo().height},
     m_drawFuncs{{DrawMode::CIRCLES,
                  [&](const std::vector<PixelBuffer*>& buffs,
@@ -314,13 +342,13 @@ FlyingStarsFx::FlyingStarsImpl::FlyingStarsImpl(std::shared_ptr<const PluginInfo
 {
   m_stars.reserve(MAX_NUM_STARS);
 
-  m_dominantColorMapID =
-      m_colorMapsManager.AddColorMapInfo({m_colorMaps, ColorMapName::_NULL, RandomColorMaps::ALL});
-  m_dominantLowColorMapID = m_colorMapsManager.AddColorMapInfo(
+  m_dominantColorMapID = m_randomColorMapsManager.AddColorMapInfo(
+      {m_colorMaps, ColorMapName::_NULL, RandomColorMaps::ALL});
+  m_dominantLowColorMapID = m_randomColorMapsManager.AddColorMapInfo(
       {m_lowColorMaps, ColorMapName::_NULL, RandomColorMaps::ALL});
-  m_colorMapID =
-      m_colorMapsManager.AddColorMapInfo({m_colorMaps, ColorMapName::_NULL, RandomColorMaps::ALL});
-  m_lowColorMapID = m_colorMapsManager.AddColorMapInfo(
+  m_colorMapID = m_randomColorMapsManager.AddColorMapInfo(
+      {m_colorMaps, ColorMapName::_NULL, RandomColorMaps::ALL});
+  m_lowColorMapID = m_randomColorMapsManager.AddColorMapInfo(
       {m_lowColorMaps, ColorMapName::_NULL, RandomColorMaps::ALL});
 
   constexpr float MIN_SATURATION = 0.5F;
@@ -473,8 +501,8 @@ void FlyingStarsFx::FlyingStarsImpl::DrawParticle(PixelBuffer& currentBuff,
   const size_t numParts =
       tAge > OLD_AGE ? 4 : 2 + static_cast<size_t>(std::lround((1.0F - tAge) * 2.0F));
 
-  const auto x0 = static_cast<int32_t>(star.x);
-  const auto y0 = static_cast<int32_t>(star.y);
+  const auto x0 = static_cast<int32_t>(star.pos.x);
+  const auto y0 = static_cast<int32_t>(star.pos.y);
 
   int32_t x1 = x0;
   int32_t y1 = y0;
@@ -482,12 +510,12 @@ void FlyingStarsFx::FlyingStarsImpl::DrawParticle(PixelBuffer& currentBuff,
   {
     const int32_t x2 =
         x0 - static_cast<int32_t>(
-                 0.5 * (1.0 + std::sin(flipSpeed * star.xVelocity * static_cast<float>(j))) *
-                 star.xVelocity * static_cast<float>(j));
+                 0.5 * (1.0 + std::sin(flipSpeed * star.velocity.x * static_cast<float>(j))) *
+                 star.velocity.x * static_cast<float>(j));
     const int32_t y2 =
         y0 - static_cast<int32_t>(
-                 0.5 * (1.0 + std::cos(flipSpeed * star.yVelocity * static_cast<float>(j))) *
-                 star.yVelocity * static_cast<float>(j));
+                 0.5 * (1.0 + std::cos(flipSpeed * star.velocity.y * static_cast<float>(j))) *
+                 star.velocity.y * static_cast<float>(j));
 
     const float brightness = ageBrightness * static_cast<float>(j) / static_cast<float>(numParts);
 #if __cplusplus <= 201402L
@@ -591,9 +619,102 @@ void FlyingStarsFx::FlyingStarsImpl::RemoveDeadStars()
 
 inline auto FlyingStarsFx::FlyingStarsImpl::IsStarDead(const Star& s) const -> bool
 {
-  return (s.x < -64) || (s.x > static_cast<float>(m_goomInfo->GetScreenInfo().width + 64)) ||
-         (s.y < -64) || (s.y > static_cast<float>(m_goomInfo->GetScreenInfo().height + 64)) ||
+  return (s.pos.x < -64) ||
+         (s.pos.x > static_cast<float>(m_goomInfo->GetScreenInfo().width + 64)) ||
+         (s.pos.y < -64) ||
+         (s.pos.y > static_cast<float>(m_goomInfo->GetScreenInfo().height + 64)) ||
          (s.age >= static_cast<float>(this->m_maxStarAge));
+}
+
+void FlyingStarsFx::FlyingStarsImpl::ChangeColorMaps()
+{
+  m_randomColorMapsManager.ChangeColorMapNow(m_dominantColorMapID);
+  m_randomColorMapsManager.ChangeColorMapNow(m_dominantLowColorMapID);
+
+  const bool megaColorMode = ProbabilityOfMInN(1, 10);
+  if (megaColorMode)
+  {
+    m_randomColorMapsManager.UpdateColorMapName(m_colorMapID, ColorMapName::_NULL);
+    m_randomColorMapsManager.UpdateColorMapName(m_lowColorMapID, ColorMapName::_NULL);
+  }
+  else
+  {
+    m_randomColorMapsManager.UpdateColorMapName(m_colorMapID, m_colorMaps->GetRandomColorMapName());
+    m_randomColorMapsManager.UpdateColorMapName(m_lowColorMapID,
+                                                m_lowColorMaps->GetRandomColorMapName());
+  }
+
+  UpdateAngleColorMapNames();
+}
+
+void FlyingStarsFx::FlyingStarsImpl::UpdateStarColorMaps(const float angle, Star& star)
+{
+  // TODO Get colormap based on current mode.
+  if (ProbabilityOfMInN(10, 20))
+  {
+    star.dominantColormap = m_randomColorMapsManager.GetColorMapPtr(m_dominantColorMapID);
+    star.dominantLowColormap = m_randomColorMapsManager.GetColorMapPtr(m_dominantLowColorMapID);
+    star.currentColorMap = m_randomColorMapsManager.GetColorMapPtr(m_colorMapID);
+    star.currentLowColorMap = m_randomColorMapsManager.GetColorMapPtr(m_lowColorMapID);
+  }
+  else
+  {
+    star.dominantColormap = GetDominantColorMapPtr(angle);
+    star.dominantLowColormap = GetDominantLowColorMapPtr(angle);
+    star.currentColorMap = GetCurrentColorMapPtr(angle);
+    star.currentLowColorMap = GetCurrentLowColorMapPtr(angle);
+  }
+}
+
+void FlyingStarsFx::FlyingStarsImpl::UpdateAngleColorMapNames()
+{
+  for (size_t i = 0; i < NUM_SEGMENTS; ++i)
+  {
+    m_angleColorMapName[i] = m_colorMaps->GetRandomColorMapName();
+  }
+}
+
+auto FlyingStarsFx::FlyingStarsImpl::GetDominantColorMapPtr(const float angle) const
+    -> std::shared_ptr<const IColorMap>
+{
+  return std::const_pointer_cast<const IColorMap>(
+      m_colorMaps->GetColorMapPtr(m_angleColorMapName[GetSegmentNum(angle)]));
+}
+
+auto FlyingStarsFx::FlyingStarsImpl::GetDominantLowColorMapPtr(const float angle) const
+    -> std::shared_ptr<const IColorMap>
+{
+  return std::const_pointer_cast<const IColorMap>(
+      m_colorMaps->GetColorMapPtr(m_angleColorMapName[GetSegmentNum(angle)]));
+}
+
+auto FlyingStarsFx::FlyingStarsImpl::GetCurrentColorMapPtr(const float angle) const
+    -> std::shared_ptr<const IColorMap>
+{
+  return std::const_pointer_cast<const IColorMap>(
+      m_colorMaps->GetColorMapPtr(m_angleColorMapName[GetSegmentNum(angle)]));
+}
+
+auto FlyingStarsFx::FlyingStarsImpl::GetCurrentLowColorMapPtr(const float angle) const
+    -> std::shared_ptr<const IColorMap>
+{
+  return std::const_pointer_cast<const IColorMap>(
+      m_colorMaps->GetColorMapPtr(m_angleColorMapName[GetSegmentNum(angle)]));
+}
+
+auto FlyingStarsFx::FlyingStarsImpl::GetSegmentNum(const float angle) -> size_t
+{
+  const float segmentSize = m_two_pi / static_cast<float>(NUM_SEGMENTS);
+  float a = segmentSize;
+  for (size_t i = 0; i < NUM_SEGMENTS; ++i)
+  {
+    if (angle <= a)
+    {
+      return i;
+    }
+    a += segmentSize;
+  }
+  throw std::logic_error("Angle too large.");
 }
 
 void FlyingStarsFx::FlyingStarsImpl::ChangeColorMode()
@@ -688,10 +809,8 @@ inline auto FlyingStarsFx::FlyingStarsImpl::GetMixedColors(const Star& star,
  */
 void FlyingStarsFx::FlyingStarsImpl::UpdateStar(Star& s)
 {
-  s.x += s.xVelocity;
-  s.y += s.yVelocity;
-  s.xVelocity += s.xAcceleration;
-  s.yVelocity += s.yAcceleration;
+  s.pos += s.velocity;
+  s.velocity += s.acceleration;
   s.age += s.vage;
 }
 
@@ -702,6 +821,34 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
 {
   m_stats.SoundEventOccurred();
 
+  if (m_fxMode == StarModes::NO_FX)
+  {
+    m_stats.NoFxChosen();
+    return;
+  }
+
+  m_maxStarAge = MIN_STAR_AGE + GetNRand(MAX_STAR_EXTRA_AGE);
+  m_useSingleBufferOnly = ProbabilityOfMInN(1, 100);
+
+  UpdateWindAndGravity();
+  ChangeColorMaps();
+
+  // Why 200 ? Because the FX was developed on 320x200.
+  constexpr float WIDTH = 320.0;
+  constexpr float HEIGHT = 200.0;
+  constexpr float MIN_HEIGHT = 50.0;
+  const auto heightRatio = static_cast<float>(m_goomInfo->GetScreenInfo().height) / HEIGHT;
+  const float defaultRadius = (1.0F + m_goomInfo->GetSoundInfo().GetGoomPower()) *
+                              GetRandInRange(MIN_HEIGHT, HEIGHT) / WIDTH;
+
+  const StarModeParams starParams = GetStarParams(defaultRadius, heightRatio);
+  const size_t maxStarsInBomb = GetMaxStarsInABomb(heightRatio);
+
+  AddStarBombs(starParams, maxStarsInBomb);
+}
+
+void FlyingStarsFx::FlyingStarsImpl::UpdateWindAndGravity()
+{
   if (ProbabilityOfMInN(1, 10))
   {
     m_minSideWind = GetRandInRange(MIN_MIN_SIDE_WIND, MAX_MIN_SIDE_WIND);
@@ -709,118 +856,137 @@ void FlyingStarsFx::FlyingStarsImpl::SoundEventOccurred()
     m_minGravity = GetRandInRange(MIN_MIN_GRAVITY, MAX_MIN_GRAVITY);
     m_maxGravity = GetRandInRange(MIN_MAX_GRAVITY, MAX_MAX_GRAVITY);
   }
+}
 
-  const auto halfWidth = static_cast<int32_t>(m_goomInfo->GetScreenInfo().width / 2);
-  const auto halfHeight = static_cast<int32_t>(m_goomInfo->GetScreenInfo().height / 2);
+auto FlyingStarsFx::FlyingStarsImpl::GetMaxStarsInABomb(const float heightRatio) const -> size_t
+{
+  auto maxStarsInBomb = static_cast<size_t>(
+      heightRatio *
+      (100.0F + (1.0F + m_goomInfo->GetSoundInfo().GetGoomPower()) * GetRandInRange(0.0F, 150.0F)));
 
-  m_maxStarAge = MIN_STAR_AGE + GetNRand(MAX_STAR_EXTRA_AGE);
-  m_useSingleBufferOnly = ProbabilityOfMInN(1, 100);
+  if (m_goomInfo->GetSoundInfo().GetTimeSinceLastBigGoom() < 1)
+  {
+    return 2 * maxStarsInBomb;
+  }
 
-  float radius = (1.0F + m_goomInfo->GetSoundInfo().GetGoomPower()) *
-                 static_cast<float>(GetNRand(150) + 50) / 300.0F;
+  return maxStarsInBomb;
+}
 
-  float gravityFactor = 1.0F;
-  float windFactor = 1.0F;
-  int32_t mx;
-  int32_t my;
-  float vage;
+auto FlyingStarsFx::FlyingStarsImpl::GetStarParams(const float defaultRadius,
+                                                   const float heightRatio) -> StarModeParams
+{
+  StarModeParams starParams;
 
   switch (m_fxMode)
   {
-    case StarModes::NO_FX:
-      m_stats.NoFxChosen();
-      return;
     case StarModes::FIREWORKS:
-    {
       m_stats.FireworksFxChosen();
-      const auto rsq = static_cast<double>(halfHeight * halfHeight);
-      while (true)
-      {
-        mx = static_cast<int32_t>(GetNRand(m_goomInfo->GetScreenInfo().width));
-        my = static_cast<int32_t>(GetNRand(m_goomInfo->GetScreenInfo().height));
-        const double sqDist =
-            SqDistance(static_cast<float>(mx - halfWidth), static_cast<float>(my - halfHeight));
-        if (sqDist < rsq)
-        {
-          break;
-        }
-      }
-      vage = m_maxAge * (1.0F - m_goomInfo->GetSoundInfo().GetGoomPower());
-      windFactor = 0.1F;
-      gravityFactor = 0.4F;
-    }
-    break;
+      starParams = GetFireworksStarParams(defaultRadius);
+      break;
     case StarModes::RAIN:
-    {
       m_stats.RainFxChosen();
-      const auto x0 = static_cast<int32_t>(m_goomInfo->GetScreenInfo().width / 25);
-      mx = static_cast<int32_t>(
-          GetRandInRange(x0, static_cast<int32_t>(m_goomInfo->GetScreenInfo().width) - x0));
-      my = -GetRandInRange(3, 64);
-      radius *= 1.5;
-      vage = 0.002F;
-      gravityFactor = 0.4F;
-    }
-    break;
+      starParams = GetRainStarParams(defaultRadius);
+      break;
     case StarModes::FOUNTAIN:
-    {
       m_stats.FountainFxChosen();
       m_maxStarAge *= 2.0 / 3.0;
-      const int32_t x0 = halfWidth / 5;
-      mx = GetRandInRange(halfWidth - x0, halfWidth + x0);
-      my = static_cast<int32_t>(m_goomInfo->GetScreenInfo().height + GetRandInRange(3U, 64U));
-      vage = 0.001F;
-      radius += 1.0F;
-    }
-    break;
+      starParams = GetFountainStarParams(defaultRadius);
+      break;
     default:
       throw std::logic_error("Unknown StarModes enum.");
   }
 
-  // Why 200 ? Because the FX was developed on 320x200.
-  const auto heightRatio = static_cast<float>(m_goomInfo->GetScreenInfo().height) / 200.0F;
-  auto maxStarsInBomb = static_cast<size_t>(
-      heightRatio * (100.0F + (1.0F + m_goomInfo->GetSoundInfo().GetGoomPower()) *
-                                  static_cast<float>(GetNRand(150))));
-  radius *= heightRatio;
+  starParams.radius *= heightRatio;
   if (m_goomInfo->GetSoundInfo().GetTimeSinceLastBigGoom() < 1)
   {
-    radius *= 1.5;
-    maxStarsInBomb *= 2;
+    starParams.radius *= 1.5;
   }
 
-  m_colorMapsManager.ChangeColorMapNow(m_dominantColorMapID);
-  m_colorMapsManager.ChangeColorMapNow(m_dominantLowColorMapID);
+  return starParams;
+}
 
-  const bool megaColorMode = ProbabilityOfMInN(1, 10);
-  if (megaColorMode)
+auto FlyingStarsFx::FlyingStarsImpl::GetFireworksStarParams(const float defaultRadius) const
+    -> StarModeParams
+{
+  StarModeParams starParams;
+
+  const auto rsq = static_cast<double>(m_halfHeight * m_halfHeight);
+  while (true)
   {
-    m_colorMapsManager.UpdateColorMapName(m_colorMapID, ColorMapName::_NULL);
-    m_colorMapsManager.UpdateColorMapName(m_lowColorMapID, ColorMapName::_NULL);
+    starParams.pos.x = static_cast<int32_t>(GetNRand(m_goomInfo->GetScreenInfo().width));
+    starParams.pos.y = static_cast<int32_t>(GetNRand(m_goomInfo->GetScreenInfo().height));
+    const double sqDist = SqDistance(static_cast<float>(starParams.pos.x - m_halfWidth),
+                                     static_cast<float>(starParams.pos.y - m_halfHeight));
+    if (sqDist < rsq)
+    {
+      break;
+    }
   }
-  else
-  {
-    m_colorMapsManager.UpdateColorMapName(m_colorMapID, m_colorMaps->GetRandomColorMapName());
-    m_colorMapsManager.UpdateColorMapName(m_lowColorMapID, m_lowColorMaps->GetRandomColorMapName());
-  }
+
+  starParams.radius = defaultRadius;
+  starParams.vage = m_maxAge * (1.0F - m_goomInfo->GetSoundInfo().GetGoomPower());
+  starParams.windFactor = 0.1F;
+  starParams.gravityFactor = 0.4F;
+
+  return starParams;
+}
+
+auto FlyingStarsFx::FlyingStarsImpl::GetRainStarParams(const float defaultRadius) const
+    -> StarModeParams
+{
+  StarModeParams starParams;
+
+  const auto x0 = static_cast<int32_t>(m_goomInfo->GetScreenInfo().width / 25);
+  starParams.pos.x = static_cast<int32_t>(
+      GetRandInRange(x0, static_cast<int32_t>(m_goomInfo->GetScreenInfo().width) - x0));
+  starParams.pos.y = -GetRandInRange(3, 64);
+
+  starParams.radius = 1.5F * defaultRadius;
+  starParams.vage = 0.002F;
+  starParams.windFactor = 1.0F;
+  starParams.gravityFactor = 0.4F;
+
+  return starParams;
+}
+
+auto FlyingStarsFx::FlyingStarsImpl::GetFountainStarParams(const float defaultRadius) const
+    -> StarModeParams
+{
+  StarModeParams starParams;
+
+  const int32_t x0 = m_halfWidth / 5;
+  starParams.pos.x = GetRandInRange(m_halfWidth - x0, m_halfWidth + x0);
+  starParams.pos.y =
+      static_cast<int32_t>(m_goomInfo->GetScreenInfo().height + GetRandInRange(3U, 64U));
+
+  starParams.radius = 1.0F + defaultRadius;
+  starParams.vage = 0.001F;
+  starParams.windFactor = 1.0F;
+  starParams.gravityFactor = 1.0F;
+
+  return starParams;
+}
+
+void FlyingStarsFx::FlyingStarsImpl::AddStarBombs(const StarModeParams& starModeParams,
+                                                  const size_t maxStarsInBomb)
+{
+  const float sideWind = starModeParams.windFactor * GetRandInRange(m_minSideWind, m_maxSideWind);
+  const float gravity = starModeParams.gravityFactor * GetRandInRange(m_minGravity, m_maxGravity);
 
   for (size_t i = 0; i < maxStarsInBomb; i++)
   {
-    const float sideWind = windFactor * GetRandInRange(m_minSideWind, m_maxSideWind);
-    const float gravity = gravityFactor * GetRandInRange(m_minGravity, m_maxGravity);
-    m_colorMapsManager.ChangeColorMapNow(m_colorMapID);
-    m_colorMapsManager.ChangeColorMapNow(m_lowColorMapID);
-    AddABomb(mx, my, radius, vage, gravity, sideWind);
+    m_randomColorMapsManager.ChangeColorMapNow(m_colorMapID);
+    m_randomColorMapsManager.ChangeColorMapNow(m_lowColorMapID);
+    AddABomb(starModeParams.pos, starModeParams.radius, starModeParams.vage, gravity, sideWind);
   }
 }
 
 /**
  * Cree une nouvelle 'bombe', c'est a dire une particule appartenant a une fusee d'artifice.
  */
-void FlyingStarsFx::FlyingStarsImpl::AddABomb(const int32_t mx,
-                                              const int32_t my,
+void FlyingStarsFx::FlyingStarsImpl::AddABomb(const V2dInt& pos,
                                               const float radius,
-                                              float vage,
+                                              const float vage,
                                               const float gravity,
                                               const float sideWind)
 {
@@ -831,55 +997,42 @@ void FlyingStarsFx::FlyingStarsImpl::AddABomb(const int32_t mx,
   }
   m_stats.AddBomb();
 
-  m_stars.push_back(Star{});
-
+  m_stars.emplace_back(Star{});
   const size_t i = m_stars.size() - 1;
-  m_stars[i].x = static_cast<float>(mx);
-  m_stars[i].y = static_cast<float>(my);
 
-  // TODO Get colormap based on current mode.
-  m_stars[i].dominantColormap = m_colorMapsManager.GetColorMapPtr(m_dominantColorMapID);
-  m_stars[i].dominantLowColormap = m_colorMapsManager.GetColorMapPtr(m_dominantLowColorMapID);
-  m_stars[i].currentColorMap = m_colorMapsManager.GetColorMapPtr(m_colorMapID);
-  m_stars[i].currentLowColorMap = m_colorMapsManager.GetColorMapPtr(m_lowColorMapID);
+  m_stars[i].pos = pos.ToFlt();
 
-  const float ro = radius * GetRandInRange(0.01F, 2.0F);
-  const float angle = GetBombAngle(m_stars[i].x, m_stars[i].y);
+  const float bombRadius = radius * GetRandInRange(0.01F, 2.0F);
+  const float bombAngle = GetBombAngle(m_stars[i]);
 
-  m_stars[i].xVelocity = ro * std::cos(angle);
-  m_stars[i].yVelocity = -0.2F + ro * std::sin(angle);
+  m_stars[i].velocity.x = bombRadius * std::cos(bombAngle);
+  m_stars[i].velocity.y = -0.2F + bombRadius * std::sin(bombAngle);
 
-  m_stars[i].xAcceleration = sideWind;
-  m_stars[i].yAcceleration = gravity;
+  m_stars[i].acceleration.x = sideWind;
+  m_stars[i].acceleration.y = gravity;
 
   m_stars[i].age = GetRandInRange(m_minAge, 0.5F * m_maxAge);
-  if (vage < m_minAge)
-  {
-    vage = m_minAge;
-  }
-  m_stars[i].vage = vage;
+  m_stars[i].vage = std::max(m_minAge, vage);
+
+  UpdateStarColorMaps(bombAngle, m_stars[i]);
 }
 
-auto FlyingStarsFx::FlyingStarsImpl::GetBombAngle(const float x,
-                                                  [[maybe_unused]] const float y) const -> float
+auto FlyingStarsFx::FlyingStarsImpl::GetBombAngle(const Star& star) const -> float
 {
   float minAngle;
   float maxAngle;
 
-  const float xFactor = x / static_cast<float>(m_goomInfo->GetScreenInfo().width - 1);
-
   switch (m_fxMode)
   {
-    case StarModes::NO_FX:
-      return 0;
     case StarModes::FIREWORKS:
-      minAngle = 0;
+      minAngle = 0.0;
       maxAngle = m_two_pi;
       break;
     case StarModes::RAIN:
     {
       constexpr float MIN_RAIN_ANGLE = 0.1;
       constexpr float MAX_RAIN_ANGLE = m_pi - 0.1;
+      const float xFactor = star.pos.x / static_cast<float>(m_goomInfo->GetScreenInfo().width - 1);
       minAngle = stdnew::lerp(MIN_RAIN_ANGLE, m_half_pi - 0.1F, 1.0F - xFactor);
       maxAngle = stdnew::lerp(m_half_pi + 0.1F, MAX_RAIN_ANGLE, xFactor);
       break;
