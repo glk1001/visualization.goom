@@ -64,9 +64,15 @@ inline auto Parallel::GetThreadIds() const -> std::vector<std::thread::id>
 template<typename Callable>
 void Parallel::ForLoop(uint32_t numIters, const Callable loopFunc)
 {
-  const uint32_t numThreads = m_threadPool.GetNumWorkers();
+  if (numIters == 0)
+  {
+    throw std::logic_error("ForLoop: numIters == 0.");
+  }
 
-  if (numIters < numThreads || numThreads == 1)
+  const uint32_t numThreads =
+      std::min(numIters, static_cast<uint32_t>(m_threadPool.GetNumWorkers()));
+
+  if (numThreads == 1)
   {
     for (uint32_t i = 0; i < numIters; i++)
     {

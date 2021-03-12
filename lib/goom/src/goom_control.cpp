@@ -703,10 +703,6 @@ GoomControl::GoomControl(const uint32_t resx, const uint32_t resy, std::string r
 
 GoomControl::~GoomControl() noexcept = default;
 
-void GoomControl::SaveState([[maybe_unused]] std::ostream& f) const
-{
-}
-
 auto GoomControl::GetResourcesDirectory() const -> const std::string&
 {
   return m_controller->GetResourcesDirectory();

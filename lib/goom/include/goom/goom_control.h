@@ -29,8 +29,6 @@ public:
   auto operator=(const GoomControl&) -> GoomControl& = delete;
   auto operator=(GoomControl&&) -> GoomControl& = delete;
 
-  void SaveState(std::ostream& s) const;
-
   [[nodiscard]] auto GetResourcesDirectory() const -> const std::string&;
   void SetResourcesDirectory(const std::string& dirName);
 
